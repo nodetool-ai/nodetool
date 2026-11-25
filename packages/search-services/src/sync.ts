@@ -23,7 +23,7 @@ import {
   deleteIndexedItem,
   deleteItemsById,
   writeIndexedItem,
-  writeSkippedItem
+  writeExcludedItem
 } from "./index-writer.js";
 import { extractSources, listSourceVersions, RESOURCE_TYPE_BY_MODEL } from "./sources.js";
 
@@ -32,16 +32,39 @@ const log = createLogger("nodetool.search.sync");
 /** What one reconcile did. */
 export interface ReconcileResult {
   indexed: number;
-  skipped: number;
+  excluded: number;
   removed: number;
+  /** Items left for the indexer to extract. */
+  pending: number;
+}
+
+function emptyResult(): ReconcileResult {
+  return { indexed: 0, excluded: 0, removed: 0, pending: 0 };
+}
+
+let wakeIndexer: (() => void) | null = null;
+
+/**
+ * Called whenever a write leaves work for the indexer. The server points it
+ * at the indexer child's IPC channel; the indexer itself points it at its own
+ * wait.
+ */
+export function setLibraryIndexerWake(handler: (() => void) | null): void {
+  wakeIndexer = handler;
+}
+
+/** Tell the indexer there is work, through whatever handler is set. */
+export function wakeLibraryIndexer(): void {
+  wakeIndexer?.();
 }
 
 /** Bring the items of some source rows up to date. Rows that are gone lose their items. */
 async function syncRows(
   resourceType: SearchResourceType,
   userId: string,
-  rows: ReadonlyArray<{ id: string; version: string }>,
-  result: ReconcileResult
+  rows: ReadonlyArray<{ id: string }>,
+  result: ReconcileResult,
+  priority = 0
 ): Promise<void> {
   const extracted = await extractSources(
     resourceType,
@@ -53,12 +76,13 @@ async function syncRows(
     if (item === undefined) {
       await deleteIndexedItem(userId, resourceType, row.id);
       result.removed += 1;
-    } else if (item === "skip") {
-      await writeSkippedItem(userId, resourceType, row.id, row.version);
-      result.skipped += 1;
+    } else if ("excluded" in item) {
+      await writeExcludedItem(userId, resourceType, row.id, item.sourceVersion);
+      result.excluded += 1;
     } else {
-      await writeIndexedItem(item);
+      const written = await writeIndexedItem(item, { priority });
       result.indexed += 1;
+      if (written.pending) result.pending += 1;
     }
   }
 }
@@ -71,7 +95,7 @@ async function syncRows(
 export async function reconcileLibraryIndex(
   options: { userId?: string } = {}
 ): Promise<ReconcileResult> {
-  const result: ReconcileResult = { indexed: 0, skipped: 0, removed: 0 };
+  const result = emptyResult();
   const db = getPortableDb();
   for (const resourceType of SEARCH_RESOURCE_TYPES) {
     const sources = await listSourceVersions(resourceType, options.userId);
@@ -120,6 +144,7 @@ export async function reconcileLibraryIndex(
       }
     }
   }
+  if (result.pending > 0) wakeIndexer?.();
   return result;
 }
 
@@ -176,11 +201,10 @@ async function drainPending(): Promise<void> {
       if (write.deleted) {
         await deleteIndexedItem(write.userId, write.resourceType, write.id);
       } else {
-        await syncRows(write.resourceType, write.userId, [{ id: write.id, version: "" }], {
-          indexed: 0,
-          skipped: 0,
-          removed: 0
-        });
+        // A person's own change goes ahead of backfill (D14).
+        const result = emptyResult();
+        await syncRows(write.resourceType, write.userId, [{ id: write.id }], result, 2);
+        if (result.pending > 0) wakeIndexer?.();
       }
     } catch (error) {
       log.warn("Library index write failed; the reconcile will retry it", {

@@ -14,7 +14,9 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/asset-services": "*",
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/document-processing": "*",
     "@nodetool-ai/models": "*",
     "@nodetool-ai/protocol": "*",
     "drizzle-orm": "^0.45.2"
@@ -23,7 +25,8 @@
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1",
     "@types/node": "^22.0.0",
-    "@electric-sql/pglite": "^0.5.8"
+    "@electric-sql/pglite": "^0.5.8",
+    "mammoth": "^1.11.0"
   },
   "exports": {
     ".": {
@@ -54,5 +57,13 @@
     "ai",
     "search",
     "library"
-  ]
+  ],
+  "peerDependencies": {
+    "mammoth": "^1.11.0"
+  },
+  "peerDependenciesMeta": {
+    "mammoth": {
+      "optional": true
+    }
+  }
 }

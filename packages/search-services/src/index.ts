@@ -1,5 +1,6 @@
 export {
   EXTRACTOR_VERSION,
+  assetContentFormat,
   assetKind,
   extractAsset,
   extractDocument,
@@ -11,7 +12,9 @@ export {
   flushLibraryIndexWrites,
   reconcileLibraryIndex,
   startLibraryIndexWrites,
+  setLibraryIndexerWake,
   stopLibraryIndexWrites,
+  wakeLibraryIndexer,
   type ReconcileResult
 } from "./sync.js";
 export {
@@ -32,3 +35,31 @@ export {
   type AssetSearchOptions,
   type AssetSearchResult
 } from "./assets.js";
+export { chunkLines, chunkMarkdown, chunkPlainText, PASSAGE_CHARS } from "./chunking.js";
+export {
+  extractContent,
+  setAssetBytesReader,
+  type AssetBytesReader,
+  type ContentResult
+} from "./content.js";
+export {
+  claimPendingItems,
+  completeItem,
+  failItem,
+  retryFailedItems,
+  MAX_ATTEMPTS,
+  type ClaimedItem
+} from "./queue.js";
+export {
+  defaultIndexerOwner,
+  runIndexerPass,
+  runLibraryIndexer,
+  type IndexerPass,
+  type LibraryIndexerOptions
+} from "./indexer.js";
+export {
+  readLibraryPassage,
+  type LibraryPassage,
+  type LibraryReadRequest,
+  type LibraryReadResult
+} from "./read.js";

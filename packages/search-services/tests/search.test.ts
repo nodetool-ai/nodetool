@@ -155,12 +155,12 @@ describe.each(dialects)("library search on %s", (_name, init) => {
     const asset = await Asset.create({ user_id: USER, name: "orphan.png", content_type: "image/png" });
     expect(await getPortableDb().select().from(searchItems)).toEqual([]);
 
-    expect(await reconcileLibraryIndex()).toEqual({ indexed: 1, skipped: 0, removed: 0 });
+    expect(await reconcileLibraryIndex()).toEqual({ indexed: 1, excluded: 0, removed: 0, pending: 0 });
     expect(await getPortableDb().select().from(searchChunks)).not.toEqual([]);
-    expect(await reconcileLibraryIndex()).toEqual({ indexed: 0, skipped: 0, removed: 0 });
+    expect(await reconcileLibraryIndex()).toEqual({ indexed: 0, excluded: 0, removed: 0, pending: 0 });
 
     await asset.delete();
-    expect(await reconcileLibraryIndex()).toEqual({ indexed: 0, skipped: 0, removed: 1 });
+    expect(await reconcileLibraryIndex()).toEqual({ indexed: 0, excluded: 0, removed: 1, pending: 0 });
   });
 
   it("answers asset searches with rows, folder paths and the full total", async () => {
