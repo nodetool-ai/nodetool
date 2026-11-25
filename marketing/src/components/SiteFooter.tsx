@@ -26,6 +26,7 @@ const COLUMNS: Col[] = [
     title: "Product",
     links: [
       { name: "Download", href: "/download" },
+      { name: "Live demo", href: "/demo" },
       { name: "Studio", href: "/studio" },
       { name: EDITIONS.cloud.navLabel, href: "/cloud" },
       { name: "Node-based AI", href: "/node-based-ai" },

@@ -76,6 +76,14 @@ export default function NodeToolHero() {
             Try in your browser
           </a>
         </div>
+        <a
+          href="/demo"
+          onClick={() => track("View Demo", { action: "open-page", placement: "hero" })}
+          className="mt-4 inline-flex items-center gap-1.5 rounded text-sm font-semibold text-sky-200 underline-offset-4 hover:underline focus-ring"
+        >
+          Or open the live demo, no sign-in
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </a>
 
         {/* Setup line, directly under the CTA (NARRATIVE.md § Positioning
             line). Plan sign-in is Studio only (SubscriptionSection), and Cloud
