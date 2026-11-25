@@ -60,6 +60,18 @@ export interface McpRemoteTool {
   name: string;
   description?: string;
   inputSchema: JsonSchema;
+  /** The server's `readOnlyHint` annotation: a hint from the server, not a guarantee. */
+  readOnly?: boolean;
+}
+
+/** What a belt tool needs from a connection: the pool, or a host's access wrapper. */
+export interface McpCaller {
+  call(
+    serverId: string,
+    remoteName: string,
+    args: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<McpCallResult>;
 }
 
 interface PoolEntry {
@@ -91,6 +103,35 @@ function redact(text: string, secrets: ReadonlySet<string>): string {
   let out = text;
   for (const value of secrets) {
     out = out.split(value).join("[redacted]");
+  }
+  return out;
+}
+
+/** Blank the entry's secrets out of every string in a value a tool returned. */
+function redactValue(value: unknown, secrets: ReadonlySet<string>): unknown {
+  if (typeof value === "string") return redact(value, secrets);
+  if (Array.isArray(value)) return value.map((v) => redactValue(v, secrets));
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, redactValue(v, secrets)])
+    );
+  }
+  return value;
+}
+
+/** A tool's answer with the entry's secrets blanked: tool output is untrusted data. */
+function redactResult(
+  result: McpCallResult,
+  secrets: ReadonlySet<string>
+): McpCallResult {
+  if (secrets.size === 0) return result;
+  const out: McpCallResult = {
+    ...result,
+    text: redact(result.text, secrets),
+    links: redactValue(result.links, secrets) as McpResourceLink[]
+  };
+  if (result.structured !== undefined) {
+    out.structured = redactValue(result.structured, secrets);
   }
   return out;
 }
@@ -255,13 +296,21 @@ export class McpClientPool {
   /**
    * Discover the tools of every server, connecting where needed. A server
    * that fails to connect is reported through `onError`, closed, and dropped
-   * so the next `sync` retries it; it does not sink the belt.
+   * so the next `sync` retries it; it does not sink the belt. `only` limits
+   * the walk to one server, so a caller that needs one is not held by another
+   * that never answers.
    */
-  discover(onError?: McpConnectError): Promise<Map<string, McpRemoteTool[]>> {
+  discover(
+    onError?: McpConnectError,
+    only?: string
+  ): Promise<Map<string, McpRemoteTool[]>> {
     return this.serialized(async () => {
       const out = new Map<string, McpRemoteTool[]>();
+      const wanted = [...this.entries.values()].filter(
+        (entry) => only === undefined || entry.config.id === only
+      );
       await Promise.all(
-        [...this.entries.values()].map(async (entry) => {
+        wanted.map(async (entry) => {
           try {
             if (entry.tools === null) {
               const client = await entry.client;
@@ -312,7 +361,7 @@ export class McpClientPool {
         undefined,
         signal === undefined ? {} : { signal }
       );
-      return normalizeCallResult(result);
+      return redactResult(normalizeCallResult(result), entry.secrets);
     } catch (err) {
       if (signal?.aborted !== true) {
         await this.serialized(() => this.evict(entry));
@@ -495,7 +544,8 @@ async function listAllTools(client: Client): Promise<McpRemoteTool[]> {
         inputSchema: (t.inputSchema ?? {
           type: "object",
           properties: {}
-        }) as JsonSchema
+        }) as JsonSchema,
+        readOnly: t.annotations?.readOnlyHint === true
       });
     }
     cursor = page.nextCursor;
@@ -633,7 +683,7 @@ export class ExternalMcpTool extends Tool {
   protected override readonly jsonSchema: JsonSchema;
 
   constructor(
-    private readonly pool: McpClientPool,
+    private readonly pool: McpCaller,
     readonly serverId: string,
     readonly remote: McpRemoteTool,
     name: string = mcpToolName(serverId, remote.name)
@@ -692,6 +742,14 @@ export async function getExternalMcpTools(
   return toolsFrom(pool, discovered);
 }
 
+/** The belt tools for tools a host already discovered, calling through `caller`. */
+export function externalMcpBeltTools(
+  caller: McpCaller,
+  byServer: Map<string, McpRemoteTool[]>
+): ExternalMcpTool[] {
+  return toolsFrom(caller, byServer);
+}
+
 /** Same as {@link getExternalMcpTools} from the cached discovery, no I/O. */
 export function getCachedExternalMcpTools(pool: McpClientPool): Tool[] {
   return toolsFrom(pool, pool.cachedTools());
@@ -705,10 +763,10 @@ export function getCachedExternalMcpTools(pool: McpClientPool): Tool[] {
  * discovery answered in.
  */
 function toolsFrom(
-  pool: McpClientPool,
+  pool: McpCaller,
   byServer: Map<string, McpRemoteTool[]>
-): Tool[] {
-  const tools: Tool[] = [];
+): ExternalMcpTool[] {
+  const tools: ExternalMcpTool[] = [];
   const taken = new Set<string>();
   const servers = [...byServer.entries()].sort(([a], [b]) => a.localeCompare(b));
   for (const [serverId, unsorted] of servers) {
