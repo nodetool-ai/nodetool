@@ -16,6 +16,7 @@
 #include <QtTest>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <chrono>
 #include <thread>
@@ -219,6 +220,134 @@ private slots:
         QCOMPARE(s.failures.size(), std::size_t(1));
         QVERIFY(QString::fromStdString(s.failures[0]).startsWith(QStringLiteral("missing: ")));
         QCOMPARE(s.underruns, std::int64_t(0));
+    }
+
+    // N2: Control-thread timeline edits must share a single serialized writer to feed.device
+    // with device notifications and must not overwrite a stopped device state back to running.
+    void n2_deviceSeqlockSingleWriterAndStoppedStatePreserved() {
+        auto off = std::make_shared<Timeline>();
+        off->durationMs = 1000.0;
+        off->raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                              {QStringLiteral("limiter"), false}});
+        auto on = std::make_shared<Timeline>(*off);
+        on->raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                             {QStringLiteral("limiter"), true}});
+
+        AudioEngine engine;
+        engine.setTimeline(off);
+        AudioEngine::Options opts;
+        opts.backend = AudioEngine::Backend::Manual;
+        opts.sampleRate = 48000;
+        opts.simulatedLatencySec = 0.010;
+        std::string err;
+        QVERIFY2(engine.start(opts, &err), err.c_str());
+
+        // Part A: If the OS notified the engine that the device stopped, a subsequent timeline edit
+        // must not re-publish running=true over the stopped state.
+        engine.simulateDeviceNotification(false);
+        QVERIFY(!engine.feed().device.load().running);
+        engine.setTimeline(on);
+        QVERIFY2(!engine.feed().device.load().running,
+                 "publishPlan overwrote stopped device state back to running=true");
+        engine.simulateDeviceNotification(true);
+        QVERIFY(engine.feed().device.load().running);
+
+        // Part B: Concurrent control-thread edits and device reroute notifications must never
+        // corrupt the DeviceInfo seqlock sequence counter or publish negative/torn latency.
+        std::atomic<bool> done{false};
+        std::thread rerouter([&] {
+            for (int i = 0; i < 4000; ++i) {
+                engine.simulateDeviceChange((i & 1) ? 0.020 : 0.010);
+            }
+            done.store(true, std::memory_order_release);
+        });
+        std::thread editor([&] {
+            for (int i = 0; !done.load(std::memory_order_acquire) && i < 4000; ++i) {
+                engine.setTimelineAsync((i & 1) ? on : off);
+            }
+        });
+        std::uint64_t lastGen = 0;
+        bool readerFailed = false;
+        bool tornLatency = false;
+        while (!done.load(std::memory_order_acquire)) {
+            playback::DeviceInfo info;
+            if (!engine.feed().device.tryLoad(info, 50000)) {
+                readerFailed = true;
+                break;
+            }
+            if (info.generation < lastGen) {
+                readerFailed = true;
+                break;
+            }
+            lastGen = info.generation;
+            if (!std::isfinite(info.outputLatencySec) || info.outputLatencySec < 0.009) {
+                tornLatency = true;
+                break;
+            }
+        }
+        rerouter.join();
+        editor.join();
+        playback::DeviceInfo finalInfo;
+        const bool coherentAfter = engine.feed().device.tryLoad(finalInfo, 50000);
+        engine.stop();
+        QVERIFY2(!readerFailed && coherentAfter, "DeviceInfo seqlock corrupted or stuck odd under concurrent writes");
+        QVERIFY2(!tornLatency, "DeviceInfo published torn outputLatencySec");
+    }
+
+    // Round 3 N2: Device notifications must hand feed.device publication to the non-audio worker thread
+    // instead of acquiring a mutex and publishing directly on the notification thread.
+    void r3_n2_deviceNotificationHandedToNonAudioWriter() {
+        AudioEngine engine;
+        AudioEngine::Options opts;
+        opts.backend = AudioEngine::Backend::Manual;
+        opts.sampleRate = 48000;
+        opts.simulatedLatencySec = 0.010;
+        std::string err;
+        QVERIFY2(engine.start(opts, &err), err.c_str());
+        // Let the worker settle into idle wait.
+        QTest::qWait(30);
+        const std::int64_t wakesBefore = engine.stats().workerWakes;
+        const std::uint64_t genBefore = engine.feed().device.load().generation;
+        for (int i = 0; i < 10; ++i) {
+            engine.simulateDeviceNotification(false);
+            QVERIFY(!engine.feed().device.load().running);
+            engine.simulateDeviceNotification(true);
+            QVERIFY(engine.feed().device.load().running);
+        }
+        const std::int64_t wakesAfter = engine.stats().workerWakes;
+        const std::uint64_t genAfter = engine.feed().device.load().generation;
+        QCOMPARE(genAfter, genBefore + 10);
+        QVERIFY2(wakesAfter >= wakesBefore + 20,
+                 qPrintable(QStringLiteral("N2 device notifications did not hand publication to the non-audio worker "
+                                           "(workerWakes delta=%1, expected >= 20)")
+                                .arg(wakesAfter - wakesBefore)));
+
+        // Lock-free audio-loop notification path (PulseAudio): invoking notification handler
+        // without blocking or locking while control-thread edits run still hands publication
+        // to the non-audio worker thread cleanly.
+        auto off = std::make_shared<Timeline>();
+        off->durationMs = 1000.0;
+        off->raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                              {QStringLiteral("limiter"), false}});
+        auto on = std::make_shared<Timeline>(*off);
+        on->raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                             {QStringLiteral("limiter"), true}});
+
+        std::atomic<bool> stopEdits{false};
+        std::thread editor([&] {
+            for (int i = 0; !stopEdits.load(std::memory_order_acquire) && i < 2000; ++i) {
+                engine.setTimelineAsync((i & 1) ? on : off);
+            }
+        });
+        engine.simulateDeviceNotificationAsync(false);
+        QTRY_VERIFY(!engine.feed().device.load().running);
+        const std::uint64_t genStopped = engine.feed().device.load().generation;
+        engine.simulateDeviceNotificationAsync(true);
+        QTRY_VERIFY(engine.feed().device.load().running);
+        QCOMPARE(engine.feed().device.load().generation, genStopped + 1);
+        stopEdits.store(true, std::memory_order_release);
+        editor.join();
+        engine.stop();
     }
 };
 

@@ -1325,7 +1325,8 @@ export type TimelineTrack = z.infer<typeof timelineTrack>;
 export const timelineMasterChannel = z.object({
   volumeDb: z.number().min(-120).max(24),
   pan: z.number().min(-1).max(1).optional(),
-  effects: z.array(trackEffect).optional()
+  effects: z.array(trackEffect).optional(),
+  limiter: z.boolean().optional()
 });
 export type TimelineMasterChannel = z.infer<typeof timelineMasterChannel>;
 

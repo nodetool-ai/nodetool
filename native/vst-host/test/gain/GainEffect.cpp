@@ -66,10 +66,21 @@ public:
     }
 
     void getStateInformation(juce::MemoryBlock& dest) override {
-        juce::MemoryOutputStream(dest, false).writeFloat(gain_->get());
+        juce::MemoryOutputStream out(dest, false);
+        out.writeFloat(gain_->get());
+        out.writeInt(latency_->get());
     }
     void setStateInformation(const void* data, int size) override {
-        if (size >= (int)sizeof(float)) *gain_ = juce::MemoryInputStream(data, (size_t)size, false).readFloat();
+        juce::MemoryInputStream in(data, (size_t)size, false);
+        if (size >= (int)sizeof(float)) *gain_ = in.readFloat();
+        if (size >= (int)(sizeof(float) + sizeof(int))) {
+            *latency_ = in.readInt();
+            const int lat = latency_->get();
+            setLatencySamples(lat);
+            delayL_.assign(static_cast<size_t>(lat), 0.0f);
+            delayR_.assign(static_cast<size_t>(lat), 0.0f);
+            delayAt_ = 0;
+        }
     }
 
 private:

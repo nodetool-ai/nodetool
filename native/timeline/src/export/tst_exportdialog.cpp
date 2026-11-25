@@ -39,6 +39,7 @@ extern "C" {
 #include <QtTest>
 #include <memory>
 #include <limits>
+#include <cfenv>
 #include <QPainter>
 
 class ExportDialogTest : public QObject {
@@ -547,6 +548,205 @@ private slots:
         QVERIFY(file16.open(QIODevice::ReadOnly));
         const QByteArray bytes16 = file16.readAll();
         QCOMPARE(quint16(quint8(bytes16[34]) | (quint8(bytes16[35]) << 8)), quint16(16));
+    }
+    // F4: 16-bit WAV export applies TPDF dither (preserving sub-LSB sine energy); 24-bit clamps without dither.
+    void wav16UsesTpdfDitherAnd24BitClamps() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        constexpr int frames = 48000;  // 1 second
+        constexpr double freq = 1000.0;
+        constexpr double amp = 0.35 / 32768.0;  // below 0.5 LSB of 16-bit PCM
+        std::vector<float> quiet(std::size_t{frames} * 2);
+        for (int i = 0; i < frames; ++i) {
+            const float s = static_cast<float>(amp * std::sin(2.0 * M_PI * freq * i / 48000.0));
+            quiet[std::size_t{2} * i] = s;
+            quiet[std::size_t{2} * i + 1] = s;
+        }
+        const QString source = dir.filePath("quiet.wav");
+        QVERIFY(nt::assets::writeStereoFloatWav(source, quiet));
+        const QJsonObject raw{{"width", 64}, {"height", 48}, {"fps", 30}, {"durationMs", 1000},
+            {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}, {"index", 0}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"},
+                {"startMs", 0}, {"durationMs", 1000}, {"status", "generated"}, {"mediaPath", source}}}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+
+        nt::exporting::Options options;
+        options.format = "wav";
+        options.audioBitDepth = 16;
+        options.output = dir.filePath("quiet16.wav");
+        const auto result = nt::exporting::exportTimeline(requireValue(parsed.timeline), options, m_testCache.root());
+        QVERIFY2(result.ok(), qPrintable(result.error));
+
+        QFile file(options.output);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QByteArray bytes = file.readAll();
+        const auto u32 = [&](qsizetype o) {
+            return quint32(quint8(bytes[o]) | (quint8(bytes[o + 1]) << 8) | (quint8(bytes[o + 2]) << 16) | (quint8(bytes[o + 3]) << 24));
+        };
+        qsizetype data = -1;
+        for (qsizetype o = 12; o + 8 <= bytes.size();) {
+            const auto id = bytes.mid(o, 4);
+            const auto size = qsizetype(u32(o + 4));
+            if (id == "data") { data = o + 8; break; }
+            o += 8 + size + (size & 1);
+        }
+        QVERIFY(data > 0);
+        const auto* samples = reinterpret_cast<const qint16*>(bytes.constData() + data);
+        double sinCorr = 0.0, cosCorr = 0.0, errSqSum = 0.0, maxErrLsb = 0.0;
+        int nonZero = 0;
+        for (int i = 0; i < frames; ++i) {
+            const double q = static_cast<double>(samples[2 * i]) / 32768.0;
+            if (samples[2 * i] != 0) ++nonZero;
+            const double phase = 2.0 * M_PI * freq * i / 48000.0;
+            sinCorr += q * std::sin(phase);
+            cosCorr += q * std::cos(phase);
+            const double errLsb = static_cast<double>(samples[2 * i]) - static_cast<double>(quiet[std::size_t{2} * i]) * 32768.0;
+            errSqSum += errLsb * errLsb;
+            maxErrLsb = std::max(maxErrLsb, std::abs(errLsb));
+        }
+        const double recoveredAmp = 2.0 * std::hypot(sinCorr, cosCorr) / frames;
+        const double errVarLsb = errSqSum / frames;
+        // Without TPDF dither, every sample rounds to 0 (nonZero == 0, recoveredAmp == 0).
+        QVERIFY2(nonZero > frames / 10, qPrintable(QStringLiteral("expected dithered non-zero samples, got %1").arg(nonZero)));
+        QVERIFY2(std::abs(recoveredAmp - amp) < 0.06 / 32768.0,
+                 qPrintable(QStringLiteral("recovered sub-LSB sine=%1 expected=%2").arg(recoveredAmp * 32768.0).arg(amp * 32768.0)));
+        // TPDF quantization error variance is 1/4 LSB^2 = 0.25 (1/12 quantization + 1/6 TPDF dither), max <= 1.5 LSB.
+        QVERIFY2(errVarLsb > 0.20 && errVarLsb < 0.30, qPrintable(QStringLiteral("errVarLsb=%1").arg(errVarLsb)));
+        QVERIFY2(maxErrLsb <= 1.5 + 1e-6, qPrintable(QStringLiteral("maxErrLsb=%1").arg(maxErrLsb)));
+
+        // 24-bit WAV keeps hard clamp with no dither on hot (> 1.0) input when limiter is off.
+        std::vector<float> hot(std::size_t{256} * 2, 1.5f);
+        hot[2] = -1.5f; hot[3] = -1.5f;
+        const QString hotSource = dir.filePath("hot24.wav");
+        QVERIFY(nt::assets::writeStereoFloatWav(hotSource, hot));
+        QJsonObject hotRaw = raw;
+        hotRaw.insert("durationMs", 5.0);
+        auto clips = hotRaw.value("clips").toArray();
+        auto c0 = clips[0].toObject();
+        c0.insert("durationMs", 5.0);
+        c0.insert("mediaPath", hotSource);
+        clips[0] = c0;
+        hotRaw.insert("clips", clips);
+        auto hotParsed = nt::parseTimelineJson(QJsonDocument(hotRaw).toJson());
+        QVERIFY(hotParsed.timeline);
+        options.audioBitDepth = 24;
+        options.output = dir.filePath("hot24out.wav");
+        QVERIFY(nt::exporting::exportTimeline(requireValue(hotParsed.timeline), options, m_testCache.root()).ok());
+        QFile f24(options.output);
+        QVERIFY(f24.open(QIODevice::ReadOnly));
+        const QByteArray b24 = f24.readAll();
+        qsizetype d24 = -1;
+        for (qsizetype o = 12; o + 8 <= b24.size();) {
+            const auto id = b24.mid(o, 4);
+            const auto sz = qsizetype(quint32(quint8(b24[o + 4]) | (quint8(b24[o + 5]) << 8) | (quint8(b24[o + 6]) << 16) | (quint8(b24[o + 7]) << 24)));
+            if (id == "data") { d24 = o + 8; break; }
+            o += 8 + sz + (sz & 1);
+        }
+        QVERIFY(d24 > 0);
+        const auto s24 = [&](qsizetype idx) {
+            const auto* p = reinterpret_cast<const quint8*>(b24.constData() + d24 + idx * 3);
+            qint32 v = qint32(p[0] | (p[1] << 8) | (p[2] << 16));
+            if (v & 0x800000) v -= 0x1000000;
+            return v;
+        };
+        QCOMPARE(s24(0), qint32(8388607));
+        QCOMPARE(s24(2), qint32(-8388608));
+    }
+    // D17: 16-bit WAV TPDF dither must sanitize NaN and Inf samples (e.g. from a VST) to 0 instead of UB / full-scale pop.
+    void d17_wav16TpdfDitherSanitizesNanSamples() {
+        class NonFiniteInjector final : public nt::audio::BlockProcessor {
+        public:
+            void process(std::span<float> stereo, const nt::audio::BlockContext& ctx) noexcept override {
+                if (ctx.timelineMs < 1.0 && stereo.size() >= 24) {
+                    stereo[20] = std::numeric_limits<float>::quiet_NaN();
+                    stereo[21] = std::numeric_limits<float>::quiet_NaN();
+                    stereo[22] = std::numeric_limits<float>::infinity();
+                    stereo[23] = -std::numeric_limits<float>::infinity();
+                }
+            }
+        };
+        const auto token = nt::audio::registerMixPlanStage(
+            "dsp1-d17-nonfinite",
+            [](const nt::Timeline&, nt::audio::MixPlan& plan) {
+                plan.processors.push_back(std::make_shared<NonFiniteInjector>());
+            },
+            900);
+        const auto cleanup = qScopeGuard([token] { nt::audio::unregisterMixPlanStage(token); });
+
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QJsonObject raw{{"width", 64}, {"height", 48}, {"fps", 30}, {"durationMs", 5.0},
+            {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}, {"index", 0}}}},
+            {"clips", QJsonArray{}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        nt::exporting::Options options;
+        options.format = "wav";
+        options.audioBitDepth = 16;
+        options.output = dir.filePath("nan16.wav");
+        const auto result = nt::exporting::exportTimeline(requireValue(parsed.timeline), options, m_testCache.root());
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        QFile file(options.output);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QByteArray bytes = file.readAll();
+        qsizetype data = -1;
+        for (qsizetype o = 12; o + 8 <= bytes.size();) {
+            const auto id = bytes.mid(o, 4);
+            const auto sz = qsizetype(quint32(quint8(bytes[o + 4]) | (quint8(bytes[o + 5]) << 8) | (quint8(bytes[o + 6]) << 16) | (quint8(bytes[o + 7]) << 24)));
+            if (id == "data") { data = o + 8; break; }
+            o += 8 + sz + (sz & 1);
+        }
+        QVERIFY(data > 0);
+        const auto* samples = reinterpret_cast<const qint16*>(bytes.constData() + data);
+        QVERIFY2(std::abs(samples[20]) <= 1 && std::abs(samples[21]) <= 1 &&
+                     std::abs(samples[22]) <= 1 && std::abs(samples[23]) <= 1,
+                 qPrintable(QStringLiteral("Non-finite sample produced pop (%1, %2, %3, %4)")
+                                .arg(samples[20]).arg(samples[21]).arg(samples[22]).arg(samples[23])));
+    }
+    // D18: 16-bit WAV TPDF dither must not depend on ambient FP rounding mode (FE_TOWARDZERO vs FE_TONEAREST).
+    void d18_wav16TpdfDitherIgnoresAmbientRoundingMode() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        constexpr int frames = 4800;
+        std::vector<float> pcm(std::size_t{frames} * 2);
+        for (int i = 0; i < frames; ++i) {
+            const float s = static_cast<float>(0.25 * std::sin(2.0 * M_PI * 1000.0 * i / 48000.0));
+            pcm[std::size_t{2} * i] = s;
+            pcm[std::size_t{2} * i + 1] = s;
+        }
+        const QString source = dir.filePath("tone.wav");
+        QVERIFY(nt::assets::writeStereoFloatWav(source, pcm));
+        const QJsonObject raw{{"width", 64}, {"height", 48}, {"fps", 30}, {"durationMs", 100.0},
+            {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}, {"index", 0}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"},
+                {"startMs", 0}, {"durationMs", 100.0}, {"status", "generated"}, {"mediaPath", source}}}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        const int savedRound = std::fegetround();
+        const auto restoreRound = qScopeGuard([savedRound] { std::fesetround(savedRound); });
+
+        auto exportUnderMode = [&](int mode, const QString& name) {
+            std::fesetround(mode);
+            nt::exporting::Options options;
+            options.format = "wav";
+            options.audioBitDepth = 16;
+            options.output = dir.filePath(name);
+            const auto res = nt::exporting::exportTimeline(requireValue(parsed.timeline), options, m_testCache.root());
+            QByteArray bytes;
+            if (res.ok()) {
+                QFile f(options.output);
+                if (f.open(QIODevice::ReadOnly)) bytes = f.readAll();
+            }
+            return bytes;
+        };
+        const QByteArray nearest = exportUnderMode(FE_TONEAREST, "nearest.wav");
+        const QByteArray towardZero = exportUnderMode(FE_TOWARDZERO, "towardzero.wav");
+        QVERIFY(!nearest.isEmpty() && !towardZero.isEmpty());
+        QCOMPARE(towardZero, nearest);
     }
     void wav24SettingsReachTheCommandLine() {
         auto settings = nt::exporting::settingsFromVariant({{"format", "wav"}, {"audioBitDepth", 24}});

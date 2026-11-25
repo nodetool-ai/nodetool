@@ -115,6 +115,7 @@ public:
     bool hasPendingOutput(int n) const noexcept override { return inner_->hasPendingOutput(n); }
     bool keepsActiveInput() const noexcept override { return inner_->keepsActiveInput(); }
     bool setParameter(std::string_view name,double value) noexcept override { return inner_->setParameter(name,value); }
+    int latencySamples() const noexcept override { return inner_->latencySamples(); }
     void process(std::span<float> stereo,const audio::BlockContext& context) noexcept override {
         if (quantum_) {
             // DynamicsCompressorNode's AudioParams are k-rate.

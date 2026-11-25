@@ -299,6 +299,8 @@ QList<Command> buildAllowed() {
     edit("setTrackVolume", "Set a track's volume", {track, db});
     edit("setTrackPan", "Set a track's pan", {track, P{"pan", ParamKind::Number, true, "-1 is left, 1 is right.", {}, {}, -1, 1}});
     edit("setMasterVolume", "Set the master volume", {db});
+    edit("setMasterLimiter", "Enable or disable the master true-peak limiter",
+         {P{"enabled", ParamKind::Boolean, true, "True enables the -1 dBTP look-ahead limiter (default). False turns it off."}});
     edit("music.setTrackRole", "Set a track's music role",
          {track, P{"role", ParamKind::Choice, true, "The instrument the track holds in a music project. Add instrument generates this stem.",
                    {"vocals", "backing_vocals", "drums", "bass", "guitar", "keyboard", "percussion", "strings", "synth", "fx", "brass", "woodwinds"}}});

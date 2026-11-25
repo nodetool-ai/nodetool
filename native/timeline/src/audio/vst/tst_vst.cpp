@@ -1577,6 +1577,470 @@ for line in sys.stdin:
         QCOMPARE(offline[0].pitch, 38);
         QCOMPARE(offline[0].velocity, 90);
     }
+
+    // F1: plug-in delay compensation aligns wet/dry blend and all tracks in live playback and offline render.
+    void pluginDelayCompensationAlignsWetDryAndTracks() {
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString gainVst = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
+        if (hostExe.isEmpty() || gainVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or GainEffect.vst3 not built in native/vst-host/build");
+        }
+        auto client = sharedVstHostClient();
+        client->setOverrideExecutable(hostExe);
+        client->setExtraScanDirs({QFileInfo(gainVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client->scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* gain = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == gainVst) gain = &p;
+        }
+        QVERIFY(gain != nullptr);
+
+        // Configure GainEffect state with gain = 0.5 (normalized 0.25) and latency = 512 samples (normalized 512/2048).
+        QJsonObject paramReply;
+        QVERIFY2(client->setParameters(
+                     QJsonObject{{"instance", "pdc-setup"},
+                                 {"path", gain->path},
+                                 {"uid", gain->uid},
+                                 {"state", QJsonValue::Null},
+                                 {"changes", QJsonArray{QJsonObject{{"index", 0}, {"value", 0.25}},
+                                                        QJsonObject{{"index", 1}, {"value", 512.0 / 2048.0}}}}},
+                     &paramReply, &error),
+                 qPrintable(error));
+        const QString delayedState = paramReply.value("state").toString();
+        QVERIFY(!delayedState.isEmpty());
+
+        // Single-sample impulse (0.5f) at frame 1000.
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+        const QString wavPath = tmp.filePath(QStringLiteral("impulse.wav"));
+        constexpr int kFrames = 8192;
+        constexpr int kImpulseFrame = 1000;
+        std::vector<float> impulse(std::size_t{kFrames} * 2, 0.0f);
+        impulse[std::size_t{kImpulseFrame} * 2] = 0.5f;
+        impulse[std::size_t{kImpulseFrame} * 2 + 1] = 0.5f;
+        QVERIFY(writeStereoFloatWav(wavPath, 48000, impulse));
+
+        const QJsonObject gainRef{{"uid", gain->uid}, {"name", gain->name}, {"vendor", gain->vendor}, {"path", gain->path}};
+        const auto peakFrame = [](const std::vector<float>& pcm, int from, int to) {
+            int best = -1;
+            float bestVal = 0.0f;
+            const int limit = std::min<int>(to, static_cast<int>(pcm.size() / 2));
+            for (int f = std::max(0, from); f < limit; ++f) {
+                const float v = std::abs(pcm[static_cast<std::size_t>(f) * 2]);
+                if (v > bestVal) { bestVal = v; best = f; }
+            }
+            return std::pair<int, float>{best, bestVal};
+        };
+
+        // 1. Wet/dry = 0.5 on a 512-sample latency VST effect: dry path must be delayed to match wet.
+        {
+            const QJsonObject fxHalfWet{{"id", "pdc-wd"}, {"type", "vst"}, {"enabled", true},
+                                        {"plugin", gainRef}, {"state", delayedState}, {"wet", 0.5}};
+            const QJsonObject raw{
+                {"id", "tl-pdc-wd"}, {"name", "PDC WetDry"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+                {"durationMs", 200}, {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", QJsonArray{QJsonObject{{"id", "a1"}, {"name", "A1"}, {"type", "audio"}, {"index", 0},
+                                                  {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{fxHalfWet}}}}},
+                {"clips", QJsonArray{QJsonObject{{"id", "c1"}, {"trackId", "a1"}, {"name", "Imp"}, {"startMs", 0},
+                                                 {"durationMs", 200}, {"inPointMs", 0}, {"mediaType", "audio"},
+                                                 {"status", "generated"}, {"mediaPath", wavPath}}}}};
+            const auto out = nt::audio::renderOffline(parseRaw(raw), 48000, 0, 200);
+            // Dry (0.5 * 0.5 = 0.25) + wet (0.5 * 0.25 = 0.125) = 0.375 at ONE single aligned frame (frame 1000).
+            const auto [pf, pv] = peakFrame(out, 0, 4000);
+            QCOMPARE(pf, kImpulseFrame);
+            QVERIFY2(std::abs(pv - 0.375f) < 1e-3f,
+                     qPrintable(QStringLiteral("expected aligned wet+dry sum 0.375 at frame %1, got %2 at frame %3")
+                                    .arg(kImpulseFrame).arg(pv).arg(pf)));
+            // No ghost impulse 512 frames later.
+            QVERIFY2(std::abs(out[std::size_t{kImpulseFrame + 512} * 2]) < 1e-4f,
+                     qPrintable(QStringLiteral("uncompensated ghost impulse at +512: %1")
+                                    .arg(out[std::size_t{kImpulseFrame + 512} * 2])));
+        }
+
+        // 2. Multi-track PDC alignment: track 1 has 512-sample VST effect (wet=1), track 2 has no effects.
+        {
+            const QJsonObject fxWet{{"id", "pdc-tr"}, {"type", "vst"}, {"enabled", true},
+                                    {"plugin", gainRef}, {"state", delayedState}, {"wet", 1.0}};
+            const QJsonObject raw{
+                {"id", "tl-pdc-tracks"}, {"name", "PDC Tracks"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+                {"durationMs", 200}, {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", QJsonArray{
+                    QJsonObject{{"id", "t1"}, {"name", "Delayed"}, {"type", "audio"}, {"index", 0},
+                                {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{fxWet}}},
+                    QJsonObject{{"id", "t2"}, {"name", "Dry"}, {"type", "audio"}, {"index", 1},
+                                {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{}}}}},
+                {"clips", QJsonArray{
+                    QJsonObject{{"id", "c1"}, {"trackId", "t1"}, {"name", "I1"}, {"startMs", 0}, {"durationMs", 200},
+                                {"inPointMs", 0}, {"mediaType", "audio"}, {"status", "generated"}, {"mediaPath", wavPath}},
+                    QJsonObject{{"id", "c2"}, {"trackId", "t2"}, {"name", "I2"}, {"startMs", 0}, {"durationMs", 200},
+                                {"inPointMs", 0}, {"mediaType", "audio"}, {"status", "generated"}, {"mediaPath", wavPath}}}}};
+            const auto tl = parseRaw(raw);
+
+            // 2a. Offline render: both tracks align at frame 1000 (0.25 + 0.5 = 0.75) and nothing at 1512.
+            const auto offlineOut = nt::audio::renderOffline(tl, 48000, 0, 200);
+            const auto [offFrame, offVal] = peakFrame(offlineOut, 0, 4000);
+            QCOMPARE(offFrame, kImpulseFrame);
+            QVERIFY2(std::abs(offVal - 0.75f) < 1e-3f,
+                     qPrintable(QStringLiteral("offline tracks not aligned: peak %1 at frame %2").arg(offVal).arg(offFrame)));
+            QVERIFY2(std::abs(offlineOut[std::size_t{kImpulseFrame + 512} * 2]) < 1e-4f,
+                     qPrintable(QStringLiteral("offline track 1 lagged at +512: %1")
+                                    .arg(offlineOut[std::size_t{kImpulseFrame + 512} * 2])));
+
+            // 2b. Live playback (AudioEngine manual backend): both tracks align at frame 1000 + 512 = 1512!
+            nt::audio::AudioEngine engine;
+            engine.setTimeline(std::make_shared<const nt::Timeline>(tl));
+            nt::audio::AudioEngine::Options opts;
+            opts.backend = nt::audio::AudioEngine::Backend::Manual;
+            opts.sampleRate = 48000;
+            std::string startErr;
+            QVERIFY2(engine.start(opts, &startErr), startErr.c_str());
+            nt::playback::TransportCommand cmd;
+            cmd.seq = 1;
+            cmd.playing = true;
+            cmd.rate = 1.0;
+            cmd.seekSeq = 1;
+            cmd.seekMs = 0.0;
+            engine.feed().command.store(cmd);
+            QTRY_VERIFY(engine.stats().sessions >= 1);
+            // Wait until the session is primed so block 0 plays immediately from t=0.
+            QTest::qWait(100);
+            std::vector<float> block(std::size_t{480} * 2, 0.0f);
+            std::vector<float> liveOut;
+            for (int b = 0; b < 10; ++b) {
+                engine.renderManual(block, static_cast<std::int64_t>(b) * 10'000'000LL);
+                liveOut.insert(liveOut.end(), block.begin(), block.end());
+            }
+            engine.stop();
+            const auto [liveFrame, liveVal] = peakFrame(liveOut, 0, static_cast<int>(liveOut.size() / 2));
+            QVERIFY2(liveFrame >= 0 && std::abs(liveVal - 0.75f) < 1e-3f,
+                     qPrintable(QStringLiteral("live tracks not aligned: peak %1 at frame %2").arg(liveVal).arg(liveFrame)));
+            QVERIFY2(liveFrame >= 512 && std::abs(liveOut[static_cast<std::size_t>(liveFrame - 512) * 2]) < 1e-4f,
+                     qPrintable(QStringLiteral("live dry track arrived 512 frames early")));
+        }
+    }
+
+    // D7 & D9: VstAudioStages dry-path ring buffer must stay primed at 0 latency (no dropout on 0->512 transition)
+    // and keep dry passthrough latency-aligned with sibling tracks on host disconnect/crash.
+    void d7_d9_vstDryPathLatencyTransitionAndDisconnectAlignment() {
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString gainVst = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
+        if (hostExe.isEmpty() || gainVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or GainEffect.vst3 not built in native/vst-host/build");
+        }
+        auto client = sharedVstHostClient();
+        client->setOverrideExecutable(hostExe);
+        client->setExtraScanDirs({QFileInfo(gainVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client->scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* gain = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == gainVst) gain = &p;
+        }
+        QVERIFY(gain != nullptr);
+
+        QJsonObject state0Reply, state512Reply;
+        QVERIFY2(client->setParameters(
+                     QJsonObject{{"instance", "d7-setup0"}, {"path", gain->path}, {"uid", gain->uid},
+                                 {"state", QJsonValue::Null},
+                                 {"changes", QJsonArray{QJsonObject{{"index", 0}, {"value", 0.25}},
+                                                        QJsonObject{{"index", 1}, {"value", 0.0}}}}},
+                     &state0Reply, &error),
+                 qPrintable(error));
+        const QString state0 = state0Reply.value("state").toString();
+        QVERIFY2(client->setParameters(
+                     QJsonObject{{"instance", "d7-setup512"}, {"path", gain->path}, {"uid", gain->uid},
+                                 {"state", QJsonValue::Null},
+                                 {"changes", QJsonArray{QJsonObject{{"index", 0}, {"value", 0.25}},
+                                                        QJsonObject{{"index", 1}, {"value", 512.0 / 2048.0}}}}},
+                     &state512Reply, &error),
+                 qPrintable(error));
+        const QString state512 = state512Reply.value("state").toString();
+        const QJsonObject gainRef{{"uid", gain->uid}, {"name", gain->name}, {"vendor", gain->vendor}, {"path", gain->path}};
+
+        // D7: Start with latency=0, wet=0.5, feed steady 0.5f for 1024 frames, then switch live state to latency=512.
+        // Dry path must already hold recent 0.5f samples (no zero-fill dropout).
+        {
+            const QJsonObject fx{{"id", "d7-fx"}, {"type", "vst"}, {"enabled", true},
+                                 {"plugin", gainRef}, {"state", state0}, {"wet", 0.5}};
+            const QJsonObject raw{
+                {"id", "tl-d7"}, {"name", "D7"}, {"fps", 30}, {"width", 1920}, {"height", 1080}, {"durationMs", 1000},
+                {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", QJsonArray{QJsonObject{{"id", "a1"}, {"name", "A1"}, {"type", "audio"}, {"index", 0},
+                                                  {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{fx}}}}},
+                {"clips", QJsonArray{QJsonObject{{"id", "c1"}, {"trackId", "a1"}, {"name", "DC"}, {"startMs", 0},
+                                                 {"durationMs", 1000}, {"inPointMs", 0}, {"mediaType", "audio"},
+                                                 {"status", "generated"}, {"mediaPath", "unused.wav"}}}}};
+            const auto tl = parseRaw(raw);
+            auto plan = nt::audio::buildMixPlan(tl);
+            nt::audio::prepareMixPlan(plan, 48000.0);
+            std::vector<float> dc(std::size_t{4096} * 2, 0.5f);
+            nt::audio::VoicePcm vp{};
+            vp.linear = dc.data();
+            vp.linearCount = 4096;
+            std::vector<float> out(std::size_t{128} * 2, 0.0f);
+            nt::audio::MixStats st;
+            // 8 blocks = 1024 frames at latency=0 -> dry ring must record these 0.5f frames.
+            for (int b = 0; b < 8; ++b) {
+                nt::audio::mixBlock(plan, &vp, 48000.0, b * 128 * 1000.0 / 48000.0, 1000.0 / 48000.0, 128, out.data(), st);
+            }
+            // Dynamically switch live plugin latency 0 -> 512 (same instance id "fx:a1:d7-fx").
+            QVERIFY2(client->setLiveState(QStringLiteral("fx:a1:d7-fx"), state512, &error), qPrintable(error));
+            // Process 2 blocks: first block updates channel->latencySamples to 512; second reads from dry ring at delay=512.
+            float minSample = 1.0f;
+            for (int b = 8; b < 11; ++b) {
+                nt::audio::mixBlock(plan, &vp, 48000.0, b * 128 * 1000.0 / 48000.0, 1000.0 / 48000.0, 128, out.data(), st);
+                for (std::size_t f = 0; f < 128; ++f) {
+                    minSample = std::min(minSample, out[f * 2]);
+                }
+            }
+            // Dry contribution alone is 0.5 * 0.5 = 0.25. If m_dryDelay was empty (zeros), output drops to 0.0!
+            QVERIFY2(minSample >= 0.20f,
+                     qPrintable(QStringLiteral("D7 dry-path dropped out on 0->512 latency switch: minSample=%1").arg(minSample)));
+        }
+    }
+
+    // D9: On VST disconnect/crash mid-stream with 512-sample latency, track 1 must output
+    // latency-compensated dry (aligned with sibling track 2 at +512) rather than undelayed dry.
+    void d9_vstDisconnectKeepsDryPathLatencyAligned() {
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString gainVst = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
+        if (hostExe.isEmpty() || gainVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or GainEffect.vst3 not built in native/vst-host/build");
+        }
+        auto client = sharedVstHostClient();
+        client->setOverrideExecutable(hostExe);
+        client->setExtraScanDirs({QFileInfo(gainVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client->scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* gain = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == gainVst) gain = &p;
+        }
+        QVERIFY(gain != nullptr);
+
+        QJsonObject state512Reply;
+        QVERIFY2(client->setParameters(
+                     QJsonObject{{"instance", "d9-setup512"}, {"path", gain->path}, {"uid", gain->uid},
+                                 {"state", QJsonValue::Null},
+                                 {"changes", QJsonArray{QJsonObject{{"index", 0}, {"value", 0.25}},
+                                                        QJsonObject{{"index", 1}, {"value", 512.0 / 2048.0}}}}},
+                     &state512Reply, &error),
+                 qPrintable(error));
+        const QString state512 = state512Reply.value("state").toString();
+        const QJsonObject gainRef{{"uid", gain->uid}, {"name", gain->name}, {"vendor", gain->vendor}, {"path", gain->path}};
+        {
+            const QJsonObject fx{{"id", "d9-fx"}, {"type", "vst"}, {"enabled", true},
+                                 {"plugin", gainRef}, {"state", state512}, {"wet", 0.5}};
+            const QJsonObject raw{
+                {"id", "tl-d9"}, {"name", "D9"}, {"fps", 30}, {"width", 1920}, {"height", 1080}, {"durationMs", 1000},
+                {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", QJsonArray{
+                    QJsonObject{{"id", "t1"}, {"name", "VST"}, {"type", "audio"}, {"index", 0},
+                                {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{fx}}},
+                    QJsonObject{{"id", "t2"}, {"name", "Dry"}, {"type", "audio"}, {"index", 1},
+                                {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{}}}}},
+                {"clips", QJsonArray{
+                    QJsonObject{{"id", "c1"}, {"trackId", "t1"}, {"name", "I1"}, {"startMs", 0}, {"durationMs", 1000},
+                                {"inPointMs", 0}, {"mediaType", "audio"}, {"status", "generated"}, {"mediaPath", "unused.wav"}},
+                    QJsonObject{{"id", "c2"}, {"trackId", "t2"}, {"name", "I2"}, {"startMs", 0}, {"durationMs", 1000},
+                                {"inPointMs", 0}, {"mediaType", "audio"}, {"status", "generated"}, {"mediaPath", "unused.wav"}}}}};
+            const auto tl = parseRaw(raw);
+            auto plan = nt::audio::buildMixPlan(tl);
+            nt::audio::prepareMixPlan(plan, 48000.0);
+            std::vector<float> imp(std::size_t{4096} * 2, 0.0f);
+            imp[std::size_t{1000} * 2] = 0.5f;
+            imp[std::size_t{1000} * 2 + 1] = 0.5f;
+            nt::audio::VoicePcm vp[2]{};
+            vp[0].linear = imp.data(); vp[0].linearCount = 4096;
+            vp[1].linear = imp.data(); vp[1].linearCount = 4096;
+            std::vector<float> out(std::size_t{2048} * 2, 0.0f);
+            nt::audio::MixStats st;
+            // Warm up 1 block, then kill the host!
+            nt::audio::mixBlock(plan, vp, 48000.0, 0.0, 1000.0 / 48000.0, 128, out.data(), st);
+            client->terminateHostForTest();
+            for (int at = 128; at < 2048; at += 128) {
+                nt::audio::mixBlock(plan, vp, 48000.0, at * 1000.0 / 48000.0, 1000.0 / 48000.0, 128,
+                                    out.data() + static_cast<std::size_t>(at) * 2, st);
+            }
+            // No unaligned early impulse at frame 1000; both tracks align at frame 1512 (0.5 + 0.5 = 1.0).
+            QVERIFY2(std::abs(out[std::size_t{1000} * 2]) < 1e-4f,
+                     qPrintable(QStringLiteral("D9 early undelayed passthrough at frame 1000: %1").arg(out[std::size_t{1000} * 2])));
+            QVERIFY2(std::abs(out[std::size_t{1512} * 2] - 1.0f) < 1e-3f,
+                     qPrintable(QStringLiteral("D9 expected aligned dry sum 1.0 at frame 1512, got %1").arg(out[std::size_t{1512} * 2])));
+        }
+    }
+
+    // D8 & D10: VstDryDelayLine supports runtime latency > 16383 at high sample rates (e.g. 24576 at 192 kHz)
+    // and resets in O(1) on discontinuities without stale-buffer leakage or allocations.
+    void d8_d10_vstDryDelayLineHighLatencyAndO1Discontinuity() {
+        VstDryDelayLine delay;
+        // Prepared at 192 kHz with initial latency 0 -> capacity must exceed 24576 (at least 1 s = 192000).
+        delay.prepare(192000.0, 0);
+        QVERIFY2(delay.capacity() > 24576, qPrintable(QStringLiteral("capacity=%1").arg(delay.capacity())));
+
+        constexpr int kDelay = 24576;
+        constexpr int kImpulseAt = 100;
+        constexpr int kTotal = 26000;
+        std::vector<float> in(std::size_t{128} * 2, 0.0f);
+        std::vector<float> out(std::size_t{128} * 2, 0.0f);
+        int foundAt = -1;
+        float foundVal = 0.0f;
+        for (int at = 0; at < kTotal; at += 128) {
+            std::fill(in.begin(), in.end(), 0.0f);
+            if (kImpulseAt >= at && kImpulseAt < at + 128) {
+                const int off = kImpulseAt - at;
+                in[static_cast<std::size_t>(off) * 2] = 0.75f;
+                in[static_cast<std::size_t>(off) * 2 + 1] = 0.75f;
+            }
+            delay.process(in, out, kDelay, at == 0);
+            for (int f = 0; f < 128; ++f) {
+                if (std::abs(out[static_cast<std::size_t>(f) * 2]) > 0.1f) {
+                    foundAt = at + f;
+                    foundVal = out[static_cast<std::size_t>(f) * 2];
+                }
+            }
+        }
+        // D8: exact 24576-sample delay, NOT clamped to 16383.
+        QCOMPARE(foundAt, kImpulseAt + kDelay);
+        QVERIFY(std::abs(foundVal - 0.75f) < 1e-6f);
+
+        // D10: fill with non-zero audio, then trigger a discontinuity -> must output exact 0.0f for the
+        // first `kDelay` frames without stale leakage, and 1000 discontinuous resets must complete fast (< 50 ms).
+        std::fill(in.begin(), in.end(), 0.9f);
+        delay.process(in, out, 512, false);
+        QElapsedTimer timer;
+        timer.start();
+        std::fill(in.begin(), in.end(), 0.0f);
+        for (int i = 0; i < 1000; ++i) {
+            delay.process(in, out, 512, true);
+            QCOMPARE(delay.validFrames(), std::size_t{128});
+            for (float s : out) {
+                QCOMPARE(s, 0.0f);
+            }
+        }
+        QVERIFY2(timer.elapsed() < 200,
+                 qPrintable(QStringLiteral("1000 discontinuities took %1 ms (expected O(1) reset)").arg(timer.elapsed())));
+    }
+
+    // D8: Initial zero latency at 48 kHz followed by a 65536-sample runtime latency must not clamp to 47999.
+    void d8_vstDryDelayLine65536At48kHzDoesNotClamp() {
+        VstDryDelayLine delay;
+        delay.prepare(48000.0, 0);
+        constexpr int kDelay = 65536;
+        constexpr int kImpulseAt = 100;
+        constexpr int kTotal = kImpulseAt + kDelay + 512;
+        std::vector<float> in(std::size_t{128} * 2, 0.0f);
+        std::vector<float> out(std::size_t{128} * 2, 0.0f);
+        int foundAt = -1;
+        float foundVal = 0.0f;
+        for (int at = 0; at < kTotal; at += 128) {
+            std::fill(in.begin(), in.end(), 0.0f);
+            if (kImpulseAt >= at && kImpulseAt < at + 128) {
+                const int off = kImpulseAt - at;
+                in[static_cast<std::size_t>(off) * 2] = 0.75f;
+                in[static_cast<std::size_t>(off) * 2 + 1] = 0.75f;
+            }
+            QVERIFY(delay.process(in, out, kDelay, at == 0));
+            for (int f = 0; f < 128; ++f) {
+                if (std::abs(out[static_cast<std::size_t>(f) * 2]) > 0.1f) {
+                    foundAt = at + f;
+                    foundVal = out[static_cast<std::size_t>(f) * 2];
+                }
+            }
+        }
+        QCOMPARE(foundAt, kImpulseAt + kDelay);
+        QVERIFY(std::abs(foundVal - 0.75f) < 1e-6f);
+        QCOMPARE(delay.overflowDelay(), std::size_t{0});
+
+        // Requests beyond preallocated maxDelay() must not clamp silently: process returns false
+        // and records the required delay for control-thread inspection without allocating.
+        const std::size_t beyond = delay.maxDelay() + 1000;
+        QVERIFY(!delay.process(in, out, static_cast<int>(beyond), false));
+        QCOMPARE(delay.overflowDelay(), beyond);
+    }
+
+    // D8 (round 3): Overflow must NOT clamp to maxDelay() and emit misaligned early dry audio.
+    void d8_vstDryDelayLineOverflowDoesNotClamp() {
+        VstDryDelayLine delay;
+        delay.prepare(48000.0, 0);
+        const std::size_t initialMax = delay.maxDelay();
+        constexpr int kOverflowDelay = 300000;
+        QVERIFY(static_cast<std::size_t>(kOverflowDelay) > initialMax);
+
+        constexpr int kImpulseAt = 100;
+        const int kTotal = static_cast<int>(initialMax) + kImpulseAt + 512;
+        std::vector<float> in(std::size_t{128} * 2, 0.0f);
+        std::vector<float> out(std::size_t{128} * 2, 0.0f);
+        int earlyClampedAt = -1;
+        float earlyClampedVal = 0.0f;
+        for (int at = 0; at < kTotal; at += 128) {
+            std::fill(in.begin(), in.end(), 0.0f);
+            if (kImpulseAt >= at && kImpulseAt < at + 128) {
+                const int off = kImpulseAt - at;
+                in[static_cast<std::size_t>(off) * 2] = 0.75f;
+                in[static_cast<std::size_t>(off) * 2 + 1] = 0.75f;
+            }
+            QVERIFY(!delay.process(in, out, kOverflowDelay, at == 0));
+            for (int f = 0; f < 128; ++f) {
+                const float v = std::abs(out[static_cast<std::size_t>(f) * 2]);
+                if (v > 1e-4f && earlyClampedAt < 0) {
+                    earlyClampedAt = at + f;
+                    earlyClampedVal = out[static_cast<std::size_t>(f) * 2];
+                }
+            }
+        }
+        QCOMPARE(delay.overflowDelay(), std::size_t{kOverflowDelay});
+        QVERIFY2(earlyClampedAt < 0,
+                 qPrintable(QStringLiteral("D8 overflow clamped and emitted misaligned dry %1 at frame %2 (maxDelay=%3)")
+                                .arg(earlyClampedVal).arg(earlyClampedAt).arg(initialMax)));
+
+        // Control/worker thread services overflow off the audio thread, publishing a grown ring.
+        QVERIFY(delay.serviceOverflow());
+        QCOMPARE(delay.overflowDelay(), std::size_t{0});
+
+        // Audio thread adopts the grown ring in O(1) and produces exact 300000-sample delay.
+        int foundAt = -1;
+        float foundVal = 0.0f;
+        const int kGrownTotal = kImpulseAt + kOverflowDelay + 512;
+        for (int at = 0; at < kGrownTotal; at += 128) {
+            std::fill(in.begin(), in.end(), 0.0f);
+            if (kImpulseAt >= at && kImpulseAt < at + 128) {
+                const int off = kImpulseAt - at;
+                in[static_cast<std::size_t>(off) * 2] = 0.75f;
+                in[static_cast<std::size_t>(off) * 2 + 1] = 0.75f;
+            }
+            QVERIFY(delay.process(in, out, kOverflowDelay, at == 0));
+            for (int f = 0; f < 128; ++f) {
+                const float v = std::abs(out[static_cast<std::size_t>(f) * 2]);
+                if (v > 0.1f && foundAt < 0) {
+                    foundAt = at + f;
+                    foundVal = out[static_cast<std::size_t>(f) * 2];
+                }
+            }
+        }
+        QCOMPARE(foundAt, kImpulseAt + kOverflowDelay);
+        QVERIFY(std::abs(foundVal - 0.75f) < 1e-6f);
+        // Reclaim the retired ring off-thread.
+        QVERIFY(!delay.serviceOverflow());
+
+        // Verify production MixPlan control-thread maintenance hook reaches processors.
+        struct ServiceProbe final : nt::audio::BlockProcessor {
+            int calls = 0;
+            void process(std::span<float>, const nt::audio::BlockContext&) noexcept override {}
+            void serviceControlThread() override { ++calls; }
+        };
+        auto probe = std::make_shared<ServiceProbe>();
+        nt::audio::MixPlan plan;
+        nt::audio::TrackPlan tp;
+        tp.processors.push_back(probe);
+        plan.tracks.push_back(std::move(tp));
+        nt::audio::serviceMixPlanControl(plan);
+        QCOMPARE(probe->calls, 1);
+    }
 };
 
 QTEST_MAIN(TestVst)

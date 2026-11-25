@@ -1,4 +1,5 @@
 #include "VstHost.h"
+#include "DenormalGuard.h"
 #include <cmath>
 
 namespace vsthost {
@@ -302,6 +303,7 @@ bool Instance::processLiveBlock(double sampleRate, int numFrames, bool reset,
                                 const ShmMidiEvent* midiEvents, int numMidiEvents,
                                 juce::AudioBuffer<float>& scratchBlock, juce::MidiBuffer& scratchMidi,
                                 int* latencySamples) {
+    const ScopedDenormalGuard denormalGuard;
     std::lock_guard<std::recursive_mutex> guard(lock);
     if (!plugin_ || numFrames <= 0 || numFrames > static_cast<int>(kShmMaxFrames)) return false;
     // The live worker never prepares: prepareToPlay allocates and blocks. The control side
@@ -381,6 +383,7 @@ bool Instance::processLiveBlock(double sampleRate, int numFrames, bool reset,
 
 bool Instance::render(double sampleRate, juce::int64 frames, const std::vector<NoteEvent>& events,
                       juce::AudioBuffer<float>& out, juce::String& error) {
+    const ScopedDenormalGuard denormalGuard;
     std::lock_guard<std::recursive_mutex> guard(lock);
     if (!plugin_) { error = "No plug-in loaded"; return false; }
     if (sampleRate < 8000 || sampleRate > 384000) { error = "Unsupported sample rate"; return false; }
@@ -441,6 +444,7 @@ bool Instance::render(double sampleRate, juce::int64 frames, const std::vector<N
 
 bool Instance::process(double sampleRate, const juce::AudioBuffer<float>& input,
                        juce::AudioBuffer<float>& out, juce::String& error) {
+    const ScopedDenormalGuard denormalGuard;
     std::lock_guard<std::recursive_mutex> guard(lock);
     if (!plugin_) { error = "No plug-in loaded"; return false; }
     if (sampleRate < 8000 || sampleRate > 384000) { error = "Unsupported sample rate"; return false; }

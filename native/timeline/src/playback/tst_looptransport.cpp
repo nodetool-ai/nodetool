@@ -250,7 +250,7 @@ private slots:
         double lastTime = clock.time();
         std::vector<std::int64_t> tickWrapNs;
         double worstError = 0;
-        const std::int64_t latencyFrames = static_cast<std::int64_t>(std::llround(options.simulatedLatencySec * kRate));
+        const std::int64_t latencyFrames = static_cast<std::int64_t>(std::llround(engine.stats().outputLatencySec * kRate));
         while (wraps.size() < kWraps) {
             QVERIFY2(frame < 600 * static_cast<std::int64_t>(kRate), "the loop stopped wrapping");
             const std::int64_t blockNs = t0 + static_cast<std::int64_t>(static_cast<double>(frame) / kRate * 1e9);
@@ -420,6 +420,7 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(engine.stats().framesRendered >= static_cast<std::int64_t>(3.6 * kRate), 8000);
         const CallbackState cb = engine.feed().callback.load();
         const AudioEngine::Stats s = engine.stats();
+        const std::int64_t lookahead = s.masterLimiterLatencyFrames;
         engine.stop();
         const auto recording = engine.recording();
         const Passes passes = passesOf(cb, kLoopIn);
@@ -429,8 +430,8 @@ private slots:
         QCOMPARE(s.underruns, std::int64_t(0));
         int checked = 0;
         for (std::size_t p = 0; p <= passes.wraps.size(); ++p) {
-            const std::int64_t first = p == 0 ? passes.start : passes.wraps[p - 1];
-            if (p > 0) QCOMPARE(first - (p == 1 ? passes.start : passes.wraps[p - 2]), kLoopFrames);
+            const std::int64_t first = (p == 0 ? passes.start : passes.wraps[p - 1]) + lookahead;
+            if (p > 0) QCOMPARE(first - ((p == 1 ? passes.start : passes.wraps[p - 2]) + lookahead), kLoopFrames);
             if ((first + kLoopFrames) * 2 > static_cast<std::int64_t>(recording.size())) break;
             const auto expected = expectedPass(loop, tail, p > 0);
             double worst = 0;
@@ -480,6 +481,7 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(engine.stats().framesRendered >= static_cast<std::int64_t>(4.0 * kRate), 6000);
         const CallbackState cb = engine.feed().callback.load();
         const AudioEngine::Stats after = engine.stats();
+        const std::int64_t lookahead = after.masterLimiterLatencyFrames;
         engine.stop();
         const auto recording = engine.recording();
         const Passes passes = passesOf(cb, kLoopIn);
@@ -493,11 +495,12 @@ private slots:
         };
         // The first frame from which a whole period sounds like the new take.
         std::int64_t heard = -1;
-        for (std::int64_t f = editFrame; f + kPeriod < static_cast<std::int64_t>(recording.size() / 2) && heard < 0; ++f) {
+        for (std::int64_t f = editFrame + lookahead; f + kPeriod < static_cast<std::int64_t>(recording.size() / 2) && heard < 0; ++f) {
             bool match = true;
             for (std::int64_t g = f; g < f + kPeriod && match; ++g) {
-                const std::int64_t j = g - passStart(g);
-                if (j < kFadeFrames && passStart(g) != passes.start) continue;
+                const std::int64_t mixFrame = g - lookahead;
+                const std::int64_t j = mixFrame - passStart(mixFrame);
+                if (j < kFadeFrames && passStart(mixFrame) != passes.start) continue;
                 for (int c = 0; c < 2 && match; ++c) {
                     const auto at = static_cast<std::size_t>(j * 2 + c);
                     match = std::abs(recording[static_cast<std::size_t>(g * 2 + c)] - newLoop[at]) <= 1e-6 &&
@@ -515,8 +518,8 @@ private slots:
         // The next whole pass is the new take, fade included.
         std::int64_t next = -1;
         for (std::int64_t w : passes.wraps) {
-            if (w > heard) {
-                next = w;
+            if (w + lookahead > heard) {
+                next = w + lookahead;
                 break;
             }
         }

@@ -63,6 +63,12 @@ public:
     virtual bool setParameter(std::string_view, double) noexcept { return false; }
     // A merged device curve already includes stored lanes. Control-thread query.
     virtual bool drivesDeviceAutomation() const noexcept { return false; }
+    // Reported processing delay in samples at the prepared sample rate.
+    // Queried during prepareMixPlan (control thread) and on the audio thread.
+    virtual int latencySamples() const noexcept { return 0; }
+    // Non-audio control/worker thread maintenance (e.g., growing overflowed delay buffers
+    // off the audio thread and publishing them atomically). Never called on the audio thread.
+    virtual void serviceControlThread() {}
 private:
     bool activeInQuantum_ = false;
 };
@@ -121,6 +127,8 @@ struct VoicePlan {
 struct MixPlan {
     std::vector<VoicePlan> voices;
     double masterGain = 1.0;
+    // Project setting `master.limiter` (defaults to true when absent).
+    bool masterLimiterEnabled = true;
     std::vector<TrackPlan> tracks;
     Processors processors;
     // native-rules #1: std::shared_ptr ParameterSource, no comment on why unique ownership is impossible
@@ -130,9 +138,15 @@ struct MixPlan {
     std::shared_ptr<State> state;
 };
 
+[[nodiscard]] bool masterLimiterEnabled(const Timeline& timeline) noexcept;
+// Total plug-in delay compensation latency of `plan` (max track chain + master inserts), in samples.
+[[nodiscard]] int planLatencySamples(const MixPlan& plan) noexcept;
+
 MixPlan buildMixPlan(const Timeline& timeline);
 // Control-thread preparation. A rate change resets all effect state.
 void prepareMixPlan(const MixPlan& plan, double sampleRate);
+// Control/worker-thread maintenance for processors in `plan` (never call on audio thread).
+void serviceMixPlanControl(const MixPlan& plan);
 
 // Registration is a startup/control-thread operation. Stages run in ascending
 // priority then registration order, after voices/buses exist. P1 uses priority

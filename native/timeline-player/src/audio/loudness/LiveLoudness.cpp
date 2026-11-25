@@ -8,7 +8,8 @@ LoudnessReading LoudnessReadout::read() const noexcept {
     return {momentary_.load(std::memory_order_relaxed),     shortTerm_.load(std::memory_order_relaxed),
             integrated_.load(std::memory_order_relaxed),    maxMomentary_.load(std::memory_order_relaxed),
             maxShortTerm_.load(std::memory_order_relaxed),  truePeakDb_.load(std::memory_order_relaxed),
-            loudnessRange_.load(std::memory_order_relaxed), blocks_.load(std::memory_order_relaxed)};
+            loudnessRange_.load(std::memory_order_relaxed), blocks_.load(std::memory_order_relaxed),
+            clipped_.load(std::memory_order_relaxed)};
 }
 
 void LoudnessReadout::requestReset() noexcept {
@@ -19,6 +20,11 @@ void LoudnessReadout::requestReset() noexcept {
     clear();
 }
 
+void LoudnessReadout::requestClipReset() noexcept {
+    clipResets_.fetch_add(1, std::memory_order_relaxed);
+    clipped_.store(false, std::memory_order_relaxed);
+}
+
 void LoudnessReadout::clear() noexcept {
     momentary_.store(kNone, std::memory_order_relaxed);
     shortTerm_.store(kNone, std::memory_order_relaxed);
@@ -27,6 +33,7 @@ void LoudnessReadout::clear() noexcept {
     maxShortTerm_.store(kNone, std::memory_order_relaxed);
     truePeakDb_.store(kNone, std::memory_order_relaxed);
     loudnessRange_.store(kNone, std::memory_order_relaxed);
+    clipped_.store(false, std::memory_order_relaxed);
 }
 
 LiveLoudness::LiveLoudness(LoudnessReadout& out) : out_(out) {}
@@ -36,6 +43,7 @@ void LiveLoudness::prepare(double sampleRate) {
     publishFrames_ = std::max(1, static_cast<int>(std::round(sampleRate * 0.1)));
     framesSincePublish_ = 0;
     appliedReset_ = out_.resets_.load(std::memory_order_relaxed);
+    appliedClipReset_ = out_.clipResets_.load(std::memory_order_relaxed);
     publish();
 }
 
@@ -44,10 +52,15 @@ void LiveLoudness::process(const float* stereo, int frames) noexcept {
         return;
     }
     const auto reset = out_.resets_.load(std::memory_order_relaxed);
+    const auto clipReset = out_.clipResets_.load(std::memory_order_relaxed);
     if (reset != appliedReset_) {
         meter_->reset();
         framesSincePublish_ = 0;
         appliedReset_ = reset;
+        appliedClipReset_ = clipReset;
+    } else if (clipReset != appliedClipReset_) {
+        meter_->resetClip();
+        appliedClipReset_ = clipReset;
     }
     ++blocks_;
     int position = 0;
@@ -88,10 +101,15 @@ void LiveLoudness::publish() noexcept {
     out_.maxShortTerm_.store(meter_->maxShortTerm(), std::memory_order_relaxed);
     out_.truePeakDb_.store(meter_->truePeakDb(), std::memory_order_relaxed);
     out_.loudnessRange_.store(meter_->loudnessRange(), std::memory_order_relaxed);
+    if (out_.clipResets_.load(std::memory_order_relaxed) == appliedClipReset_) {
+        out_.clipped_.store(meter_->clipped(), std::memory_order_relaxed);
+    }
     // The request comes in before it clears, so one that came in while this stored is either seen here, and cleared
     // again, or clears after these stores.
     if (out_.resets_.load(std::memory_order_relaxed) != appliedReset_) {
         out_.clear();
+    } else if (out_.clipResets_.load(std::memory_order_relaxed) != appliedClipReset_) {
+        out_.clipped_.store(false, std::memory_order_relaxed);
     }
 }
 } // namespace nt::audio

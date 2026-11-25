@@ -60,7 +60,9 @@ function(nt_export_tests)
     add_test(NAME tst_exportdialog COMMAND tst_exportdialog dialog panelContext controllerCancelBeforeFrames
         snapshotKeepsRelativeMatte refusesUnavailableServerOriginal audioOnlyExportAllowsMissingPictureOriginal
         cancelExportDuringAudio cancelBlockedAudio cancelOfflineMix stuckChildTeardownCleansStaging
-        fitFrameModes wav24WritesA24BitPcmHeaderAndRoundTrips wav24SettingsReachTheCommandLine)
+        fitFrameModes wav24WritesA24BitPcmHeaderAndRoundTrips wav16UsesTpdfDitherAnd24BitClamps
+        d17_wav16TpdfDitherSanitizesNanSamples d18_wav16TpdfDitherIgnoresAmbientRoundingMode
+        wav24SettingsReachTheCommandLine)
     set_tests_properties(tst_exportdialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     qt_add_executable(tst_framecapture src/export/tst_framecapture.cpp src/export/OffscreenFrames.cpp)
     set_target_properties(tst_framecapture PROPERTIES MACOSX_BUNDLE FALSE)

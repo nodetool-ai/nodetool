@@ -88,6 +88,8 @@ public:
         double lastPlayStartMs = -1.0;
         double sampleRate = 0.0;
         double outputLatencySec = 0.0;
+        int pdcLatencyFrames = 0;
+        int masterLimiterLatencyFrames = 0;
         std::uint64_t generation = 0;
         // Mix snapshots allocated for seeks, timeline edits and loop wraps.
         std::int64_t sessions = 0;
@@ -133,8 +135,11 @@ public:
     // device facts get a new generation, as a reroute gives them.
     void simulateDeviceChange(double latencySec);
     // Null and manual backends only: run the handler of miniaudio's `started` (true) or
-    // `stopped` (false) notification.
+    // `stopped` (false) notification and wait for the non-audio worker to publish it.
     void simulateDeviceNotification(bool started);
+    // Null and manual backends only: invoke the lock-free notification handler without
+    // waking or waiting on any mutex (matching PulseAudio's audio-loop dispatch).
+    void simulateDeviceNotificationAsync(bool started) noexcept;
 
     // The recorded device output (interleaved stereo); frame 0 is the first
     // frame the device rendered. Read it after stop().

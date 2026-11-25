@@ -1,4 +1,5 @@
 #include "audio/Mixer.h"
+#include "audio/DenormalGuard.h"
 #include "audio/effects/Effects.h"
 #include "scene/Animation.h"
 #include "scene/ClipScene.h"
@@ -26,11 +27,74 @@ bool BlockProcessor::processBlock(std::span<float> stereo, const BlockContext& c
 }
 // Prepared on the control thread. MixRenderLease grants exclusive access to mutable DSP and buffers.
 struct MixPlan::State {
+    struct DelayLine {
+        std::vector<float> buffer;
+        int delayFrames = 0;
+        int pos = 0;
+        int validFrames = 0;
+        int pendingFrames = 0;
+
+        void prepare(int delay) {
+            delayFrames = std::max(0, delay);
+            buffer.assign(static_cast<std::size_t>(delayFrames) * 2, 0.0f);
+            pos = 0;
+            validFrames = 0;
+            pendingFrames = 0;
+        }
+        void reset() noexcept {
+            // O(1) invalidation: never bulk-clear large PDC buffers on the real-time audio thread.
+            pos = 0;
+            validFrames = 0;
+            pendingFrames = 0;
+        }
+        // Returns true if any non-zero sample was emitted in this block or remains queued.
+        bool process(std::span<float> stereo) noexcept {
+            if (delayFrames <= 0 || buffer.empty()) { return false; }
+            bool emitted = false;
+            const int frames = static_cast<int>(stereo.size() / 2);
+            for (int f = 0; f < frames; ++f) {
+                const float inL = stereo[static_cast<std::size_t>(f) * 2];
+                const float inR = stereo[static_cast<std::size_t>(f) * 2 + 1];
+                if (inL != 0.0f || inR != 0.0f) {
+                    pendingFrames = delayFrames;
+                } else if (pendingFrames > 0) {
+                    --pendingFrames;
+                }
+                const auto idx = static_cast<std::size_t>(pos) * 2;
+                float outL = 0.0f;
+                float outR = 0.0f;
+                if (validFrames >= delayFrames) {
+                    outL = buffer[idx];
+                    outR = buffer[idx + 1];
+                } else {
+                    ++validFrames;
+                }
+                if (outL != 0.0f || outR != 0.0f) {
+                    emitted = true;
+                }
+                buffer[idx] = inL;
+                buffer[idx + 1] = inR;
+                pos = (pos + 1 == delayFrames) ? 0 : pos + 1;
+                stereo[static_cast<std::size_t>(f) * 2] = outL;
+                stereo[static_cast<std::size_t>(f) * 2 + 1] = outR;
+            }
+            return emitted || pendingFrames > 0;
+        }
+        bool hasPending() const noexcept { return pendingFrames > 0; }
+    };
+
     std::atomic_flag rendering=ATOMIC_FLAG_INIT;
     std::array<float, kMixBlockFrames * 2> voice{};
     std::vector<std::array<float, kMixBlockFrames * 2>> tracks;
+    std::vector<DelayLine> voiceDelay;
+    std::vector<int> trackVoiceLatency;
+    std::vector<DelayLine> trackDelay;
+    std::vector<std::vector<int>> trackProcLatencies;
+    std::vector<int> masterProcLatencies;
     std::vector<bool> trackSilent;
     std::vector<bool> voiceUnderrun;
+    int maxTrackLatency = 0;
+    int masterPluginLatency = 0;
     int quantumCursor = 0;
     double sampleRate = 0;
     double nextMs = std::numeric_limits<double>::quiet_NaN();
@@ -261,6 +325,18 @@ void projectAutoCrossfades(std::vector<Clip>& clips, double durationMs) {
 }
 }
 
+bool masterLimiterEnabled(const Timeline& timeline) noexcept {
+    const auto master = timeline.raw.value(QStringLiteral("master"));
+    if (!master.isObject()) { return true; }
+    const auto limiter = master.toObject().value(QStringLiteral("limiter"));
+    return limiter.isBool() ? limiter.toBool() : true;
+}
+
+int planLatencySamples(const MixPlan& plan) noexcept {
+    if (!plan.state) { return 0; }
+    return plan.state->maxTrackLatency + plan.state->masterPluginLatency;
+}
+
 MixPlan buildMixPlan(const Timeline& document) {
     std::optional<Timeline> projected;
     if (document.raw.value("music").isObject()) {
@@ -273,6 +349,7 @@ MixPlan buildMixPlan(const Timeline& document) {
     const auto& tl = projected ? *projected : document;
     MixPlan plan;
     plan.masterGain = dbToGain(tl.masterVolumeDb);
+    plan.masterLimiterEnabled = masterLimiterEnabled(tl);
 
     const auto isSoundTrack = [](const Track& t) { return t.type == TrackType::Audio || t.type == TrackType::Midi; };
     bool soloed = false;  // `soundTrackSoloed`
@@ -354,6 +431,9 @@ MixPlan buildMixPlan(const Timeline& document) {
     if (processing) {
         plan.state = std::make_shared<MixPlan::State>();
         plan.state->tracks.resize(plan.tracks.size());
+        plan.state->voiceDelay.resize(plan.voices.size());
+        plan.state->trackVoiceLatency.assign(plan.tracks.size(), 0);
+        plan.state->trackDelay.resize(plan.tracks.size());
         plan.state->trackSilent.resize(plan.tracks.size());
         plan.state->voiceUnderrun.resize(plan.voices.size());
     }
@@ -363,16 +443,85 @@ MixPlan buildMixPlan(const Timeline& document) {
 
 void prepareMixPlan(const MixPlan& plan, double sampleRate) {
     if (!plan.state || plan.state->sampleRate == sampleRate) { return; }
-    for (const auto& voice : plan.voices) {
-        for (const auto& processor : voice.processors) { processor->prepare(sampleRate); }
+    std::vector<int> voiceLatency(plan.voices.size(), 0);
+    std::vector<int> trackVoiceLatency(plan.tracks.size(), 0);
+    for (std::size_t first = 0; first < plan.voices.size();) {
+        const auto end = clipVoiceEnd(plan.voices, first);
+        int sum = 0;
+        for (const auto& processor : plan.voices[first].processors) {
+            processor->prepare(sampleRate);
+            sum += std::max(0, processor->latencySamples());
+        }
+        voiceLatency[first] = sum;
+        const std::size_t ti = plan.voices[first].trackIndex;
+        if (ti < trackVoiceLatency.size()) {
+            trackVoiceLatency[ti] = std::max(trackVoiceLatency[ti], sum);
+        }
+        first = end;
     }
-    for (const auto& track : plan.tracks) {
-        for (const auto& processor : track.processors) { processor->prepare(sampleRate); }
+    plan.state->voiceDelay.resize(plan.voices.size());
+    for (std::size_t first = 0; first < plan.voices.size();) {
+        const auto end = clipVoiceEnd(plan.voices, first);
+        const std::size_t ti = plan.voices[first].trackIndex;
+        const int target = ti < trackVoiceLatency.size() ? trackVoiceLatency[ti] : 0;
+        plan.state->voiceDelay[first].prepare(target - voiceLatency[first]);
+        for (auto i = first + 1; i < end; ++i) {
+            plan.state->voiceDelay[i].prepare(0);
+        }
+        first = end;
     }
-    for (const auto& processor : plan.processors) { processor->prepare(sampleRate); }
+    plan.state->trackVoiceLatency = trackVoiceLatency;
+
+    std::vector<int> trackLatency(plan.tracks.size(), 0);
+    plan.state->trackProcLatencies.assign(plan.tracks.size(), {});
+    int maxTrackLatency = 0;
+    for (std::size_t i = 0; i < plan.tracks.size(); ++i) {
+        int sum = trackVoiceLatency[i];
+        auto& procLats = plan.state->trackProcLatencies[i];
+        procLats.reserve(plan.tracks[i].processors.size());
+        for (const auto& processor : plan.tracks[i].processors) {
+            processor->prepare(sampleRate);
+            const int lat = std::max(0, processor->latencySamples());
+            procLats.push_back(lat);
+            sum += lat;
+        }
+        trackLatency[i] = sum;
+        maxTrackLatency = std::max(maxTrackLatency, sum);
+    }
+    int masterLatency = 0;
+    plan.state->masterProcLatencies.clear();
+    plan.state->masterProcLatencies.reserve(plan.processors.size());
+    for (const auto& processor : plan.processors) {
+        processor->prepare(sampleRate);
+        const int lat = std::max(0, processor->latencySamples());
+        plan.state->masterProcLatencies.push_back(lat);
+        masterLatency += lat;
+    }
+    plan.state->trackDelay.resize(plan.tracks.size());
+    for (std::size_t i = 0; i < plan.tracks.size(); ++i) {
+        plan.state->trackDelay[i].prepare(maxTrackLatency - trackLatency[i]);
+    }
+    plan.state->maxTrackLatency = maxTrackLatency;
+    plan.state->masterPluginLatency = masterLatency;
     plan.state->sampleRate = sampleRate;
     plan.state->quantumCursor = 0;
     plan.state->nextMs = std::numeric_limits<double>::quiet_NaN();
+}
+
+void serviceMixPlanControl(const MixPlan& plan) {
+    for (const auto& voice : plan.voices) {
+        for (const auto& processor : voice.processors) {
+            if (processor) processor->serviceControlThread();
+        }
+    }
+    for (const auto& track : plan.tracks) {
+        for (const auto& processor : track.processors) {
+            if (processor) processor->serviceControlThread();
+        }
+    }
+    for (const auto& processor : plan.processors) {
+        if (processor) processor->serviceControlThread();
+    }
 }
 
 namespace {
@@ -508,6 +657,7 @@ void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double time
 }
 void MixRenderLease::mix(std::span<VoicePcm> pcm, double sampleRate, double timelineMs0, double msPerFrame,
                          std::span<float> output, MixStats& stats) const {
+    const ScopedDenormalGuard denormalGuard;
     std::ranges::fill(output,0.f);
     if (!owned_) { ++stats.underruns; return; }
     const auto& plan=plan_;
@@ -532,6 +682,8 @@ void MixRenderLease::mix(std::span<VoicePcm> pcm, double sampleRate, double time
         for (const auto& voice : plan.voices) {
             for (const auto& processor : voice.processors) { processor->reset(); }
         }
+        for (auto& delay : state.voiceDelay) { delay.reset(); }
+        for (auto& delay : state.trackDelay) { delay.reset(); }
     }
     state.nextMs = timelineMs0 + frames * msPerFrame;
     std::fill(state.voiceUnderrun.begin(), state.voiceUnderrun.end(), false);
@@ -571,11 +723,17 @@ void MixRenderLease::mix(std::span<VoicePcm> pcm, double sampleRate, double time
                     std::max(quantumStart, quantumEnd) <= part.startMs ||
                     std::min(quantumStart, quantumEnd) >= part.startMs + part.durationMs);
             }
-            const bool silent = process(voice.processors, scratch, voiceContext);
+            bool silent = process(voice.processors, scratch, voiceContext);
+            if (first < state.voiceDelay.size() && state.voiceDelay[first].delayFrames > 0) {
+                if (state.voiceDelay[first].process(scratch)) { silent = false; }
+            }
+            const double voicePdcMs = (msPerFrame > 0.0 && voice.trackIndex < state.trackVoiceLatency.size())
+                ? static_cast<double>(state.trackVoiceLatency[voice.trackIndex]) * msPerFrame
+                : 0.0;
             const bool offlineResidual = offline && !voice.processors.empty();
             // AudioGraph's natural release keeps the chain connected for
             // DECLICK_RELEASE_MS (25ms) beyond its declared musical tail.
-            const double audibleEnd = clipEnd + tailMs + (voice.processors.empty() ? 0 : 25);
+            const double audibleEnd = clipEnd + tailMs + (voice.processors.empty() ? 0 : 25) + voicePdcMs;
             const bool audibleQuantum = std::max(quantumStart, quantumEnd) > clipStart &&
                 (offlineResidual || std::min(quantumStart, quantumEnd) < audibleEnd);
             state.trackSilent[voice.trackIndex] = state.trackSilent[voice.trackIndex] && (silent || !audibleQuantum);
@@ -593,20 +751,37 @@ void MixRenderLease::mix(std::span<VoicePcm> pcm, double sampleRate, double time
         }
         // AudioGraph.addClips: source -> clipGain/fades -> clip inserts.
         // AudioGraph.updateTracks: trackGain(mute/solo) -> inserts -> fader -> pan.
+        const double trackPdcMs = static_cast<double>(state.maxTrackLatency) * msPerFrame;
+        auto trackPostContext = context;
+        trackPostContext.timelineMs = context.timelineMs - trackPdcMs;
         bool masterSilent = true;
         for (std::size_t i = 0; i < plan.tracks.size(); ++i) {
             const auto& track = plan.tracks[i];
             auto scratch = std::span(state.tracks[i]).first(samples);
             auto trackContext = context;
+            if (i < state.trackVoiceLatency.size() && state.trackVoiceLatency[i] > 0) {
+                trackContext.timelineMs -= static_cast<double>(state.trackVoiceLatency[i]) * msPerFrame;
+            }
             trackContext.silent = state.trackSilent[i];
-            if (track.gainSource) { track.gainSource->beginBlock(context,n,track.gain); }
-            if (track.panSource) { track.panSource->beginBlock(context,n,track.pan); }
-            masterSilent = process(track.processors, scratch, trackContext) && masterSilent;
+            const auto* procLats = i < state.trackProcLatencies.size() ? &state.trackProcLatencies[i] : nullptr;
+            for (std::size_t p = 0; p < track.processors.size(); ++p) {
+                trackContext.silent = track.processors[p]->processBlock(scratch, trackContext);
+                if (procLats && p < procLats->size() && (*procLats)[p] > 0) {
+                    trackContext.timelineMs -= static_cast<double>((*procLats)[p]) * msPerFrame;
+                }
+            }
+            bool trackBusSilent = trackContext.silent;
+            if (i < state.trackDelay.size() && state.trackDelay[i].delayFrames > 0) {
+                if (state.trackDelay[i].process(scratch)) { trackBusSilent = false; }
+            }
+            masterSilent = trackBusSilent && masterSilent;
+            if (track.gainSource) { track.gainSource->beginBlock(trackPostContext, n, track.gain); }
+            if (track.panSource) { track.panSource->beginBlock(trackPostContext, n, track.pan); }
             if (!track.gainSource && !track.panSource) {
                 panAndAdd(scratch, dest, track.gain, track.pan);
             } else {
                 for (int f = 0; f < n; ++f) {
-                    const double t = context.timelineMs + f * msPerFrame;
+                    const double t = trackPostContext.timelineMs + f * msPerFrame;
                     const double gain = track.gainSource ? track.gainSource->valueAt(t, track.gain) : track.gain;
                     const double pan = std::clamp(track.panSource ? track.panSource->valueAt(t, track.pan) : track.pan, -1.0, 1.0);
                     panAndAdd(scratch.subspan(2 * f, 2), dest.subspan(2 * f, 2), gain, pan);
@@ -615,11 +790,20 @@ void MixRenderLease::mix(std::span<VoicePcm> pcm, double sampleRate, double time
         }
         // AudioGraph.getContext/setMaster: mix bus -> master inserts -> fader.
         auto masterContext = context;
+        masterContext.timelineMs = context.timelineMs - trackPdcMs;
         masterContext.silent = masterSilent;
-        process(plan.processors, dest, masterContext);
-        if (plan.gainSource) { plan.gainSource->beginBlock(masterContext,n,plan.masterGain); }
+        for (std::size_t p = 0; p < plan.processors.size(); ++p) {
+            masterContext.silent = plan.processors[p]->processBlock(dest, masterContext);
+            if (p < state.masterProcLatencies.size() && state.masterProcLatencies[p] > 0) {
+                masterContext.timelineMs -= static_cast<double>(state.masterProcLatencies[p]) * msPerFrame;
+            }
+        }
+        auto masterPostContext = masterContext;
+        masterPostContext.timelineMs = context.timelineMs -
+            static_cast<double>(state.maxTrackLatency + state.masterPluginLatency) * msPerFrame;
+        if (plan.gainSource) { plan.gainSource->beginBlock(masterPostContext, n, plan.masterGain); }
         for (int f = 0; f < n; ++f) {
-            const double gain = plan.gainSource ? plan.gainSource->valueAt(context.timelineMs + f * msPerFrame, plan.masterGain) : plan.masterGain;
+            const double gain = plan.gainSource ? plan.gainSource->valueAt(masterPostContext.timelineMs + f * msPerFrame, plan.masterGain) : plan.masterGain;
             dest[2 * f] *= gain;
             dest[2 * f + 1] *= gain;
         }

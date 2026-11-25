@@ -203,16 +203,30 @@ public:
         f->pts = offset;
         check(av_frame_get_buffer(f.get(), 0), "Allocate export audio frame");
         const auto bytes = std::as_bytes(pcm.subspan(static_cast<std::size_t>(offset * 2), static_cast<std::size_t>(f->nb_samples * 2)));
+        if (m_codec.codec_id == AV_CODEC_ID_PCM_S16LE) {
+            // Apply triangular-PDF (TPDF) dither in (-1, 1) LSB before rounding to 16-bit PCM.
+            const auto* in = reinterpret_cast<const float*>(bytes.data());
+            auto* out = reinterpret_cast<int16_t*>(f->data[0]);
+            for (int i = 0; i < f->nb_samples * 2; ++i) {
+                const double sample = std::isfinite(in[i]) ? static_cast<double>(in[i]) : 0.0;
+                const double u1 = nextUniform();
+                const double u2 = nextUniform();
+                const double dither = u1 - u2;
+                const double scaled = std::clamp(sample * 32768.0 + dither, -32768.0, 32767.0);
+                out[i] = static_cast<int16_t>(std::llround(scaled));
+            }
+            return f;
+        }
         if (m_codec.codec_id == AV_CODEC_ID_PCM_S24LE) {
             // swr would hand the encoder a 32-bit value that it truncates to 24 bits,
             // which biases every sample down by half a step. Round to the 24-bit
-            // grid here, with no dither as in the 16-bit path, and let the
-            // encoder drop the zero low byte.
+            // grid here with clamp and no dither, and let the encoder drop the zero low byte.
             const auto* in = reinterpret_cast<const float*>(bytes.data());
             auto* out = reinterpret_cast<int32_t*>(f->data[0]);
             for (int i = 0; i < f->nb_samples * 2; ++i) {
-                const double scaled = std::nearbyint(static_cast<double>(in[i]) * 8388608.0);
-                out[i] = static_cast<int32_t>(std::clamp(scaled, -8388608.0, 8388607.0)) * 256;
+                const double sample = std::isfinite(in[i]) ? static_cast<double>(in[i]) : 0.0;
+                const double scaled = std::clamp(sample * 8388608.0, -8388608.0, 8388607.0);
+                out[i] = static_cast<int32_t>(std::llround(scaled)) * 256;
             }
             return f;
         }
@@ -221,8 +235,17 @@ public:
         return f;
     }
 private:
+    double nextUniform() noexcept {
+        m_ditherState += 0x9e3779b97f4a7c15ULL;
+        std::uint64_t z = m_ditherState;
+        z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+        z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+        z = z ^ (z >> 31);
+        return static_cast<double>(z >> 11) * 0x1.0p-53;
+    }
     AVCodecContext& m_codec;
     std::unique_ptr<SwrContext, ResampleDelete> m_resample;
+    std::uint64_t m_ditherState = 0x243f6a8885a308d3ULL;
 };
 // Moves the finished export to its destination. A file already there moves
 // into the staging directory first and comes back when the move fails, so a

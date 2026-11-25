@@ -357,6 +357,174 @@ bool LiveBlockClock::isDiscontinuous(double blockStartMs) const noexcept {
     return !std::isfinite(expectedNextMs) || std::abs(blockStartMs - expectedNextMs) > 0.5;
 }
 
+VstDryDelayLine::~VstDryDelayLine() {
+    std::unique_ptr<Ring> pending(m_pendingRing.exchange(nullptr, std::memory_order_acq_rel));
+    std::unique_ptr<Ring> retired(m_retiredRing.exchange(nullptr, std::memory_order_acq_rel));
+}
+
+void VstDryDelayLine::prepare(double sampleRate, int initialLatency) {
+    // Reclaim any handoff rings before replacing m_ring on the control thread.
+    std::unique_ptr<Ring> pending(m_pendingRing.exchange(nullptr, std::memory_order_acq_rel));
+    std::unique_ptr<Ring> retired(m_retiredRing.exchange(nullptr, std::memory_order_acq_rel));
+    pending.reset();
+    retired.reset();
+
+    const double sr = (std::isfinite(sampleRate) && sampleRate >= 8000.0) ? sampleRate : 48000.0;
+    const std::size_t twoSeconds = static_cast<std::size_t>(std::ceil(sr * 2.0));
+    const std::size_t delayFloor = std::max<std::size_t>(kMinRuntimeDelayFrames, twoSeconds);
+    const std::size_t requiredDelay = std::max<std::size_t>(delayFloor, static_cast<std::size_t>(std::max(0, initialLatency)));
+    auto ring = std::make_unique<Ring>();
+    ring->cap = requiredDelay + kMixBlockFrames + 1;
+    ring->buffer.assign(ring->cap * 2, 0.0f);
+    m_cap = ring->cap;
+    m_ring = std::move(ring);
+    m_activeCap.store(m_cap, std::memory_order_release);
+    m_preparedMaxDelay = m_cap > 0 ? m_cap - 1 : 0;
+    m_overflowDelay.store(0, std::memory_order_release);
+    reset();
+}
+
+bool VstDryDelayLine::serviceOverflow() {
+    // Reclaim any ring retired by the audio thread off the real-time thread.
+    std::unique_ptr<Ring> retired(m_retiredRing.exchange(nullptr, std::memory_order_acq_rel));
+    retired.reset();
+
+    if (m_pendingRing.load(std::memory_order_acquire) != nullptr) {
+        return false;
+    }
+    const std::size_t needed = m_overflowDelay.load(std::memory_order_acquire);
+    if (needed == 0 || needed <= m_preparedMaxDelay) {
+        return false;
+    }
+    // Never publish a second pending ring while an earlier retired ring is still unclaimed.
+    if (m_retiredRing.load(std::memory_order_acquire) != nullptr) {
+        return false;
+    }
+    auto next = std::make_unique<Ring>();
+    next->cap = needed + kMixBlockFrames + 1;
+    next->buffer.assign(next->cap * 2, 0.0f);
+    m_preparedMaxDelay = next->cap - 1;
+    std::size_t expected = needed;
+    (void)m_overflowDelay.compare_exchange_strong(expected, 0, std::memory_order_acq_rel,
+                                                  std::memory_order_acquire);
+    m_pendingRing.store(next.release(), std::memory_order_release);
+    return true;
+}
+
+void VstDryDelayLine::adoptPendingRing(std::size_t requested) noexcept {
+    Ring* next = m_pendingRing.exchange(nullptr, std::memory_order_acq_rel);
+    if (!next) return;
+    // Move previous active ring to m_retiredRing (never delete on audio thread).
+    m_retiredRing.store(m_ring.release(), std::memory_order_release);
+    m_ring.reset(next);
+    m_cap = m_ring->cap;
+    m_activeCap.store(m_cap, std::memory_order_release);
+    reset();
+    m_activeDelay = (m_cap > 0 && requested <= m_cap - 1) ? requested : 0;
+}
+
+void VstDryDelayLine::reset() noexcept {
+    // O(1) invalidation: never fill the entire ring buffer on the audio thread.
+    m_writePos = 0;
+    m_validFrames = 0;
+    m_fadePos = 0;
+    m_fadeLen = 0;
+}
+
+void VstDryDelayLine::readDelayed(std::size_t delayFrames, float& outL, float& outR) const noexcept {
+    if (delayFrames == 0) {
+        const std::size_t idx = m_writePos * 2;
+        outL = m_ring->buffer[idx];
+        outR = m_ring->buffer[idx + 1];
+        return;
+    }
+    if (m_validFrames < delayFrames) {
+        outL = 0.0f;
+        outR = 0.0f;
+        return;
+    }
+    const std::size_t rPos = (m_writePos + m_cap - delayFrames) % m_cap;
+    outL = m_ring->buffer[rPos * 2];
+    outR = m_ring->buffer[rPos * 2 + 1];
+}
+
+bool VstDryDelayLine::process(std::span<const float> inStereo, std::span<float> outStereo,
+                              int targetDelay, bool discontinuous) noexcept {
+    const std::size_t frames = std::min(inStereo.size(), outStereo.size()) / 2;
+    if (frames == 0) return true;
+    const std::size_t requested = static_cast<std::size_t>(std::max(0, targetDelay));
+    adoptPendingRing(requested);
+    if (m_cap <= 1 || !m_ring || m_ring->buffer.empty()) {
+        if (requested > 0) {
+            std::size_t prev = m_overflowDelay.load(std::memory_order_relaxed);
+            while (requested > prev &&
+                   !m_overflowDelay.compare_exchange_weak(prev, requested, std::memory_order_release,
+                                                          std::memory_order_relaxed)) {}
+            std::fill_n(outStereo.begin(), frames * 2, 0.0f);
+            return false;
+        }
+        std::copy_n(inStereo.begin(), frames * 2, outStereo.begin());
+        return true;
+    }
+    if (requested > m_cap - 1) {
+        std::size_t prev = m_overflowDelay.load(std::memory_order_relaxed);
+        while (requested > prev &&
+               !m_overflowDelay.compare_exchange_weak(prev, requested, std::memory_order_release,
+                                                      std::memory_order_relaxed)) {}
+        // Record input into history without clamping m_activeDelay or emitting misaligned dry audio.
+        if (discontinuous) {
+            reset();
+        } else {
+            m_fadePos = 0;
+            m_fadeLen = 0;
+        }
+        for (std::size_t f = 0; f < frames; ++f) {
+            const std::size_t wIdx = m_writePos * 2;
+            m_ring->buffer[wIdx] = inStereo[f * 2];
+            m_ring->buffer[wIdx + 1] = inStereo[f * 2 + 1];
+            m_writePos = (m_writePos + 1 == m_cap) ? 0 : m_writePos + 1;
+            if (m_validFrames < m_cap) {
+                ++m_validFrames;
+            }
+        }
+        std::fill_n(outStereo.begin(), frames * 2, 0.0f);
+        return false;
+    }
+    if (discontinuous) {
+        reset();
+        m_activeDelay = requested;
+    } else if (requested != m_activeDelay) {
+        m_fadeFromDelay = m_activeDelay;
+        m_activeDelay = requested;
+        m_fadeLen = kCrossfadeFrames;
+        m_fadePos = 0;
+    }
+    for (std::size_t f = 0; f < frames; ++f) {
+        const std::size_t wIdx = m_writePos * 2;
+        m_ring->buffer[wIdx] = inStereo[f * 2];
+        m_ring->buffer[wIdx + 1] = inStereo[f * 2 + 1];
+        float outL = 0.0f, outR = 0.0f;
+        if (m_fadePos < m_fadeLen) {
+            float fromL = 0.0f, fromR = 0.0f, toL = 0.0f, toR = 0.0f;
+            readDelayed(m_fadeFromDelay, fromL, fromR);
+            readDelayed(m_activeDelay, toL, toR);
+            const float alpha = static_cast<float>(m_fadePos + 1) / static_cast<float>(m_fadeLen);
+            outL = fromL * (1.0f - alpha) + toL * alpha;
+            outR = fromR * (1.0f - alpha) + toR * alpha;
+            ++m_fadePos;
+        } else {
+            readDelayed(m_activeDelay, outL, outR);
+        }
+        outStereo[f * 2] = outL;
+        outStereo[f * 2 + 1] = outR;
+        m_writePos = (m_writePos + 1 == m_cap) ? 0 : m_writePos + 1;
+        if (m_validFrames < m_cap) {
+            ++m_validFrames;
+        }
+    }
+    return true;
+}
+
 LiveBlockMidi assembleLiveBlockMidi(const MidiTrackStream& stream, std::size_t& cursor, bool discontinuous,
                                     double blockStartMs, double blockEndMs, double msPerFrame, int frames,
                                     std::span<vsthost::ShmMidiEvent> out) noexcept {
@@ -426,6 +594,10 @@ public:
     // Control thread (prepareMixPlan): prepares the plug-in at the real device or render rate.
     void prepare(double sampleRate) override {
         if (m_channel) (void)m_channel->prepareRate(sampleRate);
+    }
+
+    int latencySamples() const noexcept override {
+        return m_channel ? std::max(0, m_channel->latencySamples()) : 0;
     }
 
     void reset() noexcept override {
@@ -521,59 +693,90 @@ public:
 
     void prepare(double sampleRate) override {
         if (m_channel) (void)m_channel->prepareRate(sampleRate);
+        const int latency = m_channel ? std::max(0, m_channel->latencySamples()) : 0;
+        // Always prepare dry-path PDC ring on the control thread so parallel blends and
+        // disconnect/timeout passthrough stay latency-aligned without audio-thread allocations.
+        m_dryDelay.prepare(sampleRate, latency);
+    }
+
+    int latencySamples() const noexcept override {
+        return m_channel ? std::max(0, m_channel->latencySamples()) : 0;
+    }
+
+    void serviceControlThread() override {
+        (void)m_dryDelay.serviceOverflow();
     }
 
     void reset() noexcept override {
         BlockProcessor::reset();
-        m_clock.invalidate();
+        m_vstClock.invalidate();
+        m_dryClock.invalidate();
         m_tailFrames = 0;
+        m_dryDelay.reset();
     }
 
     bool hasPendingOutput(int) const noexcept override {
-        return m_channel && m_channel->connected() && m_tailFrames > 0;
+        return m_tailFrames > 0;
     }
 
     void process(std::span<float> stereo, const BlockContext& ctx) noexcept override {
-        if (!m_channel || !m_channel->connected() || stereo.empty() || ctx.msPerFrame <= 0.0) return;
+        if (!m_channel || stereo.empty() || ctx.msPerFrame <= 0.0) return;
         const int frames = static_cast<int>(stereo.size() / 2);
         if (frames <= 0 || frames > kMixBlockFrames) return;
 
         const double blockStartMs = ctx.timelineMs;
         const double blockEndMs = blockStartMs + frames * ctx.msPerFrame;
-        const bool discontinuous = m_clock.isDiscontinuous(blockStartMs);
+        const bool vstDiscontinuous = m_vstClock.isDiscontinuous(blockStartMs);
+        const bool dryDiscontinuous = m_dryClock.isDiscontinuous(blockStartMs);
+        const int reportedLatency = std::max(0, m_channel->latencySamples());
 
         bool hasInput = false;
         for (float s : stereo) {
             if (s != 0.0f) { hasInput = true; break; }
         }
         if (hasInput) {
-            m_tailFrames = static_cast<int>(ctx.sampleRate * 2.0);
-        } else if (m_tailFrames <= 0 && !discontinuous) {
-            m_clock.advance(blockEndMs);
+            m_tailFrames = std::max(static_cast<int>(ctx.sampleRate * 2.0), reportedLatency + kMixBlockFrames);
+        } else if (m_tailFrames <= 0 && !vstDiscontinuous && !dryDiscontinuous) {
+            m_dryDelay.reset();
+            m_vstClock.advance(blockEndMs);
+            m_dryClock.advance(blockEndMs);
             return;
         }
 
         const std::size_t samples = static_cast<std::size_t>(frames) * 2;
-        const bool blend = m_wet < 0.9999f;
-        if (blend) {
-            std::copy_n(stereo.begin(), samples, m_dry.begin());
-        }
+        auto dryOut = std::span<float>(m_dry.data(), samples);
+        const bool dryOk = m_dryDelay.process(stereo, dryOut, reportedLatency, dryDiscontinuous);
+        m_dryClock.advance(blockEndMs);
 
-        // On disconnect/timeout, processBlock leaves `stereo` untouched (clean dry passthrough).
-        if (!m_channel->processBlock(stereo, {}, ctx.sampleRate, discontinuous, kLiveBlockTimeoutMs)) {
-            m_clock.invalidate();
+        if (!m_channel->connected() ||
+            !m_channel->processBlock(stereo, {}, ctx.sampleRate, vstDiscontinuous, kLiveBlockTimeoutMs)) {
+            m_vstClock.invalidate();
+            // Keep passthrough latency-aligned with PDC-delayed sibling tracks without comb-filtering.
+            // If dry delay overflowed, dryOut is already silenced rather than emitting misaligned audio.
+            std::copy_n(dryOut.begin(), samples, stereo.begin());
+            if (!hasInput && m_tailFrames > 0) {
+                m_tailFrames = std::max(0, m_tailFrames - frames);
+            }
             return;
         }
-        m_clock.advance(blockEndMs);
+        m_vstClock.advance(blockEndMs);
 
         if (!hasInput && m_tailFrames > 0) {
             m_tailFrames = std::max(0, m_tailFrames - frames);
         }
 
-        if (blend) {
-            const float dryGain = 1.0f - m_wet;
-            for (std::size_t i = 0; i < samples; ++i) {
-                stereo[i] = m_dry[i] * dryGain + stereo[i] * m_wet;
+        if (m_wet < 0.9999f) {
+            if (dryOk) {
+                const float dryGain = 1.0f - m_wet;
+                for (std::size_t i = 0; i < samples; ++i) {
+                    stereo[i] = m_dry[i] * dryGain + stereo[i] * m_wet;
+                }
+            } else {
+                // Dry delay overflowed: omit unaligned dry signal until control/worker thread
+                // publishes a grown ring via serviceControlThread().
+                for (std::size_t i = 0; i < samples; ++i) {
+                    stereo[i] *= m_wet;
+                }
             }
         }
     }
@@ -582,9 +785,11 @@ private:
     // Shared with VstLivePool so the live plug-in and open editor persist across plan swaps.
     std::shared_ptr<VstLiveChannel> m_channel;
     float m_wet = 1.0f;
-    LiveBlockClock m_clock;
+    LiveBlockClock m_vstClock;
+    LiveBlockClock m_dryClock;
     int m_tailFrames = 0;
     std::array<float, std::size_t{kMixBlockFrames} * 2> m_dry{};
+    VstDryDelayLine m_dryDelay;
 };
 
 bool hasEnabledVstEffect(const QJsonArray& effects) {

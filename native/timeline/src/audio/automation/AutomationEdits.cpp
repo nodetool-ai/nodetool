@@ -34,6 +34,11 @@ double mixerDb(const QJsonValue& value) {
 }
 QJsonObject editChannel(QJsonObject channel,const QString& action,const QJsonObject& p,bool master) {
     if (action=="setTrackVolume" || action=="setMasterVolume") { channel["volumeDb"]=mixerDb(p["db"]); }
+    else if (action=="setMasterLimiter") {
+        if (!p.value("enabled").isBool()) { return channel; }
+        if (master && !channel.contains("volumeDb")) { channel["volumeDb"]=0.0; }
+        channel["limiter"]=p["enabled"].toBool();
+    }
     else if (action=="setTrackPan") { const double pan=p["pan"].toDouble(); channel["pan"]=std::isfinite(pan)?std::clamp(pan,-1.,1.):0; }
     else if (action=="writeTrackAutomationPass") {
         if (channel.value("locked").toBool()) { return channel; }
@@ -64,7 +69,7 @@ QJsonObject editChannel(QJsonObject channel,const QString& action,const QJsonObj
             const auto effect=value.isString()?makeTrackEffect(value.toString()):value.toObject();
             if (effect.empty()) { return channel; }
             effects.append(effect);
-            if (master) { channel=QJsonObject{{"volumeDb",channel["volumeDb"].toDouble()}}; }
+            if (master && !channel.contains("volumeDb")) { channel["volumeDb"]=0.0; }
         } else {
             bool found=false; QJsonArray next;
             for (const auto& value : effects) {
@@ -87,7 +92,7 @@ QJsonObject editChannel(QJsonObject channel,const QString& action,const QJsonObj
 }
 QJsonObject edit(QJsonObject doc,const QString& name,const QJsonObject& payload) {
     if (name.contains("Master")) {
-        const auto before=doc["master"].toObject();
+        const auto before=doc.value("master").toObject();
         const auto after=editChannel(before,name,payload,true);
         if (before!=after) { doc["master"]=after; }
     } else {
@@ -102,7 +107,7 @@ QJsonObject edit(QJsonObject doc,const QString& name,const QJsonObject& payload)
 }
 void registerEdits() {
     static const bool registered = [] {
-        for (const auto* action : {"setTrackVolume", "setTrackPan", "setTrackAutomationMode", "writeTrackAutomationPass", "setMasterVolume", "addMasterEffect", "updateMasterEffect", "removeMasterEffect", "setTrackAutomation"}) {
+        for (const auto* action : {"setTrackVolume", "setTrackPan", "setTrackAutomationMode", "writeTrackAutomationPass", "setMasterVolume", "setMasterLimiter", "addMasterEffect", "updateMasterEffect", "removeMasterEffect", "setTrackAutomation"}) {
             const auto name = QString::fromLatin1(action);
             nt::app::registerEdit(name, [name](QJsonObject doc, const QJsonObject& payload) { return edit(std::move(doc), name, payload); });
         }

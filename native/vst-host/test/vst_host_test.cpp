@@ -364,6 +364,20 @@ int main(int argc, char** argv) {
                     maxErr = std::max(maxErr, std::abs(delayedWet.getSample(1, i) - 0.5 * impulse.getSample(1, i)));
                 }
                 check(maxErr < 1e-5, "effect latency compensation aligns output", juce::String(maxErr));
+
+                // F6: denormal protection in vst-host live process loop.
+                Instance denormFx;
+                check(denormFx.load(fxPath, fx.uid(), error) && denormFx.prepareLive(rate, 128, error),
+                      "loads and prepares effect for denormal test", error);
+                std::vector<float> subIn(128, 1.0e-39f), subOutL(128, 1.0f), subOutR(128, 1.0f);
+                juce::AudioBuffer<float> subScratch(4, 128);
+                juce::MidiBuffer subMidi;
+                check(denormFx.processLiveBlock(rate, 128, false, subIn.data(), subIn.data(),
+                                                subOutL.data(), subOutR.data(), nullptr, 0, subScratch, subMidi),
+                      "processes subnormal block");
+                check(subOutL[0] == 0.0f && subOutR[0] == 0.0f,
+                      "denormal inputs are flushed to zero inside vst-host processLiveBlock",
+                      juce::String(subOutL[0]));
             }
         }
     }

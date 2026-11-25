@@ -287,10 +287,13 @@ add_library(nodetool_timeline_audio STATIC
     src/audio/AudioEngine.cpp
     src/audio/AudioSource.h
     src/audio/AudioSource.cpp
+    src/audio/DenormalGuard.h
     src/audio/FadeCurves.h
     src/audio/FadeCurves.cpp
     src/audio/LoopbackCapture.h
     src/audio/LoopbackCapture.cpp
+    src/audio/MasterLimiter.h
+    src/audio/MasterLimiter.cpp
     src/audio/Mixer.h
     src/audio/Mixer.cpp
     src/audio/OutputLatency.h

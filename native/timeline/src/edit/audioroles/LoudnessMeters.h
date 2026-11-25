@@ -15,12 +15,14 @@ class LoudnessMeters : public QObject {
     QML_SINGLETON
 public:
     explicit LoudnessMeters(QObject* parent = nullptr) : QObject(parent) {}
-    // {available, active, momentary, shortTerm, integrated, maxMomentary, maxShortTerm, truePeakDb, loudnessRange}.
+    // {available, active, momentary, shortTerm, integrated, maxMomentary, maxShortTerm, truePeakDb, loudnessRange, clipped}.
     // `available`: the device has played at least once. `active`: it played in the last moments, so the
     // momentary and short-term values are current. They read -Infinity when it is not playing.
     Q_INVOKABLE QVariantMap read();
     // Clears the integrated loudness, the maxima and the peak, and starts the measurement again.
     Q_INVOKABLE void reset();
+    // Clears only the latched true-peak clip indicator, preserving integrated loudness and peaks.
+    Q_INVOKABLE void resetClip();
 
 private:
     quint64 m_blocks = 0;

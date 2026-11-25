@@ -44,6 +44,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <thread>
+#include "DenormalGuard.h"
 #include "VstHost.h"
 #include "VstShmProtocol.h"
 #if JUCE_WINDOWS
@@ -291,10 +292,15 @@ private:
             const int frames = static_cast<int>(std::min<std::uint32_t>(shm->header.numFrames, kShmMaxFrames));
             const int numMidi = static_cast<int>(std::min<std::uint32_t>(shm->header.numMidiEvents, kShmMaxMidiEvents));
             int latency = 0;
-            const bool ok = inst_->processLiveBlock(
-                shm->header.sampleRate, frames, (flags & kShmFlagReset) != 0,
-                shm->inLeft, shm->inRight, shm->outLeft, shm->outRight,
-                shm->midi, numMidi, scratchBlock, scratchMidi, &latency);
+            bool ok = false;
+            {
+                // Re-assert FTZ/DAZ each block in case a plug-in alters FP control state.
+                const ScopedDenormalGuard denormalGuard;
+                ok = inst_->processLiveBlock(
+                    shm->header.sampleRate, frames, (flags & kShmFlagReset) != 0,
+                    shm->inLeft, shm->inRight, shm->outLeft, shm->outRight,
+                    shm->midi, numMidi, scratchBlock, scratchMidi, &latency);
+            }
             // Read under the instance lock inside processLiveBlock: a state load changes it.
             shm->header.latencySamples = latency;
             shm->header.status = ok ? 0u : 1u;

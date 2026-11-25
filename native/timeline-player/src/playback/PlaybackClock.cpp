@@ -558,6 +558,9 @@ void PlaybackClock::tick() {
             // D21 step 4: a device change. Re-anchor at the time the old
             // device facts give, and refill the PCM from there.
             anchorLocked(rawTimeLocked(now), now);
+        } else if (m_source == Source::Audio) {
+            // Track live PDC / limiter latency changes without issuing a transport seek.
+            m_device.outputLatencySec = device.outputLatencySec;
         } else if (m_source == Source::Monotonic && usable) {
             anchorLocked(rawTimeLocked(now), now);
         }

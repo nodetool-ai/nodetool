@@ -634,6 +634,7 @@ for line in sys.stdin:
         add("setTrackVolume", {{"track_id", TRACK_A}, {"db", -3.0}});
         add("setTrackPan", {{"track_id", TRACK_A}, {"pan", 0.5}});
         add("setMasterVolume", {{"db", -3.0}});
+        add("setMasterLimiter", {{"enabled", false}});
         add("addTrackEffect", {{"track_id", TRACK_A}, {"effect", "eq3"}});
         add("addMasterEffect", {{"effect", "eq3"}});
         add("addClipAudioEffect", {{"clip_id", CLIP_AUDIO}, {"type", "eq3"}});

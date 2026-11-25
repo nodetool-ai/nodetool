@@ -27,6 +27,9 @@ std::shared_ptr<Timeline> timeline(bool left = true) {
         tl->clips.push_back(c);
     }
     tl->durationMs = 8000;
+    // Live-edit assertions check exact linear gain sums (e.g. pan rightGain=1.5 -> 1.2 peak)
+    // and zero-latency sample offsets without master limiting.
+    tl->raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("limiter"), false}});
     return tl;
 }
 void play(AudioEngine& engine) {

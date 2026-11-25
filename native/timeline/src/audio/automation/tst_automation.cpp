@@ -334,6 +334,19 @@ private slots:
         QCOMPARE(doc["master"].toObject()["volumeDb"].toDouble(), -120.);
         QCOMPARE(doc["tracks"].toArray()[0].toObject()["custom"].toInt(), 12);
     }
+    // D19: setMasterLimiter must keep master schema-valid (with volumeDb) and reject missing/non-bool enabled.
+    void d19_setMasterLimiterCreatesSchemaValidMasterAndRejectsNonBool() {
+        const auto base = document();
+        QVERIFY(!base.contains("master"));
+        const auto disabled = edit(base, "setMasterLimiter", {{"enabled", false}});
+        const auto master = disabled["master"].toObject();
+        QVERIFY2(master.contains("volumeDb"), "setMasterLimiter must initialize required master.volumeDb");
+        QCOMPARE(master["volumeDb"].toDouble(), 0.0);
+        QCOMPARE(master["limiter"].toBool(true), false);
+        // Missing or non-boolean enabled must be a no-op rather than silently coercing to true.
+        QCOMPARE(edit(base, "setMasterLimiter", {}), base);
+        QCOMPARE(edit(base, "setMasterLimiter", {{"enabled", "false"}}), base);
+    }
     void insertEdits() {
         auto doc = edit(document(), "addTrackEffect", {{"trackId","a"},{"effect","filter"}});
         auto fx = doc["tracks"].toArray()[0].toObject()["effects"].toArray();
