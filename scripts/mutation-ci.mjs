@@ -9,16 +9,17 @@ import { parseArgs, run, selectFiles } from "../packages/mutator/dist/cli.js";
 import { selectFileSites, tallyForms } from "../packages/mutator/dist/engine.js";
 import { formsChangedSince } from "../packages/mutator/dist/git.js";
 import { defaultTestCommand, expandCommand, packageDirOf, relativeKey } from "../packages/mutator/dist/project.js";
-import { belongsToShard } from "../packages/mutator/dist/shards.js";
+import { belongsToShard, shardHash } from "../packages/mutator/dist/shards.js";
 import { SnapshotStore } from "../packages/mutator/dist/snapshot.js";
 import { loadSnapshots, scoreTable, survivors } from "./mutation-score.mjs";
 
 export const TARGETS = ["agents", "auth", "config", "kernel", "mutator", "node-sdk", "runtime", "security", "storage"]
   .map((name) => `packages/${name}/src`);
-const MAX_PARTITIONS = 256;
+// GitHub rejects a matrix of more than 256 jobs.
+const MAX_MATRIX_JOBS = 256;
 // One `vitest related` run over an agents file peaks near 6.5 GB. Four of
 // them in parallel exhausted a 16 GB runner, which then shut down. Half
-// the workers take twice as long, so mutate-changed allows 180 minutes.
+// the workers take twice as long.
 const AGENT_SUITE_BYTES = 7 * 1024 ** 3;
 export function mutantWorkers(file, memory = totalmem()) {
   return file.startsWith("packages/agents/") ? Math.max(1, Math.floor(memory / AGENT_SUITE_BYTES)) : null;
@@ -37,27 +38,26 @@ function unique(ids, label) {
   assert.equal(new Set(ids).size, ids.length, `${label}: duplicate IDs`);
   return [...ids].sort();
 }
-function shardIds(ids, shard) {
-  return ids.filter((id) => belongsToShard(id, shard));
-}
-/** One canonical file per job avoids repeating broad baselines for later files. */
+// CI completed bridge buckets of up to 19 sites, but a second broad baseline
+// exceeded the job budget. Leave margin with 16 agent sites per baseline;
+// the other current targets have much smaller related-test sets.
+const siteLimit = (file) => (file.startsWith("packages/agents/") ? 16 : 64);
+
+/** One canonical file per partition avoids repeating broad baselines for later files. */
 export function createPartitions(files) {
   unique(files.map((file) => file.file), "canonical files");
   unique(files.flatMap((file) => file.selectedIds), "canonical selection");
   const partitions = [];
   for (const file of files) {
-    // CI completed bridge buckets of up to 19 sites, but a second broad baseline
-    // exceeded the job budget. Leave margin with 16 agent sites per baseline;
-    // the other current targets have much smaller related-test sets.
-    const limit = file.file.startsWith("packages/agents/") ? 16 : 64;
+    const limit = siteLimit(file.file);
+    // Hash once: a large file can try hundreds of counts.
+    const hashes = file.selectedIds.map(shardHash);
     let count = Math.max(1, Math.ceil(file.selectedIds.length / limit));
     let buckets;
     for (;;) {
-      assert(partitions.length + count <= MAX_PARTITIONS, "Mutation plan exceeds the 256-job matrix limit");
-      buckets = Array.from({ length: count }, (_, offset) => {
-        const shard = { index: offset + 1, count };
-        return { file: file.file, shard, assignedIds: shardIds(file.selectedIds, shard) };
-      });
+      assert(count <= Math.max(1, file.selectedIds.length), "Hash buckets cannot split the selected sites");
+      buckets = Array.from({ length: count }, (_, offset) => ({ file: file.file, shard: { index: offset + 1, count }, assignedIds: [] }));
+      file.selectedIds.forEach((id, offset) => buckets[hashes[offset] % count].assignedIds.push(id));
       if (buckets.every((bucket) => bucket.assignedIds.length <= limit)) {
         break;
       }
@@ -71,6 +71,38 @@ export function createPartitions(files) {
   return partitions.length > 0 ? partitions : [{ id: 1, file: null, shard: null, assignedIds: [] }];
 }
 
+/**
+ * Each partition gets its own matrix job while they fit. A larger selection,
+ * such as the backlog after failed days, runs several partitions in turn in
+ * each of 256 jobs. Partitions go heaviest first to the job with the least
+ * work, measured as each partition's share of one job's site budget.
+ */
+export function createJobs(partitions, maxJobs = MAX_MATRIX_JOBS) {
+  if (partitions.length <= maxJobs) {
+    return partitions.map(({ id }) => ({ id, partitions: [id] }));
+  }
+  const load = (partition) => (partition.file === null ? 0 : partition.assignedIds.length / siteLimit(partition.file));
+  const jobs = Array.from({ length: maxJobs }, (_, offset) => ({ id: offset + 1, partitions: [], load: 0 }));
+  const heaviestFirst = [...partitions].sort((a, b) => load(b) - load(a) || a.id - b.id);
+  for (const partition of heaviestFirst) {
+    let target = jobs[0];
+    for (const job of jobs) {
+      if (job.load < target.load || (job.load === target.load && job.partitions.length < target.partitions.length)) {
+        target = job;
+      }
+    }
+    target.partitions.push(partition.id);
+    target.load += load(partition);
+  }
+  return jobs.map(({ id, partitions: ids }) => ({ id, partitions: ids.sort((a, b) => a - b) }));
+}
+
+function jobOf(plan, id) {
+  assert(Number.isSafeInteger(id) && id >= 1, "Invalid job ID");
+  const job = plan.jobs.find((item) => item.id === id);
+  assert(job, "Unknown job ID");
+  return job;
+}
 function partitionOf(plan, id) {
   assert(Number.isSafeInteger(id) && id >= 1, "Invalid partition ID");
   const partition = plan.partitions.find((item) => item.id === id);
@@ -128,11 +160,12 @@ export function createPlan(root, base) {
   });
   const selectedIds = files.flatMap((file) => file.selectedIds);
   unique(selectedIds, "canonical selection");
-  return { version: 2, head, tree: git(root, "rev-parse", "HEAD^{tree}"), base: baseCommit, mergeBase, argv, files, selectedIds, partitions: createPartitions(files) };
+  const partitions = createPartitions(files);
+  return { version: 3, head, tree: git(root, "rev-parse", "HEAD^{tree}"), base: baseCommit, mergeBase, argv, files, selectedIds, partitions, jobs: createJobs(partitions) };
 }
 
 function verifyPlan(root, plan) {
-  assert.equal(plan.version, 2);
+  assert.equal(plan.version, 3);
   assert.match(plan.base, /^[a-f0-9]{40}$/);
   assert.deepEqual(plan.argv, ["--base", plan.base, "--no-coverage", ...TARGETS]);
   assert.deepEqual(createPlan(root, plan.base), plan, "Frozen source/base selection differs from the plan");
@@ -181,6 +214,14 @@ export async function executePartition(root, plan, id, output) {
     complete = true;
   } finally {
     writeJson(join(output, "receipt.json"), { version: 2, plan, partition, assignedIds, completed, code, complete });
+  }
+}
+
+/** Run each partition of one matrix job into its canonical result directory. */
+export async function executeJob(root, plan, id, results) {
+  verifyPlan(root, plan);
+  for (const partition of jobOf(plan, id).partitions) {
+    await executePartition(root, plan, partition, join(results, `mutation-result-partition-${partition}`));
   }
 }
 
@@ -262,14 +303,14 @@ async function main(args) {
     const plan = createPlan(root, rest[0]);
     writeJson(resolve(rest[1]), plan);
     if (process.env.GITHUB_OUTPUT) {
-      const matrix = { partition: plan.partitions.map((item) => item.id) };
+      const matrix = { job: plan.jobs.map((item) => item.id) };
       writeFileSync(process.env.GITHUB_OUTPUT, `head=${plan.head}\nmutants=${plan.selectedIds.length}\nmatrix=${JSON.stringify(matrix)}\n`, { flag: "a" });
     }
-    console.log(`Planned ${plan.selectedIds.length} mutants at ${plan.head}, base ${plan.base}`);
-  } else if (command === "run") {
-    assert.equal(rest.length, 3, "Usage: mutation-ci.mjs run PLAN PARTITION_ID NEW_OUTPUT");
-    assert.match(rest[1], /^[1-9]\d*$/, "Invalid partition ID");
-    await executePartition(root, readJson(rest[0]), Number(rest[1]), resolve(rest[2]));
+    console.log(`Planned ${plan.selectedIds.length} mutants in ${plan.partitions.length} partitions and ${plan.jobs.length} jobs at ${plan.head}, base ${plan.base}`);
+  } else if (command === "run-job") {
+    assert.equal(rest.length, 3, "Usage: mutation-ci.mjs run-job PLAN JOB_ID RESULTS_DIRECTORY");
+    assert.match(rest[1], /^[1-9]\d*$/, "Invalid job ID");
+    await executeJob(root, readJson(rest[0]), Number(rest[1]), resolve(rest[2]));
   } else if (command === "aggregate") {
     assert.equal(rest.length, 2, "Usage: mutation-ci.mjs aggregate PLAN RESULTS_DIRECTORY");
     const plan = readJson(rest[0]);
@@ -290,7 +331,7 @@ async function main(args) {
       console.log("::warning::Mutants survived in changed functions. See the job summary.");
     }
   } else {
-    throw new Error("Expected base, plan, run, or aggregate");
+    throw new Error("Expected base, plan, run-job, or aggregate");
   }
 }
 
