@@ -71,6 +71,15 @@ function(nt_music_ui_tests)
     qt_add_resources(tst_musicui music_sync_banner PREFIX /nodetool/sync BASE src/server/sync
         FILES src/server/sync/ExternalConflictsBanner.qml)
     add_test(NAME tst_musicui COMMAND tst_musicui)
+    add_test(NAME tst_music_ce5_ce8_review COMMAND tst_musicui
+        reviewF1LoopedPatternJoin reviewF3DeleteQuantizeOrigin reviewF4DryCrossfade
+        reviewF5SilentNeighbors reviewF6QuantizeFocusLoss reviewF7PatternNoteLines
+        reviewF8PressureTranspose reviewF9CrossfadeControl reviewAssistantContracts reviewF11TempoAndSession
+        reviewF12JoinPrunesLinks reviewF14InvalidColor reviewF15PianoColor
+        reviewF16JoinExpression reviewF17JoinOrdering reviewF18DropTempo
+        reviewF19JoinMenuRefusals reviewF20VisibleLabels reviewF21RenameRefusal
+        reviewF22NegativeInPoint)
+    set_tests_properties(tst_music_ce5_ce8_review PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     add_test(NAME tst_music_clip_editing COMMAND tst_musicui
         musicOpsAreCallableAssistantCommands loopAudioRendersTheSameSourceOnEveryRepeat
         loopOverviewStaysBoundedWithManyTracks loopMidiNoteLinesRepeatAndStopAtBoundaries

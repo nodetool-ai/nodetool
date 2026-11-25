@@ -564,6 +564,8 @@ ClipList resolveDropAction(const EditDoc& doc, const IdSet& movedIds, const QStr
     RippleOptions o;
     o.lockedTrackIds = rippleFrozenTrackIds(doc);
     o.lockedClipIds = lockedClips;
+    o.bpm = doc.bpm;
+    o.gridOffsetMs = doc.gridOffsetMs;
     ClipList out = resolveDrop(doc.clips, moved, mode, o);
     // A drop that would split or remove a clip owning a media track leaves
     // `mediaTracks[].clipId` dangling: keep it an overlap instead. (The web

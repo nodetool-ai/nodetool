@@ -47,6 +47,7 @@ Rectangle {
             readonly property real inner: width - 2 * padding
 
             SectionLabel { text: qsTr("Region parameters") }
+            SectionLabel { objectName: "midiRegionTransposeLabel"; text: qsTr("Transpose") }
             Ui.NumberField {
                 objectName: "midiRegionTranspose"
                 width: column.inner
@@ -60,6 +61,7 @@ Rectangle {
                 stepSize: 1
                 onValueCommitted: next => root.panel.setRegionParam("transpose", next)
             }
+            SectionLabel { objectName: "midiRegionVelocityLabel"; text: qsTr("Velocity offset") }
             Ui.NumberField {
                 objectName: "midiRegionVelocity"
                 width: column.inner
@@ -73,6 +75,7 @@ Rectangle {
                 stepSize: 1
                 onValueCommitted: next => root.panel.setRegionParam("velocityOffset", next)
             }
+            SectionLabel { objectName: "midiRegionQuantizeLabel"; text: qsTr("Quantize") }
             Ui.Select {
                 objectName: "midiRegionQuantize"
                 width: column.inner
@@ -83,16 +86,20 @@ Rectangle {
                 value: root.panel.regionParams.quantize?.grid ?? "off"
                 onValueCommitted: next => root.panel.setRegionParam("quantize", next === "off" ? null : {grid: next, strength: root.panel.regionParams.quantize?.strength ?? 100})
             }
+            SectionLabel { objectName: "midiRegionQuantizeStrengthLabel"; text: qsTr("Quantize strength") }
             Ui.NumberField {
                 objectName: "midiRegionQuantizeStrength"
                 width: column.inner
                 accessibleName: qsTr("Region quantize strength")
-                enabled: root.panel.controllerEditable && root.panel.regionParams.quantize !== undefined
+                enabled: root.panel.controllerEditable && root.panel.regionParams.quantize != null
                 value: root.panel.regionParams.quantize?.strength ?? 100
                 from: 0
                 to: 100
                 stepSize: 1
-                onValueCommitted: next => root.panel.setRegionParam("quantize", {grid: root.panel.regionParams.quantize.grid, strength: next})
+                onValueCommitted: next => {
+                    const quantize = root.panel.regionParams.quantize
+                    if (quantize && root.panel.controllerEditable) root.panel.setRegionParam("quantize", {grid: quantize.grid, strength: next})
+                }
             }
             Ui.Chip {
                 objectName: "midiTransposeBadge"

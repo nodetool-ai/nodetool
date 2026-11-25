@@ -164,10 +164,10 @@ QJsonArray applyMidiRegionParamsToExpandedNotes(const QJsonArray& rawNotes, cons
         }
     }
 
-    const int transpose = roundedClamp(clip.value(u"transpose").toDouble(0.0), -127, 127);
-    if (transpose != 0) {
+    const double transpose = std::floor(clip.value(u"transpose").toDouble(0.0) + 0.5);
+    if (std::isfinite(transpose) && transpose != 0) {
         for (auto& n : out) {
-            const int p = std::clamp(n.value(u"pitch").toInt(60) + transpose, 0, 127);
+            const int p = roundedClamp(n.value(u"pitch").toDouble(60) + transpose, 0, 127);
             n.insert(QStringLiteral("pitch"), p);
         }
     }
@@ -201,13 +201,13 @@ QJsonObject applyRegionParams(QJsonObject clip, double bpm, double gridOffsetMs)
     if (clip.contains("notes")) {
         clip.insert("notes", applyMidiRegionParamsToExpandedNotes(clip.value("notes").toArray(), clip, bpm, gridOffsetMs));
     }
-    const int transpose = roundedClamp(clip.value("transpose").toDouble(), -48, 48);
-    if (transpose && clip.contains("controllers")) {
+    const double transpose = std::floor(clip.value("transpose").toDouble() + 0.5);
+    if (std::isfinite(transpose) && transpose != 0 && clip.contains("controllers")) {
         auto lanes = clip.value("controllers").toArray();
         for (qsizetype i = 0; i < lanes.size(); ++i) {
             auto lane = lanes[i].toObject();
             if (lane.value("kind").toString() == u"polyPressure" && lane.contains("pitch")) {
-                lane.insert("pitch", std::clamp(lane.value("pitch").toInt() + transpose, 0, 127));
+                lane.insert("pitch", roundedClamp(lane.value("pitch").toDouble() + transpose, 0, 127));
                 lanes[i] = lane;
             }
         }

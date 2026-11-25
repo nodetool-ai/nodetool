@@ -10,6 +10,7 @@
 #include <QSet>
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <limits>
 #include <numeric>
@@ -2731,6 +2732,8 @@ QJsonObject applyPatternRowSort(const QJsonObject& pattern, const QJsonObject& i
     const int dir = desc ? -1 : 1;
     std::vector<QJsonObject> rows;
     for (const auto& rv : pattern.value(u"rows").toArray()) rows.push_back(rv.toObject());
+    // Pinned like sortNotes, so the order does not follow the host locale.
+    const QCollator collator(QLocale(QLocale::English, QLocale::UnitedStates));
     std::stable_sort(rows.begin(), rows.end(), [&](const QJsonObject& a, const QJsonObject& b) {
         const auto aa = a.value(u"assignment").toObject();
         const auto ba = b.value(u"assignment").toObject();
@@ -2740,7 +2743,7 @@ QJsonObject applyPatternRowSort(const QJsonObject& pattern, const QJsonObject& i
             const int noteCmp = assignmentNoteKey(aa, instrument) - assignmentNoteKey(ba, instrument);
             if (noteCmp != 0) return noteCmp * dir < 0;
         } else if (by == u"typeAndName") {
-            const int nameCmp = QString::localeAwareCompare(rowLabel(a, instrument), rowLabel(b, instrument));
+            const int nameCmp = collator.compare(rowLabel(a, instrument), rowLabel(b, instrument));
             if (nameCmp != 0) return nameCmp * dir < 0;
         } else if (by == u"typeAndKitPad") {
             const int padA = (aa.value(u"type").toString() == u"kit") ? aa.value(u"pad").toInt(0)
@@ -2815,11 +2818,12 @@ std::optional<std::vector<int>> parseStepSelection(const QJsonValue& spec, int m
 
 // ── Row and pattern transforms (SQ35, SQ53; TS stepPattern.ts) ─────────────
 
-QJsonObject rotateRowSteps(const QJsonObject& row, int by, const QString& mode) {
+QJsonObject rotateRowSteps(const QJsonObject& row, double by, const QString& mode) {
     const auto steps = row.value(u"steps").toArray();
     const int n = static_cast<int>(steps.size());
-    if (n <= 1) return row;
-    const int shift = floorMod(by % n, n);
+    if (n <= 1 || !std::isfinite(by)) return row;
+    // fmod is exact, so a huge `by` reduces like TS `Math.trunc(by) % n`.
+    const int shift = floorMod(static_cast<int>(std::fmod(std::trunc(by), static_cast<double>(n))), n);
     if (shift == 0) return row;
     QJsonArray next;
     if (mode.isEmpty()) {
@@ -2846,7 +2850,9 @@ QJsonObject nudgeRowValues(const QJsonObject& row, const QString& mode, double d
     const QString kind = assignment.value(u"target").toObject().value(u"kind").toString();
     const bool isDeviceValue = mode == u"value" && type == u"automation" && kind == u"device";
     if (!std::isfinite(delta) || delta == 0) return row;
-    const int d = static_cast<int>(std::trunc(delta));
+    // Every result is clamped to a range far below 1e9, so this keeps TS results
+    // and keeps the int arithmetic below from overflowing.
+    const int d = static_cast<int>(std::trunc(std::clamp(delta, -1e9, 1e9)));
     if (!isDeviceValue && d == 0) return row;
     const auto steps = row.value(u"steps").toArray();
     QJsonArray next;
@@ -3025,7 +3031,7 @@ QJsonObject randomizePatternSteps(const QJsonObject& pattern, const QString& mod
             } else if (mode == u"value") {
                 if (devRange) {
                     const double v = devRange->first + u * (devRange->second - devRange->first);
-                    s.insert(QStringLiteral("value"), QString::number(v, 'f', 4).toDouble());
+                    s.insert(QStringLiteral("value"), jsToFixed(v, 4));
                 } else if (type == u"automation" && kind == u"pitchBend") {
                     s.insert(QStringLiteral("value"), clampInt(-8192 + u * 16383, -8192, 8191));
                 } else {
@@ -3045,6 +3051,74 @@ QJsonObject randomizePatternSteps(const QJsonObject& pattern, const QString& mod
     }
     auto out = pattern;
     out.insert(QStringLiteral("rows"), nextRows);
+    return out;
+}
+
+double jsToFixed(double value, int digits) {
+    if (!std::isfinite(value) || digits < 0 || digits > 20 || std::fabs(value) >= 1e21) return value;
+    // The exact decimal expansion of a double in this range ends well before 1100 digits.
+    std::array<char, 1400> buf{};
+    const auto res = std::to_chars(buf.data(), buf.data() + buf.size(), std::fabs(value), std::chars_format::fixed, 1100);
+    if (res.ec != std::errc{}) return value;
+    std::string text(buf.data(), res.ptr);
+    const auto dot = text.find('.');
+    std::string whole = text.substr(0, dot);
+    std::string frac = dot == std::string::npos ? std::string{} : text.substr(dot + 1);
+    frac.resize(std::max<std::size_t>(frac.size(), static_cast<std::size_t>(digits) + 1), '0');
+    // Ties go up: JS picks the larger n when two are equally close.
+    const bool roundUp = frac[static_cast<std::size_t>(digits)] >= '5';
+    std::string kept = whole + frac.substr(0, static_cast<std::size_t>(digits));
+    if (roundUp) {
+        int i = static_cast<int>(kept.size()) - 1;
+        while (i >= 0 && kept[static_cast<std::size_t>(i)] == '9') kept[static_cast<std::size_t>(i--)] = '0';
+        if (i < 0) kept.insert(kept.begin(), '1');
+        else ++kept[static_cast<std::size_t>(i)];
+    }
+    const std::size_t split = kept.size() - static_cast<std::size_t>(digits);
+    const std::string out = kept.substr(0, split) + (digits > 0 ? "." + kept.substr(split) : std::string{});
+    const double parsed = std::strtod(out.c_str(), nullptr);
+    return value < 0 && parsed != 0 ? -parsed : parsed;
+}
+
+PatternStepSpans patternStepSpans(const QJsonObject& clip, const QJsonObject& doc) {
+    PatternStepSpans out;
+    if (!clip.value(u"pattern").isObject()) return out;
+    const double bpm = resolveDocBpm(doc);
+    out.ticksPerMs = msToTicks(1.0, bpm);
+    out.clipLengthTicks = std::max<std::int64_t>(0, jsRoundInt64(msToTicks(clip.value(u"durationMs").toDouble(0.0), bpm)));
+    const auto loopMs = activeLoopMsOf(clip);
+    std::optional<double> loopTicks;
+    if (loopMs) loopTicks = static_cast<double>(std::max<std::int64_t>(1, jsRoundInt64(msToTicks(*loopMs, bpm))));
+    const std::int64_t inPointTicks =
+        std::max<std::int64_t>(0, jsRoundInt64(msToTicks(clip.value(u"inPointMs").toDouble(0.0), bpm)));
+    const double phase = jsRoundInt64(clip.value(u"patternPhaseTicks").toDouble(0.0)) + inPointTicks;
+    const auto segments = buildSegments(static_cast<double>(out.clipLengthTicks), loopTicks, phase);
+    const auto pattern = clip.value(u"pattern").toObject();
+    const std::uint32_t seed = readSeed(pattern.value(u"seed"), 1u);
+    const auto rowCycles = clip.value(u"patternRowCycles").toObject();
+    std::size_t budget = 262144;
+    for (const auto& rv : pattern.value(u"rows").toArray()) {
+        const auto row = rv.toObject();
+        const auto rowId = row.value(u"id").toString();
+        RowOccurrencesResult occurrences;
+        try {
+            occurrences = rowSegmentOccurrences(row, seed, segments, rowCycles.value(rowId).toObject(), budget);
+        } catch (const std::exception&) {
+            continue;  // The expander reports the same row as a resource error.
+        }
+        if (occurrences.exceededBudget) break;
+        std::vector<StepSpan> spans;
+        for (std::size_t s = 0; s < segments.size() && s < occurrences.perSegment.size(); ++s) {
+            const auto& seg = segments[s];
+            for (const auto& occ : occurrences.perSegment[s]) {
+                const std::int64_t lo = std::max(occ.rawStartTick, seg.phase);
+                const std::int64_t hi = std::min(occ.rawStartTick + occ.lengthTicks, seg.phase + seg.segLen);
+                if (hi <= lo) continue;
+                spans.push_back(StepSpan{seg.segStart + lo - seg.phase, seg.segStart + hi - seg.phase, occ.stepIndex});
+            }
+        }
+        out.rows.insert(rowId, std::move(spans));
+    }
     return out;
 }
 

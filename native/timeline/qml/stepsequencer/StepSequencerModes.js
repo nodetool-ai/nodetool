@@ -54,8 +54,9 @@ function effectiveMode(row, mode) {
     return mode
 }
 
+// Automation rows have no gate, tie, note, octave or repeat (SQ8, SQ30).
 function supportsMode(row, mode) {
-    if (isAutomation(row)) return ["velocity", "gate", "tie", "note", "octave", "repeat"].indexOf(mode) < 0 || mode === "velocity"
+    if (isAutomation(row)) return ["gate", "tie", "note", "octave", "repeat"].indexOf(mode) < 0
     return mode !== "value"
 }
 
@@ -79,11 +80,25 @@ function range(row, mode) {
     }
 }
 
+function hasField(step, field) {
+    return !!step && (step.set || "").split(",").indexOf(field) >= 0
+}
+
+// The octave a step plays without an octave override. `row.pitch` is the
+// controller's resolved pitch, so kit pads use the pad's pitch (SQ19).
 function baseOctave(row) {
     var a = row.assignment || {}
     if (a.type === "degree") return a.octave
-    if (a.type === "note" || a.type === "melodic") return Math.floor(a.pitch / 12) - 2
+    if (row.pitch !== undefined && row.pitch >= 0) return Math.floor(row.pitch / 12) - 2
     return 3
+}
+
+// The pitch a step plays before its note offset: the row pitch, moved to the
+// step's octave when the step sets one.
+function basePitch(row, step) {
+    if (row.pitch === undefined || row.pitch < 0) return -1
+    if (!hasField(step, "octave")) return row.pitch
+    return (step.octave + 2) * 12 + ((row.pitch % 12) + 12) % 12
 }
 
 // The numeric value of `mode` on one step after defaults. Booleans are 0 or 1.
@@ -124,11 +139,12 @@ function noteName(pitch) {
 }
 
 // The text a cell shows bottom-left: `47`, `100%`, `B-1`, `-1`, `1/16`.
-function textFor(row, mode, v) {
+function textFor(row, mode, v, step) {
     var s = spec(mode)
     if (mode === "note") {
         var a = row.assignment || {}
-        if ((a.type === "note" || a.type === "melodic") && a.pitch !== undefined) return noteName(Math.max(0, Math.min(127, a.pitch + v)))
+        var base = basePitch(row, step)
+        if ((a.type === "note" || a.type === "melodic" || a.type === "kit") && base >= 0) return noteName(Math.max(0, Math.min(127, base + v)))
         return v > 0 ? "+" + v : String(v)
     }
     if (mode === "stepRate") return STEP_RATES[v] || row.stepRate
@@ -137,7 +153,7 @@ function textFor(row, mode, v) {
     return s.unit ? v + s.unit : String(v)
 }
 
-function text(row, index, mode) { return textFor(row, mode, value(row, index, mode)) }
+function text(row, index, mode) { return textFor(row, mode, value(row, index, mode), row.steps[index]) }
 
 // The step patch a value writes: stepRate stores the rate name.
 function patch(mode, v) {

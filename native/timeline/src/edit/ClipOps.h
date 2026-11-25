@@ -76,6 +76,8 @@ struct RippleOptions {
     IdSet lockedTrackIds;
     IdSet lockedClipIds;
     bool followLinks = true;
+    double bpm = 120;
+    double gridOffsetMs = 0;
 };
 std::optional<ClipList> planShift(const ClipList& clips, double fromMs, double deltaMs, const IdSet& excludeIds = {},
                                   const RippleOptions& options = {});

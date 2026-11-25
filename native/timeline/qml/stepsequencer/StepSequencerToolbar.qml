@@ -17,14 +17,23 @@ Rectangle {
     readonly property bool hasRow: panel.selectedRowId !== ""
     readonly property bool hasSteps: panel.selectedSteps.length > 0
     readonly property bool hasUnused: panel.rows.some(r => !r.steps.some(s => s.on))
-    function key(text) { return mac ? text : text.replace("⌘", "Ctrl+").replace("⌥", "Alt+").replace("⇧", "Shift+").replace("⌃", "Ctrl+Alt+") }
+    function key(text) { return mac ? text : text.replace("⌃", "Ctrl+Alt+").replace("⌘", "Ctrl+").replace("⌥", "Alt+").replace("⇧", "Shift+") }
     readonly property var editEntries: [
         {id: "undo", label: qsTr("Undo"), shortcut: key("⌘Z"), enabled: !!panel.undoStack && panel.undoStack.canUndo},
         {id: "redo", label: qsTr("Redo"), shortcut: key("⇧⌘Z"), enabled: !!panel.undoStack && panel.undoStack.canRedo},
         {separator: true},
+        {id: "cutSteps", label: qsTr("Cut Steps"), shortcut: key("⌘X"), enabled: editable && hasSteps},
+        {id: "copySteps", label: qsTr("Copy Steps"), shortcut: key("⌘C"), enabled: hasSteps},
+        {id: "pasteSteps", label: qsTr("Paste Steps"), shortcut: key("⌘V"), enabled: editable && hasRow && !!panel.clipboard && panel.clipboard.kind === "steps"},
+        {id: "repeatStep", label: qsTr("Repeat Step"), shortcut: key("⌘R"), enabled: editable && hasSteps},
         {id: "toggleStep", label: qsTr("Toggle Step"), shortcut: "'", enabled: editable && hasSteps},
         {id: "clearStep", label: qsTr("Clear Step"), shortcut: key("⌃⌫"), enabled: editable && hasSteps},
         {separator: true},
+        {id: "copyRow", label: qsTr("Copy Row"), shortcut: key("⌃C"), enabled: hasRow},
+        {id: "pasteRow", label: qsTr("Paste Row"), shortcut: key("⌃V"), enabled: editable && hasRow && !!panel.clipboard && panel.clipboard.kind === "row"},
+        {id: "pasteNewRow", label: qsTr("Paste to New Row"), shortcut: key("⌃⇧V"), enabled: editable && !!panel.clipboard && panel.clipboard.kind === "row"},
+        {id: "pasteRowSettings", label: qsTr("Paste Row Settings"), shortcut: key("⌃⌥⇧V"), enabled: editable && hasRow && !!panel.clipboard && panel.clipboard.kind === "row"},
+        {id: "duplicateRowNext", label: qsTr("Duplicate Row with Next Assignment"), shortcut: key("⌘D"), enabled: editable && hasRow},
         {id: "renameRow", label: qsTr("Rename Row"), shortcut: key("⇧↩"), enabled: editable && hasRow},
         {id: "muteRow", label: qsTr("Mute Row"), shortcut: key("⌃⇧M"), enabled: editable && hasRow},
         {id: "soloRow", label: qsTr("Solo Row"), shortcut: key("⌃⇧S"), enabled: editable && hasRow},
@@ -49,6 +58,20 @@ Rectangle {
         {id: "randomizeSteps", label: qsTr("Randomize Selected Steps"), shortcut: key("⌥⇧⌘R"), enabled: editable && hasSteps},
         {id: "newSeed", label: qsTr("New Random Seed"), enabled: editable},
         {separator: true},
+        {id: "transposeUp", label: qsTr("Transpose +1 Semitone"), shortcut: key("⌥↑"), enabled: editable},
+        {id: "transposeDown", label: qsTr("Transpose -1 Semitone"), shortcut: key("⌥↓"), enabled: editable},
+        {id: "transposeOctaveUp", label: qsTr("Transpose +1 Octave"), shortcut: key("⌥⇧↑"), enabled: editable},
+        {id: "transposeOctaveDown", label: qsTr("Transpose -1 Octave"), shortcut: key("⌥⇧↓"), enabled: editable},
+        {separator: true},
+        {id: "patternRateUp", label: qsTr("Pattern Step Rate Faster"), shortcut: key("⌃⇧="), enabled: editable},
+        {id: "patternRateDown", label: qsTr("Pattern Step Rate Slower"), shortcut: key("⌃⇧-"), enabled: editable},
+        {id: "rowRateUp", label: qsTr("Row Step Rate Faster"), shortcut: key("⌃="), enabled: editable && hasRow},
+        {id: "rowRateDown", label: qsTr("Row Step Rate Slower"), shortcut: key("⌃-"), enabled: editable && hasRow},
+        {id: "loopStartUp", label: qsTr("Row Loop Start Later"), shortcut: key("⌃⌥="), enabled: editable && hasRow},
+        {id: "loopStartDown", label: qsTr("Row Loop Start Earlier"), shortcut: key("⌃⌥-"), enabled: editable && hasRow},
+        {id: "loopEndUp", label: qsTr("Row Loop End Later"), shortcut: key("⌥⌘="), enabled: editable && hasRow},
+        {id: "loopEndDown", label: qsTr("Row Loop End Earlier"), shortcut: key("⌥⌘-"), enabled: editable && hasRow},
+        {separator: true},
         {id: "mono", label: qsTr("Mono Mode"), shortcut: key("⌃⇧⌘M"), checked: !!panel.settings.mono, enabled: editable},
         {id: "convertToMidi", label: qsTr("Convert to MIDI Region"), enabled: editable}
     ]
@@ -59,13 +82,20 @@ Rectangle {
             {id: "valuesAll", label: qsTr("Always for All Rows"), checked: panel.displayValues === "all"}
         ]},
         {id: "sortRows", label: qsTr("Sort Rows"), enabled: editable, submenu: [
-            {id: "sort:type", label: qsTr("By Type")},
-            {id: "sort:typeAndNote", label: qsTr("By Type and Note")},
-            {id: "sort:typeAndName", label: qsTr("By Type and Name")},
-            {id: "sort:typeAndKitPad", label: qsTr("By Type and Kit Pad")}
+            {id: "sort:none", label: qsTr("Manual Order")},
+            {id: "sort:typeAsc", label: qsTr("By Type, Ascending")},
+            {id: "sort:typeDesc", label: qsTr("By Type, Descending")},
+            {id: "sort:typeAndNoteAsc", label: qsTr("By Type and Note, Ascending")},
+            {id: "sort:typeAndNoteDesc", label: qsTr("By Type and Note, Descending")},
+            {id: "sort:typeAndNameAsc", label: qsTr("By Type and Name, Ascending")},
+            {id: "sort:typeAndNameDesc", label: qsTr("By Type and Name, Descending")},
+            {id: "sort:typeAndKitPadAsc", label: qsTr("By Type and Kit Pad, Ascending")},
+            {id: "sort:typeAndKitPadDesc", label: qsTr("By Type and Kit Pad, Descending")}
         ]},
-        {id: "showSubrows", label: qsTr("Show/Hide Subrows for Row"), shortcut: key("⌃⌘→"), enabled: hasRow},
-        {id: "showAllSubrows", label: qsTr("Show/Hide Subrows for All Rows"), enabled: panel.rows.length > 0},
+        {id: "expandRow", label: qsTr("Show Subrows for Row"), shortcut: key("⌃⌘→"), enabled: hasRow},
+        {id: "collapseRow", label: qsTr("Hide Subrows for Row"), shortcut: key("⌃⌘←"), enabled: hasRow},
+        {id: "expandAll", label: qsTr("Show Subrows for All Rows"), shortcut: key("⌃⇧⌘→"), enabled: panel.rows.length > 0},
+        {id: "collapseAll", label: qsTr("Hide Subrows for All Rows"), shortcut: key("⌃⇧⌘←"), enabled: panel.rows.length > 0},
         {separator: true},
         {id: "rowColors", label: qsTr("Show Row Colors"), checked: panel.rowColors},
         {id: "inspector", label: qsTr("Show Local Inspector"), checked: panel.inspectorVisible},

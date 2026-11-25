@@ -85,13 +85,13 @@ Basic.Menu {
         for (let index = 0; index < list.length; ++index) {
             const entry = list[index]
             if (entry.separator === true) {
-                target.addItem(separatorComponent.createObject(null))
+                target.addItem(separatorComponent.createObject(target))
             } else if (entry.header !== undefined) {
-                target.addItem(headerComponent.createObject(null, { text: entry.header }))
+                target.addItem(headerComponent.createObject(target, { text: entry.header }))
             } else if (entry.submenu !== undefined) {
                 addSubmenu(target, entry)
             } else {
-                const row = itemComponent.createObject(null, entryProperties(entry))
+                const row = itemComponent.createObject(target, entryProperties(entry))
                 row.triggered.connect(() => root.entryTriggered(entry.id))
                 target.addItem(row)
                 itemsById[entry.id] = row

@@ -214,7 +214,8 @@ void projectAutoCrossfades(std::vector<Clip>& clips, double durationMs) {
     std::vector<std::optional<Want>> ins(clips.size()), outs(clips.size());
     std::unordered_map<std::string, std::vector<std::size_t>> tracks;
     for (std::size_t i = 0; i < clips.size(); ++i) {
-        if (clips[i].mediaType == MediaType::Audio && clips[i].durationMs > 0) { tracks[clips[i].trackId].push_back(i); }
+        if (clips[i].mediaType == MediaType::Audio && clips[i].durationMs > 0 &&
+            !clips[i].muted && !clips[i].raw.value("hidden").toBool() && hasEffectiveAsset(clips[i])) { tracks[clips[i].trackId].push_back(i); }
     }
     const auto want = [](auto& values, std::size_t i, double ms, FadeShape shape) {
         if (ms > 0 && (!values[i] || ms < values[i]->first)) { values[i] = Want{ms, shape}; }
@@ -302,7 +303,7 @@ MixPlan buildMixPlan(const Timeline& document) {
     for (const Clip& c : tl.clips) {
         const Track* t = tl.findTrack(c.trackId);
         if (!t || !isSoundTrack(*t) || t->muted || (soloed && !t->solo)) continue;
-        if (c.muted || c.startMs + c.durationMs <= 0.0) continue;
+        if (c.muted || c.raw.value("hidden").toBool() || c.startMs + c.durationMs <= 0.0) continue;
         if (c.mediaType != MediaType::Audio || !hasEffectiveAsset(c)) continue;
         VoicePlan v = voiceFor(c);
         v.trackGain = dbToGain(t->volumeDb);

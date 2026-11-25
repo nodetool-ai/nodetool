@@ -1,5 +1,8 @@
 #pragma once
 
+#include "midi/PatternExpand.h"
+
+#include <QAbstractListModel>
 #include <QJsonObject>
 #include <QObject>
 #include <QPointer>
@@ -9,11 +12,38 @@
 
 class TimelineModel;
 
+// The rows of one pattern for the Step Sequencer grid (PERFORMANCE.md rules 9 and
+// 10). An edit sends dataChanged for the rows that changed, so the ListView keeps
+// its delegates and scroll position. The playhead updates only the `playingStep`
+// role of rows whose playing step moved.
+// Owned by StepSequencerController. UI thread only.
+class StepSequencerRowModel : public QAbstractListModel {
+    Q_OBJECT
+    QML_ANONYMOUS
+  public:
+    enum Role { RowDataRole = Qt::UserRole + 1, RowIdRole, PlayingStepRole };
+    using QAbstractListModel::QAbstractListModel;
+    int rowCount(const QModelIndex& parent = {}) const override { return parent.isValid() ? 0 : static_cast<int>(m_rows.size()); }
+    QVariant data(const QModelIndex& index, int role) const override;
+    QHash<int, QByteArray> roleNames() const override;
+
+    // Replaces the rows. Same ids in the same order: dataChanged for changed rows only.
+    void setRows(const QVariantList& rows);
+    void setPlayingSteps(const QHash<QString, int>& playing);
+    const QVariantList& rows() const { return m_rows; }
+
+  private:
+    QVariantList m_rows;
+    QStringList m_ids;
+    std::vector<int> m_playing;
+};
+
 // The Step Sequencer's view of one pattern region (web StepSequencer.tsx). It
 // reads `clip.pattern` and writes every edit through the same step pattern
 // operations the assistant tools run (PatternOps.h), so a person and an agent
-// reach the same edits. Each runOp call is one `stepSequencer.op` undo entry.
-// Owned by its QML parent. UI thread only.
+// reach the same edits. Each mutating runOp call is one "Edit Step Pattern"
+// undo entry.
+// Owned by its QML parent. It owns its row model (QObject child). UI thread only.
 class StepSequencerController : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -25,20 +55,27 @@ class StepSequencerController : public QObject {
     Q_PROPERTY(bool convertible READ convertible NOTIFY patternChanged)
     Q_PROPERTY(bool editable READ editable NOTIFY patternChanged)
     Q_PROPERTY(QString clipName READ clipName NOTIFY patternChanged)
+    Q_PROPERTY(QString trackId READ trackId NOTIFY patternChanged)
     Q_PROPERTY(QString trackName READ trackName NOTIFY patternChanged)
     Q_PROPERTY(QString trackColor READ trackColor NOTIFY patternChanged)
+    // The track instrument: kit pads for the Add Row menu (SQ19, SQ42).
+    Q_PROPERTY(QVariantMap instrument READ instrument NOTIFY patternChanged)
     // Pattern settings (SQ2) without rows.
     Q_PROPERTY(QVariantMap settings READ settings NOTIFY patternChanged)
-    // One entry per row: id, label, type, mute, solo, playback, stepRate, lengthSteps,
-    // loopStart, loopEnd, subrows, subrowsExpanded, color, pitch, steps (normalized).
+    // One entry per row: id, label, type, targetKind, mute, solo, playback, stepRate,
+    // lengthSteps, loopStart, loopEnd, subrows, subrowsExpanded, color, pitch, steps.
+    // For lookups. The grid binds rowModel.
     Q_PROPERTY(QVariantList rows READ rows NOTIFY patternChanged)
+    Q_PROPERTY(QAbstractItemModel* rowModel READ rowModel CONSTANT)
     Q_PROPERTY(QString patternText READ patternText NOTIFY patternChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
-    // Factory patterns and templates: id, name, kind, category, tags.
+    // Factory patterns and templates: id, name, kind, category, tags. Parsed once.
     Q_PROPERTY(QVariantList library READ library CONSTANT)
+    // Timeline time in ms of the playhead, or negative when nothing plays.
+    Q_PROPERTY(double playheadMs READ playheadMs WRITE setPlayheadMs NOTIFY playheadMsChanged)
 
   public:
-    using QObject::QObject;
+    explicit StepSequencerController(QObject* parent = nullptr);
 
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* timeline);
@@ -49,46 +86,66 @@ class StepSequencerController : public QObject {
     bool convertible() const { return m_convertible; }
     bool editable() const;
     QString clipName() const { return m_clipName; }
+    QString trackId() const { return m_trackId; }
     QString trackName() const { return m_trackName; }
     QString trackColor() const { return m_trackColor; }
+    QVariantMap instrument() const { return m_instrument.toVariantMap(); }
     QVariantMap settings() const { return m_settings; }
-    QVariantList rows() const { return m_rows; }
+    QVariantList rows() const { return m_rowModel->rows(); }
+    QAbstractItemModel* rowModel() const { return m_rowModel; }
     QString patternText() const { return m_patternText; }
     QString lastError() const { return m_lastError; }
     QVariantList library() const;
+    double playheadMs() const { return m_playheadMs; }
+    void setPlayheadMs(double ms);
 
     // Runs one step pattern operation (get_pattern, set_steps, set_pattern_row, ...)
-    // on this clip. `clipId` is filled in. Mutations are one undo entry. Returns
-    // the operation result, or {ok: false, error} and sets lastError.
+    // on this clip. `clipId` is filled in for ops that take one. A mutation is one
+    // undo entry and runs the op once (twice only when the document is rebased).
+    // Returns the committed result, or {ok: false, error} and sets lastError.
     Q_INVOKABLE QVariantMap runOp(const QString& op, const QVariantMap& args = {});
+    // Runs [{op, args}, ...] in order as one undo entry, for an edit that needs
+    // several ops (a relative change across steps with different values). Stops
+    // at the first failure and changes nothing. Returns the last result.
+    Q_INVOKABLE QVariantMap runOps(const QVariantList& ops);
     // The 0-based step of `rowId` that plays at timeline time `ms`, or -1.
-    Q_INVOKABLE int playingStep(const QString& rowId, double ms) const;
+    Q_INVOKABLE int playingStep(const QString& rowId, double ms);
     Q_INVOKABLE QString noteName(int pitch) const;
+    // Reloads the clip this many times since construction (for tests).
+    Q_INVOKABLE int reloadCount() const { return m_reloadCount; }
 
   signals:
     void timelineChanged();
     void clipIdChanged();
     void patternChanged();
     void lastErrorChanged();
+    void playheadMsChanged();
 
   private:
+    void onTimelineChanged();
     void reload();
     void setLastError(const QString& error);
+    void ensureSpans();
+    int stepAt(const QString& rowId, double ms);
 
     QPointer<TimelineModel> m_timeline;
+    StepSequencerRowModel* m_rowModel = nullptr;
     QString m_clipId;
     bool m_valid = false;
     bool m_convertible = false;
     bool m_locked = false;
     QString m_clipName;
+    QString m_trackId;
     QString m_trackName;
     QString m_trackColor;
+    QJsonObject m_instrument;
     QVariantMap m_settings;
-    QVariantList m_rows;
     QString m_patternText;
     QString m_lastError;
-    QJsonObject m_pattern;
-    double m_startMs = 0;
-    double m_inPointMs = 0;
-    double m_bpm = 120;
+    QJsonObject m_clipRaw;
+    QJsonObject m_tempoDoc;
+    nt::midi::PatternStepSpans m_spans;
+    bool m_spansDirty = true;
+    double m_playheadMs = -1;
+    int m_reloadCount = 0;
 };

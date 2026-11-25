@@ -22,6 +22,7 @@ nt_qml_sources(src/midi/StepSequencerController.h src/midi/StepSequencerControll
 
 function(nt_midi_tests)
     nt_qt_test(tst_midinotes SOURCES src/midi/tst_midinotes.cpp LIBS timeline_core Qt6::Test)
+    nt_qt_test(tst_patternops SOURCES src/midi/tst_patternops.cpp LIBS timeline_core Qt6::Test)
     nt_qt_test(tst_patternexpand SOURCES src/midi/tst_patternexpand.cpp
         LIBS nodetool_timeline_playback_registrar timeline_core timeline_audio Qt6::Test
         DEFINES NT_PATTERN_ORACLE_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/src/midi/fixtures/step-pattern-oracle.json")

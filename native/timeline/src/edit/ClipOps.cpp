@@ -5,6 +5,8 @@
 #include "midi/PatternExpand.h"
 #include "edit/targeting/RangeSplit.h"
 #include "scene/ParamCurves.h"
+#include "music/MusicPlan.h"
+#include "music/MusicDocument.h"
 
 #include <QJsonArray>
 #include <QHash>
@@ -478,14 +480,16 @@ IdSet movedWithDependants(const ClipList& clips, const IdSet& movedIds) {
 }
 
 // dropResolve.ts clearWindow
-std::vector<QJsonObject> clearWindow(const QJsonObject& c, double startMs, double endMs) {
-    const double cStart = clipStartMs(c);
-    const double cEnd = clipEndMs(c);
-    if (cEnd <= startMs || cStart >= endMs) return {c};
+std::vector<QJsonObject> clearWindow(const QJsonObject& source, double startMs, double endMs, double bpm, double gridOffsetMs) {
+    const double cStart = clipStartMs(source);
+    const double cEnd = clipEndMs(source);
+    if (cEnd <= startMs || cStart >= endMs) return {source};
+    const auto c = source.value("mediaType").toString() == u"midi" && !source.contains("pattern")
+        ? nt::midi::bakeRegionQuantize(source, bpm, gridOffsetMs) : source;
     if (cStart >= startMs && cEnd <= endMs) return {};
     if (cStart < startMs && cEnd > endMs) {
-        const auto [head, rest] = splitClip(c, startMs);
-        const auto tail = splitClip(rest, endMs).second;
+        const auto [head, rest] = splitClip(c, startMs, bpm, QStringLiteral("shorten"), gridOffsetMs);
+        const auto tail = splitClip(rest, endMs, bpm, QStringLiteral("shorten"), gridOffsetMs).second;
         return {head, tail};
     }
     if (cStart < startMs) return {trimClip(c, QStringLiteral("end"), startMs - cEnd)};
@@ -1122,7 +1126,7 @@ ClipList resolveOverwrite(const ClipList& clips, const IdSet& movedIds, const Ri
         for (const auto& [key, unit] : units) {
             std::vector<std::vector<QJsonObject>> pieces;
             try {
-                for (const auto& c : unit) pieces.push_back(clearWindow(c, mStart, mEnd));
+                for (const auto& c : unit) pieces.push_back(clearWindow(c, mStart, mEnd, options.bpm, options.gridOffsetMs));
             } catch (const OpError&) {
                 continue;
             }
@@ -1204,7 +1208,7 @@ ClipList resolveInsert(const ClipList& clips, const IdSet& movedIds, const Rippl
         if (std::any_of(unit.begin(), unit.end(), locked)) continue;
         std::vector<std::pair<QJsonObject, QJsonObject>> split;
         try {
-            for (const auto& c : unit) split.push_back(splitClip(c, insertMs));
+            for (const auto& c : unit) split.push_back(splitClip(c, insertMs, options.bpm, QStringLiteral("shorten"), options.gridOffsetMs));
         } catch (const OpError&) {
             continue;
         }
@@ -1597,11 +1601,74 @@ bool sectionLocked(const QJsonObject& raw, const QJsonObject& clip) {
     }
     return false;
 }
+// Per-repeat state mirrors computeRowSegmentStates in stepPatternExpand.ts.
+// Local values belong to the calling edit/plan thread.
+std::vector<QJsonObject> loopPatternStates(const QJsonObject& clip, double bpm) {
+    const double ticksPerMs = bpm * 960 / 60000;
+    const auto total = static_cast<std::int64_t>(std::floor(clipDurationMs(clip) * ticksPerMs + 0.5));
+    const auto period = std::max<std::int64_t>(1, static_cast<std::int64_t>(std::floor(clip.value("loopLengthMs").toDouble() * ticksPerMs + 0.5)));
+    const auto count = static_cast<size_t>((total + period - 1) / period);
+    std::vector<QJsonObject> states(count);
+    const auto pattern = nt::midi::normalizePattern(clip.value("pattern").toObject());
+    const auto initial = clip.value("patternRowCycles").toObject();
+    const auto phase = std::max(0.0, std::floor(clip.value("patternPhaseTicks").toDouble() + 0.5)) +
+        std::max(0.0, std::floor(clip.value("inPointMs").toDouble() * ticksPerMs + 0.5));
+    for (const auto& value : pattern.value("rows").toArray()) {
+        const auto row = value.toObject(); const auto id = row.value("id").toString();
+        const auto playback = row.value("playback").toString(); const auto steps = row.value("steps").toArray();
+        bool dependent = initial.contains(id) || playback == u"shuffle" || playback == u"random" || playback == u"wander";
+        bool hasLast = false;
+        std::vector<int> active;
+        for (int i = 0; i < steps.size(); ++i) {
+            const auto step = steps[i].toObject(); const auto condition = step.value("condition").toObject().value("type").toString();
+            hasLast |= condition == u"last";
+            dependent |= step.value("chance").toDouble(100) < 100 || (!condition.isEmpty() && condition != u"always");
+            if (i >= row.value("loopStart").toInt() && i < row.value("loopEnd").toInt(steps.size()) && !step.value("skip").toBool()) { active.push_back(i); }
+        }
+        if (!dependent) { continue; }
+        const auto seed = static_cast<std::uint32_t>(pattern.value("seed").toDouble());
+        auto cycle = static_cast<std::int64_t>(initial.value(id).toObject().value("cycleOffset").toDouble());
+        std::optional<int> wander;
+        if (initial.value(id).toObject().contains("wanderPos")) { wander = initial.value(id).toObject().value("wanderPos").toInt(); }
+        std::vector<QJsonObject> starts(count);
+        std::vector<std::int64_t> localLast(count, -1);
+        std::int64_t last = -1;
+        for (size_t k = 0; k < count; ++k) {
+            starts[k].insert("cycleOffset", static_cast<double>(cycle));
+            if (playback == u"wander" && wander && !active.empty()) { starts[k].insert("wanderPos", *wander); }
+            const auto limit = std::min(period, total - static_cast<std::int64_t>(k) * period) + (k == 0 ? phase : 0);
+            std::int64_t cursor = 0;
+            for (int safety = 0; !active.empty() && cursor < limit && safety < 16384; ++safety) {
+                const auto order = nt::midi::playOrder(static_cast<int>(active.size()), playback.toStdString(), seed, cycle, id.toStdString(), wander);
+                if (order.empty()) { break; }
+                wander = order.back(); last = cycle; localLast[k] = cycle;
+                std::int64_t length = 0;
+                for (const auto position : order) {
+                    const auto step = steps[active[static_cast<size_t>(position)]].toObject();
+                    length += nt::midi::stepRateTicks(step.value("stepRate").toString(row.value("stepRate").toString()).toStdString()).value_or(240);
+                }
+                if (length <= 0) { break; }
+                cursor += length; ++cycle;
+            }
+        }
+        if (initial.value(id).toObject().contains("lastCycle")) { last = static_cast<std::int64_t>(initial.value(id).toObject().value("lastCycle").toDouble()); }
+        for (size_t k = 0; k < count; ++k) {
+            const bool needsLast = hasLast && last >= 0 && last != localLast[k];
+            if (starts[k].value("cycleOffset").toDouble() > 0 || needsLast || starts[k].contains("wanderPos")) {
+                if (needsLast) { starts[k].insert("lastCycle", static_cast<double>(last)); }
+                states[k].insert(id, starts[k]);
+            }
+        }
+    }
+    return states;
+}
 QJsonArray unrollMusicClip(const QJsonObject& source, double bpm, double gridOffsetMs = 0) {
     const auto clip = source.value("mediaType").toString() == u"midi" && !source.contains("pattern")
         ? nt::midi::bakeRegionQuantize(source, bpm, gridOffsetMs) : source;
     const double period = clip.value("loopLengthMs").toDouble();
     if (period <= 0 || period >= clipDurationMs(clip) || !std::isfinite(period)) { return {clip}; }
+    const bool pattern = clip.value("mediaType").toString() == u"midi" && clip.value("pattern").isObject();
+    const auto rowStates = pattern ? loopPatternStates(clip, bpm) : std::vector<QJsonObject>{};
     QJsonArray copies;
     for (int k = 0; k * period < clipDurationMs(clip) - SECTION_EPS; ++k) {
         const double offset = k * period;
@@ -1610,7 +1677,16 @@ QJsonArray unrollMusicClip(const QJsonObject& source, double bpm, double gridOff
         const double duration = std::min(period, clipDurationMs(clip) - offset);
         // Cutting a longer temporary window uses the same MIDI expression/controller boundary rules.
         copy.insert("durationMs", duration + 1);
-        copy = splitClip(copy, clipStartMs(clip) + duration, bpm).first;
+        if (pattern) {
+            copy.insert("durationMs", duration); copy.insert("inPointMs", 0);
+            const double phase = clip.value("patternPhaseTicks").toDouble() + std::max(0.0, std::floor(clip.value("inPointMs").toDouble() * bpm * 960 / 60000 + 0.5));
+            if (k == 0 && phase > 0) { copy.insert("patternPhaseTicks", phase); } else { copy.remove("patternPhaseTicks"); }
+            if (static_cast<size_t>(k) < rowStates.size() && !rowStates[static_cast<size_t>(k)].isEmpty()) {
+                copy.insert("patternRowCycles", rowStates[static_cast<size_t>(k)]);
+            } else { copy.remove("patternRowCycles"); }
+            if (copy.contains("outPointMs")) { copy.insert("outPointMs", duration); }
+            copy.remove("notes"); copy.remove("controllers");
+        } else { copy = splitClip(copy, clipStartMs(clip) + duration, bpm, QStringLiteral("shorten"), gridOffsetMs).first; }
         const double total = clipDurationMs(clip);
         if (clip.contains("paramCurves")) {
             copy.insert("paramCurves", sliceCurves(clip.value("paramCurves").toArray(),
@@ -1944,8 +2020,8 @@ QJsonObject sectionDelete(QJsonObject raw, double from, double to, const std::op
         raw.insert("tempo", tempo);
     }
     auto media = raw.value("mediaTracks").toArray();
-    clips = sectionCut(clips, from, tracks, sectionBpm(raw), media, QStringLiteral("shorten"), raw.value("tempo").toObject().value("offsetMs").toDouble());
-    clips = sectionCut(clips, to, tracks, sectionBpm(raw), media, QStringLiteral("shorten"), raw.value("tempo").toObject().value("offsetMs").toDouble());
+    clips = sectionCut(clips, from, tracks, sectionBpm(raw), media, QStringLiteral("shorten"), oldOrigin);
+    clips = sectionCut(clips, to, tracks, sectionBpm(raw), media, QStringLiteral("shorten"), oldOrigin);
     QJsonArray kept;
     for (const auto& value : clips) {
         auto clip = value.toObject();
@@ -2325,6 +2401,64 @@ QJsonObject readSectionContent(const QJsonObject& raw, const QJsonObject& payloa
     return sectionRead(raw, from, to, sectionTracks(raw, payload));
 }
 QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const QJsonObject& p) {
+    if (operation == u"set_tempo") {
+        auto tempo = raw.value("tempo").isObject() ? raw.value("tempo").toObject() : QJsonObject{
+            {"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}};
+        const auto previous = tempo;
+        auto signature = tempo.value("timeSignature").toObject();
+        bool hasTempo = false;
+        for (const auto* key : {"bpm", "offset_ms", "beats_per_bar", "beat_unit"}) {
+            if (!p.contains(QLatin1String(key))) { continue; }
+            const auto value = p.value(QLatin1String(key)); const double n = value.toDouble(-1);
+            const bool integer = QLatin1String(key) == u"beats_per_bar" || QLatin1String(key) == u"beat_unit";
+            if (!value.isDouble() || !std::isfinite(n) || (QLatin1String(key) == u"offset_ms" ? n < 0 : n <= 0) || (integer && std::floor(n) != n)) { throw OpError("Invalid tempo parameter"); }
+            if (QLatin1String(key) == u"bpm") { tempo.insert("bpm", value); }
+            else if (QLatin1String(key) == u"offset_ms") { tempo.insert("offsetMs", value); }
+            else { signature.insert(QLatin1String(key) == u"beats_per_bar" ? "beatsPerBar" : "beatUnit", value); }
+            hasTempo = true;
+        }
+        tempo.insert("timeSignature", signature);
+        if (p.contains("key")) {
+            const auto value = p.value("key");
+            if (value.isNull()) { tempo.remove("key"); }
+            else {
+                const auto key = value.toObject(); const auto tonic = key.value("tonic").toString().toStdString(); const auto mode = key.value("mode").toString();
+                if (!value.isObject() || std::ranges::find(nt::music::kMusicKeyTonics, tonic) == nt::music::kMusicKeyTonics.end() || (mode != u"major" && mode != u"minor")) { throw OpError("Invalid project key"); }
+                tempo.insert("key", key);
+            }
+            hasTempo = true;
+        }
+        if (!hasTempo && !p.contains("auto_crossfade_ms")) { throw OpError("Send a tempo field or auto_crossfade_ms"); }
+        if (const auto reason = nt::music::tempoChangeRefusal(raw, tempo); !reason.isEmpty()) { throw OpError(reason.toStdString()); }
+        if (p.contains("auto_crossfade_ms")) {
+            raw = applyMusicClipEdit(std::move(raw), QStringLiteral("music.setAutoCrossfade"), {{"autoCrossfadeMs", p.value("auto_crossfade_ms")}});
+        }
+        if (hasTempo) {
+            const double scale = previous.value("bpm").toDouble(120) / tempo.value("bpm").toDouble(120);
+            const double origin = previous.value("offsetMs").toDouble(); const double nextOrigin = tempo.value("offsetMs").toDouble();
+            if (scale != 1 || origin != nextOrigin) {
+                IdSet midiTracks;
+                for (const auto& value : raw.value("tracks").toArray()) { const auto track = value.toObject(); if (track.value("type").toString() == u"midi") { midiTracks.insert(track.value("id").toString()); } }
+                auto clips = raw.value("clips").toArray();
+                for (qsizetype i = 0; i < clips.size(); ++i) {
+                    auto clip = clips[i].toObject();
+                    if (clip.value("mediaType").toString() != u"midi" && !midiTracks.contains(clipTrackId(clip))) { continue; }
+                    clip.insert("startMs", nextOrigin + (clipStartMs(clip) - origin) * scale);
+                    clip.insert("durationMs", clipDurationMs(clip) * scale);
+                    for (const auto* key : {"loopLengthMs", "inPointMs", "outPointMs"}) { if (clip.contains(QLatin1String(key))) { clip.insert(QLatin1String(key), clip.value(QLatin1String(key)).toDouble() * scale); } }
+                    if (clipStartMs(clip) < 0) {
+                        const double overhang = -clipStartMs(clip); clip.insert("startMs", 0);
+                        clip.insert("durationMs", std::max(1.0, clipDurationMs(clip) - overhang));
+                        clip.insert("inPointMs", clip.value("inPointMs").toDouble() + overhang);
+                    }
+                    clips[i] = clip;
+                }
+                raw.insert("clips", clips);
+            }
+            raw.insert("tempo", tempo);
+        }
+        return raw;
+    }
     if (operation == u"music.setAutoCrossfade") {
         const auto value = p.value("autoCrossfadeMs");
         if (!raw.value("music").isObject()) { throw OpError("Automatic crossfade requires a music project"); }
@@ -2347,6 +2481,9 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                 if (key == u"clipId" || key == u"target") { continue; }
                 if (key == u"name" || key == u"labelColor") {
                     if (!value.isString() && !(key == u"labelColor" && value.isNull())) { throw OpError("Name and label color must be text"); }
+                    if (key == u"labelColor" && value.isString() && (value.toString().isEmpty() || value.toString().size() > 64)) {
+                        throw OpError("Label color must contain 1 to 64 characters");
+                    }
                 } else if (key == u"transpose" || key == u"velocityOffset" || key == u"quantize") {
                     if (c.value("mediaType").toString() != u"midi") { throw OpError("Region parameters require a MIDI clip"); }
                     if (!value.isNull()) {
@@ -2361,6 +2498,12 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                             if (!value.isDouble() || !std::isfinite(n) || std::floor(n) != n || std::abs(n) > limit) { throw OpError("Invalid MIDI region parameter"); }
                         }
                     }
+                } else if (key == u"volumeDb" || key == u"fadeInMs" || key == u"fadeOutMs" || key == u"opacity") {
+                    if (!value.isDouble() || !std::isfinite(value.toDouble()) || (key == u"opacity" && (value.toDouble() < 0 || value.toDouble() > 1))) { throw OpError("Invalid clip number"); }
+                } else if (key == u"muted" || key == u"hidden" || key == u"locked") {
+                    if (!value.isBool()) { throw OpError("Clip state must be boolean"); }
+                } else if (key == u"fadeInShape" || key == u"fadeOutShape") {
+                    if (!QStringList{"linear", "sCurve", "plus3dB", "minus3dB"}.contains(value.toString())) { throw OpError("Invalid fade shape"); }
                 } else { throw OpError(("Unsupported clip parameter: " + key).toStdString()); }
                 if (value.isNull() || ((key == u"transpose" || key == u"velocityOffset") && value.toDouble() == 0)) { c.remove(key); } else { c.insert(key, value); }
             }
@@ -2369,7 +2512,7 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
     }
     if (operation == u"join_clips") {
         const auto clips = raw.value("clips").toArray();
-        const auto refs = p.value("clips").toArray(raw.value("selectedClipIds").toArray());
+        const auto refs = p.value("clips").toArray(p.value("selectedClipIds").toArray());
         IdSet available;
         for (const auto& value : clips) { available.insert(clipId(value.toObject())); }
         IdSet ids;
@@ -2506,8 +2649,10 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                     auto n = value.toObject(); const double tick = n.value("startTick").toDouble();
                     if (tick < from || tick >= to) { continue; }
                     const double length = std::min(n.value("durationTick").toDouble(), to - tick);
+                    if (length < 1) { continue; }
                     if (length < n.value("durationTick").toDouble() && n.contains("expression")) {
-                        n.insert("expression", midiExpressionBefore(n.value("expression").toObject(), length));
+                        const auto expression = midiExpressionBefore(n.value("expression").toObject(), length);
+                        if (expression.isEmpty()) { n.remove("expression"); } else { n.insert("expression", expression); }
                     }
                     n.insert("durationTick", length); n.insert("startTick", tick + shift);
                     if (seenNotes.contains(n.value("id").toString())) { n.insert("id", newId()); }
@@ -2531,10 +2676,15 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
             const auto sortEvents = [](QJsonArray values, const char* field) {
                 std::vector<QJsonObject> sorted;
                 for (const auto& v : values) { sorted.push_back(v.toObject()); }
-                std::stable_sort(sorted.begin(), sorted.end(), [field](const auto& a, const auto& b) { return a.value(QLatin1String(field)).toDouble() < b.value(QLatin1String(field)).toDouble(); });
+                std::stable_sort(sorted.begin(), sorted.end(), [field](const auto& a, const auto& b) { const auto x = a.value(QLatin1String(field)).toDouble(), y = b.value(QLatin1String(field)).toDouble();
+                    if (x != y) { return x < y; }
+                    if (QLatin1String(field) != u"startTick") { return false; }
+                    if (a.value("pitch") != b.value("pitch")) { return a.value("pitch").toInt() < b.value("pitch").toInt(); }
+                    return a.value("id").toString() < b.value("id").toString(); });
                 QJsonArray result; for (const auto& v : sorted) { result.append(v); } return result;
             };
-            head.insert("notes", sortEvents(notes, "startTick"));
+            const bool hadNotes = std::any_of(parts.begin(), parts.end(), [](const auto& c) { return c.contains("notes"); });
+            if (hadNotes) { head.insert("notes", sortEvents(notes, "startTick")); } else { head.remove("notes"); }
             QJsonArray controllers;
             for (const auto& key : laneOrder) {
                 auto lane = lanes.value(key);
@@ -2546,8 +2696,14 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
         }
         head.insert("durationMs", end - clipStartMs(head));
         QJsonArray result;
-        for (const auto& value : clips) { if (!ids.contains(clipId(value.toObject()))) { result.append(value); } }
-        result.append(head); raw.insert("clips", result);
+        IdSet touchedLinks;
+        for (const auto& value : clips) {
+            const auto c = value.toObject();
+            if (clipId(c) == clipId(head)) { result.append(head); }
+            else if (!ids.contains(clipId(c))) { result.append(c); }
+            else if (!clipLinkId(c).isEmpty()) { touchedLinks.insert(clipLinkId(c)); }
+        }
+        raw.insert("clips", pruneSectionLinks(result, touchedLinks));
         QJsonArray media;
         for (const auto& v : raw.value("mediaTracks").toArray()) {
             const auto id = v.toObject().value("clipId").toString();

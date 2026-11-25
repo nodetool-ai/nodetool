@@ -181,6 +181,24 @@ Rectangle {
             width: viewport.width - scrollBar.width
             spacing: Ui.Metrics.xl
 
+            Column {
+                width: parent.width
+                spacing: Ui.Metrics.xs
+                visible: sequence.isMusic
+                Ui.Text { text: qsTr("Automatic crossfade (ms)"); role: Ui.Typography.SansLabel }
+                Ui.NumberField {
+                    objectName: "musicAutoCrossfade"
+                    width: parent.width
+                    accessibleName: qsTr("Automatic crossfade in milliseconds")
+                    from: 0
+                    to: 1000
+                    stepSize: 1
+                    value: sequence.autoCrossfadeMs
+                    enabled: root.editor !== null && !root.editor.timeline.readOnly
+                    onValueCommitted: next => root.editor.timeline.applyEdit("music.setAutoCrossfade", {autoCrossfadeMs: next})
+                }
+            }
+
             // 1. The target.
             Column {
                 width: parent.width

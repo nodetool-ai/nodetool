@@ -731,8 +731,9 @@ QJsonObject AssistantCommands::state(ClipGestureController& gestures) const {
                     {"markers", raw.value("markers").toArray()}};
     if (raw.contains("tempo")) { out.insert("tempo", raw.value("tempo")); }
     if (raw.value("music").isObject()) {
-        out.insert("music", QJsonObject{{"autoCrossfadeMs", raw.value("music").toObject().value("autoCrossfadeMs").toDouble(10)}});
+        out.insert("music", raw.value("music"));
     }
+    out.insert("autoCrossfadeMs", raw.value("music").isObject() ? raw.value("music").toObject().value("autoCrossfadeMs").toDouble(10) : 0);
     // Nothing else shows the master effects' ids.
     if (raw.contains("master")) { out.insert("master", raw.value("master")); }
     if (!gestures.selectedGap().isEmpty()) { out.insert("selectedGap", QJsonObject::fromVariantMap(gestures.selectedGap())); }
@@ -775,7 +776,9 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     // A recording pass amends one undo entry with every take switch.
     if (auto* takes = TakeSwitcher::forTimeline(&m_model); takes && takes->recording()) { return failure("The person is recording take switches. Try again when they stop."); }
     const auto before = m_model.timeline().raw;
-    const auto prepared = prepare(*command, args.value("params").toObject(), before, m_model.markersJson());
+    auto params = args.value("params").toObject();
+    if (id == u"join_clips" && !params.contains("clips")) { params.insert("clips", QJsonArray::fromStringList(editor->selection())); }
+    const auto prepared = prepare(*command, params, before, m_model.markersJson());
     if (!prepared.error.isEmpty()) { return failure(prepared.error); }
     // A raw edit doesn't know about locks, and an action may check only the clip's. The panels and
     // menus check them before calling.
@@ -795,7 +798,8 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     if (command->runs == Runs::Edit && id != u"duplicate_clip") {
         QStringList targets;
         if (const auto clip = prepared.payload.value("clipId"); clip.isString()) { targets.append(clip.toString()); }
-        for (const auto* key : {"clipIds", "selectedIds"}) {
+        if (const auto clip = prepared.payload.value("target"); clip.isString()) { targets.append(clip.toString()); }
+        for (const auto* key : {"clipIds", "selectedIds", "clips"}) {
             for (const auto& clip : prepared.payload.value(QLatin1String(key)).toArray()) { targets.append(clip.toString()); }
         }
         if (anyLocked(targets)) {
@@ -825,15 +829,21 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     bool ran = false;
     if (command->runs == Runs::Edit) {
         QString editError;
+        bool validNoop = false;
         const auto edit = app::findEdit(id);
         if (!edit) { return disabled("The edit is unavailable."); }
         // The transform runs synchronously. Undo retains its JSON result, not these references.
         ran = m_model.applyEdit(id, editPayload(*command, prepared, *editor, m_model),
-            [&editError, &edit](QJsonObject raw, const QJsonObject& payload) {
-                try { return edit(std::move(raw), payload); }
+            [&editError, &edit, &validNoop, &id](QJsonObject raw, const QJsonObject& payload) {
+                try {
+                    auto result = edit(raw, payload);
+                    validNoop = result == raw && (id == u"set_clip_params" || id == u"music.setAutoCrossfade" || id == u"set_tempo");
+                    return result;
+                }
                 catch (const std::exception& error) { editError = QString::fromUtf8(error.what()); throw; }
             }) != 0;
         if (!editError.isEmpty()) { return disabled(editError); }
+        ran = ran || (validNoop && !m_model.readOnly());
     } else {
         ran = runAction(*command, *editor, context);
     }

@@ -58,8 +58,9 @@ void MusicSequenceState::refresh() {
     }
     const bool locked = nt::music::isTempoLocked(raw);
     const bool music = nt::music::isMusicSequence(raw);
+    const double crossfade = raw.value("music").toObject().value("autoCrossfadeMs").toDouble(10);
     const auto prompts = nt::music::promptHistory(raw);
-    if (music == m_isMusic && video == m_hasVideoTrack && tempoText == m_tempoText && prompts == m_promptHistory &&
+    if (crossfade == m_autoCrossfadeMs && music == m_isMusic && video == m_hasVideoTrack && tempoText == m_tempoText && prompts == m_promptHistory &&
         tempoChip == m_tempoChip && keyText == m_keyText && locked == m_tempoLocked && bpm == m_bpm &&
         beatsPerBar == m_beatsPerBar && beatUnit == m_beatUnit && timeSignature == m_timeSignature) {
         return;
@@ -72,6 +73,7 @@ void MusicSequenceState::refresh() {
     m_timeSignature = timeSignature;
     m_tempoLocked = locked;
     m_isMusic = music;
+    m_autoCrossfadeMs = crossfade;
     m_hasVideoTrack = video;
     m_tempoText = tempoText;
     m_promptHistory = prompts;

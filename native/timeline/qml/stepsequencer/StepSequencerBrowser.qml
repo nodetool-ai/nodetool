@@ -14,7 +14,7 @@ Rectangle {
     property string query: ""
     readonly property var entries: {
         const q = query.trim().toLowerCase()
-        const all = panel.sequencer.library.filter(e => !q || (e.name + " " + e.category + " " + e.tags.join(" ")).toLowerCase().indexOf(q) >= 0)
+        const all = panel.sequencer.library.filter(e => !q || e.search.indexOf(q) >= 0)
         const out = []
         for (const kind of ["pattern", "template"]) {
             const list = all.filter(e => e.kind === kind)
@@ -47,6 +47,7 @@ Rectangle {
         height: parent.height - y
         clip: true
         model: root.entries
+        reuseItems: true
         boundsBehavior: Flickable.StopAtBounds
         delegate: Item {
             id: entry

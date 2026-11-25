@@ -5157,15 +5157,7 @@ reason = "A page overview is a thumbnail of 16 steps per row. A click shows that
 
 [[exception]]
 path = "native/timeline/qml/stepsequencer/StepSequencerRow.qml"
-object = "root/lane/header/MouseArea[0]"
-binding = "onClicked"
-rule = "manual-control"
-owner = "Step Sequencer row header"
-reason = "A click on the row header background selects the row and a right click opens the row menu. The header buttons are primitives."
-
-[[exception]]
-path = "native/timeline/qml/stepsequencer/StepSequencerRow.qml"
-object = "root/lane/header/MouseArea[0]"
+object = "root/lane/header/headerArea"
 binding = "onDoubleClicked"
 rule = "manual-control"
 owner = "Step Sequencer row header"

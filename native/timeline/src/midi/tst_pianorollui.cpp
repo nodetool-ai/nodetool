@@ -1524,9 +1524,15 @@ Item {
             QVERIFY2(row.contains("enabled") && !row["enabled"].toBool(), qPrintable(row["id"].toString()));
         }
     }
+    void reviewF18CssAlphaColor_data() {
+        QTest::addColumn<QString>("field");
+        QTest::newRow("clip-color") << QString("color");
+        QTest::newRow("label-color") << QString("labelColor");
+    }
     void reviewF18CssAlphaColor() {
+        QFETCH(QString, field);
         framed(); auto doc = QJsonDocument::fromJson(model.documentJson()).object(); auto clips = doc["clips"].toArray();
-        auto clip = clips[0].toObject(); clip["color"] = "#00ff0080"; clips[0] = clip; doc["clips"] = clips;
+        auto clip = clips[0].toObject(); clip["color"] = "#ff0000"; clip[field] = "#00ff0080"; clips[0] = clip; doc["clips"] = clips;
         const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         const auto color = item("panel")->property("clipAccent").value<QColor>();
         QCOMPARE(color.green(), 255); QCOMPARE(color.alpha(), 128);

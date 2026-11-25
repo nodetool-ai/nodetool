@@ -23,6 +23,7 @@ class MusicSequenceState : public QObject {
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(bool isMusic READ isMusic NOTIFY changed)
+    Q_PROPERTY(double autoCrossfadeMs READ autoCrossfadeMs NOTIFY changed)
     Q_PROPERTY(bool hasVideoTrack READ hasVideoTrack NOTIFY changed)
     Q_PROPERTY(QString tempoText READ tempoText NOTIFY changed)
     // "120 BPM 4/4", empty without a readable tempo.
@@ -46,6 +47,7 @@ public:
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* timeline);
     bool isMusic() const { return m_isMusic; }
+    double autoCrossfadeMs() const { return m_autoCrossfadeMs; }
     bool hasVideoTrack() const { return m_hasVideoTrack; }
     QString tempoText() const { return m_tempoText; }
     QString tempoChip() const { return m_tempoChip; }
@@ -80,6 +82,7 @@ private:
 
     QPointer<TimelineModel> m_timeline;
     bool m_isMusic = false;
+    double m_autoCrossfadeMs = 10;
     bool m_hasVideoTrack = false;
     QString m_tempoText;
     QString m_tempoChip;

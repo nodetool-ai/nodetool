@@ -96,9 +96,25 @@ Ui.ContextMenu {
         visible: menu.gestures.keymapContext === "music"
         height: visible ? implicitHeight : 0
         text: qsTr("Join clips")
-        enabled: menu.context.editable !== false && menu.gestures.selection.length >= 2
-        reasonText: qsTr("Select at least two clips on one track.")
-        onTriggered: menu.gestures.timeline.applyEdit("join_clips", { clips: menu.gestures.selection })
+        readonly property string refusal: {
+            const selection = menu.gestures.selection
+            const context = menu.context
+            return context.editable === false ? qsTr("Unlock the clip first.") : menu.gestures.joinClipsReason(selection)
+        }
+        enabled: refusal === ""
+        reasonText: refusal
+        onTriggered: {
+            const error = menu.gestures.joinSelectedClips()
+            if (error !== "") { joinFailure.message = error; joinFailure.open() }
+        }
+    }
+    Ui.Dialog {
+        id: joinFailure
+        property string message: ""
+        title: qsTr("Cannot join clips")
+        returnFocusTo: menu.gestures
+        contentItem: Ui.Text { text: joinFailure.message; wrapMode: Text.Wrap; role: Ui.Typography.SansBody }
+        footer: Ui.EditorButton { text: qsTr("Close"); onClicked: joinFailure.close() }
     }
     // Loop repeats the clip's current length four times. Remove loop takes the repeats off. One undo each.
     Ui.MenuItem {
@@ -185,6 +201,7 @@ Ui.ContextMenu {
             renameDialog.clipId = menu.context.clipId || ""
             renameDialog.originalName = menu.context.clip?.name || ""
             renameField.value = renameDialog.originalName
+            renameField.errorText = ""
             renameField.text = renameDialog.originalName
             renameDialog.open()
         }
@@ -199,12 +216,28 @@ Ui.ContextMenu {
         onOpened: { renameField.forceActiveFocus(); renameField.selectAll() }
         function applyName() {
             if (renameField.text === originalName || menu.gestures.timeline.applyEdit("set_clip_params", {clipId: clipId, name: renameField.text})) close()
+            else renameField.errorText = qsTr("Rename failed. The clip may be locked, removed, or read-only.")
         }
-        contentItem: Ui.TextField {
-            id: renameField
-            objectName: "clipRenameField"
-            accessibleName: qsTr("Clip name")
-            onAccepted: renameDialog.applyName()
+        contentItem: Column {
+            spacing: Ui.Metrics.sm
+            Ui.TextField {
+                id: renameField
+                objectName: "clipRenameField"
+                width: parent.width
+                accessibleName: qsTr("Clip name")
+                valid: errorText === ""
+                onTextEdited: errorText = ""
+                onAccepted: renameDialog.applyName()
+            }
+            Ui.Text {
+                objectName: "clipRenameError"
+                width: parent.width
+                text: renameField.errorText
+                visible: text !== ""
+                wrapMode: Text.Wrap
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Error
+            }
         }
         footer: Item {
             implicitHeight: renameApply.implicitHeight + renameDialog.padding * 2

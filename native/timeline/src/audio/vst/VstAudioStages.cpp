@@ -746,7 +746,7 @@ std::vector<VstNoteEvent> extractMidiNoteEvents(const QJsonObject& clipRaw, doub
         windowStart = 0.0;
     } else {
         auto effectiveClip = clipRaw;
-        effectiveClip.insert("inPointMs", inPointMs);
+        effectiveClip.insert("inPointMs", windowStart);
         effectiveClip.insert("durationMs", durationMs);
         notes = nt::midi::applyRegionParams(effectiveClip, bpm,
             document.value("tempo").toObject().value("offsetMs").toDouble()).value("notes").toArray();

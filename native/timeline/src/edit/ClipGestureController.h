@@ -123,6 +123,8 @@ public:
     QQuickItem* lanesViewport() const { return m_viewport; }
     void setLanesViewport(QQuickItem* v);
     QStringList selection() const { return m_selection; }
+    Q_INVOKABLE QString joinClipsReason(const QStringList& ids) const;
+    Q_INVOKABLE QString joinSelectedClips();
     void setSelection(const QStringList& ids);
     bool rippleMode() const { return m_rippleMode; }
     void setRippleMode(bool on);

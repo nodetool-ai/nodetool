@@ -349,7 +349,7 @@ Rectangle {
                     id: bar
                     required property int index
                     readonly property real level: Taper.dbToFaderPosition(Levels.db(volumeSlider.levels[index] || 0))
-                    width: parent.width
+                    width: meter.width
                     height: Ui.Metrics.micro
                     color: Ui.Theme.borderSubtle
                     Rectangle {

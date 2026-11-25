@@ -10,6 +10,7 @@
 // safe to call from any thread (GUI, plan-build, worker, tests). Never called
 // on the real-time audio callback thread.
 
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QSet>
@@ -166,7 +167,8 @@ struct ParsedPatternLine {
                                                                  QString* error = nullptr);
 
 // Row and pattern transforms (SQ35, SQ53). `mode` empty rotates whole steps.
-[[nodiscard]] QJsonObject rotateRowSteps(const QJsonObject& row, int by, const QString& mode = {});
+// `by` is any whole number: TS reduces it modulo the row length before use.
+[[nodiscard]] QJsonObject rotateRowSteps(const QJsonObject& row, double by, const QString& mode = {});
 [[nodiscard]] QJsonObject nudgeRowValues(const QJsonObject& row, const QString& mode, double delta,
                                          const QJsonObject& instrument = {});
 [[nodiscard]] QJsonObject tieRowSteps(const QJsonObject& row, int fromIdx, int toIdx, bool tie);
@@ -174,5 +176,24 @@ struct ParsedPatternLine {
                                                 const std::optional<QSet<QString>>& rowIds,
                                                 const std::optional<std::vector<int>>& stepIndices, std::uint32_t seed,
                                                 double density = 50);
+
+// JS Number(x.toFixed(digits)): exact decimal rounding, ties away from zero.
+[[nodiscard]] double jsToFixed(double value, int digits);
+
+// The clip-relative ticks each step of each row plays, for the Step Sequencer
+// playhead (SQ10, SQ17). Uses the expander's own schedule, so loops (CE3),
+// phase, clip end, per-step rates and wander/random orders match playback.
+struct StepSpan {
+    std::int64_t startTick = 0;
+    std::int64_t endTick = 0;
+    int stepIndex = 0;
+};
+struct PatternStepSpans {
+    // Row id -> spans sorted by startTick. A row whose schedule fails is absent.
+    QHash<QString, std::vector<StepSpan>> rows;
+    std::int64_t clipLengthTicks = 0;
+    double ticksPerMs = 0;
+};
+[[nodiscard]] PatternStepSpans patternStepSpans(const QJsonObject& clip, const QJsonObject& doc = {});
 
 }  // namespace nt::midi

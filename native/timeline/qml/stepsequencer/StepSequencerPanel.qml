@@ -71,7 +71,9 @@ Rectangle {
     onEditModeChanged: if (editMode !== "onOff") lastValueMode = editMode === "value" ? "velocity" : editMode
     property string selectedRowId: ""
     property var selectedSteps: []          // [{row, step}]
-    property var expandedRows: ({})
+    property int keyModifiers: Qt.NoModifier
+    property var clipboard: null            // {kind: "steps"|"row", clipId, row, steps, cut}
+    property var rowDrag: null              // {id, from, target}
     property bool inspectorVisible: true
     property bool browserVisible: false
     property bool linkOn: true
@@ -84,7 +86,6 @@ Rectangle {
     property string inspectorTab: "pattern"
     property var gesture: null
     property var previewMap: ({})
-    property var playingSteps: ({})
     readonly property real rowHeight: Math.round(Ui.Metrics.xxxl * 1.75 * rowZoom)
     readonly property real headerWidth: Ui.Metrics.panelWidth * 0.86
     readonly property real sideWidth: Ui.Metrics.panelWidth * 0.82
@@ -94,13 +95,22 @@ Rectangle {
     readonly property int visibleSteps: wideSteps ? Math.min(16, maxLength) : maxLength
     readonly property real cellWidth: Math.max(Ui.Metrics.lg, (gridWidth - (visibleSteps / 4) * Ui.Metrics.xs) / Math.max(1, visibleSteps))
     readonly property int page: Math.round(scrollX / Math.max(1, pageWidth()))
+    // The steps in view: rows build cells only for these (PERFORMANCE.md rule 3).
+    readonly property int firstStep: Math.max(0, rawStepAt(scrollX) - 1)
+    readonly property int stepWindow: visibleSteps + 3
     function pageWidth() { return 16 * cellWidth + 4 * Ui.Metrics.xs }
     function stepX(i) { return i * cellWidth + Math.floor(i / 4) * Ui.Metrics.xs }
-    function stepAt(x) {
-        const local = x + scrollX
+    function rawStepAt(local) {
         const i = Math.floor(local / (cellWidth + Ui.Metrics.xs / 4))
         let best = Math.max(0, i - 1)
         for (let k = Math.max(0, i - 1); k <= i + 1; ++k) if (stepX(k) <= local) best = k
+        return best
+    }
+    // The step under lane x. With `rowLength` > 0, -1 past that row's last step
+    // (a shorter polymetric row, SQ7).
+    function stepAt(x, rowLength) {
+        const best = rawStepAt(x + scrollX)
+        if (rowLength > 0) return best < rowLength ? best : -1
         return Math.max(0, Math.min(maxLength - 1, best))
     }
     function showPage(p) {
@@ -123,20 +133,17 @@ Rectangle {
         ignoreUnknownSignals: true
         function onSelectionChanged() { root.followSelection() }
     }
+    // The playhead highlight runs in C++ against cached step spans: one binary
+    // search per row, and a role change only for rows whose step moved (SQ17).
+    function updatePlaying() {
+        const ms = clock ? (clock.timeMs !== undefined ? clock.timeMs : clock.time) : -1
+        controller.playheadMs = clock && clock.playing && controller.valid ? ms : -1
+    }
     Connections {
         target: root.clock
         ignoreUnknownSignals: true
         function onTimeChanged() { root.updatePlaying() }
-    }
-    function updatePlaying() {
-        if (!clock || !clock.playing || !controller.valid) {
-            if (Object.keys(playingSteps).length) playingSteps = ({})
-            return
-        }
-        const next = {}
-        const ms = clock.timeMs !== undefined ? clock.timeMs : clock.time
-        for (const r of rows) next[r.id] = controller.playingStep(r.id, ms)
-        playingSteps = next
+        function onPlayingChanged() { root.updatePlaying() }
     }
     function pruneSelection() {
         if (selectedRowId && !rows.some(r => r.id === selectedRowId)) selectedRowId = rows.length ? rows[0].id : ""
@@ -148,6 +155,15 @@ Rectangle {
     function op(name, args) {
         const result = controller.runOp(name, args || {})
         return result
+    }
+    // Several ops as one undo entry.
+    function ops(list) { return controller.runOps(list) }
+    // Relative change of `mode` on `steps` of `row`: each step moves by `delta`
+    // from its own value (SQ31, SQ33). One undo entry.
+    function shiftSteps(row, steps, mode, delta) {
+        const list = steps.map(s => ({op: "set_steps", args: {row: row.id, steps: String(s + 1),
+                                                         values: Modes.patch(mode, Modes.value(row, s, mode) + delta)}}))
+        if (list.length) ops(list)
     }
     function rowById(id) { return rows.find(r => r.id === id) || null }
     function selectRow(id) {
@@ -181,13 +197,36 @@ Rectangle {
         if (mode) args.mode = mode
         op("clear_pattern", args)
     }
-    function toggleSubrows(rowId, all) {
-        const next = Object.assign({}, expandedRows)
-        const open = !next[rowId]
-        if (all) for (const r of rows) next[r.id] = open
-        else next[rowId] = open
-        expandedRows = next
+    // Subrow expansion is document data (SQ8): `subrowsExpanded` on the row.
+    function setSubrowsShown(rowId, shown, all) {
+        const targets = all ? rows : rows.filter(r => r.id === rowId)
+        const list = targets.filter(r => (r.subrowsExpanded === true) !== shown)
+                            .map(r => ({op: "set_pattern_row", args: {row: r.id, subrowsExpanded: shown}}))
+        if (list.length) ops(list)
     }
+    function toggleSubrows(rowId, all) {
+        const row = rowById(rowId)
+        if (row) setSubrowsShown(rowId, row.subrowsExpanded !== true, all)
+    }
+    // Row header drag (SQ29): the target index follows the pointer, a release moves the row.
+    function dragRow(rowId, from, y) {
+        let target = 0
+        let top = 0
+        for (let i = 0; i < rows.length; ++i) {
+            const h = rowHeight + (rows[i].subrowsExpanded ? (rows[i].subrows || []).length * Math.round(rowHeight * 0.7) : 0)
+            if (y > top + h / 2) target = i + 1
+            top += h
+        }
+        rowDrag = {id: rowId, from: from, target: Math.min(rows.length, target)}
+    }
+    function dropRow() {
+        const d = rowDrag
+        rowDrag = null
+        if (!d) return
+        const to = d.target > d.from ? d.target - 1 : d.target
+        if (to !== d.from) op("move_pattern_row", {row: d.id, toIndex: to})
+    }
+    function cancelRowDrag() { rowDrag = null }
     function setSubrowMode(rowId, index, mode) {
         const row = rowById(rowId)
         if (!row) return
@@ -203,8 +242,7 @@ Rectangle {
         const next = Modes.MODES.find(m => m.value !== "onOff" && subrows.indexOf(m.value) < 0 && Modes.supportsMode(row, m.value))
         if (!next) return
         subrows.push(next.value)
-        op("set_pattern_row", {row: rowId, subrows: subrows})
-        const open = Object.assign({}, expandedRows); open[rowId] = true; expandedRows = open
+        op("set_pattern_row", {row: rowId, subrows: subrows, subrowsExpanded: true})
     }
     function deleteSubrow(rowId) {
         const row = rowById(rowId)
@@ -230,35 +268,47 @@ Rectangle {
         let kind = ""
         if (shift && !cmd && !alt && mode !== "loop") { selectStep(row.id, step, true); return }
         if (alt && !cmd) kind = "reset"
-        else if (cmd && alt && spec.kind === "number") kind = "ramp"
-        else if (cmd && spec.kind === "number") kind = "toggle"
-        else if (cmd && ["tie", "stepRate", "loop"].indexOf(mode) < 0) kind = "tie"
+        // Option-Command: click unties a tied step, drag ramps (SQ33).
+        else if (cmd && alt) kind = "cmdAlt"
+        // Command: drag ties (not in Tie, Step Rate, Loop), click toggles in value modes.
+        else if (cmd) kind = "cmd"
         else if (mode === "loop") kind = "loop"
         else if (mode === "tie") kind = "tieEdge"
         else if (spec.kind === "bool") kind = "paint"
         else kind = "value"
         const current = Modes.value(row, step, mode)
+        const v = Modes.fromFraction(row, mode, fraction)
         gesture = {kind: kind, row: row, mode: mode, start: step, end: step, steps: [step],
-                   value: kind === "paint" ? (current ? 0 : 1) : Modes.fromFraction(row, mode, fraction),
-                   from: Modes.fromFraction(row, mode, fraction), to: Modes.fromFraction(row, mode, fraction),
-                   leaveOff: shift}
+                   value: kind === "paint" ? (current ? 0 : 1) : v, from: v, to: v, leaveOff: shift}
         if (!(selectedSteps.length && isStepSelected(row.id, step))) selectedSteps = [{row: row.id, step: step}]
         refreshPreview()
     }
     function moveGesture(step, fraction) {
         if (!gesture) return
         const g = Object.assign({}, gesture)
-        g.end = step
         if (g.kind === "paint" || g.kind === "reset") {
-            if (g.steps.indexOf(step) < 0) g.steps = g.steps.concat([step])
+            // A fast drag skips pointer events: fill every step since the last one.
+            const add = Modes.span(g.end, step).filter(s => g.steps.indexOf(s) < 0)
+            if (add.length) g.steps = g.steps.concat(add)
         } else if (g.kind === "value") {
             g.value = Modes.fromFraction(g.row, g.mode, fraction)
-        } else if (g.kind === "ramp") {
+        } else if (g.kind === "cmdAlt") {
             g.to = Modes.fromFraction(g.row, g.mode, fraction)
         }
+        g.end = step
         gesture = g
         refreshPreview()
     }
+    // Ramp values over steps in the drag direction: the first step dragged gets `from`.
+    function rampValues(g) {
+        const span = Modes.span(g.start, g.end)
+        const n = span.length
+        return span.map((s, k) => {
+            const t = n > 1 ? (g.start <= g.end ? k : n - 1 - k) / (n - 1) : 0
+            return {step: s, value: Math.round(g.from + (g.to - g.from) * t)}
+        })
+    }
+    function isRamp(g) { return g.kind === "cmdAlt" && Modes.spec(g.mode).kind === "number" && g.start !== g.end }
     function refreshPreview() {
         const g = gesture
         const map = {}
@@ -267,10 +317,7 @@ Rectangle {
             if (g.kind === "paint") for (const s of g.steps) { const p = {}; if (field === "on") p.on = !!g.value; map[g.row.id + ":" + s] = p }
             if (g.kind === "reset") for (const s of g.steps) map[g.row.id + ":" + s] = {on: false}
             if (g.kind === "value") map[g.row.id + ":" + g.start] = {value: g.value, on: true}
-            if (g.kind === "ramp") {
-                const span = Modes.span(g.start, g.end)
-                span.forEach((s, k) => { map[g.row.id + ":" + s] = {value: Math.round(g.from + (g.to - g.from) * (span.length > 1 ? k / (span.length - 1) : 0))} })
-            }
+            if (isRamp(g)) for (const r of rampValues(g)) map[g.row.id + ":" + r.step] = {value: r.value}
         }
         previewMap = map
     }
@@ -280,15 +327,34 @@ Rectangle {
         previewMap = ({})
         if (!g) return
         const id = g.row.id
-        const field = Modes.spec(g.mode).field
+        const spec = Modes.spec(g.mode)
+        const field = spec.field
+        const lo = Math.min(g.start, g.end)
+        const hi = Math.max(g.start, g.end)
+        const tied = Modes.tieSpanAt(g.row, g.start)
         if (g.kind === "paint") {
             const values = {}
             values[field] = !!g.value
             op("set_steps", {row: id, steps: Modes.oneBased(g.steps), values: values})
         } else if (g.kind === "reset") {
             op("clear_pattern", {scope: "steps", row: id, steps: Modes.oneBased(g.steps)})
-        } else if (g.kind === "toggle") {
-            op("set_steps", {row: id, steps: String(g.start + 1), values: {on: !Modes.value(g.row, g.start, "onOff")}})
+        } else if (g.kind === "cmd") {
+            if (g.start !== g.end && ["tie", "stepRate", "loop"].indexOf(g.mode) < 0) op("tie_steps", {row: id, from: lo + 1, to: hi + 1, tie: true})
+            else if (g.start === g.end && spec.kind === "number") op("set_steps", {row: id, steps: String(g.start + 1), values: {on: !Modes.value(g.row, g.start, "onOff")}})
+        } else if (g.kind === "cmdAlt") {
+            if (isRamp(g)) {
+                // One field ramp in drag order. Option-Command-Shift leaves the steps off.
+                const list = rampValues(g).map(r => {
+                    const values = Modes.patch(g.mode, r.value)
+                    if (g.leaveOff) values.on = !!(g.row.steps[r.step] || {}).on
+                    return {op: "set_steps", args: {row: id, steps: String(r.step + 1), values: values}}
+                })
+                ops(list)
+            } else if (g.start === g.end && tied.end > tied.start) {
+                // Remove the tie at this step (p. 1197).
+                const at = g.start === tied.start ? g.start + 2 : g.start + 1
+                op("tie_steps", {row: id, from: at, to: at, tie: false})
+            }
         } else if (g.kind === "value") {
             const targets = selectedSteps.filter(s => s.row === id).map(s => s.step)
             if (targets.length > 1 && targets.indexOf(g.start) >= 0) {
@@ -297,23 +363,20 @@ Rectangle {
                 const r = Modes.range(g.row, g.mode)
                 const vals = targets.map(s => Modes.value(g.row, s, g.mode))
                 const limited = Math.max(r.min - Math.min.apply(null, vals), Math.min(r.max - Math.max.apply(null, vals), delta))
-                if (limited !== 0) op("nudge_pattern_values", {row: id, steps: Modes.oneBased(targets), mode: g.mode, delta: limited})
+                if (limited !== 0) shiftSteps(g.row, targets, g.mode, limited)
             } else {
                 op("set_steps", {row: id, steps: String(g.start + 1), values: Modes.patch(g.mode, g.value)})
             }
-        } else if (g.kind === "ramp") {
-            const span = Modes.span(g.start, g.end)
-            op("set_steps", {row: id, steps: Modes.oneBased(span), ramp: {field: field, from: g.from, to: g.to, leaveOff: g.leaveOff}})
-        } else if (g.kind === "tie") {
-            if (g.start !== g.end) op("tie_steps", {row: id, from: Math.min(g.start, g.end) + 1, to: Math.max(g.start, g.end) + 1, tie: true})
         } else if (g.kind === "tieEdge") {
-            const span = Modes.tieSpanAt(g.row, g.start)
+            const span = tied
             if (g.end > span.end) op("tie_steps", {row: id, from: span.start + 1, to: g.end + 1, tie: true})
             else if (g.end < g.start) op("tie_steps", {row: id, from: g.end + 2, to: span.end + 1, tie: false})
-            else if (g.start > span.start && g.start <= span.end) op("tie_steps", {row: id, from: g.start + 1, to: span.end + 1, tie: false})
-            else op("set_steps", {row: id, steps: String(g.start + 1), values: {on: !Modes.value(g.row, g.start, "onOff")}})
+            // A click in the middle of a tied cell shortens the tie to that step (SQ33).
+            else if (span.end > span.start && g.start >= span.start && g.start < span.end) op("tie_steps", {row: id, from: g.start + 2, to: span.end + 1, tie: false})
+            // A click elsewhere toggles the tie flag (SQ32).
+            else op("set_steps", {row: id, steps: String(g.start + 1), values: {tie: !Modes.value(g.row, g.start, "tie")}})
         } else if (g.kind === "loop") {
-            op("set_pattern_row", {row: id, loopStart: Math.min(g.start, g.end) + 1, loopEnd: Math.max(g.start, g.end) + 1})
+            op("set_pattern_row", {row: id, loopStart: lo + 1, loopEnd: hi + 1})
         }
     }
     function cancelGesture() { gesture = null; previewMap = ({}) }
@@ -361,6 +424,54 @@ Rectangle {
         case "deleteSubrow": if (selectedRowId) deleteSubrow(selectedRowId); return true
         case "showSubrows": if (selectedRowId) toggleSubrows(selectedRowId, false); return true
         case "showAllSubrows": toggleSubrows(selectedRowId || (rows[0] && rows[0].id), true); return true
+        case "expandRow": if (selectedRowId) setSubrowsShown(selectedRowId, true, false); return true
+        case "collapseRow": if (selectedRowId) setSubrowsShown(selectedRowId, false, false); return true
+        case "expandAll": setSubrowsShown("", true, true); return true
+        case "collapseAll": setSubrowsShown("", false, true); return true
+        // Steps clipboard (SQ35): Cut clears the source when it is pasted.
+        case "copySteps": case "cutSteps": {
+            const a = selectionArgs()
+            if (a) clipboard = {kind: "steps", clipId: controller.clipId, row: a.row, steps: a.steps, cut: id === "cutSteps",
+                                first: Math.min.apply(null, selectedSteps.filter(s => s.row === a.row).map(s => s.step))}
+            return true
+        }
+        case "pasteSteps": {
+            const target = selectedSteps.find(s => s.row === selectedRowId)
+            if (!clipboard || clipboard.kind !== "steps" || !selectedRowId) return true
+            const args = {clipId: clipboard.clipId, row: clipboard.row, steps: clipboard.steps, toRow: selectedRowId,
+                          toStep: (target ? target.step : clipboard.first) + 1}
+            if (clipboard.clipId !== controller.clipId) args.toClipId = controller.clipId
+            if (clipboard.cut) args.cut = true
+            if (op("copy_steps", args).ok && clipboard.cut) clipboard = Object.assign({}, clipboard, {cut: false})
+            return true
+        }
+        case "repeatStep": {
+            const s = selectedSteps.find(x => x.row === selectedRowId)
+            if (s) op("repeat_step", {row: s.row, step: s.step + 1})
+            return true
+        }
+        case "copyRow": if (selectedRowId) clipboard = {kind: "row", clipId: controller.clipId, row: selectedRowId}; return true
+        case "pasteRow": case "pasteNewRow": case "pasteRowSettings": {
+            if (!clipboard || clipboard.kind !== "row") return true
+            const args = {clipId: clipboard.clipId, row: clipboard.row}
+            if (clipboard.clipId !== controller.clipId) args.toClipId = controller.clipId
+            if (id === "pasteNewRow") args.asNew = true
+            else if (selectedRowId) args.toRow = selectedRowId
+            if (id === "pasteRowSettings") args.settingsOnly = true
+            op("copy_pattern_row", args)
+            return true
+        }
+        case "duplicateRowNext": if (selectedRowId) op("copy_pattern_row", {row: selectedRowId, nextAssignment: true}); return true
+        case "transposeUp": transpose(1); return true
+        case "transposeDown": transpose(-1); return true
+        case "transposeOctaveUp": transpose(12); return true
+        case "transposeOctaveDown": transpose(-12); return true
+        case "patternRateUp": op("set_pattern", {stepRate: nudgedRate(settings.stepRate, 1)}); return true
+        case "patternRateDown": op("set_pattern", {stepRate: nudgedRate(settings.stepRate, -1)}); return true
+        case "rowRateUp": case "rowRateDown": { const r = rowById(selectedRowId); if (r) op("set_pattern_row", {row: r.id, stepRate: nudgedRate(r.stepRate, id === "rowRateUp" ? 1 : -1)}); return true }
+        case "loopStartUp": case "loopStartDown": { const r = rowById(selectedRowId); if (r) op("set_pattern_row", {row: r.id, loopStart: Math.max(1, Math.min(r.loopEnd - 1, r.loopStart + 1 + (id === "loopStartUp" ? 1 : -1)))}); return true }
+        case "loopEndUp": if (selectedRowId) op("nudge_pattern_values", {row: selectedRowId, mode: "loop", delta: 1}); return true
+        case "loopEndDown": if (selectedRowId) op("nudge_pattern_values", {row: selectedRowId, mode: "loop", delta: -1}); return true
         case "inspector": inspectorVisible = !inspectorVisible; return true
         case "browser": browserVisible = !browserVisible; return true
         case "rowColors": rowColors = !rowColors; return true
@@ -374,9 +485,25 @@ Rectangle {
         case "convertToMidi": op("convert_pattern_to_midi", {clipIds: [controller.clipId]}); return true
         case "convertToPattern": op("convert_midi_to_pattern", {clipIds: [controller.clipId]}); return true
         }
-        if (id.indexOf("sort:") === 0) { op("sort_pattern_rows", {by: id.slice(5)}); return true }
+        // View > Sort Rows keeps the sort, so new rows land in order (SQ36).
+        if (id.indexOf("sort:") === 0) { op("set_pattern_row_sort", {rowSort: id.slice(5)}); return true }
+        if (id.indexOf("patternPlayback:") === 0) { op("set_pattern", {playback: id.slice(16)}); return true }
+        if (id.indexOf("rowPlayback:") === 0) { if (selectedRowId) op("set_pattern_row", {row: selectedRowId, playback: id.slice(12)}); return true }
         if (id.indexOf("addRow:") === 0) { addRow(id.slice(7)); return true }
         return false
+    }
+    // Transpose the selection, else the selected row, else the pattern (SQ35).
+    function transpose(semitones) {
+        const a = selectionArgs()
+        if (a) op("transpose_pattern", {row: a.row, steps: a.steps, semitones: semitones})
+        else if (selectedRowId) op("transpose_pattern", {row: selectedRowId, semitones: semitones})
+        else op("transpose_pattern", {semitones: semitones})
+    }
+    // Step rates ordered from long to short; up is faster.
+    function nudgedRate(rate, delta) {
+        const order = ["4", "2", "1", "1D", "1/2", "1T", "2D", "1/4", "2T", "4D", "1/8", "4T", "8D", "1/16", "8T", "16D", "1/32", "16T", "32D", "1/64", "32T", "64D"]
+        const i = order.indexOf(rate || "1/16")
+        return order[Math.max(0, Math.min(order.length - 1, (i < 0 ? 13 : i) + delta))]
     }
     function cycleMode(delta) {
         const list = Modes.MODES.map(m => m.value)
@@ -394,51 +521,94 @@ Rectangle {
         if (row) op("add_pattern_rows", {rows: [row]})
     }
 
-    // Keys (SQ34, SQ35). Command is Ctrl in Qt on macOS, Control is Meta.
+    // Keys (SQ34, SQ35). Names are macOS: Command is Ctrl in Qt, Control is Meta.
+    // Off macOS (D106) Command is Ctrl, Option is Alt and Control is Ctrl+Alt; an
+    // Option-Command chord keeps its key and the Control action is menu-only.
+    readonly property var playbackKeys: ({"]": "forward", "[": "backward", "p": "pingPong", "\\": "shuffle", "y": "pendulum", "u": "wander", "j": "random"})
+    function keyAction(event, cmd, alt, shift, ctl) {
+        const k = event.key
+        const del = k === Qt.Key_Backspace || k === Qt.Key_Delete
+        const plain = !cmd && !alt && !ctl
+        const ch = event.text.length === 1 ? event.text.toLowerCase() : ""
+        if (cmd && !alt && !ctl && k === Qt.Key_Z) return shift ? "redo" : "undo"
+        if (ctl && alt && !cmd && !shift && k === Qt.Key_S) return "onOffMode"
+        if (alt && !cmd && !ctl && k === Qt.Key_PageDown) return "nextMode"
+        if (alt && !cmd && !ctl && k === Qt.Key_PageUp) return "previousMode"
+        if (cmd && alt && ctl && k === Qt.Key_Left) return "rotatePatternLeft"
+        if (cmd && alt && ctl && k === Qt.Key_Right) return "rotatePatternRight"
+        if (cmd && alt && !ctl && k === Qt.Key_Left) return "rotateRowLeft"
+        if (cmd && alt && !ctl && k === Qt.Key_Right) return "rotateRowRight"
+        if (alt && shift && !cmd && !ctl && k === Qt.Key_Left) return "rotateModeLeft"
+        if (alt && shift && !cmd && !ctl && k === Qt.Key_Right) return "rotateModeRight"
+        if (alt && !cmd && !ctl && k === Qt.Key_Up) return shift ? "transposeOctaveUp" : "transposeUp"
+        if (alt && !cmd && !ctl && k === Qt.Key_Down) return shift ? "transposeOctaveDown" : "transposeDown"
+        if (ctl && cmd && !alt && k === Qt.Key_Right) return shift ? "expandAll" : "expandRow"
+        if (ctl && cmd && !alt && k === Qt.Key_Left) return shift ? "collapseAll" : "collapseRow"
+        if (ctl && shift && cmd && del) return "clearPattern"
+        if (ctl && cmd && del) return "clearRow"
+        if (alt && shift && cmd && del) return "clearPatternMode"
+        if (alt && cmd && del) return "clearRowMode"
+        if (shift && cmd && del) return "deleteUnused"
+        if (cmd && del) return "deleteRow"
+        if (ctl && del) return "clearStep"
+        if (ctl && shift && cmd && k === Qt.Key_M) return "mono"
+        if (ctl && shift && !cmd && k === Qt.Key_M) return "muteRow"
+        if (ctl && shift && !cmd && k === Qt.Key_S) return "soloRow"
+        if (shift && plain && (k === Qt.Key_Return || k === Qt.Key_Enter)) return "renameRow"
+        if (alt && shift && cmd && k === Qt.Key_R) return "randomizeSteps"
+        if (alt && cmd && !ctl && k === Qt.Key_R) return "randomizeAll"
+        if (shift && cmd && !alt && k === Qt.Key_R) return "randomizeRows"
+        if (cmd && !alt && !shift && !ctl && k === Qt.Key_R) return "repeatStep"
+        if (cmd && !alt && !shift && !ctl && k === Qt.Key_X) return "cutSteps"
+        if (cmd && !alt && !shift && !ctl && k === Qt.Key_C) return "copySteps"
+        if (cmd && !alt && !shift && !ctl && k === Qt.Key_V) return "pasteSteps"
+        if (alt && shift && !cmd && !ctl && k === Qt.Key_V) return "pasteSteps"
+        if (cmd && !alt && !shift && !ctl && k === Qt.Key_D) return "duplicateRowNext"
+        if (ctl && !cmd && !alt && !shift && k === Qt.Key_C) return "copyRow"
+        if (ctl && !cmd && !alt && !shift && k === Qt.Key_V) return "pasteRow"
+        if (ctl && !cmd && !alt && shift && k === Qt.Key_V) return "pasteNewRow"
+        if (ctl && !cmd && alt && shift && k === Qt.Key_V) return "pasteRowSettings"
+        if (alt && shift && !cmd && !ctl && k === Qt.Key_B) return "browser"
+        if (alt && !cmd && !ctl && k === Qt.Key_QuoteLeft) return "nextPage"
+        const plus = k === Qt.Key_Equal || k === Qt.Key_Plus
+        const minus = k === Qt.Key_Minus
+        if ((plus || minus) && ctl && shift && !cmd && !alt) return plus ? "patternRateUp" : "patternRateDown"
+        if ((plus || minus) && ctl && alt && !cmd) return plus ? "loopStartUp" : "loopStartDown"
+        if ((plus || minus) && ctl && !cmd && !alt && !shift) return plus ? "rowRateUp" : "rowRateDown"
+        if ((plus || minus) && alt && cmd && !ctl) return plus ? "loopEndUp" : "loopEndDown"
+        const playback = playbackKeys[ch]
+        if (playback && ctl && alt && !cmd) return "patternPlayback:" + playback
+        if (playback && ctl && !alt && !cmd) return "rowPlayback:" + playback
+        if (plain && !shift && ch === "'") return "toggleStep"
+        return ""
+    }
+    Keys.onReleased: event => { keyModifiers = event.modifiers }
     Keys.onPressed: event => {
-        const cmd = (event.modifiers & Qt.ControlModifier) !== 0
+        keyModifiers = event.modifiers
+        const mac = Qt.platform.os === "osx"
+        const ctrl = (event.modifiers & Qt.ControlModifier) !== 0
         const alt = (event.modifiers & Qt.AltModifier) !== 0
         const shift = (event.modifiers & Qt.ShiftModifier) !== 0
-        const ctl = (event.modifiers & Qt.MetaModifier) !== 0
-        const plain = !cmd && !alt && !ctl
+        const meta = (event.modifiers & Qt.MetaModifier) !== 0
         let action = ""
-        if (plain && !shift && event.text.length === 1) {
+        if (mac) {
+            action = keyAction(event, ctrl, alt, shift, meta)
+        } else {
+            action = keyAction(event, ctrl, alt, shift, false)
+            if (!action && ctrl && alt) action = keyAction(event, false, false, shift, true)
+        }
+        const plain = !ctrl && !alt && !(mac && meta)
+        if (!action && plain && !shift && event.text.length === 1) {
             const m = Modes.modeForKey(event.text.toLowerCase())
             if (m) { editMode = m; event.accepted = true; return }
-            if (event.text === "'") action = "toggleStep"
         }
-        if (ctl && alt && !cmd && event.key === Qt.Key_S) { editMode = "onOff"; event.accepted = true; return }
-        if (alt && event.key === Qt.Key_PageDown) action = "nextMode"
-        else if (alt && event.key === Qt.Key_PageUp) action = "previousMode"
-        else if (cmd && alt && ctl && event.key === Qt.Key_Left) action = "rotatePatternLeft"
-        else if (cmd && alt && ctl && event.key === Qt.Key_Right) action = "rotatePatternRight"
-        else if (cmd && alt && event.key === Qt.Key_Left) action = "rotateRowLeft"
-        else if (cmd && alt && event.key === Qt.Key_Right) action = "rotateRowRight"
-        else if (alt && shift && event.key === Qt.Key_Left) action = "rotateModeLeft"
-        else if (alt && shift && event.key === Qt.Key_Right) action = "rotateModeRight"
-        else if (ctl && cmd && event.key === Qt.Key_Right) action = "showSubrows"
-        else if (ctl && cmd && event.key === Qt.Key_Left) action = "showSubrows"
-        else if (ctl && shift && cmd && (event.key === Qt.Key_Backspace || event.key === Qt.Key_Delete)) action = "clearPattern"
-        else if (ctl && cmd && (event.key === Qt.Key_Backspace || event.key === Qt.Key_Delete)) action = "clearRow"
-        else if (alt && shift && cmd && (event.key === Qt.Key_Backspace || event.key === Qt.Key_Delete)) action = "clearPatternMode"
-        else if (alt && cmd && (event.key === Qt.Key_Backspace || event.key === Qt.Key_Delete)) action = "clearRowMode"
-        else if (shift && cmd && (event.key === Qt.Key_Backspace || event.key === Qt.Key_Delete)) action = "deleteUnused"
-        else if (cmd && (event.key === Qt.Key_Backspace || event.key === Qt.Key_Delete)) action = "deleteRow"
-        else if (ctl && (event.key === Qt.Key_Backspace || event.key === Qt.Key_Delete)) action = "clearStep"
-        else if (ctl && shift && event.key === Qt.Key_M && cmd) action = "mono"
-        else if (ctl && shift && event.key === Qt.Key_M) action = "muteRow"
-        else if (ctl && shift && event.key === Qt.Key_S) action = "soloRow"
-        else if (shift && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) action = "renameRow"
-        else if (alt && shift && cmd && event.key === Qt.Key_R) action = "randomizeSteps"
-        else if (alt && cmd && event.key === Qt.Key_R) action = "randomizeAll"
-        else if (shift && cmd && event.key === Qt.Key_R) action = "randomizeRows"
-        else if (alt && shift && event.key === Qt.Key_B) action = "browser"
-        else if (alt && event.key === Qt.Key_QuoteLeft) action = "nextPage"
-        else if (plain && (event.key === Qt.Key_Left || event.key === Qt.Key_Right)) {
+        if (action === "onOffMode") { editMode = "onOff"; event.accepted = true; return }
+        if (!action && plain && (event.key === Qt.Key_Left || event.key === Qt.Key_Right)) {
             moveSelection(event.key === Qt.Key_Left ? -1 : 1, shift)
             event.accepted = true
             return
-        } else if (plain && !shift && (event.key === Qt.Key_Up || event.key === Qt.Key_Down)) {
+        }
+        if (!action && plain && !shift && (event.key === Qt.Key_Up || event.key === Qt.Key_Down)) {
             const i = rows.findIndex(r => r.id === selectedRowId)
             const next = rows[Math.max(0, Math.min(rows.length - 1, i + (event.key === Qt.Key_Up ? -1 : 1)))]
             if (next) selectRow(next.id)
@@ -509,13 +679,12 @@ Rectangle {
             height: parent.height
             clip: true
             visible: controller.valid
-            model: controller.rows
+            model: controller.rowModel
             reuseItems: true
+            cacheBuffer: Math.round(root.rowHeight * 2)
             boundsBehavior: Flickable.StopAtBounds
             delegate: StepSequencerRow {
-                required property var modelData
                 panel: root
-                row: modelData
             }
             WheelHandler {
                 acceptedModifiers: Qt.ShiftModifier

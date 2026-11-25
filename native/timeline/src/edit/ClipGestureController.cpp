@@ -1,4 +1,5 @@
 #include "edit/ClipGestureController.h"
+#include "edit/clipboard/RawDocument.h"
 
 #include "app/EditRegistry.h"
 #include "wiring/KeyActions.h"
@@ -2298,4 +2299,24 @@ void ClipGestureController::redo() {
 QVariantMap ClipGestureController::clipData(const QString& id) const {
     const nt::Clip* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
     return clip ? clip->raw.toVariantMap() : QVariantMap{};
+}
+
+QString ClipGestureController::joinClipsReason(const QStringList& ids) const {
+    if (!m_timeline || m_timeline->readOnly()) { return tr("The timeline is read-only."); }
+    const auto doc = nt::edit::structure::editDocument(m_timeline->timeline().raw);
+    const auto editable = editableUserTargets(doc, IdSet(ids.begin(), ids.end()), m_linked, false);
+    for (const auto& id : ids) { if (!editable.contains(id)) { return tr("Unlock the clip or its linked partner first."); } }
+    try {
+        applyMusicClipEdit(m_timeline->timeline().raw, QStringLiteral("join_clips"), {{"clips", QJsonArray::fromStringList(ids)}});
+    } catch (const OpError& error) { return QString::fromUtf8(error.what()); }
+    return {};
+}
+QString ClipGestureController::joinSelectedClips() {
+    const auto ids = selection();
+    if (const auto reason = joinClipsReason(ids); !reason.isEmpty()) { return reason; }
+    if (!m_timeline->applyEdit(QStringLiteral("join_clips"), {{"clips", QJsonArray::fromStringList(ids)}})) { return tr("Join failed. Check clip locks and the selection."); }
+    QStringList surviving;
+    for (const auto& id : ids) { if (m_timeline->findClip(id)) { surviving.append(id); } }
+    setSelection(surviving);
+    return {};
 }

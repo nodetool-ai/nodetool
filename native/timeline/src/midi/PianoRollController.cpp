@@ -64,7 +64,7 @@ void PianoRollController::reload() {
     m_inPointMs = raw.value(u"inPointMs").toDouble();
     m_durationMs = raw.value(u"durationMs").toDouble();
     m_locked = raw.value(u"locked").toBool();
-    m_clipColor = raw.value(u"color").toString();
+    m_clipColor = raw.value(u"labelColor").toString(raw.value(u"color").toString());
     m_trackColor.clear();
     m_trackName.clear();
     m_keyTonic.clear();

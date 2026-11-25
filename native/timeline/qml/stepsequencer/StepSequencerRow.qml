@@ -1,7 +1,10 @@
 // One pattern row of the Step Sequencer (figure p0724): the row header and the
 // step cells in the current edit mode, then one subrow per `row.subrows` mode
-// when the row is open (figure p0736). The panel owns selection, previews and
-// every write. UI thread only.
+// when the row is open (figure p0736). The row model (StepSequencerRowModel)
+// gives the row map and the playing step, so an edit or the playhead updates
+// only the rows it touches. Cells exist only for the steps in view
+// (PERFORMANCE.md rules 3 and 6). The panel owns selection, previews and every
+// write. UI thread only.
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.UiPrimitives as Ui
@@ -10,14 +13,18 @@ import "StepSequencerModes.js" as Modes
 Item {
     id: root
     required property var panel
-    required property var row
+    required property var rowData
+    required property int playingStep
     required property int index
+    readonly property var row: rowData
     readonly property color rowColor: Modes.rowColor(row, index)
     readonly property bool selected: panel.selectedRowId === row.id
-    readonly property bool expanded: panel.expandedRows[row.id] === true
+    // Expansion is document data (SQ8): `row.subrowsExpanded`.
+    readonly property bool expanded: row.subrowsExpanded === true
     readonly property var subrows: expanded ? (row.subrows || []) : []
     readonly property real laneHeight: panel.rowHeight
     readonly property real subHeight: Math.round(panel.rowHeight * 0.7)
+    readonly property bool dropTarget: panel.rowDrag !== null && panel.rowDrag.target === index && panel.rowDrag.id !== row.id
     width: ListView.view ? ListView.view.width : 0
     height: laneHeight + subrows.length * subHeight
     objectName: "stepRow-" + row.id
@@ -31,7 +38,7 @@ Item {
     Repeater {
         model: root.subrows
         delegate: Lane {
-            required property var modelData
+            required property string modelData
             required property int index
             y: root.laneHeight + index * root.subHeight
             height: root.subHeight
@@ -39,6 +46,13 @@ Item {
             main: false
             subIndex: index
         }
+    }
+    // The drop line of a row header drag.
+    Rectangle {
+        visible: root.dropTarget
+        width: root.panel.headerWidth
+        height: Ui.Metrics.focus
+        color: Ui.Theme.borderFocus
     }
 
     component Lane: Item {
@@ -71,13 +85,26 @@ Item {
                 color: Ui.Theme.borderSubtle
             }
             MouseArea {
+                id: headerArea
+                objectName: lane.main ? "stepRowHeader-" + root.row.id : ""
                 anchors.fill: parent
+                hoverEnabled: lane.main
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
-                onClicked: mouse => {
+                property real pressY: 0
+                onPressed: mouse => {
+                    pressY = mouse.y
                     root.panel.forceActiveFocus()
                     root.panel.selectRow(root.row.id)
                     if (mouse.button === Qt.RightButton) root.panel.openRowMenu(root.row.id, header, mouse.x, mouse.y)
                 }
+                // Drag a row header to reorder rows (SQ29).
+                onPositionChanged: mouse => {
+                    if (!pressed || !lane.main || !(mouse.buttons & Qt.LeftButton)) return
+                    if (root.panel.rowDrag === null && Math.abs(mouse.y - pressY) < Ui.Metrics.sm) return
+                    root.panel.dragRow(root.row.id, root.index, header.mapToItem(root.ListView.view.contentItem, mouse.x, mouse.y).y)
+                }
+                onReleased: root.panel.dropRow()
+                onCanceled: root.panel.cancelRowDrag()
                 onDoubleClicked: root.panel.renameRow(root.row.id)
             }
             // Top line: disclosure, icon, name, mode label.
@@ -88,6 +115,7 @@ Item {
                 height: Ui.Metrics.small
                 spacing: Ui.Metrics.xs
                 Ui.EditorButton {
+                    id: disclosure
                     objectName: "stepRowDisclosure-" + root.row.id
                     anchors.verticalCenter: parent.verticalCenter
                     width: Ui.Metrics.iconMd
@@ -97,7 +125,8 @@ Item {
                     iconName: root.expanded ? "expandMore" : "arrowRight"
                     iconSize: Ui.Metrics.iconXs
                     accessibleName: root.expanded ? qsTr("Hide Subrows") : qsTr("Show Subrows")
-                    onClicked: root.panel.toggleSubrows(root.row.id, false)
+                    // Option-click toggles every row (SQ35).
+                    onClicked: root.panel.setSubrowsShown(root.row.id, !root.expanded, (root.panel.keyModifiers & Qt.AltModifier) !== 0)
                 }
                 Ui.Icon {
                     anchors.verticalCenter: parent.verticalCenter
@@ -117,7 +146,7 @@ Item {
                 }
             }
             Ui.Text {
-                visible: lane.main
+                visible: lane.main && !headerArea.containsMouse
                 anchors.right: parent.right
                 anchors.rightMargin: Ui.Metrics.md
                 y: Ui.Metrics.xs + (Ui.Metrics.small - height) / 2
@@ -125,6 +154,16 @@ Item {
                 role: Ui.Typography.SansCaption
                 tone: Ui.Text.Secondary
                 tight: true
+            }
+            // Hover: add and delete subrow (SQ29, figure p0736).
+            Row {
+                visible: lane.main && headerArea.containsMouse && root.panel.editable
+                anchors.right: parent.right
+                anchors.rightMargin: Ui.Metrics.sm
+                y: Ui.Metrics.xs + (Ui.Metrics.small - height) / 2
+                spacing: Ui.Metrics.micro
+                Tool { objectName: "stepRowAddSubrow-" + root.row.id; glyph: "add"; tip: qsTr("Add Subrow"); onClicked: root.panel.addSubrow(root.row.id) }
+                Tool { objectName: "stepRowDeleteSubrow-" + root.row.id; glyph: "remove"; tip: qsTr("Delete Subrow"); enabled: root.panel.editable && (root.row.subrows || []).length > 0; onClicked: root.panel.deleteSubrow(root.row.id) }
             }
             // Bottom line: M S, playback, rotate, decrement/increment, randomize, clear.
             Row {
@@ -157,10 +196,12 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Ui.Metrics.micro
                 Ui.Select {
+                    objectName: "stepSubrowMode-" + root.row.id + "-" + lane.subIndex
                     width: Ui.Metrics.xxxl * 2.4
                     density: Ui.EditorButton.Compact
                     accessibleName: qsTr("Subrow Mode")
-                    options: Modes.MODES.filter(m => m.value !== "onOff").map(m => ({label: m.label, value: m.value}))
+                    options: Modes.MODES.filter(m => m.value !== "onOff" && Modes.supportsMode(root.row, Modes.effectiveMode(root.row, m.value)))
+                                        .map(m => ({label: m.label, value: m.value}))
                     value: lane.mode === "value" ? "velocity" : lane.mode
                     onValueCommitted: next => root.panel.setSubrowMode(root.row.id, lane.subIndex, next)
                 }
@@ -177,22 +218,25 @@ Item {
             height: parent.height
             readonly property real cellWidth: root.panel.cellWidth
             readonly property real gap: Ui.Metrics.micro
+            readonly property int first: Math.min(root.panel.firstStep, root.row.lengthSteps)
             Repeater {
-                model: root.row.lengthSteps
+                model: Math.max(0, Math.min(root.row.lengthSteps - cells.first, root.panel.stepWindow))
                 delegate: Rectangle {
                     id: cell
                     required property int index
-                    readonly property var step: root.row.steps[index] || ({})
-                    readonly property var preview: root.panel.previewFor(root.row.id, index)
-                    readonly property bool on: preview && preview.on !== undefined ? preview.on : !!step.on
-                    readonly property bool continues: Modes.continuesTie(root.row, index)
-                    readonly property bool inLoop: index >= root.row.loopStart && index < root.row.loopEnd
-                    readonly property bool selectedStep: root.panel.isStepSelected(root.row.id, index)
-                    readonly property bool playing: root.panel.playingSteps[root.row.id] === index
-                    readonly property real groupGap: Math.floor(index / 4) * Ui.Metrics.xs
-                    x: index * cells.cellWidth + groupGap - root.panel.scrollX - (continues ? cells.gap + Ui.Metrics.border : 0)
+                    readonly property int step: cells.first + index
+                    readonly property var stepData: root.row.steps[step] || ({})
+                    readonly property var preview: root.panel.previewFor(root.row.id, step)
+                    readonly property bool on: preview && preview.on !== undefined ? preview.on : !!stepData.on
+                    readonly property bool continues: Modes.continuesTie(root.row, step)
+                    readonly property bool inLoop: step >= root.row.loopStart && step < root.row.loopEnd
+                    readonly property bool selectedStep: root.panel.isStepSelected(root.row.id, step)
+                    readonly property bool playing: root.playingStep === step
+                    // A tie joins across the beat gap too (SQ30).
+                    readonly property real join: continues ? cells.gap + Ui.Metrics.border + (step % 4 === 0 ? Ui.Metrics.xs : 0) : 0
+                    x: root.panel.stepX(step) - root.panel.scrollX - join
                     y: Ui.Metrics.micro
-                    width: cells.cellWidth - cells.gap + (continues ? cells.gap + Ui.Metrics.border : 0)
+                    width: cells.cellWidth - cells.gap + join
                     height: lane.height - Ui.Metrics.micro * 2
                     visible: x + width > 0 && x < cells.width
                     radius: Ui.Metrics.micro
@@ -205,9 +249,10 @@ Item {
                     // Value modes: a line at the value height (p. 736).
                     Rectangle {
                         visible: lane.spec.kind === "number" || lane.spec.kind === "rate"
+                        readonly property var r: Modes.range(root.row, lane.mode)
                         readonly property real f: cell.preview && cell.preview.value !== undefined
-                            ? (cell.preview.value - Modes.range(root.row, lane.mode).min) / Math.max(1e-9, Modes.range(root.row, lane.mode).max - Modes.range(root.row, lane.mode).min)
-                            : Modes.fraction(root.row, cell.index, lane.mode)
+                            ? (cell.preview.value - r.min) / Math.max(1e-9, r.max - r.min)
+                            : Modes.fraction(root.row, cell.step, lane.mode)
                         x: Ui.Metrics.micro
                         width: parent.width - Ui.Metrics.micro * 2
                         height: Ui.Metrics.micro
@@ -215,14 +260,23 @@ Item {
                         color: cell.on ? Ui.Theme.surfaceCanvas : root.rowColor
                         opacity: cell.on ? 0.75 : 0.9
                     }
-                    // Repeat: N thin bars. Chance: dots whose count follows the chance.
+                    // Repeat: one thin bar per repeat, up to 16.
                     Row {
-                        visible: lane.mode === "repeat" && cell.on
                         anchors.centerIn: parent
+                        spacing: Ui.Metrics.border
+                        Repeater {
+                            model: lane.mode === "repeat" && cell.on ? Math.min(16, cell.stepData.repeat || 1) : 0
+                            delegate: Rectangle { width: Ui.Metrics.border * 2; height: cell.height * 0.4; color: Ui.Theme.surfaceCanvas; opacity: 0.6 }
+                        }
+                    }
+                    // Chance: a dot texture, one dot per 12.5 % (SQ30).
+                    Grid {
+                        anchors.centerIn: parent
+                        columns: 4
                         spacing: Ui.Metrics.micro
                         Repeater {
-                            model: Math.min(8, cell.step.repeat || 1)
-                            delegate: Rectangle { width: Ui.Metrics.micro; height: cell.height * 0.4; color: Ui.Theme.surfaceCanvas; opacity: 0.6 }
+                            model: lane.mode === "chance" && cell.on ? Math.round((cell.stepData.chance !== undefined ? cell.stepData.chance : 100) / 12.5) : 0
+                            delegate: Rectangle { width: Ui.Metrics.micro; height: Ui.Metrics.micro; radius: Ui.Metrics.micro; color: Ui.Theme.surfaceCanvas; opacity: 0.8 }
                         }
                     }
                     Ui.Text {
@@ -231,9 +285,9 @@ Item {
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: Ui.Metrics.micro
                         width: parent.width - Ui.Metrics.xs
-                        text: cell.preview && cell.preview.value !== undefined
-                            ? Modes.textFor(root.row, lane.mode, cell.preview.value)
-                            : Modes.text(root.row, cell.index, lane.mode)
+                        text: !visible ? "" : cell.preview && cell.preview.value !== undefined
+                            ? Modes.textFor(root.row, lane.mode, cell.preview.value, cell.stepData)
+                            : Modes.text(root.row, cell.step, lane.mode)
                         role: Ui.Typography.MonoCaption
                         domainColor: cell.on ? Ui.Theme.surfaceCanvas : Ui.Theme.textSecondary
                         elide: Text.ElideRight
@@ -245,12 +299,12 @@ Item {
                         width: Ui.Metrics.sm
                         height: Ui.Metrics.sm
                         rotation: 45
-                        x: Ui.Metrics.border - width / 2 + cells.gap
+                        x: cell.join - width / 2
                         anchors.verticalCenter: parent.verticalCenter
                         color: Ui.Theme.surfaceCanvas
                     }
                     Rectangle {
-                        visible: lane.mode === "skip" && !!cell.step.skip
+                        visible: lane.mode === "skip" && !!cell.stepData.skip
                         anchors.centerIn: parent
                         width: parent.width * 0.6
                         height: Ui.Metrics.micro
@@ -274,19 +328,22 @@ Item {
                 preventStealing: true
                 cursorShape: (gesture.modifiers & Qt.AltModifier) && !(gesture.modifiers & Qt.ControlModifier) ? Qt.CrossCursor : Qt.PointingHandCursor
                 property int modifiers: Qt.NoModifier
-                function stepAt(x) { return root.panel.stepAt(x) }
+                // -1 past the row's own length (a polymetric row, SQ7).
+                function stepAt(x) { return root.panel.stepAt(x, root.row.lengthSteps) }
                 function fractionAt(y) { return 1 - y / height }
                 onPressed: mouse => {
                     modifiers = mouse.modifiers
                     root.panel.forceActiveFocus()
+                    const s = stepAt(mouse.x)
+                    if (s < 0) return
                     if (mouse.button === Qt.RightButton) {
-                        root.panel.openStepMenu(root.row.id, stepAt(mouse.x), gesture, mouse.x, mouse.y)
+                        root.panel.openStepMenu(root.row.id, s, gesture, mouse.x, mouse.y)
                         return
                     }
-                    root.panel.beginGesture(root.row, stepAt(mouse.x), lane.mode, fractionAt(mouse.y), mouse.modifiers)
+                    root.panel.beginGesture(root.row, s, lane.mode, fractionAt(mouse.y), mouse.modifiers)
                 }
                 onPositionChanged: mouse => {
-                    if (pressed) root.panel.moveGesture(stepAt(mouse.x), fractionAt(mouse.y))
+                    if (pressed) root.panel.moveGesture(Math.max(0, Math.min(root.row.lengthSteps - 1, root.panel.stepAt(mouse.x, 0))), fractionAt(mouse.y))
                 }
                 onReleased: mouse => { if (mouse.button === Qt.LeftButton) root.panel.endGesture() }
                 onCanceled: root.panel.cancelGesture()

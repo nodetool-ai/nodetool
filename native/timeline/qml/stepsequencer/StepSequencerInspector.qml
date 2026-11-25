@@ -18,6 +18,9 @@ Rectangle {
     readonly property bool editable: panel.editable
     readonly property real labelWidth: width * 0.44
     readonly property var playbackOptions: Modes.PLAYBACK.map(p => ({label: p.label, value: p.value}))
+    readonly property var noteNames: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    readonly property var scales: ["chromatic", "major", "minor", "dorian", "mixolydian", "phrygian", "lydian", "locrian", "harmMinor", "melMinor",
+                                   "phrygDom", "lydDom", "locrian2", "altered", "wholeTone", "dimHW", "dimWH", "majPent", "minPent", "blues"]
     readonly property var rateOptions: Modes.STEP_RATES.map(r => ({label: r, value: r}))
 
     // The shared value of `mode` across the selected steps, or null when they differ.
@@ -38,7 +41,11 @@ Rectangle {
         if (!row || !steps.length) return
         const common = shared(mode)
         if (common === null) {
-            panel.op("nudge_pattern_values", {row: row.id, steps: Modes.oneBased(steps), mode: mode, delta: next})
+            // A relative change, limited so no step leaves the range; one undo entry.
+            const r = Modes.range(row, mode)
+            const vals = steps.map(s => Modes.value(row, s, mode))
+            const delta = Math.max(r.min - Math.min.apply(null, vals), Math.min(r.max - Math.max.apply(null, vals), next))
+            if (delta !== 0) panel.shiftSteps(row, steps, mode, delta)
         } else {
             setSteps(Modes.patch(mode, next))
         }
@@ -47,7 +54,9 @@ Rectangle {
     Ui.TabBar {
         id: tabs
         objectName: "stepSequencerInspectorTabs"
-        width: parent.width
+        x: Ui.Metrics.md
+        y: Ui.Metrics.xs
+        width: parent.width - Ui.Metrics.md * 2
         accessibleName: qsTr("Inspector")
         tabs: [{label: qsTr("Pattern"), value: "pattern"}, {label: qsTr("Row"), value: "row", enabled: !!root.row},
                {label: qsTr("Step"), value: "step", enabled: root.steps.length > 0}]
@@ -55,7 +64,7 @@ Rectangle {
         onValueCommitted: next => root.panel.inspectorTab = next
     }
     Flickable {
-        y: tabs.height
+        y: tabs.y + tabs.height
         width: parent.width
         height: parent.height - y
         contentHeight: content.height + Ui.Metrics.lg
@@ -78,13 +87,23 @@ Rectangle {
                 SelectField { label: qsTr("Playback Mode"); options: root.playbackOptions; value: root.settings.playback; onCommit: v => root.panel.op("set_pattern", {playback: v}) }
                 NumberRow { objectName: "stepInspectorLength"; label: qsTr("Length"); value: root.settings.lengthSteps || 16; from: 1; to: 64; onCommit: v => root.panel.op("set_pattern", {lengthSteps: v}) }
                 NumberRow { label: qsTr("Swing"); unit: "%"; value: root.settings.swing || 0; from: 0; to: 100; onCommit: v => root.panel.op("set_pattern", {swing: v}) }
-                SelectField { label: qsTr("Swing Grid"); options: ["1/8", "1/16", "1/32"].map(r => ({label: r, value: r})); value: root.settings.swingDivision; onCommit: v => root.panel.op("set_pattern", {swingDivision: v}) }
+                SelectField { label: qsTr("Swing Grid"); options: ["1/8", "1/16"].map(r => ({label: r, value: r})); value: root.settings.swingDivision; onCommit: v => root.panel.op("set_pattern", {swingDivision: v}) }
                 SwitchRow { label: qsTr("Legato"); checked: !!root.settings.legato; onCommit: v => root.panel.op("set_pattern", {legato: v}) }
                 SwitchRow { objectName: "stepInspectorMono"; label: qsTr("Mono Mode"); checked: !!root.settings.mono; onCommit: v => root.panel.op("set_pattern", {mono: v}) }
                 NumberRow { label: qsTr("MIDI Channel"); value: root.settings.midiChannel || 1; from: 1; to: 16; onCommit: v => root.panel.op("set_pattern", {midiChannel: v}) }
                 SelectField { label: qsTr("Automation"); options: [{label: qsTr("Latch"), value: "latch"}, {label: qsTr("Slide"), value: "slide"}]; value: root.settings.automationMode; onCommit: v => root.panel.op("set_pattern", {automationMode: v}) }
-                SelectField { label: qsTr("Pitch Source"); options: [{label: qsTr("Off"), value: "off"}, {label: qsTr("Key"), value: "key"}, {label: qsTr("Chord Track"), value: "chordTrack"}]; value: root.settings.pitchSource; onCommit: v => root.panel.op("set_pattern", {pitchSource: v}) }
+                SelectField { label: qsTr("Pitch Source"); options: [{label: qsTr("Off"), value: "off"}, {label: qsTr("Key"), value: "key"}, {label: qsTr("Chord Track"), value: "chords"}]; value: root.settings.pitchSource; onCommit: v => root.panel.op("set_pattern", {pitchSource: v}) }
                 SwitchRow { label: qsTr("Scale Quantize"); checked: !!root.settings.scaleQuantize; onCommit: v => root.panel.op("set_pattern", {scaleQuantize: v}) }
+                SelectField { objectName: "stepInspectorKey"; label: qsTr("Key"); options: [{label: qsTr("None"), value: -1}].concat(root.noteNames.map((n, i) => ({label: n, value: i})))
+                    value: root.settings.key ? root.settings.key.tonic : -1
+                    onCommit: v => root.panel.op("set_pattern", {key: v < 0 ? null : {tonic: v, mode: root.settings.key ? root.settings.key.mode : "major"}}) }
+                SelectField { label: qsTr("Key Mode"); options: [{label: qsTr("Major"), value: "major"}, {label: qsTr("Minor"), value: "minor"}]
+                    value: root.settings.key ? root.settings.key.mode : "major"
+                    onCommit: v => { if (root.settings.key) root.panel.op("set_pattern", {key: {tonic: root.settings.key.tonic, mode: v}}) } }
+                SelectField { label: qsTr("Scale"); options: root.scales.map(x => ({label: x, value: x})); value: root.settings.scale || "chromatic"; onCommit: v => root.panel.op("set_pattern", {scale: v}) }
+                SwitchRow { label: qsTr("No Transpose"); checked: !!root.settings.noTranspose; onCommit: v => root.panel.op("set_pattern", {noTranspose: v}) }
+                NumberRow { label: qsTr("Loop Start"); value: (root.settings.loopStart || 0) + 1; from: 1; to: root.settings.lengthSteps || 64; onCommit: v => root.panel.op("set_pattern", {loopStart: v}) }
+                NumberRow { label: qsTr("Loop End"); value: root.settings.loopEnd || root.settings.lengthSteps || 16; from: 1; to: root.settings.lengthSteps || 64; onCommit: v => root.panel.op("set_pattern", {loopEnd: v}) }
             }
 
             // ── Row (SQ3) ─────────────────────────────────────────────────
@@ -93,6 +112,30 @@ Rectangle {
                 spacing: Ui.Metrics.xs
                 visible: root.panel.inspectorTab === "row" && !!root.row
                 Header { text: root.row ? root.row.label : "" }
+                Row {
+                    width: parent.width
+                    height: Ui.Metrics.compact
+                    Caption { text: qsTr("Name") }
+                    Ui.TextField {
+                        objectName: "stepInspectorRowName"
+                        width: parent.width - root.labelWidth
+                        density: Ui.EditorButton.Compact
+                        accessibleName: qsTr("Row Name")
+                        enabled: root.editable
+                        value: root.row ? root.row.label : ""
+                        onValueCommitted: next => { if (next.trim() !== "") root.panel.op("set_pattern_row", {row: root.row.id, name: next.trim()}) }
+                    }
+                }
+                NumberRow { objectName: "stepInspectorPitch"; visible: !!root.row && (root.row.type === "note" || root.row.type === "melodic")
+                    label: qsTr("Note"); value: root.row && root.row.assignment ? root.row.assignment.pitch || 0 : 0; from: 0; to: 127
+                    onCommit: v => root.panel.op("set_pattern_row", {row: root.row.id, assignment: {type: root.row.type, pitch: v}}) }
+                NumberRow { visible: !!root.row && root.row.type === "kit"
+                    label: qsTr("Kit Pad"); value: root.row && root.row.assignment ? (root.row.assignment.pad || 0) + 1 : 1; from: 1; to: 16
+                    onCommit: v => root.panel.op("set_pattern_row", {row: root.row.id, assignment: {type: "kit", pad: v - 1}}) }
+                SelectField { visible: !!root.row && root.row.type === "automation"; label: qsTr("Automation")
+                    options: [{label: qsTr("Latch"), value: "latch"}, {label: qsTr("Slide"), value: "slide"}]
+                    value: root.row ? root.row.automationMode || "latch" : "latch"
+                    onCommit: v => root.panel.op("set_pattern_row", {row: root.row.id, automationMode: v}) }
                 SelectField { label: qsTr("Step Rate"); options: root.rateOptions; value: root.row ? root.row.stepRate : ""; onCommit: v => root.panel.op("set_pattern_row", {row: root.row.id, stepRate: v}) }
                 SelectField { label: qsTr("Playback Mode"); options: root.playbackOptions; value: root.row ? root.row.playback : ""; onCommit: v => root.panel.op("set_pattern_row", {row: root.row.id, playback: v}) }
                 NumberRow { label: qsTr("Length"); value: root.row ? root.row.lengthSteps : 16; from: 1; to: root.settings.lengthSteps || 64; onCommit: v => root.panel.op("set_pattern_row", {row: root.row.id, lengthSteps: v}) }
@@ -118,6 +161,7 @@ Rectangle {
                 StepNumber { label: qsTr("Gate"); mode: "gate"; unit: "%"; from: 1; to: 100 }
                 SwitchRow { label: qsTr("Tie"); checked: root.shared("tie") === 1; mixed: root.shared("tie") === null; onCommit: v => root.setSteps({tie: v}) }
                 StepNumber { label: qsTr("Offset"); mode: "offset"; unit: "%"; from: -50; to: 50 }
+                NumberRow { label: qsTr("MIDI Channel"); from: 1; to: 16; value: root.stepField("midiChannel") || root.settings.midiChannel || 1; onCommit: v => root.setSteps({midiChannel: v}) }
                 Header { text: qsTr("Repeats") }
                 StepNumber { label: qsTr("Repeat"); mode: "repeat"; from: 1; to: 16 }
                 NumberRow { label: qsTr("Velocity Ramp"); unit: "%"; from: -100; to: 100; value: root.stepField("velocityRamp") || 0; onCommit: v => root.setSteps({velocityRamp: v}) }

@@ -65,6 +65,8 @@ Timeline bounceTimeline(const Timeline& source, BounceKind kind, const std::stri
     copy.tracks = std::move(tracks);
     copy.clips = std::move(clips);
     copy.masterVolumeDb = 0.0;
+    auto music = copy.raw.value("music").toObject();
+    if (copy.raw.value("music").isObject()) { music.insert("autoCrossfadeMs", 0); copy.raw.insert("music", music); }
     auto master = copy.raw.value("master").toObject();
     master.remove("effects");
     master.remove("volumeDb");
