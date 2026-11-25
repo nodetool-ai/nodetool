@@ -232,6 +232,27 @@ texture, use, or intent.
   across cuts, and add short fades at joins. Add music, narration, and titles
   only when the brief calls for them.
 
+## Node Editor Demo
+
+`/node-based-workflows` loads the app's real node editor in an iframe when the
+reader opens it. The page is `web/node-editor-embed.html` and its code is in
+`web/src/demo/nodeEditor/`. Run uses the app's own run path, and a fake
+server in the page answers it: generation nodes return the sample stills and
+clips in `public/node-editor-demo/`, picked by words in the prompt. No model
+runs, and the page says so.
+
+- Treat `public/embed/node-editor/` as generated output. After a change to the
+  node editor or the demo, run `npm run build:packages` at the root, then
+  `npm run build:node-editor-embed` in `web/`, and commit the result.
+- The node types come from the node catalog through
+  `npm run generate:node-editor-demo-metadata` in `web/`. A node type the demo
+  adds also needs a case in `web/src/demo/nodeEditor/fakeRunPlan.ts`.
+- The build writes only the chunks the demo loads. A lazy import the demo
+  reaches must be added to `RUNTIME_LAZY_MODULES` in
+  `web/vite.node-editor-embed.config.ts`.
+- `tests/e2e/node-editor-demo.spec.ts` checks that nothing loads before the
+  reader opens the editor and that Run shows the sample still and clip.
+
 ## Local Development and Verification
 
 The development server and a production build both write `marketing/.next`.

@@ -90,6 +90,8 @@
     "build": "vite build",
     "prebuild:staging": "node scripts/ensure-packages-built.mjs",
     "build:staging": "vite build --mode staging",
+    "build:node-editor-embed": "node scripts/generate-node-editor-demo-metadata.mjs --check && vite build --config vite.node-editor-embed.config.ts",
+    "generate:node-editor-demo-metadata": "node scripts/generate-node-editor-demo-metadata.mjs",
     "prebuild:debug": "node scripts/ensure-packages-built.mjs",
     "build:debug": "NODE_OPTIONS=--max-old-space-size=16384 vite build --mode debug --sourcemap --minify false",
     "preview": "vite preview",
