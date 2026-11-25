@@ -142,9 +142,10 @@ function dateThreshold(filter: string): Date {
 }
 
 /**
- * A header date as a `Date`, or `undefined` when it is missing or invalid.
- * ImapFlow returns the raw header string when the date does not parse, and a
- * message with a broken `Date` header is still mail the workflow should see.
+ * A date ImapFlow returned (the `Date` header or the arrival time) as a `Date`,
+ * or `undefined` when it is missing or invalid. ImapFlow returns the raw header
+ * string when a date does not parse, and a message with a broken `Date` header
+ * is still mail the workflow should see.
  */
 function envelopeDate(value: Date | string | undefined): Date | undefined {
   if (!value) return undefined;
@@ -294,7 +295,8 @@ export class GmailSearchLibNode extends BaseNode {
 
       // IMAP's SINCE compares calendar days, so the server returns the whole
       // day even for "since one hour". The threshold is applied again to each
-      // message's own date below.
+      // message's arrival time below, the clock SINCE itself uses. A sender's
+      // Date header can be hours or days off for mail that sat in a queue.
       const query: Record<string, unknown> = { since: threshold };
       const from = String(this.from_address ?? "");
       if (from) query.from = from;
@@ -306,8 +308,13 @@ export class GmailSearchLibNode extends BaseNode {
       if (body) query.body = body;
       const text = String(this.text ?? "");
       if (text) query.text = text;
-      const keywords = String(this.keywords ?? "");
-      if (keywords) query.keyword = keywords;
+      // Gmail shows its labels as folders, not as IMAP keyword flags, so a
+      // `keyword` search never matches one. `labels` is Gmail's own criterion.
+      const labels = String(this.keywords ?? "")
+        .split(",")
+        .map((label) => label.trim())
+        .filter(Boolean);
+      if (labels.length > 0) query.labels = { has: labels };
 
       const maxResults = Math.max(1, Number(this.max_results ?? 50));
       const folder = await resolveFolder(client, String(this.folder ?? "INBOX"));
@@ -324,12 +331,13 @@ export class GmailSearchLibNode extends BaseNode {
         const fetched = new Map<number, FoundEmail>();
         for await (const msg of client.fetch(
           newest.join(","),
-          { envelope: true, source: true, uid: true },
+          { envelope: true, source: true, uid: true, internalDate: true },
           { uid: true }
         )) {
           const envelope = msg.envelope || {};
           const sent = envelopeDate(envelope.date);
-          if (sent && sent < threshold) continue;
+          const arrived = envelopeDate(msg.internalDate) ?? sent;
+          if (arrived && arrived < threshold) continue;
 
           const email: Record<string, unknown> = {
             subject: envelope.subject ?? "",

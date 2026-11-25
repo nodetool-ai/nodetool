@@ -53,7 +53,7 @@ An install with no login cannot connect Google Workspace. A workflow there can s
 2. Open **Settings → Models & providers**, find **Google Mail**, and enter your address and the app password.
 3. Add a **Gmail Search**, **Add Label** or **Move To Archive** node to a workflow.
 
-Gmail Search takes plain filters (sender, recipient, subject, body, keywords and a date range) and returns the newest matches first. It does not understand Gmail search terms such as `from:alice is:unread`. Add Label and Move To Archive act on the `message_id` that Gmail Search returns. These nodes read your real mailbox over IMAP and reach only Gmail, not Drive, Docs, Sheets or Calendar. See the [Gmail Search reference](nodes/lib/mail/gmailsearch.md) and the [settings table](environment-variables.md) for `GOOGLE_MAIL_USER` and `GOOGLE_APP_PASSWORD`.
+Gmail Search takes plain filters (sender, recipient, subject, body, Gmail labels and a date range) and returns the newest matches first. The date range counts from when a message arrived, not from its `Date` header. Put several labels in the Keywords field separated by commas and a message must carry all of them. It does not understand Gmail search terms such as `from:alice is:unread`. Add Label and Move To Archive act on the `message_id` that Gmail Search returns. These nodes read your real mailbox over IMAP and reach only Gmail, not Drive, Docs, Sheets or Calendar. See the [Gmail Search reference](nodes/lib/mail/gmailsearch.md) and the [settings table](environment-variables.md) for `GOOGLE_MAIL_USER` and `GOOGLE_APP_PASSWORD`.
 
 ## When something goes wrong
 
