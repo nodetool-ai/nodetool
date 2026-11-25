@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-11-25T07:15:51.848Z",
+  "generated_at": "2026-11-25T11:37:42.432Z",
   "nodes": [
     {
       "type": "anthropic.text.WebSearch",
@@ -3319,6 +3319,84 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/mail/addlabel.md"
     },
     {
+      "type": "lib.mail.EmailTrigger",
+      "title": "Email Trigger",
+      "namespace": "lib.mail",
+      "description": "Starts a workflow in the background when new mail arrives in a Gmail folder. The server checks the folder over IMAP on a schedule and starts one run for each new message. Mail that is already there when the trigger is turned on does not start a run.\n    trigger, email, gmail, imap, mail, inbox, new mail",
+      "inputs": [
+        {
+          "name": "folder",
+          "type": "enum",
+          "description": "Email folder to watch",
+          "required": false,
+          "default": "INBOX"
+        },
+        {
+          "name": "from_address",
+          "type": "str",
+          "description": "Only start a run for mail from this sender",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "subject",
+          "type": "str",
+          "description": "Only start a run for mail whose subject contains this text",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "interval_seconds",
+          "type": "float",
+          "description": "",
+          "required": false,
+          "default": 60
+        },
+        {
+          "name": "max_messages",
+          "type": "int",
+          "description": "Most new messages that start a run in one check. The rest wait for the next check.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "email",
+          "type": "dict"
+        },
+        {
+          "name": "message_id",
+          "type": "str"
+        },
+        {
+          "name": "subject",
+          "type": "str"
+        },
+        {
+          "name": "sender",
+          "type": "str"
+        },
+        {
+          "name": "date",
+          "type": "str"
+        },
+        {
+          "name": "body",
+          "type": "str"
+        },
+        {
+          "name": "source",
+          "type": "str"
+        },
+        {
+          "name": "event_type",
+          "type": "str"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/mail/emailtrigger",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/mail/emailtrigger.md"
+    },
+    {
       "type": "lib.mail.GmailSearch",
       "title": "Gmail Search",
       "namespace": "lib.mail",
@@ -3447,6 +3525,72 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/lib/mail/movetoarchive",
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/mail/movetoarchive.md"
+    },
+    {
+      "type": "lib.mail.SendEmail",
+      "title": "Send Email",
+      "namespace": "lib.mail",
+      "description": "Sends an email from a Gmail account over SMTP with a Google app password. Recipients are plain addresses separated by commas. Attachments are not supported.\n    email, gmail, send, smtp, mail",
+      "inputs": [
+        {
+          "name": "to",
+          "type": "str",
+          "description": "Recipient email addresses, separated by commas",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "cc",
+          "type": "str",
+          "description": "Cc email addresses, separated by commas",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "bcc",
+          "type": "str",
+          "description": "Bcc email addresses, separated by commas",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "subject",
+          "type": "str",
+          "description": "Subject line. It must be a single line.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "text",
+          "type": "str",
+          "description": "Plain text body",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "html",
+          "type": "str",
+          "description": "Optional HTML body. Mail clients that show HTML use it, the others use the text body.",
+          "required": false,
+          "default": ""
+        }
+      ],
+      "outputs": [
+        {
+          "name": "message_id",
+          "type": "str"
+        },
+        {
+          "name": "accepted",
+          "type": "list[str]"
+        },
+        {
+          "name": "rejected",
+          "type": "list[str]"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/mail/sendemail",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/mail/sendemail.md"
     },
     {
       "type": "lib.sqlite.GetDatabasePath",

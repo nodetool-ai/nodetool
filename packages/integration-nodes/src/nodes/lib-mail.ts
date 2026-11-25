@@ -1,11 +1,27 @@
 import type { ImapFlow } from "imapflow";
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import {
+  BaseNode,
+  prop,
+  type StreamingOutputs,
+  type TriggerEvent,
+  type PollTrigger,
+  type TriggerPollEvent,
+  type TriggerPollInput,
+  type TriggerPollResult
+} from "@nodetool-ai/node-sdk";
+import type {
+  InputMode,
+  NodeEffect,
+  OutputCorrelation
+} from "@nodetool-ai/protocol";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 const GMAIL_IMAP_HOST = "imap.gmail.com";
 const GMAIL_IMAP_PORT = 993;
 const ALL_MAIL_FOLDER = "[Gmail]/All Mail";
+
+const GMAIL_SMTP_HOST = "smtp.gmail.com";
+const GMAIL_SMTP_PORT = 465;
 
 /** Longest body, in characters, a search result carries. */
 const MAX_BODY_CHARS = 10_000;
@@ -151,6 +167,33 @@ function envelopeDate(value: Date | string | undefined): Date | undefined {
   if (!value) return undefined;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+/** The fields of one fetched message that the nodes hand to a workflow. */
+interface FetchedMessage {
+  envelope?: {
+    subject?: string;
+    messageId?: string;
+    from?: Array<{ address?: string }>;
+    to?: Array<{ address?: string }>;
+  };
+  source?: Buffer;
+}
+
+/** The email dict `GmailSearch` and `EmailTrigger` both emit. */
+async function emailFromMessage(
+  msg: FetchedMessage,
+  sent: Date | undefined
+): Promise<Record<string, unknown>> {
+  const envelope = msg.envelope || {};
+  return {
+    subject: envelope.subject ?? "",
+    from: envelope.from?.[0]?.address ?? "",
+    to: envelope.to?.map((a) => a.address).join(", ") ?? "",
+    date: sent?.toISOString() ?? "",
+    message_id: envelope.messageId ?? "",
+    body: msg.source ? await bodyText(msg.source) : ""
+  };
 }
 
 /**
@@ -339,19 +382,8 @@ export class GmailSearchLibNode extends BaseNode {
           const arrived = envelopeDate(msg.internalDate) ?? sent;
           if (arrived && arrived < threshold) continue;
 
-          const email: Record<string, unknown> = {
-            subject: envelope.subject ?? "",
-            from: envelope.from?.[0]?.address ?? "",
-            to:
-              envelope.to
-                ?.map((a: { address?: string }) => a.address)
-                .join(", ") ?? "",
-            date: sent?.toISOString() ?? "",
-            message_id: envelope.messageId ?? "",
-            body: msg.source ? await bodyText(msg.source) : ""
-          };
           fetched.set(msg.uid, {
-            email,
+            email: await emailFromMessage(msg, sent),
             message_id: String(envelope.messageId ?? "")
           });
         }
@@ -506,8 +538,521 @@ export class MoveToArchiveLibNode extends BaseNode {
   }
 }
 
+// ---------------------------------------------------------------------------
+// SendEmail
+// ---------------------------------------------------------------------------
+
+/** Most recipients (to, cc and bcc together) one message may name. */
+const MAX_RECIPIENTS = 100;
+
+/**
+ * A plain `local@domain.tld` address. Display names, quoted local parts and
+ * comments are not accepted: each of them is a way to smuggle extra syntax
+ * into a header, and a workflow that wants to mail "Ada <ada@example.com>" can
+ * pass the bare address.
+ */
+const ADDRESS_PATTERN =
+  /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
+
+/**
+ * A header value must stay on one line. A CR or LF inside a subject or an
+ * address would end the header and start a new one (`Bcc:`, `Content-Type:`),
+ * so such a value is refused outright instead of being cleaned up.
+ */
+function assertSingleLine(label: string, value: string): void {
+  if (/[\r\n\0]/.test(value)) {
+    throw new Error(`${label} must not contain line breaks`);
+  }
+}
+
+/**
+ * The addresses in a comma or semicolon separated list. Every entry must be a
+ * plain address. An empty list is valid and returns no entries.
+ */
+function parseRecipients(label: string, value: unknown): string[] {
+  const raw = String(value ?? "");
+  assertSingleLine(label, raw);
+  const addresses: string[] = [];
+  for (const part of raw.split(/[,;]/)) {
+    const address = part.trim();
+    if (!address) continue;
+    if (address.length > 254 || !ADDRESS_PATTERN.test(address)) {
+      throw new Error(`${label} has an invalid email address: ${address.slice(0, 80)}`);
+    }
+    addresses.push(address);
+  }
+  return addresses;
+}
+
+/** Output handles SendEmailLibNode.process() emits. */
+type SendEmailLibNodeOutputs = {
+  message_id: string;
+  accepted: string[];
+  rejected: string[];
+};
+
+export class SendEmailLibNode extends BaseNode {
+  static readonly nodeType = "lib.mail.SendEmail";
+  static readonly title = "Send Email";
+  static readonly description =
+    "Sends an email from a Gmail account over SMTP with a Google app password. Recipients are plain addresses separated by commas. Attachments are not supported.\n    email, gmail, send, smtp, mail";
+  static readonly metadataOutputTypes = {
+    message_id: "str",
+    accepted: "list[str]",
+    rejected: "list[str]"
+  };
+  static readonly inlineFields = ["to", "subject"];
+  static readonly inputFields = ["text"];
+  static readonly requiredSettings = [
+    "GOOGLE_MAIL_USER",
+    "GOOGLE_APP_PASSWORD"
+  ];
+  // Sending mail leaves the system and cannot be undone, so a reactive run
+  // never fires it without an explicit action. Retrying a send that failed
+  // halfway could deliver the message twice, so it is not retry safe either.
+  static readonly effect: NodeEffect = "external";
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "To",
+    description: "Recipient email addresses, separated by commas"
+  })
+  declare to: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Cc",
+    description: "Cc email addresses, separated by commas"
+  })
+  declare cc: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Bcc",
+    description: "Bcc email addresses, separated by commas"
+  })
+  declare bcc: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Subject",
+    description: "Subject line. It must be a single line."
+  })
+  declare subject: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Text",
+    description: "Plain text body"
+  })
+  declare text: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Html",
+    description:
+      "Optional HTML body. Mail clients that show HTML use it, the others use the text body."
+  })
+  declare html: any;
+
+  async process(): Promise<SendEmailLibNodeOutputs> {
+    const user = this._secrets["GOOGLE_MAIL_USER"];
+    const pass = this._secrets["GOOGLE_APP_PASSWORD"];
+    if (!user || !pass) {
+      throw new Error(MISSING_CREDENTIALS);
+    }
+
+    const to = parseRecipients("To", this.to);
+    const cc = parseRecipients("Cc", this.cc);
+    const bcc = parseRecipients("Bcc", this.bcc);
+    if (to.length + cc.length + bcc.length === 0) {
+      throw new Error("At least one recipient is required");
+    }
+    if (to.length + cc.length + bcc.length > MAX_RECIPIENTS) {
+      throw new Error(`A message may have at most ${MAX_RECIPIENTS} recipients`);
+    }
+    const subject = String(this.subject ?? "");
+    assertSingleLine("Subject", subject);
+    const text = String(this.text ?? "");
+    const html = String(this.html ?? "");
+    if (!text && !html) {
+      throw new Error("Text or Html body is required");
+    }
+    // The sender comes from settings, not from the workflow, and goes into the
+    // From header, so it is held to the same rule as the recipients.
+    if (parseRecipients("GOOGLE_MAIL_USER", user).length !== 1) {
+      throw new Error("GOOGLE_MAIL_USER must be one email address");
+    }
+
+    // `nodemailer` loads here, not at module scope, so a run that never sends
+    // mail never loads an SMTP client.
+    const { createTransport } = await import("nodemailer");
+    const transport = createTransport({
+      host: GMAIL_SMTP_HOST,
+      port: GMAIL_SMTP_PORT,
+      secure: true,
+      auth: { user, pass },
+      // A mail server that stops answering must not hold the run forever.
+      connectionTimeout: 15_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 30_000
+    });
+    try {
+      const info = await transport.sendMail({
+        from: user,
+        to,
+        cc,
+        bcc,
+        subject,
+        text: text || undefined,
+        html: html || undefined
+      });
+      return {
+        message_id: String(info.messageId ?? ""),
+        accepted: (info.accepted ?? []).map(String),
+        rejected: (info.rejected ?? []).map(String)
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(`Sending the email failed: ${reason}`);
+    } finally {
+      transport.close();
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// EmailTrigger
+// ---------------------------------------------------------------------------
+
+/** Most messages one poll starts a run for. Mail beyond it is picked up by the next poll. */
+const MAX_MESSAGES_PER_POLL = 100;
+const DEFAULT_MESSAGES_PER_POLL = 10;
+/** Gmail throttles IMAP logins, so a poll more often than this is refused. */
+const MIN_POLL_SECONDS = 30;
+
+/**
+ * Where a poll stopped. `uidValidity` is the server's id for the numbering of
+ * a folder. When it changes the UIDs were reassigned and a stored `lastUid`
+ * means nothing, so the trigger takes a new baseline.
+ */
+interface MailCursor {
+  v: 1;
+  uidValidity: string;
+  lastUid: number;
+}
+
+function encodeCursor(cursor: MailCursor): string {
+  return JSON.stringify(cursor);
+}
+
+function decodeCursor(raw: string | null): MailCursor | null {
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      (parsed as MailCursor).v === 1 &&
+      typeof (parsed as MailCursor).uidValidity === "string" &&
+      Number.isInteger((parsed as MailCursor).lastUid) &&
+      (parsed as MailCursor).lastUid >= 0
+    ) {
+      return parsed as MailCursor;
+    }
+  } catch {
+    /* Intentional: a cursor that does not parse is treated as no cursor */
+  }
+  return null;
+}
+
+/** Output handles the email trigger emits. */
+type EmailTriggerOutputs = {
+  email: Record<string, unknown>;
+  message_id: string;
+  subject: string;
+  sender: string;
+  date: string;
+  body: string;
+  source: string;
+  event_type: string;
+};
+
+function emailEvent(email: Record<string, unknown>): EmailTriggerOutputs {
+  return {
+    email,
+    message_id: String(email.message_id ?? ""),
+    subject: String(email.subject ?? ""),
+    sender: String(email.from ?? ""),
+    date: String(email.date ?? ""),
+    body: String(email.body ?? ""),
+    source: "email",
+    event_type: "new_mail"
+  };
+}
+
+export class EmailTriggerLibNode extends BaseNode {
+  static readonly nodeType = "lib.mail.EmailTrigger";
+  static readonly title = "Email Trigger";
+  static readonly description =
+    "Starts a workflow in the background when new mail arrives in a Gmail folder. The server checks the folder over IMAP on a schedule and starts one run for each new message. Mail that is already there when the trigger is turned on does not start a run.\n    trigger, email, gmail, imap, mail, inbox, new mail";
+  static readonly metadataOutputTypes = {
+    email: "dict",
+    message_id: "str",
+    subject: "str",
+    sender: "str",
+    date: "str",
+    body: "str",
+    source: "str",
+    event_type: "str"
+  };
+  static readonly inlineFields = ["interval_seconds", "from_address"];
+  static readonly inputFields = [];
+  static readonly requiredSettings = [
+    "GOOGLE_MAIL_USER",
+    "GOOGLE_APP_PASSWORD"
+  ];
+  static readonly isTrigger = true;
+
+  @prop({
+    type: "enum",
+    default: "INBOX",
+    title: "Folder",
+    description: "Email folder to watch",
+    values: [
+      "INBOX",
+      "[Gmail]/Sent Mail",
+      "[Gmail]/Drafts",
+      "[Gmail]/Spam",
+      "[Gmail]/Trash"
+    ]
+  })
+  declare folder: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "From Address",
+    description: "Only start a run for mail from this sender"
+  })
+  declare from_address: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Subject",
+    description: "Only start a run for mail whose subject contains this text"
+  })
+  declare subject: any;
+
+  // The schedule adapter reads `interval_seconds` from the registration, so the
+  // property keeps the name the interval trigger uses.
+  @prop({
+    type: "float",
+    default: 60,
+    title: "Poll Interval Seconds",
+    description: `Seconds between checks of the folder, at least ${MIN_POLL_SECONDS}`,
+    min: MIN_POLL_SECONDS
+  })
+  declare interval_seconds: any;
+
+  @prop({
+    type: "int",
+    default: DEFAULT_MESSAGES_PER_POLL,
+    title: "Max Messages Per Check",
+    description:
+      "Most new messages that start a run in one check. The rest wait for the next check.",
+    min: 1,
+    max: MAX_MESSAGES_PER_POLL
+  })
+  declare max_messages: any;
+
+  async process(): Promise<Record<string, never>> {
+    return {};
+  }
+
+  /**
+   * Wake-up entry point. The poller below hands each new message to the run as
+   * the event payload.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const payload = event.payload;
+    // A bare tick from a host without the poller carries no mail, and a run
+    // with empty mail outputs would only confuse the workflow.
+    if (
+      payload === null ||
+      typeof payload !== "object" ||
+      (payload as { source?: unknown }).source !== "email"
+    ) {
+      return;
+    }
+    const email = (payload as { email?: unknown }).email;
+    if (email === null || typeof email !== "object") return;
+    for (const [key, value] of Object.entries(
+      emailEvent(email as Record<string, unknown>)
+    )) {
+      await outputs.emit(key, value);
+    }
+  }
+
+  /** The search filters this node's properties describe. */
+  private _filters(): Record<string, unknown> {
+    const query: Record<string, unknown> = {};
+    const from = String(this.from_address ?? "").trim();
+    if (from) query.from = from;
+    const subject = String(this.subject ?? "").trim();
+    if (subject) query.subject = subject;
+    return query;
+  }
+
+  private _limit(): number {
+    const value = Math.floor(Number(this.max_messages));
+    if (!Number.isFinite(value)) return DEFAULT_MESSAGES_PER_POLL;
+    return Math.min(MAX_MESSAGES_PER_POLL, Math.max(1, value));
+  }
+
+  static readonly pollTrigger: PollTrigger = (input) =>
+    EmailTriggerLibNode.poll(input);
+
+  /**
+   * One check of the folder, called by the host each time the registration's
+   * schedule is due.
+   *
+   * The cursor is the highest UID the trigger has seen, with the folder's
+   * UIDVALIDITY. UIDs only grow in a folder, so "UID above the cursor" is the
+   * set of new messages, and a restart that reloads the cursor neither starts
+   * a run for old mail nor skips new mail.
+   *
+   * The first check has no cursor. It records where the folder ends and starts
+   * no run, so turning the trigger on does not run the workflow once per
+   * message already in the folder.
+   */
+  private static async poll(
+    input: TriggerPollInput
+  ): Promise<TriggerPollResult> {
+    const node = new EmailTriggerLibNode(input.properties);
+    const filters = node._filters();
+    const limit = node._limit();
+    const previous = decodeCursor(input.cursor);
+
+    return withImapClient(input.secrets, async (client) => {
+      const folder = await resolveFolder(client, String(node.folder ?? "INBOX"));
+      return inMailbox(client, folder, async () => {
+        const box = client.mailbox;
+        if (!box) {
+          throw new Error(`Could not open the mail folder ${folder}`);
+        }
+        const uidValidity = String(box.uidValidity);
+        // Read before the search. Mail that arrives after this point has a UID
+        // at or above `uidNext`, so the cursor never jumps over it.
+        const newestUid = Math.max(0, Number(box.uidNext) - 1);
+
+        if (!previous || previous.uidValidity !== uidValidity) {
+          return {
+            events: [],
+            cursor: encodeCursor({ v: 1, uidValidity, lastUid: newestUid })
+          };
+        }
+
+        // IMAP answers "N:*" with the newest message even when its UID is below
+        // N, so the range alone would return the last message again on every
+        // check. The UIDs are filtered here as well.
+        const found =
+          (await client.search(
+            { ...filters, uid: `${previous.lastUid + 1}:*` },
+            { uid: true }
+          )) || [];
+        const fresh = found
+          .filter((uid) => uid > previous.lastUid)
+          .sort((a, b) => a - b);
+        const batch = fresh.slice(0, limit);
+
+        const events: TriggerPollEvent[] = [];
+        if (batch.length > 0) {
+          const fetched = new Map<number, Record<string, unknown>>();
+          for await (const msg of client.fetch(
+            batch.join(","),
+            { envelope: true, source: true, uid: true },
+            { uid: true }
+          )) {
+            fetched.set(
+              msg.uid,
+              await emailFromMessage(msg, envelopeDate(msg.envelope?.date))
+            );
+          }
+          for (const uid of batch) {
+            const email = fetched.get(uid);
+            // A message deleted between the search and the fetch is gone.
+            if (!email) continue;
+            events.push({
+              id: `${uidValidity}:${uid}`,
+              payload: { source: "email", event_type: "new_mail", email },
+              cursor: encodeCursor({ v: 1, uidValidity, lastUid: uid })
+            });
+          }
+        }
+
+        // More mail is waiting than one check starts runs for. Stop at the last
+        // message of the batch so the next check starts right behind it.
+        const cutShort = fresh.length > batch.length;
+        const lastUid = cutShort
+          ? batch[batch.length - 1]
+          : Math.max(previous.lastUid, newestUid, ...batch);
+        return {
+          events,
+          cursor: encodeCursor({ v: 1, uidValidity, lastUid })
+        };
+      });
+    });
+  }
+
+  /**
+   * Editor run, with no trigger event: yields the newest matching messages
+   * once, so a workflow under construction has real mail to work with.
+   */
+  async *genProcess(): AsyncGenerator<EmailTriggerOutputs> {
+    const emails = await withImapClient(this._secrets, async (client) => {
+      const folder = await resolveFolder(client, String(this.folder ?? "INBOX"));
+      return inMailbox(client, folder, async () => {
+        const uids = (await client.search(this._filters(), { uid: true })) || [];
+        const newest = [...uids].sort((a, b) => b - a).slice(0, this._limit());
+        const fetched = new Map<number, Record<string, unknown>>();
+        for await (const msg of client.fetch(
+          newest.join(","),
+          { envelope: true, source: true, uid: true },
+          { uid: true }
+        )) {
+          fetched.set(
+            msg.uid,
+            await emailFromMessage(msg, envelopeDate(msg.envelope?.date))
+          );
+        }
+        // Oldest first, the order a live trigger would deliver them in.
+        return [...newest]
+          .reverse()
+          .map((uid) => fetched.get(uid))
+          .filter((email): email is Record<string, unknown> => email !== undefined);
+      });
+    });
+    for (const email of emails) {
+      yield emailEvent(email);
+    }
+  }
+}
+
 export const LIB_MAIL_NODES = tagAsServer([
   GmailSearchLibNode,
   AddLabelLibNode,
-  MoveToArchiveLibNode
+  MoveToArchiveLibNode,
+  SendEmailLibNode,
+  EmailTriggerLibNode
 ]);

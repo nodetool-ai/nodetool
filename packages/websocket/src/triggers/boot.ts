@@ -33,6 +33,7 @@ import {
   type StartTriggerJob
 } from "./dispatcher.js";
 import { startFileWatch, type FileWatchHandle } from "./file-watch.js";
+import { createRegistryPollerResolver } from "./poll.js";
 import { startScheduler, type SchedulerHandle } from "./scheduler.js";
 import {
   DrizzleDurableInboxStore,
@@ -161,6 +162,11 @@ export function startTriggerServices(
       };
       if (options.schedulerIntervalMs !== undefined) {
         schedulerOptions.intervalMs = options.schedulerIntervalMs;
+      }
+      if (options.registry) {
+        schedulerOptions.resolvePoller = createRegistryPollerResolver(
+          options.registry
+        );
       }
       scheduler = startScheduler(schedulerOptions);
     }

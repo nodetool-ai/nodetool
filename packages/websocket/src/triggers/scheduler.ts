@@ -21,6 +21,12 @@
 import { createLogger } from "@nodetool-ai/config";
 import { TriggerRegistration } from "@nodetool-ai/models";
 import type { TriggerWakeupService } from "@nodetool-ai/kernel";
+import {
+  isPolling,
+  pollRegistration,
+  type TriggerPoller,
+  type TriggerPollerResolver
+} from "./poll.js";
 import { computeScheduleTiming, SCHEDULE_KIND } from "./schedule-timing.js";
 import { isFunctionValue } from "../lib/wire-values.js";
 
@@ -43,6 +49,12 @@ interface StartSchedulerOptions {
   intervalMs?: number;
   /** Injectable clock for deterministic tests. Defaults to `Date.now`. */
   now?: () => number;
+  /**
+   * Finds the poller of a registration whose trigger node reads events from an
+   * external system (see `poll.ts`). Without it every registration gets plain
+   * ticks.
+   */
+  resolvePoller?: TriggerPollerResolver;
 }
 
 /** Cancels a running `startScheduler` timer. */
@@ -142,10 +154,14 @@ export async function runSchedulerSweepOnce(opts: {
   wakeupService: TriggerWakeupService;
   notify?: (event: SchedulerNotifyEvent) => void;
   now?: () => number;
+  resolvePoller?: TriggerPollerResolver;
 }): Promise<void> {
   const nowMs = (opts.now ?? Date.now)();
   const registrations =
     await TriggerRegistration.findEnabledByKind(SCHEDULE_KIND);
+  // Polls talk to a remote server, so they run beside the sweep instead of
+  // holding the plain ticks behind them. The sweep still waits for them.
+  const polls: Array<Promise<void>> = [];
 
   for (const registration of registrations) {
     let due: DueTick | null;
@@ -159,6 +175,35 @@ export async function runSchedulerSweepOnce(opts: {
       continue;
     }
     if (!due) continue;
+    // The last poll is still waiting on the remote server.
+    if (isPolling(registration.id)) continue;
+
+    let poller: TriggerPoller | null | undefined;
+    try {
+      poller = await opts.resolvePoller?.(registration);
+    } catch (err) {
+      // A failed lookup cannot be told from "this is not a poll trigger". A
+      // plain tick would be ignored by an Email Trigger yet still move
+      // last_fired_at, which hides the missed poll and never counts toward the
+      // failure limit. The registration stays due, so the next sweep retries.
+      log.warn(
+        `Failed to resolve the poller of registration ${registration.id}`,
+        err instanceof Error ? err : new Error(String(err))
+      );
+      continue;
+    }
+    if (poller) {
+      polls.push(
+        pollRegistration(
+          registration,
+          poller,
+          opts.wakeupService,
+          nowMs,
+          opts.notify
+        )
+      );
+      continue;
+    }
 
     await fireRegistration(
       registration,
@@ -168,6 +213,8 @@ export async function runSchedulerSweepOnce(opts: {
       opts.notify
     );
   }
+
+  await Promise.all(polls);
 }
 
 /**
@@ -181,7 +228,8 @@ export function startScheduler(opts: StartSchedulerOptions): SchedulerHandle {
     void runSchedulerSweepOnce({
       wakeupService: opts.wakeupService,
       notify: opts.notify,
-      now: opts.now
+      now: opts.now,
+      resolvePoller: opts.resolvePoller
     }).catch((err) => {
       log.warn(
         "Scheduler sweep failed",

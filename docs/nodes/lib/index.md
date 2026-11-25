@@ -3,7 +3,7 @@ layout: page
 title: "lib Nodes"
 ---
 
-This namespace contains 71 node(s).
+This namespace contains 73 node(s).
 
 ## Sub-namespaces
 
@@ -13,7 +13,7 @@ This namespace contains 71 node(s).
 - **[comfy](comfy/)** - 3 node(s)
 - **[grid](grid/)** - 1 node(s)
 - **[image](image/)** - 37 node(s)
-- **[mail](mail/)** - 3 node(s)
+- **[mail](mail/)** - 5 node(s)
 - **[sqlite](sqlite/)** - 1 node(s)
 - **[stable_diffusion_cpp](stable_diffusion_cpp/)** - 1 node(s)
 - **[svg](svg/)** - 2 node(s)

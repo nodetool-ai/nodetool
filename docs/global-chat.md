@@ -173,10 +173,9 @@ Chat agents have access to these tools:
 | **Code** | Execute JavaScript in a sandboxed environment, including calculations |
 | **HTTP** | Make HTTP requests to external APIs |
 | **PDF** | Extract text and data from PDF documents |
-| **Email** | Read and process email messages |
 | **Assets** | Upload, organize, and manage NodeTool assets |
 | **Vectors** | Query and manage vector database collections |
-| **Google** | Interact with Google APIs (search, drive, etc.) |
+| **Google** | Search Drive and read and send Gmail, after you connect a Google account. See [Google Workspace](google-workspace.md) |
 
 ### Tools from other MCP servers
 

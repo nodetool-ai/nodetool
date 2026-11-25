@@ -497,6 +497,8 @@
     "messaging.telegram.TelegramBotTrigger",
     "lib.mail.GmailSearch",
     "lib.mail.AddLabel",
-    "lib.mail.MoveToArchive"
+    "lib.mail.MoveToArchive",
+    "lib.mail.SendEmail",
+    "lib.mail.EmailTrigger"
   ]
 }

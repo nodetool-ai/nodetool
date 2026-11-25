@@ -47,13 +47,19 @@ This removes the connection from NodeTool only. To revoke access on Google's sid
 
 ## Gmail without a Google login
 
-An install with no login cannot connect Google Workspace. A workflow there can still read and sort Gmail with a Google [app password](https://support.google.com/accounts/answer/185833) instead of a sign-in. Google offers app passwords only on accounts with 2-step verification.
+An install with no login cannot connect Google Workspace. A workflow there can still read, sort and send Gmail, and start on new mail, with a Google [app password](https://support.google.com/accounts/answer/185833) instead of a sign-in. Google offers app passwords only on accounts with 2-step verification.
 
 1. Create an app password in your Google account.
 2. Open **Settings → Models & providers**, find **Google Mail**, and enter your address and the app password.
-3. Add a **Gmail Search**, **Add Label** or **Move To Archive** node to a workflow.
+3. Add a **Gmail Search**, **Add Label**, **Move To Archive**, **Send Email** or **Email Trigger** node to a workflow.
 
-Gmail Search takes plain filters (sender, recipient, subject, body, Gmail labels and a date range) and returns the newest matches first. The date range counts from when a message arrived, not from its `Date` header. Put several labels in the Keywords field separated by commas and a message must carry all of them. It does not understand Gmail search terms such as `from:alice is:unread`. Add Label and Move To Archive act on the `message_id` that Gmail Search returns. These nodes read your real mailbox over IMAP and reach only Gmail, not Drive, Docs, Sheets or Calendar. See the [Gmail Search reference](nodes/lib/mail/gmailsearch.md) and the [settings table](environment-variables.md) for `GOOGLE_MAIL_USER` and `GOOGLE_APP_PASSWORD`.
+Gmail Search takes plain filters (sender, recipient, subject, body, Gmail labels and a date range) and returns the newest matches first. The date range counts from when a message arrived, not from its `Date` header. Put several labels in the Keywords field separated by commas and a message must carry all of them. It does not understand Gmail search terms such as `from:alice is:unread`. Add Label and Move To Archive act on the `message_id` that Gmail Search returns.
+
+Send Email sends through `smtp.gmail.com` with the same app password. It takes `to`, `cc` and `bcc` as plain addresses separated by commas, a subject, a text body and an optional HTML body, and returns the `message_id`. It refuses a subject or address that contains a line break. It does not send attachments.
+
+Email Trigger starts a workflow in the background when new mail arrives in a folder. Turn it on with the bolt button in the editor, like any other trigger. See [Email Trigger](triggers.md#email-trigger) for how often it checks, what it does on the first check and after a restart, and how it stops after repeated failures.
+
+These nodes reach only Gmail, over `imap.gmail.com` and `smtp.gmail.com`, not Drive, Docs, Sheets or Calendar. Other mail providers are not supported. See the [Gmail Search reference](nodes/lib/mail/gmailsearch.md) and the [settings table](environment-variables.md) for `GOOGLE_MAIL_USER` and `GOOGLE_APP_PASSWORD`.
 
 ## When something goes wrong
 

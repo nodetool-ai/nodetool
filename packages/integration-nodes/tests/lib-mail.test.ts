@@ -8,6 +8,13 @@
  *   returns the whole day for "since one hour". The fake is as coarse as that
  *   worst case, and the node has to filter by the message's own date.
  * - `messageMove` and `messageCopy` resolve to `false` when nothing happened.
+ * - `search` with a `uid` range "N:*" answers like a real server: the messages
+ *   from N up, and the newest message alone when none reach N. A poll that
+ *   trusts the range returns that newest message on every check.
+ * - `client.mailbox` carries the folder's UIDVALIDITY and next UID, which is
+ *   what the trigger's cursor is built from.
+ *
+ * `nodemailer` is replaced the same way, so no test opens an SMTP connection.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -15,10 +22,13 @@ import {
   ALL_INTEGRATION_NODES,
   AddLabelLibNode,
   GmailSearchLibNode,
+  EmailTriggerLibNode,
   LIB_MAIL_NODES,
   MoveToArchiveLibNode,
+  SendEmailLibNode,
   registerIntegrationNodes
 } from "@nodetool-ai/integration-nodes";
+import { TRIGGER_KIND_BY_NODE_TYPE } from "@nodetool-ai/protocol";
 
 interface StoredMessage {
   uid: number;
@@ -47,7 +57,47 @@ const imap = vi.hoisted(() => ({
   searchError: null as Error | null,
   logoutError: null as Error | null,
   copyResult: true as boolean,
-  moveResult: true as boolean
+  moveResult: true as boolean,
+  uidValidity: 1n as bigint,
+  /** UIDs a concurrent client expunges right after the next search answers. */
+  expungeAfterSearch: [] as number[]
+}));
+
+const smtp = vi.hoisted(() => ({
+  transports: [] as Array<{
+    options: Record<string, unknown>;
+    sent: Array<Record<string, unknown>>;
+    closed: boolean;
+  }>,
+  sendError: null as Error | null,
+  rejected: [] as string[]
+}));
+
+vi.mock("nodemailer", () => ({
+  createTransport: (options: Record<string, unknown>) => {
+    const transport = {
+      options,
+      sent: [] as Array<Record<string, unknown>>,
+      closed: false,
+      async sendMail(message: Record<string, unknown>) {
+        transport.sent.push(message);
+        if (smtp.sendError) throw smtp.sendError;
+        const all = ["to", "cc", "bcc"].flatMap(
+          (field) => (message[field] as string[] | undefined) ?? []
+        );
+        return {
+          messageId: "<sent-1@gmail.com>",
+          accepted: all.filter((a) => !smtp.rejected.includes(a)),
+          rejected: smtp.rejected
+        };
+      },
+      close() {
+        transport.closed = true;
+      }
+    };
+    smtp.transports.push(transport);
+    return transport;
+  }
 }));
 
 vi.mock("imapflow", () => {
@@ -56,6 +106,7 @@ vi.mock("imapflow", () => {
     listeners: string[] = [];
     calls: Call[] = [];
     loggedOut = false;
+    mailbox: { uidValidity: bigint; uidNext: number } | false = false;
 
     constructor(options: Record<string, unknown>) {
       this.options = options;
@@ -78,6 +129,10 @@ vi.mock("imapflow", () => {
 
     async getMailboxLock(folder: string): Promise<{ release(): void }> {
       this.calls.push(["lock", folder]);
+      this.mailbox = {
+        uidValidity: imap.uidValidity,
+        uidNext: Math.max(0, ...imap.messages.map((m) => m.uid)) + 1
+      };
       return { release: () => this.calls.push(["release", folder]) };
     }
 
@@ -95,7 +150,17 @@ vi.mock("imapflow", () => {
       // shift when mail arrives or is removed.
       const idOf = (m: StoredMessage): number =>
         options?.uid ? m.uid : mailbox.indexOf(m) + 1;
-      return mailbox
+      const range = typeof query.uid === "string" ? query.uid : undefined;
+      const from = range ? Number(range.split(":")[0]) : 0;
+      let inRange = mailbox;
+      if (range) {
+        inRange = mailbox.filter((m) => m.uid >= from);
+        // The server's answer to "N:*" when nothing reaches N.
+        if (inRange.length === 0 && mailbox.length > 0) {
+          inRange = [mailbox[mailbox.length - 1]];
+        }
+      }
+      const answer = inRange
         .filter((m) => {
           if (header?.["message-id"]) return m.messageId === header["message-id"];
           if (query.from && !contains(m.from, query.from)) return false;
@@ -106,6 +171,11 @@ vi.mock("imapflow", () => {
           return true;
         })
         .map(idOf);
+      imap.messages = imap.messages.filter(
+        (m) => !imap.expungeAfterSearch.includes(m.uid)
+      );
+      imap.expungeAfterSearch = [];
+      return answer;
     }
 
     async *fetch(
@@ -273,6 +343,45 @@ function callsNamed(name: string): Call[] {
   return lastClient().calls.filter((call) => call[0] === name);
 }
 
+function sendNode(props: Record<string, unknown> = {}): SendEmailLibNode {
+  return withSecrets(
+    new SendEmailLibNode({
+      to: "ada@example.com",
+      subject: "Hello",
+      text: "Body",
+      ...props
+    })
+  );
+}
+
+function triggerNode(props: Record<string, unknown> = {}): EmailTriggerLibNode {
+  return withSecrets(new EmailTriggerLibNode(props));
+}
+
+function mailEventPayload(): Record<string, unknown> {
+  return {
+    source: "email",
+    event_type: "new_mail",
+    email: {
+      subject: "Invoice",
+      from: "alice@example.com",
+      to: "me@gmail.com",
+      date: "2026-01-01T00:00:00.000Z",
+      message_id: "<a@example.com>",
+      body: "Please pay"
+    }
+  };
+}
+
+/** One poll, as the host makes it. */
+function poll(
+  cursor: string | null,
+  properties: Record<string, unknown> = {},
+  secrets: Record<string, string> = SECRETS
+) {
+  return EmailTriggerLibNode.pollTrigger({ properties, cursor, secrets });
+}
+
 beforeEach(() => {
   imap.messages = [];
   imap.clients = [];
@@ -282,6 +391,11 @@ beforeEach(() => {
   imap.logoutError = null;
   imap.copyResult = true;
   imap.moveResult = true;
+  imap.uidValidity = 1n;
+  imap.expungeAfterSearch = [];
+  smtp.transports = [];
+  smtp.sendError = null;
+  smtp.rejected = [];
 });
 
 describe("lib.mail registration", () => {
@@ -289,16 +403,20 @@ describe("lib.mail registration", () => {
     expect(GmailSearchLibNode.nodeType).toBe("lib.mail.GmailSearch");
     expect(AddLabelLibNode.nodeType).toBe("lib.mail.AddLabel");
     expect(MoveToArchiveLibNode.nodeType).toBe("lib.mail.MoveToArchive");
-    expect(LIB_MAIL_NODES).toHaveLength(3);
+    expect(SendEmailLibNode.nodeType).toBe("lib.mail.SendEmail");
+    expect(EmailTriggerLibNode.nodeType).toBe("lib.mail.EmailTrigger");
+    expect(LIB_MAIL_NODES).toHaveLength(5);
   });
 
-  it("registers all three through registerIntegrationNodes", () => {
+  it("registers every mail node through registerIntegrationNodes", () => {
     const registry = new NodeRegistry();
     registerIntegrationNodes(registry);
     for (const type of [
       "lib.mail.GmailSearch",
       "lib.mail.AddLabel",
-      "lib.mail.MoveToArchive"
+      "lib.mail.MoveToArchive",
+      "lib.mail.SendEmail",
+      "lib.mail.EmailTrigger"
     ]) {
       expect(registry.has(type)).toBe(true);
     }
@@ -342,6 +460,29 @@ describe("lib.mail registration", () => {
       new MoveToArchiveLibNode({ message_id: "<m1@example.com>" })
     ).process();
     expect(Object.keys(archived)).toEqual(declared(MoveToArchiveLibNode));
+
+    const sent = await sendNode().process();
+    expect(Object.keys(sent)).toEqual(declared(SendEmailLibNode));
+
+    // A trigger emits its slots from `emitTriggerEvent`, so the run has to
+    // populate every one of them and nothing else.
+    const emitted: string[] = [];
+    await triggerNode().emitTriggerEvent(
+      { node_id: "n1", input_id: "i1", payload: mailEventPayload() },
+      { emit: async (key: string) => void emitted.push(key) } as never
+    );
+    expect(emitted).toEqual(declared(EmailTriggerLibNode));
+    const live: string[] = [];
+    for await (const item of triggerNode().genProcess()) {
+      live.push(...Object.keys(item));
+    }
+    expect(new Set(live)).toEqual(new Set(declared(EmailTriggerLibNode)));
+  });
+
+  it("classifies sending as an external effect and compiles the trigger to a schedule", () => {
+    expect(SendEmailLibNode.effect).toBe("external");
+    expect(EmailTriggerLibNode.isTrigger).toBe(true);
+    expect(TRIGGER_KIND_BY_NODE_TYPE["lib.mail.EmailTrigger"]).toBe("schedule");
   });
 });
 
@@ -740,5 +881,427 @@ describe("lib.mail.MoveToArchive", () => {
       "Message ID is required"
     );
     expect(imap.clients).toHaveLength(0);
+  });
+});
+
+describe("lib.mail.SendEmail", () => {
+  it("sends over SMTP with TLS and the app password, and returns the message id", async () => {
+    const result = await sendNode({
+      cc: "bob@example.com",
+      bcc: "carol@example.com",
+      html: "<p>Body</p>"
+    }).process();
+
+    expect(result).toEqual({
+      message_id: "<sent-1@gmail.com>",
+      accepted: ["ada@example.com", "bob@example.com", "carol@example.com"],
+      rejected: []
+    });
+    const [transport] = smtp.transports;
+    expect(transport.options).toMatchObject({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: { user: "me@gmail.com", pass: "app-password" }
+    });
+    expect(transport.sent).toEqual([
+      {
+        from: "me@gmail.com",
+        to: ["ada@example.com"],
+        cc: ["bob@example.com"],
+        bcc: ["carol@example.com"],
+        subject: "Hello",
+        text: "Body",
+        html: "<p>Body</p>"
+      }
+    ]);
+    expect(transport.closed).toBe(true);
+  });
+
+  it("accepts several recipients separated by commas or semicolons", async () => {
+    await sendNode({ to: "a@example.com, b@example.com;c@example.com" }).process();
+    expect(smtp.transports[0].sent[0].to).toEqual([
+      "a@example.com",
+      "b@example.com",
+      "c@example.com"
+    ]);
+  });
+
+  it("sends an HTML-only message and a text-only message", async () => {
+    await sendNode({ text: "", html: "<b>hi</b>" }).process();
+    expect(smtp.transports[0].sent[0]).toMatchObject({
+      text: undefined,
+      html: "<b>hi</b>"
+    });
+    await sendNode().process();
+    expect(smtp.transports[1].sent[0]).toMatchObject({
+      text: "Body",
+      html: undefined
+    });
+  });
+
+  it("reports the recipients the server refused", async () => {
+    smtp.rejected = ["ada@example.com"];
+    const result = await sendNode({ to: "ada@example.com, bob@example.com" }).process();
+    expect(result.accepted).toEqual(["bob@example.com"]);
+    expect(result.rejected).toEqual(["ada@example.com"]);
+  });
+
+  it("refuses to send without credentials, before it opens a connection", async () => {
+    await expect(
+      new SendEmailLibNode({ to: "a@example.com", text: "x" }).process()
+    ).rejects.toThrow("GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD");
+    await expect(
+      withSecrets(new SendEmailLibNode({ to: "a@example.com", text: "x" }), {
+        GOOGLE_MAIL_USER: "me@gmail.com"
+      }).process()
+    ).rejects.toThrow("GOOGLE_APP_PASSWORD");
+    expect(smtp.transports).toHaveLength(0);
+  });
+
+  it.each([
+    ["Subject: Hello\r\nBcc: attacker@example.com", "Hello\r\nBcc: attacker@example.com"],
+    ["a bare line feed", "Hello\nBcc: attacker@example.com"],
+    ["a bare carriage return", "Hello\rBcc: attacker@example.com"],
+    ["a null byte", "Hello\0Bcc: attacker@example.com"]
+  ])("rejects a subject with %s instead of sending it", async (_name, subject) => {
+    await expect(sendNode({ subject }).process()).rejects.toThrow(
+      "Subject must not contain line breaks"
+    );
+    expect(smtp.transports).toHaveLength(0);
+  });
+
+  it.each(["to", "cc", "bcc"])(
+    "rejects line breaks in %s, which would add a header",
+    async (field) => {
+      await expect(
+        sendNode({ [field]: "ada@example.com\r\nBcc: attacker@example.com" }).process()
+      ).rejects.toThrow("must not contain line breaks");
+      await expect(
+        sendNode({ [field]: "ada@example.com>\nBcc: attacker@example.com" }).process()
+      ).rejects.toThrow("must not contain line breaks");
+      expect(smtp.transports).toHaveLength(0);
+    }
+  );
+
+  it("rejects a sender from settings that holds a line break", async () => {
+    await expect(
+      withSecrets(
+        new SendEmailLibNode({ to: "a@example.com", text: "x" }),
+        { ...SECRETS, GOOGLE_MAIL_USER: "me@gmail.com\r\nBcc: attacker@example.com" }
+      ).process()
+    ).rejects.toThrow("must not contain line breaks");
+    expect(smtp.transports).toHaveLength(0);
+  });
+
+  it("lets a body hold line breaks, since a body cannot add headers", async () => {
+    await sendNode({ text: "line one\r\nBcc: not-a-header@example.com\nline three" }).process();
+    expect(smtp.transports[0].sent[0].text).toBe(
+      "line one\r\nBcc: not-a-header@example.com\nline three"
+    );
+  });
+
+  it.each([
+    "not-an-address",
+    "missing-domain@",
+    "@missing-local.com",
+    "two@@example.com",
+    "no tld@example",
+    "Ada <ada@example.com>",
+    '"quoted"@example.com',
+    "ada@exa mple.com",
+    "ada@example.com, broken"
+  ])("rejects the bad recipient %j", async (to) => {
+    await expect(sendNode({ to }).process()).rejects.toThrow(
+      "To has an invalid email address"
+    );
+    expect(smtp.transports).toHaveLength(0);
+  });
+
+  it("names the field with the bad address", async () => {
+    await expect(sendNode({ cc: "nope" }).process()).rejects.toThrow(
+      "Cc has an invalid email address: nope"
+    );
+    await expect(sendNode({ bcc: "nope" }).process()).rejects.toThrow(
+      "Bcc has an invalid email address: nope"
+    );
+  });
+
+  it("requires a recipient, a body and a sendable amount of recipients", async () => {
+    await expect(sendNode({ to: "" }).process()).rejects.toThrow(
+      "At least one recipient is required"
+    );
+    await expect(sendNode({ to: " , ; " }).process()).rejects.toThrow(
+      "At least one recipient is required"
+    );
+    await expect(sendNode({ text: "", html: "" }).process()).rejects.toThrow(
+      "Text or Html body is required"
+    );
+    const many = Array.from({ length: 101 }, (_, i) => `u${i}@example.com`).join(",");
+    await expect(sendNode({ to: many }).process()).rejects.toThrow(
+      "at most 100 recipients"
+    );
+    expect(smtp.transports).toHaveLength(0);
+  });
+
+  it("allows a message with only a bcc recipient", async () => {
+    await sendNode({ to: "", bcc: "ada@example.com" }).process();
+    expect(smtp.transports[0].sent[0]).toMatchObject({ to: [], bcc: ["ada@example.com"] });
+  });
+
+  it("surfaces an SMTP failure as an error and still closes the connection", async () => {
+    smtp.sendError = new Error("535 5.7.8 Username and Password not accepted");
+    await expect(sendNode().process()).rejects.toThrow(
+      "Sending the email failed: 535 5.7.8 Username and Password not accepted"
+    );
+    expect(smtp.transports[0].closed).toBe(true);
+  });
+});
+
+describe("lib.mail.EmailTrigger", () => {
+  /** What a restart keeps: only the cursor string the host stored. */
+  const restart = async (cursor: string, props: Record<string, unknown> = {}) =>
+    poll(cursor, props);
+
+  it("takes a baseline on the first poll and starts no run for mail already there", async () => {
+    imap.messages = [message(3), message(7), message(9)];
+    const first = await poll(null);
+    expect(first.events).toEqual([]);
+    expect(JSON.parse(first.cursor)).toEqual({ v: 1, uidValidity: "1", lastUid: 9 });
+    // It never read a message, so a huge mailbox costs one search-free poll.
+    expect(callsNamed("fetch")).toHaveLength(0);
+    expect(callsNamed("search")).toHaveLength(0);
+  });
+
+  it("baselines an empty folder at UID 0 and then sees its first message", async () => {
+    const first = await poll(null);
+    expect(JSON.parse(first.cursor).lastUid).toBe(0);
+    imap.messages = [message(1)];
+    const next = await restart(first.cursor);
+    expect(next.events.map((e) => e.id)).toEqual(["1:1"]);
+  });
+
+  it("returns only mail above the cursor, oldest first, and moves the cursor with it", async () => {
+    imap.messages = [message(1), message(2)];
+    const baseline = await poll(null);
+
+    imap.messages = [...imap.messages, message(3), message(4)];
+    const result = await restart(baseline.cursor);
+
+    expect(result.events.map((e) => e.id)).toEqual(["1:3", "1:4"]);
+    expect(result.events.map((e) => JSON.parse(e.cursor).lastUid)).toEqual([3, 4]);
+    expect(JSON.parse(result.cursor).lastUid).toBe(4);
+    expect(result.events[0].payload).toMatchObject({
+      source: "email",
+      event_type: "new_mail",
+      email: {
+        subject: "Subject 3",
+        from: "sender@example.com",
+        message_id: "<m3@example.com>",
+        body: "Noon at the usual place?"
+      }
+    });
+  });
+
+  it("neither re-fires old mail nor misses new mail across a restart", async () => {
+    imap.messages = [message(1), message(2)];
+    const baseline = await poll(null);
+
+    imap.messages.push(message(3));
+    const afterFirstMail = await restart(baseline.cursor);
+    expect(afterFirstMail.events.map((e) => e.id)).toEqual(["1:3"]);
+
+    // The server stops here. The host kept `afterFirstMail.cursor`. Mail
+    // arrives while it is down, and a new process polls with the stored cursor.
+    imap.messages.push(message(4), message(5));
+    const afterRestart = await restart(afterFirstMail.cursor);
+    expect(afterRestart.events.map((e) => e.id)).toEqual(["1:4", "1:5"]);
+
+    const quiet = await restart(afterRestart.cursor);
+    expect(quiet.events).toEqual([]);
+    expect(quiet.cursor).toBe(afterRestart.cursor);
+  });
+
+  it("does not return the newest message again when nothing is new", async () => {
+    // "N:*" answers with the newest message even below N. Without the UID
+    // check every poll would start a run for it.
+    imap.messages = [message(1), message(2)];
+    const baseline = await poll(null);
+    const quiet = await restart(baseline.cursor);
+    expect(quiet.events).toEqual([]);
+    const range = (callsNamed("search")[0][1] as { uid: string }).uid;
+    expect(range).toBe("3:*");
+  });
+
+  it("starts at most max_messages runs per poll and picks up the rest next time", async () => {
+    imap.messages = [message(1)];
+    const baseline = await poll(null);
+    imap.messages.push(message(2), message(3), message(4));
+
+    const first = await restart(baseline.cursor, { max_messages: 2 });
+    expect(first.events.map((e) => e.id)).toEqual(["1:2", "1:3"]);
+    // It stopped behind message 3, not at the newest UID, so 4 is not skipped.
+    expect(JSON.parse(first.cursor).lastUid).toBe(3);
+
+    const second = await restart(first.cursor, { max_messages: 2 });
+    expect(second.events.map((e) => e.id)).toEqual(["1:4"]);
+    expect(JSON.parse(second.cursor).lastUid).toBe(4);
+  });
+
+  it("only fetches the batch it starts runs for", async () => {
+    imap.messages = [message(1)];
+    const baseline = await poll(null);
+    imap.messages.push(message(2), message(3), message(4));
+    await restart(baseline.cursor, { max_messages: 2 });
+    expect(callsNamed("fetch")[0][1]).toBe("2,3");
+  });
+
+  it("sends the folder filters to the server and moves past mail they exclude", async () => {
+    imap.messages = [message(1)];
+    const baseline = await poll(null);
+    imap.messages.push(
+      message(2, { from: "boss@example.com", subject: "Quarterly report" }),
+      message(3, { from: "spam@example.com", subject: "Offer" })
+    );
+
+    const props = { from_address: "boss@example.com", subject: "report" };
+    const result = await restart(baseline.cursor, props);
+    expect(result.events.map((e) => e.id)).toEqual(["1:2"]);
+    const [, query] = callsNamed("search")[0];
+    expect(query).toMatchObject({
+      from: "boss@example.com",
+      subject: "report",
+      uid: "2:*"
+    });
+    // The excluded message 3 is behind the cursor now, so it is not searched
+    // again on every poll.
+    expect(JSON.parse(result.cursor).lastUid).toBe(3);
+  });
+
+  it("opens the configured folder under the name the account gives it", async () => {
+    imap.mailboxes = GERMAN_ACCOUNT;
+    await poll(null, { folder: "[Gmail]/Sent Mail" });
+    expect(callsNamed("lock")[0][1]).toBe("[Google Mail]/Gesendet");
+  });
+
+  it("takes a new baseline when the folder's UIDs were reassigned", async () => {
+    imap.messages = [message(1), message(2)];
+    const baseline = await poll(null);
+
+    // UIDVALIDITY changed: the old UIDs mean nothing, so a poll that kept the
+    // old cursor would start a run per message or skip real new mail.
+    imap.uidValidity = 2n;
+    imap.messages = [message(1), message(2), message(3)];
+    const result = await restart(baseline.cursor);
+    expect(result.events).toEqual([]);
+    expect(JSON.parse(result.cursor)).toEqual({ v: 1, uidValidity: "2", lastUid: 3 });
+  });
+
+  it.each([["not json"], ['{"v":2}'], ['{"v":1,"uidValidity":"1","lastUid":-4}'], [""]])(
+    "treats the unreadable cursor %j as no cursor",
+    async (cursor) => {
+      imap.messages = [message(1), message(2)];
+      const result = await poll(cursor);
+      expect(result.events).toEqual([]);
+      expect(JSON.parse(result.cursor).lastUid).toBe(2);
+    }
+  );
+
+  it("skips a message that was deleted between the search and the fetch", async () => {
+    imap.messages = [message(1)];
+    const baseline = await poll(null);
+    imap.messages.push(message(2), message(3));
+    imap.expungeAfterSearch = [2];
+    const result = await restart(baseline.cursor);
+    expect(result.events.map((e) => e.id)).toEqual(["1:3"]);
+    expect(JSON.parse(result.cursor).lastUid).toBe(3);
+  });
+
+  it("decodes the body of real mail", async () => {
+    imap.messages = [message(1)];
+    const baseline = await poll(null);
+    imap.messages.push(message(2, { source: MULTIPART }));
+    const [event] = (await restart(baseline.cursor)).events;
+    expect((event.payload as { email: { body: string } }).email.body).toContain(
+      "Grüße from the invoice desk"
+    );
+  });
+
+  it("connects to Gmail with the app password and logs out", async () => {
+    await poll(null);
+    expect(lastClient().options).toMatchObject({
+      host: "imap.gmail.com",
+      secure: true,
+      auth: { user: "me@gmail.com", pass: "app-password" }
+    });
+    expect(lastClient().loggedOut).toBe(true);
+    expect(callsNamed("release")).toHaveLength(1);
+  });
+
+  it("fails without credentials, before it opens a connection", async () => {
+    await expect(poll(null, {}, {})).rejects.toThrow(
+      "GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD must be configured in settings."
+    );
+    await expect(
+      poll(null, {}, { GOOGLE_MAIL_USER: "me@gmail.com" })
+    ).rejects.toThrow("GOOGLE_APP_PASSWORD");
+    expect(imap.clients).toHaveLength(0);
+  });
+
+  it("surfaces a failed login and a failed search, and logs out after the search", async () => {
+    imap.connectError = new Error("Invalid credentials (Failure)");
+    await expect(poll(null)).rejects.toThrow("Invalid credentials");
+    imap.connectError = null;
+
+    imap.messages = [message(1)];
+    const baseline = await poll(null);
+    imap.searchError = new Error("Command failed");
+    await expect(restart(baseline.cursor)).rejects.toThrow("Command failed");
+    expect(lastClient().loggedOut).toBe(true);
+  });
+
+  it("emits the mail on the declared slots when the host delivers an event", async () => {
+    const emitted: Record<string, unknown> = {};
+    await triggerNode().emitTriggerEvent(
+      { node_id: "n1", input_id: "i1", payload: mailEventPayload() },
+      { emit: async (key: string, value: unknown) => void (emitted[key] = value) } as never
+    );
+    expect(emitted).toMatchObject({
+      subject: "Invoice",
+      sender: "alice@example.com",
+      date: "2026-01-01T00:00:00.000Z",
+      message_id: "<a@example.com>",
+      body: "Please pay",
+      source: "email",
+      event_type: "new_mail"
+    });
+    expect(emitted.email).toMatchObject({ subject: "Invoice" });
+  });
+
+  it.each([
+    ["a bare tick", { tick: 1, source: "schedule", event_type: "tick" }],
+    ["no payload", null],
+    ["a payload with no mail", { source: "email" }]
+  ])("emits nothing for %s, since there is no mail to hand on", async (_name, payload) => {
+    const emitted: string[] = [];
+    await triggerNode().emitTriggerEvent(
+      { node_id: "n1", input_id: "i1", payload },
+      { emit: async (key: string) => void emitted.push(key) } as never
+    );
+    expect(emitted).toEqual([]);
+  });
+
+  it("shows the newest matching mail in the editor, oldest first", async () => {
+    imap.messages = [message(1), message(2), message(3)];
+    const seen: string[] = [];
+    for await (const item of triggerNode({ max_messages: 2 }).genProcess()) {
+      seen.push(item.subject);
+    }
+    expect(seen).toEqual(["Subject 2", "Subject 3"]);
+  });
+
+  it("keeps interval_seconds as the property name the schedule adapter reads", () => {
+    const props = EmailTriggerLibNode.getDeclaredProperties().map((p) => p.name);
+    expect(props).toContain("interval_seconds");
   });
 });
