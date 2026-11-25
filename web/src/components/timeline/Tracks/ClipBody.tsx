@@ -441,14 +441,15 @@ const transitionWedgeStyles = (theme: Theme, tint: string, accent: string) =>
 
 
 /**
- * The grip that sets a fade's length: a small dot riding the top edge at the
- * point the ramp reaches full volume, as Final Cut draws it. With no fade it
- * rests on the clip's corner, so dragging inward is how a fade is made.
+ * The grip that sets a fade's length: a small dot riding the top edge of the
+ * clip body, under the name bar, at the point the ramp reaches full volume,
+ * as Final Cut draws it. With no fade it rests on the body's corner, so
+ * dragging inward is how a fade is made. Below the bar it never covers the name.
  */
 const fadeHandleStyles = (theme: Theme, interactionLocked: boolean) =>
   css({
     position: "absolute",
-    top: 0,
+    top: CLIP_NAME_BAR_PX,
     width: FADE_HANDLE_SIZE_PX,
     height: FADE_HANDLE_SIZE_PX,
     marginLeft: -FADE_HANDLE_SIZE_PX / 2,

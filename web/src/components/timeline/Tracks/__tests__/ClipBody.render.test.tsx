@@ -23,6 +23,7 @@ jest.mock("../useAssetUrl", () => ({
 }));
 
 import { ClipBody, CLIP_STATUS_MAP, clipTrimHandleMetrics } from "../ClipBody";
+import { CLIP_NAME_BAR_PX } from "../automation/automationLayout";
 
 const makeClip = (overrides: Partial<TimelineClip> = {}): TimelineClip => ({
   id: "c1",
@@ -40,7 +41,7 @@ const makeClip = (overrides: Partial<TimelineClip> = {}): TimelineClip => ({
 
 const renderBody = (
   clip: TimelineClip,
-  props: { widthPx?: number; isSelected?: boolean } = {}
+  props: { widthPx?: number; isSelected?: boolean; fade?: boolean } = {}
 ) =>
   render(
     <ThemeProvider theme={mockTheme}>
@@ -72,6 +73,17 @@ const renderBody = (
         onKeyframeMove={jest.fn()}
         interactionLocked={false}
         trackIndex={0}
+        fade={
+          props.fade
+            ? {
+                onFadePointerDown: jest.fn(),
+                onFadePointerMove: jest.fn(),
+                onFadePointerEnd: jest.fn(),
+                onFadeContextMenu: jest.fn(),
+                onFadeKeyDown: jest.fn()
+              }
+            : undefined
+        }
       />
     </ThemeProvider>
   );
@@ -279,6 +291,15 @@ describe("ClipBody trim handles", () => {
     renderBody(makeClip(), { isSelected: false });
     expect(screen.getByTestId("clip-trim-start-c1")).toHaveStyle({
       opacity: "0"
+    });
+  });
+});
+
+describe("ClipBody fade grips", () => {
+  it("keeps the fade-in grip below the name bar so it never covers the name", () => {
+    renderBody(makeClip({ name: "Bass Loop", mediaType: "audio" }), { fade: true });
+    expect(screen.getByTestId("clip-fade-handle-in-c1")).toHaveStyle({
+      top: `${CLIP_NAME_BAR_PX}px`
     });
   });
 });
