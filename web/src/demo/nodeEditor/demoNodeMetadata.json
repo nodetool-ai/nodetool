@@ -1,0 +1,953 @@
+{
+  "nodetool.input.StringInput": {
+    "body": "default",
+    "description": "Accepts a string value as a parameter for workflows.\n    input, parameter, string, text, label, name, value\n\n    Use cases:\n    - Define a name for an entity or process.\n    - Specify a label for a component or output.\n    - Enter a short keyword or search term.\n    - Provide a simple configuration value (e.g., an API key, a model name).\n    - If you need to input multi-line text or the content of a file, use 'DocumentFileInput'.",
+    "effect": "pure",
+    "inline_fields": [
+      "value"
+    ],
+    "input_fields": [],
+    "is_controlled": false,
+    "is_streaming_input": false,
+    "is_streaming_output": false,
+    "layout": "default",
+    "namespace": "nodetool.input",
+    "node_type": "nodetool.input.StringInput",
+    "outputs": [
+      {
+        "name": "output",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      }
+    ],
+    "platforms": [
+      "node",
+      "workers",
+      "edge",
+      "browser"
+    ],
+    "properties": [
+      {
+        "default": "",
+        "description": "The parameter name for the workflow.",
+        "name": "name",
+        "required": false,
+        "title": "Name",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": "",
+        "name": "value",
+        "required": false,
+        "title": "Value",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": "",
+        "description": "The description of the input for the workflow.",
+        "name": "description",
+        "required": false,
+        "title": "Description",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": 0,
+        "description": "Maximum number of characters allowed. Use 0 for unlimited.",
+        "max": 100000,
+        "min": 0,
+        "name": "max_length",
+        "required": false,
+        "title": "Max length",
+        "type": {
+          "type": "int",
+          "type_args": []
+        }
+      },
+      {
+        "default": "single_line",
+        "description": "Controls whether the UI should render the input as single-line or multiline.",
+        "json_schema_extra": {
+          "type": "enum",
+          "values": [
+            "single_line",
+            "multi_line"
+          ]
+        },
+        "name": "line_mode",
+        "required": false,
+        "title": "Line mode",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      }
+    ],
+    "recommended_models": [],
+    "required_runtimes": [],
+    "required_settings": [],
+    "retry_safe": true,
+    "supports_dynamic_inputs": false,
+    "title": "String Input"
+  },
+  "nodetool.agents.EnhancePrompt": {
+    "auto_save_asset": true,
+    "body": "content_card",
+    "description": "Rewrite a rough draft into a clearer, more detailed prompt using an LLM, with streaming output.\n    text, prompt, prompt-engineering, llm, rewrite, streaming\n\n    Turn a short or vague idea into an effective prompt:\n    - Add specificity, structure, and missing detail\n    - Tune the result for the target model (text, image, video, audio, code)\n    - Preserve the original intent while removing ambiguity\n    - Stream the improved prompt as it is written",
+    "effect": "external",
+    "inline_fields": [],
+    "input_fields": [
+      "prompt",
+      "target",
+      "system_prompt"
+    ],
+    "is_controlled": false,
+    "is_streaming_input": false,
+    "is_streaming_output": true,
+    "layout": "default",
+    "namespace": "nodetool.agents",
+    "node_type": "nodetool.agents.EnhancePrompt",
+    "output_correlation": {
+      "chunk": {
+        "group": "stream",
+        "kind": "iteration",
+        "source": "__execution__"
+      },
+      "text": {
+        "kind": "single",
+        "source": "__execution__"
+      }
+    },
+    "outputs": [
+      {
+        "name": "text",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "name": "chunk",
+        "type": {
+          "type": "chunk",
+          "type_args": []
+        }
+      }
+    ],
+    "platforms": [
+      "node",
+      "workers",
+      "edge"
+    ],
+    "properties": [
+      {
+        "default": "You are an expert prompt engineer. Rewrite the user's draft into a single, clear, detailed prompt that gets better results. Preserve the original intent, add useful specificity, and remove ambiguity. Return only the improved prompt with no preamble, explanation, or surrounding quotation marks.",
+        "description": "The system prompt that guides how prompts are enhanced",
+        "name": "system_prompt",
+        "required": false,
+        "title": "System Prompt",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": {
+          "type": "language_model",
+          "provider": "openai",
+          "id": "gpt-5.4",
+          "name": "GPT-5.4",
+          "path": null,
+          "supported_tasks": []
+        },
+        "description": "Model to use for enhancing the prompt",
+        "name": "model",
+        "required": false,
+        "title": "Model",
+        "type": {
+          "type": "language_model",
+          "type_args": []
+        }
+      },
+      {
+        "default": "",
+        "description": "The draft prompt to enhance",
+        "name": "prompt",
+        "required": false,
+        "title": "Prompt",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": "general",
+        "description": "What the enhanced prompt is for. Tailors the rewrite to the target model: general purpose, a text/LLM model, or an image, video, audio, or code generation model.",
+        "name": "target",
+        "required": false,
+        "title": "Target",
+        "type": {
+          "type": "enum",
+          "type_args": [],
+          "values": [
+            "general",
+            "text",
+            "image",
+            "video",
+            "audio",
+            "code"
+          ]
+        },
+        "values": [
+          "general",
+          "text",
+          "image",
+          "video",
+          "audio",
+          "code"
+        ]
+      }
+    ],
+    "recommended_models": [
+      {
+        "description": "Compact Llama variant that rewrites prompts with strong instruction following on modest hardware.",
+        "id": "llama3.2:3b",
+        "name": "Llama 3.2 - 3B",
+        "repo_id": "llama3.2:3b",
+        "size_on_disk": 2040109465,
+        "type": "llama_model"
+      },
+      {
+        "description": "Qwen3 4B produces tight, well-structured prompt rewrites across languages.",
+        "id": "qwen3:4b",
+        "name": "Qwen3 - 4B",
+        "repo_id": "qwen3:4b",
+        "size_on_disk": 2684354560,
+        "type": "llama_model"
+      },
+      {
+        "description": "Efficient model that expands terse prompts into detailed, usable instructions with low latency.",
+        "id": "mistral-small:latest",
+        "name": "Mistral Small",
+        "repo_id": "mistral-small:latest",
+        "size_on_disk": 7730941132,
+        "type": "llama_model"
+      },
+      {
+        "description": "Efficient Gemma 3 for prompt enhancement via llama.cpp.",
+        "downloads": 25779,
+        "has_model_index": false,
+        "id": "ggml-org/gemma-3-4b-it-GGUF:gemma-3-4b-it-Q4_K_M.gguf",
+        "likes": 48,
+        "name": "Gemma 3 4B IT (GGUF)",
+        "path": "gemma-3-4b-it-Q4_K_M.gguf",
+        "pipeline_tag": "image-text-to-text",
+        "repo_id": "ggml-org/gemma-3-4b-it-GGUF",
+        "size_on_disk": 3113851289,
+        "tags": [
+          "gguf",
+          "image-text-to-text",
+          "arxiv:1905.07830",
+          "arxiv:1905.10044",
+          "arxiv:1911.11641",
+          "arxiv:1904.09728",
+          "arxiv:1705.03551",
+          "arxiv:1911.01547",
+          "arxiv:1907.10641",
+          "arxiv:1903.00161",
+          "arxiv:2009.03300",
+          "arxiv:2304.06364",
+          "arxiv:2103.03874",
+          "arxiv:2110.14168",
+          "arxiv:2311.12022",
+          "arxiv:2108.07732",
+          "arxiv:2107.03374",
+          "arxiv:2210.03057",
+          "arxiv:2106.03193",
+          "arxiv:1910.11856",
+          "arxiv:2502.12404",
+          "arxiv:2502.21228",
+          "arxiv:2404.16816",
+          "arxiv:2104.12756",
+          "arxiv:2311.16502",
+          "arxiv:2203.10244",
+          "arxiv:2404.12390",
+          "arxiv:1810.12440",
+          "arxiv:1908.02660",
+          "arxiv:2312.11805",
+          "base_model:google/gemma-3-4b-it",
+          "base_model:quantized:google/gemma-3-4b-it",
+          "license:gemma",
+          "endpoints_compatible",
+          "region:us",
+          "conversational"
+        ],
+        "type": "llama_cpp_model"
+      }
+    ],
+    "required_runtimes": [],
+    "required_settings": [],
+    "supports_dynamic_inputs": false,
+    "title": "Enhance Prompt"
+  },
+  "nodetool.image.TextToImage": {
+    "auto_save_asset": true,
+    "body": "content_card",
+    "description": "Generate images from text prompts using any supported image provider. Automatically routes to the appropriate backend (HuggingFace, FAL, MLX).\n    image, generation, AI, text-to-image, t2i",
+    "effect": "external",
+    "inline_fields": [],
+    "input_fields": [
+      "prompt"
+    ],
+    "is_controlled": false,
+    "is_streaming_input": false,
+    "is_streaming_output": false,
+    "layout": "default",
+    "namespace": "nodetool.image",
+    "node_type": "nodetool.image.TextToImage",
+    "outputs": [
+      {
+        "name": "output",
+        "type": {
+          "type": "image",
+          "type_args": []
+        }
+      }
+    ],
+    "platforms": [
+      "node",
+      "workers",
+      "edge"
+    ],
+    "properties": [
+      {
+        "default": {
+          "id": "fal-ai/flux/schnell",
+          "name": "FLUX.1 Schnell",
+          "path": null,
+          "provider": "fal_ai",
+          "supported_tasks": [],
+          "type": "image_model"
+        },
+        "description": "The image generation model to use",
+        "name": "model",
+        "required": false,
+        "title": "Model",
+        "type": {
+          "type": "image_model",
+          "type_args": []
+        }
+      },
+      {
+        "default": "A cat holding a sign that says hello world",
+        "description": "Text prompt describing the desired image",
+        "name": "prompt",
+        "required": false,
+        "title": "Prompt",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": "",
+        "description": "Text prompt describing what to avoid in the image",
+        "name": "negative_prompt",
+        "required": false,
+        "title": "Negative Prompt",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": [],
+        "description": "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt",
+        "name": "entities",
+        "required": false,
+        "title": "Entities",
+        "type": {
+          "type": "list",
+          "type_args": [
+            {
+              "type": "entity",
+              "type_args": []
+            }
+          ]
+        }
+      },
+      {
+        "default": "1:1",
+        "description": "Aspect ratio of the generated image",
+        "json_schema_extra": {
+          "type": "media_aspect_ratio_image"
+        },
+        "name": "aspect_ratio",
+        "required": false,
+        "title": "Aspect Ratio",
+        "type": {
+          "type": "str",
+          "type_args": [],
+          "values": [
+            "21:9",
+            "16:9",
+            "3:2",
+            "7:5",
+            "4:3",
+            "5:4",
+            "1:1",
+            "9:16",
+            "2:3",
+            "5:7",
+            "3:4",
+            "4:5"
+          ]
+        },
+        "values": [
+          "21:9",
+          "16:9",
+          "3:2",
+          "7:5",
+          "4:3",
+          "5:4",
+          "1:1",
+          "9:16",
+          "2:3",
+          "5:7",
+          "3:4",
+          "4:5"
+        ]
+      },
+      {
+        "default": "1K",
+        "description": "Output resolution (short edge in pixels)",
+        "json_schema_extra": {
+          "type": "media_resolution_image"
+        },
+        "name": "resolution",
+        "required": false,
+        "title": "Resolution",
+        "type": {
+          "type": "str",
+          "type_args": [],
+          "values": [
+            "1K",
+            "2K",
+            "4K"
+          ]
+        },
+        "values": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      }
+    ],
+    "recommended_models": [],
+    "required_runtimes": [],
+    "required_settings": [],
+    "supports_dynamic_inputs": false,
+    "title": "Text To Image"
+  },
+  "nodetool.video.TextToVideo": {
+    "auto_save_asset": true,
+    "body": "content_card",
+    "description": "Generate videos from text prompts using any supported video provider. Automatically routes to the appropriate backend (Gemini Veo, HuggingFace).\n    video, generation, AI, text-to-video, t2v",
+    "effect": "external",
+    "inline_fields": [],
+    "input_fields": [
+      "prompt"
+    ],
+    "is_controlled": false,
+    "is_streaming_input": false,
+    "is_streaming_output": false,
+    "layout": "default",
+    "namespace": "nodetool.video",
+    "node_type": "nodetool.video.TextToVideo",
+    "outputs": [
+      {
+        "name": "output",
+        "type": {
+          "type": "video",
+          "type_args": []
+        }
+      }
+    ],
+    "platforms": [
+      "node"
+    ],
+    "properties": [
+      {
+        "default": {
+          "id": "veo-3.1-generate-preview",
+          "name": "Veo 3.1 Preview",
+          "path": null,
+          "provider": "gemini",
+          "supported_tasks": [],
+          "type": "video_model"
+        },
+        "description": "The video generation model to use",
+        "name": "model",
+        "required": false,
+        "title": "Model",
+        "type": {
+          "type": "video_model",
+          "type_args": []
+        }
+      },
+      {
+        "default": "A cat playing with a ball of yarn",
+        "description": "Text prompt describing the desired video",
+        "name": "prompt",
+        "required": false,
+        "title": "Prompt",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": "",
+        "description": "Text prompt describing what to avoid in the video",
+        "name": "negative_prompt",
+        "required": false,
+        "title": "Negative Prompt",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": [],
+        "description": "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt",
+        "name": "entities",
+        "required": false,
+        "title": "Entities",
+        "type": {
+          "type": "list",
+          "type_args": [
+            {
+              "type": "entity",
+              "type_args": []
+            }
+          ]
+        }
+      },
+      {
+        "default": "16:9",
+        "description": "Aspect ratio for the video",
+        "json_schema_extra": {
+          "type": "media_aspect_ratio_video"
+        },
+        "name": "aspect_ratio",
+        "required": false,
+        "title": "Aspect Ratio",
+        "type": {
+          "type": "str",
+          "type_args": [],
+          "values": [
+            "21:9",
+            "16:9",
+            "4:3",
+            "1:1",
+            "9:16",
+            "3:4"
+          ]
+        },
+        "values": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "9:16",
+          "3:4"
+        ]
+      },
+      {
+        "default": "1080p",
+        "description": "Video resolution",
+        "json_schema_extra": {
+          "type": "media_resolution_video"
+        },
+        "name": "resolution",
+        "required": false,
+        "title": "Resolution",
+        "type": {
+          "type": "str",
+          "type_args": [],
+          "values": [
+            "720p",
+            "1080p",
+            "1440p",
+            "4K"
+          ]
+        },
+        "values": [
+          "720p",
+          "1080p",
+          "1440p",
+          "4K"
+        ]
+      },
+      {
+        "default": 8,
+        "description": "Video duration in seconds",
+        "json_schema_extra": {
+          "type": "media_duration"
+        },
+        "name": "duration",
+        "required": false,
+        "title": "Duration",
+        "type": {
+          "type": "int",
+          "type_args": [],
+          "values": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            8,
+            10,
+            12,
+            15
+          ]
+        },
+        "values": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8,
+          10,
+          12,
+          15
+        ]
+      },
+      {
+        "default": 0,
+        "description": "Timeout in seconds for API calls (0 = use provider default)",
+        "max": 7200,
+        "min": 0,
+        "name": "timeout_seconds",
+        "required": false,
+        "title": "Timeout Seconds",
+        "type": {
+          "type": "int",
+          "type_args": []
+        }
+      }
+    ],
+    "recommended_models": [],
+    "required_runtimes": [],
+    "required_settings": [],
+    "supports_dynamic_inputs": false,
+    "title": "Text To Video"
+  },
+  "nodetool.video.ImageToVideo": {
+    "auto_save_asset": true,
+    "body": "content_card",
+    "description": "Animate static images into video with AI-powered motion using any supported video provider.\n    video, image-to-video, i2v, animation, ai, generation, sora, veo",
+    "effect": "external",
+    "inline_fields": [],
+    "input_fields": [
+      "image",
+      "end_image",
+      "prompt"
+    ],
+    "is_controlled": false,
+    "is_streaming_input": false,
+    "is_streaming_output": false,
+    "layout": "default",
+    "namespace": "nodetool.video",
+    "node_type": "nodetool.video.ImageToVideo",
+    "outputs": [
+      {
+        "name": "output",
+        "type": {
+          "type": "video",
+          "type_args": []
+        }
+      }
+    ],
+    "platforms": [
+      "node"
+    ],
+    "properties": [
+      {
+        "default": [],
+        "description": "Input image(s) to animate. Only the first non-empty image is used as the start frame. Use Reference To Video for reference media.",
+        "name": "image",
+        "required": false,
+        "title": "Images",
+        "type": {
+          "type": "list",
+          "type_args": [
+            {
+              "type": "image",
+              "type_args": []
+            }
+          ]
+        }
+      },
+      {
+        "default": {
+          "asset_id": null,
+          "data": null,
+          "metadata": null,
+          "type": "image",
+          "uri": ""
+        },
+        "description": "Optional frame the clip ends on. The run fails on a model that takes no last frame.",
+        "name": "end_image",
+        "required": false,
+        "title": "End Image",
+        "type": {
+          "type": "image",
+          "type_args": []
+        }
+      },
+      {
+        "default": {
+          "id": "veo-3.1-generate-preview",
+          "name": "Veo 3.1 Preview",
+          "path": null,
+          "provider": "gemini",
+          "supported_tasks": [],
+          "type": "video_model"
+        },
+        "description": "The video generation model to use",
+        "name": "model",
+        "required": false,
+        "title": "Model",
+        "type": {
+          "type": "video_model",
+          "type_args": []
+        }
+      },
+      {
+        "default": "",
+        "description": "Text prompt to guide the video animation. Veo animates an image without one; Kling refuses an empty one. Leaving it blank ties the graph to the models that treat it as optional.",
+        "name": "prompt",
+        "required": false,
+        "title": "Prompt",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": "",
+        "description": "Text prompt describing what to avoid in the video",
+        "name": "negative_prompt",
+        "required": false,
+        "title": "Negative Prompt",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      },
+      {
+        "default": [],
+        "description": "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt",
+        "name": "entities",
+        "required": false,
+        "title": "Entities",
+        "type": {
+          "type": "list",
+          "type_args": [
+            {
+              "type": "entity",
+              "type_args": []
+            }
+          ]
+        }
+      },
+      {
+        "default": "16:9",
+        "description": "Aspect ratio for the video",
+        "json_schema_extra": {
+          "type": "media_aspect_ratio_video"
+        },
+        "name": "aspect_ratio",
+        "required": false,
+        "title": "Aspect Ratio",
+        "type": {
+          "type": "str",
+          "type_args": [],
+          "values": [
+            "21:9",
+            "16:9",
+            "4:3",
+            "1:1",
+            "9:16",
+            "3:4"
+          ]
+        },
+        "values": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "9:16",
+          "3:4"
+        ]
+      },
+      {
+        "default": "1080p",
+        "description": "Video resolution",
+        "json_schema_extra": {
+          "type": "media_resolution_video"
+        },
+        "name": "resolution",
+        "required": false,
+        "title": "Resolution",
+        "type": {
+          "type": "str",
+          "type_args": [],
+          "values": [
+            "720p",
+            "1080p",
+            "1440p",
+            "4K"
+          ]
+        },
+        "values": [
+          "720p",
+          "1080p",
+          "1440p",
+          "4K"
+        ]
+      },
+      {
+        "default": 4,
+        "description": "Video duration in seconds",
+        "json_schema_extra": {
+          "type": "media_duration"
+        },
+        "name": "duration",
+        "required": false,
+        "title": "Duration",
+        "type": {
+          "type": "int",
+          "type_args": [],
+          "values": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            8,
+            10,
+            12,
+            15
+          ]
+        },
+        "values": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8,
+          10,
+          12,
+          15
+        ]
+      },
+      {
+        "default": 0,
+        "description": "Timeout in seconds for API calls (0 = use provider default)",
+        "max": 7200,
+        "min": 0,
+        "name": "timeout_seconds",
+        "required": false,
+        "title": "Timeout Seconds",
+        "type": {
+          "type": "int",
+          "type_args": []
+        }
+      },
+      {
+        "default": -1,
+        "description": "Generation seed. Use -1 for a random seed.",
+        "name": "seed",
+        "required": false,
+        "title": "Seed",
+        "type": {
+          "type": "int",
+          "type_args": []
+        }
+      }
+    ],
+    "recommended_models": [],
+    "required_runtimes": [],
+    "required_settings": [],
+    "supports_dynamic_inputs": false,
+    "title": "Image To Video"
+  },
+  "nodetool.workflows.base_node.Preview": {
+    "body": "default",
+    "description": "Preview values inside the workflow graph",
+    "effect": "read",
+    "inline_fields": [
+      "name"
+    ],
+    "input_fields": [
+      "value"
+    ],
+    "is_controlled": false,
+    "is_streaming_input": false,
+    "is_streaming_output": false,
+    "layout": "default",
+    "namespace": "nodetool.workflows.base_node",
+    "node_type": "nodetool.workflows.base_node.Preview",
+    "outputs": [
+      {
+        "name": "output",
+        "type": {
+          "type": "any",
+          "type_args": []
+        }
+      }
+    ],
+    "platforms": [
+      "node",
+      "browser"
+    ],
+    "properties": [
+      {
+        "default": null,
+        "name": "value",
+        "type": {
+          "type": "any",
+          "type_args": []
+        }
+      },
+      {
+        "default": "",
+        "name": "name",
+        "type": {
+          "type": "str",
+          "type_args": []
+        }
+      }
+    ],
+    "recommended_models": [],
+    "required_runtimes": [],
+    "required_settings": [],
+    "supports_dynamic_inputs": false,
+    "title": "Preview"
+  }
+}

@@ -1,0 +1,1 @@
+import{o as n}from"./rolldown-runtime-ChpBd9eV.js";import{L as a}from"./vendor-flow-C8aJJSNn.js";import{l as s}from"./KeyboardProvider-ChxXcFUT.js";var u=n(a(),1);function p(o){const r=u.useRef(void 0);return e=>{const t=o(e);return s(r.current,t)?r.current:r.current=t}}export{p as t};
