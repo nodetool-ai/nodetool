@@ -19,15 +19,10 @@
 import { copyFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  defineConfig,
-  type ConfigEnv,
-  type Plugin,
-  type Rollup,
-  type UserConfig
-} from "vite";
+import { defineConfig, type ConfigEnv, type Plugin, type UserConfig } from "vite";
 
 import appConfig from "./vite.config";
+import { englishOnlyPlugin, pruneUnusedChunksPlugin } from "./vite.embed-plugins";
 
 const configDir = dirname(fileURLToPath(import.meta.url));
 const BASE = "/embed/timeline/";
@@ -87,84 +82,6 @@ function embedFontsPlugin(): Plugin {
   };
 }
 
-const EMPTY_LOCALE = "\0timeline-embed-empty-locale";
-
-/** Every UI language but English loads as an empty table. */
-function englishOnlyPlugin(): Plugin {
-  return {
-    name: "timeline-embed-english-only",
-    enforce: "pre",
-    resolveId(source, importer) {
-      if (
-        importer?.endsWith("src/i18n/i18n.ts") &&
-        /^\.\/locales\/[\w-]+\.json$/.test(source) &&
-        source !== "./locales/en.json"
-      ) {
-        return EMPTY_LOCALE;
-      }
-      return null;
-    },
-    load(id) {
-      return id === EMPTY_LOCALE ? "export default {};" : null;
-    }
-  };
-}
-
-/** Write only the chunks and assets the demo loads. */
-function pruneUnusedChunksPlugin(): Plugin {
-  return {
-    name: "timeline-embed-prune",
-    enforce: "post",
-    generateBundle(_options, bundle) {
-      const chunks = Object.values(bundle).filter(
-        (output): output is Rollup.OutputChunk => output.type === "chunk"
-      );
-      const byName = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
-      const keep = new Set<string>();
-      const visit = (fileName: string): void => {
-        const chunk = byName.get(fileName);
-        if (!chunk || keep.has(fileName)) {
-          return;
-        }
-        keep.add(fileName);
-        chunk.imports.forEach(visit);
-      };
-      for (const chunk of chunks) {
-        const lazyAtRuntime =
-          chunk.facadeModuleId !== null &&
-          RUNTIME_LAZY_MODULES.some((pattern) => pattern.test(chunk.facadeModuleId ?? ""));
-        if (chunk.isEntry || lazyAtRuntime) {
-          visit(chunk.fileName);
-        }
-      }
-      const kept = [...keep].map((fileName) => byName.get(fileName));
-      const referenced = new Set<string>();
-      for (const chunk of kept) {
-        chunk?.viteMetadata?.importedCss.forEach((file) => referenced.add(file));
-        chunk?.viteMetadata?.importedAssets.forEach((file) => referenced.add(file));
-      }
-      const keptCss = Object.values(bundle)
-        .filter((output) => output.type === "asset" && referenced.has(output.fileName))
-        .map((output) => (output.type === "asset" ? String(output.source) : ""))
-        .join("\n");
-      for (const [fileName, output] of Object.entries(bundle)) {
-        if (output.type === "chunk") {
-          if (!keep.has(fileName)) {
-            delete bundle[fileName];
-          }
-          continue;
-        }
-        const isPage = fileName.endsWith(".html");
-        const used =
-          referenced.has(fileName) || keptCss.includes(fileName.split("/").pop() ?? fileName);
-        if (!isPage && !used) {
-          delete bundle[fileName];
-        }
-      }
-    }
-  };
-}
-
 export default defineConfig(async (env: ConfigEnv) => {
   const resolved = (await (typeof appConfig === "function" ? appConfig(env) : appConfig)) as UserConfig;
   const build = resolved.build ?? {};
@@ -176,7 +93,7 @@ export default defineConfig(async (env: ConfigEnv) => {
       embedFontsPlugin(),
       englishOnlyPlugin(),
       ...(resolved.plugins ?? []),
-      pruneUnusedChunksPlugin()
+      pruneUnusedChunksPlugin(RUNTIME_LAZY_MODULES)
     ],
     build: {
       ...build,
