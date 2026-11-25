@@ -190,8 +190,11 @@ export async function runGeneration(
       ...req,
       params: { ...(req.params ?? {}), signal }
     };
-    return retryContentFilterRefusal(host.context, req, () =>
-      dispatchCapability(host.context, provider, dispatchReq)
+    return retryContentFilterRefusal(
+      host.context,
+      req,
+      () => dispatchCapability(host.context, provider, dispatchReq),
+      signal
     );
   });
 }
@@ -521,7 +524,8 @@ async function persistGenerationBytes(
 async function retryContentFilterRefusal<T>(
   context: GenerationContext,
   req: ProviderPredictionRequest,
-  attemptFn: () => Promise<T>
+  attemptFn: () => Promise<T>,
+  signal: AbortSignal = context.signal
 ): Promise<T> {
   for (let attempt = 1; ; attempt++) {
     try {
@@ -542,7 +546,7 @@ async function retryContentFilterRefusal<T>(
         severity: "warning",
         content: `${req.provider}/${req.model} content-filtered this request (attempt ${attempt} of ${CONTENT_FILTER_MAX_RETRIES + 1}); retrying. ${message}`
       });
-      await waitForRetry(contentFilterRetryDelayMs(attempt), context.signal);
+      await waitForRetry(contentFilterRetryDelayMs(attempt), signal);
     }
   }
 }
@@ -556,9 +560,10 @@ export async function textToSpeechEncoded(
   host: GenerationHost,
   req: GenerationRequest
 ): Promise<EncodedAudioResult | null> {
-  return runEncodedGeneration(host, req, async (provider) => {
+  return runEncodedGeneration(host, req, async (provider, signal) => {
     const params = req.params ?? {};
     return provider.textToSpeechEncoded({
+      signal,
       text: String(params.text ?? ""),
       model: req.model,
       voice: params.voice as string | undefined,
