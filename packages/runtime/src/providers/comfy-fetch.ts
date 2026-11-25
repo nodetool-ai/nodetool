@@ -1,6 +1,24 @@
 import { fetchWithRetry } from "./http-transport.js";
 
-const INSECURE_COMFY_CLOUD = /^http:\/\/cloud\.comfy\.org(?=[/:?#]|$)/i;
+function upgradeComfyCloudUrl(raw: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (
+    parsed.protocol !== "http:" ||
+    parsed.hostname.toLowerCase() !== "cloud.comfy.org" ||
+    parsed.username !== "" ||
+    parsed.password !== "" ||
+    parsed.port !== ""
+  ) {
+    return null;
+  }
+  parsed.protocol = "https:";
+  return parsed.toString();
+}
 
 /**
  * Fetch for `@comfyorg/sdk` clients. Comfy Cloud returns job links as
@@ -12,10 +30,10 @@ const INSECURE_COMFY_CLOUD = /^http:\/\/cloud\.comfy\.org(?=[/:?#]|$)/i;
 export function comfyCloudFetch(apiKey: string): (request: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
   return (request, init) => {
     const url = request instanceof Request ? request.url : String(request);
-    if (!INSECURE_COMFY_CLOUD.test(url)) {
+    const secureUrl = upgradeComfyCloudUrl(url);
+    if (!secureUrl) {
       return fetchWithRetry(url, init, { fetchImpl: (_url, retryInit) => fetch(request, retryInit) });
     }
-    const secureUrl = url.replace(INSECURE_COMFY_CLOUD, "https://cloud.comfy.org");
     const target = new Request(secureUrl, request instanceof Request ? request : undefined);
     const headers = new Headers(target.headers);
     new Headers(init?.headers).forEach((value, key) => headers.set(key, value));

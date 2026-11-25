@@ -173,6 +173,7 @@ export async function dispatchCapability(
   req: ProviderPredictionRequest
 ): Promise<ProviderPredictionResult> {
   const params = req.params ?? {};
+  const signal = isAbortSignal(params.signal) ? params.signal : host.signal;
   switch (req.capability) {
     case "generate_message":
       return provider.generateMessageTraced({
@@ -197,11 +198,12 @@ export async function dispatchCapability(
         temperature: params.temperature as number | undefined,
         topP: params.top_p as number | undefined,
         presencePenalty: params.presence_penalty as number | undefined,
-        frequencyPenalty: params.frequency_penalty as number | undefined
+        frequencyPenalty: params.frequency_penalty as number | undefined,
+        signal
       });
     case "text_to_image":
       return provider.textToImage({
-        signal: params.signal as AbortSignal | undefined,
+        signal,
         prompt: String(params.prompt ?? ""),
         entities: await coerceEntityList(params, host),
         model: { id: req.model, name: req.model, provider: req.provider },
@@ -214,7 +216,7 @@ export async function dispatchCapability(
       });
     case "image_to_image":
       return provider.imageToImage(coerceImageList(params), {
-        signal: params.signal as AbortSignal | undefined,
+        signal,
         prompt: String(params.prompt ?? ""),
         entities: await coerceEntityList(params, host),
         model: { id: req.model, name: req.model, provider: req.provider },
@@ -228,6 +230,7 @@ export async function dispatchCapability(
       });
     case "inpainting":
       return provider.inpaint(coerceImageList(params), {
+        signal,
         prompt: String(params.prompt ?? ""),
         entities: await coerceEntityList(params, host),
         model: { id: req.model, name: req.model, provider: req.provider },
@@ -242,7 +245,7 @@ export async function dispatchCapability(
       });
     case "text_to_video":
       return provider.textToVideo({
-        signal: params.signal as AbortSignal | undefined,
+        signal,
         prompt: String(params.prompt ?? ""),
         entities: await coerceEntityList(params, host),
         model: { id: req.model, name: req.model, provider: req.provider },
@@ -257,7 +260,7 @@ export async function dispatchCapability(
       return provider.imageToVideo(
         firstNonEmptyByteList(coerceImageList(params)),
         {
-          signal: params.signal as AbortSignal | undefined,
+          signal,
           prompt: params.prompt as string | undefined,
           endImage: coerceByteList([params.end_image])[0],
           seed: isNumber(params.seed) ? params.seed : undefined,
@@ -306,13 +309,13 @@ export async function dispatchCapability(
           timeoutSeconds: isNumber(params.timeout_seconds)
             ? params.timeout_seconds
             : undefined,
-          signal: isAbortSignal(params.signal) ? params.signal : undefined
+          signal
         }
       );
     }
     case "outpaint_image":
       return provider.outpaintImage(coerceImageList(params), {
-        signal: params.signal as AbortSignal | undefined,
+        signal,
         prompt: params.prompt as string | undefined,
         entities: await coerceEntityList(params, host),
         model: { id: req.model, name: req.model, provider: req.provider },
@@ -342,7 +345,7 @@ export async function dispatchCapability(
       });
     case "segment_image":
       return provider.segmentImage(params.image as Uint8Array, {
-        signal: params.signal as AbortSignal | undefined,
+        signal,
         model: { id: req.model, name: req.model, provider: req.provider },
         prompt: params.prompt as string | undefined,
         points: params.points as SegmentPoint[] | undefined,
@@ -357,7 +360,7 @@ export async function dispatchCapability(
     case "estimate_depth":
       return provider.estimateDepth(params.image as Uint8Array, {
         model: { id: req.model, name: req.model, provider: req.provider },
-        signal: isAbortSignal(params.signal) ? params.signal : host.signal
+        signal
       });
     case "rerank":
       return provider.rerank({
@@ -368,7 +371,7 @@ export async function dispatchCapability(
           ? params.documents.map((doc) => (isString(doc) ? doc : String(doc)))
           : [],
         topK: isNumber(params.top_k) ? params.top_k : undefined,
-        signal: isAbortSignal(params.signal) ? params.signal : host.signal
+        signal
       });
     case "track_object": {
       const request = objectTrackingRequestSchema.parse(params);
@@ -377,8 +380,6 @@ export async function dispatchCapability(
           "The selected provider does not support object tracking."
         );
       }
-      const signal =
-        params.signal instanceof AbortSignal ? params.signal : host.signal;
       signal.throwIfAborted();
       const video = await loadMediaRefBytes(
         { type: "video", asset_id: request.sourceAssetId },
@@ -397,9 +398,6 @@ export async function dispatchCapability(
       return parseObjectTrackingResult(output, request);
     }
     case "video_to_video": {
-      const signal = isAbortSignal(params.signal)
-        ? params.signal
-        : host.signal;
       const referenceImages = coerceByteList(
         params.reference_images ?? params.referenceImages
       );
@@ -457,7 +455,7 @@ export async function dispatchCapability(
         );
       }
       return requestVideoToAudio(provider, video, request, {
-        signal: params.signal as AbortSignal | undefined
+        signal
       });
     }
     case "extend_video": {
@@ -480,7 +478,7 @@ export async function dispatchCapability(
     }
     case "upscale_video":
       return provider.upscaleVideo(params.video as Uint8Array, {
-        signal: params.signal as AbortSignal | undefined,
+        signal,
         model: { id: req.model, name: req.model, provider: req.provider },
         scale: params.scale as number | undefined,
         targetResolution: params.target_resolution as string | undefined,
@@ -491,7 +489,7 @@ export async function dispatchCapability(
       });
     case "interpolate_video":
       return provider.interpolateVideo(params.video as Uint8Array, {
-        signal: params.signal as AbortSignal | undefined,
+        signal,
         model: { id: req.model, name: req.model, provider: req.provider },
         targetFps: params.target_fps as number | undefined,
         factor: params.factor as number | undefined,
@@ -500,7 +498,7 @@ export async function dispatchCapability(
       });
     case "outpaint_video":
       return provider.outpaintVideo(params.video as Uint8Array, {
-        signal: params.signal as AbortSignal | undefined,
+        signal,
         model: { id: req.model, name: req.model, provider: req.provider },
         prompt: params.prompt as string | undefined,
         entities: await coerceEntityList(params, host),
@@ -514,7 +512,7 @@ export async function dispatchCapability(
       });
     case "matte_video":
       return provider.matteVideo(params.video as Uint8Array, {
-        signal: params.signal as AbortSignal | undefined,
+        signal,
         model: { id: req.model, name: req.model, provider: req.provider },
         timeoutSeconds: params.timeout_seconds as number | undefined
       });
@@ -528,6 +526,7 @@ export async function dispatchCapability(
       });
     case "text_to_music":
       return provider.textToMusic({
+        signal,
         prompt: String(params.prompt ?? ""),
         model: { id: req.model, name: req.model, provider: req.provider },
         lyrics: params.lyrics as string | undefined,

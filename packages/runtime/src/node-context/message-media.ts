@@ -36,7 +36,13 @@ export async function retrieveMediaBytes(
     uri.startsWith("/api/storage/") ||
     uri.startsWith("api/storage/")
   ) {
-    const { bytes } = await host.resolveAssetBytes(uri);
+    const isTempRoute =
+      uri.startsWith("/api/storage/temp/") ||
+      uri.startsWith("api/storage/temp/");
+    const { bytes } = await host.resolveAssetBytes(
+      uri,
+      isTempRoute ? undefined : { requireOwnedAsset: true }
+    );
     return bytes;
   }
   for (const adapter of [host.assetStorage, host.storage]) {
