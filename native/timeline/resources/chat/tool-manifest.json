@@ -1063,7 +1063,15 @@
           "type": "object",
           "properties": {
             "kind": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "rect",
+                "ellipse",
+                "line",
+                "polygon",
+                "star",
+                "path"
+              ]
             },
             "fill": {
               "description": "Solid colour string or linear/radial gradient object. Alpha belongs in the colour or gradient stop colours.",
@@ -1100,12 +1108,15 @@
                           "type": "number"
                         },
                         "stops": {
+                          "minItems": 2,
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
                               "offset": {
-                                "type": "number"
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
                               },
                               "color": {
                                 "type": "string"
@@ -1132,12 +1143,15 @@
                           "const": "radial"
                         },
                         "stops": {
+                          "minItems": 2,
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
                               "offset": {
-                                "type": "number"
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
                               },
                               "color": {
                                 "type": "string"
@@ -1165,7 +1179,8 @@
             },
             "strokeWidthPx": {
               "description": "Outline width in sequence pixels. Default 8.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             },
             "x": {
               "description": "Left edge (or the line's first point), 0..1 of frame width.",
@@ -1176,12 +1191,14 @@
               "type": "number"
             },
             "width": {
-              "description": "Width, 0..1 of frame width.",
-              "type": "number"
+              "description": "Width, as a multiple of frame width (non-negative).",
+              "type": "number",
+              "minimum": 0
             },
             "height": {
-              "description": "Height, 0..1 of frame height.",
-              "type": "number"
+              "description": "Height, as a multiple of frame height (non-negative).",
+              "type": "number",
+              "minimum": 0
             },
             "x2": {
               "description": "kind \"line\" only: the second point, 0..1 of frame width.",
@@ -1197,15 +1214,20 @@
             },
             "sides": {
               "description": "Point count for kind \"polygon\" and \"star\".",
-              "type": "number"
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 1073741823
             },
             "innerRadius": {
               "description": "kind \"star\" only: inner radius as a fraction of the outer.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             },
             "cornerRadius": {
               "description": "Corner rounding, in the same normalized units.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             },
             "fillStyle": {
               "description": "Gradient or solid fill, wins over `fill` when set. A soft scrim is {type: \"linear\", angle: 90, stops: [{offset: 0, color: \"#05070C00\"}, {offset: 1, color: \"#05070CDD\"}]} — the alpha lives in the stop colours.",
@@ -1237,12 +1259,15 @@
                       "type": "number"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -1269,12 +1294,15 @@
                       "const": "radial"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -1298,24 +1326,39 @@
               "description": "Dash pattern in normalized units, as ctx.setLineDash takes it.",
               "type": "array",
               "items": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0
               }
             },
             "lineCap": {
               "description": "\"butt\", \"round\" or \"square\".",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "butt",
+                "round",
+                "square"
+              ]
             },
             "lineJoin": {
               "description": "\"miter\", \"round\" or \"bevel\".",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "miter",
+                "round",
+                "bevel"
+              ]
             },
             "trimStart": {
               "description": "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             },
             "trimEnd": {
               "description": "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             }
           },
           "required": [
@@ -1327,7 +1370,15 @@
           "type": "object",
           "properties": {
             "kind": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "rect",
+                "ellipse",
+                "line",
+                "polygon",
+                "star",
+                "path"
+              ]
             },
             "fill": {
               "description": "Solid colour string or linear/radial gradient object. Alpha belongs in the colour or gradient stop colours.",
@@ -1364,12 +1415,15 @@
                           "type": "number"
                         },
                         "stops": {
+                          "minItems": 2,
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
                               "offset": {
-                                "type": "number"
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
                               },
                               "color": {
                                 "type": "string"
@@ -1396,12 +1450,15 @@
                           "const": "radial"
                         },
                         "stops": {
+                          "minItems": 2,
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
                               "offset": {
-                                "type": "number"
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
                               },
                               "color": {
                                 "type": "string"
@@ -1429,7 +1486,8 @@
             },
             "strokeWidthPx": {
               "description": "Outline width in sequence pixels. Default 8.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             },
             "x": {
               "description": "Left edge (or the line's first point), 0..1 of frame width.",
@@ -1440,12 +1498,14 @@
               "type": "number"
             },
             "width": {
-              "description": "Width, 0..1 of frame width.",
-              "type": "number"
+              "description": "Width, as a multiple of frame width (non-negative).",
+              "type": "number",
+              "minimum": 0
             },
             "height": {
-              "description": "Height, 0..1 of frame height.",
-              "type": "number"
+              "description": "Height, as a multiple of frame height (non-negative).",
+              "type": "number",
+              "minimum": 0
             },
             "x2": {
               "description": "kind \"line\" only: the second point, 0..1 of frame width.",
@@ -1461,15 +1521,20 @@
             },
             "sides": {
               "description": "Point count for kind \"polygon\" and \"star\".",
-              "type": "number"
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 1073741823
             },
             "innerRadius": {
               "description": "kind \"star\" only: inner radius as a fraction of the outer.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             },
             "cornerRadius": {
               "description": "Corner rounding, in the same normalized units.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             },
             "fillStyle": {
               "description": "Gradient or solid fill, wins over `fill` when set. A soft scrim is {type: \"linear\", angle: 90, stops: [{offset: 0, color: \"#05070C00\"}, {offset: 1, color: \"#05070CDD\"}]} — the alpha lives in the stop colours.",
@@ -1501,12 +1566,15 @@
                       "type": "number"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -1533,12 +1601,15 @@
                       "const": "radial"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -1562,24 +1633,39 @@
               "description": "Dash pattern in normalized units, as ctx.setLineDash takes it.",
               "type": "array",
               "items": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0
               }
             },
             "lineCap": {
               "description": "\"butt\", \"round\" or \"square\".",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "butt",
+                "round",
+                "square"
+              ]
             },
             "lineJoin": {
               "description": "\"miter\", \"round\" or \"bevel\".",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "miter",
+                "round",
+                "bevel"
+              ]
             },
             "trimStart": {
               "description": "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             },
             "trimEnd": {
               "description": "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             }
           },
           "required": [
@@ -1659,7 +1745,15 @@
           }
         },
         "kind": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "rect",
+            "ellipse",
+            "line",
+            "polygon",
+            "star",
+            "path"
+          ]
         },
         "fill": {
           "description": "Solid colour string or linear/radial gradient object. Alpha belongs in the colour or gradient stop colours.",
@@ -1696,12 +1790,15 @@
                       "type": "number"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -1728,12 +1825,15 @@
                       "const": "radial"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -1761,7 +1861,8 @@
         },
         "strokeWidthPx": {
           "description": "Outline width in sequence pixels. Default 8.",
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         },
         "x": {
           "description": "Left edge (or the line's first point), 0..1 of frame width.",
@@ -1772,12 +1873,14 @@
           "type": "number"
         },
         "width": {
-          "description": "Width, 0..1 of frame width.",
-          "type": "number"
+          "description": "Width, as a multiple of frame width (non-negative).",
+          "type": "number",
+          "minimum": 0
         },
         "height": {
-          "description": "Height, 0..1 of frame height.",
-          "type": "number"
+          "description": "Height, as a multiple of frame height (non-negative).",
+          "type": "number",
+          "minimum": 0
         },
         "x2": {
           "description": "kind \"line\" only: the second point, 0..1 of frame width.",
@@ -1793,15 +1896,20 @@
         },
         "sides": {
           "description": "Point count for kind \"polygon\" and \"star\".",
-          "type": "number"
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 1073741823
         },
         "innerRadius": {
           "description": "kind \"star\" only: inner radius as a fraction of the outer.",
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         },
         "cornerRadius": {
           "description": "Corner rounding, in the same normalized units.",
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         },
         "fillStyle": {
           "description": "Gradient or solid fill, wins over `fill` when set. A soft scrim is {type: \"linear\", angle: 90, stops: [{offset: 0, color: \"#05070C00\"}, {offset: 1, color: \"#05070CDD\"}]} — the alpha lives in the stop colours.",
@@ -1833,12 +1941,15 @@
                   "type": "number"
                 },
                 "stops": {
+                  "minItems": 2,
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
                       "offset": {
-                        "type": "number"
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
                       },
                       "color": {
                         "type": "string"
@@ -1865,12 +1976,15 @@
                   "const": "radial"
                 },
                 "stops": {
+                  "minItems": 2,
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
                       "offset": {
-                        "type": "number"
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
                       },
                       "color": {
                         "type": "string"
@@ -1894,24 +2008,39 @@
           "description": "Dash pattern in normalized units, as ctx.setLineDash takes it.",
           "type": "array",
           "items": {
-            "type": "number"
+            "type": "number",
+            "minimum": 0
           }
         },
         "lineCap": {
           "description": "\"butt\", \"round\" or \"square\".",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "butt",
+            "round",
+            "square"
+          ]
         },
         "lineJoin": {
           "description": "\"miter\", \"round\" or \"bevel\".",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "miter",
+            "round",
+            "bevel"
+          ]
         },
         "trimStart": {
           "description": "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         },
         "trimEnd": {
           "description": "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       },
       "required": [
@@ -2016,12 +2145,14 @@
             },
             "fontSizePx": {
               "type": "number",
+              "exclusiveMinimum": 0,
               "description": "Font size in sequence pixels, not CSS pixels."
             },
             "fontWeight": {
               "anyOf": [
                 {
-                  "type": "number"
+                  "type": "number",
+                  "exclusiveMinimum": 0
                 },
                 {
                   "type": "string"
@@ -2042,11 +2173,17 @@
             },
             "maxWidthFrac": {
               "description": "Wrap width as a fraction of frame width.",
-              "type": "number"
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
             },
             "fontStyle": {
               "description": "\"normal\" (default) or \"italic\".",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "normal",
+                "italic"
+              ]
             },
             "letterSpacingPx": {
               "description": "Extra advance between glyphs, in sequence px. Default 0.",
@@ -2054,7 +2191,8 @@
             },
             "lineHeight": {
               "description": "Line advance as a multiple of the font size. Default 1.2.",
-              "type": "number"
+              "type": "number",
+              "exclusiveMinimum": 0
             },
             "verticalAlign": {
               "description": "\"top\", \"middle\" (default) or \"bottom\". Not \"center\" — that is the horizontal `align` spelling.",
@@ -2077,7 +2215,8 @@
                   "type": "string"
                 },
                 "widthPx": {
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 }
               },
               "required": [
@@ -2096,7 +2235,8 @@
                 },
                 "blurPx": {
                   "default": 0,
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 },
                 "offsetX": {
                   "default": 0,
@@ -2119,11 +2259,13 @@
                   "type": "string"
                 },
                 "paddingPx": {
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 },
                 "radiusPx": {
                   "description": "Corner rounding, in sequence px.",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 }
               },
               "required": [
@@ -2162,12 +2304,15 @@
                       "type": "number"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -2194,12 +2339,15 @@
                       "const": "radial"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -2229,12 +2377,14 @@
         },
         "fontSizePx": {
           "type": "number",
+          "exclusiveMinimum": 0,
           "description": "Font size in sequence pixels, not CSS pixels."
         },
         "fontWeight": {
           "anyOf": [
             {
-              "type": "number"
+              "type": "number",
+              "exclusiveMinimum": 0
             },
             {
               "type": "string"
@@ -2255,11 +2405,17 @@
         },
         "maxWidthFrac": {
           "description": "Wrap width as a fraction of frame width.",
-          "type": "number"
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
         },
         "fontStyle": {
           "description": "\"normal\" (default) or \"italic\".",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "normal",
+            "italic"
+          ]
         },
         "letterSpacingPx": {
           "description": "Extra advance between glyphs, in sequence px. Default 0.",
@@ -2267,7 +2423,8 @@
         },
         "lineHeight": {
           "description": "Line advance as a multiple of the font size. Default 1.2.",
-          "type": "number"
+          "type": "number",
+          "exclusiveMinimum": 0
         },
         "verticalAlign": {
           "description": "\"top\", \"middle\" (default) or \"bottom\". Not \"center\" — that is the horizontal `align` spelling.",
@@ -2290,7 +2447,8 @@
               "type": "string"
             },
             "widthPx": {
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             }
           },
           "required": [
@@ -2309,7 +2467,8 @@
             },
             "blurPx": {
               "default": 0,
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             },
             "offsetX": {
               "default": 0,
@@ -2332,11 +2491,13 @@
               "type": "string"
             },
             "paddingPx": {
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             },
             "radiusPx": {
               "description": "Corner rounding, in sequence px.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             }
           },
           "required": [
@@ -2375,12 +2536,15 @@
                   "type": "number"
                 },
                 "stops": {
+                  "minItems": 2,
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
                       "offset": {
-                        "type": "number"
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
                       },
                       "color": {
                         "type": "string"
@@ -2407,12 +2571,15 @@
                   "const": "radial"
                 },
                 "stops": {
+                  "minItems": 2,
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
                       "offset": {
-                        "type": "number"
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
                       },
                       "color": {
                         "type": "string"
@@ -13500,8 +13667,13 @@
         "outPointMs": {
           "type": "number"
         },
+        "maxSourceDurationMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
         "fontSizePx": {
-          "type": "number"
+          "type": "number",
+          "exclusiveMinimum": 0
         },
         "name": {
           "type": "string"
@@ -13853,10 +14025,33 @@
           }
         },
         "blendMode": {
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "normal",
+                "multiply",
+                "screen",
+                "overlay",
+                "darken",
+                "lighten",
+                "color-dodge",
+                "color-burn",
+                "hard-light",
+                "soft-light",
+                "difference",
+                "exclusion",
+                "add"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "borderRadius": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         },
         "hidden": {
           "type": "boolean"
@@ -13949,12 +14144,14 @@
             },
             "fontSizePx": {
               "type": "number",
+              "exclusiveMinimum": 0,
               "description": "Font size in sequence pixels, not CSS pixels."
             },
             "fontWeight": {
               "anyOf": [
                 {
-                  "type": "number"
+                  "type": "number",
+                  "exclusiveMinimum": 0
                 },
                 {
                   "type": "string"
@@ -13975,11 +14172,17 @@
             },
             "maxWidthFrac": {
               "description": "Wrap width as a fraction of frame width.",
-              "type": "number"
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
             },
             "fontStyle": {
               "description": "\"normal\" (default) or \"italic\".",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "normal",
+                "italic"
+              ]
             },
             "letterSpacingPx": {
               "description": "Extra advance between glyphs, in sequence px. Default 0.",
@@ -13987,7 +14190,8 @@
             },
             "lineHeight": {
               "description": "Line advance as a multiple of the font size. Default 1.2.",
-              "type": "number"
+              "type": "number",
+              "exclusiveMinimum": 0
             },
             "verticalAlign": {
               "description": "\"top\", \"middle\" (default) or \"bottom\". Not \"center\" — that is the horizontal `align` spelling.",
@@ -14010,7 +14214,8 @@
                   "type": "string"
                 },
                 "widthPx": {
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 }
               },
               "required": [
@@ -14029,7 +14234,8 @@
                 },
                 "blurPx": {
                   "default": 0,
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 },
                 "offsetX": {
                   "default": 0,
@@ -14052,11 +14258,13 @@
                   "type": "string"
                 },
                 "paddingPx": {
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 },
                 "radiusPx": {
                   "description": "Corner rounding, in sequence px.",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 }
               },
               "required": [
@@ -14095,12 +14303,15 @@
                       "type": "number"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -14127,12 +14338,15 @@
                       "const": "radial"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -14163,7 +14377,15 @@
           "type": "object",
           "properties": {
             "kind": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "rect",
+                "ellipse",
+                "line",
+                "polygon",
+                "star",
+                "path"
+              ]
             },
             "fill": {
               "description": "Solid colour string or linear/radial gradient object. Alpha belongs in the colour or gradient stop colours.",
@@ -14200,12 +14422,15 @@
                           "type": "number"
                         },
                         "stops": {
+                          "minItems": 2,
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
                               "offset": {
-                                "type": "number"
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
                               },
                               "color": {
                                 "type": "string"
@@ -14232,12 +14457,15 @@
                           "const": "radial"
                         },
                         "stops": {
+                          "minItems": 2,
                           "type": "array",
                           "items": {
                             "type": "object",
                             "properties": {
                               "offset": {
-                                "type": "number"
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
                               },
                               "color": {
                                 "type": "string"
@@ -14265,7 +14493,8 @@
             },
             "strokeWidthPx": {
               "description": "Outline width in sequence pixels. Default 8.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             },
             "x": {
               "description": "Left edge (or the line's first point), 0..1 of frame width.",
@@ -14276,12 +14505,14 @@
               "type": "number"
             },
             "width": {
-              "description": "Width, 0..1 of frame width.",
-              "type": "number"
+              "description": "Width, as a multiple of frame width (non-negative).",
+              "type": "number",
+              "minimum": 0
             },
             "height": {
-              "description": "Height, 0..1 of frame height.",
-              "type": "number"
+              "description": "Height, as a multiple of frame height (non-negative).",
+              "type": "number",
+              "minimum": 0
             },
             "x2": {
               "description": "kind \"line\" only: the second point, 0..1 of frame width.",
@@ -14297,15 +14528,20 @@
             },
             "sides": {
               "description": "Point count for kind \"polygon\" and \"star\".",
-              "type": "number"
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 1073741823
             },
             "innerRadius": {
               "description": "kind \"star\" only: inner radius as a fraction of the outer.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             },
             "cornerRadius": {
               "description": "Corner rounding, in the same normalized units.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0
             },
             "fillStyle": {
               "description": "Gradient or solid fill, wins over `fill` when set. A soft scrim is {type: \"linear\", angle: 90, stops: [{offset: 0, color: \"#05070C00\"}, {offset: 1, color: \"#05070CDD\"}]} — the alpha lives in the stop colours.",
@@ -14337,12 +14573,15 @@
                       "type": "number"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -14369,12 +14608,15 @@
                       "const": "radial"
                     },
                     "stops": {
+                      "minItems": 2,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "offset": {
-                            "type": "number"
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
                           },
                           "color": {
                             "type": "string"
@@ -14398,24 +14640,39 @@
               "description": "Dash pattern in normalized units, as ctx.setLineDash takes it.",
               "type": "array",
               "items": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0
               }
             },
             "lineCap": {
               "description": "\"butt\", \"round\" or \"square\".",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "butt",
+                "round",
+                "square"
+              ]
             },
             "lineJoin": {
               "description": "\"miter\", \"round\" or \"bevel\".",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "miter",
+                "round",
+                "bevel"
+              ]
             },
             "trimStart": {
               "description": "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             },
             "trimEnd": {
               "description": "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             }
           },
           "required": [
@@ -14431,7 +14688,9 @@
             },
             "fontSizeFrac": {
               "description": "Font size as a fraction of frame height. Default 0.05.",
-              "type": "number"
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
             },
             "color": {
               "description": "Colour of the words not being spoken.",
@@ -14449,17 +14708,21 @@
                   "type": "string"
                 },
                 "widthPx": {
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 }
               },
               "required": [
                 "color",
                 "widthPx"
-              ]
+              ],
+              "additionalProperties": false
             },
             "bottomMarginFrac": {
               "description": "Gap from the frame bottom, as a fraction of height. Default 0.12.",
-              "type": "number"
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
             },
             "background": {
               "description": "Scrim behind the whole block.",
@@ -14469,16 +14732,20 @@
                   "type": "string"
                 },
                 "paddingPx": {
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 },
                 "radiusPx": {
-                  "type": "number"
+                  "description": "Corner rounding, in sequence px.",
+                  "type": "number",
+                  "minimum": 0
                 }
               },
               "required": [
                 "color",
                 "paddingPx"
-              ]
+              ],
+              "additionalProperties": false
             }
           }
         }
