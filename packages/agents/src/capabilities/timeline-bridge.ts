@@ -774,8 +774,10 @@ export function createTimelineToolBridge(
     operation: TimelineTransitionCandidate["operation"];
     description: string;
   }> {
-    const candidate = transitionCandidates.find(
-      (entry) => entry.id === candidateId
+    const candidate = findByIdOrShortId(
+      transitionCandidates,
+      candidateId,
+      "transition candidate"
     );
     if (!candidate) {
       throw new Error(
@@ -1446,8 +1448,10 @@ export function createTimelineToolBridge(
       "Audition one generated cut-level transition candidate without changing the timeline document. Refuses candidates whose selected clips, source takes, or cut are stale.",
       transitionCandidateParams,
       async ({ candidate_id }) => {
-        const candidate = transitionCandidates.find(
-          (entry) => entry.id === candidate_id
+        const candidate = findByIdOrShortId(
+          transitionCandidates,
+          candidate_id as string,
+          "transition candidate"
         );
         if (!candidate) {
           throw new Error(
