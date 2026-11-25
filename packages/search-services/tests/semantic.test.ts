@@ -253,7 +253,9 @@ describe.each(dialects)("library search by meaning on %s", (_name, init) => {
     let cursor: string | null | undefined;
     let total = -1;
     do {
-      const page = await searchLibrary({ userId: USER, query: "tile", limit: 40, ...(cursor ? { cursor } : {}) });
+      const request: Parameters<typeof searchLibrary>[0] = { userId: USER, query: "tile", limit: 40 };
+      if (cursor) request.cursor = cursor;
+      const page = await searchLibrary(request);
       expect(page.index).toMatchObject({ mode: "hybrid" });
       if (total < 0) total = page.total;
       expect(page.total).toBe(total);
