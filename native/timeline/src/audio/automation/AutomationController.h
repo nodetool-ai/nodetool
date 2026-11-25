@@ -14,21 +14,28 @@ class AutomationController : public QObject {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
-    Q_PROPERTY(QString trackId MEMBER trackId NOTIFY changed)
-    Q_PROPERTY(bool master MEMBER master NOTIFY changed)
+    Q_PROPERTY(QString trackId MEMBER trackId WRITE setTrackId NOTIFY changed)
+    Q_PROPERTY(bool master MEMBER master WRITE setMaster NOTIFY changed)
     Q_PROPERTY(QVariantMap channel READ channel NOTIFY channelChanged)
     Q_PROPERTY(QVariantList tracks READ tracks NOTIFY tracksChanged)
 public:
     explicit AutomationController(QObject* parent = nullptr);
     TimelineModel* timeline() const { return timeline_; }
     void setTimeline(TimelineModel* timeline);
+    void setTrackId(const QString& value);
+    void setMaster(bool value);
     QString trackId;
     bool master = false;
     QVariantMap channel() const;
     QVariantList tracks() const;
     Q_INVOKABLE QVariant call(const QString& name, const QJsonArray& args) const;
     Q_INVOKABLE QString newId() const;
+    // Legacy document tokens can be shared across controllers on the same timeline.
     Q_INVOKABLE quint64 generation() const;
+    // Delayed UI edits use controller/target-scoped tokens instead.
+    Q_INVOKABLE quint64 gestureGeneration();
+    Q_INVOKABLE void setGesturePoints(const QString& laneId, const QJsonArray& points, quint64 token);
+    Q_INVOKABLE void createWithGesturePoints(const QJsonObject& target, const QJsonArray& points, quint64 token);
     Q_INVOKABLE void setPoints(const QString& laneId, const QJsonArray& points, quint64 generation);
     Q_INVOKABLE double laneValueAt(const QString& laneId, double timeMs, double fallback) const;
     Q_INVOKABLE bool clipNameAt(double timeMs, double minimumDurationMs = 0) const;
@@ -44,6 +51,10 @@ signals:
     void channelChanged();
     void tracksChanged();
 private:
+    quint64 gestureGeneration_ = 0;
+    QString gestureTrackId_;
+    bool gestureMaster_ = false;
+    QPointer<QUndoStack> history_;
     QPointer<TimelineModel> timeline_;
     QJsonObject channelState_;
     QJsonArray tracksState_;

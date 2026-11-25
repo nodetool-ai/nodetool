@@ -226,7 +226,7 @@ Rectangle {
             Ui.ToolbarIconButton {
                 objectName: "show-automation"
                 anchors.verticalCenter: parent.verticalCenter
-                iconName: "timeline"
+                iconName: "automationCurve"
                 accessibleName: "Show Automation"
                 active: AutomationUIState.showAutomation
                 onClicked: AutomationUIState.showAutomation = !AutomationUIState.showAutomation

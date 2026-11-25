@@ -35,7 +35,7 @@ Rectangle {
     property var gestureGeneration: 0
     objectName: "automation-lane-" + lane.id
     implicitHeight: 56; height: implicitHeight
-    color: mainLane ? Qt.alpha(Ui.Theme.surfaceCanvas,.4) : Ui.Theme.surfaceCanvas; clip: true; activeFocusOnTab: true
+    color: mainLane ? "transparent" : Ui.Theme.surfaceCanvas; clip: true; activeFocusOnTab: true
     Accessible.role: Accessible.Grouping
     Accessible.name: "Automation lane: " + (spec ? spec.group + " " + spec.label : "Removed device")
     AutomationController { id: controller; timeline: root.timeline; trackId: root.track.id || "" }
@@ -62,7 +62,7 @@ Rectangle {
         })
         return hit
     }
-    function commit(next) { controller.setPoints(lane.id,next,controller.generation()) }
+    function commit(next) { controller.setGesturePoints(lane.id,next,controller.gestureGeneration()) }
     onTargetKeyChanged: { cancel(); selected=-1; easingMenu.close(); curve.requestPaint() }
     function removeAt(index) {
         if (!editable || index<0) return
@@ -74,8 +74,8 @@ Rectangle {
         commit(controller.call("setAutomationPointEasing",[currentLane.points || [],selected,easing])); easingMenu.close()
     }
     function applyDraft() {
-        if (!storedLane) controller.createWithPoints(lane.target,draft,gestureGeneration)
-        else controller.setPoints(lane.id,draft,gestureGeneration)
+        if (!storedLane) controller.createWithGesturePoints(lane.target,draft,gestureGeneration)
+        else controller.setGesturePoints(lane.id,draft,gestureGeneration)
     }
     function flushPending() {
         if (!pendingCreation.running) return
@@ -116,6 +116,12 @@ Rectangle {
             removeAt(selected); event.accepted=true
         }
     }
+    // AU3/AU5: the whole lane carries the parameter colour at low alpha, like Logic.
+    Rectangle {
+        objectName: "automation-lane-tint"
+        anchors.fill: parent
+        color: Qt.alpha(root.on ? root.parameterColor : Ui.Theme.textDisabled, root.on ? .12 : .04)
+    }
     Canvas {
         id: curve
         objectName: "automation-curve-canvas"
@@ -142,10 +148,6 @@ Rectangle {
             ctx.lineTo(width,root.spec?root.yOf(last.value):28)
             ctx.strokeStyle=stroke; ctx.lineWidth=1.5
             ctx.stroke()
-            // The area under the curve carries a light tint, so the lane reads as a level, not a box.
-            ctx.lineTo(width,height); ctx.lineTo(ps.length ? Math.min(0,vertices[0].timeMs/root.msPerPx-curve.x) : 0,height); ctx.closePath()
-            ctx.globalAlpha=root.on ? .16 : .06; ctx.fillStyle=stroke; ctx.fill()
-            ctx.globalAlpha=1
             ps.forEach(function(p,i) {
                 ctx.beginPath(); ctx.arc(p.timeMs/root.msPerPx-curve.x,root.yOf(p.value),Ui.Metrics.sm/2,0,2*Math.PI)
                 ctx.fillStyle=root.on && i === root.selected ? Ui.Theme.textOnAccent : stroke; ctx.fill()
@@ -163,7 +165,7 @@ Rectangle {
     }
     MouseArea {
         anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
-        function playheadPassthrough(point) { return root.editable && root.hitIndex(point.x,point.y)>=0 }
+        function playheadPassthrough(point) { return root.editable && root.hitIndex(point.x,point.y)>=0 && !root.clipOwnsPointer(point.x,point.y) }
         cursorShape: root.editable ? Qt.CrossCursor : Qt.ArrowCursor
         onPressed: event => {
             var hit=root.hitIndex(event.x,event.y)
@@ -171,7 +173,8 @@ Rectangle {
                 if (hit>=0 && event.button===Qt.LeftButton) return
                 root.flushPending()
             }
-            if (hit<0 && root.clipOwnsPointer(event.x,event.y)) { event.accepted=false; return }
+            // The clip name bar keeps every clip gesture, also under an automation point.
+            if (root.clipOwnsPointer(event.x,event.y)) { event.accepted=false; return }
             root.forceActiveFocus()
             if (!root.editable) return
             if (event.button===Qt.RightButton) {
@@ -179,7 +182,7 @@ Rectangle {
                 return
             }
             root.gestureMoved=false; root.pressPosition=Qt.point(event.x,event.y)
-            root.gestureGeneration=controller.generation()
+            root.gestureGeneration=controller.gestureGeneration()
             root.draft=root.currentLane.points || []
             if(hit<0) {
                 if (!root.draft.length && !(root.currentTrack.automation || []).some(l => l.id === root.lane.id)) root.draft=[{timeMs:0,value:root.spec.value}]

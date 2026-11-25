@@ -32,8 +32,8 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | A17 | Native follow-up after A16 and A8 | Sol | A16 |
 | A24b | set_clip_params parity: inPointMs/outPointMs re-slicing, group duration, visual and text style fields (A24 F13 rest) | Sol | none |
 | DSP1 | Engine must-haves: plug-in delay compensation incl. dry path of the wet/dry blend (F1), master true-peak limiter and clip indicator (F3), TPDF dither on 16-bit export (F4), denormal protection FTZ/DAZ in the audio callback and host (F6) | Neon | A16 |
-| DSP2 | Engine should-haves: 32-bit float WAV export and export rate option (F5), windowed-sinc varispeed and higher swresample quality (F7), effect parameter smoothing per block (F8) | Sol | DSP1 |
-| DSP3 | Pan law project setting 0/-3/-4.5 dB and stereo balance (F9) | Sol | DSP2 |
+| DSP2 | Engine should-haves: 32-bit float WAV export and export rate option (F5), windowed-sinc varispeed and higher swresample quality (F7), effect parameter smoothing per block (F8) | Neon | DSP1 |
+| DSP3 | Pan law project setting 0/-3/-4.5 dB and stereo balance (F9) | Neon | DSP2 |
 | SQ3c | Step Sequencer: hardware MIDI input for Learn and Step Input (S1), step-record CC values, live pattern recording (SQ39), MIDI Out audition, Step Input cursor stops at the last row | Sol, then Opus | native MIDI input |
 | CHK | Rerun lost native checks: A2, A2b, A5, A7 | Sol | none |
 | CRV | Lost Codex second reviews: A14, A2b | Sol | none |

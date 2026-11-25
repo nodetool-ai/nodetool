@@ -189,6 +189,55 @@ private slots:
         QVERIFY2(std::abs(output[0]-previous)<.01f,"Live pan must glide from the preceding sample");
         QVERIFY(output[254]>.22f && output[254]<.24f);
     }
+    void automationModeDocumentContract_data() {
+        QTest::addColumn<QJsonValue>("mode");
+        QTest::addColumn<bool>("valid");
+        QTest::newRow("missing") << QJsonValue(QJsonValue::Undefined) << true;
+        for (const auto* mode : {"off", "read", "touch", "latch", "write"}) {
+            QTest::newRow(mode) << QJsonValue(mode) << true;
+        }
+        QTest::newRow("unknown") << QJsonValue("record") << false;
+        QTest::newRow("number") << QJsonValue(1) << false;
+        QTest::newRow("null") << QJsonValue(QJsonValue::Null) << false;
+        QTest::newRow("boolean") << QJsonValue(true) << false;
+        QTest::newRow("object") << QJsonValue(QJsonObject{}) << false;
+        QTest::newRow("array") << QJsonValue(QJsonArray{}) << false;
+        QTest::newRow("empty") << QJsonValue("") << false;
+        QTest::newRow("case") << QJsonValue("Read") << false;
+    }
+    void automationModeDocumentContract() {
+        QFETCH(QJsonValue, mode);
+        QFETCH(bool, valid);
+        auto raw=document();
+        auto tracks=raw["tracks"].toArray();
+        auto track=tracks[0].toObject();
+        track["automationMode"]=mode;
+        tracks[0]=track;
+        raw["tracks"]=tracks;
+        const auto parsed=nt::parseTimeline(raw);
+        QCOMPARE(parsed.timeline.has_value(),valid);
+        if (valid) {
+            QCOMPARE(requireValue(parsed.timeline).tracks[0].raw.value("automationMode"),mode);
+            const auto saved=nt::parseTimelineJson(QJsonDocument(requireValue(parsed.timeline).raw).toJson());
+            QVERIFY(saved.timeline);
+            QCOMPARE(requireValue(saved.timeline).tracks[0].raw.value("automationMode"),mode);
+        } else {
+            QVERIFY(parsed.error.contains("automationMode"));
+        }
+    }
+    void masterAutomationModeA7_data() { automationModeDocumentContract_data(); }
+    void masterAutomationModeA7() {
+        QFETCH(QJsonValue,mode); QFETCH(bool,valid);
+        auto raw=document();
+        raw["master"]=QJsonObject{{"automationMode",mode}};
+        const auto parsed=nt::parseTimeline(raw);
+        QCOMPARE(parsed.timeline.has_value(),valid);
+        if (valid) {
+            const auto saved=nt::parseTimelineJson(QJsonDocument(requireValue(parsed.timeline).raw).toJson());
+            QVERIFY(saved.timeline);
+            QCOMPARE(requireValue(saved.timeline).raw["master"].toObject().value("automationMode"),mode);
+        } else { QVERIFY(parsed.error.contains("automationMode")); }
+    }
     void modeAndPassVectors() {
         auto json = [](const char* text) { return QJsonDocument::fromJson(text).array(); };
         QCOMPARE(call("automationModeOf", {QJsonObject{}}).toString(), "read");

@@ -76,22 +76,21 @@ Item {
         enabled: !root.track.locked
         accessibleName: "Automation mode: " + modeLabel.text
         onClicked: modeMenu.popup()
-        // A quiet mode menu, as in Logic: a small status dot, the mode name, a caret.
+        // The select fill carries the mode colour, as in Logic. Off stays a neutral field.
         Rectangle {
-            id: modeDot
-            x: Ui.Metrics.sm
-            anchors.verticalCenter: parent.verticalCenter
-            width: Ui.Metrics.xs
-            height: width
-            radius: Ui.Metrics.radiusPill
-            color: root.modeColor
+            id: modeFill
+            objectName: "automation-mode-fill-" + (root.track.id || "")
+            anchors.fill: parent
+            anchors.margins: Ui.Metrics.micro
+            radius: Ui.Metrics.radiusControl
+            color: root.mode === "off" ? Ui.Theme.surfaceInput : root.modeColor
         }
         Ui.Text {
             id: modeLabel
-            x: modeDot.x + modeDot.width + Ui.Metrics.xs
+            x: Ui.Metrics.sm
             anchors.verticalCenter: parent.verticalCenter
             role: Ui.Typography.SansCaption
-            tone: root.mode === "read" || root.mode === "off" ? Ui.Text.Secondary : Ui.Text.Primary
+            domainColor: root.mode === "off" ? Ui.Theme.textDisabled : Ui.Theme.surfaceCanvas
             text: root.mode.charAt(0).toUpperCase() + root.mode.slice(1)
         }
         Ui.Icon {
@@ -100,7 +99,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             name: "arrowDropDown"
             size: Ui.Metrics.iconSm
-            tone: Ui.Text.Secondary
+            domainColor: modeLabel.color
         }
     }
     Ui.EditorButton {
@@ -121,9 +120,21 @@ Item {
             size: Ui.Metrics.iconSm
             tone: Ui.Text.Secondary
         }
+        // A lane with points shows a dot before the parameter name, as in the parameter list.
+        Rectangle {
+            id: dataDot
+            objectName: "automation-data-dot-" + (root.main ? root.track.id : root.lane ? root.lane.id : "")
+            visible: !!root.activeLane && (root.activeLane.points || []).length > 0
+            x: Ui.Metrics.sm
+            anchors.verticalCenter: parent.verticalCenter
+            width: Ui.Metrics.xs
+            height: width
+            radius: Ui.Metrics.radiusPill
+            color: root.parameterColor
+        }
         Ui.Text {
             anchors.fill: parent
-            anchors.leftMargin: Ui.Metrics.sm
+            anchors.leftMargin: dataDot.visible ? dataDot.x + dataDot.width + Ui.Metrics.xs : Ui.Metrics.sm
             anchors.rightMargin: Ui.Metrics.iconSm + Ui.Metrics.micro
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight

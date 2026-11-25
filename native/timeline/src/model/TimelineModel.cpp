@@ -8,6 +8,7 @@
 #include <utility>
 #include <QHash>
 #include <QPointer>
+#include <QScopedValueRollback>
 #include <QJsonDocument>
 #include <QUndoCommand>
 #include <QUuid>
@@ -452,6 +453,12 @@ void TimelineModel::markClipsChanged(QSet<QString> clipIds, QSet<QString> trackI
     m_changedTrackIds = std::move(trackIds);
 }
 
+void TimelineModel::pushCommand(std::unique_ptr<QUndoCommand> command) {
+    const QScopedValueRollback<bool> pushing(m_pushingCommand, true);
+    // QUndoStack takes ownership and destroys discarded commands on the UI thread.
+    m_undo->push(command.release());
+}
+
 quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId,
                                bool continuation) {
     const QJsonArray savedBefore = before;
@@ -473,7 +480,7 @@ quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before,
     const auto token = nextCommandToken();
     auto command = std::make_unique<DocumentCommand>(text, std::move(beforeDocument), std::move(afterDocument),
         [this](const QJsonObject& raw) { replaceFromHistory(raw); }, token, mergeId, continuation);
-    m_undo->push(command.release());
+    pushCommand(std::move(command));
     return token;
 }
 
@@ -522,8 +529,7 @@ QString TimelineModel::addMarker(double timeMs, const QString& label) {
     after.append(QJsonObject{{QStringLiteral("id"), id},
                              {QStringLiteral("timeMs"), std::max(0.0, std::round(timeMs))},
                              {QStringLiteral("label"), label}});
-    // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
-    m_undo->push(new MarkersCommand(this, markersJson(), after, QStringLiteral("Add marker")));
+    pushCommand(std::make_unique<MarkersCommand>(this, markersJson(), after, QStringLiteral("Add marker")));
     return id;
 }
 
@@ -535,8 +541,7 @@ bool TimelineModel::deleteMarker(const QString& markerId) {
         if (m.toObject().value(u"id").toString() != markerId) after.append(m);
     }
     if (after.size() == before.size()) return false;
-    // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
-    m_undo->push(new MarkersCommand(this, before, after, QStringLiteral("Delete marker")));
+    pushCommand(std::make_unique<MarkersCommand>(this, before, after, QStringLiteral("Delete marker")));
     return true;
 }
 
@@ -633,7 +638,7 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
         {QStringLiteral("trim_clip"), tr("Trim clip")}, {QStringLiteral("add_media_clip"), tr("Add media clip")}};
     auto command = std::make_unique<DocumentCommand>(musicLabels.value(name, name), before, *after,
         [owner](const QJsonObject& raw) { if (owner) owner->replaceFromHistory(raw); }, token);
-    m_undo->push(command.release());
+    pushCommand(std::move(command));
     return token;
 }
 

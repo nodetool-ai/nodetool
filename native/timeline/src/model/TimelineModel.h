@@ -96,6 +96,10 @@ public:
     TrackListModel* tracks() const { return m_tracks; }
 
     QUndoStack* undoStack() const { return m_undo; }
+    // Initial command application preserves active automation gestures. History
+    // navigation and source changes outside this scope invalidate them.
+    bool pushingCommand() const { return m_pushingCommand; }
+    void pushCommand(std::unique_ptr<QUndoCommand> command);
     // Counts document replacements (setTimeline, close). A gesture started
     // under one generation never writes into another.
     quint64 documentGeneration() const override { return m_generation; }
@@ -190,6 +194,7 @@ signals:
     void effectMatteChanged();
 
 private:
+    bool m_pushingCommand = false;
     bool replaceDocument(const QJsonObject& raw);
     // An undo or redo step: the document, keeping the current project.
     bool replaceFromHistory(QJsonObject raw);

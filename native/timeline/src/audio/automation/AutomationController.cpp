@@ -21,9 +21,60 @@ void AutomationController::refresh() {
 void AutomationController::setTimeline(TimelineModel* timeline) {
     if (timeline_ == timeline) { return; }
     if (timeline_) { disconnect(timeline_, nullptr, this, nullptr); }
+    if (history_) { disconnect(history_, nullptr, this, nullptr); }
     timeline_ = timeline;
-    if (timeline_) { connect(timeline_, &TimelineModel::timelineChanged, this, &AutomationController::refresh); connect(timeline_, &TimelineSource::sourceChanged, this, &AutomationController::refresh); }
+    history_ = timeline ? timeline->undoStack() : nullptr;
+    ++gestureGeneration_;
+    if (timeline_) {
+        const QPointer<AutomationController> self(this);
+        connect(timeline_, &TimelineModel::documentReplaced, this, [self] { if (self) { ++self->gestureGeneration_; } });
+        connect(timeline_, &TimelineSource::sourceChanged, this, [self] {
+            if (!self) { return; }
+            if (!self->timeline_->pushingCommand()) { ++self->gestureGeneration_; }
+            self->refresh();
+        });
+        connect(history_, &QUndoStack::indexChanged, this, [self] {
+            if (self && self->timeline_ && !self->timeline_->pushingCommand()) { ++self->gestureGeneration_; }
+        });
+        connect(timeline_, &QObject::destroyed, this, [self] {
+            if (!self) { return; }
+            if (self->history_) { disconnect(self->history_, nullptr, self, nullptr); }
+            self->history_ = nullptr;
+            ++self->gestureGeneration_;
+            emit self->changed();
+        });
+        connect(timeline_, &TimelineModel::timelineChanged, this, &AutomationController::refresh);
+    }
     emit changed();
+}
+void AutomationController::setTrackId(const QString& value) {
+    if (trackId == value) { return; }
+    trackId = value;
+    ++gestureGeneration_;
+    emit changed();
+}
+void AutomationController::setMaster(bool value) {
+    if (master == value) { return; }
+    master = value;
+    ++gestureGeneration_;
+    emit changed();
+}
+quint64 AutomationController::gestureGeneration() {
+    // C++ callers can also assign the public channel fields directly.
+    if (gestureTrackId_ != trackId || gestureMaster_ != master) {
+        gestureTrackId_ = trackId;
+        gestureMaster_ = master;
+        ++gestureGeneration_;
+    }
+    return gestureGeneration_;
+}
+void AutomationController::setGesturePoints(const QString& laneId, const QJsonArray& points, quint64 token) {
+    if (!timeline_ || token != gestureGeneration()) { return; }
+    setPoints(laneId, points, generation());
+}
+void AutomationController::createWithGesturePoints(const QJsonObject& target, const QJsonArray& points, quint64 token) {
+    if (!timeline_ || token != gestureGeneration()) { return; }
+    createWithPoints(target, points, generation());
 }
 QVariantMap AutomationController::channel() const {
     if (!timeline_) { return {}; }
@@ -65,7 +116,7 @@ void AutomationController::commitMixer(const QString& param,double value) {
     if (!written) { previewMixer(param,std::numeric_limits<double>::quiet_NaN()); }
 }
 void AutomationController::setPoints(const QString& laneId, const QJsonArray& points, quint64 generation) {
-    if (!timeline_ || generation != timeline_->documentGeneration()) { return; }
+    if (!timeline_ || generation != this->generation()) { return; }
     patchLane(laneId, {{"points", points}});
 }
 void AutomationController::addLane(const QJsonObject& target) {
@@ -120,7 +171,7 @@ bool AutomationController::clipNameAt(double timeMs, double minimumDurationMs) c
     return false;
 }
 void AutomationController::createWithPoints(const QJsonObject& target, const QJsonArray& points, quint64 generation) {
-    if (!timeline_ || generation!=timeline_->documentGeneration()) { return; }
+    if (!timeline_ || generation!=this->generation()) { return; }
     const auto t=QJsonObject::fromVariantMap(channel());
     if (!nt::automation::trackAcceptsAutomationTarget(t,target)) { return; }
     auto lanes=t["automation"].toArray();

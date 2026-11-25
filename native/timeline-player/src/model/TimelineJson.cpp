@@ -14,6 +14,13 @@
 namespace nt {
 namespace {
 
+bool validAutomationMode(const QJsonValue& value) {
+    if (value.isUndefined()) { return true; }
+    if (!value.isString()) { return false; }
+    const auto mode = value.toString();
+    return mode == u"off" || mode == u"read" || mode == u"touch" || mode == u"latch" || mode == u"write";
+}
+
 std::optional<TrackType> trackTypeFrom(const QString& s) {
     if (s == u"video") return TrackType::Video;
     if (s == u"audio") return TrackType::Audio;
@@ -91,6 +98,11 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         return result;
     }
 
+    if (!validAutomationMode(root.value(u"master").toObject().value(u"automationMode"))) {
+        result.error = QStringLiteral("master: invalid automationMode");
+        return result;
+    }
+
     for (const QJsonValue& tv : root.value(u"tracks").toArray()) {
         const QJsonObject t = tv.toObject();
         Track track;
@@ -109,6 +121,10 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         track.solo = t.value(u"solo").toBool(false);
         track.volumeDb = t.value(u"volumeDb").toDouble(0.0);
         track.pan = t.value(u"pan").toDouble(0.0);
+        if (!validAutomationMode(t.value(u"automationMode"))) {
+            result.error = QStringLiteral("track %1: invalid automationMode").arg(QString::fromStdString(track.id));
+            return result;
+        }
         const auto stepTemplate = t.value(u"stepTemplate");
         if (!stepTemplate.isUndefined() && (!stepTemplate.isObject() ||
             !midi::validateStoredStepPattern(stepTemplate.toObject()).isEmpty())) {
