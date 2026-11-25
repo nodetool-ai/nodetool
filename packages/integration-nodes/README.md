@@ -40,6 +40,12 @@ the direct node does. All three derive typed inputs from `Load*` nodes and typed
 outputs from `Save*` nodes, keyed `<comfyNodeId>:<field>`. See
 [docs/comfyui.md](https://docs.nodetool.ai/comfyui).
 
+**MCP** (`lib.mcp.*`) — `CallMcpTool` calls one tool on one of the user's
+external MCP servers. The node reads the run owner's servers through the access
+a host installs with `setExternalMcpResolver` from `@nodetool-ai/runtime`. This
+package imports no MCP client, so a host without one reports that the servers
+are unavailable. See [Use external servers in a workflow](../../docs/mcp-server.md#use-external-servers-in-a-workflow).
+
 **Other** — `kie.dynamic_schema.KieAI`.
 
 ## stable-diffusion.cpp

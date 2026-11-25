@@ -562,6 +562,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Lists other users' documents the user was given access to, and " +
       "their owners. A run acts on the rows its own user owns."
   },
+  "externalMcp.catalog": {
+    withheld:
+      "External MCP servers carry commands, env vars and headers that may " +
+      "name secrets. `save`/`probe` spawn or connect to one, so the whole " +
+      "router is credential and host-process surface."
+  },
   "externalMcp.delete": {
     withheld:
       "External MCP servers carry commands, env vars and headers that may " +
