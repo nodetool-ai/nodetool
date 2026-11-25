@@ -25,7 +25,8 @@ import { KO_HEADER, KO_NAV_GROUPS, KO_NAV_LABELS } from "../i18n/ko/chrome";
  * pathname, so cross-linking between personas is consistent everywhere.
  */
 
-type NavLink = { name: string; href: string; external?: boolean };
+/** `featured` links open the mobile menu, above the groups. */
+type NavLink = { name: string; href: string; external?: boolean; featured?: boolean };
 type NavGroup = { name: string; links: NavLink[] };
 type NavEntry = NavLink | NavGroup;
 
@@ -73,6 +74,8 @@ const NAV: NavEntry[] = [
       { name: "FAQ", href: "/faq" },
     ],
   },
+  // The two editors that run in the browser, one click from every page.
+  { name: "Live demo", href: "/demo", featured: true },
   { name: "Pricing", href: "/pricing" },
   { name: "Blog", href: "/blog" },
   { name: "Docs", href: DOCS_URL, external: true },
@@ -480,7 +483,12 @@ export default function SiteHeader() {
             </button>
           </div>
           <div className="mt-6 space-y-2">
-            {nav.map((entry) =>
+            {nav
+              .filter((entry): entry is NavLink => !isGroup(entry) && entry.featured === true)
+              .map((link) => (
+                <MobileNavLink key={link.href} link={link} pathname={pathname} />
+              ))}
+            {nav.filter((entry) => isGroup(entry) || !entry.featured).map((entry) =>
               isGroup(entry) ? (
                 <section
                   key={entry.name}
