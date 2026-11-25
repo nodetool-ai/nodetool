@@ -30,13 +30,13 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | SQ2-insp | Inspector controls (F19, F20) | Opus | SQ2 regions |
 | SQ2-rest | Value-drag audition, Learn inputs, length choices, page menus, menu parity test, coverage (F23, F27, F31, F41, F42), cross-row loop drag (F10) | Opus | SQ2 inspector |
 | P1c | Web tracks pass 5: muted Logic-like palette (current colours too saturated), thinner name band, Arp region shows no notes under the chord strip, master pan control (field done) | Opus | SQ2 (one web UI agent at a time) |
-| SQ3 | Step Sequencer native UI | Opus | SQ1 |
 | A22r | Close CE6/CE7: second-review check of round 2 | Sol | none |
 | P2 | Native polish: piano roll, automation, mixer, tracks (offscreen) | Opus | A10, D62-D68 |
 | A16 | Native automation follow-up, incl. A12 F20 (pending lane creation commits after Undo) | Sol | A23 (one Codex task at a time) |
 | A17 | Native follow-up after A16 and A8 | Sol | A16 |
-| A24 | Native clip editing part 2 | Sol | none |
 | VST3 | VST follow-up: F35 duplicate setState on the live pool, F36 agent edit can overwrite an editor change not yet polled; F24 master fader live preview | Sol | none |
+| A24b | set_clip_params parity: inPointMs/outPointMs re-slicing, group duration, visual and text style fields (A24 F13 rest) | Sol | none |
+| SQ3b | Step Sequencer follow-up: S-F31 1- and 2-step lengths, S-F32 stale row name on reassign, insert-effect rows in Add Row, Learn and recording (SQ38-SQ40), MIDI Out audition, user pattern library (folders, save) | Opus | none |
 | CHK | Rerun lost native checks: A2, A2b, A5, A7 | Sol | none |
 | CRV | Lost Codex second reviews: A14, A2b | Sol | none |
 
@@ -73,6 +73,8 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | MX1 | Mixer values change while dragging (native fix, web test); Neon F16-F23 fixed | 6643214478, 675873bd24 |
 | VST1 | Agent VST tools (list, load, presets, parameters), TS/electron/web; Neon F1-F15 fixed; Sol closure clean | 70a68ffe6e, ae33ccadb4 |
 | VST2 | Native VST: AU scan, presets, parameters, assistant tools; Sol F25-F34 fixed in 4 rounds; closure: 2 new -> VST3 | d6f92a9818..fbcb91a258 |
+| A24 | Native clip editing CE5-CE8; Neon F1-F22, 2 Sol rounds; closure: 2 new -> SQ3b, F13 rest -> A24b | c81e8860f1, 393287395f, b7a0b07d4b |
+| SQ3 | Native Step Sequencer panel, row model, 32 pattern tools; Neon F1-F26 (3 disputes upheld by Sol), F27-F30, 2 Opus rounds | same commits; tst_stepsequencerui 25, tst_patternops 41 |
 | A27 | Model routing rule | [agent-model-routing.md](../../agent-model-routing.md), check:agents-docs exit 0 |
 | RA | Reviewer model analysis | [review-model-analysis.md](review-model-analysis.md) |
 | UI | Music editor UI spec | [MUSIC_EDITOR_UI.md](../../design/MUSIC_EDITOR_UI.md) |
