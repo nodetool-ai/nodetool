@@ -72,7 +72,7 @@ export async function registerAppRunTrace(context: ProcessingContext, run: AppRu
 
 export async function registerWorkflowRunTrace(context: ProcessingContext, input: { readonly jobId: string; readonly workflowId: string | null; readonly inlineGraph?: boolean; readonly origin?: RegisterTraceInput["origin"]; readonly parentSpanContext?: SpanContext }): Promise<RunTraceScope> {
   const persistedWorkflow = input.workflowId && input.inlineGraph
-    ? await Workflow.get<Workflow>(input.workflowId)
+    ? await Workflow.find(context.userId, input.workflowId)
     : null;
   const workflowParent = input.workflowId && (!input.inlineGraph || persistedWorkflow)
     ? [{ kind: "workflow" as const, id: input.workflowId }]

@@ -2,7 +2,10 @@ import { validateGraph } from "@nodetool-ai/node-sdk";
 import type { GenerationAdmission } from "../generation-lifecycle.js";
 import { findMissingPacks } from "../missing-packs.js";
 import type { MissingPackDetails } from "@nodetool-ai/protocol";
-import { registerWorkflowRunTrace } from "./run-trace-lifecycle.js";
+import {
+  registerWorkflowRunTrace,
+  settleRegisteredRunTrace
+} from "./run-trace-lifecycle.js";
 /**
  * Running a saved workflow, as a service every host can call in-process.
  *
@@ -913,6 +916,7 @@ export async function runWorkflow(
   // the run itself can both throw (fs, registry) — a bare throw here stranded
   // the row at "running" forever.
   let execution: ExecutionSession;
+  let executionContext: ProcessingContext | null = null;
   let interactiveHandle: InteractiveEscalationHandle | null = null;
   let supervisorHandle: BoundedHandle | null = null;
   let generationSaves: GenerationSaves | null = null;
@@ -952,7 +956,7 @@ export async function runWorkflow(
       environment.resolveExecutor ??
       ((node: { id: string; type: string; [key: string]: unknown }) =>
         registry.resolve(node));
-    const executionContext = buildWorkspaceExecutionContext({
+    executionContext = buildWorkspaceExecutionContext({
       jobId: job.id,
       workflowId,
       projectId: workflowProjectId,
@@ -1011,6 +1015,11 @@ export async function runWorkflow(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await markJobFailed(job, message);
+    if (executionContext) {
+      await settleRegisteredRunTrace(executionContext, "failed", message).catch(
+        () => undefined
+      );
+    }
     supervisorHandle?.close();
     throw error instanceof Error ? error : new Error(message);
   }

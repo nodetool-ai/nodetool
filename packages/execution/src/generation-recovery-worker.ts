@@ -1481,7 +1481,8 @@ export class DurableGenerationRecoveryWorker {
                 : "saving",
         // Intent creation is not a destination mutation. Keep it pending
         // until a destination-specific adapter commits the attachment.
-        attachment_status: "pending",
+        attachment_status:
+          attachments === "complete" ? "attached" : "pending",
         error: null,
         asset_ids: outputStates
           .map((state) => state.asset_id)
