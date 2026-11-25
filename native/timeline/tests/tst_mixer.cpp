@@ -15,9 +15,11 @@
 #include "audio/TestAllocationCounter.h"
 #include "audio/loudness/LiveLoudness.h"
 #include "audio/loudness/Loudness.h"
+#include "model/TimelineJson.h"
 #include "scene/ClipScene.h"
 
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QProcess>
 #include <QScopeGuard>
 #include <QTemporaryDir>
@@ -191,6 +193,35 @@ private slots:
                      qPrintable(QStringLiteral("%1 ms: %2 vs %3").arg(ms).arg(out[2 * f]).arg(0.5 * g)));
         }
         QCOMPARE(out[2 * 48000 / 4], static_cast<float>(0.5 * curve(0.25)));  // 250 ms, exact
+    }
+
+    void storedZeroFadeOverridesAutomaticCrossfade_data() {
+        QTest::addColumn<bool>("explicitIn");
+        QTest::addColumn<bool>("explicitOut");
+        QTest::newRow("absent") << false << false;
+        QTest::newRow("zero-in") << true << false;
+        QTest::newRow("zero-out") << false << true;
+        QTest::newRow("zero-both") << true << true;
+    }
+    void storedZeroFadeOverridesAutomaticCrossfade() {
+        QFETCH(bool, explicitIn);
+        QFETCH(bool, explicitOut);
+        QJsonObject first{{"id", "first"}, {"trackId", "a"}, {"mediaType", "audio"},
+                          {"startMs", 0}, {"durationMs", 1000}, {"mediaPath", "unused.wav"}, {"status", "generated"}};
+        QJsonObject second = first;
+        second.insert("id", "second");
+        second.insert("startMs", 1000);
+        if (explicitOut) { first.insert("fadeOutMs", 0); }
+        if (explicitIn) { second.insert("fadeInMs", 0); }
+        const auto parsed = parseTimeline(QJsonObject{
+            {"durationMs", 2000}, {"music", QJsonObject{{"autoCrossfadeMs", 10}}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}}}},
+            {"clips", QJsonArray{first, second}}});
+        if (!parsed.timeline.has_value()) { QFAIL(qPrintable(parsed.error)); }
+        const auto plan = buildMixPlan(*parsed.timeline);
+        QCOMPARE(plan.voices.size(), std::size_t{2});
+        QCOMPARE(plan.voices[0].fades.fadeOutMs, explicitOut ? 0.0 : 5.0);
+        QCOMPARE(plan.voices[1].fades.fadeInMs, explicitIn ? 0.0 : 5.0);
     }
 
     // Two clips that overlap by 500 ms on one track, both on plus3dB (the

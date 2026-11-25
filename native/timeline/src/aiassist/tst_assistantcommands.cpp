@@ -192,6 +192,27 @@ for line in sys.stdin:
         for (const auto& value : enabledOnly) { QVERIFY(value.toMap().value("enabled").toBool()); }
         QVERIFY(enabledOnly.size() < list().value("commands").toList().size());
     }
+    void clipParamsAdvertisesSourceAndStyleFields() {
+        const auto schema = commandEntry("set_clip_params").value("parameters").toMap();
+        const auto properties = schema.value("properties").toMap();
+        const auto required = schema.value("required").toList();
+        for (const auto* name : {"inPointMs", "outPointMs", "transform", "blendMode", "borderRadius",
+                                 "crop", "fontSizePx", "textStyle", "shapeStyle", "captionStyle"}) {
+            QVERIFY2(properties.contains(name), name);
+            QVERIFY(!required.contains(QString(name)));
+        }
+        const auto before = doc();
+        const auto result = run("set_clip_params", {{"target", CLIP_VIDEO}, {"inPointMs", 100.0},
+            {"outPointMs", 2100.0}, {"transform", QVariantMap{{"rotation", 15.0}}},
+            {"blendMode", "multiply"}, {"borderRadius", 8.0}, {"crop", QVariantMap{{"left", 0.1}, {"right", 0.0}, {"top", 0.0}, {"bottom", 0.0}}}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(rawClip(CLIP_VIDEO).value("inPointMs").toDouble(), 100.0);
+        QCOMPARE(rawClip(CLIP_VIDEO).value("blendMode").toString(), QString("multiply"));
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+    }
+
     void listingChangesNothing() {
         gestures()->setSelection({CLIP_B});
         const auto before = doc();

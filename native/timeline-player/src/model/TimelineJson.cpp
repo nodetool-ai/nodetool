@@ -157,6 +157,8 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         clip.opacity = c.value(u"opacity").toDouble(1.0);
         clip.fadeInMs = c.value(u"fadeInMs").toDouble(0.0);
         clip.fadeOutMs = c.value(u"fadeOutMs").toDouble(0.0);
+        clip.hasFadeInMs = c.contains(u"fadeInMs");
+        clip.hasFadeOutMs = c.contains(u"fadeOutMs");
         clip.fadeInShape = c.value(u"fadeInShape").toString().toStdString();
         clip.fadeOutShape = c.value(u"fadeOutShape").toString().toStdString();
         clip.speedMultiplier = c.value(u"speedMultiplier").toDouble(1.0);

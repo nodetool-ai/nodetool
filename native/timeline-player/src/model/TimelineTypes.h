@@ -158,6 +158,9 @@ struct Clip {
     // "plus3dB", "minus3dB"; anything else reads as linear).
     double fadeInMs = 0.0;
     double fadeOutMs = 0.0;
+    // A stored zero disables the automatic fade on that edge.
+    bool hasFadeInMs = false;
+    bool hasFadeOutMs = false;
     std::string fadeInShape;
     std::string fadeOutShape;
     // Source rate: `speedBaked` media plays at 1, else `speedMultiplier`.

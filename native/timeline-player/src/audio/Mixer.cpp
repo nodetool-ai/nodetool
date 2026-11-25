@@ -319,8 +319,16 @@ void projectAutoCrossfades(std::vector<Clip>& clips, double durationMs) {
     const auto shapeName = [](FadeShape shape) { return shape == FadeShape::Plus3dB ? "plus3dB" : "linear"; };
     for (std::size_t i = 0; i < clips.size(); ++i) {
         auto& c = clips[i];
-        if (ins[i] && !(c.fadeInMs > 0)) { c.fadeInMs = ins[i]->first; c.fadeInShape = shapeName(ins[i]->second); }
-        if (outs[i] && !(c.fadeOutMs > 0)) { c.fadeOutMs = outs[i]->first; c.fadeOutShape = shapeName(outs[i]->second); }
+        const auto& fadeIn = ins[i];
+        const auto& fadeOut = outs[i];
+        if (fadeIn.has_value() && !c.hasFadeInMs && !(c.fadeInMs > 0)) {
+            c.fadeInMs = fadeIn->first;
+            c.fadeInShape = shapeName(fadeIn->second);
+        }
+        if (fadeOut.has_value() && !c.hasFadeOutMs && !(c.fadeOutMs > 0)) {
+            c.fadeOutMs = fadeOut->first;
+            c.fadeOutShape = shapeName(fadeOut->second);
+        }
     }
 }
 }
