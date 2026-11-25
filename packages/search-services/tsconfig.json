@@ -12,7 +12,13 @@
   ],
   "references": [
     {
+      "path": "../asset-services"
+    },
+    {
       "path": "../config"
+    },
+    {
+      "path": "../document-processing"
     },
     {
       "path": "../models"

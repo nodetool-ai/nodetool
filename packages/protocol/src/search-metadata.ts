@@ -66,8 +66,14 @@ export const SearchOrigin = z.enum([
 ]);
 export type SearchOrigin = z.infer<typeof SearchOrigin>;
 
-/** Where an indexed item stands in the indexing queue. */
-export const SearchItemState = z.enum(["pending", "ready", "failed", "skipped"]);
+/**
+ * Where an indexed item stands in the indexing queue. `pending` items wait
+ * for the indexer to extract their content. `failed` and `skipped` items
+ * could not be extracted, and stay findable by name and metadata. An
+ * `excluded` row is not a library item, such as a shipped entity preset, and
+ * no query returns it.
+ */
+export const SearchItemState = z.enum(["pending", "ready", "failed", "skipped", "excluded"]);
 export type SearchItemState = z.infer<typeof SearchItemState>;
 
 /** Normalize asset tags: trimmed, lower case, no empties, no duplicates, in order. */

@@ -1,4 +1,4 @@
-import type { ParseResult } from "@llamaindex/liteparse";
+import type { LiteParseConfig, ParseResult } from "@llamaindex/liteparse";
 import { importOptionalModule } from "@nodetool-ai/config";
 import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 
@@ -11,10 +11,18 @@ export async function loadLiteParse(): Promise<typeof import("@llamaindex/litepa
   }
 }
 
-/** Parse document bytes using the same parser as the full server. */
-export async function parsePdfBuffer(buffer: Buffer): Promise<ParseResult> {
+/**
+ * Parse document bytes using the same parser as the full server. `maxPages`
+ * stops the parser after that many pages instead of parsing the whole file.
+ */
+export async function parsePdfBuffer(
+  buffer: Buffer,
+  options: { maxPages?: number } = {}
+): Promise<ParseResult> {
   const { LiteParse } = await loadLiteParse();
-  return new LiteParse({ ocrEnabled: false }).parse(buffer, true);
+  const config: Partial<LiteParseConfig> = { ocrEnabled: false };
+  if (options.maxPages !== undefined) config.maxPages = options.maxPages;
+  return new LiteParse(config).parse(buffer, true);
 }
 
 export interface PdfTextResult { readonly text: string; readonly pages: number }

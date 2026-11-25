@@ -26,6 +26,12 @@ import {
   type ExtractedItem
 } from "./extract.js";
 
+/** A source row that exists and is not a library item. */
+export interface ExcludedSource {
+  excluded: true;
+  sourceVersion: string;
+}
+
 export type DocumentResourceType = Exclude<SearchResourceType, "asset">;
 
 type DocumentTable =
@@ -129,15 +135,15 @@ async function assetFolderPaths(
 
 /**
  * Extract the given source rows of one owner. A row that is not a library
- * item, such as a shipped entity preset, maps to `"skip"`. A row that is gone
+ * item, such as a shipped entity preset, maps to an {@link ExcludedSource}. A row that is gone
  * is absent from the result.
  */
 export async function extractSources(
   resourceType: SearchResourceType,
   userId: string,
   ids: readonly string[]
-): Promise<Map<string, ExtractedItem | "skip">> {
-  const out = new Map<string, ExtractedItem | "skip">();
+): Promise<Map<string, ExtractedItem | ExcludedSource>> {
+  const out = new Map<string, ExtractedItem | ExcludedSource>();
   const db = getPortableDb();
   for (let start = 0; start < ids.length; start += 500) {
     const batch = ids.slice(start, start + 500);
@@ -148,7 +154,13 @@ export async function extractSources(
         .where(and(eq(assets.user_id, userId), inArray(assets.id, batch)));
       const paths = await assetFolderPaths(userId, rows);
       for (const row of rows) {
-        out.set(row.id, extractAsset(row, paths.get(row.id) ?? null) ?? "skip");
+        out.set(
+          row.id,
+          extractAsset(row, paths.get(row.id) ?? null) ?? {
+            excluded: true,
+            sourceVersion: assetSourceVersion(row)
+          }
+        );
       }
       continue;
     }
