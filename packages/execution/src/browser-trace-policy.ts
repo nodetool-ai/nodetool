@@ -27,8 +27,11 @@ export function rememberBrowserTracePolicy(scope: RunTraceScope, terminal = fals
 /** Another worker or a restarted host cannot recover run-only secrets, so content fails closed. */
 export function browserTracePolicy(userId: string, traceId: string): BrowserTracePolicy {
   const entry = policies.get(traceId);
-  if (!entry || entry.expiresAt < Date.now() || entry.scope.userId !== userId) {
-    policies.delete(traceId);
+  if (!entry || entry.expiresAt < Date.now()) {
+    if (entry) { policies.delete(traceId); }
+    return { secretValues: new Set(), contentSuppressed: true };
+  }
+  if (entry.scope.userId !== userId) {
     return { secretValues: new Set(), contentSuppressed: true };
   }
   return { secretValues: entry.scope.secretValues, contentSuppressed: entry.scope.policy.contentSuppressed };

@@ -53,6 +53,8 @@ import { createAppServerRunner } from "./app-run-server.js";
 import {
   debugSessions,
   InteractiveEscalationHandle,
+  MAX_LIVE_SESSIONS_PER_USER,
+  TooManyDebugSessionsError,
   type DebugSession
 } from "./debug-sessions.js";
 import {
@@ -272,6 +274,10 @@ export async function runApplicationDebug(
       storage: new FileStorageAdapter(getDefaultAssetsPath()), assetStorage: deps.assetStorage ?? null });
   context.signal = deps.context ? AbortSignal.any([deps.context.signal, controller.signal]) : controller.signal;
 
+  if (debugSessions.liveCount(userId) >= MAX_LIVE_SESSIONS_PER_USER) {
+    throw new TooManyDebugSessionsError(MAX_LIVE_SESSIONS_PER_USER);
+  }
+
   const runIds = new Set<string>();
 
   // The promise a session fronts must never reject: a rejected run would leave
@@ -344,16 +350,22 @@ export async function runApplicationDebug(
 
   const done = simulation;
 
-  const session = debugSessions.create({
-    userId,
-    workflowId: resolved.info.workflowId,
-    jobId: debugId,
-    handle: new InteractiveEscalationHandle(),
-    done,
-    cancel: () => {
-      controller.abort();
-    }
-  });
+  let session: DebugSession;
+  try {
+    session = debugSessions.create({
+      userId,
+      workflowId: resolved.info.workflowId,
+      jobId: debugId,
+      handle: new InteractiveEscalationHandle(),
+      done,
+      cancel: () => {
+        controller.abort();
+      }
+    });
+  } catch (error) {
+    controller.abort();
+    throw error;
+  }
 
   if (body.poll === true) return runningPayload(session, debugId);
   return { ...(await done), session_id: session.id };
