@@ -94,6 +94,14 @@ as a 12-character prefix.
 `asset_search`, `asset_list`, `list_images`, `list_assets` and
 `list_model3ds`.
 
+## Agent tools
+
+The `search` capability module in `packages/agents` exposes `search` and
+`search_read` on the chat, CLI and MCP belts, in `run_search`, and in CodeAct
+as `nodetool.search.query` and `nodetool.search.read`. `asset_search`,
+`asset_list`, `list_images` and the `query` of the document list tools call
+the same query with a fixed kind.
+
 ## Tests
 
 ```bash
@@ -101,4 +109,7 @@ npm run test --workspace=packages/search-services
 ```
 
 The suite runs every case on SQLite and on PGlite with the production
-PostgreSQL migrations.
+PostgreSQL migrations. `tests/retrieval.test.ts` is the retrieval eval: a
+labeled corpus and query set that must rank each relevant item first, and it
+prints recall at the agent's default limit. The `library-search` harness runs
+this suite and the agent capability suite.

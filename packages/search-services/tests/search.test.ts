@@ -12,6 +12,7 @@ import {
 } from "@nodetool-ai/models";
 import { eq, sql } from "drizzle-orm";
 import {
+  extractDocument,
   reconcileLibraryIndex,
   searchAssets,
   searchLibrary,
@@ -253,5 +254,19 @@ describe("snippetOf", () => {
     expect(snippet).toContain("red fox");
     expect(snippet.startsWith("…")).toBe(true);
     expect(snippet.endsWith("…")).toBe(true);
+  });
+});
+
+describe("document descriptions", () => {
+  it("reads the description a JS script keeps inside its document", () => {
+    const item = extractDocument("js_script", {
+      id: "s1",
+      user_id: USER,
+      name: "Summer",
+      document: JSON.stringify({ description: "Sums numbers.", code: "" }),
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z"
+    });
+    expect(item.chunks).toContainEqual({ field: "description", text: "Sums numbers." });
   });
 });

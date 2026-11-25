@@ -16,6 +16,7 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
+import { libraryMatchIds, ownedRowsInOrder } from "./library-matches.js";
 import type {
   ImageDocument,
   ImageDocumentData,
@@ -275,14 +276,17 @@ const listSketches: CapabilityExport = {
     const limit = Math.max(1, Math.min(Number(params["limit"]) || 20, 100));
     const query =
       isString(params["query"])
-        ? params["query"].trim().toLowerCase()
+        ? params["query"].trim()
         : "";
-    // Filter after the read: the name filter is not indexed, and the per-user
-    // limit is what bounds the scan.
-    const rows = await ImageDocument.listByUser(userId, 100);
+    // A query goes to the library index, which matches names, tags and the
+    // text of layers.
     const matching = query
-      ? rows.filter((row) => row.name.toLowerCase().includes(query))
-      : rows;
+      ? await ownedRowsInOrder(
+          await libraryMatchIds(userId, "sketch", query, { limit }),
+          userId,
+          (id) => ImageDocument.findById(id)
+        )
+      : await ImageDocument.listByUser(userId, 100);
     return {
       sketches: matching.slice(0, limit).map((row) => ({
         id: row.id,

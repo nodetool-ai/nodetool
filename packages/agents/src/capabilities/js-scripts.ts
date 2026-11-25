@@ -29,6 +29,7 @@
  * the call with the cycle named.
  */
 
+import { libraryMatchIds, ownedRowsInOrder } from "./library-matches.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   JsScriptDocument,
@@ -312,8 +313,16 @@ const listJsScripts: CapabilityExport = {
     const { JsScript } = await import("@nodetool-ai/models");
 
     const limit = Math.max(1, Math.min(Number(params["limit"]) || 20, 100));
-    const query = (stringParam(params["query"]) ?? "").toLowerCase();
-    const rows = await JsScript.listByUser(userId, 200);
+    const query = (stringParam(params["query"]) ?? "").trim();
+    // A query goes to the library index, which matches the name, the
+    // description and the code.
+    const rows = query
+      ? await ownedRowsInOrder(
+          await libraryMatchIds(userId, "jsscript", query, { limit }),
+          userId,
+          (id) => JsScript.findById(id)
+        )
+      : await JsScript.listByUser(userId, 200);
 
     const items = rows.map((row) => {
       const doc = row.toDocument();
@@ -327,17 +336,7 @@ const listJsScripts: CapabilityExport = {
         updated_at: row.updated_at
       };
     });
-    // Filter after the read: neither name nor description is indexed, and the
-    // per-user limit is what bounds the scan.
-    const matching = query
-      ? items.filter(
-          (item) =>
-            item.name.toLowerCase().includes(query) ||
-            item.description.toLowerCase().includes(query)
-        )
-      : items;
-
-    return { js_scripts: matching.slice(0, limit) };
+    return { js_scripts: items.slice(0, limit) };
   }
 };
 

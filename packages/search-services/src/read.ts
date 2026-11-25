@@ -24,6 +24,8 @@ export interface LibraryReadRequest {
    * whose range holds it. Omitted reads from the first passage.
    */
   locator?: Record<string, unknown>;
+  /** Only an item of this project. Omitted reads any project of the owner. */
+  projectId?: string;
   /** Passages before the matched one. Default 1, at most 10. */
   before?: number;
   /** Passages after the matched one. Default 1, at most 10. */
@@ -118,7 +120,12 @@ export async function readLibraryPassage(request: LibraryReadRequest): Promise<L
   const found = await findItem(request.userId, request.id);
   if ("error" in found && found.error) return { ok: false, error: found.error };
   const item = found.row;
-  if (!item || item.state === "excluded" || !(await sourceIsReadable(item))) {
+  if (
+    !item ||
+    item.state === "excluded" ||
+    (request.projectId !== undefined && item.project_id !== request.projectId) ||
+    !(await sourceIsReadable(item))
+  ) {
     return { ok: false, error: `No library item ${request.id}.` };
   }
   const chunks = await getPortableDb()

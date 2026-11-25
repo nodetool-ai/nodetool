@@ -68,8 +68,7 @@ export const LIST_JS_SCRIPTS_SCHEMA: JsonSchema = {
     query: {
       type: "string",
       description:
-        "Only scripts whose name or description contains this text " +
-        "(case-insensitive)."
+        "Only scripts matching these words in the name, description or code, best match first."
     },
     limit: {
       type: "number",
