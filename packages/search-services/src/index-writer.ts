@@ -18,17 +18,33 @@ export function encodeTags(tags: readonly string[]): string | null {
   return tags.length > 0 ? `|${tags.join("|")}|` : null;
 }
 
+/** The chunk fields the inline write owns. `body` and the rest belong to the indexer. */
+export const METADATA_FIELDS = ["title", "prompt", "description"] as const;
+
 /**
- * Replace the item for `extracted.resourceId` and all of its chunks in one
- * transaction. The item is `ready`: everything step A1 indexes comes from the
- * row, so nothing is left for an indexer.
+ * Write the item for `extracted.resourceId` and replace its metadata chunks
+ * (title, prompt, description) in one transaction (D4). Body chunks stay as
+ * they are, so a renamed PDF keeps answering from its pages until the indexer
+ * extracts it again.
+ *
+ * An item whose kind has content to extract becomes `pending` when its source
+ * or the extractor changed since it was last built, and keeps its state
+ * otherwise. An item with nothing to extract is `ready` at once.
  */
-export async function writeIndexedItem(extracted: ExtractedItem): Promise<void> {
+export async function writeIndexedItem(
+  extracted: ExtractedItem,
+  options: { priority?: number } = {}
+): Promise<{ pending: boolean }> {
   const now = new Date().toISOString();
-  await withTransaction(async () => {
+  return withTransaction(async () => {
     const db = getPortableDb();
     const [existing] = await db
-      .select({ id: searchItems.id })
+      .select({
+        id: searchItems.id,
+        state: searchItems.state,
+        source_version: searchItems.source_version,
+        extractor_version: searchItems.extractor_version
+      })
       .from(searchItems)
       .where(
         and(
@@ -39,6 +55,16 @@ export async function writeIndexedItem(extracted: ExtractedItem): Promise<void> 
       )
       .limit(1);
     const itemId = existing?.id ?? randomUUID().replace(/-/g, "");
+    const unchanged =
+      existing !== undefined &&
+      existing.state !== "excluded" &&
+      existing.source_version === extracted.sourceVersion &&
+      existing.extractor_version === EXTRACTOR_VERSION;
+    const state = !extracted.hasContent
+      ? "ready"
+      : unchanged
+        ? existing.state
+        : "pending";
     const row = {
       user_id: extracted.userId,
       project_id: extracted.projectId,
@@ -56,25 +82,38 @@ export async function writeIndexedItem(extracted: ExtractedItem): Promise<void> 
       metadata: extracted.metadata,
       source_version: extracted.sourceVersion,
       extractor_version: EXTRACTOR_VERSION,
-      state: "ready",
-      attempts: 0,
-      next_attempt_at: null,
-      error: null,
+      state,
       created_at: extracted.createdAt,
-      updated_at: extracted.updatedAt,
-      indexed_at: now
+      updated_at: extracted.updatedAt
     };
+    const queued =
+      state === "pending" && !unchanged
+        ? {
+            attempts: 0,
+            next_attempt_at: null,
+            error: null,
+            priority: options.priority ?? 0
+          }
+        : {};
+    const settled = state === "ready" && !extracted.hasContent ? { indexed_at: now, error: null } : {};
     if (existing) {
-      await db.update(searchItems).set(row).where(eq(searchItems.id, itemId));
-      await db.delete(searchChunks).where(eq(searchChunks.item_id, itemId));
+      await db
+        .update(searchItems)
+        .set({ ...row, ...queued, ...settled })
+        .where(eq(searchItems.id, itemId));
+      await db
+        .delete(searchChunks)
+        .where(
+          and(eq(searchChunks.item_id, itemId), inArray(searchChunks.field, [...METADATA_FIELDS]))
+        );
     } else {
-      await db.insert(searchItems).values({ id: itemId, ...row });
+      await db.insert(searchItems).values({ id: itemId, ...row, ...queued, ...settled });
     }
     const chunks = extracted.chunks.filter((chunk) => chunk.text.trim());
     if (chunks.length > 0) {
       await db.insert(searchChunks).values(
         chunks.map((chunk, ordinal) => ({
-          id: `${itemId}_${ordinal}`,
+          id: `${itemId}_m${ordinal}`,
           item_id: itemId,
           ordinal,
           field: chunk.field,
@@ -83,6 +122,7 @@ export async function writeIndexedItem(extracted: ExtractedItem): Promise<void> 
         }))
       );
     }
+    return { pending: state === "pending" };
   });
 }
 
@@ -121,9 +161,9 @@ export async function deleteIndexedItem(
 /**
  * Record a source row that is not a library item, such as a shipped entity
  * preset, so the reconcile does not extract it again until it changes. A
- * skipped item has no chunks and no query returns it.
+ * excluded item has no chunks and no query returns it.
  */
-export async function writeSkippedItem(
+export async function writeExcludedItem(
   userId: string,
   resourceType: SearchResourceType,
   resourceId: string,
@@ -139,7 +179,7 @@ export async function writeSkippedItem(
     kind: "file",
     source_version: sourceVersion,
     extractor_version: EXTRACTOR_VERSION,
-    state: "skipped",
+    state: "excluded",
     created_at: now,
     updated_at: now,
     indexed_at: now

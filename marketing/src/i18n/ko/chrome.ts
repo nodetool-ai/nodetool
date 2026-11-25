@@ -50,6 +50,7 @@ export const KO_NAV_LABELS: Record<string, string> = {
   "/alternatives": "대안 비교",
   "/alternatives/comfyui": "ComfyUI와 비교",
   "/faq": "자주 묻는 질문",
+  "/demo": "라이브 데모",
   "/pricing": "요금",
   "/blog": "블로그",
   "/tasks": "작업",

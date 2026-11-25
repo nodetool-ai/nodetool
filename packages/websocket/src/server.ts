@@ -56,8 +56,16 @@ import {
 } from "./lib/resource-change-bus.js";
 import {
   reconcileLibraryIndex,
+  setLibraryIndexMaintained,
   startLibraryIndexWrites
 } from "@nodetool-ai/search-services";
+import {
+  isSearchIndexerProcess,
+  runSearchIndexerProcess,
+  searchIndexerMode,
+  superviseSearchIndexer,
+  type SearchIndexerSupervisor
+} from "./search-indexer.js";
 import { isDraining, startDrain, onDrain } from "./drain.js";
 import { chatTurnRegistry } from "./chat-turn-registry.js";
 import { jobRunRegistry } from "./job-run-registry.js";
@@ -314,6 +322,11 @@ loadEnvironment(resolve(dirname(fileURLToPath(import.meta.url)), "../../.."));
 process.env["NODETOOL_HOST"] ??= "source";
 process.env["NODETOOL_SERVER_PROCESS"] = "1";
 applyRuntimeEnv();
+if (isSearchIndexerProcess()) {
+  // A forked library indexer (D13): it serves no requests and loads no packs.
+  configureLogging();
+  return runSearchIndexerProcess();
+}
 const packSource = options.packSource ?? await loadBundledPackSource();
 setDefaultPackSource(packSource);
 const isProduction = process.env["NODETOOL_ENV"] === "production";
@@ -339,6 +352,7 @@ const PROCESS_STARTED_AT = new Date().toISOString();
 let stopGenerationReconcileWorker: (() => void) | null = null;
 let stopErrorTraceMaintenance: (() => void) | null = null;
 let stopPlacementSweeper: (() => void) | null = null;
+let searchIndexer: SearchIndexerSupervisor | null = null;
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;
 }
@@ -400,8 +414,9 @@ try {
   startResourceChangeFeeds();
   // Library search (docs/plans/library-search.md, D4): index assets and
   // documents as they are written. The reconcile below repairs what a raw
-  // update or a stopped server missed.
+  // update or a stopped server missed, so searches never reconcile.
   startLibraryIndexWrites();
+  setLibraryIndexMaintained(true);
 
   // Initialize master key from keychain before any secret access. Callers
   // that need provider credentials bind their own `(key) => getSecret(key,
@@ -542,25 +557,31 @@ try {
   );
   historyCleanupTimer.unref?.();
 
-  // Backfill and repair the library index. It runs here until the indexer
-  // process exists (plan step A2). Searches never wait for it: each one
-  // reconciles its own owner first.
-  const runLibraryReconcile = (): void => {
-    void reconcileLibraryIndex()
-      .then((result) => {
-        if (result.indexed + result.removed > 0) {
-          log.info("Library index reconciled", { ...result });
-        }
-      })
-      .catch((error) => {
-        log.warn(
-          "Library index reconcile failed",
-          error instanceof Error ? error : new Error(String(error))
-        );
-      });
-  };
-  setTimeout(runLibraryReconcile, 5_000).unref?.();
-  setInterval(runLibraryReconcile, 15 * 60 * 1000).unref?.();
+  // Backfill, repair and content extraction for the library index run in
+  // the indexer process (D13). Searches never wait for it: they read the
+  // index as the inline writes and this reconcile left it.
+  const indexerMode = searchIndexerMode();
+  if (indexerMode === "child") {
+    searchIndexer = superviseSearchIndexer();
+  } else if (indexerMode === "off") {
+    // No indexer: keep metadata current here. File content is not indexed.
+    const runLibraryReconcile = (): void => {
+      void reconcileLibraryIndex()
+        .then((result) => {
+          if (result.indexed + result.removed > 0) {
+            log.info("Library index reconciled", { ...result });
+          }
+        })
+        .catch((error) => {
+          log.warn(
+            "Library index reconcile failed",
+            error instanceof Error ? error : new Error(String(error))
+          );
+        });
+    };
+    setTimeout(runLibraryReconcile, 5_000).unref?.();
+    setInterval(runLibraryReconcile, 15 * 60 * 1000).unref?.();
+  }
 } catch (err) {
   log.error(
     "Database setup failed",
@@ -2293,6 +2314,7 @@ async function shutdown(signal: string): Promise<void> {
   stopGenerationReconcileWorker?.();
   stopErrorTraceMaintenance?.();
   stopPlacementSweeper?.();
+  searchIndexer?.stop();
   try {
     await triggerServices.stop();
   } catch (err) {

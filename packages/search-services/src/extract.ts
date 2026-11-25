@@ -22,7 +22,7 @@ import {
  * Bumped when the extraction below changes, so the reconcile rebuilds every
  * item that an older extraction wrote.
  */
-export const EXTRACTOR_VERSION = 1;
+export const EXTRACTOR_VERSION = 2;
 
 /** One passage of an item's text. */
 export interface ExtractedChunk {
@@ -50,7 +50,10 @@ export interface ExtractedItem {
   sourceVersion: string;
   createdAt: string;
   updatedAt: string;
+  /** Metadata chunks: title, prompt, description. */
   chunks: ExtractedChunk[];
+  /** True when the indexer has content to extract beyond the metadata. */
+  hasContent: boolean;
 }
 
 /** The asset columns extraction reads. */
@@ -113,6 +116,34 @@ const DOCUMENT_CONTENT_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.oasis.opendocument.text"
 ]);
+
+/** Whether an asset's file has a content extractor (D6). */
+export function hasAssetContentExtractor(contentType: string, name: string): boolean {
+  return assetContentFormat(contentType, name) !== null;
+}
+
+/** How an asset's file is read: as text, as Markdown, as a PDF or as a Word file. */
+export type AssetContentFormat = "text" | "markdown" | "pdf" | "docx";
+
+const DOCX_CONTENT_TYPE =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+export function assetContentFormat(contentType: string, name: string): AssetContentFormat | null {
+  const type = contentType.toLowerCase();
+  const lower = name.toLowerCase();
+  if (type === "application/pdf" || lower.endsWith(".pdf")) return "pdf";
+  if (type === DOCX_CONTENT_TYPE || lower.endsWith(".docx")) return "docx";
+  if (type === "text/markdown" || type === "text/x-markdown" || /\.(md|markdown)$/.test(lower)) {
+    return "markdown";
+  }
+  if (
+    type.startsWith("text/") ||
+    ["application/json", "application/xml", "application/x-yaml", "application/yaml"].includes(type)
+  ) {
+    return "text";
+  }
+  return null;
+}
 
 const MODEL_3D_EXTENSIONS = /\.(glb|gltf|obj|fbx|stl|usdz|ply)$/i;
 
@@ -231,7 +262,8 @@ export function extractAsset(asset: AssetSource, folderPath: string | null): Ext
     sourceVersion: assetSourceVersion(asset),
     createdAt: asset.created_at,
     updatedAt: asset.updated_at,
-    chunks
+    chunks,
+    hasContent: kind === "document" && hasAssetContentExtractor(asset.content_type, asset.name)
   };
 }
 
@@ -278,6 +310,8 @@ export function extractDocument(
     sourceVersion: doc.updated_at,
     createdAt: doc.created_at,
     updatedAt: doc.updated_at,
-    chunks: [{ field: "title", text: title }, ...descriptionChunk([description], tags)]
+    chunks: [{ field: "title", text: title }, ...descriptionChunk([description], tags)],
+    // A game's content is a folder of files, which step A6 indexes.
+    hasContent: resourceType !== "game"
   };
 }

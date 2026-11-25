@@ -25,7 +25,7 @@ import {
   toRawGraphInput,
   type RunResult
 } from "@nodetool-ai/execution";
-import { Asset, Job, Workflow, getSecret } from "@nodetool-ai/models";
+import { Job, Workflow, getSecret } from "@nodetool-ai/models";
 import {
   createGraphNodeTypeResolver,
   type NodeRegistry
@@ -221,17 +221,6 @@ export async function startHeadlessJob(
   context.setModelInterfaces({
     ...documentModelInterfaces(),
     ...textDocumentModelInterfaces(),
-    getAssetInfo: async ({ userId: ownerId, assetId }) => {
-      const asset = await Asset.find(ownerId, assetId);
-      if (!asset) return null;
-      return {
-        id: asset.id,
-        content_type: asset.content_type,
-        name: asset.name,
-        metadata: asset.metadata ?? null,
-        workspace_path: asset.workspace_path ?? null
-      };
-    },
     convertDocumentToMarkdown: async (args) => {
       const { convertDocumentBytesToMarkdown } = await import(
         "@nodetool-ai/agents/text-document-transfer"

@@ -24,7 +24,7 @@ import {
   deleteIndexedItem,
   deleteItemsById,
   writeIndexedItem,
-  writeSkippedItem
+  writeExcludedItem
 } from "./index-writer.js";
 import { extractSources, listSourceVersions, RESOURCE_TYPE_BY_MODEL } from "./sources.js";
 
@@ -33,16 +33,39 @@ const log = createLogger("nodetool.search.sync");
 /** What one reconcile did. */
 export interface ReconcileResult {
   indexed: number;
-  skipped: number;
+  excluded: number;
   removed: number;
+  /** Items left for the indexer to extract. */
+  pending: number;
+}
+
+function emptyResult(): ReconcileResult {
+  return { indexed: 0, excluded: 0, removed: 0, pending: 0 };
+}
+
+let wakeIndexer: (() => void) | null = null;
+
+/**
+ * Called whenever a write leaves work for the indexer. The server points it
+ * at the indexer child's IPC channel; the indexer itself points it at its own
+ * wait.
+ */
+export function setLibraryIndexerWake(handler: (() => void) | null): void {
+  wakeIndexer = handler;
+}
+
+/** Tell the indexer there is work, through whatever handler is set. */
+export function wakeLibraryIndexer(): void {
+  wakeIndexer?.();
 }
 
 /** Bring the items of some source rows up to date. Rows that are gone lose their items. */
 async function syncRows(
   resourceType: SearchResourceType,
   userId: string,
-  rows: ReadonlyArray<{ id: string; version: string }>,
-  result: ReconcileResult
+  rows: ReadonlyArray<{ id: string }>,
+  result: ReconcileResult,
+  priority = 0
 ): Promise<void> {
   const extracted = await extractSources(
     resourceType,
@@ -54,12 +77,13 @@ async function syncRows(
     if (item === undefined) {
       await deleteIndexedItem(userId, resourceType, row.id);
       result.removed += 1;
-    } else if (item === "skip") {
-      await writeSkippedItem(userId, resourceType, row.id, row.version);
-      result.skipped += 1;
+    } else if ("excluded" in item) {
+      await writeExcludedItem(userId, resourceType, row.id, item.sourceVersion);
+      result.excluded += 1;
     } else {
-      await writeIndexedItem(item);
+      const written = await writeIndexedItem(item, { priority });
       result.indexed += 1;
+      if (written.pending) result.pending += 1;
     }
   }
 }
@@ -72,7 +96,7 @@ async function syncRows(
 export async function reconcileLibraryIndex(
   options: { userId?: string } = {}
 ): Promise<ReconcileResult> {
-  const result: ReconcileResult = { indexed: 0, skipped: 0, removed: 0 };
+  const result = emptyResult();
   const db = getPortableDb();
   for (const resourceType of SEARCH_RESOURCE_TYPES) {
     const sources = await listSourceVersions(resourceType, options.userId);
@@ -121,6 +145,7 @@ export async function reconcileLibraryIndex(
       }
     }
   }
+  if (result.pending > 0) wakeIndexer?.();
   return result;
 }
 
@@ -182,11 +207,10 @@ async function drainPending(): Promise<void> {
       } else if (write.folder) {
         await resyncFolderDescendants(write.userId, write.id);
       } else {
-        await syncRows(write.resourceType, write.userId, [{ id: write.id, version: "" }], {
-          indexed: 0,
-          skipped: 0,
-          removed: 0
-        });
+        // A person's own change goes ahead of backfill (D14).
+        const result = emptyResult();
+        await syncRows(write.resourceType, write.userId, [{ id: write.id }], result, 2);
+        if (result.pending > 0) wakeIndexer?.();
       }
     } catch (error) {
       log.warn("Library index write failed; the reconcile will retry it", {
@@ -211,12 +235,12 @@ async function resyncFolderDescendants(userId: string, folderId: string): Promis
     }
   };
   walk(assets);
-  const counts = { indexed: 0, skipped: 0, removed: 0 };
+  const counts = emptyResult();
   for (let start = 0; start < ids.length; start += 200) {
     await syncRows(
       "asset",
       userId,
-      ids.slice(start, start + 200).map((id) => ({ id, version: "" })),
+      ids.slice(start, start + 200).map((id) => ({ id })),
       counts
     );
   }
@@ -248,16 +272,28 @@ const OWNER_RECONCILE_TTL_MS = 60_000;
 
 const reconciledAt = new WeakMap<DatabaseConnection, Map<string, number>>();
 const inFlight = new Map<string, Promise<void>>();
+/** Set by a host whose indexer or sweep reconciles the index on its own. */
+let maintained = false;
 
 /**
- * Make sure one owner's items are current before a query. A host that runs no
- * sweep, such as the CLI, still gets a complete index. The result is cached
- * per connection and owner for a minute, and the inline writes cover changes
- * made in this process meanwhile.
+ * Declare that this host keeps the index current with its own reconcile, as
+ * the server does with the indexer process or its sweep. Queries then never
+ * reconcile, so a search costs one index query however large the library.
+ */
+export function setLibraryIndexMaintained(value: boolean): void {
+  maintained = value;
+}
+
+/**
+ * Make sure one owner's items are current before a query. In a maintained
+ * host this only flushes the inline writes. A host that runs no sweep, such
+ * as the CLI, reconciles the owner first, cached per connection and owner for
+ * a minute; the inline writes cover changes made in this process meanwhile.
  */
 export async function ensureLibraryIndexed(userId: string): Promise<void> {
   startLibraryIndexWrites();
   await flushLibraryIndexWrites();
+  if (maintained) return;
   const connection = getDatabase();
   const owners = reconciledAt.get(connection) ?? new Map<string, number>();
   reconciledAt.set(connection, owners);

@@ -26,6 +26,8 @@ export const staticEntries: PageEntry[] = [
   // The landing page for "node based workflow" searches: why the graph can be
   // trusted with paid runs, with the rendered workflow reel as its hero.
   { route: "/node-based-workflows", title: "Node-based workflows", description: "Node-based workflows you can check, run, and rerun.", priority: 0.9, changeFrequency: "monthly", indexable: true },
+  // Both in-browser editor demos on one page, linked from the header.
+  { route: "/demo", title: "Live demo", description: "NodeTool's timeline editor and node editor, running in the browser.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/agents", title: "Open-source creative harness", description: "The tools, editors, and limits your AI agent works inside.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/developers", title: "For Developers", description: "Give your coding agent images, video, speech, and workflows over MCP.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/libraries/browser", title: "@nodetool-ai/browser", description: "Drive one Chrome page over CDP, headless or in your own signed-in tab.", priority: 0.6, changeFrequency: "monthly", indexable: true },

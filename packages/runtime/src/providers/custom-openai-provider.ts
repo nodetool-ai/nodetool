@@ -27,7 +27,24 @@ import {
   type ListedModelCapability,
   type ListedModelKind
 } from "./custom-model-kinds.js";
-import type { ImageModel, LanguageModel, VideoModel } from "./types.js";
+import {
+  checkImageRequest,
+  profileAspectRatios,
+  profileVideoResolutions,
+  readListedMediaProfile,
+  resolveVideoRequest,
+  type ListedMediaProfile
+} from "./custom-media-profile.js";
+import type {
+  ImageModel,
+  ImageToImageParams,
+  ImageToVideoParams,
+  InpaintingParams,
+  LanguageModel,
+  TextToImageParams,
+  TextToVideoParams,
+  VideoModel
+} from "./types.js";
 import type { ProviderCapability } from "./base-provider.js";
 
 function isCloudProfileOn(): boolean {
@@ -82,9 +99,15 @@ interface ListedModel {
   capabilities: ListedModelCapability[];
   /** True when the endpoint's own metadata or the user said so, not the id. */
   certain: boolean;
+  /** Request shapes the row declares; see `custom-media-profile.ts`. */
+  profile?: ListedMediaProfile;
 }
 
 const IMAGE_TASKS = ["text_to_image", "image_to_image"];
+
+function countImages(images: Uint8Array[]): number {
+  return images.filter((b) => b && b.length > 0).length;
+}
 const VIDEO_TASKS = ["text_to_video", "image_to_video"];
 
 export class CustomOpenAIProvider extends OpenAICompatProvider {
@@ -197,6 +220,7 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
     ]);
     const classified = rows.map((row): ListedModel => {
       const name = isString(row.name) && row.name ? row.name : row.id;
+      const profile = readListedMediaProfile(row);
       const markedKind = marked.get(row.id);
       if (markedKind) {
         return {
@@ -204,7 +228,8 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
           name,
           kind: markedKind,
           capabilities: [],
-          certain: true
+          certain: true,
+          profile
         };
       }
       const { kind, source, capability } = classifyListedModel(row);
@@ -213,7 +238,8 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
         name,
         kind,
         capabilities: capability ? [capability] : [],
-        certain: source === "metadata"
+        certain: source === "metadata",
+        profile
       };
     });
     const listed: ListedModel[] = [];
@@ -227,6 +253,7 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
         continue;
       }
       existing.certain ||= model.certain;
+      existing.profile ??= model.profile;
       for (const capability of model.capabilities) {
         if (!existing.capabilities.includes(capability)) {
           existing.capabilities.push(capability);
@@ -271,38 +298,132 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
 
   /**
    * Image models, called through `POST <base>/images/generations` and
-   * `/images/edits`. The listing says nothing about sizes, so no
-   * constraints are declared and the node's own size options apply.
+   * `/images/edits`. A row that declares a media profile narrows the picker's
+   * aspect ratios and resolutions; one that does not leaves the node's own
+   * size options in place.
    */
   override async getAvailableImageModels(): Promise<ImageModel[]> {
     const models = await this.listModels();
     return models
       .filter((m) => m.kind === "image")
-      .map(({ id, name, capabilities }) => ({
-        id,
-        name,
-        provider: this.provider,
-        supportedTasks:
-          capabilities.length > 0 ? [...capabilities] : [...IMAGE_TASKS]
-      }));
+      .map(({ id, name, capabilities, profile }) => {
+        const model: ImageModel = {
+          id,
+          name,
+          provider: this.provider,
+          supportedTasks:
+            capabilities.length > 0 ? [...capabilities] : [...IMAGE_TASKS]
+        };
+        if (profile) {
+          const aspectRatios = profileAspectRatios(profile);
+          if (aspectRatios) model.aspectRatios = aspectRatios;
+          if (profile.resolutions) model.resolutions = [...profile.resolutions];
+        }
+        return model;
+      });
   }
 
   /**
    * Video models, called through the OpenAI video API (`POST <base>/videos`,
-   * then polled). No durations or resolutions are declared, for the same
-   * reason as image sizes.
+   * then polled). A declared media profile narrows durations, resolutions
+   * and aspect ratios the same way as for images.
    */
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     const models = await this.listModels();
     return models
       .filter((m) => m.kind === "video")
-      .map(({ id, name, capabilities }) => ({
-        id,
-        name,
-        provider: this.provider,
-        supportedTasks:
-          capabilities.length > 0 ? [...capabilities] : [...VIDEO_TASKS]
-      }));
+      .map(({ id, name, capabilities, profile }) => {
+        const model: VideoModel = {
+          id,
+          name,
+          provider: this.provider,
+          supportedTasks:
+            capabilities.length > 0 ? [...capabilities] : [...VIDEO_TASKS]
+        };
+        if (profile) {
+          const aspectRatios = profileAspectRatios(profile);
+          if (aspectRatios) model.aspectRatios = aspectRatios;
+          const resolutions = profileVideoResolutions(profile);
+          if (resolutions) model.resolutions = resolutions;
+          if (profile.durations) model.durations = [...profile.durations];
+        }
+        return model;
+      });
+  }
+
+  /** The profile the listing declares for a model of this kind, if any. */
+  private async profileFor(
+    modelId: string,
+    kind: "image" | "video"
+  ): Promise<ListedMediaProfile | undefined> {
+    const models = await this.listModels();
+    return models.find((m) => m.id === modelId && m.kind === kind)?.profile;
+  }
+
+  private async checkImageProfile(
+    params: ImageToImageParams | TextToImageParams,
+    width: number | null | undefined,
+    height: number | null | undefined,
+    inputImages?: number
+  ): Promise<void> {
+    const profile = await this.profileFor(params.model.id, "image");
+    if (!profile) return;
+    checkImageRequest(params.model.id, profile, {
+      size: this.resolveImageSize(width, height),
+      aspectRatio: params.aspectRatio,
+      resolution: params.resolution,
+      inputImages
+    });
+  }
+
+  /** Refuse a size the endpoint does not list before the call is billed. */
+  override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
+    await this.checkImageProfile(params, params.width, params.height);
+    return super.textToImage(params);
+  }
+
+  override async imageToImage(
+    images: Uint8Array[],
+    params: ImageToImageParams
+  ): Promise<Uint8Array> {
+    await this.checkImageProfile(
+      params,
+      params.targetWidth,
+      params.targetHeight,
+      countImages(images)
+    );
+    return super.imageToImage(images, params);
+  }
+
+  override async inpaint(
+    images: Uint8Array[],
+    params: InpaintingParams
+  ): Promise<Uint8Array> {
+    await this.checkImageProfile(
+      params,
+      params.targetWidth,
+      params.targetHeight,
+      countImages(images)
+    );
+    return super.inpaint(images, params);
+  }
+
+  /**
+   * Send the exact size and duration the endpoint lists for the model, and
+   * refuse a request outside them. Without a declared profile the request
+   * keeps the OpenAI video defaults.
+   */
+  protected override async resolveVideoRequest(
+    params: TextToVideoParams | ImageToVideoParams
+  ): Promise<{ size: string | null; seconds: number | null }> {
+    const fallback = await super.resolveVideoRequest(params);
+    const profile = await this.profileFor(params.model.id, "video");
+    if (!profile) return fallback;
+    const exact = resolveVideoRequest(params.model.id, profile, params);
+    return {
+      size: exact.size ?? fallback.size,
+      seconds: exact.seconds ?? fallback.seconds
+    };
   }
 
   /**

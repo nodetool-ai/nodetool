@@ -46,7 +46,7 @@ export default function TimelineEditorDemo() {
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-slate-300">
               This is the editor from Studio, running in your browser with one of
-              the films above. Play it, drag the playhead, zoom the tracks, and
+              NodeTool&apos;s example films. Play it, drag the playhead, zoom the tracks, and
               select a layer. Changes don&apos;t stick here.
             </p>
           </div>

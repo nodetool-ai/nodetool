@@ -266,6 +266,8 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
       });
 
       this.wsManager.on("message", (data: unknown) => {
+        // SAFETY: the WebSocketManager emitter types "message" payloads as
+        // unknown. Every frame is a msgpack/JSON-decoded object routed by `type`.
         const message = data as WebSocketMessage;
         validateInboundMessage(message);
         if (isRendererRegistered(message)) {

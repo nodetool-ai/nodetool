@@ -127,7 +127,7 @@ function parseCursor(cursor: string | null | undefined): number {
 function itemConditions(request: LibrarySearchRequest): SQL {
   const parts: SQL[] = [
     sql`i.user_id = ${request.userId}`,
-    sql`i.state <> 'skipped'`,
+    sql`i.state <> 'excluded'`,
     // Items of a deleted project stay until the purge removes the rows.
     sql`i.project_id NOT IN (SELECT p.id FROM projects p WHERE p.deleted_at IS NOT NULL)`
   ];
