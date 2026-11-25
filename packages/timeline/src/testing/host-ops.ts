@@ -163,7 +163,7 @@ export const HOST_OP_FIXTURES: readonly HostOpFixture[] = [
     },
     context: { resolveAsset: async (ref) => sourceAsset(ref, 10000) },
     clips: [
-      { id: "clip_a", durationMs: 2000, inPointMs: 1500, outPointMs: 2000 }
+      { id: "clip_a", durationMs: 2000, inPointMs: 1500, outPointMs: 3500 }
     ]
   },
   {

@@ -23,6 +23,7 @@
  */
 
 import { z } from "zod";
+import { BLEND_MODE_TUPLE } from "../blend-modes.js";
 import { clipAudioEffect, clipFadeShapeEnum } from "./timeline.js";
 import {
   ADD_MODEL3D_CLIP_DESCRIPTION,
@@ -325,6 +326,7 @@ export const CLIP_PARAM_KEYS = [
   "durationMs",
   "inPointMs",
   "outPointMs",
+  "maxSourceDurationMs",
   "opacity",
   "transform",
   "speedMultiplier",
@@ -657,7 +659,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         durationMs: z.number().optional(),
         inPointMs: z.number().optional(),
         outPointMs: z.number().optional(),
-        fontSizePx: z.number().optional(),
+        maxSourceDurationMs: z.number().finite().positive().optional(),
+        fontSizePx: z.number().finite().positive().optional(),
         name: z.string().optional(),
         opacity: z.number().min(0).max(1).optional(),
         transform: clipTransformPatchParam,
@@ -668,8 +671,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         fadeInShape: clipFadeShapeEnum.optional(),
         fadeOutShape: clipFadeShapeEnum.optional(),
         audioEffects: z.array(clipAudioEffect).optional(),
-        blendMode: z.string().optional(),
-        borderRadius: z.number().optional(),
+        blendMode: z.enum(BLEND_MODE_TUPLE).nullable().optional(),
+        borderRadius: z.number().finite().min(0).optional(),
         hidden: z.boolean().optional(),
         muted: z.boolean().optional(),
         locked: z.boolean().optional(),

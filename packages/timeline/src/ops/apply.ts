@@ -13,16 +13,20 @@
  */
 
 import { isShortResourceId } from "@nodetool-ai/protocol";
+import { BLEND_MODE_TUPLE } from "@nodetool-ai/protocol/blend-modes";
 import type { MidiNoteParams } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   buildEffect,
   buildMask,
   buildTimeRemap,
   buildTransition,
+  captionStyleParams,
   resolveDeleteTrackArgs,
   resolveMoveTrackArgs,
   resolveShapeArg,
-  textStyleParams
+  shapeStyleParams,
+  textStyleParams,
+  textStylePatchParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   runApplyProgression,
@@ -120,11 +124,15 @@ import {
   MIDI_INSTRUMENT_PRESETS
 } from "../midi/presets.js";
 import {
+  isSourceAnchoredAnimation,
+  resliceSourceAnimations
+} from "../animation/sourceCurves.js";
+import {
   DEFAULT_TEMPO,
   rescaleClipsForTempo,
   resolveTempo
 } from "../midi/tempo.js";
-import { msToTicks } from "../midi/ticks.js";
+import { msToTicks, ticksToMs } from "../midi/ticks.js";
 import { computeModel3DBakeHash } from "../model3dBake.js";
 import {
   addReframeKeyframe,
@@ -159,6 +167,7 @@ import {
   type TranscriptEditLocks
 } from "../transcriptOps.js";
 import { retimeCaption, trimClip } from "../trimClip.js";
+import { assertNotTimeRemapped } from "../timeRemap.js";
 import { retimeClipSpeed } from "../clipSpeed.js";
 import type {
   ClipTransform,
@@ -330,6 +339,7 @@ const CLIP_PARAM_KEYS = [
   "durationMs",
   "inPointMs",
   "outPointMs",
+  "maxSourceDurationMs",
   "opacity",
   "transform",
   "speedMultiplier",
@@ -359,18 +369,83 @@ function capitalize(s: string): string {
   return s.length > 0 ? s[0]!.toUpperCase() + s.slice(1) : s;
 }
 
+const TRANSFORM_SCALAR_KEYS = new Set([
+  "rotation",
+  "rotationX",
+  "rotationY",
+  "perspective"
+]);
+const TRANSFORM_POINT_KEYS = new Set(["position", "scale", "anchor"]);
+
+function validateTransformPoint(
+  name: string,
+  value: unknown,
+  current: { x: number; y: number } | undefined,
+  fallback: number
+): { x: number; y: number } {
+  if (value === undefined) {
+    return {
+      x: current?.x ?? fallback,
+      y: current?.y ?? fallback
+    };
+  }
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error(`transform.${name} must be an object.`);
+  }
+  const obj = value as Record<string, unknown>;
+  for (const axis of ["x", "y"] as const) {
+    const coord = obj[axis];
+    if (
+      coord !== undefined &&
+      (typeof coord !== "number" || !Number.isFinite(coord))
+    ) {
+      throw new Error(`transform.${name}.${axis} must be a finite number.`);
+    }
+  }
+  return {
+    x: (obj.x as number | undefined) ?? current?.x ?? fallback,
+    y: (obj.y as number | undefined) ?? current?.y ?? fallback
+  };
+}
+
 function mergeClipTransform(
   current: ClipTransform | undefined,
   patch: ClipTransformPatch
 ): ClipTransform {
+  if (typeof patch !== "object" || patch === null || Array.isArray(patch)) {
+    throw new Error("transform must be an object.");
+  }
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+    if (TRANSFORM_POINT_KEYS.has(key)) continue;
+    if (!TRANSFORM_SCALAR_KEYS.has(key)) {
+      throw new Error(`Invalid transform field "${key}".`);
+    }
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      (key === "perspective" && value <= 0)
+    ) {
+      throw new Error(
+        key === "perspective"
+          ? "transform.perspective must be a positive finite number."
+          : `transform.${key} must be a finite number.`
+      );
+    }
+  }
   return {
-    position: { x: 0, y: 0, ...current?.position, ...patch.position },
-    scale: { x: 1, y: 1, ...current?.scale, ...patch.scale },
+    position: validateTransformPoint(
+      "position",
+      patch.position,
+      current?.position,
+      0
+    ),
+    scale: validateTransformPoint("scale", patch.scale, current?.scale, 1),
     rotation: patch.rotation ?? current?.rotation ?? 0,
     rotationX: patch.rotationX ?? current?.rotationX,
     rotationY: patch.rotationY ?? current?.rotationY,
     perspective: patch.perspective ?? current?.perspective,
-    anchor: { x: 0.5, y: 0.5, ...current?.anchor, ...patch.anchor }
+    anchor: validateTransformPoint("anchor", patch.anchor, current?.anchor, 0.5)
   };
 }
 
@@ -654,6 +729,32 @@ class OpScope {
   }
 
   /**
+   * Per-clip source limits for `clip` and every clip in its move/link unit.
+   * For a slip-only edit (`inPointMs` alone), uses `knownSourceMs` so an
+   * imported clip whose asset length is unknown is not artificially capped at
+   * its current out-point.
+   */
+  async sourceLimitsFor(
+    clip: TimelineClip,
+    options: { slipOnly?: boolean } = {}
+  ): Promise<ReadonlyMap<string, number>> {
+    const unit = moveUnitIds(this.clips, [clip.id], {
+      followLinks: this.ctx.followLinks !== false
+    });
+    const limits = new Map<string, number>();
+    for (const member of this.clips) {
+      if (!unit.has(member.id)) continue;
+      const limit = options.slipOnly
+        ? await this.knownSourceMs(member)
+        : await this.sourceLimitMs(member);
+      if (limit !== undefined) {
+        limits.set(member.id, limit);
+      }
+    }
+    return limits;
+  }
+
+  /**
    * The body of `trim_clip`, shared with `set_clip_params`: a caller that
    * sends `durationMs` alongside a style change means the same edit either
    * way, and two copies of the group-trim rule would drift.
@@ -661,7 +762,7 @@ class OpScope {
   applyTrim(
     clip: TimelineClip,
     patch: { durationMs?: number; inPointMs?: number; outPointMs?: number },
-    maxSourceMs?: number
+    maxSourceMs?: number | ReadonlyMap<string, number>
   ): TimelineClip {
     if (
       patch.durationMs === undefined &&
@@ -670,182 +771,298 @@ class OpScope {
     ) {
       return clip;
     }
-    if (patch.inPointMs !== undefined && patch.inPointMs < 0) {
+    if (
+      patch.inPointMs !== undefined &&
+      (!Number.isFinite(patch.inPointMs) || patch.inPointMs < 0)
+    ) {
       throw new Error("inPointMs cannot be negative.");
     }
-    const prospective =
-      patch.durationMs !== undefined && !isGroupClip(clip)
-        ? trimSourceBounded(
-            clip,
-            patch.durationMs - clip.durationMs,
-            maxSourceMs
-          )
-        : clip;
-    const sourceIn = patch.inPointMs ?? prospective.inPointMs ?? 0;
-    const sourceOut = patch.outPointMs ?? prospective.outPointMs;
-    if (sourceOut !== undefined && sourceOut <= sourceIn) {
-      throw new Error("outPointMs must be greater than inPointMs.");
+    if (
+      patch.outPointMs !== undefined &&
+      (!Number.isFinite(patch.outPointMs) || patch.outPointMs < 0)
+    ) {
+      throw new Error("outPointMs cannot be negative.");
     }
     if (
-      maxSourceMs !== undefined &&
-      patch.outPointMs !== undefined &&
-      patch.outPointMs > maxSourceMs
+      patch.durationMs !== undefined &&
+      (!Number.isFinite(patch.durationMs) || patch.durationMs <= 0)
     ) {
       throw new Error(
-        `outPointMs ${patch.outPointMs} is past the end of the source (${maxSourceMs}ms).`
+        `durationMs must be greater than 0 (got ${patch.durationMs}); delete the clip instead of trimming it to nothing`
       );
     }
-    if (
-      isGroupClip(clip) &&
-      (patch.inPointMs !== undefined || patch.outPointMs !== undefined)
-    ) {
+    const sourceEdit =
+      patch.inPointMs !== undefined || patch.outPointMs !== undefined;
+    if (isGroupClip(clip) && sourceEdit) {
       throw new Error(
         "Groups carry no source media; trim their duration instead."
       );
     }
     const targets = this.editTargets(clip);
-    // An in-point alone is a slip: the window keeps its length and moves
-    // through the source, so the out-point moves with it — and a linked
-    // partner slips by the same timeline amount, or picture and sound part.
-    if (
-      patch.inPointMs !== undefined &&
-      patch.durationMs === undefined &&
-      patch.outPointMs === undefined
-    ) {
-      const slipMs =
-        (patch.inPointMs - (clip.inPointMs ?? 0)) / sourceRate(clip);
-      const slipped = targets.map((target) => {
-        const inPointMs =
-          target.id === clip.id
-            ? patch.inPointMs!
-            : (target.inPointMs ?? 0) + slipMs * sourceRate(target);
-        if (inPointMs < 0) {
-          throw new Error(
-            `Linked clip "${target.name}" has no source before its in-point to slip into.`
-          );
+    const limitFor = (id: string): number | undefined =>
+      typeof maxSourceMs === "number" ? maxSourceMs : maxSourceMs?.get(id);
+    const followLinks = this.ctx.followLinks !== false;
+    const link = followLinks ? clip.linkId : undefined;
+    const deltaDuration =
+      patch.durationMs !== undefined ? patch.durationMs - clip.durationMs : 0;
+    const bpm = resolveTempo(this.state).bpm;
+
+    // A group carries what it holds (D4): shortening one pulls its children
+    // inside the window that leaves, and carries any child's linked media with
+    // it rather than separating linked A/V.
+    if (isGroupClip(clip)) {
+      const unit = new Set(targets.map((target) => target.id));
+      const members = this.clips;
+      let trimmed = [...members];
+      // Trim linked roots by the same delta, and keep each group's descendants inside it.
+      for (let j = 0; j < members.length; j += 1) {
+        const member = members[j]!;
+        if (
+          member.id !== clip.id &&
+          (link === undefined || member.linkId !== link)
+        ) {
+          continue;
         }
-        return { target, inPointMs };
-      });
-      const bpm = resolveTempo(this.state).bpm;
-      for (const { target, inPointMs } of slipped) {
-        if (target.pattern !== undefined) {
-          const basePhase =
-            (target.patternPhaseTicks ?? 0) +
-            Math.round(msToTicks(target.inPointMs ?? 0, bpm));
-          const deltaTicks = Math.round(
-            msToTicks(inPointMs - (target.inPointMs ?? 0), bpm)
-          );
-          const nextPhase = Math.max(0, basePhase + deltaTicks);
-          if (nextPhase > 0) target.patternPhaseTicks = nextPhase;
-          else delete target.patternPhaseTicks;
-          target.inPointMs = 0;
-          target.outPointMs = activeLoopMs(target) ?? target.durationMs;
+        if (trimmed[j] !== member) continue;
+        if (isGroupClip(member)) {
+          trimmed = trimGroup(trimmed, member.id, "end", deltaDuration);
         } else {
-          target.inPointMs = inPointMs;
-          // A looped clip's window is one repeat, not its whole length.
-          target.outPointMs =
-            inPointMs +
-            (activeLoopMs(target) ?? target.durationMs) * sourceRate(target);
+          if (member.durationMs + deltaDuration <= 0) {
+            throw new Error(
+              "Linked trim would remove a clip. Shorten the trim or unlink it first."
+            );
+          }
+          trimmed[j] = trimClip(member, "end", deltaDuration, undefined, bpm);
         }
-        // Words are timed on the clip's clock; the media moved under it.
-        if (target.caption) {
-          target.caption = retimeCaption(target.caption, -slipMs);
-        }
-        this.mediaTracks = resliceTracksForTrimmedClip(
-          this.mediaTracks,
-          target
-        );
-        this.touch(target.id);
       }
-      return clip;
-    }
-    if (
-      targets.length > 1 &&
-      patch.durationMs !== undefined &&
-      !isGroupClip(clip)
-    ) {
-      const delta = patch.durationMs - clip.durationMs;
-      const trimmedTargets = targets.map((target) => {
-        if (target.durationMs + delta <= 0) {
+      if (followLinks) {
+        const byLink = new Map<string, number[]>();
+        const pending: number[] = [];
+        const propagated = new Set<string>();
+        for (let j = 0; j < members.length; j += 1) {
+          const memberLink = members[j]!.linkId;
+          if (memberLink !== undefined) {
+            const bucket = byLink.get(memberLink);
+            if (bucket) bucket.push(j);
+            else byLink.set(memberLink, [j]);
+          }
+          if (trimmed[j] !== members[j]) {
+            pending.push(j);
+          }
+        }
+        // A child trimmed by the group carries its linked media with it too.
+        for (let cursor = 0; cursor < pending.length; cursor += 1) {
+          const index = pending[cursor]!;
+          const memberLink = members[index]!.linkId;
+          if (memberLink === undefined || propagated.has(memberLink)) continue;
+          propagated.add(memberLink);
+          const beforeMember = members[index]!;
+          const afterMember = trimmed[index]!;
+          const headDelta = beforeMember.startMs - afterMember.startMs;
+          const tailDelta =
+            afterMember.startMs +
+            afterMember.durationMs -
+            (beforeMember.startMs + beforeMember.durationMs);
+          for (const peer of byLink.get(memberLink) ?? []) {
+            if (trimmed[peer] !== members[peer]) continue;
+            const peerMember = members[peer]!;
+            if (isGroupClip(peerMember)) {
+              const before = [...trimmed];
+              if (headDelta !== 0) {
+                trimmed = trimGroup(trimmed, peerMember.id, "start", headDelta);
+              }
+              if (tailDelta !== 0) {
+                trimmed = trimGroup(trimmed, peerMember.id, "end", tailDelta);
+              }
+              for (let k = 0; k < trimmed.length; k += 1) {
+                if (trimmed[k] !== before[k]) {
+                  pending.push(k);
+                }
+              }
+            } else {
+              let nextPeer = trimmed[peer]!;
+              if (headDelta !== 0) {
+                nextPeer = trimClip(nextPeer, "start", headDelta, undefined, bpm);
+              }
+              if (tailDelta !== 0) {
+                nextPeer = trimClip(nextPeer, "end", tailDelta, undefined, bpm);
+              }
+              trimmed[peer] = nextPeer;
+              pending.push(peer);
+            }
+          }
+        }
+      }
+      for (let j = 0; j < trimmed.length; j += 1) {
+        const member = trimmed[j]!;
+        if (!unit.has(member.id)) continue;
+        const limit = limitFor(member.id);
+        if (
+          limit !== undefined &&
+          outPointOf(member) > limit + SOURCE_BOUND_TOLERANCE_MS
+        ) {
           throw new Error(
-            "Linked trim would remove a clip. Shorten the trim or unlink it first."
+            `Clip "${member.name}" cannot be longer than its source: the source ends at ${limit}ms.`
           );
         }
-        const trimmed =
-          target.id === clip.id
-            ? trimSourceBounded(target, delta, maxSourceMs)
-            : trimClip(target, "end", delta);
-        if (target.id === clip.id) {
-          if (patch.inPointMs !== undefined) {
-            trimmed.inPointMs = patch.inPointMs;
-          }
-          if (patch.outPointMs !== undefined) {
-            trimmed.outPointMs = patch.outPointMs;
-          }
+      }
+      this.clips = trimmed;
+      for (let j = 0; j < trimmed.length; j += 1) {
+        if (trimmed[j] !== members[j]) {
+          const changedClip = trimmed[j]!;
+          this.mediaTracks = resliceTracksForTrimmedClip(
+            this.mediaTracks,
+            changedClip
+          );
+          this.touch(changedClip.id);
         }
-        return { target, trimmed };
-      });
-      for (const { target, trimmed } of trimmedTargets) {
-        this.replaceClip(target, trimmed);
-        this.mediaTracks = resliceTracksForTrimmedClip(
-          this.mediaTracks,
-          trimmed
-        );
-        this.touch(trimmed.id);
       }
       return this.resolveClip(clip.id);
     }
-    // A group carries what it holds (D4): shortening one pulls its children
-    // inside the window that leaves, rather than leaving them hanging past an
-    // edge nothing draws.
-    if (isGroupClip(clip) && patch.durationMs !== undefined) {
-      this.clips = trimGroup(
-        this.clips,
-        clip.id,
-        "end",
-        patch.durationMs - clip.durationMs
-      );
-      const next = this.clips.find((c) => c.id === clip.id)!;
-      for (const target of targets) {
-        const trimmed = this.resolveClip(target.id);
-        this.mediaTracks = resliceTracksForTrimmedClip(
-          this.mediaTracks,
-          trimmed
-        );
-        this.touch(trimmed.id);
+
+    const effectiveIn = (member: TimelineClip): number =>
+      (member.inPointMs ?? 0) +
+      (member.pattern !== undefined
+        ? ticksToMs(member.patternPhaseTicks ?? 0, bpm)
+        : 0);
+    const sourceShiftMs =
+      patch.inPointMs !== undefined
+        ? (patch.inPointMs - effectiveIn(clip)) / sourceRate(clip)
+        : 0;
+
+    const members = this.clips;
+    const nextClips = [...members];
+    const touchedIndices: number[] = [];
+
+    for (let j = 0; j < members.length; j += 1) {
+      const original = members[j]!;
+      const primary = original.id === clip.id;
+      if (
+        !primary &&
+        (link === undefined ||
+          original.linkId !== link ||
+          (patch.inPointMs === undefined && patch.durationMs === undefined))
+      ) {
+        continue;
       }
-      this.touch(next.id);
-      return next;
-    }
-    // Through the engine, not a raw duration write: `trimClip` refuses a
-    // time-remapped clip (D13) and carries the source out-point with the edge.
-    let next = clip;
-    if (patch.durationMs !== undefined) {
-      if (patch.durationMs <= 0) {
+      if (isGroupClip(original)) {
+        throw new Error("Source edits require unlocked media clips.");
+      }
+      if (sourceEdit) {
+        assertNotTimeRemapped(original, "set_clip_params");
+      }
+
+      let member: TimelineClip = { ...original };
+      const originalAnimations = original.animations;
+      const oldIn = effectiveIn(member);
+      let nextIn =
+        patch.inPointMs === undefined
+          ? (member.inPointMs ?? 0)
+          : primary
+            ? patch.inPointMs
+            : oldIn + sourceShiftMs * sourceRate(member);
+      if (!Number.isFinite(nextIn) || nextIn < -SOURCE_BOUND_TOLERANCE_MS) {
         throw new Error(
-          `durationMs must be greater than 0 (got ${patch.durationMs}); delete the clip instead of trimming it to nothing`
+          `Linked clip "${member.name}" has no source before its in-point to slip into.`
         );
       }
-      next = this.replaceClip(
-        clip,
-        trimSourceBounded(clip, patch.durationMs - clip.durationMs, maxSourceMs)
-      );
+      nextIn = Math.max(0, nextIn);
+
+      if (patch.inPointMs !== undefined) {
+        member.inPointMs = nextIn;
+        // A looped clip's window is one repeat, not its whole length.
+        const windowMs = activeLoopMs(member) ?? member.durationMs;
+        member.outPointMs = nextIn + windowMs * sourceRate(member);
+        // Words are timed on the clip's clock; the media moved under it.
+        if (member.caption) {
+          member.caption = retimeCaption(
+            member.caption,
+            -(nextIn - oldIn) / sourceRate(member)
+          );
+        }
+      }
+
+      if (patch.durationMs !== undefined) {
+        if (member.durationMs + deltaDuration <= 0) {
+          throw new Error(
+            primary
+              ? `durationMs must be greater than 0 (got ${patch.durationMs}); delete the clip instead of trimming it to nothing`
+              : "Linked trim would remove a clip. Shorten the trim or unlink it first."
+          );
+        }
+        member = trimClip(member, "end", deltaDuration, undefined, bpm);
+      }
+
+      if (primary && patch.outPointMs !== undefined) {
+        member.outPointMs = patch.outPointMs;
+      }
+
+      if (member.outPointMs !== undefined && member.outPointMs <= nextIn) {
+        throw new Error("outPointMs must be greater than inPointMs.");
+      }
+
+      const limit = limitFor(member.id);
+      if (limit !== undefined) {
+        const outMs = outPointOf(member);
+        if (outMs > limit + SOURCE_BOUND_TOLERANCE_MS) {
+          if (
+            primary &&
+            patch.outPointMs !== undefined &&
+            patch.durationMs === undefined
+          ) {
+            throw new Error(
+              `outPointMs ${patch.outPointMs} is past the end of the source (${limit}ms).`
+            );
+          }
+          throw new Error(
+            `Clip "${member.name}" cannot be longer than its source: the source ends at ${limit}ms.`
+          );
+        }
+        if (
+          member.outPointMs !== undefined &&
+          member.outPointMs > limit &&
+          member.outPointMs - limit <= SOURCE_BOUND_TOLERANCE_MS
+        ) {
+          member.outPointMs = limit;
+        }
+      }
+
+      if (member.pattern !== undefined && patch.inPointMs !== undefined) {
+        const phase = Math.round(msToTicks(nextIn, bpm));
+        if (phase > 0) member.patternPhaseTicks = phase;
+        else delete member.patternPhaseTicks;
+        member.outPointMs = outPointOf(member) - nextIn;
+        member.inPointMs = 0;
+      }
+
+      if (sourceEdit && originalAnimations && member.animations) {
+        const finalIn = member.inPointMs ?? 0;
+        const finalOut = outPointOf(member);
+        member.animations = member.animations.map((anim, idx) => {
+          const origAnim = originalAnimations[idx];
+          if (origAnim && isSourceAnchoredAnimation(origAnim)) {
+            return resliceSourceAnimations(
+              [origAnim],
+              finalIn,
+              finalOut,
+              member.durationMs
+            )[0]!;
+          }
+          return anim;
+        });
+      }
+
+      nextClips[j] = member;
+      touchedIndices.push(j);
     }
-    if (patch.inPointMs !== undefined) {
-      next.inPointMs = patch.inPointMs;
+
+    this.clips = nextClips;
+    for (const idx of touchedIndices) {
+      const updated = nextClips[idx]!;
+      this.mediaTracks = resliceTracksForTrimmedClip(this.mediaTracks, updated);
+      this.touch(updated.id);
     }
-    if (patch.outPointMs !== undefined) {
-      next.outPointMs = patch.outPointMs;
-    }
-    if (
-      patch.durationMs !== undefined ||
-      patch.inPointMs !== undefined ||
-      patch.outPointMs !== undefined
-    ) {
-      this.touch(next.id);
-    }
-    this.mediaTracks = resliceTracksForTrimmedClip(this.mediaTracks, next);
-    return next;
+    return this.resolveClip(clip.id);
   }
 
   /**
@@ -1013,29 +1230,14 @@ class OpScope {
   }
 }
 
-/**
- * `trimClip` on the end edge, capped at the source length when one is known.
- * The refusal names the limit, which the engine's own message does not.
- */
-function trimSourceBounded(
-  clip: TimelineClip,
-  deltaMs: number,
-  maxSourceMs: number | undefined
-): TimelineClip {
-  try {
-    return trimClip(clip, "end", deltaMs, maxSourceMs);
-  } catch (error) {
-    if (
-      maxSourceMs !== undefined &&
-      error instanceof Error &&
-      error.message.includes("beyond source out-point")
-    ) {
-      throw new Error(
-        `Clip "${clip.name}" cannot be longer than its source: the source ends at ${maxSourceMs}ms.`
-      );
-    }
-    throw error;
-  }
+const SOURCE_BOUND_TOLERANCE_MS = 1e-6;
+
+function outPointOf(clip: TimelineClip): number {
+  const inPointMs = clip.inPointMs ?? 0;
+  return (
+    clip.outPointMs ??
+    inPointMs + (activeLoopMs(clip) ?? clip.durationMs) * sourceRate(clip)
+  );
 }
 
 /** CE6: set or clear the midi region parameters (D53). Null clears. */
@@ -1926,14 +2128,20 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       const headTrimmed = scope.applyHeadTrim(clip, clip.startMs - op.startMs);
       return { ok: true, clip: scope.clipOut(headTrimmed) };
     }
+    const durationMs =
+      endMs === undefined ? op.durationMs : endMs - clip.startMs;
+    const slipOnly =
+      op.inPointMs !== undefined &&
+      durationMs === undefined &&
+      op.outPointMs === undefined;
     const trimmed = scope.applyTrim(
       clip,
       {
-        durationMs: endMs === undefined ? op.durationMs : endMs - clip.startMs,
+        durationMs,
         inPointMs: op.inPointMs,
         outPointMs: op.outPointMs
       },
-      await scope.sourceLimitMs(clip)
+      await scope.sourceLimitsFor(clip, { slipOnly })
     );
     scope.mediaTracks = resliceTracksForTrimmedClip(scope.mediaTracks, trimmed);
     // A trim to a length at or under the loop window leaves nothing to repeat.
@@ -2099,10 +2307,34 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
   set_clip_params: async (scope, op) => {
     let clip = scope.resolveClip(op.target);
     const patch = { ...op.patch };
+    const rawOpMaxSource = op.maxSourceDurationMs;
+    const rawPatchMaxSource = patch.maxSourceDurationMs;
+    for (const rawLimit of [rawOpMaxSource, rawPatchMaxSource]) {
+      if (
+        rawLimit !== undefined &&
+        (typeof rawLimit !== "number" ||
+          !Number.isFinite(rawLimit) ||
+          rawLimit <= 0)
+      ) {
+        throw new Error("maxSourceDurationMs must be finite and positive.");
+      }
+    }
+    const explicitMaxSourceMs =
+      (rawOpMaxSource as number | undefined) ??
+      (rawPatchMaxSource as number | undefined);
+    delete patch.maxSourceDurationMs;
     rejectUnknownClipParams(patch);
     // Timing belongs to move_clip and trim_clip, but a caller sending it here
     // means one edit either way — so apply it through the same code rather
     // than dropping it or making them call twice.
+    const hasTrimPatch =
+      patch.durationMs !== undefined ||
+      patch.inPointMs !== undefined ||
+      patch.outPointMs !== undefined;
+    const slipOnly =
+      patch.inPointMs !== undefined &&
+      patch.durationMs === undefined &&
+      patch.outPointMs === undefined;
     clip = scope.applyTrim(
       clip,
       {
@@ -2110,23 +2342,33 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
         inPointMs: patch.inPointMs,
         outPointMs: patch.outPointMs
       },
-      patch.durationMs === undefined && patch.outPointMs === undefined
-        ? undefined
-        : await scope.sourceLimitMs(clip)
+      hasTrimPatch
+        ? (explicitMaxSourceMs ??
+            (await scope.sourceLimitsFor(clip, { slipOnly })))
+        : undefined
     );
     clip = scope.applyMove(clip, {
       startMs: patch.startMs,
       trackId: patch.trackId
     });
     if (patch.fontSizePx !== undefined) {
+      if (
+        typeof patch.fontSizePx !== "number" ||
+        !Number.isFinite(patch.fontSizePx) ||
+        patch.fontSizePx <= 0
+      ) {
+        throw new Error("fontSizePx must be a positive finite number.");
+      }
       // Shorthand for the one text field callers reach for by name.
-      const style = patch.textStyle ?? clip.textStyle;
-      if (!style) {
+      if (!patch.textStyle && !clip.textStyle) {
         throw new Error(
           `Clip "${clip.name}" carries no text to size; fontSizePx applies to a text clip's textStyle.`
         );
       }
-      patch.textStyle = { ...style, fontSizePx: patch.fontSizePx };
+      patch.textStyle = {
+        ...(patch.textStyle ?? {}),
+        fontSizePx: patch.fontSizePx
+      };
     }
     if (patch.name !== undefined) {
       clip.name = patch.name;
@@ -2170,9 +2412,25 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       clip.audioEffects = patch.audioEffects;
     }
     if (patch.blendMode !== undefined) {
-      clip.blendMode = patch.blendMode as TimelineClip["blendMode"];
+      if (patch.blendMode === null) {
+        delete clip.blendMode;
+      } else {
+        if (!(BLEND_MODE_TUPLE as readonly string[]).includes(patch.blendMode)) {
+          throw new Error(
+            `Invalid blendMode "${patch.blendMode}". Valid modes: ${BLEND_MODE_TUPLE.join(", ")}.`
+          );
+        }
+        clip.blendMode = patch.blendMode as TimelineClip["blendMode"];
+      }
     }
     if (patch.borderRadius !== undefined) {
+      if (
+        typeof patch.borderRadius !== "number" ||
+        !Number.isFinite(patch.borderRadius) ||
+        patch.borderRadius < 0
+      ) {
+        throw new Error("borderRadius must be a non-negative finite number.");
+      }
       clip.borderRadius = patch.borderRadius;
     }
     if (patch.crop !== undefined) {
@@ -2211,21 +2469,57 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       clip.locked = patch.locked;
     }
     if (patch.textStyle !== undefined) {
-      const parsed = textStyleParams.safeParse({
-        color: DEFAULT_TEXT_CLIP_COLOR,
-        ...clip.textStyle,
-        ...patch.textStyle
-      });
-      if (!parsed.success) {
+      const parsedPatch = textStylePatchParams.safeParse(patch.textStyle);
+      if (!parsedPatch.success) {
         throw new Error(
-          `Clip "${clip.name}" has no text style yet, so this patch still needs ${parsed.error.issues.map((issue) => issue.path.join(".")).join(", ")}.`
+          `Invalid textStyle on clip "${clip.name}": ${parsedPatch.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`
         );
       }
-      assertAuthorableFontFamily(parsed.data.fontFamily);
-      clip.textStyle = parsed.data;
+      if (typeof parsedPatch.data.fontFamily === "string") {
+        assertAuthorableFontFamily(parsedPatch.data.fontFamily);
+      }
+      if (!clip.textStyle) {
+        const created: Record<string, unknown> = {
+          color: DEFAULT_TEXT_CLIP_COLOR
+        };
+        for (const [key, value] of Object.entries(parsedPatch.data)) {
+          if (value !== undefined && value !== null) {
+            created[key] = value;
+          }
+        }
+        const parsedFull = textStyleParams.safeParse(created);
+        if (!parsedFull.success) {
+          throw new Error(
+            `Clip "${clip.name}" has no text style yet, so this patch still needs ${parsedFull.error.issues.map((issue) => issue.path.join(".")).join(", ")}.`
+          );
+        }
+        clip.textStyle = parsedFull.data;
+      } else {
+        const merged: NonNullable<TimelineClip["textStyle"]> = {
+          ...clip.textStyle
+        };
+        for (const key of Object.keys(parsedPatch.data) as Array<
+          keyof typeof parsedPatch.data
+        >) {
+          const value = parsedPatch.data[key];
+          if (value === undefined) continue;
+          if (value === null) {
+            delete merged[key];
+          } else {
+            Object.assign(merged, { [key]: value });
+          }
+        }
+        clip.textStyle = merged;
+      }
     }
     if (patch.shapeStyle !== undefined) {
-      clip.shapeStyle = shapeStyleWithDefaults(patch.shapeStyle);
+      const parsed = shapeStyleParams.safeParse(patch.shapeStyle);
+      if (!parsed.success) {
+        throw new Error(
+          `Invalid shapeStyle on clip "${clip.name}": ${parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`
+        );
+      }
+      clip.shapeStyle = shapeStyleWithDefaults(parsed.data);
     }
     if (patch.captionStyle !== undefined) {
       // The style rides on the clip's caption, so a clip with no words to
@@ -2234,7 +2528,23 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       if (!clip.caption) {
         throw new Error(`Clip "${clip.name}" carries no caption to style.`);
       }
-      clip.caption = { ...clip.caption, style: patch.captionStyle };
+      const parsedPatch = captionStyleParams.safeParse(patch.captionStyle);
+      if (!parsedPatch.success) {
+        throw new Error(
+          `Invalid captionStyle on clip "${clip.name}": ${parsedPatch.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`
+        );
+      }
+      if (parsedPatch.data.fontFamily !== undefined) {
+        assertAuthorableFontFamily(parsedPatch.data.fontFamily);
+      }
+      const merged: NonNullable<NonNullable<TimelineClip["caption"]>["style"]> =
+        { ...clip.caption.style };
+      for (const [key, value] of Object.entries(parsedPatch.data)) {
+        if (value !== undefined) {
+          (merged as Record<string, unknown>)[key] = value;
+        }
+      }
+      clip.caption = { ...clip.caption, style: merged };
     }
     scope.touch(clip.id);
     return { ok: true, clip: scope.clipOut(clip) };

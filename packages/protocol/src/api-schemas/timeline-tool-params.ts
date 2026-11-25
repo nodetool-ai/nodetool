@@ -183,17 +183,26 @@ export const clipOpacityParam = z
 export const clipTransformPatchParam = z
   .object({
     position: z
-      .object({ x: z.number().optional(), y: z.number().optional() })
+      .object({
+        x: z.number().finite().optional(),
+        y: z.number().finite().optional()
+      })
       .optional(),
     scale: z
-      .object({ x: z.number().optional(), y: z.number().optional() })
+      .object({
+        x: z.number().finite().optional(),
+        y: z.number().finite().optional()
+      })
       .optional(),
-    rotation: z.number().optional(),
-    rotationX: z.number().optional(),
-    rotationY: z.number().optional(),
-    perspective: z.number().positive().optional(),
+    rotation: z.number().finite().optional(),
+    rotationX: z.number().finite().optional(),
+    rotationY: z.number().finite().optional(),
+    perspective: z.number().finite().positive().optional(),
     anchor: z
-      .object({ x: z.number().optional(), y: z.number().optional() })
+      .object({
+        x: z.number().finite().optional(),
+        y: z.number().finite().optional()
+      })
       .optional()
   })
   .optional();
@@ -367,24 +376,47 @@ export function withFieldNotes<T extends z.ZodRawShape>(
  * complete description of a centred drop shadow, and demanding `offsetX: 0`
  * cost a round trip on a call that was already right.
  */
+const gradientStopParams = z.object({
+  offset: z.number().finite().min(0).max(1),
+  color: z.string()
+});
+
+export const styleFillParams = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("solid"), color: z.string() }),
+  z.object({
+    type: z.literal("linear"),
+    angle: z.number().finite(),
+    stops: z.array(gradientStopParams).min(2)
+  }),
+  z.object({
+    type: z.literal("radial"),
+    stops: z.array(gradientStopParams).min(2)
+  })
+]);
+
 const textShadowParams = z
   .object({
     color: z.string().default("#000000"),
-    blurPx: z.number().default(0),
-    offsetX: z.number().default(0).describe("Default 0."),
-    offsetY: z.number().default(0).describe("Default 0.")
+    blurPx: z.number().finite().min(0).default(0),
+    offsetX: z.number().finite().default(0).describe("Default 0."),
+    offsetY: z.number().finite().default(0).describe("Default 0.")
   })
   .strict();
 
 const textStrokeParams = z
-  .object({ color: z.string(), widthPx: z.number() })
+  .object({ color: z.string(), widthPx: z.number().finite().min(0) })
   .strict();
 
 const textBackgroundParams = z
   .object({
     color: z.string(),
-    paddingPx: z.number(),
-    radiusPx: z.number().optional().describe("Corner rounding, in sequence px.")
+    paddingPx: z.number().finite().min(0),
+    radiusPx: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Corner rounding, in sequence px.")
   })
   .strict();
 
@@ -419,26 +451,25 @@ const FONT_WEIGHT_KEYWORDS: Readonly<Record<string, number>> = {
 /** A weight written as a word (or a quoted number), as its number. */
 const writtenFontWeight = z
   .string()
-  .transform((raw) =>
-    raw
-      .trim()
-      .toLowerCase()
-      .replace(/[\s_-]/g, "")
-  )
+  .transform((raw) => raw.trim().toLowerCase())
   .refine(
-    (key) => FONT_WEIGHT_KEYWORDS[key] !== undefined || isFiniteWeight(key),
+    (raw) =>
+      FONT_WEIGHT_KEYWORDS[raw.replace(/[\s_-]/g, "")] !== undefined ||
+      isFiniteWeight(raw),
     {
-      message: `not a weight — use a number, or one of: ${Object.keys(FONT_WEIGHT_KEYWORDS).join(", ")}`
+      message: `not a weight — use a positive number, or one of: ${Object.keys(FONT_WEIGHT_KEYWORDS).join(", ")}`
     }
   )
-  .transform((key) => FONT_WEIGHT_KEYWORDS[key] ?? Number(key));
+  .transform(
+    (raw) => FONT_WEIGHT_KEYWORDS[raw.replace(/[\s_-]/g, "")] ?? Number(raw)
+  );
 
 const isFiniteWeight = (key: string): boolean =>
-  key !== "" && Number.isFinite(Number(key));
+  key !== "" && Number.isFinite(Number(key)) && Number(key) > 0;
 
 /** `fontWeight`, accepting the CSS keyword spellings as well as the number. */
 export const fontWeightParam = z
-  .union([z.number(), writtenFontWeight])
+  .union([z.number().finite().positive(), writtenFontWeight])
   .describe(
     "Numeric weight (400 regular, 600 semibold, 800 extrabold). The CSS " +
       'keywords ("bold", "semibold", …) are accepted and stored as their number.'
@@ -472,7 +503,34 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
    * Only the authoring surface is strict. Widening the document schema would
    * make an already-saved sequence carrying `"center"` fail to save.
    */
+  fontSizePx: z
+    .number()
+    .finite()
+    .positive()
+    .describe("Font size in sequence pixels, not CSS pixels."),
   fontWeight: fontWeightParam.optional(),
+  fontStyle: z
+    .enum(["normal", "italic"])
+    .optional()
+    .describe('"normal" (default) or "italic".'),
+  letterSpacingPx: z
+    .number()
+    .finite()
+    .optional()
+    .describe("Extra advance between glyphs, in sequence px. Default 0."),
+  lineHeight: z
+    .number()
+    .finite()
+    .positive()
+    .optional()
+    .describe("Line advance as a multiple of the font size. Default 1.2."),
+  maxWidthFrac: z
+    .number()
+    .finite()
+    .positive()
+    .max(1)
+    .optional()
+    .describe("Wrap width as a fraction of frame width."),
   verticalAlign: z
     .enum(["top", "middle", "bottom"])
     .optional()
@@ -495,6 +553,12 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
       "Scrim drawn behind the wrapped block: {color, paddingPx, radiusPx?}. " +
         "The rounding field is `radiusPx`, not `cornerRadius`. An 8-digit " +
         "hex or rgba() colour keeps the picture visible through it."
+    ),
+  fill: styleFillParams
+    .optional()
+    .describe(
+      'Gradient or solid fill, {type: "solid"|"linear"|"radial", ...}. ' +
+        "Wins over `color` when set."
     )
 });
 
@@ -546,7 +610,31 @@ export const partialTextStyleParams = textStyleParams
  * and a clip with no text style yet still needs the three required fields
  * before it draws anything.
  */
-export const textStylePatchParams = textStyleParams.partial();
+const textStylePatchShape = Object.fromEntries(
+  Object.entries(textStyleParams.shape).map(([key, schema]) => {
+    if (key === "text" || key === "fontSizePx" || key === "color") {
+      return [key, schema.optional()];
+    }
+    return [key, schema.nullable().optional()];
+  })
+) as {
+  [K in keyof typeof textStyleParams.shape]: K extends
+    | "text"
+    | "fontSizePx"
+    | "color"
+    ? z.ZodOptional<(typeof textStyleParams.shape)[K]>
+    : z.ZodOptional<z.ZodNullable<(typeof textStyleParams.shape)[K]>>;
+};
+export const textStylePatchParams = z.object(textStylePatchShape);
+
+const SHAPE_KIND_VALUES = [
+  "rect",
+  "ellipse",
+  "line",
+  "polygon",
+  "star",
+  "path"
+] as const;
 
 /** A shape clip's geometry and fill. */
 export const shapeStyleParams = withFieldNotes(clipShapeStyle, {
@@ -580,7 +668,115 @@ export const shapeStyleParams = withFieldNotes(clipShapeStyle, {
   // Strict for the same reason the text bags are: a geometry key spelled
   // wrong inside `shape` was stripped, and the shape drew at its default
   // somewhere else on the frame with nothing said about it.
-}).strict();
+})
+  .extend({
+    kind: z.enum(SHAPE_KIND_VALUES),
+    fill: z
+      .union([z.string(), styleFillParams])
+      .optional()
+      .describe(
+        "Solid colour string or linear/radial gradient object. Alpha belongs " +
+          "in the colour or gradient stop colours."
+      ),
+    fillStyle: styleFillParams
+      .optional()
+      .describe(
+        "Gradient or solid fill, wins over `fill` when set. A soft scrim is " +
+          '{type: "linear", angle: 90, stops: [{offset: 0, color: "#05070C00"}, ' +
+          '{offset: 1, color: "#05070CDD"}]} — the alpha lives in the stop colours.'
+      ),
+    strokeWidthPx: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Outline width in sequence pixels. Default 8."),
+    x: z
+      .number()
+      .finite()
+      .optional()
+      .describe("Left edge (or the line's first point), 0..1 of frame width."),
+    y: z
+      .number()
+      .finite()
+      .optional()
+      .describe("Top edge (or the line's first point), 0..1 of frame height."),
+    width: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Width, as a multiple of frame width (non-negative)."),
+    height: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Height, as a multiple of frame height (non-negative)."),
+    x2: z
+      .number()
+      .finite()
+      .optional()
+      .describe('kind "line" only: the second point, 0..1 of frame width.'),
+    y2: z
+      .number()
+      .finite()
+      .optional()
+      .describe('kind "line" only: the second point, 0..1 of frame height.'),
+    sides: z
+      .number()
+      .int()
+      .min(3)
+      .max(Math.floor(2147483647 / 2))
+      .optional()
+      .describe('Point count for kind "polygon" and "star".'),
+    innerRadius: z
+      .number()
+      .finite()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe('kind "star" only: inner radius as a fraction of the outer.'),
+    cornerRadius: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Corner rounding, in the same normalized units."),
+    dash: z
+      .array(z.number().finite().min(0))
+      .optional()
+      .describe(
+        "Dash pattern in normalized units, as ctx.setLineDash takes it."
+      ),
+    lineCap: z
+      .enum(["butt", "round", "square"])
+      .optional()
+      .describe('"butt", "round" or "square".'),
+    lineJoin: z
+      .enum(["miter", "round", "bevel"])
+      .optional()
+      .describe('"miter", "round" or "bevel".'),
+    trimStart: z
+      .number()
+      .finite()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe(
+        "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1."
+      ),
+    trimEnd: z
+      .number()
+      .finite()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe(
+        "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1."
+      )
+  })
+  .strict();
 
 /**
  * What `add_text_clip` and `add_shape_clip` tell the model, shared so the
@@ -797,6 +993,29 @@ export const captionStyleParams = withFieldNotes(captionStyle, {
   bottomMarginFrac:
     "Gap from the frame bottom, as a fraction of height. Default 0.12.",
   background: "Scrim behind the whole block."
+}).extend({
+  fontSizeFrac: z
+    .number()
+    .finite()
+    .positive()
+    .max(1)
+    .optional()
+    .describe("Font size as a fraction of frame height. Default 0.05."),
+  outline: textStrokeParams
+    .optional()
+    .describe("Outline under the glyphs. widthPx 0 draws none."),
+  bottomMarginFrac: z
+    .number()
+    .finite()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe(
+      "Gap from the frame bottom, as a fraction of height. Default 0.12."
+    ),
+  background: textBackgroundParams
+    .optional()
+    .describe("Scrim behind the whole block.")
 });
 
 // ── Transitions ─────────────────────────────────────────────────────────────

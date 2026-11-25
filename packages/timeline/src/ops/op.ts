@@ -33,6 +33,11 @@ import type { ClipAnimation } from "../animation/types.js";
 import type { TimelineAnimationInput } from "./types.js";
 
 type TextStyleInput = NonNullable<TimelineClip["textStyle"]>;
+type TextStylePatchInput = {
+  [K in keyof TextStyleInput]?: K extends "text" | "fontSizePx" | "color"
+    ? TextStyleInput[K]
+    : TextStyleInput[K] | null;
+};
 type ShapeStyleInput = NonNullable<TimelineClip["shapeStyle"]>;
 export type ClipTransformPatch = {
   position?: Partial<ClipTransform["position"]>;
@@ -220,12 +225,14 @@ export interface DuplicateClipOp extends BarTimeArgs {
 export interface SetClipParamsOp {
   op: "set_clip_params";
   target: string;
+  maxSourceDurationMs?: number;
   patch: Record<string, unknown> & {
     startMs?: number;
     trackId?: string;
     durationMs?: number;
     inPointMs?: number;
     outPointMs?: number;
+    maxSourceDurationMs?: number;
     fontSizePx?: number;
     name?: string;
     opacity?: number;
@@ -238,7 +245,8 @@ export interface SetClipParamsOp {
     fadeOutShape?: ClipFadeShape;
     /** Replaces the clip's whole real-time audio chain. */
     audioEffects?: ClipAudioEffect[];
-    blendMode?: string;
+    /** Null resets blendMode to the default normal compositing. */
+    blendMode?: TimelineClip["blendMode"] | null;
     borderRadius?: number;
     /** Null clears the crop and puts the whole source back. */
     crop?: ClipCrop | null;
@@ -251,7 +259,7 @@ export interface SetClipParamsOp {
     transpose?: number | null;
     velocityOffset?: number | null;
     quantize?: { grid: MidiRegionGrid; strength: number } | null;
-    textStyle?: Partial<TextStyleInput>;
+    textStyle?: TextStylePatchInput;
     shapeStyle?: ShapeStyleInput;
     captionStyle?: CaptionStyleInput;
   };

@@ -253,7 +253,7 @@ export function timeRemapAudioSegments(
  */
 export function assertNotTimeRemapped(
   clip: Pick<TimelineClip, "timeRemap">,
-  op: "splitClip" | "trimClip"
+  op: "splitClip" | "trimClip" | "set_clip_params"
 ): void {
   if (!hasTimeRemap(clip) || isHoldRemap(clip)) return;
   throw new Error(

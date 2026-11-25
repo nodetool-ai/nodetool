@@ -435,14 +435,16 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
     };
   },
   set_clip_params: (args) => {
-    const { target, ...patch } = z
+    const { target, maxSourceDurationMs, ...patch } = z
       .object({
         ...contracts.ui_timeline_set_clip_params.shape,
         textStyle: textStylePatchParams.optional()
       })
       .passthrough()
       .parse(unwrapClipParams(args));
-    return { op: "set_clip_params", target, patch };
+    return maxSourceDurationMs !== undefined
+      ? { op: "set_clip_params", target, maxSourceDurationMs, patch }
+      : { op: "set_clip_params", target, patch };
   },
   animate_clip: (args) => {
     const parsed = parseContract(contracts.ui_timeline_animate_clip, args);

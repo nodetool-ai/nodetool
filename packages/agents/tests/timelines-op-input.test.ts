@@ -905,7 +905,13 @@ describe("style bags reach every field the renderer honours", () => {
         lineJoin: "bevel",
         trimStart: 0.1,
         trimEnd: 0.8,
-        fillStyle: { type: "radial", stops: [{ offset: 0, color: "#fff" }] }
+        fillStyle: {
+          type: "radial",
+          stops: [
+            { offset: 0, color: "#fff" },
+            { offset: 1, color: "#000" }
+          ]
+        }
       }
     });
 
