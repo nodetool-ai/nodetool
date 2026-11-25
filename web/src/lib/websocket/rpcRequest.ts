@@ -24,6 +24,10 @@ interface RpcResponse extends WebSocketMessage {
 }
 
 /** A client-generated id the reply is matched on. */
+function isRpcResponse(msg: WebSocketMessage): msg is RpcResponse {
+  return msg.type === "rpc_response" && typeof msg.request_id === "string";
+}
+
 export const randomRequestId = (): string => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -57,15 +61,13 @@ export async function rpcRequest(
       reject(new DOMException("The request was aborted.", "AbortError"));
     };
     const unsubscribe = globalWebSocketManager.subscribe(requestId, (msg) => {
-      if (msg.type !== "rpc_response") return;
-      const response = msg as RpcResponse;
-      if (response.request_id !== requestId) return;
+      if (!isRpcResponse(msg) || msg.request_id !== requestId) return;
       cleanup();
-      if (response.error) {
-        reject(new Error(response.error.message ?? "RPC failed"));
+      if (msg.error) {
+        reject(new Error(msg.error.message ?? "RPC failed"));
         return;
       }
-      resolve(response.result ?? {});
+      resolve(msg.result ?? {});
     });
     if (timeoutMs !== undefined) {
       timer = setTimeout(() => {
