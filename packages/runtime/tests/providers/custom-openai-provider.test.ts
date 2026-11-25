@@ -183,20 +183,159 @@ describe("CustomOpenAIProvider", () => {
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
-  it("offers models the user marked as image or video, listed or not", async () => {
+  it("uses an exact listed capability as the only supported task", async () => {
     const fetchFn = mockChatFetch(
-      chatJsonResponse({ data: [{ id: "gpt-4o-mini" }, { id: "agnes-pro" }] })
+      chatJsonResponse({
+        data: [
+          { id: "paint-from-text", capability: "text_to_image" },
+          { id: "paint-from-image", capability: "image_to_image" },
+          { id: "clip-from-text", capability: "text_to_video" },
+          { id: "clip-from-image", capability: "image_to_video" },
+          { id: "legacy-painter", type: "image", capability: "image" },
+          { id: "legacy-clip", type: "video" }
+        ]
+      })
+    );
+    const provider = new CustomOpenAIProvider(CONFIG, { fetchFn });
+
+    const image = await provider.getAvailableImageModels();
+    const video = await provider.getAvailableVideoModels();
+
+    expect(image.map(({ id, supportedTasks }) => ({ id, supportedTasks }))).toEqual([
+      { id: "paint-from-text", supportedTasks: ["text_to_image"] },
+      { id: "paint-from-image", supportedTasks: ["image_to_image"] },
+      {
+        id: "legacy-painter",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      }
+    ]);
+    expect(video.map(({ id, supportedTasks }) => ({ id, supportedTasks }))).toEqual([
+      { id: "clip-from-text", supportedTasks: ["text_to_video"] },
+      { id: "clip-from-image", supportedTasks: ["image_to_video"] },
+      {
+        id: "legacy-clip",
+        supportedTasks: ["text_to_video", "image_to_video"]
+      }
+    ]);
+  });
+
+  it("lets an exact capability override a contradictory broad type", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({
+        data: [
+          {
+            id: "typed-video-but-image",
+            type: "video",
+            capability: "text_to_image"
+          },
+          {
+            id: "typed-image-but-video",
+            type: "image",
+            capability: "image_to_video"
+          }
+        ]
+      })
+    );
+    const provider = new CustomOpenAIProvider(CONFIG, { fetchFn });
+
+    expect(await provider.getAvailableImageModels()).toEqual([
+      {
+        id: "typed-video-but-image",
+        name: "typed-video-but-image",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_image"]
+      }
+    ]);
+    expect(await provider.getAvailableVideoModels()).toEqual([
+      {
+        id: "typed-image-but-video",
+        name: "typed-image-but-video",
+        provider: "custom_myproxy",
+        supportedTasks: ["image_to_video"]
+      }
+    ]);
+  });
+
+  it("consolidates duplicate rows by id and kind without widening exact capabilities", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({
+        data: [
+          {
+            id: "shared-painter",
+            name: "First painter name",
+            capability: "image_to_image"
+          },
+          { id: "shared-painter", name: "Ignored name", type: "image" },
+          { id: "shared-painter", capability: "image_to_image" },
+          { id: "shared-painter", capability: "text_to_image" },
+          { id: "legacy-painter", type: "image" },
+          { id: "legacy-painter", type: "image", capability: "unknown" },
+          { id: "cross-kind", capability: "text_to_image" },
+          { id: "cross-kind", capability: "text_to_video" }
+        ]
+      })
+    );
+    const provider = new CustomOpenAIProvider(CONFIG, { fetchFn });
+
+    expect(await provider.getAvailableImageModels()).toEqual([
+      {
+        id: "shared-painter",
+        name: "First painter name",
+        provider: "custom_myproxy",
+        supportedTasks: ["image_to_image", "text_to_image"]
+      },
+      {
+        id: "legacy-painter",
+        name: "legacy-painter",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      },
+      {
+        id: "cross-kind",
+        name: "cross-kind",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_image"]
+      }
+    ]);
+    expect(await provider.getAvailableVideoModels()).toEqual([
+      {
+        id: "cross-kind",
+        name: "cross-kind",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_video"]
+      }
+    ]);
+  });
+
+  it("offers manually marked models with legacy dual-task support", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({
+        data: [
+          { id: "gpt-4o-mini" },
+          { id: "agnes-pro", capability: "image_to_image" }
+        ]
+      })
     );
     const provider = new CustomOpenAIProvider(
       { ...CONFIG, _imageModels: ["agnes-pro"], _videoModels: ["agnes-motion"] },
       { fetchFn }
     );
 
-    expect((await provider.getAvailableImageModels()).map((m) => m.id)).toEqual([
-      "agnes-pro"
+    expect(await provider.getAvailableImageModels()).toEqual([
+      {
+        id: "agnes-pro",
+        name: "agnes-pro",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      }
     ]);
-    expect((await provider.getAvailableVideoModels()).map((m) => m.id)).toEqual([
-      "agnes-motion"
+    expect(await provider.getAvailableVideoModels()).toEqual([
+      {
+        id: "agnes-motion",
+        name: "agnes-motion",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_video", "image_to_video"]
+      }
     ]);
     expect(
       (await provider.getAvailableLanguageModels()).map((m) => m.id)
