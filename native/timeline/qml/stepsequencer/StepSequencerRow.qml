@@ -62,6 +62,8 @@ Item {
         property int subIndex: -1
         width: root.width
         readonly property var spec: Modes.spec(mode)
+        // Number modes draw the value as a bar from the cell floor (figure p0736).
+        readonly property bool barMode: (spec.kind === "number" || spec.kind === "rate") && mode !== "repeat"
         readonly property bool showValues: spec.kind !== "bool" && spec.kind !== "loop" &&
             (root.panel.displayValues === "all" || (root.panel.displayValues === "selected" && root.selected) || !main)
         objectName: main ? "stepLane-" + root.row.id : "stepSubLane-" + root.row.id + "-" + mode
@@ -197,11 +199,12 @@ Item {
                 spacing: Ui.Metrics.micro
                 Ui.Select {
                     objectName: "stepSubrowMode-" + root.row.id + "-" + lane.subIndex
-                    width: Ui.Metrics.xxxl * 2.4
+                    // Fits "Velocity" and "Chance" with the chevron.
+                    width: Ui.Metrics.xxxl * 3.2
                     density: Ui.EditorButton.Compact
                     accessibleName: qsTr("Subrow Mode")
                     options: Modes.MODES.filter(m => m.value !== "onOff" && Modes.supportsMode(root.row, Modes.effectiveMode(root.row, m.value)))
-                                        .map(m => ({label: m.label, value: m.value}))
+                                        .map(m => ({label: m.value === "velocity" ? qsTr("Velocity") : m.label, value: m.value}))
                     value: lane.mode === "value" ? "velocity" : lane.mode
                     onValueCommitted: next => root.panel.setSubrowMode(root.row.id, lane.subIndex, next)
                 }
@@ -242,23 +245,26 @@ Item {
                     radius: Ui.Metrics.micro
                     color: lane.mode === "loop"
                         ? (inLoop ? Qt.alpha(root.rowColor, 0.55) : Qt.alpha(root.rowColor, 0.12))
+                        : lane.barMode ? Qt.alpha(root.rowColor, on ? 0.2 : 0.08)
                         : on ? (root.row.mute ? Qt.alpha(root.rowColor, 0.45) : root.rowColor)
                              : Qt.alpha(root.rowColor, lane.main ? 0.16 : 0.1)
                     border.width: playing || selectedStep ? Ui.Metrics.focus : Ui.Metrics.border
                     border.color: playing ? Ui.Theme.textPrimary : selectedStep ? Ui.Theme.borderFocus : Qt.alpha(root.rowColor, on ? 0.9 : 0.28)
-                    // Value modes: a line at the value height (p. 736).
+                    // Value modes: a bar filled up to the value height (p. 736).
                     Rectangle {
-                        visible: lane.spec.kind === "number" || lane.spec.kind === "rate"
+                        id: valueBar
+                        visible: lane.barMode
                         readonly property var r: Modes.range(root.row, lane.mode)
                         readonly property real f: cell.preview && cell.preview.value !== undefined
                             ? (cell.preview.value - r.min) / Math.max(1e-9, r.max - r.min)
                             : Modes.fraction(root.row, cell.step, lane.mode)
-                        x: Ui.Metrics.micro
-                        width: parent.width - Ui.Metrics.micro * 2
-                        height: Ui.Metrics.micro
-                        y: (parent.height - height) * (1 - Math.max(0, Math.min(1, f)))
-                        color: cell.on ? Ui.Theme.surfaceCanvas : root.rowColor
-                        opacity: cell.on ? 0.75 : 0.9
+                        readonly property real clamped: Math.max(0, Math.min(1, f))
+                        x: Ui.Metrics.border
+                        width: parent.width - Ui.Metrics.border * 2
+                        height: Math.max(Ui.Metrics.micro, (parent.height - Ui.Metrics.border * 2) * clamped)
+                        y: parent.height - Ui.Metrics.border - height
+                        radius: Ui.Metrics.micro
+                        color: !cell.on ? Qt.alpha(root.rowColor, 0.3) : root.row.mute ? Qt.alpha(root.rowColor, 0.45) : root.rowColor
                     }
                     // Repeat: one thin bar per repeat, up to 16.
                     Row {
@@ -275,22 +281,24 @@ Item {
                         columns: 4
                         spacing: Ui.Metrics.micro
                         Repeater {
-                            model: lane.mode === "chance" && cell.on ? Math.round((cell.stepData.chance !== undefined ? cell.stepData.chance : 100) / 12.5) : 0
+                            model: lane.mode === "chance" && cell.on && !lane.barMode ? Math.round((cell.stepData.chance !== undefined ? cell.stepData.chance : 100) / 12.5) : 0
                             delegate: Rectangle { width: Ui.Metrics.micro; height: Ui.Metrics.micro; radius: Ui.Metrics.micro; color: Ui.Theme.surfaceCanvas; opacity: 0.8 }
                         }
                     }
                     Ui.Text {
-                        visible: lane.showValues || (cell.preview && cell.preview.value !== undefined)
+                        // A number shows only when it fits the cell; the bar carries the value otherwise.
+                        readonly property bool wanted: lane.showValues || (cell.preview && cell.preview.value !== undefined)
+                        visible: wanted && implicitWidth <= width
                         x: Ui.Metrics.xs
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: Ui.Metrics.micro
                         width: parent.width - Ui.Metrics.xs
-                        text: !visible ? "" : cell.preview && cell.preview.value !== undefined
+                        text: !wanted ? "" : cell.preview && cell.preview.value !== undefined
                             ? Modes.textFor(root.row, lane.mode, cell.preview.value, cell.stepData)
                             : Modes.text(root.row, cell.step, lane.mode)
                         role: Ui.Typography.MonoCaption
-                        domainColor: cell.on ? Ui.Theme.surfaceCanvas : Ui.Theme.textSecondary
-                        elide: Text.ElideRight
+                        domainColor: !cell.on ? Ui.Theme.textSecondary
+                            : !lane.barMode || valueBar.clamped > 0.4 ? Ui.Theme.surfaceCanvas : Ui.Theme.textPrimary
                         tight: true
                     }
                     // A tie join: a diamond on the left edge (SQ30).

@@ -13,6 +13,7 @@
 // --screenshot grabs the window after a few frames, saves it, and exits.
 // --dump-plan prints the FramePlan JSON at the given times (ms), no window.
 
+#include "midi/PatternOps.h"
 #include "app/CliModes.h"
 #include "motion/capturedeadline/CaptureDeadline.h"
 #include "model/TimelineJson.h"
@@ -77,6 +78,7 @@ extern "C" {
 #include <QTimer>
 #include <QFile>
 #include <QDir>
+#include <QStandardPaths>
 #include <QFileInfo>
 #include <QScreen>
 #include <QGuiApplication>
@@ -768,6 +770,9 @@ int main(int argc, char** argv) {
     nt::render2d::loadTimelineFonts();
     app.setApplicationName(QStringLiteral("nodetool-timeline"));
     app.setApplicationVersion(QStringLiteral(NT_APP_VERSION));
+    // The user step pattern library (SQ44): saved patterns and templates as JSON files.
+    nt::midi::setUserStepPatternLibraryRoot(
+        nt::midi::stepPatternLibraryRootForAppData(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)));
     const nt::server::AssetCacheRoot assetCache(nt::server::timelineCacheDirectory());
 
     QCommandLineParser parser;

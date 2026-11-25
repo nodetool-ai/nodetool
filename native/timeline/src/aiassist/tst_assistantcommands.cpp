@@ -709,7 +709,7 @@ for line in sys.stdin:
     }
     void toolsAdvertiseSchemas() {
         const auto tools = AssistantCommands::tools();
-        QCOMPARE(tools.size(), 45);
+        QCOMPARE(tools.size(), 47);
         for (const auto& name : {"ui_timeline_list_commands", "ui_timeline_run_command", "ui_timeline_read_scopes", "ui_timeline_capture_frame",
                                  "ui_timeline_music_generate", "ui_timeline_music_regenerate", "ui_timeline_music_add_instrument",
                                  "ui_timeline_get_pattern",
@@ -744,6 +744,8 @@ for line in sys.stdin:
                                  "ui_timeline_rename_step_pattern_folder",
                                  "ui_timeline_delete_step_pattern_folder",
                                  "ui_timeline_move_step_pattern",
+                                 "ui_timeline_learn_pattern_row",
+                                 "ui_timeline_step_record",
                                  "ui_timeline_list_plugins", "ui_timeline_load_plugin",
                                  "ui_timeline_list_plugin_presets", "ui_timeline_select_plugin_preset",
                                  "ui_timeline_get_plugin_parameters", "ui_timeline_set_plugin_parameters"}) {

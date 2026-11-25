@@ -4,6 +4,8 @@
 #include "midi/PatternOps.h"
 #include "model/TimelineModel.h"
 
+#include <QCoreApplication>
+#include <QDynamicPropertyChangeEvent>
 #include <QJsonArray>
 #include <QJsonObject>
 
@@ -11,6 +13,10 @@
 #include <array>
 #include <utility>
 #include <stdexcept>
+
+namespace {
+QVariantList loadLibrary();
+}  // namespace
 
 QVariant StepSequencerRowModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || index.row() < 0 || index.row() >= m_rows.size()) return {};
@@ -58,14 +64,7 @@ void StepSequencerRowModel::setPlayingSteps(const QHash<QString, int>& playing) 
 }
 
 StepSequencerLibraryModel::StepSequencerLibraryModel(const QVariantList& library, QObject* parent) : QAbstractListModel(parent) {
-    for (const auto& [kind, header] : {std::pair{QStringLiteral("pattern"), tr("Patterns")}, std::pair{QStringLiteral("template"), tr("Templates")}}) {
-        m_all.push_back(Item{header, {{"kind", kind}}});
-        for (const auto& value : library) {
-            const auto entry = value.toMap();
-            if (entry.value(QStringLiteral("kind")).toString() == kind) m_all.push_back(Item{{}, entry});
-        }
-    }
-    for (int i = 0; i < static_cast<int>(m_all.size()); ++i) m_rows.push_back(i);
+    setLibrary(library);
 }
 
 QVariant StepSequencerLibraryModel::data(const QModelIndex& index, int role) const {
@@ -85,7 +84,32 @@ QHash<int, QByteArray> StepSequencerLibraryModel::roleNames() const {
     return {{HeaderRole, "header"}, {EntryIdRole, "entryId"}, {NameRole, "name"}, {KindRole, "kind"}, {CategoryRole, "category"}};
 }
 
+void StepSequencerLibraryModel::setLibrary(const QVariantList& library) {
+    beginResetModel();
+    m_all.clear();
+    m_rows.clear();
+    for (const auto& [kind, header] : {std::pair{QStringLiteral("pattern"), tr("Patterns")}, std::pair{QStringLiteral("template"), tr("Templates")}}) {
+        m_all.push_back(Item{header, {{"kind", kind}}});
+        for (const auto& value : library) {
+            const auto entry = value.toMap();
+            if (entry.value(QStringLiteral("kind")).toString() == kind) m_all.push_back(Item{{}, entry});
+        }
+    }
+    const auto q = m_query.trimmed().toLower();
+    int header = -1;
+    bool headerAdded = false;
+    for (int i = 0; i < static_cast<int>(m_all.size()); ++i) {
+        const auto& item = m_all[static_cast<std::size_t>(i)];
+        if (!item.header.isEmpty()) { header = i; headerAdded = false; continue; }
+        if (!q.isEmpty() && !item.entry.value(QStringLiteral("search")).toString().contains(q)) continue;
+        if (!headerAdded && header >= 0) { m_rows.push_back(header); headerAdded = true; }
+        m_rows.push_back(i);
+    }
+    endResetModel();
+}
+
 void StepSequencerLibraryModel::setQuery(const QString& query) {
+    m_query = query;
     const auto q = query.trimmed().toLower();
     // Which items show: matching entries, and a header when its section has one.
     std::vector<bool> show(m_all.size(), false);
@@ -123,7 +147,18 @@ StepSequencerController::StepSequencerController(QObject* parent)
     // NOLINT(cppcoreguidelines-owning-memory): parented to this controller
     : QObject(parent), m_rowModel(new StepSequencerRowModel(this)),
       // NOLINT(cppcoreguidelines-owning-memory): parented to this controller
-      m_libraryModel(new StepSequencerLibraryModel(library(), this)) {}
+      m_libraryModel(new StepSequencerLibraryModel({}, this)) {
+    reloadLibrary();
+    if (auto* app = QCoreApplication::instance()) app->installEventFilter(this);
+}
+
+bool StepSequencerController::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == QCoreApplication::instance() && event->type() == QEvent::DynamicPropertyChange) {
+        const auto name = static_cast<QDynamicPropertyChangeEvent*>(event)->propertyName();
+        if (name == "ntStepPatternLibraryRevision" || name == "ntStepPatternLibraryRoot") reloadLibrary();
+    }
+    return QObject::eventFilter(watched, event);
+}
 
 QVariantList StepSequencerController::addRowGroups() const {
     const auto choice = [](const QString& id, const QString& label, const QJsonObject& assignment, const QString& name = {}) {
@@ -183,18 +218,46 @@ QVariantList StepSequencerController::addRowGroups() const {
                              QJsonObject{{"type", "automation"}, {"target", target}}, spec.value(u"label").toString()));
     }
     if (!params.isEmpty()) groups.append(group(QStringLiteral("instrument"), tr("Instrument"), params));
+    // Insert effects: one group per effect whose parameters the pattern stage drives.
+    const QHash<QString, QString> effectNames{{"gain", tr("Gain")}, {"eq3", tr("EQ")}, {"filter", tr("Filter")}, {"compressor", tr("Compressor")}};
+    const QHash<QString, QString> paramNames{
+        {"gainDb", tr("Gain")}, {"lowFreq", tr("Low Frequency")}, {"lowGainDb", tr("Low Gain")}, {"midFreq", tr("Mid Frequency")},
+        {"midQ", tr("Mid Q")}, {"midGainDb", tr("Mid Gain")}, {"highFreq", tr("High Frequency")}, {"highGainDb", tr("High Gain")},
+        {"frequency", tr("Frequency")}, {"q", tr("Q")}, {"thresholdDb", tr("Threshold")}, {"ratio", tr("Ratio")},
+        {"attackMs", tr("Attack")}, {"releaseMs", tr("Release")}, {"kneeDb", tr("Knee")}};
+    const auto effects = m_effects;
+    for (qsizetype i = 0; i < effects.size(); ++i) {
+        const auto effect = effects[i].toObject();
+        const auto effectType = effect.value(u"type").toString();
+        const auto effectId = effect.value(u"id").toString();
+        if (!effectNames.contains(effectType) || effectId.isEmpty()) continue;
+        const auto effectLabel = tr("%1 (Slot %2)").arg(effectNames.value(effectType)).arg(i + 1);
+        QVariantList choices;
+        const auto defaults = nt::automation::trackEffectDefaults(effectType);
+        for (auto it = defaults.begin(); it != defaults.end(); ++it) {
+            if (!it.value().isDouble()) continue;
+            const auto label = paramNames.value(it.key(), it.key());
+            choices.append(choice(QStringLiteral("effect.%1.%2").arg(effectId, it.key()), label,
+                                  QJsonObject{{"type", "automation"},
+                                              {"target", QJsonObject{{"kind", "device"}, {"deviceId", effectId}, {"param", it.key()}}}},
+                                  effectNames.value(effectType) + QStringLiteral(" ") + label));
+        }
+        if (!choices.isEmpty()) groups.append(group(QStringLiteral("effect.%1").arg(i), effectLabel, choices));
+    }
     return groups;
 }
 
 void StepSequencerController::setTimeline(TimelineModel* timeline) {
     if (m_timeline == timeline) return;
     if (m_timeline) disconnect(m_timeline, nullptr, this, nullptr);
+    setLearnMode({});
+    setStepRecording(false);
     m_timeline = timeline;
     if (m_timeline) {
         // TimelineModel emits clipsChanged and then timelineChanged for one edit;
         // timelineChanged alone covers clip, track and tempo changes.
         connect(m_timeline, &TimelineModel::timelineChanged, this, &StepSequencerController::onTimelineChanged);
-        connect(m_timeline, &TimelineModel::readOnlyChanged, this, &StepSequencerController::patternChanged);
+        connect(m_timeline, &TimelineModel::readOnlyChanged, this, &StepSequencerController::reload);
     }
     emit timelineChanged();
     reload();
@@ -202,6 +265,9 @@ void StepSequencerController::setTimeline(TimelineModel* timeline) {
 
 void StepSequencerController::setClipId(const QString& clipId) {
     if (m_clipId == clipId) return;
+    setLearnMode({});
+    setStepRecording(false);
+    setRecordStep(0);
     m_clipId = clipId;
     emit clipIdChanged();
     reload();
@@ -209,26 +275,44 @@ void StepSequencerController::setClipId(const QString& clipId) {
 
 bool StepSequencerController::editable() const { return m_valid && !m_locked && m_timeline && !m_timeline->readOnly(); }
 
-QVariantList StepSequencerController::library() const {
-    static const QVariantList entries = [] {
+QVariantList StepSequencerController::library() const { return m_library; }
+
+namespace {
+// Factory entries (parsed once) then the user library entries.
+QVariantList loadLibrary() {
+    const auto entryOf = [](const QJsonObject& e, const QString& source, const QString& category) {
+        return QVariantMap{{"id", e.value(u"id").toString()},
+                           {"name", e.value(u"name").toString()},
+                           {"kind", e.value(u"kind").toString(QStringLiteral("pattern"))},
+                           {"category", category},
+                           {"tags", e.value(u"tags").toArray().toVariantList()},
+                           {"source", source},
+                           {"folder", e.value(u"folder").toString()},
+                           {"search", QStringList{e.value(u"id").toString(), e.value(u"name").toString(), category,
+                                                  e.value(u"tags").toVariant().toStringList().join(u' ')}
+                                          .join(u' ')
+                                          .toLower()}};
+    };
+    static const QVariantList factory = [&entryOf] {
         QVariantList out;
         for (const auto& value : nt::midi::factoryStepPatternLibrary()) {
             const auto e = value.toObject();
-            out.append(QVariantMap{{"id", e.value(u"id").toString()},
-                                   {"name", e.value(u"name").toString()},
-                                   {"kind", e.value(u"kind").toString(QStringLiteral("pattern"))},
-                                   {"category", e.value(u"category").toString()},
-                                   {"tags", e.value(u"tags").toArray().toVariantList()},
-                                   {"search", QStringList{e.value(u"id").toString(), e.value(u"name").toString(),
-                                                          e.value(u"category").toString(),
-                                                          e.value(u"tags").toVariant().toStringList().join(u' ')}
-                                                  .join(u' ')
-                                                  .toLower()}});
+            out.append(entryOf(e, QStringLiteral("factory"), e.value(u"category").toString()));
         }
         return out;
     }();
-    return entries;
+    auto out = factory;
+    if (nt::midi::userStepPatternLibraryRoot().isEmpty()) return out;
+    const auto listed = nt::midi::runStepPatternOp({}, QStringLiteral("list_step_patterns"), {});
+    for (const auto& value : listed.result.value(u"entries").toArray()) {
+        const auto e = value.toObject();
+        if (e.value(u"source").toString() != u"user") continue;
+        const auto folder = e.value(u"folder").toString();
+        out.append(entryOf(e, QStringLiteral("user"), folder.isEmpty() ? QObject::tr("User") : QObject::tr("User · %1").arg(folder)));
+    }
+    return out;
 }
+}  // namespace
 
 void StepSequencerController::onTimelineChanged() {
     // Skip edits that leave this clip and its track alone (TimelineModel tracks
@@ -267,13 +351,16 @@ void StepSequencerController::reload() {
     m_trackName.clear();
     m_trackColor.clear();
     const auto previousInstrument = m_instrument;
+    const auto previousEffects = m_effects;
     m_instrument = {};
+    m_effects = {};
     m_trackRaw = trackRaw();
     if (midi && !m_trackRaw.isEmpty()) {
         m_locked = m_locked || m_trackRaw.value(u"locked").toBool();
         m_trackName = m_trackRaw.value(u"name").toString();
         m_trackColor = m_trackRaw.value(u"color").toString();
         m_instrument = m_trackRaw.value(u"instrument").toObject();
+        m_effects = m_trackRaw.value(u"effects").toArray();
     }
     m_tempoDoc = tempoDoc();
     const auto pattern = m_valid ? nt::midi::normalizePattern(raw.value(u"pattern").toObject()) : QJsonObject{};
@@ -306,11 +393,13 @@ void StepSequencerController::reload() {
         }
         m_patternText = nt::midi::patternToText(pattern, m_instrument);
     }
+    setRecordStep(m_recordStep);
+    if (!editable()) { setLearnMode({}); setStepRecording(false); }
     m_rowModel->setRows(rows);
     m_spansDirty = true;
     if (m_playheadMs >= 0) setPlayheadMs(m_playheadMs);
     emit patternChanged();
-    if (m_instrument != previousInstrument) emit addRowGroupsChanged();
+    if (m_instrument != previousInstrument || m_effects != previousEffects) emit addRowGroupsChanged();
 }
 
 void StepSequencerController::setLastError(const QString& error) {
@@ -330,6 +419,9 @@ QVariantMap StepSequencerController::runOps(const QVariantList& ops) {
     };
     if (!m_timeline) return failWith(tr("No timeline."));
     if (ops.isEmpty()) return failWith(tr("No step sequencer edit."));
+    // Ops that leave the document alone: reads and user library file edits.
+    static const QSet<QString> kLibraryOps{"get_pattern", "list_step_patterns", "save_step_pattern", "create_step_pattern_folder",
+                                           "rename_step_pattern_folder", "delete_step_pattern_folder", "move_step_pattern"};
     std::vector<std::pair<QString, QJsonObject>> calls;
     bool readOnlyOps = true;
     for (const auto& value : ops) {
@@ -340,10 +432,10 @@ QVariantMap StepSequencerController::runOps(const QVariantList& ops) {
             payload.insert(QStringLiteral("clipId"), m_clipId);
         }
         const QString canonical = nt::midi::canonicalStepPatternOp(op);
-        readOnlyOps = readOnlyOps && (canonical == u"get_pattern" || canonical == u"list_step_patterns" || canonical == u"save_step_pattern");
+        readOnlyOps = readOnlyOps && kLibraryOps.contains(canonical);
         // An op on this clip needs a pattern or MIDI clip that is not locked. An op
         // that names another clip or a track runs its own lock checks.
-        if (!canonical.isEmpty() && canonical != u"get_pattern" && canonical != u"list_step_patterns" && canonical != u"save_step_pattern" &&
+        if (!canonical.isEmpty() && !kLibraryOps.contains(canonical) &&
             !m_clipId.isEmpty() && payload.value(u"clipId").toString() == m_clipId && (m_locked || (!m_valid && !m_convertible))) {
             return failWith(tr("This pattern is locked or read-only."));
         }
@@ -414,3 +506,77 @@ void StepSequencerController::setPlayheadMs(double ms) {
 int StepSequencerController::playingStep(const QString& rowId, double ms) { return stepAt(rowId, ms); }
 
 QString StepSequencerController::noteName(int pitch) const { return nt::midi::stepNoteName(pitch); }
+
+void StepSequencerController::reloadLibrary() {
+    const auto next = loadLibrary();
+    if (next == m_library) return;
+    m_library = next;
+    m_libraryModel->setLibrary(m_library);
+    emit libraryChanged();
+}
+
+void StepSequencerController::setLearnMode(const QString& mode) {
+    const QString next = editable() && (mode == u"add" || mode == u"assign") ? mode : QString();
+    if (!next.isEmpty()) setStepRecording(false);
+    if (m_learnMode == next) return;
+    m_learnMode = next;
+    emit learnModeChanged();
+}
+
+QVariantMap StepSequencerController::learnNote(int pitch, const QString& rowId) {
+    if (m_learnMode.isEmpty()) return {{"ok", false}, {"error", tr("Learn is off.")}};
+    QVariantMap args{{"mode", m_learnMode}, {"pitch", pitch}};
+    if (m_learnMode == u"assign") args.insert("row", rowId);
+    return runOp(QStringLiteral("learn_pattern_row"), args);
+}
+
+QVariantMap StepSequencerController::learnController(const QVariantMap& target, const QString& rowId) {
+    if (m_learnMode.isEmpty()) return {{"ok", false}, {"error", tr("Learn is off.")}};
+    QVariantMap args{{"mode", m_learnMode}, {"controller", target}};
+    if (m_learnMode == u"assign") args.insert("row", rowId);
+    return runOp(QStringLiteral("learn_pattern_row"), args);
+}
+
+void StepSequencerController::setStepRecording(bool on) {
+    on = on && editable();
+    if (on) setLearnMode({});
+    if (m_stepRecording == on) return;
+    m_stepRecording = on;
+    m_heldNotes.clear();
+    m_chordNotes.clear();
+    emit stepRecordingChanged();
+}
+
+void StepSequencerController::setRecordStep(int step) {
+    const int length = std::max(1, m_settings.value(QStringLiteral("lengthSteps")).toInt());
+    const int next = std::clamp(step, 0, length - 1);
+    if (m_recordStep == next) return;
+    m_recordStep = next;
+    emit recordStepChanged();
+}
+
+void StepSequencerController::stepRecordNoteOn(int pitch, int velocity) {
+    if (!m_stepRecording || !editable() || pitch < 0 || pitch > 127) return;
+    m_heldNotes.insert(pitch);
+    m_chordNotes.insert(pitch, std::clamp(velocity, 1, 127));
+}
+
+void StepSequencerController::stepRecordNoteOff(int pitch) {
+    if (!m_stepRecording || !m_heldNotes.remove(pitch) || !m_heldNotes.isEmpty() || m_chordNotes.isEmpty()) return;
+    QVariantList ops;
+    for (auto it = m_chordNotes.cbegin(); it != m_chordNotes.cend(); ++it) {
+        ops.append(QVariantMap{{"op", "step_record"}, {"args", QVariantMap{{"step", m_recordStep + 1},
+                     {"pitches", QVariantList{it.key()}}, {"velocity", it.value()}}}});
+    }
+    m_chordNotes.clear();
+    const auto result = runOps(ops);
+    if (!result.value(QStringLiteral("ok")).toBool()) return;
+    const int length = std::max(1, m_settings.value(QStringLiteral("lengthSteps")).toInt());
+    setRecordStep((m_recordStep + 1) % length);
+}
+
+QVariantMap StepSequencerController::savePattern(const QString& name, const QString& kind, const QString& folder) {
+    QVariantMap args{{"name", name}, {"kind", kind}};
+    if (!folder.isEmpty()) args.insert("folder", folder);
+    return runOp(QStringLiteral("save_step_pattern"), args);
+}

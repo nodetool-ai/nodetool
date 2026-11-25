@@ -70,6 +70,7 @@ Rectangle {
     property string lastValueMode: "velocity"
     onEditModeChanged: if (editMode !== "onOff") lastValueMode = editMode === "value" ? "velocity" : editMode
     property string selectedRowId: ""
+    onSelectedRowIdChanged: if (!selectedRowId && controller.learnMode === "assign") controller.learnMode = ""
     property var selectedSteps: []          // [{row, step}]
     property int keyModifiers: Qt.NoModifier
     property var clipboard: null            // {kind: "steps"|"row", clipId, row, steps, cut}
@@ -483,6 +484,18 @@ Rectangle {
         case "nextPage": showPage(page + 1 >= Math.ceil(maxLength / 16) ? 0 : page + 1); return true
         case "nextMode": cycleMode(1); return true
         case "previousMode": cycleMode(-1); return true
+        case "learnAdd": if (editable) controller.learnMode = "add"; return true
+        case "learnAssign": if (editable && selectedRowId) controller.learnMode = "assign"; return true
+        case "learnOff": controller.learnMode = ""; return true
+        case "stepRecord": if (editable) controller.stepRecording = !controller.stepRecording; return true
+        case "savePattern": case "saveTemplate": {
+            const kind = id === "saveTemplate" ? "template" : "pattern"
+            if (!editable) return true
+            saveDialog.patternKind = kind
+            saveField.value = String(settings.name || "").trim() || controller.clipName.trim() || qsTr("Pattern")
+            saveDialog.open()
+            return true
+        }
         case "convertToMidi": op("convert_pattern_to_midi", {clipIds: [controller.clipId]}); return true
         case "convertToPattern": op("convert_midi_to_pattern", {clipIds: [controller.clipId]}); return true
         }
@@ -491,6 +504,7 @@ Rectangle {
         if (id.indexOf("patternPlayback:") === 0) { op("set_pattern", {playback: id.slice(16)}); return true }
         if (id.indexOf("rowPlayback:") === 0) { if (selectedRowId) op("set_pattern_row", {row: selectedRowId, playback: id.slice(12)}); return true }
         if (id.indexOf("addRow:") === 0) { addRow(id.slice(7)); return true }
+        if (id.indexOf("length:") === 0) { op("set_pattern", {lengthSteps: Number(id.slice(7))}); return true }
         return false
     }
     // Transpose the selection, else the selected row, else the pattern (SQ35).
@@ -707,6 +721,15 @@ Rectangle {
                 }
             }
         }
+        Rectangle {
+            objectName: "stepSequencerRecordMarker"
+            x: grid.x + root.headerWidth + root.stepX(controller.recordStep) - root.scrollX
+            y: grid.y
+            width: Ui.Metrics.focus
+            height: grid.height
+            color: Ui.Theme.borderFocus
+            visible: controller.stepRecording && x >= grid.x + root.headerWidth && x < grid.x + grid.width
+        }
         Ui.EmptyState {
             anchors.centerIn: grid
             width: Math.min(grid.width - Ui.Metrics.xxl, Ui.Metrics.dialogCompactWidth)
@@ -759,6 +782,36 @@ Rectangle {
     function openStepMenu(rowId, step, item, x, y) {
         if (!isStepSelected(rowId, step)) selectStep(rowId, step, false)
         stepMenu.popupAt(item, x, y)
+    }
+    Ui.Dialog {
+        id: saveDialog
+        objectName: "stepSequencerSaveDialog"
+        property string patternKind: "pattern"
+        title: patternKind === "template" ? qsTr("Save Template") : qsTr("Save Pattern")
+        returnFocusTo: root
+        width: Math.min(Ui.Metrics.dialogCompactWidth, parent ? parent.width : Ui.Metrics.dialogCompactWidth)
+        onOpened: saveField.forceActiveFocus(Qt.PopupFocusReason)
+        Column {
+            width: parent ? parent.width : Ui.Metrics.panelWidth
+            spacing: Ui.Metrics.md
+            Ui.TextField {
+                id: saveField
+                objectName: "stepSequencerSaveName"
+                width: parent.width
+                accessibleName: qsTr("Pattern Name")
+                onAccepted: saveDialog.save(text)
+            }
+            Ui.EditorButton {
+                text: qsTr("Save")
+                enabled: saveField.text.trim() !== ""
+                onClicked: saveDialog.save(saveField.text)
+            }
+        }
+        function save(name) {
+            if (!visible || !String(name).trim()) return
+            const result = controller.savePattern(String(name).trim(), patternKind, "")
+            if (result.ok) close()
+        }
     }
     Ui.Dialog {
         id: renameDialog

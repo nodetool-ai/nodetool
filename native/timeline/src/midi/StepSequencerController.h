@@ -3,9 +3,12 @@
 #include "midi/PatternExpand.h"
 
 #include <QAbstractListModel>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QObject>
+#include <QMap>
 #include <QPointer>
+#include <QSet>
 #include <QVariantList>
 #include <QVariantMap>
 #include <QtQmlIntegration/qqmlintegration.h>
@@ -47,10 +50,13 @@ class StepSequencerLibraryModel : public QAbstractListModel {
   public:
     enum Role { HeaderRole = Qt::UserRole + 1, EntryIdRole, NameRole, KindRole, CategoryRole };
     explicit StepSequencerLibraryModel(const QVariantList& library, QObject* parent = nullptr);
+    QString query() const { return m_query; }
     int rowCount(const QModelIndex& parent = {}) const override { return parent.isValid() ? 0 : static_cast<int>(m_rows.size()); }
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
     void setQuery(const QString& query);
+    // Replaces every entry after a library change (a save, a folder edit): a reset.
+    void setLibrary(const QVariantList& library);
 
   private:
     struct Item {
@@ -59,6 +65,7 @@ class StepSequencerLibraryModel : public QAbstractListModel {
     };
     std::vector<Item> m_all;
     std::vector<int> m_rows;  // Indices into m_all, in order.
+    QString m_query;
 };
 
 // The Step Sequencer's view of one pattern region (web StepSequencer.tsx). It
@@ -92,16 +99,25 @@ class StepSequencerController : public QObject {
     Q_PROPERTY(QAbstractItemModel* rowModel READ rowModel CONSTANT)
     Q_PROPERTY(QString patternText READ patternText NOTIFY patternChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
-    // Factory patterns and templates: id, name, kind, category, tags. Parsed once.
-    Q_PROPERTY(QVariantList library READ library CONSTANT)
+    // Factory and user patterns and templates: id, name, kind, category, tags,
+    // source, folder. Factory entries are parsed once; user entries reload after
+    // a library op.
+    Q_PROPERTY(QVariantList library READ library NOTIFY libraryChanged)
     // The browser rows after setLibraryQuery: header, entryId, name, kind, category.
     Q_PROPERTY(QAbstractItemModel* libraryModel READ libraryModel CONSTANT)
     // The Add Row and row assignment choices (web stepRowAssignments.ts):
     // [{id, label, choices: [{id, label, name, assignment}]}]. Kit, drums, notes,
-    // melodic, degrees, controllers and instrument parameters.
+    // melodic, degrees, controllers, instrument parameters and the parameters of
+    // each insert effect (group ids `effect.<slot>`).
     Q_PROPERTY(QVariantList addRowGroups READ addRowGroups NOTIFY addRowGroupsChanged)
     // Timeline time in ms of the playhead, or negative when nothing plays.
     Q_PROPERTY(double playheadMs READ playheadMs WRITE setPlayheadMs NOTIFY playheadMsChanged)
+    // Learn (SQ38): "" (off), "add" or "assign". learnNote and learnController act only while on.
+    Q_PROPERTY(QString learnMode READ learnMode WRITE setLearnMode NOTIFY learnModeChanged)
+    // Step recording (SQ40): notes turn on recordStep (0-based); the release of
+    // the last held note moves it on.
+    Q_PROPERTY(bool stepRecording READ stepRecording WRITE setStepRecording NOTIFY stepRecordingChanged)
+    Q_PROPERTY(int recordStep READ recordStep WRITE setRecordStep NOTIFY recordStepChanged)
 
   public:
     explicit StepSequencerController(QObject* parent = nullptr);
@@ -143,6 +159,20 @@ class StepSequencerController : public QObject {
     // The 0-based step of `rowId` that plays at timeline time `ms`, or -1.
     Q_INVOKABLE int playingStep(const QString& rowId, double ms);
     Q_INVOKABLE QString noteName(int pitch) const;
+    QString learnMode() const { return m_learnMode; }
+    void setLearnMode(const QString& mode);
+    bool stepRecording() const { return m_stepRecording; }
+    void setStepRecording(bool on);
+    int recordStep() const { return m_recordStep; }
+    void setRecordStep(int step);
+    // A played note in Learn mode: add its row, or assign it to `rowId` (SQ38).
+    Q_INVOKABLE QVariantMap learnNote(int pitch, const QString& rowId = {});
+    // A controller in Learn mode: {kind: cc, cc} | {kind: pitchBend} | {kind: channelPressure}.
+    Q_INVOKABLE QVariantMap learnController(const QVariantMap& target, const QString& rowId = {});
+    Q_INVOKABLE void stepRecordNoteOn(int pitch, int velocity);
+    Q_INVOKABLE void stepRecordNoteOff(int pitch);
+    // Saves this pattern to the user library (SQ43) and reloads the browser.
+    Q_INVOKABLE QVariantMap savePattern(const QString& name, const QString& kind, const QString& folder = {});
     // Reloads the clip this many times since construction (for tests).
     Q_INVOKABLE int reloadCount() const { return m_reloadCount; }
 
@@ -154,10 +184,18 @@ class StepSequencerController : public QObject {
     void playheadMsChanged();
     // The track instrument changed, so the Add Row menus rebuild only then.
     void addRowGroupsChanged();
+    void libraryChanged();
+    void learnModeChanged();
+    void stepRecordingChanged();
+    void recordStepChanged();
+
+  protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
   private:
     void onTimelineChanged();
     void reload();
+    void reloadLibrary();
     void setLastError(const QString& error);
     void ensureSpans();
     QJsonObject tempoDoc() const;
@@ -176,6 +214,7 @@ class StepSequencerController : public QObject {
     QString m_trackName;
     QString m_trackColor;
     QJsonObject m_instrument;
+    QJsonArray m_effects;  // The track's insert effects, for the Add Row menu.
     QVariantMap m_settings;
     QString m_patternText;
     QString m_lastError;
@@ -185,5 +224,11 @@ class StepSequencerController : public QObject {
     nt::midi::PatternStepSpans m_spans;
     bool m_spansDirty = true;
     double m_playheadMs = -1;
+    QString m_learnMode;
+    bool m_stepRecording = false;
+    int m_recordStep = 0;
+    QSet<int> m_heldNotes;
+    QMap<int, int> m_chordNotes;
+    QVariantList m_library;
     int m_reloadCount = 0;
 };

@@ -280,7 +280,9 @@ private slots:
             "ui_timeline_create_step_pattern_folder",
             "ui_timeline_rename_step_pattern_folder",
             "ui_timeline_delete_step_pattern_folder",
-            "ui_timeline_move_step_pattern"};
+            "ui_timeline_move_step_pattern",
+            "ui_timeline_learn_pattern_row",
+            "ui_timeline_step_record"};
         const QStringList expectedPlugins{"ui_timeline_list_plugins", "ui_timeline_load_plugin", "ui_timeline_list_plugin_presets",
                                           "ui_timeline_select_plugin_preset", "ui_timeline_get_plugin_parameters", "ui_timeline_set_plugin_parameters"};
         QCOMPARE(names, expectedMusic + expectedPattern + expectedPlugins);

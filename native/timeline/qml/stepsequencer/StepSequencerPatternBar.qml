@@ -15,13 +15,19 @@ Rectangle {
     readonly property var settings: panel.settings
     readonly property string mode: panel.editMode
     // Add Row: one submenu per assignment group (web stepRowAssignments.ts).
-    readonly property var addEntries: panel.sequencer.addRowGroups.map(g => ({
+    // Learn (SQ38) first: the next played note or controller adds or assigns a row.
+    readonly property var addEntries: [
+        {id: "learnAdd", label: qsTr("Learn (Add)")},
+        {id: "learnAssign", label: qsTr("Learn (Assign)"), enabled: panel.selectedRowId !== ""},
+        {separator: true}
+    ].concat(panel.sequencer.addRowGroups.map(g => ({
         id: "group-" + g.id, label: g.label,
         submenu: g.choices.map((c, i) => ({id: "addRow:" + g.id + ":" + i, label: c.label}))
-    }))
-    // Length sections: multiples of 4, 3, 5 and 7 up to 64 (SQ7, p. 731).
+    })))
+    // Length sections: 1 and 2 steps, then multiples of 4, 3, 5 and 7 up to 64 (SQ7, p. 731).
     readonly property var lengthEntries: {
-        const out = []
+        const out = [{header: qsTr("Short")}]
+        for (const n of [1, 2]) out.push({id: "length:" + n, label: n === 1 ? qsTr("1 Step") : qsTr("%1 Steps").arg(n), checked: n === (settings.lengthSteps || 16)})
         for (const base of [4, 3, 5, 7]) {
             out.push({header: qsTr("%1 Based").arg(base)})
             for (let n = base; n <= 64; n += base) out.push({id: "length:" + n, label: qsTr("%1 Steps").arg(n), checked: n === (settings.lengthSteps || 16)})
@@ -33,8 +39,23 @@ Rectangle {
         height: parent.height
         spacing: Ui.Metrics.xs
         leftPadding: Ui.Metrics.md
+        // Learn replaces Add Row while it listens; a click stops it.
+        Ui.EditorButton {
+            objectName: "stepSequencerLearn"
+            visible: root.panel.sequencer.learnMode !== ""
+            anchors.verticalCenter: parent.verticalCenter
+            density: Ui.EditorButton.Compact
+            // Quiet while it listens: a neutral button with a red record dot.
+            variant: Ui.EditorButton.Default
+            iconName: "statusDot"
+            iconColor: Ui.Theme.statusError
+            text: root.panel.sequencer.learnMode === "add" ? qsTr("Learn (Add)") : qsTr("Learn (Assign)")
+            description: qsTr("Play a note or move a controller. Click to stop.")
+            onClicked: root.panel.runAction("learnOff")
+        }
         Ui.MenuButton {
             objectName: "stepSequencerAddRow"
+            visible: root.panel.sequencer.learnMode === ""
             anchors.verticalCenter: parent.verticalCenter
             density: Ui.EditorButton.Compact
             variant: Ui.EditorButton.Flat
@@ -73,6 +94,19 @@ Rectangle {
         Tool { glyph: "autoFixHigh"; tip: qsTr("Randomize Pattern"); onClicked: root.panel.runAction("randomizeAll") }
         Tool { glyph: "closeOutlined"; tip: qsTr("Clear Pattern"); onClicked: root.panel.runAction("clearPatternMode") }
         Item { width: Ui.Metrics.md; height: 1 }
+        Ui.NumberField {
+            objectName: "stepSequencerRecordCursor"
+            visible: root.panel.sequencer.stepRecording
+            anchors.verticalCenter: parent.verticalCenter
+            width: Ui.Metrics.xxxl * 2
+            density: Ui.EditorButton.Compact
+            accessibleName: qsTr("Step Input Position")
+            unit: qsTr("Step")
+            from: 1
+            to: root.settings.lengthSteps || 16
+            value: root.panel.sequencer.recordStep + 1
+            onValueCommitted: next => root.panel.sequencer.recordStep = Math.round(next) - 1
+        }
         Ui.Text {
             objectName: "stepSequencerPatternName"
             anchors.verticalCenter: parent.verticalCenter
@@ -91,7 +125,7 @@ Rectangle {
         anchors.horizontalCenterOffset: Ui.Metrics.xxxl * 2
         anchors.verticalCenter: parent.verticalCenter
         spacing: Ui.Metrics.xs
-        visible: root.panel.sequencer.valid
+        visible: root.panel.sequencer.valid && !root.panel.sequencer.stepRecording
         Repeater {
             model: Math.ceil(root.panel.maxLength / 16)
             delegate: Rectangle {
@@ -140,11 +174,11 @@ Rectangle {
         anchors.rightMargin: Ui.Metrics.md
         anchors.verticalCenter: parent.verticalCenter
         density: Ui.EditorButton.Compact
-        text: qsTr("%1 Steps").arg(root.settings.lengthSteps || 16)
+        text: (root.settings.lengthSteps || 16) === 1 ? qsTr("1 Step") : qsTr("%1 Steps").arg(root.settings.lengthSteps || 16)
         accessibleName: qsTr("Pattern Length")
         enabled: root.editable
         menu: lengthMenu
-        Ui.ContextMenu { id: lengthMenu; entries: root.lengthEntries; onEntryTriggered: id => root.panel.op("set_pattern", {lengthSteps: Number(id.slice(7))}) }
+        Ui.ContextMenu { id: lengthMenu; entries: root.lengthEntries; onEntryTriggered: id => root.panel.runAction(id) }
     }
     Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.border; color: Ui.Theme.borderSubtle }
 

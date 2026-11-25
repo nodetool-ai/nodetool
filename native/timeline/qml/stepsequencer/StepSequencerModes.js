@@ -212,7 +212,7 @@ var ROW_PALETTE = ["#22d3ee", "#50fa7b", "#ffb86c", "#e879f9", "#4f7cc4", "#ff5c
 
 function rowColor(row, index) {
     if (row.color && /^#[0-9a-fA-F]{6}$/.test(row.color)) return row.color
-    return ROW_PALETTE[index % ROW_PALETTE.length]
+    return ROW_PALETTE[Math.max(0, index) % ROW_PALETTE.length]
 }
 
 // Step indices from a to b inclusive, in either order.

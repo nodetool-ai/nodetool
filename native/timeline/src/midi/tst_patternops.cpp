@@ -6,7 +6,12 @@
 
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QDir>
+#include <QFile>
+#include <QJsonDocument>
+#include <QTemporaryDir>
 #include <QtTest>
+#include <future>
 
 using namespace nt::midi;
 
@@ -136,7 +141,7 @@ private slots:
 
     void reviewF10SchemasAreStrict() {
         const auto tools = stepPatternAssistantTools();
-        QCOMPARE(tools.size(), 32);
+        QCOMPARE(tools.size(), 34);
         for (const auto& tool : tools) {
             const auto params = tool.toMap().value("parameters").toMap();
             QVERIFY2(params.value("additionalProperties").toBool() == false, qPrintable(tool.toMap().value("name").toString()));
@@ -268,6 +273,271 @@ private slots:
         QVERIFY(!out.ok);
         QVERIFY(out.error.contains("does not support folder operations"));
         QVERIFY(!run("move_step_pattern", {{"pattern", "x"}}).ok);
+    }
+    // S-F32: a new sound drops the row's old name, so the label follows the sound.
+    void sf32ReassignDropsStaleName() {
+        auto out = run("set_pattern_row", {{"row", "r1"}, {"assignment", QJsonObject{{"type", "note"}, {"pitch", 50}}}});
+        QVERIFY2(out.ok, qPrintable(out.error));
+        QVERIFY(!rowOf(out.nextDocument, "r1").contains("name"));
+        out = run("set_pattern_row", {{"row", "r1"}, {"assignment", QJsonObject{{"type", "note"}, {"pitch", 38}}}, {"name", "Snare"}});
+        QCOMPARE(rowOf(out.nextDocument, "r1").value("name").toString(), QString("Snare"));
+        out = run("set_pattern_row", {{"row", "r1"}, {"mute", true}});
+        QCOMPARE(rowOf(out.nextDocument, "r1").value("name").toString(), QString("Kick"));
+    }
+
+    // SQ38: Learn (Add) adds a row for an unknown note once; Learn (Assign) sets the row's sound.
+    void sq38LearnAddsRowOnce() {
+        auto kitDoc = document();
+        auto tracks = kitDoc["tracks"].toArray();
+        auto track = tracks[0].toObject();
+        const QJsonObject kit{{"type", "drum"}, {"pads", QJsonArray{QJsonObject{{"name", "Kick"}}, QJsonObject{{"name", "Rim"}}, QJsonObject{{"name", "Snare"}}}}};
+        track["instrument"] = kit;
+        tracks[0] = track;
+        kitDoc["tracks"] = tracks;
+        auto out = run("learn_pattern_row", {{"pitch", 38}}, kitDoc);
+        QVERIFY2(out.ok, qPrintable(out.error));
+        QVERIFY(out.mutated);
+        auto rows = patternOf(out.nextDocument).value("rows").toArray();
+        QCOMPARE(rows.size(), 4);
+        bool snare = false;
+        for (const auto& r : rows) snare = snare || rowLabel(r.toObject(), kit) == u"Snare";
+        QVERIFY(snare);
+        out = run("learn_pattern_row", {{"pitch", 38}}, out.nextDocument);
+        QVERIFY2(out.ok, qPrintable(out.error));
+        QVERIFY(!out.mutated);
+        QVERIFY(!out.result.value("added").toBool());
+        out = run("learn_pattern_row", {{"controller", QJsonObject{{"kind", "cc"}, {"cc", 11}}}});
+        QVERIFY(out.mutated);
+        QCOMPARE(patternOf(out.nextDocument).value("rows").toArray().last().toObject().value("assignment").toObject().value("type").toString(), QString("automation"));
+        out = run("learn_pattern_row", {{"mode", "assign"}, {"row", "r1"}, {"pitch", 40}});
+        QVERIFY2(out.ok, qPrintable(out.error));
+        QCOMPARE(rowOf(out.nextDocument, "r1").value("assignment").toObject().value("pitch").toInt(), 40);
+        QVERIFY(!rowOf(out.nextDocument, "r1").contains("name"));
+    }
+
+    // SQ40: a three-note chord turns on three rows at one step and moves on once.
+    void sq3bN2LearnSoundingPitch() {
+        auto doc = document();
+        doc["key"] = QJsonObject{{"tonic", 2}, {"mode", "major"}};
+        auto clips = doc["clips"].toArray();
+        auto clip = clips[0].toObject();
+        auto pat = clip["pattern"].toObject();
+        pat["key"] = QJsonObject{{"tonic", 0}, {"mode", "major"}};
+        pat["pitchSource"] = "key";
+        pat["noTranspose"] = false;
+        clip["pattern"] = pat;
+        clips[0] = clip;
+        doc["clips"] = clips;
+        const auto learned = run("learn_pattern_row", {{"pitch", 60}}, doc);
+        QVERIFY2(learned.ok, qPrintable(learned.error));
+        const auto learnedPattern = patternOf(learned.nextDocument);
+        const auto rows = learnedPattern["rows"].toArray();
+        const auto sounding = stepPitch(rows.last().toObject(), {{"on", true}},
+                                       {{"pattern", learnedPattern}, {"key", doc["key"]}});
+        QVERIFY(sounding.has_value());
+        QCOMPARE(*sounding, 60);
+        const auto repeated = run("learn_pattern_row", {{"pitch", 60}}, learned.nextDocument);
+        QVERIFY(repeated.ok);
+        QVERIFY(!repeated.result["added"].toBool());
+        QCOMPARE(patternOf(repeated.nextDocument)["rows"].toArray().size(), rows.size());
+        const auto assigned = run("learn_pattern_row", {{"mode", "assign"}, {"row", "r1"}, {"pitch", 60}}, doc);
+        QVERIFY(assigned.ok);
+        QCOMPARE(stepPitch(rowOf(assigned.nextDocument, "r1"), {{"on", true}},
+                           {{"pattern", patternOf(assigned.nextDocument)}, {"key", doc["key"]}}).value_or(-1), 60);
+        const auto recorded = run("step_record", {{"step", 2}, {"pitches", QJsonArray{60}}}, learned.nextDocument);
+        QVERIFY(recorded.ok);
+        QCOMPARE(patternOf(recorded.nextDocument)["rows"].toArray().size(), rows.size());
+    }
+
+    void sq3bN1RecordShortRow() {
+        const auto shortened = run("set_pattern_row", {{"row", "r1"}, {"lengthSteps", 4}});
+        QVERIFY(shortened.ok);
+        const auto out = run("step_record", {{"step", 6}, {"pitches", QJsonArray{36}}, {"velocity", 91}}, shortened.nextDocument);
+        QVERIFY2(out.ok, qPrintable(out.error));
+        QCOMPARE(out.result.value("nextStep").toInt(), 7);
+        const auto row = rowOf(out.nextDocument, "r1");
+        QCOMPARE(row.value("lengthSteps").toInt(), 4);
+        QCOMPARE(row.value("steps").toArray()[1].toObject().value("velocity").toInt(), 91);
+    }
+
+    void sq40StepRecordChord() {
+        const auto out = run("step_record", {{"step", 4}, {"pitches", QJsonArray{36, 38, 42}}, {"velocity", 90}});
+        QVERIFY2(out.ok, qPrintable(out.error));
+        QCOMPARE(out.result.value("nextStep").toInt(), 5);
+        const auto rows = patternOf(out.nextDocument).value("rows").toArray();
+        QCOMPARE(rows.size(), 5);
+        int on = 0;
+        for (const auto& r : rows) {
+            const auto s = r.toObject().value("steps").toArray().at(3).toObject();
+            if (s.value("on").toBool()) {
+                ++on;
+                QCOMPARE(s.value("velocity").toInt(), 90);
+            }
+        }
+        QCOMPARE(on, 3);
+    }
+
+    void cleanup() { setUserStepPatternLibraryRoot({}); }
+
+    void sq3bS2UnsafeFolders_data() {
+        QTest::addColumn<QString>("folder");
+        QTest::newRow("drive") << QString("C:/escape");
+        QTest::newRow("absolute") << QString("/escape");
+        QTest::newRow("control") << QString("bad\nname");
+    }
+    void sq3bS2UnsafeFolders() {
+        QFETCH(QString, folder);
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(!run("save_step_pattern", {{"name", "Beat"}, {"kind", "pattern"}, {"folder", folder}}).ok);
+    }
+    void sq3bS2Symlink() {
+        QTemporaryDir dir, outside;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(QDir().mkpath(dir.filePath("Patterns")));
+        QVERIFY(QFile::link(outside.path(), dir.filePath("Patterns/escape")));
+        QVERIFY(!run("save_step_pattern", {{"name", "Beat"}, {"kind", "pattern"}, {"folder", "escape"}}).ok);
+    }
+    void sq3bS3EmojiIsVisible() {
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(run("save_step_pattern", {{"name", "🥁"}, {"kind", "pattern"}}).ok);
+        QCOMPARE(run("list_step_patterns", {{"query", "🥁"}}).result["entries"].toArray().size(), 1);
+    }
+    void sq3bS3HiddenFolder() {
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(!run("create_step_pattern_folder", {{"name", ".drafts"}, {"kind", "pattern"}}).ok);
+    }
+    void sq3bS4FailedSavePreservesOriginal() {
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(run("save_step_pattern", {{"name", "Beat"}, {"kind", "pattern"}, {"folder", "Original"}}).ok);
+        QFile blocked(dir.filePath("Patterns/blocked"));
+        QVERIFY(blocked.open(QIODevice::WriteOnly));
+        blocked.close();
+        QVERIFY(!run("save_step_pattern", {{"name", "Beat"}, {"kind", "pattern"}, {"folder", "blocked"}}).ok);
+        QVERIFY(QFile::exists(dir.filePath("Patterns/Original/beat.json")));
+    }
+    void sq3bS5CollisionPreservesBoth() {
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        const auto first = run("save_step_pattern", {{"name", "Beat"}, {"kind", "pattern"}, {"folder", "Grooves"}});
+        const auto second = run("save_step_pattern", {{"name", "Beat"}, {"kind", "pattern"}, {"folder", "Fills"}});
+        QVERIFY(first.ok && second.ok);
+        QVERIFY(first.result["id"] != second.result["id"]);
+        QVERIFY(QFile::exists(dir.filePath("Patterns/Grooves/beat.json")));
+    }
+    void sq3bS7LiteralFolder() {
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(run("create_step_pattern_folder", {{"name", "Step Patterns"}, {"kind", "pattern"}}).ok);
+        QVERIFY(run("create_step_pattern_folder", {{"name", "Drums"}, {"parentFolder", "Step Patterns"}, {"kind", "pattern"}}).ok);
+        QVERIFY(run("save_step_pattern", {{"name", "Beat"}, {"kind", "pattern"}, {"folder", "Step Patterns/Drums"}}).ok);
+        QVERIFY(QFile::exists(dir.filePath("Patterns/Step Patterns/Drums/beat.json")));
+    }
+    void sq3bS7SingleName() {
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(!run("create_step_pattern_folder", {{"name", "Step Patterns/x/Drums"}, {"kind", "pattern"}}).ok);
+    }
+    void sq3bS10CaseRenameAndMove() {
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(run("save_step_pattern", {{"name", "Beat"}, {"kind", "pattern"}, {"folder", "drums"}}).ok);
+        QVERIFY(run("rename_step_pattern_folder", {{"folder", "drums"}, {"newName", "Drums"}, {"kind", "pattern"}}).ok);
+        QVERIFY(run("move_step_pattern", {{"pattern", "user:pattern:beat"}, {"folder", "drums"}}).ok);
+    }
+    void sq3bS11HiddenContents() {
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(QDir().mkpath(dir.filePath("Patterns/Drums")));
+        QFile hidden(dir.filePath("Patterns/Drums/.DS_Store"));
+        QVERIFY(hidden.open(QIODevice::WriteOnly));
+        hidden.close();
+        const auto out = run("delete_step_pattern_folder", {{"folder", "Drums"}, {"kind", "pattern"}});
+        QVERIFY(!out.ok);
+        QVERIFY(out.error.contains("not empty"));
+    }
+    void sq3bS15ShortKit() {
+        auto doc = document();
+        auto tracks = doc["tracks"].toArray();
+        auto track = tracks[0].toObject();
+        track["instrument"] = QJsonObject{{"type", "drum"}, {"pads", QJsonArray{QJsonObject{}, QJsonObject{}, QJsonObject{}}}};
+        tracks[0] = track;
+        doc["tracks"] = tracks;
+        const auto out = run("learn_pattern_row", {{"pitch", 40}}, doc);
+        QVERIFY2(out.ok, qPrintable(out.error));
+        QCOMPARE(patternOf(out.nextDocument)["rows"].toArray().last().toObject()["assignment"].toObject()["type"].toString(), QString("note"));
+    }
+    void sq3bS15ScaleMatching() {
+        auto doc = document();
+        auto clips = doc["clips"].toArray();
+        auto clip = clips[0].toObject();
+        auto pat = clip["pattern"].toObject();
+        pat["scaleQuantize"] = true;
+        pat["scale"] = "major";
+        pat["key"] = QJsonObject{{"tonic", 0}, {"mode", "major"}};
+        auto rows = pat["rows"].toArray();
+        auto r = rows[1].toObject();
+        r["assignment"] = QJsonObject{{"type", "melodic"}, {"pitch", 61}};
+        rows[1] = r;
+        pat["rows"] = rows;
+        clip["pattern"] = pat;
+        clips[0] = clip;
+        doc["clips"] = clips;
+        const auto pitch = stepPitch(r, {{"on", true}}, {{"pattern", pat}});
+        QVERIFY(pitch.has_value());
+        const int learnedPitch = pitch.value_or(-1);
+        QVERIFY(learnedPitch != 61);
+        const auto out = run("learn_pattern_row", {{"pitch", learnedPitch}}, doc);
+        QVERIFY(out.ok);
+        QCOMPARE(patternOf(out.nextDocument)["rows"].toArray().size(), rows.size());
+    }
+
+    void sq3bS9EmptyAppData() { QVERIFY(stepPatternLibraryRootForAppData({}).isEmpty()); }
+
+    void sq3bS12WorkerLibraryRejected() {
+        const auto out = std::async(std::launch::async, [] { return run("list_step_patterns", {}); }).get();
+        QVERIFY(!out.ok);
+        QVERIFY(out.error.contains("thread"));
+    }
+
+    void sq3bS18WhitespaceReference() {
+        QTemporaryDir dir;
+        setUserStepPatternLibraryRoot(dir.path());
+        QVERIFY(QDir().mkpath(dir.filePath("Patterns")));
+        QFile file(dir.filePath("Patterns/unnamed.json"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(QJsonDocument(QJsonObject{{"id", "user:pattern:unnamed"}, {"pattern", patternOf(document())}}).toJson());
+        file.close();
+        QVERIFY(!run("move_step_pattern", {{"pattern", "   "}, {"folder", "Moved"}}).ok);
+    }
+
+    // SQ43, SQ44: a saved pattern lists, loads equal, and moves between folders.
+    void userLibraryRoundTrip() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        setUserStepPatternLibraryRoot(dir.path());
+        auto out = run("save_step_pattern", {{"name", "My Beat"}, {"kind", "pattern"}, {"folder", "Drums"}});
+        QVERIFY2(out.ok, qPrintable(out.error));
+        out = run("list_step_patterns", {{"folder", "Drums"}});
+        auto entries = out.result.value("entries").toArray();
+        QCOMPARE(entries.size(), 1);
+        QCOMPARE(entries.at(0).toObject().value("source").toString(), QString("user"));
+        QVERIFY(out.result.value("folders").toArray().contains(QJsonValue("Drums")));
+        const auto id = entries.at(0).toObject().value("id").toString();
+        out = run("apply_step_pattern", {{"clipId", "d"}, {"pattern", id}});
+        QVERIFY2(out.ok, qPrintable(out.error));
+        QCOMPARE(patternOf(out.nextDocument, "d").value("rows"), patternOf(document()).value("rows"));
+        QVERIFY(run("create_step_pattern_folder", {{"name", "Fills"}, {"kind", "pattern"}}).ok);
+        out = run("move_step_pattern", {{"pattern", id}, {"folder", "Fills"}});
+        QVERIFY2(out.ok, qPrintable(out.error));
+        QCOMPARE(run("list_step_patterns", {{"folder", "Fills"}}).result.value("entries").toArray().size(), 1);
+        QVERIFY(!run("delete_step_pattern_folder", {{"folder", "Fills"}, {"kind", "pattern"}}).ok);
+        QVERIFY(run("rename_step_pattern_folder", {{"folder", "Drums"}, {"newName", "Kits"}, {"kind", "pattern"}}).ok);
+        QVERIFY(run("delete_step_pattern_folder", {{"folder", "Kits"}, {"kind", "pattern"}}).ok);
+        setUserStepPatternLibraryRoot({});
     }
 };
 

@@ -1,7 +1,7 @@
-// The Pattern Browser (SQ43): search, then the Patterns and Templates sections.
-// Choosing an entry replaces the open pattern through apply_step_pattern, one
-// undo entry. Factory entries only: user patterns live in the asset library,
-// which the native app does not list yet. UI thread only.
+// The Pattern Browser (SQ43): search, Save Pattern and Save Template, then the
+// Patterns and Templates sections with factory and user entries. Choosing an
+// entry replaces the open pattern through apply_step_pattern, one undo entry.
+// User entries are files of the user library (SQ44). UI thread only.
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.UiPrimitives as Ui
@@ -28,10 +28,33 @@ Rectangle {
         onValuePreviewed: next => root.query = next
         onValueCommitted: next => root.query = next
     }
+    Row {
+        id: actions
+        x: Ui.Metrics.md
+        y: search.y + search.height + Ui.Metrics.sm
+        spacing: Ui.Metrics.xs
+        Ui.EditorButton {
+            objectName: "stepSequencerBrowserSave"
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
+            iconName: "saveOutlined"
+            text: qsTr("Save Pattern")
+            enabled: root.panel.sequencer.valid
+            onClicked: root.panel.runAction("savePattern")
+        }
+        Ui.EditorButton {
+            objectName: "stepSequencerBrowserSaveTemplate"
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
+            text: qsTr("Save Template")
+            enabled: root.panel.sequencer.valid
+            onClicked: root.panel.runAction("saveTemplate")
+        }
+    }
     ListView {
         id: list
         objectName: "stepSequencerBrowserList"
-        y: search.y + search.height + Ui.Metrics.sm
+        y: actions.y + actions.height + Ui.Metrics.sm
         width: parent.width
         height: parent.height - y
         clip: true

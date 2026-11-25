@@ -118,6 +118,7 @@ Rectangle {
         Icon { objectName: "stepSequencerBrowserToggle"; iconName: "queueMusic"; tip: qsTr("Pattern Browser"); active: root.panel.browserVisible; onClicked: root.panel.runAction("browser") }
         Icon { objectName: "stepSequencerInspectorToggle"; iconName: "tune"; tip: qsTr("Inspector"); active: root.panel.inspectorVisible; onClicked: root.panel.runAction("inspector") }
         Divider {}
+        Icon { objectName: "stepSequencerStepRecord"; iconName: "keyboard"; tip: qsTr("Step Input (MIDI In)"); active: root.panel.sequencer.stepRecording; enabled: root.editable; onClicked: root.panel.runAction("stepRecord") }
         Icon { objectName: "stepSequencerMono"; iconName: "filterCenterFocus"; tip: qsTr("Mono Mode"); active: !!root.panel.settings.mono; enabled: root.editable; onClicked: root.panel.runAction("mono") }
         Divider {}
         Ui.EditorButton {

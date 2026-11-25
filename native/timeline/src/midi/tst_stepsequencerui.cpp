@@ -3,6 +3,7 @@
 #include "app/EditRegistry.h"
 #include "midi/PatternExpand.h"
 #include "midi/PatternOps.h"
+#include "midi/StepSequencerController.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
@@ -18,6 +19,7 @@
 #include <QQuickWindow>
 #include <QRegularExpression>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QUndoStack>
 #include <QtTest>
 
@@ -150,6 +152,133 @@ Item {
         root.reset();
         window.reset();
         engine.reset();
+    }
+
+    void sq3bS1RecordCursor() {
+        sequencer()->setProperty("stepRecording", true);
+        sequencer()->setProperty("recordStep", 5);
+        QTRY_VERIFY(item("stepSequencerRecordCursor") && item("stepSequencerRecordCursor")->isVisible());
+        QCOMPARE(item("stepSequencerRecordCursor")->property("value").toInt(), 6);
+        QVERIFY(item("stepSequencerRecordMarker") && item("stepSequencerRecordMarker")->isVisible());
+        QMetaObject::invokeMethod(item("stepSequencerRecordCursor"), "valueCommitted", Q_ARG(double, 3));
+        QCOMPARE(sequencer()->property("recordStep").toInt(), 2);
+    }
+    void sq3bS5SaveAsksForName() {
+        call("runAction", "savePattern");
+        const auto dialogs = root->findChildren<QObject*>("stepSequencerSaveDialog");
+        QVERIFY(!dialogs.isEmpty());
+        QVERIFY(dialogs.first()->property("visible").toBool());
+    }
+
+    void sq3bS6ClampAfterShrink() {
+        sequencer()->setProperty("stepRecording", true);
+        sequencer()->setProperty("recordStep", 5);
+        QVERIFY(op("set_pattern", {{"lengthSteps", 2}})["ok"].toBool());
+        QVERIFY(sequencer()->property("recordStep").toInt() < 2);
+    }
+    void sq3bS8ChordUndo() {
+        sequencer()->setProperty("stepRecording", true);
+        const int before = model.undoStack()->count();
+        for (int p : {36, 38, 50}) QMetaObject::invokeMethod(sequencer(), "stepRecordNoteOn", Q_ARG(int, p), Q_ARG(int, 100));
+        for (int p : {36, 38, 50}) QMetaObject::invokeMethod(sequencer(), "stepRecordNoteOff", Q_ARG(int, p));
+        QCOMPARE(model.undoStack()->count(), before + 1);
+    }
+    void sq3bS8InvalidNoteDoesNotHoldChord() {
+        sequencer()->setProperty("stepRecording", true);
+        QMetaObject::invokeMethod(sequencer(), "stepRecordNoteOn", Q_ARG(int, 999), Q_ARG(int, 100));
+        QMetaObject::invokeMethod(sequencer(), "stepRecordNoteOn", Q_ARG(int, 36), Q_ARG(int, 100));
+        QMetaObject::invokeMethod(sequencer(), "stepRecordNoteOff", Q_ARG(int, 36));
+        QCOMPARE(sequencer()->property("recordStep").toInt(), 1);
+    }
+    void sq3bS13PrefixedReadDoesNotRefresh() {
+        QSignalSpy changes(sequencer(), SIGNAL(libraryChanged()));
+        QVERIFY(op("ui_timeline_list_step_patterns", {})["ok"].toBool());
+        QCOMPARE(changes.count(), 0);
+    }
+    void sq3bS13ExternalSaveRefreshes() {
+        QTemporaryDir dir;
+        nt::midi::setUserStepPatternLibraryRoot(dir.path());
+        QSignalSpy changes(sequencer(), SIGNAL(libraryChanged()));
+        const auto doc = QJsonDocument::fromJson(model.documentJson()).object();
+        QVERIFY(nt::midi::runStepPatternOp(doc, "save_step_pattern", {{"clipId", "c"}, {"name", "External"}, {"kind", "pattern"}}).ok);
+        QTRY_VERIFY(changes.count() > 0);
+        nt::midi::setUserStepPatternLibraryRoot({});
+    }
+    void sq3bS13MixedBatchRefreshes() {
+        QTemporaryDir dir;
+        nt::midi::setUserStepPatternLibraryRoot(dir.path());
+        auto* controller = qobject_cast<StepSequencerController*>(sequencer());
+        QVERIFY(controller);
+        const auto result = controller->runOps({
+            QVariantMap{{"op", "set_pattern"}, {"args", QVariantMap{{"name", "Mixed"}}}},
+            QVariantMap{{"op", "save_step_pattern"}, {"args", QVariantMap{{"name", "Mixed"}, {"kind", "pattern"}}}}});
+        bool found = false;
+        for (const auto& entry : controller->library()) found = found || entry.toMap()["name"] == "Mixed";
+        nt::midi::setUserStepPatternLibraryRoot({});
+        QVERIFY(result["ok"].toBool());
+        QVERIFY(found);
+    }
+    void sq3bS14ReadOnlyClearsModes() {
+        sequencer()->setProperty("stepRecording", true);
+        model.setReadOnly(true);
+        const bool recording = sequencer()->property("stepRecording").toBool();
+        call("runAction", "learnAdd");
+        const auto mode = sequencer()->property("learnMode").toString();
+        model.setReadOnly(false);
+        QVERIFY(!recording);
+        QVERIFY(mode.isEmpty());
+    }
+
+    void sq3bS14ExclusiveModes() {
+        call("runAction", "learnAdd");
+        sequencer()->setProperty("stepRecording", true);
+        QVERIFY(sequencer()->property("learnMode").toString().isEmpty());
+    }
+    void sq3bS14ClipChangeClearsModes() {
+        call("runAction", "learnAdd");
+        sequencer()->setProperty("clipId", "missing");
+        QVERIFY(sequencer()->property("learnMode").toString().isEmpty());
+        call("runAction", "stepRecord");
+        QVERIFY(!sequencer()->property("stepRecording").toBool());
+    }
+    void sq3bS14AssignNeedsSelection() {
+        panel()->setProperty("selectedRowId", "");
+        call("runAction", "learnAssign");
+        QVERIFY(sequencer()->property("learnMode").toString().isEmpty());
+    }
+    void sq3bS17ConstructorLoadsOnce() {
+        QFile source(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("StepSequencerController.cpp"));
+        QVERIFY(source.open(QIODevice::ReadOnly));
+        const auto text = QString::fromUtf8(source.readAll());
+        const auto ctor = text.section("StepSequencerController::StepSequencerController(QObject* parent)", 1)
+                              .section("bool StepSequencerController::eventFilter", 0, 0)
+                              .section("QVariantList StepSequencerController::addRowGroups", 0, 0);
+        QVERIFY(!ctor.isEmpty());
+        QCOMPARE(ctor.count(QRegularExpression(QStringLiteral("\\b(?:loadLibrary|reloadLibrary)\\("))), 1);
+    }
+
+    void sq3bS16FilteredResetNeverShowsUnfiltered() {
+        StepSequencerLibraryModel lib({QVariantMap{{"kind", "pattern"}, {"name", "Kick"}, {"search", "kick"}},
+                                       QVariantMap{{"kind", "pattern"}, {"name", "Snare"}, {"search", "snare"}}});
+        lib.setQuery("kick");
+        int rowsAtReset = -1;
+        connect(&lib, &QAbstractItemModel::modelReset, &lib, [&lib, &rowsAtReset] { rowsAtReset = lib.rowCount(); });
+        lib.setLibrary({QVariantMap{{"kind", "pattern"}, {"name", "Kick"}, {"search", "kick"}},
+                        QVariantMap{{"kind", "pattern"}, {"name", "Snare"}, {"search", "snare"}}});
+        QCOMPARE(rowsAtReset, 2);
+    }
+
+    void sq3bS16LargeFilteredLibrary() {
+        QVariantList entries;
+        entries.reserve(10000);
+        for (int i = 0; i < 10000; ++i) entries.append(QVariantMap{{"kind", "pattern"}, {"search", i % 2 == 0 ? "kick" : "snare"}});
+        StepSequencerLibraryModel lib(entries);
+        lib.setQuery("kick");
+        QCOMPARE(lib.rowCount(), 5001);
+        lib.setLibrary(entries);
+        QCOMPARE(lib.rowCount(), 5001);
+        lib.setQuery("");
+        QCOMPARE(lib.rowCount(), 10001);
     }
 
     // SQ55: every edit a person makes has a native assistant tool.
@@ -445,6 +574,107 @@ Item {
     // F12: the unused step pattern edit is not registered.
     void noUnusedStepPatternEdit() { QVERIFY(!nt::app::findEdit(QStringLiteral("midi.stepPatternOp"))); }
 
+    // S-F31: the Length select offers 1 and 2 steps.
+    void lengthOffersOneAndTwoSteps() {
+        QStringList lengths;
+        for (const auto& e : item("stepSequencerPatternBar")->property("lengthEntries").toList()) lengths << e.toMap()["id"].toString();
+        QVERIFY(lengths.contains("length:1"));
+        QVERIFY(lengths.contains("length:2"));
+        call("runAction", "length:1");
+        QTRY_COMPARE(pattern()["lengthSteps"].toInt(), 1);
+    }
+
+    // S-F32: a row reassigned to another sound shows that sound's name.
+    void reassignedRowShowsNewName() {
+        panel()->setProperty("selectedRowId", "k");
+        panel()->setProperty("inspectorVisible", true);
+        auto* inspector = item("stepSequencerInspector");
+        QVERIFY(inspector);
+        QMetaObject::invokeMethod(inspector, "assignRow", Q_ARG(QVariant, "notes:67"));
+        QTRY_COMPARE(sequencer()->property("rows").toList()[0].toMap()["label"].toString(), QStringLiteral("C3"));
+    }
+
+    // Add Row lists the parameters of the track's insert effects.
+    void addRowListsInsertEffectParameters() {
+        model.applyEdit(QStringLiteral("Add Effect"), {}, [](QJsonObject doc, const QJsonObject&) {
+            auto tracks = doc["tracks"].toArray();
+            auto t = tracks[0].toObject();
+            t["effects"] = QJsonArray{QJsonObject{{"id", "fx1"}, {"type", "eq3"}, {"enabled", true}}};
+            tracks[0] = t;
+            doc["tracks"] = tracks;
+            return doc;
+        });
+        QVariantList choices;
+        QString groupId;
+        for (const auto& g : sequencer()->property("addRowGroups").toList()) {
+            if (g.toMap()["id"].toString().startsWith("effect")) {
+                groupId = g.toMap()["id"].toString();
+                choices = g.toMap()["choices"].toList();
+            }
+        }
+        QCOMPARE(choices.size(), 7);
+        call("runAction", "addRow:" + groupId + ":0");
+        const auto target = pattern()["rows"].toArray().last().toObject()["assignment"].toObject()["target"].toObject();
+        QCOMPARE(target["kind"].toString(), QStringLiteral("device"));
+        QCOMPARE(target["deviceId"].toString(), QStringLiteral("fx1"));
+    }
+
+    // SQ38: the Learn button replaces Add Row; note 38 adds a Snare row once.
+    void learnAddButtonAndNote() {
+        call("runAction", "learnAdd");
+        QCOMPARE(sequencer()->property("learnMode").toString(), QStringLiteral("add"));
+        QTRY_VERIFY(item("stepSequencerLearn") && item("stepSequencerLearn")->isVisible());
+        const int before = pattern()["rows"].toArray().size();
+        QMetaObject::invokeMethod(sequencer(), "learnNote", Q_ARG(int, 50), Q_ARG(QString, QString()));
+        QMetaObject::invokeMethod(sequencer(), "learnNote", Q_ARG(int, 50), Q_ARG(QString, QString()));
+        QCOMPARE(pattern()["rows"].toArray().size(), before + 1);
+        auto* learn = item("stepSequencerLearn");
+        const auto center = learn->mapToScene({learn->width() / 2, learn->height() / 2}).toPoint();
+        QTest::mouseMove(window.get(), center);
+        QTest::mouseClick(window.get(), Qt::LeftButton, {}, center);
+        QTRY_COMPARE(sequencer()->property("learnMode").toString(), QString());
+    }
+
+    void sq3bN1RecordShortRowAdvances() {
+        const auto shortened = op("set_pattern_row", {{"row", "k"}, {"lengthSteps", 4}});
+        QVERIFY(shortened.value("ok").toBool());
+        sequencer()->setProperty("stepRecording", true);
+        sequencer()->setProperty("recordStep", 5);
+        QMetaObject::invokeMethod(sequencer(), "stepRecordNoteOn", Q_ARG(int, 36), Q_ARG(int, 91));
+        QMetaObject::invokeMethod(sequencer(), "stepRecordNoteOff", Q_ARG(int, 36));
+        QCOMPARE(sequencer()->property("recordStep").toInt(), 6);
+        QCOMPARE(step(0, 1).value("velocity").toInt(), 91);
+    }
+
+    // SQ40: held keys turn on rows at the record step; the release of the last one moves on.
+    void stepRecordChordAdvancesOnce() {
+        sequencer()->setProperty("stepRecording", true);
+        sequencer()->setProperty("recordStep", 1);
+        for (int p : {36, 38, 50}) QMetaObject::invokeMethod(sequencer(), "stepRecordNoteOn", Q_ARG(int, p), Q_ARG(int, 100));
+        QCOMPARE(sequencer()->property("recordStep").toInt(), 1);
+        for (int p : {36, 38, 50}) QMetaObject::invokeMethod(sequencer(), "stepRecordNoteOff", Q_ARG(int, p));
+        QCOMPARE(sequencer()->property("recordStep").toInt(), 2);
+        int on = 0;
+        for (const auto& r : pattern()["rows"].toArray()) on += r.toObject()["steps"].toArray()[1].toObject()["on"].toBool() ? 1 : 0;
+        QCOMPARE(on, 3);
+    }
+
+    // SQ43: Save Pattern adds a user entry to the browser, and it loads back.
+    void browserSavesUserPattern() {
+        QTemporaryDir dir;
+        nt::midi::setUserStepPatternLibraryRoot(dir.path());
+        auto* library = sequencer()->property("libraryModel").value<QAbstractItemModel*>();
+        const int before = library->rowCount();
+        QVariantMap saved;
+        QMetaObject::invokeMethod(sequencer(), "savePattern", Q_RETURN_ARG(QVariantMap, saved), Q_ARG(QString, "Mine"), Q_ARG(QString, "pattern"), Q_ARG(QString, "Grooves"));
+        QVERIFY2(saved["ok"].toBool(), qPrintable(saved["error"].toString()));
+        QVERIFY(library->rowCount() > before);
+        panel()->setProperty("browserVisible", true);
+        QTRY_VERIFY(item("stepSequencerBrowserSave"));
+        QVERIFY(capture("sq3b-browser-user"));
+        nt::midi::setUserStepPatternLibraryRoot({});
+    }
+
     // Review screenshots, written when NT_PANEL_SCREENSHOTS is set.
     void screenshots() {
         QVERIFY(capture("sq3-onoff"));
@@ -457,6 +687,8 @@ Item {
         panel()->setProperty("browserVisible", true);
         QMetaObject::invokeMethod(panel(), "selectStep", Q_ARG(QVariant, "k"), Q_ARG(QVariant, 0), Q_ARG(QVariant, false));
         QVERIFY(capture("sq3-browser-step-inspector"));
+        call("runAction", "learnAdd");
+        QVERIFY(capture("sq3b-learn"));
     }
 };
 

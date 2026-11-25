@@ -1,11 +1,11 @@
 #pragma once
 
 // Step Sequencer assistant operations (SQ49-SQ55) and factory pattern library (SQ44).
-// Pure document transforms operating on raw sequence JSON so MusicAssistant can
+// Document transforms operating on raw sequence JSON so MusicAssistant can
 // validate before committing one undo step through TimelineModel::applyEdit.
 //
-// Thread affinity: pure functions with no mutable state; safe to call from the
-// GUI thread or tests.
+// Thread affinity: application thread only. Library configuration belongs to the
+// application object. Operations reject worker-thread calls before accessing it.
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -38,7 +38,15 @@ struct StepPatternOpOutcome {
 // All 32 factory step patterns (24) and templates (8) exported from TS.
 [[nodiscard]] QJsonArray factoryStepPatternLibrary();
 
-// Runs one op purely against `document`. Does not mutate `document`.
+// The folder that holds the user step pattern library (SQ44): one JSON file per
+// pattern under <root>/<Patterns|Templates>/<folder>/. Empty (the default) means
+// no user library: saves return the pattern only and folder ops fail. The app
+// sets it once at startup. Application thread only. Worker-thread setters are ignored.
+[[nodiscard]] QString stepPatternLibraryRootForAppData(const QString& appData);
+void setUserStepPatternLibraryRoot(const QString& root);
+[[nodiscard]] QString userStepPatternLibraryRoot();
+
+// Runs one op without mutating `document`. Library operations also persist files.
 [[nodiscard]] StepPatternOpOutcome runStepPatternOp(const QJsonObject& document, const QString& name,
                                                     const QJsonObject& args);
 

@@ -2,6 +2,13 @@
 
 #include "midi/PatternExpand.h"
 
+#include <QCoreApplication>
+#include <QThread>
+#include <QSaveFile>
+#include <QFileInfo>
+#include <QDir>
+#include <QDirIterator>
+#include <QFile>
 #include <QHash>
 #include <QJsonDocument>
 #include <QRegularExpression>
@@ -21,8 +28,9 @@
 namespace nt::midi {
 namespace {
 
-// Every op of timeline-tool-contracts.ts (SQ49-SQ55), in contract order.
-constexpr std::array<const char*, 32> kPatternOps{{
+// Every op of timeline-tool-contracts.ts (SQ49-SQ55) in contract order, then
+// Learn and step recording (SQ38, SQ40).
+constexpr std::array<const char*, 34> kPatternOps{{
     "get_pattern",
     "create_pattern_region",
     "convert_pattern_to_midi",
@@ -55,6 +63,8 @@ constexpr std::array<const char*, 32> kPatternOps{{
     "rename_step_pattern_folder",
     "delete_step_pattern_folder",
     "move_step_pattern",
+    "learn_pattern_row",
+    "step_record",
 }};
 
 constexpr QLatin1StringView kPrefix("ui_timeline_");
@@ -634,6 +644,123 @@ QJsonObject applyPatternTextToPattern(const QJsonObject& base, const QString& te
     return pattern;
 }
 
+// ── User step pattern library (SQ44): JSON files under the root ─────────────
+// <root>/<Patterns|Templates>/<folder>/<slug>.json, each {id, name, kind,
+// category, tags, pattern}. UI thread only.
+
+bool onLibraryThread() {
+    const auto* app = QCoreApplication::instance();
+    return app && QThread::currentThread() == app->thread();
+}
+
+QString userLibraryRoot() {
+    return onLibraryThread() ? QCoreApplication::instance()->property("ntStepPatternLibraryRoot").toString() : QString();
+}
+
+bool containedPath(const QString& path) {
+    const auto root = QFileInfo(userLibraryRoot()).canonicalFilePath();
+    if (root.isEmpty()) return false;
+    auto current = QFileInfo(path).absoluteFilePath();
+    while (!QFileInfo::exists(current)) {
+        if (QFileInfo(current).isSymLink()) return false;
+        const auto parent = QFileInfo(current).absolutePath();
+        if (parent == current) return false;
+        current = parent;
+    }
+    const auto canonical = QFileInfo(current).canonicalFilePath();
+    if (canonical != root && !canonical.startsWith(root + u'/')) return false;
+    const auto lexicalRoot = QFileInfo(userLibraryRoot()).absoluteFilePath();
+    current = QFileInfo(path).absoluteFilePath();
+    while (current != lexicalRoot) {
+        if (QFileInfo(current).isSymLink()) return false;
+        const auto parent = QFileInfo(current).absolutePath();
+        if (parent == current) return false;
+        current = parent;
+    }
+    return true;
+}
+
+bool sameFile(const QString& a, const QString& b) { // NOLINT(bugprone-easily-swappable-parameters): file identity comparison is symmetric.
+    const auto ca = QFileInfo(a).canonicalFilePath();
+    return !ca.isEmpty() && ca == QFileInfo(b).canonicalFilePath();
+}
+
+QString kindDirName(const QString& kind) { return kind == u"template" ? QStringLiteral("Templates") : QStringLiteral("Patterns"); }
+
+// The folder as "a/b" relative to its kind root, or nullopt for a path that leaves it.
+std::optional<QString> cleanFolder(const QString& folder) {
+    if (folder.startsWith(u'/') || folder.startsWith(u'\\')) return std::nullopt;
+    for (const auto c : folder) {
+        if (c == u':' || c.unicode() < 32 || c.unicode() == 127) return std::nullopt;
+    }
+    QStringList parts;
+    for (const auto& part : QString(folder).replace(u'\\', u'/').split(u'/')) {
+        const auto p = part.trimmed();
+        if (p.isEmpty()) continue;
+        if (p.startsWith(u'.')) return std::nullopt;
+        parts.append(p);
+    }
+    return parts.join(u'/');
+}
+
+QString kindRootDir(const QString& kind) { return QDir(userLibraryRoot()).filePath(kindDirName(kind)); }
+
+struct UserPatternFile {
+    QJsonObject entry;
+    QString path;
+    QString folder;
+};
+
+std::vector<UserPatternFile> userPatternFiles() {
+    std::vector<UserPatternFile> out;
+    if (userLibraryRoot().isEmpty()) return out;
+    for (const QString& kind : {QStringLiteral("pattern"), QStringLiteral("template")}) {
+        const QDir base(kindRootDir(kind));
+        QDirIterator it(base.path(), {QStringLiteral("*.json")}, QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const auto path = it.next();
+            if (!containedPath(path)) continue;
+            QFile file(path);
+            if (!file.open(QIODevice::ReadOnly)) continue;
+            const auto entry = QJsonDocument::fromJson(file.readAll()).object();
+            if (!entry.value(u"pattern").isObject() || entry.value(u"id").toString().isEmpty()) continue;
+            const auto rel = base.relativeFilePath(QFileInfo(path).path());
+            out.push_back({entry, path, rel == u"." ? QString() : rel});
+        }
+    }
+    std::ranges::sort(out, [](const UserPatternFile& a, const UserPatternFile& b) { return a.path < b.path; });
+    return out;
+}
+
+QStringList userPatternFolders(const QString& kind) {
+    QStringList out;
+    if (userLibraryRoot().isEmpty()) return out;
+    const QDir base(kindRootDir(kind));
+    QDirIterator it(base.path(), QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const auto path = it.next();
+        if (containedPath(path)) out.append(base.relativeFilePath(path));
+    }
+    out.sort();
+    return out;
+}
+
+std::optional<UserPatternFile> findUserPattern(const QString& ref) {
+    const auto needle = ref.trimmed().toLower();
+    if (needle.isEmpty()) return std::nullopt;
+    for (const auto& f : userPatternFiles()) {
+        if (f.entry.value(u"id").toString().toLower() == needle || f.entry.value(u"name").toString().toLower() == needle) return f;
+    }
+    return std::nullopt;
+}
+
+bool writeJsonFile(const QString& path, const QJsonObject& json) {
+    if (!QDir().mkpath(QFileInfo(path).path())) return false;
+    QSaveFile file(path);
+    const auto payload = QJsonDocument(json).toJson(QJsonDocument::Indented);
+    return file.open(QIODevice::WriteOnly) && file.write(payload) == payload.size() && file.commit();
+}
+
 std::optional<QJsonObject> findFactoryEntry(const QString& ref) {
     const QString needle = ref.trimmed().toLower();
     if (needle.isEmpty()) return std::nullopt;
@@ -644,6 +771,7 @@ std::optional<QJsonObject> findFactoryEntry(const QString& ref) {
             return e;
         }
     }
+    if (const auto user = findUserPattern(ref)) return user->entry;
     return std::nullopt;
 }
 
@@ -661,7 +789,7 @@ double trackEndMs(const QJsonArray& clips, const QString& trackId) noexcept {
 // Every op rejects unknown keys and wrong types before it touches the document,
 // like the TS zod schemas. `timeline_id` is the assistant's routing key.
 
-enum class ArgKind { Str, NonEmpty, Int, Num, Bool, StrList, StrListMin1, Obj, ObjListMin1, Enum, EnumList, Steps };
+enum class ArgKind { Str, NonEmpty, Int, Num, Bool, StrList, StrListMin1, Obj, ObjListMin1, Enum, EnumList, Steps, IntListMin1 };
 
 struct ArgSpec {
     QString key;
@@ -820,6 +948,15 @@ const QHash<QString, OpSpec>& opSpecs() {
                                                 {arg("folder", ArgKind::NonEmpty, true), enumArg("kind", kinds)}});
         s.insert("move_step_pattern", {QStringLiteral("Move a saved step pattern to another library folder."),
                                        {arg("pattern", ArgKind::NonEmpty, true), folderNullable}});
+        auto pitches = arg("pitches", ArgKind::IntListMin1, true, QStringLiteral("MIDI note numbers 0..127 played together."));
+        pitches.min = 0;
+        pitches.max = 127;
+        s.insert("learn_pattern_row", {QStringLiteral("Learn a played note or controller (SQ38). mode add (default): add a row for a note or controller that has none; a known one changes nothing. mode assign: give `row` this sound."),
+                                       {clipArg(), enumArg("mode", {"add", "assign"}), intArg("pitch", 0, 127),
+                                        arg("controller", ArgKind::Obj, false, QStringLiteral("Automation target: {kind: cc, cc} or {kind: pitchBend} or {kind: channelPressure}.")),
+                                        rowArg(false)}});
+        s.insert("step_record", {QStringLiteral("Step-record a chord (SQ40): turn on the 1-based step on the row of each pitch, add missing rows, and return nextStep."),
+                                 {clipArg(), intArg("step", 1, kMaxSteps, true), pitches, intArg("velocity", 1, 127)}});
         return s;
     }();
     return specs;
@@ -845,6 +982,7 @@ QString describeKind(const ArgSpec& a) {
     case ArgKind::Enum: return QStringLiteral("one of %1").arg(a.values.join(QStringLiteral(", ")));
     case ArgKind::EnumList: return QStringLiteral("an array of %1").arg(a.values.join(QStringLiteral(", ")));
     case ArgKind::Steps: return QStringLiteral("a step string like \"1-4,9\" or a nonempty array of integers 1..64");
+    case ArgKind::IntListMin1: return QStringLiteral("a nonempty array of integers %1..%2").arg(a.min).arg(a.max);
     }
     return {};
 }
@@ -887,6 +1025,11 @@ bool argMatches(const ArgSpec& a, const QJsonValue& v) {
         if (!v.isArray() || v.toArray().isEmpty()) return false;
         const auto list = v.toArray();
         return std::ranges::all_of(list, [](const QJsonValue& item) { return isWholeIn(item, 1, 64); });
+    }
+    case ArgKind::IntListMin1: {
+        if (!v.isArray() || v.toArray().isEmpty()) return false;
+        const auto list = v.toArray();
+        return std::ranges::all_of(list, [&](const QJsonValue& item) { return isWholeIn(item, a.min, a.max); });
     }
     }
     return false;
@@ -952,6 +1095,11 @@ QVariantMap schemaFor(const ArgSpec& a) {
                                          QVariantMap{{QStringLiteral("type"), QStringLiteral("array")}, {QStringLiteral("minItems"), 1},
                                                      {QStringLiteral("items"), QVariantMap{{QStringLiteral("type"), QStringLiteral("integer")},
                                                                                           {QStringLiteral("minimum"), 1}, {QStringLiteral("maximum"), 64}}}}});
+        break;
+    case ArgKind::IntListMin1:
+        out.insert("type", "array");
+        out.insert("minItems", 1);
+        out.insert("items", QVariantMap{{QStringLiteral("type"), QStringLiteral("integer")}, {QStringLiteral("minimum"), a.min}, {QStringLiteral("maximum"), a.max}});
         break;
     }
     if (!a.description.isEmpty()) out.insert("description", a.description);
@@ -1138,11 +1286,19 @@ QString stepPatternFolderPath(const QString& kind, const QString& folder) {
     for (const auto& part : QString(folder).replace(u'\\', u'/').split(u'/')) {
         if (!part.trimmed().isEmpty()) parts.append(part.trimmed());
     }
-    if (!parts.isEmpty() && parts.size() >= 2 && parts.at(0).compare(u"Step Patterns", Qt::CaseInsensitive) == 0) parts = parts.mid(2);
     return parts.isEmpty() ? root : root + u'/' + parts.join(u'/');
 }
 
 }  // namespace
+
+QString stepPatternLibraryRootForAppData(const QString& appData) { return appData.isEmpty() ? QString() : QDir(appData).filePath(QStringLiteral("Step Patterns")); }
+
+void setUserStepPatternLibraryRoot(const QString& root) {
+    if (!onLibraryThread()) return;
+    if (!root.isEmpty()) QDir().mkpath(root);
+    QCoreApplication::instance()->setProperty("ntStepPatternLibraryRoot", root);
+}
+QString userStepPatternLibraryRoot() { return userLibraryRoot(); }
 
 QVariantList stepPatternAssistantTools() {
     QVariantList out;
@@ -1196,7 +1352,8 @@ QJsonArray factoryStepPatternLibrary() {
     return QJsonDocument::fromJson(joined).array();
 }
 
-StepPatternOpOutcome runStepPatternOp(const QJsonObject& document, const QString& name, const QJsonObject& args) {
+static StepPatternOpOutcome runStepPatternOpImpl(const QJsonObject& document, const QString& name, const QJsonObject& args) {
+    if (!onLibraryThread()) return fail(QStringLiteral("Step pattern operations must run on the application thread."));
     const QString op = canonicalStepPatternOp(name);
     if (op.isEmpty()) return fail(QStringLiteral("Unknown step sequencer tool \"%1\".").arg(name));
     if (const auto problem = validateArgs(op, args); !problem.isEmpty()) return fail(problem);
@@ -2117,16 +2274,211 @@ StepPatternOpOutcome runStepPatternOp(const QJsonObject& document, const QString
             if (e.value(u"instrumentPreset").isString()) item.insert(QStringLiteral("instrumentPreset"), e.value(u"instrumentPreset"));
             entries.append(item);
         }
+        const auto folderArg = cleanFolder(args.value(u"folder").toString());
+        for (const auto& f : userPatternFiles()) {
+            const auto& e = f.entry;
+            const QString eKind = e.value(u"kind").toString(QStringLiteral("pattern"));
+            if (!kind.isEmpty() && eKind != kind) continue;
+            if (!cat.isEmpty() && e.value(u"category").toString().toLower() != cat) continue;
+            if (folderFilter && (!folderArg || f.folder.compare(*folderArg, Qt::CaseInsensitive) != 0)) continue;
+            if (!q.isEmpty()) {
+                QStringList hay{e.value(u"id").toString(), e.value(u"name").toString(), e.value(u"category").toString(), f.folder};
+                if (!hay.join(u' ').toLower().contains(q)) continue;
+            }
+            entries.append(QJsonObject{{QStringLiteral("id"), e.value(u"id")}, {QStringLiteral("name"), e.value(u"name")},
+                                       {QStringLiteral("kind"), eKind}, {QStringLiteral("category"), e.value(u"category")},
+                                       {QStringLiteral("tags"), e.value(u"tags")}, {QStringLiteral("source"), QStringLiteral("user")},
+                                       {QStringLiteral("folder"), f.folder}});
+        }
+        QJsonArray folders;
+        for (const QString& k : {QStringLiteral("pattern"), QStringLiteral("template")}) {
+            if (!kind.isEmpty() && k != kind) continue;
+            for (const auto& name : userPatternFolders(k)) {
+                if (!folders.contains(QJsonValue(name))) folders.append(name);
+            }
+        }
         return {true, false, document,
-                QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("entries"), entries}, {QStringLiteral("folders"), QJsonArray{}}}, {}};
+                QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("entries"), entries}, {QStringLiteral("folders"), folders}}, {}};
     }
 
-    // ── Library folders: native sessions hold no user library (TS falls back the same way) ──
+    // ── Library folders and moves (SQ43, SQ44). Without a library root they fail like TS. ──
     if (op == u"create_step_pattern_folder" || op == u"rename_step_pattern_folder" || op == u"delete_step_pattern_folder") {
-        return fail(QStringLiteral("This session's step pattern library does not support folder operations."));
+        if (userLibraryRoot().isEmpty()) return fail(QStringLiteral("This session's step pattern library does not support folder operations."));
+        const QString kind = args.value(u"kind").toString(QStringLiteral("pattern"));
+        const QDir base(kindRootDir(kind));
+        if (op == u"create_step_pattern_folder") {
+            const auto parent = cleanFolder(args.value(u"parentFolder").toString());
+            const auto name = cleanFolder(args.value(u"name").toString());
+            if (!parent || !name || name->isEmpty() || name->contains(u'/')) return fail(QStringLiteral("Folder name must be one plain name."));
+            const auto rel = parent->isEmpty() ? *name : *parent + u'/' + *name;
+            if (!containedPath(base.filePath(rel))) return fail(QStringLiteral("folder must stay inside the library."));
+            if (QFileInfo::exists(base.filePath(rel))) return fail(QStringLiteral("Folder \"%1\" already exists.").arg(rel));
+            if (!QDir().mkpath(base.filePath(rel))) return fail(QStringLiteral("Could not create folder \"%1\".").arg(rel));
+            return {true, false, document, QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("folder"), rel}}, {}};
+        }
+        const auto folder = cleanFolder(args.value(u"folder").toString());
+        if (!folder || folder->isEmpty() || !containedPath(base.filePath(*folder)) || !QFileInfo(base.filePath(*folder)).isDir()) {
+            return fail(QStringLiteral("No %1 folder \"%2\".").arg(kind, args.value(u"folder").toString()));
+        }
+        if (op == u"rename_step_pattern_folder") {
+            const auto name = cleanFolder(args.value(u"newName").toString());
+            if (!name || name->isEmpty() || name->contains(u'/')) return fail(QStringLiteral("newName must be one plain name."));
+            const auto parent = QFileInfo(*folder).path();
+            const auto rel = parent == u"." ? *name : parent + u'/' + *name;
+            if (!containedPath(base.filePath(rel))) return fail(QStringLiteral("folder must stay inside the library."));
+            if (QFileInfo::exists(base.filePath(rel)) && !sameFile(base.filePath(*folder), base.filePath(rel))) return fail(QStringLiteral("Folder \"%1\" already exists.").arg(rel));
+            if (!QDir().rename(base.filePath(*folder), base.filePath(rel))) return fail(QStringLiteral("Could not rename folder \"%1\".").arg(*folder));
+            return {true, false, document, QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("folder"), rel}}, {}};
+        }
+        if (!QDir(base.filePath(*folder)).isEmpty(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot)) return fail(QStringLiteral("Folder \"%1\" is not empty. Move or delete its patterns first.").arg(*folder));
+        if (!base.rmdir(*folder)) return fail(QStringLiteral("Could not delete folder \"%1\".").arg(*folder));
+        return {true, false, document, QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("deleted"), *folder}}, {}};
     }
     if (op == u"move_step_pattern") {
-        return fail(QStringLiteral("This session's step pattern library does not support moving patterns between folders."));
+        if (userLibraryRoot().isEmpty()) return fail(QStringLiteral("This session's step pattern library does not support moving patterns between folders."));
+        const auto found = findUserPattern(args.value(u"pattern").toString());
+        if (!found) return fail(QStringLiteral("No saved step pattern \"%1\".").arg(args.value(u"pattern").toString()));
+        const auto folder = cleanFolder(args.value(u"folder").toString());
+        if (!folder) return fail(QStringLiteral("folder must stay inside the library."));
+        const QString kind = found->entry.value(u"kind").toString(QStringLiteral("pattern"));
+        const auto target = QDir(QDir(kindRootDir(kind)).filePath(*folder)).filePath(QFileInfo(found->path).fileName());
+        if (!containedPath(target)) return fail(QStringLiteral("folder must stay inside the library."));
+        if (target != found->path && !sameFile(target, found->path)) {
+            if (QFileInfo::exists(target)) return fail(QStringLiteral("Folder \"%1\" already holds a pattern with that name.").arg(*folder));
+            if (!QDir().mkpath(QFileInfo(target).path()) || !QFile::rename(found->path, target)) return fail(QStringLiteral("Could not move the pattern."));
+        }
+        return {true, false, document,
+                QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("id"), found->entry.value(u"id")}, {QStringLiteral("folder"), *folder}}, {}};
+    }
+
+    // ── learn_pattern_row (SQ38): add a row for an unknown sound, or reassign one ──
+    if (op == u"learn_pattern_row") {
+        int idx = -1;
+        QJsonObject clip, pattern, instrument;
+        QString err;
+        if (!resolvePatClip(args.value(u"clipId").toString(), idx, clip, pattern, instrument, &err)) return fail(err);
+        if (!checkWritable(tracks, clip, &err)) return fail(err);
+        const bool assign = args.value(u"mode").toString() == u"assign";
+        if (assign && !args.contains(u"row")) return fail(QStringLiteral("row is required for mode assign."));
+        QJsonObject assignment;
+        const auto rows = pattern.value(u"rows").toArray();
+        std::optional<QJsonObject> known;
+        if (args.contains(u"pitch")) {
+            const int pitch = args.value(u"pitch").toInt();
+            const QJsonObject pitchCtx{{QStringLiteral("instrument"), instrument}, {QStringLiteral("pattern"), pattern},
+                                      {QStringLiteral("key"), document.value(u"key")}, {QStringLiteral("chords"), document.value(u"chords")}};
+            const QJsonObject on{{QStringLiteral("on"), true}};
+            int storedPitch = pitch;
+            if (pattern.value(u"pitchSource").toString() == u"key" && !pattern.value(u"noTranspose").toBool(false)) {
+                const auto patternKey = resolveStepKey(pattern.value(u"key"));
+                const auto projectKey = resolveStepKey(document.value(u"key").isNull() || document.value(u"key").isUndefined()
+                                                           ? pattern.value(u"key") : document.value(u"key"));
+                storedPitch = std::clamp(pitch - shortestTonicDelta(patternKey.tonic, projectKey.tonic), 0, 127);
+            }
+            assignment = QJsonObject{{QStringLiteral("type"), QStringLiteral("note")}, {QStringLiteral("pitch"), storedPitch}};
+            // A kit track learns the pad that plays this pitch.
+            if (instrument.value(u"type").toString() == u"drum") {
+                for (int pad = 0; pad < instrument.value(u"pads").toArray().size(); ++pad) {
+                    const QJsonObject kit{{QStringLiteral("type"), QStringLiteral("kit")}, {QStringLiteral("pad"), pad}};
+                    if (const auto p = stepPitch(QJsonObject{{QStringLiteral("assignment"), kit}}, on, pitchCtx); p && *p == pitch) {
+                        assignment = kit;
+                        break;
+                    }
+                }
+            }
+            for (const auto& rv : rows) {
+                const auto r = rv.toObject();
+                if (r.value(u"assignment").toObject().value(u"type").toString() == u"automation") continue;
+                if (const auto p = stepPitch(r, on, pitchCtx); p && *p == pitch) {
+                    known = r;
+                    break;
+                }
+            }
+        } else if (args.value(u"controller").isObject()) {
+            const auto target = args.value(u"controller").toObject();
+            const auto kind = target.value(u"kind").toString();
+            if (kind == u"cc") {
+                if (!isWholeIn(target.value(u"cc"), 0, 127)) return fail(QStringLiteral("controller.cc must be an integer 0..127."));
+            } else if (kind != u"pitchBend" && kind != u"channelPressure") {
+                return fail(QStringLiteral("controller.kind must be cc, pitchBend or channelPressure."));
+            }
+            const QJsonObject cleanTarget = kind == u"cc" ? QJsonObject{{QStringLiteral("kind"), kind}, {QStringLiteral("cc"), target.value(u"cc").toInt()}}
+                                                          : QJsonObject{{QStringLiteral("kind"), kind}};
+            assignment = QJsonObject{{QStringLiteral("type"), QStringLiteral("automation")}, {QStringLiteral("target"), cleanTarget}};
+            for (const auto& rv : rows) {
+                if (rv.toObject().value(u"assignment").toObject() == assignment) {
+                    known = rv.toObject();
+                    break;
+                }
+            }
+        } else {
+            return fail(QStringLiteral("pitch or controller is required."));
+        }
+        const QString clipId = clip.value(u"id").toString();
+        if (assign) {
+            auto out = runStepPatternOp(document, QStringLiteral("set_pattern_row"),
+                                        QJsonObject{{QStringLiteral("clipId"), clipId}, {QStringLiteral("row"), args.value(u"row")}, {QStringLiteral("assignment"), assignment}});
+            if (out.ok) out.result.insert(QStringLiteral("added"), false);
+            return out;
+        }
+        if (known) {
+            return {true, false, document,
+                    QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("clipId"), clipId}, {QStringLiteral("added"), false},
+                                {QStringLiteral("row"), serializePatternRow(*known, instrument)}},
+                    {}};
+        }
+        QSet<QString> before;
+        for (const auto& rv : rows) before.insert(rv.toObject().value(u"id").toString());
+        auto out = runStepPatternOp(document, QStringLiteral("add_pattern_rows"),
+                                    QJsonObject{{QStringLiteral("clipId"), clipId}, {QStringLiteral("rows"), QJsonArray{QJsonObject{{QStringLiteral("assignment"), assignment}}}}});
+        if (!out.ok) return out;
+        for (const auto& cv : out.nextDocument.value(u"clips").toArray()) {
+            if (cv.toObject().value(u"id").toString() != clipId) continue;
+            for (const auto& rv : cv.toObject().value(u"pattern").toObject().value(u"rows").toArray()) {
+                if (!before.contains(rv.toObject().value(u"id").toString())) {
+                    out.result = QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("clipId"), clipId}, {QStringLiteral("added"), true},
+                                             {QStringLiteral("row"), serializePatternRow(rv.toObject(), instrument)}};
+                }
+            }
+        }
+        return out;
+    }
+
+    // ── step_record (SQ40): one chord at one step, missing rows added as in Learn ──
+    if (op == u"step_record") {
+        int idx = -1;
+        QJsonObject clip, pattern, instrument;
+        QString err;
+        if (!resolvePatClip(args.value(u"clipId").toString(), idx, clip, pattern, instrument, &err)) return fail(err);
+        if (!checkWritable(tracks, clip, &err)) return fail(err);
+        const QString clipId = clip.value(u"id").toString();
+        const int step = args.value(u"step").toInt();
+        const int length = pattern.value(u"lengthSteps").toInt(16);
+        if (step > length) return fail(QStringLiteral("step %1 is past the pattern length %2.").arg(step).arg(length));
+        QJsonObject values{{QStringLiteral("on"), true}};
+        if (args.contains(u"velocity")) values.insert(QStringLiteral("velocity"), args.value(u"velocity").toInt());
+        QJsonObject current = document;
+        QJsonArray rowIds;
+        for (const auto& pv : args.value(u"pitches").toArray()) {
+            const auto learned = runStepPatternOp(current, QStringLiteral("learn_pattern_row"),
+                                                  QJsonObject{{QStringLiteral("clipId"), clipId}, {QStringLiteral("pitch"), pv.toInt()}});
+            if (!learned.ok) return learned;
+            if (learned.mutated) current = learned.nextDocument;
+            const auto learnedRow = learned.result.value(u"row").toObject();
+            const auto rowId = learnedRow.value(u"id").toString();
+            const int rowLength = learnedRow.value(u"lengthSteps").toInt(length);
+            const int rowStep = (step - 1) % rowLength + 1;
+            const auto set = runStepPatternOp(current, QStringLiteral("set_steps"),
+                                              QJsonObject{{QStringLiteral("clipId"), clipId}, {QStringLiteral("row"), rowId},
+                                                          {QStringLiteral("steps"), QJsonArray{rowStep}}, {QStringLiteral("values"), values}});
+            if (!set.ok) return set;
+            current = set.nextDocument;
+            rowIds.append(rowId);
+        }
+        return {true, true, current,
+                QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("clipId"), clipId}, {QStringLiteral("rows"), rowIds},
+                            {QStringLiteral("nextStep"), step % length + 1}},
+                {}};
     }
 
     const auto commitClip = [&](int index, QJsonObject clip, const QJsonObject& pattern) {
@@ -2340,6 +2692,29 @@ StepPatternOpOutcome runStepPatternOp(const QJsonObject& document, const QString
                            {QStringLiteral("contentType"), QStringLiteral("application/x-nodetool-step-pattern+json")},
                            {QStringLiteral("clipId"), clip.value(u"id")}, {QStringLiteral("pattern"), saved}};
         if (!instrument.isEmpty()) result.insert(QStringLiteral("instrument"), instrument);
+        if (!userLibraryRoot().isEmpty()) {
+            const auto folder = cleanFolder(args.value(u"folder").toString());
+            if (!folder) return fail(QStringLiteral("folder must stay inside the library."));
+            const auto baseSlug = result.value(u"id").toString().section(u':', 2);
+            auto uniqueSlug = baseSlug;
+            QSet<QString> savedIds;
+            for (const auto& file : userPatternFiles()) savedIds.insert(file.entry.value(u"id").toString());
+            int suffix = 2;
+            while (savedIds.contains(QStringLiteral("user:%1:%2").arg(kind, uniqueSlug)) ||
+                   QFileInfo::exists(QDir(QDir(kindRootDir(kind)).filePath(*folder)).filePath(uniqueSlug + QStringLiteral(".json")))) {
+                uniqueSlug = baseSlug + u'-' + QString::number(suffix++);
+            }
+            const auto id = QStringLiteral("user:%1:%2").arg(kind, uniqueSlug);
+            result.insert(QStringLiteral("id"), id);
+
+            QJsonObject entry{{QStringLiteral("id"), id}, {QStringLiteral("name"), name}, {QStringLiteral("kind"), kind},
+                              {QStringLiteral("category"), QStringLiteral("User")}, {QStringLiteral("tags"), QJsonArray{}},
+                              {QStringLiteral("pattern"), saved}};
+            const auto path = QDir(QDir(kindRootDir(kind)).filePath(*folder)).filePath(id.section(u':', 2) + QStringLiteral(".json"));
+            if (!containedPath(path)) return fail(QStringLiteral("folder must stay inside the library."));
+            if (!writeJsonFile(path, entry)) return fail(QStringLiteral("Could not save the step pattern."));
+            result.insert(QStringLiteral("saved"), true);
+        }
         return {true, false, document, result, {}};
     }
 
@@ -2562,6 +2937,8 @@ StepPatternOpOutcome runStepPatternOp(const QJsonObject& document, const QString
                     assign.insert(QStringLiteral("target"), target);
                 }
                 if (!assertAssignmentAllowed(assign, pattern, instrument, &err)) return fail(err);
+                // A new sound drops the old name, so the label follows the sound (S-F32).
+                if (assign != next.value(u"assignment").toObject() && !args.value(u"name").isString()) next.remove(QStringLiteral("name"));
                 next.insert(QStringLiteral("assignment"), assign);
             }
             if (args.value(u"stepRate").isString()) next.insert(QStringLiteral("stepRate"), args.value(u"stepRate"));
@@ -2774,6 +3151,18 @@ StepPatternOpOutcome runStepPatternOp(const QJsonObject& document, const QString
     }
 
     return fail(QStringLiteral("Unsupported step sequencer tool \"%1\".").arg(name));
+}
+
+StepPatternOpOutcome runStepPatternOp(const QJsonObject& document, const QString& name, const QJsonObject& args) {
+    auto out = runStepPatternOpImpl(document, name, args);
+    const auto op = canonicalStepPatternOp(name);
+    if (out.ok && onLibraryThread() && !userLibraryRoot().isEmpty() &&
+        (op == u"save_step_pattern" || op == u"create_step_pattern_folder" || op == u"rename_step_pattern_folder" ||
+         op == u"delete_step_pattern_folder" || op == u"move_step_pattern")) {
+        auto* app = QCoreApplication::instance();
+        app->setProperty("ntStepPatternLibraryRevision", app->property("ntStepPatternLibraryRevision").toULongLong() + 1);
+    }
+    return out;
 }
 
 }  // namespace nt::midi
