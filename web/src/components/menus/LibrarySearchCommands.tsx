@@ -23,6 +23,7 @@ import {
 } from "../../serverState/useLibrarySearch";
 import { TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import { openSettingsTab } from "../workspace/openPageTab";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   BORDER_RADIUS,
   Caption,
@@ -103,7 +104,7 @@ interface LibrarySearchCommandsProps {
 
 const LibrarySearchCommands: React.FC<LibrarySearchCommandsProps> = ({ search }) => {
   const { t } = useTranslation();
-  const { query, data, isFetching } = useLibrarySearch(search, true);
+  const { query, data, isFetching, isError, error, retry } = useLibrarySearch(search, true);
   const { status } = useLibrarySearchStatus(true);
   const { setUp } = useLibrarySearchSetup();
   const { data: projects } = useProjects();
@@ -162,7 +163,7 @@ const LibrarySearchCommands: React.FC<LibrarySearchCommandsProps> = ({ search })
     isElectron && !!status && status.can_set_up && status.semantic.choice === "unset" && search.trim() === "";
   const hits = data?.hits ?? [];
   const noMatch =
-    !!data && hits.length === 0 && !isFetching && search.trim().length >= LIBRARY_QUERY_MIN_CHARS;
+    !isError && !!data && hits.length === 0 && !isFetching && search.trim().length >= LIBRARY_QUERY_MIN_CHARS;
 
   return (
     <>
@@ -221,6 +222,20 @@ const LibrarySearchCommands: React.FC<LibrarySearchCommandsProps> = ({ search })
       )}
       {data?.index.note && hits.length > 0 && (
         <Caption sx={{ px: PADDING.normal }}>{data.index.note}</Caption>
+      )}
+      {isError && (
+        <ErrorBanner
+          data-testid="library-search-error"
+          onRetry={retry}
+          report={{
+            source: "operation-failure",
+            summary: "Library search failed in the command palette",
+            errorText: error ?? undefined
+          }}
+          sx={{ mx: PADDING.normal, my: PADDING.compact }}
+        >
+          {t("librarySearch.palette.failed")}
+        </ErrorBanner>
       )}
       {noMatch && (
         <Caption sx={{ px: PADDING.normal, py: PADDING.compact }} data-testid="library-no-match">

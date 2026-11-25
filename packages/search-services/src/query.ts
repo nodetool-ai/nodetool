@@ -131,9 +131,26 @@ export const MIN_SEMANTIC_SIMILARITY = 0.25;
 /** The usual reciprocal rank fusion constant. */
 const RRF_K = 60;
 
-/** The words of a query, lower-cased, as both tokenizers split them. */
+const COMBINING_MARKS = /\p{M}/gu;
+
+/**
+ * Lower-case `text` and drop the accents of precomposed letters, one character
+ * at a time so every index still points at the same character. SQLite's FTS5
+ * tokenizer (`remove_diacritics 2`) and the PostgreSQL `tsvector` column both
+ * index text folded this way, so `cafe` finds `café` on either database.
+ */
+export function foldText(text: string): string {
+  let out = "";
+  for (const char of text.toLowerCase()) {
+    const folded = char.normalize("NFD").replace(COMBINING_MARKS, "");
+    out += folded.length === char.length ? folded : char;
+  }
+  return out;
+}
+
+/** The words of a query, lower-cased and accent-folded, as both tokenizers split them. */
 export function queryTerms(query: string): string[] {
-  return query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  return foldText(query).match(/[\p{L}\p{N}]+/gu) ?? [];
 }
 
 function escapeLike(value: string): string {
@@ -163,7 +180,7 @@ function itemConditions(request: LibrarySearchRequest): SQL {
   if (filter.provider) parts.push(sql`i.provider = ${filter.provider}`);
   if (filter.model) parts.push(sql`i.model = ${filter.model}`);
   if (filter.workflowId) parts.push(sql`i.workflow_id = ${filter.workflowId}`);
-  if (filter.favorite) parts.push(sql`i.favorite = 1`);
+  if (filter.favorite !== undefined) parts.push(sql`i.favorite = ${filter.favorite ? 1 : 0}`);
   if (filter.contentType) {
     parts.push(sql`i.content_type LIKE ${`${escapeLike(filter.contentType)}%`} ESCAPE '\\'`);
   }
@@ -207,9 +224,14 @@ async function runRows<T>(query: SQL): Promise<T[]> {
 async function rankItems(
   request: LibrarySearchRequest,
   limit: number,
-  offset: number
+  offset: number,
+  exclude: readonly string[] = []
 ): Promise<{ ids: string[]; total: number }> {
-  const where = itemConditions(request);
+  const conditions = itemConditions(request);
+  const where =
+    exclude.length === 0
+      ? conditions
+      : sql`${conditions} AND i.id NOT IN (${sql.join(exclude.map((id) => sql`${id}`), sql`, `)})`;
   const raw = request.query.trim();
   const terms = queryTerms(raw);
   const dialect = getDatabase().dialect;
@@ -424,9 +446,24 @@ async function rankRequest(request: LibrarySearchRequest, limit: number, offset:
   }
   const lexical = await rankItems(request, FUSION_DEPTH, 0);
   const fused = fuseRankings([lexical.ids, semantic.ids]);
+  const page = fused.slice(offset, offset + limit);
+  if (lexical.total <= lexical.ids.length) {
+    return { ids: page, total: fused.length, mode: "hybrid", chunks: semantic.chunks };
+  }
+  // Word matches ranked below the fusion window follow the fused list in word
+  // order. Items the vectors already placed in it are left out, so no item
+  // shows on two pages and the total counts each once.
+  const inWindow = new Set(lexical.ids);
+  const placed = semantic.ids.filter((id) => !inWindow.has(id));
+  const rest = await rankItems(
+    request,
+    limit - page.length,
+    FUSION_DEPTH + Math.max(0, offset - fused.length),
+    placed
+  );
   return {
-    ids: fused.slice(offset, offset + limit),
-    total: fused.length + Math.max(0, lexical.total - lexical.ids.length),
+    ids: [...page, ...rest.ids],
+    total: fused.length + rest.total - FUSION_DEPTH,
     mode: "hybrid",
     chunks: semantic.chunks
   };
@@ -436,7 +473,7 @@ async function rankRequest(request: LibrarySearchRequest, limit: number, offset:
 export function snippetOf(text: string, terms: readonly string[]): string {
   const flat = text.replace(/\s+/g, " ").trim();
   if (flat.length <= SNIPPET_CHARS) return flat;
-  const lower = flat.toLowerCase();
+  const lower = foldText(flat);
   let at = -1;
   for (const term of terms) {
     const index = lower.indexOf(term);
@@ -483,7 +520,7 @@ async function matchesFor(
       (FIELD_ORDER[a.field] ?? 9) - (FIELD_ORDER[b.field] ?? 9) || a.ordinal - b.ordinal
   );
   for (const chunk of chunks) {
-    const lower = chunk.text.toLowerCase();
+    const lower = foldText(chunk.text);
     if (!terms.some((term) => lower.includes(term))) continue;
     const list = out.get(chunk.item_id) ?? [];
     if (list.length >= MATCHES_PER_HIT) continue;

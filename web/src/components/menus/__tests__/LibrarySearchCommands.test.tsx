@@ -21,6 +21,19 @@ const mockOpenTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   useWorkspaceTabsStore: (select: (state: { openTab: jest.Mock }) => unknown) => select({ openTab: mockOpenTab })
 }));
+jest.mock("../../support/ErrorBanner", () => ({
+  __esModule: true,
+  default: ({ children, onRetry, "data-testid": testId }: {
+    children: React.ReactNode;
+    onRetry: () => void;
+    "data-testid": string;
+  }) => (
+    <div data-testid={testId}>
+      {children}
+      <button onClick={onRetry}>Try again</button>
+    </div>
+  )
+}));
 jest.mock("../../ui_primitives", () => {
   const actual = jest.requireActual("../../ui_primitives");
   return { ...actual, ResponsiveImage: ({ alt }: { alt: string }) => <img alt={alt} data-testid="thumbnail" /> };
@@ -117,6 +130,22 @@ it("opens a project folder file as a file tab of its project's folder", async ()
     title: "launch.md",
     projectId: "p1"
   });
+});
+
+it("shows a failed search with a retry instead of an empty result", async () => {
+  const refetch = jest.fn();
+  queryHook.mockReturnValue({
+    data: undefined,
+    isFetching: false,
+    isError: true,
+    error: { message: "Database not initialized" },
+    refetch
+  });
+  renderGroup("lighthouse");
+  expect(await screen.findByTestId("library-search-error")).toHaveTextContent("Library search failed");
+  expect(screen.queryByTestId("library-no-match")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByText("Try again"));
+  expect(refetch).toHaveBeenCalled();
 });
 
 it("names the scope when nothing matches", async () => {

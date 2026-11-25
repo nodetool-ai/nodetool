@@ -16,6 +16,7 @@ import type { SearchResourceType } from "@nodetool-ai/protocol";
 import type { ExtractedChunk } from "./extract.js";
 import { METADATA_FIELDS } from "./index-writer.js";
 import { removeChunkVectors } from "./semantic.js";
+import { existingSourceIds } from "./sources.js";
 
 /** Chunks extraction leaves alone: the inline write's and enrichment's. */
 const KEPT_FIELDS = [...METADATA_FIELDS, "caption", "transcript"] as const;
@@ -195,18 +196,31 @@ export async function failItem(item: ClaimedItem, reason: string, now = new Date
     .where(stillOurs(item));
 }
 
-/** Put a claimed item whose source row is gone out of the index. */
-export async function dropClaimedItem(item: ClaimedItem): Promise<void> {
-  await withTransaction(async () => {
+/**
+ * Put a claimed item whose source row is gone out of the index. The delete is
+ * conditional on the claim and the source version, and the source row is
+ * checked again inside the transaction, so a source that came back or was
+ * rewritten meanwhile keeps its item. Returns whether the item was removed.
+ */
+export async function dropClaimedItem(item: ClaimedItem): Promise<boolean> {
+  const chunkIds = await withTransaction(async (): Promise<string[] | null> => {
+    const present = await existingSourceIds(item.resourceType, item.userId, [item.resourceId]);
+    if (present.size > 0) return null;
     const db = getPortableDb();
-    const owned = await db
-      .select({ id: searchItems.id })
-      .from(searchItems)
-      .where(eq(searchItems.id, item.id));
-    if (owned.length === 0) return;
-    await db.delete(searchChunks).where(eq(searchChunks.item_id, item.id));
-    await db.delete(searchItems).where(eq(searchItems.id, item.id));
+    const removed = await db
+      .delete(searchItems)
+      .where(stillOurs(item))
+      .returning({ id: searchItems.id });
+    if (removed.length === 0) return null;
+    const chunks = await db
+      .delete(searchChunks)
+      .where(eq(searchChunks.item_id, item.id))
+      .returning({ id: searchChunks.id });
+    return chunks.map((chunk) => chunk.id);
   });
+  if (chunkIds === null) return false;
+  if (chunkIds.length > 0) await removeChunkVectors(item.userId, chunkIds);
+  return true;
 }
 
 /** Make every failed and skipped item of an owner, or of everyone, pending again. */

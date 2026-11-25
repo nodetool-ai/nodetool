@@ -21473,7 +21473,8 @@
       "heading": "Biblioteka",
       "indexing": "Indeksowanie biblioteki: gotowe {{ready}} z {{total}} elementów",
       "embedding": "Fragmenty do osadzenia na potrzeby wyszukiwania według znaczenia: {{count}}",
-      "noMatch": "Nic w Twojej bibliotece nie pasuje do „{{query}}”. Przeszukano wszystkie projekty."
+      "noMatch": "Nic w Twojej bibliotece nie pasuje do „{{query}}”. Przeszukano wszystkie projekty.",
+      "failed": "Wyszukiwanie w bibliotece nie powiodło się. Brakuje wyników z Twojej biblioteki."
     },
     "setup": {
       "heading": "Wyszukiwanie według znaczenia",

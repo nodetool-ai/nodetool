@@ -80,3 +80,10 @@ export const searchChunks = pgTable(
   },
   (table) => [index("idx_search_chunks_item").on(table.item_id, table.ordinal)]
 );
+
+/** See the SQLite schema for the column semantics. */
+export const searchLeases = pgTable("nodetool_search_leases", {
+  name: text("name").primaryKey(),
+  owner: text("owner").notNull(),
+  expires_at: text("expires_at").notNull()
+});

@@ -20835,7 +20835,8 @@
       "heading": "Kirjasto",
       "indexing": "Kirjastoa indeksoidaan: {{ready}}/{{total}} kohdetta valmiina",
       "embedding": "Merkityshaun upotettavia katkelmia jäljellä: {{count}}",
-      "noMatch": "Mikään kirjastossasi ei vastaa hakua ”{{query}}”. Kaikki projektit haettiin."
+      "noMatch": "Mikään kirjastossasi ei vastaa hakua ”{{query}}”. Kaikki projektit haettiin.",
+      "failed": "Kirjastohaku epäonnistui. Kirjastosi tulokset puuttuvat."
     },
     "setup": {
       "heading": "Merkityshaku",

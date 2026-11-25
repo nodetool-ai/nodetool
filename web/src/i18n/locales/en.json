@@ -20835,7 +20835,8 @@
       "heading": "Library",
       "indexing": "Indexing the library: {{ready}} of {{total}} items ready",
       "embedding": "Passages left to embed for search by meaning: {{count}}",
-      "noMatch": "Nothing in your library matches “{{query}}”. Searched every project."
+      "noMatch": "Nothing in your library matches “{{query}}”. Searched every project.",
+      "failed": "Library search failed. Results from your library are missing."
     },
     "setup": {
       "heading": "Search by meaning",

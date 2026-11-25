@@ -21154,7 +21154,8 @@
       "heading": "Biblioteca",
       "indexing": "Indexando la biblioteca: {{ready}} de {{total}} elementos listos",
       "embedding": "Fragmentos pendientes de incrustar para la búsqueda por significado: {{count}}",
-      "noMatch": "Nada en tu biblioteca coincide con «{{query}}». Se buscó en todos los proyectos."
+      "noMatch": "Nada en tu biblioteca coincide con «{{query}}». Se buscó en todos los proyectos.",
+      "failed": "La búsqueda en la biblioteca falló. Faltan los resultados de tu biblioteca."
     },
     "setup": {
       "heading": "Búsqueda por significado",

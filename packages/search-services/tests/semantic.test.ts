@@ -1,16 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import {
   Asset,
   closeDb,
   getPortableDb,
   initTestDb,
   ModelObserver,
-  searchChunks
+  projects,
+  searchChunks,
+  searchItems
 } from "@nodetool-ai/models";
 import { SqliteVecProvider, isManagedCollection } from "@nodetool-ai/vectorstore";
 import {
+  acquireSearchLease,
+  EMBED_BUDGET_LEASE,
   fuseRankings,
+  releaseSearchLease,
   libraryCollections,
   libraryIndexStatus,
   rebuildLibraryIndex,
@@ -254,6 +259,104 @@ describe.each(dialects)("library search by meaning on %s", (_name, init) => {
     const result = await searchLibrary({ userId: USER, query: "", similarTo: dog.id });
     expect(result.hits).toEqual([]);
     expect(result.index.note).toMatch(/needs search by meaning/);
+  });
+
+  it("pages a hybrid result past the fusion window without gaps or repeats", async () => {
+    await init();
+    setLibraryEmbedder(fakeEmbedder([]));
+    const tiles = new Set<string>();
+    for (let n = 0; n < 215; n += 1) {
+      tiles.add((await Asset.create({ user_id: USER, name: `tile-${n}.png`, content_type: "image/png" })).id);
+    }
+    for (let n = 0; n < 5; n += 1) {
+      await Asset.create({ user_id: USER, name: `plain-${n}.png`, content_type: "image/png" });
+    }
+    await reconcileLibraryIndex();
+    await runEmbedPass();
+
+    const seen: string[] = [];
+    let cursor: string | null | undefined;
+    let total = -1;
+    do {
+      const page = await searchLibrary({ userId: USER, query: "tile", limit: 40, ...(cursor ? { cursor } : {}) });
+      expect(page.index).toMatchObject({ mode: "hybrid" });
+      if (total < 0) total = page.total;
+      expect(page.total).toBe(total);
+      seen.push(...page.hits.map((hit) => hit.resourceId));
+      cursor = page.nextCursor;
+    } while (cursor);
+    expect(new Set(seen).size).toBe(seen.length);
+    expect(seen.length).toBe(total);
+    for (const id of tiles) expect(seen).toContain(id);
+  }, 120_000);
+
+  it("skips items another indexer has claimed, so no chunk is paid for twice", async () => {
+    await init();
+    const calls: string[][] = [];
+    setLibraryEmbedder(fakeEmbedder(calls));
+    const { dog } = await seed();
+    const future = new Date(Date.now() + 60_000).toISOString();
+    await getPortableDb()
+      .update(searchItems)
+      .set({ lease_owner: "other-indexer", lease_expires_at: future })
+      .where(eq(searchItems.resource_id, dog.id));
+    await runEmbedPass();
+    expect(calls.flat().some((text) => text.includes("puppy"))).toBe(false);
+    // The other claim is untouched, and the rest were embedded and released.
+    const [held] = await getPortableDb().select().from(searchItems).where(eq(searchItems.resource_id, dog.id));
+    expect(held?.lease_owner).toBe("other-indexer");
+    const free = await getPortableDb().select().from(searchItems).where(isNotNull(searchItems.lease_owner));
+    expect(free).toHaveLength(1);
+  });
+
+  it("makes no paid call while another indexer holds the budget lease", async () => {
+    await init();
+    const calls: string[][] = [];
+    setLibraryEmbedder(fakeEmbedder(calls));
+    await seed();
+    expect(await acquireSearchLease(EMBED_BUDGET_LEASE, "other-indexer", 60_000)).toBe(true);
+    expect(await runEmbedPass()).toEqual({ embedded: 0, stopped: "budget_busy" });
+    expect(calls).toEqual([]);
+    // Released, the next pass goes ahead.
+    await releaseSearchLease(EMBED_BUDGET_LEASE, "other-indexer");
+    expect((await runEmbedPass()).embedded).toBeGreaterThan(0);
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  it("embeds a moved item again under its new project", async () => {
+    await init();
+    setLibraryEmbedder(fakeEmbedder([]));
+    const { dog } = await seed();
+    await runEmbedPass();
+    const now = new Date().toISOString();
+    await getPortableDb()
+      .insert(projects)
+      .values({ id: "proj-new", user_id: USER, name: "New", created_at: now, updated_at: now });
+    dog.project_id = "proj-new";
+    await dog.save();
+    await reconcileLibraryIndex();
+    expect(await unembeddedChunkCount(USER, embeddingSpace("fake", "concepts-v1"))).toBeGreaterThan(0);
+    await runEmbedPass();
+    const moved = await searchLibrary({ userId: USER, query: "dog", projectId: "proj-new" });
+    expect(moved.hits.map((hit) => hit.resourceId)).toEqual([dog.id]);
+  });
+
+  it("removes the vectors of a project once it is excluded", async () => {
+    await init();
+    setLibraryEmbedder(fakeEmbedder([]));
+    const { dog } = await seed();
+    await runEmbedPass();
+    expect((await searchLibrary({ userId: USER, query: "dog" })).hits.map((hit) => hit.resourceId)).toEqual([dog.id]);
+    process.env.NODETOOL_SEARCH_EXCLUDED_PROJECTS = dog.project_id ?? "";
+    await runEmbedPass();
+    const [collection] = await libraryCollections(USER);
+    const remaining = await (await vectors.getCollection({ name: collection!.name })).count();
+    const embedded = await getPortableDb()
+      .select({ id: searchChunks.id })
+      .from(searchChunks)
+      .where(isNotNull(searchChunks.embedding_space));
+    expect(remaining).toBe(embedded.length);
+    expect((await searchLibrary({ userId: USER, query: "dog", mode: "semantic" })).hits).toEqual([]);
   });
 
   it("never sends the text of an excluded project to the model", async () => {

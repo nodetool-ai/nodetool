@@ -6,6 +6,7 @@ import {
   getPortableDb,
   initTestDb,
   ModelObserver,
+  projects,
   searchItems,
   Workflow
 } from "@nodetool-ai/models";
@@ -15,6 +16,7 @@ import {
   chunkPlainText,
   claimPendingItems,
   completeItem,
+  dropClaimedItem,
   flushLibraryIndexWrites,
   MAX_ATTEMPTS,
   PASSAGE_CHARS,
@@ -25,6 +27,7 @@ import {
   setAssetBytesReader,
   stopLibraryIndexWrites
 } from "../src/index.js";
+import { documentTextGroups } from "../src/content.js";
 import { initPgliteDb } from "./_helpers/pglite-db.js";
 
 const USER = "user-1";
@@ -129,6 +132,36 @@ describe.each(dialects)("library indexer on %s", (_name, init) => {
     expect(other.ok).toBe(false);
   });
 
+  it("refuses to read an item whose source or project is gone", async () => {
+    await init();
+    useFiles();
+    files.set("gone.md", NOTES);
+    files.set("hidden.md", NOTES);
+    const now = new Date().toISOString();
+    await getPortableDb()
+      .insert(projects)
+      .values({ id: "proj-1", user_id: USER, name: "Old", created_at: now, updated_at: now });
+    const gone = await Asset.create({ user_id: USER, name: "gone.md", content_type: "text/markdown" });
+    const hidden = await Asset.create({
+      user_id: USER,
+      name: "hidden.md",
+      content_type: "text/markdown",
+      project_id: "proj-1"
+    });
+    stopLibraryIndexWrites();
+    await reconcileLibraryIndex();
+    await runIndexerPass();
+    expect((await readLibraryPassage({ userId: USER, id: gone.id })).ok).toBe(true);
+    expect((await readLibraryPassage({ userId: USER, id: hidden.id })).ok).toBe(true);
+
+    // Neither change reaches the index: the inline writes are off.
+    await gone.delete();
+    await getPortableDb().update(projects).set({ deleted_at: now }).where(eq(projects.id, "proj-1"));
+    expect(await itemOf(gone.id)).toBeDefined();
+    expect((await readLibraryPassage({ userId: USER, id: gone.id })).ok).toBe(false);
+    expect((await readLibraryPassage({ userId: USER, id: hidden.id })).ok).toBe(false);
+  });
+
   it("indexes the text inside a workflow graph, located by node", async () => {
     await init();
     const workflow = await Workflow.create({
@@ -207,6 +240,34 @@ describe.each(dialects)("library indexer on %s", (_name, init) => {
     expect((await searchLibrary({ userId: USER, query: "otters" })).hits).toEqual([]);
   });
 
+  it("keeps an item when its source is back or rewritten before the drop", async () => {
+    await init();
+    useFiles();
+    files.set("keep.txt", "kept");
+    const asset = await Asset.create({ user_id: USER, name: "keep.txt", content_type: "text/plain" });
+    stopLibraryIndexWrites();
+    await reconcileLibraryIndex();
+
+    // The extractor saw the source missing, but it exists when the drop runs.
+    const [first] = await claimPendingItems("test", 1);
+    expect(await dropClaimedItem(first!)).toBe(false);
+    expect(await itemOf(asset.id)).toBeDefined();
+
+    // The source is gone, but an inline write rewrote the item meanwhile.
+    await getPortableDb().update(searchItems).set({ lease_expires_at: null }).where(eq(searchItems.resource_id, asset.id));
+    const [second] = await claimPendingItems("test", 1);
+    await asset.delete();
+    await getPortableDb().update(searchItems).set({ source_version: "rewritten" }).where(eq(searchItems.resource_id, asset.id));
+    expect(await dropClaimedItem(second!)).toBe(false);
+    expect(await itemOf(asset.id)).toBeDefined();
+
+    // With the claim intact and the source gone, the drop goes through.
+    await getPortableDb().update(searchItems).set({ lease_expires_at: null }).where(eq(searchItems.resource_id, asset.id));
+    const [third] = await claimPendingItems("test", 1);
+    expect(await dropClaimedItem(third!)).toBe(true);
+    expect(await itemOf(asset.id)).toBeUndefined();
+  });
+
   it("marks a file it cannot read as skipped and keeps it findable by name", async () => {
     await init();
     useFiles();
@@ -259,5 +320,14 @@ describe("chunking", () => {
     expect(chunks[0]!.locator).toMatchObject({ line_start: 1 });
     const last = chunks.at(-1)!.locator as { line_end: number };
     expect(last.line_end).toBe(200);
+  });
+});
+
+describe("documentTextGroups", () => {
+  it("stops at a nesting depth instead of overflowing the stack", () => {
+    let deep: Record<string, unknown> = { text: "bottom of the well" };
+    for (let n = 0; n < 100_000; n += 1) deep = { child: deep };
+    const groups = documentTextGroups({ text: "top level words", nested: deep });
+    expect(groups.get("")).toEqual(["top level words"]);
   });
 });

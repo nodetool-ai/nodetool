@@ -136,7 +136,7 @@ export async function runLibraryIndexer(options: LibraryIndexerOptions = {}): Pr
       }
       // Extraction first, so a saved file is searchable by words before it is embedded.
       try {
-        const embedded = await runEmbedPass({ signal: options.signal, limit: 256 });
+        const embedded = await runEmbedPass({ signal: options.signal, limit: 256, owner });
         if (embedded.embedded > 0) {
           log.debug("Library embed pass", { ...embedded });
           continue;

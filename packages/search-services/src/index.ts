@@ -11,6 +11,7 @@ export {
   ensureLibraryIndexed,
   flushLibraryIndexWrites,
   reconcileLibraryIndex,
+  setLibraryIndexMaintained,
   startLibraryIndexWrites,
   setLibraryIndexerWake,
   stopLibraryIndexWrites,
@@ -48,6 +49,7 @@ export {
 export {
   claimPendingItems,
   completeItem,
+  dropClaimedItem,
   failItem,
   retryFailedItems,
   MAX_ATTEMPTS,
@@ -110,5 +112,12 @@ export {
   type LibraryEnricher,
   type TranscriptSegment
 } from "./enrich.js";
-export { EMBED_JOB_PREFIX, runEmbedPass, unembeddedChunkCount, type EmbedPass } from "./embed.js";
+export {
+  EMBED_BUDGET_LEASE,
+  EMBED_JOB_PREFIX,
+  runEmbedPass,
+  unembeddedChunkCount,
+  type EmbedPass
+} from "./embed.js";
+export { acquireSearchLease, releaseSearchLease } from "./leases.js";
 export { libraryIndexStatus, rebuildLibraryIndex, type LibraryIndexStatus } from "./status.js";

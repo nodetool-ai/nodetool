@@ -25,6 +25,8 @@ export const MAX_CONTENT_BYTES = 50 * 1024 * 1024;
 export const MAX_CONTENT_CHARS = 2_000_000;
 /** Most PDF pages read from one file. */
 export const MAX_PDF_PAGES = 2_000;
+/** Nesting below this depth in a document's JSON is not read. */
+export const MAX_DOCUMENT_DEPTH = 64;
 /** Longest one extraction may take. */
 export const EXTRACTION_TIMEOUT_MS = 120_000;
 
@@ -79,7 +81,7 @@ interface MammothModule {
 
 async function pdfPassages(bytes: Uint8Array): Promise<ContentResult> {
   const { parsePdfBuffer } = await import("@nodetool-ai/document-processing");
-  const parsed = await parsePdfBuffer(Buffer.from(bytes));
+  const parsed = await parsePdfBuffer(Buffer.from(bytes), { maxPages: MAX_PDF_PAGES });
   const chunks: ExtractedChunk[] = [];
   let chars = 0;
   for (const [index, page] of parsed.pages.slice(0, MAX_PDF_PAGES).entries()) {
@@ -203,10 +205,10 @@ function isText(key: string, value: string): boolean {
 export function documentTextGroups(document: unknown): Map<string, string[]> {
   const groups = new Map<string, string[]>();
   let total = 0;
-  const visit = (value: unknown, key: string, owner: string): void => {
-    if (total >= MAX_CONTENT_CHARS) return;
+  const visit = (value: unknown, key: string, owner: string, depth: number): void => {
+    if (total >= MAX_CONTENT_CHARS || depth > MAX_DOCUMENT_DEPTH) return;
     if (Array.isArray(value)) {
-      for (const entry of value) visit(entry, key, owner);
+      for (const entry of value) visit(entry, key, owner, depth + 1);
       return;
     }
     if (value === null || typeof value !== "object") {
@@ -222,10 +224,10 @@ export function documentTextGroups(document: unknown): Map<string, string[]> {
     const id = typeof record.id === "string" && record.id ? record.id : owner;
     for (const [childKey, child] of Object.entries(record)) {
       if (childKey === "id") continue;
-      visit(child, childKey, id);
+      visit(child, childKey, id, depth + 1);
     }
   };
-  visit(document, "", "");
+  visit(document, "", "", 0);
   return groups;
 }
 

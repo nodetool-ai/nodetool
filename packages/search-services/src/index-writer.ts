@@ -45,6 +45,7 @@ export async function writeIndexedItem(
       .select({
         id: searchItems.id,
         state: searchItems.state,
+        project_id: searchItems.project_id,
         source_version: searchItems.source_version,
         extractor_version: searchItems.extractor_version
       })
@@ -108,6 +109,14 @@ export async function writeIndexedItem(
         .update(searchItems)
         .set({ ...row, ...queued, ...settled, ...enrichReset })
         .where(eq(searchItems.id, itemId));
+      if (existing.project_id !== extracted.projectId) {
+        // A vector records the project it was written under, and the query
+        // partitions on it. Embed the moved item again under its new project.
+        await db
+          .update(searchChunks)
+          .set({ embedding_space: null })
+          .where(eq(searchChunks.item_id, itemId));
+      }
       const previous = await db
         .select({ id: searchChunks.id })
         .from(searchChunks)

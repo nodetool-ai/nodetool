@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
-import { Asset, ImageDocument, JsScript, ModelObserver, TimelineSequence, Workflow, initTestDb } from "@nodetool-ai/models";
+import { Asset, ImageDocument, JsScript, ModelObserver, Project, TimelineSequence, Workflow, initTestDb } from "@nodetool-ai/models";
 import { emptyJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import { runIndexerPass, setAssetBytesReader, stopLibraryIndexWrites } from "@nodetool-ai/search-services";
 import { OPEN_WITH, SEARCH_CAPABILITIES, module as searchModule } from "../src/capabilities/search.js";
@@ -118,6 +118,24 @@ describe("search capability module", () => {
     const passages = read.passages as Array<{ text: string }>;
     expect(passages[read.matched as number]!.text).toContain("1987");
     expect(passages.some((passage) => passage.text.includes("railing"))).toBe(true);
+  });
+
+  it("reads only the run's project unless scope is all", async () => {
+    await Project.insertNew({ id: "proj-other", user_id: USER, name: "Other" });
+    const doc = (await Asset.create({
+      user_id: USER,
+      name: "elsewhere.md",
+      content_type: "text/markdown",
+      project_id: "proj-other"
+    })) as Asset;
+    await call(SEARCH_CAPABILITIES, "search", { query: "" });
+    await runIndexerPass();
+
+    const scoped = await call(SEARCH_CAPABILITIES, "search_read", { id: doc.id });
+    expect(scoped.error).toMatch(/No library item/);
+    const all = await call(SEARCH_CAPABILITIES, "search_read", { id: doc.id, scope: "all" });
+    expect(all.error).toBeUndefined();
+    expect(all.id).toBe(doc.id);
   });
 
   it("refuses a missing id with a message, not a throw", async () => {
