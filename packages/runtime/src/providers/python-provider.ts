@@ -36,7 +36,8 @@ import { sniffAudioMime } from "./audio-mime.js";
 import {
   withMlxRepoAdapters,
   withRecommendedMlxImageModels,
-  withRecommendedMlxModels
+  withRecommendedMlxModels,
+  withRecommendedMlxVideoModels
 } from "./mlx-models.js";
 
 type PythonProviderOptions = Record<string, unknown> & {
@@ -213,7 +214,8 @@ export class PythonProvider extends BaseProvider {
   }
 
   async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return this._getModels("video") as Promise<VideoModel[]>;
+    const models = (await this._getModels("video")) as VideoModel[];
+    return this._isMlx() ? withRecommendedMlxVideoModels(this.provider, models) : models;
   }
 
   async getAvailableMusicModels(): Promise<MusicModel[]> {
