@@ -12,7 +12,7 @@ export function audioMixerReferenceIssues(audio: GameAudioSettings | undefined, 
   if (!mixer) { return []; }
   const issues: AudioMixerReferenceIssue[] = [];
   for (const slot of Object.keys(mixer.assetBuses)) {
-    const asset = assets[slot];
+    const asset = Object.hasOwn(assets, slot) ? assets[slot] : undefined;
     if (!asset || asset.mediaKind !== "audio") {
       issues.push({ path: ["audio", "mixer", "assetBuses", slot], message: `Asset ${slot} must be an audio binding` });
     }

@@ -8,7 +8,7 @@ export function materialReferenceIssues3D(document: GameDocument3D): GameDiagnos
     for (const field of TEXTURE_FIELDS) {
       const texture = material[field];
       if (!texture) { continue; }
-      const kind: string | undefined = document.assets[texture.assetId]?.mediaKind;
+      const kind: string | undefined = Object.hasOwn(document.assets, texture.assetId) ? document.assets[texture.assetId]?.mediaKind : undefined;
       if (kind !== "image") {
         issues.push({ code: "missing_material_texture", path: [...path, field, "assetId"],
           message: `Material texture ${texture.assetId} must be an image binding` });

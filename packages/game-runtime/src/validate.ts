@@ -47,6 +47,10 @@ function issueFromError(error: string, document: GameDocument): GameValidationIs
   return { path: prefix.split(".").map((part) => /^\d+$/.test(part) ? Number(part) : part), message: error.slice(separator + 2) };
 }
 
+function own<T>(record: Readonly<Record<string, T>> | undefined, key: string): T | undefined {
+  return record && Object.hasOwn(record, key) ? record[key] : undefined;
+}
+
 /** Validate structure and references before publishing or starting a session. */
 export function validateGame(value: unknown): GameValidationResult {
   const parsed = gameDocument.safeParse(value);
@@ -88,7 +92,7 @@ export function validateGame(value: unknown): GameValidationResult {
       continue;
     }
     const path = `renderEffects.${index}`;
-    const asset = document.assets[effect.assetId];
+    const asset = own(document.assets, effect.assetId);
     if (!asset || asset.mediaKind !== "image") {
       errors.push(`${path}.assetId: LUT requires an image asset`);
     } else if (asset.width !== effect.size * effect.size || asset.height !== effect.size) {
@@ -147,12 +151,12 @@ export function validateGame(value: unknown): GameValidationResult {
     for (const [layerIndex, layer] of (scene.backgrounds ?? []).entries()) {
       if (layerIds.has(layer.id)) errors.push(`scenes.${sceneIndex}.backgrounds.${layerIndex}.id: Duplicate background id ${layer.id}`);
       layerIds.add(layer.id);
-      const asset = document.assets[layer.assetId];
+      const asset = own(document.assets, layer.assetId);
       if (!asset || asset.mediaKind !== "image") errors.push(`scenes.${sceneIndex}.backgrounds.${layerIndex}.assetId: requires an image asset`);
     }
     if (scene.music) {
       if (document.schemaVersion < 2) errors.push(`scenes.${sceneIndex}.music: requires schema version 2`);
-      const binding = document.assets[scene.music.assetId];
+      const binding = own(document.assets, scene.music.assetId);
       if (!binding) {
         errors.push(`scenes.${sceneIndex}.music.assetId: Scene ${scene.id} references missing asset ${scene.music.assetId}`);
       } else if (binding.mediaKind !== "audio") {
@@ -230,7 +234,7 @@ export function validateGame(value: unknown): GameValidationResult {
         if (!assetId) {
           continue;
         }
-        const binding = document.assets[assetId];
+        const binding = own(document.assets, assetId);
         if (!binding) {
           errors.push(`${path}.${component}.assetId: Entity ${entity.id} references missing asset ${assetId}`);
         } else if (binding.mediaKind !== expectedKind) {
@@ -241,12 +245,12 @@ export function validateGame(value: unknown): GameValidationResult {
         errors.push(`${path}.animator: requires a sprite`);
       }
       if (entity.sprite) {
-        const binding = document.assets[entity.sprite.assetId];
+        const binding = own(document.assets, entity.sprite.assetId);
         if (binding?.trim && (entity.sprite.frame || entity.animator)) {
           errors.push(`${path}.sprite: a trimmed asset cannot use frames or an animator`);
         }
       }
-      if (entity.tilemap && document.assets[entity.tilemap.assetId]?.trim) {
+      if (entity.tilemap && own(document.assets, entity.tilemap.assetId)?.trim) {
         errors.push(`${path}.tilemap: a trimmed asset cannot be a tilemap`);
       }
       if (entity.visualAnimation && !entity.sprite) errors.push(`${path}.visualAnimation: requires a sprite`);
@@ -276,7 +280,7 @@ export function validateGame(value: unknown): GameValidationResult {
       }
       for (const [index, emitter] of (entity.particles?.emitters ?? []).entries()) {
         const assetId = emitter.sprite?.assetId;
-        if (assetId !== undefined && document.assets[assetId]?.mediaKind !== "image") {
+        if (assetId !== undefined && own(document.assets, assetId)?.mediaKind !== "image") {
           errors.push(`${path}.particles.emitters.${index}.sprite.assetId: Particle sprite ${assetId} must be an image asset`);
         }
       }
@@ -312,7 +316,7 @@ export function validateGame(value: unknown): GameValidationResult {
           if (document.schemaVersion !== 4 && (behavior.params !== undefined || behavior.values !== undefined)) {
             errors.push(`${path}.behaviors.${behaviorIndex}.params: requires schema version 4`);
           }
-          for (const issue of scriptParamReferenceIssues(behavior, (id) => entities.has(id), (slot) => document.assets[slot]?.mediaKind)) {
+          for (const issue of scriptParamReferenceIssues(behavior, (id) => entities.has(id), (slot) => own(document.assets, slot)?.mediaKind)) {
             errors.push(`${path}.behaviors.${behaviorIndex}.${issue.path.join(".")}: ${issue.message}`);
           }
         }
