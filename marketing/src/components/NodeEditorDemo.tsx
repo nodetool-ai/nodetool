@@ -14,7 +14,21 @@ import { useNearViewport } from "../lib/useNearViewport";
  */
 const EMBED_SRC = "/embed/node-editor/node-editor-embed.html";
 
-export default function NodeEditorDemo() {
+const DEFAULT_TITLE = "Try the node editor.";
+const DEFAULT_INTRO =
+  "This is the editor from NodeTool, running in your browser with a prompt, a Text To Image node, and an Image To Video node. Edit the prompt, drag the nodes, rewire them, add Enhance Prompt or Text To Video from the node menu, and press Run.";
+
+type NodeEditorDemoProps = {
+  /** Section heading. Pages set it to fit their own story. */
+  title?: string;
+  /** Paragraph under the heading. */
+  intro?: string;
+};
+
+export default function NodeEditorDemo({
+  title = DEFAULT_TITLE,
+  intro = DEFAULT_INTRO,
+}: NodeEditorDemoProps = {}) {
   const [opened, setOpened] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const near = useNearViewport(sectionRef);
@@ -31,13 +45,10 @@ export default function NodeEditorDemo() {
           id="node-editor-demo-title"
           className="text-3xl font-semibold tracking-tight text-white md:text-4xl"
         >
-          Try the node editor.
+          {title}
         </h2>
         <p className="mt-4 text-lg leading-relaxed text-slate-300">
-          This is the editor from NodeTool, running in your browser with a
-          prompt, a Text To Image node, and an Image To Video node. Edit the
-          prompt, drag the nodes, rewire them, add Enhance Prompt or Text To
-          Video from the node menu, and press Run.
+          {intro}
         </p>
       </div>
 
