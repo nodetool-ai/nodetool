@@ -731,6 +731,32 @@ export function shouldFakeNode(
 }
 
 /**
+ * The model a real-run node gets for a model property its template leaves
+ * empty, by property type. The image and video ids are the fake `openai`
+ * catalog's, so a node that checks the provider's model list finds them.
+ */
+const HOST_MODEL_SELECTIONS: Record<string, Record<string, string>> = {
+  language_model: {
+    type: "language_model",
+    provider: "openai",
+    id: "fake-model",
+    name: "E2E model"
+  },
+  image_model: {
+    type: "image_model",
+    provider: "openai",
+    id: modelId("Test Image Model"),
+    name: "Test Image Model"
+  },
+  video_model: {
+    type: "video_model",
+    provider: "openai",
+    id: modelId("Test Video Model"),
+    name: "Test Video Model"
+  }
+};
+
+/**
  * Build a `resolveExecutor` that fakes external/provider-backed nodes and runs
  * everything else for real.
  *
@@ -772,7 +798,8 @@ export function createFakeExecutorResolver(
     const selectModels = (values: Record<string, unknown>): Record<string, unknown> => {
       const properties = { ...values };
       for (const property of meta?.properties ?? []) {
-        if (baseType(property) !== "language_model") {
+        const hostModel = HOST_MODEL_SELECTIONS[baseType(property)];
+        if (!hostModel) {
           continue;
         }
         const model = properties[property.name] ?? node.properties?.[property.name];
@@ -780,12 +807,7 @@ export function createFakeExecutorResolver(
           typeof model === "object" && model !== null &&
           "id" in model && model.id && "provider" in model && model.provider
             ? model
-            : {
-                type: "language_model",
-                provider: "openai",
-                id: "fake-model",
-                name: "E2E model"
-              };
+            : { ...hostModel };
       }
       return properties;
     };

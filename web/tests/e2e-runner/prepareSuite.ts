@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync } from "node:fs";
 import { resolve, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isComfyGraph } from "@nodetool-ai/protocol";
 
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
 // web/tests/e2e-runner → web/tests → web → repo root
@@ -66,6 +67,7 @@ export function prepareSuite(): { count: number; outDir: string } {
     .sort();
 
   const manifestWorkflows: ManifestEntry[] = [];
+  let comfyGraphs = 0;
   for (const fileName of files) {
     const stem = basename(fileName, ".json");
     // Slugify for the on-disk/URL id (template names contain spaces); keep the
@@ -86,6 +88,17 @@ export function prepareSuite(): { count: number; outDir: string } {
       nodes: raw.graph?.nodes ?? raw.nodes ?? [],
       edges: raw.graph?.edges ?? raw.edges ?? []
     };
+    // A Comfy graph runs as one job on Comfy Cloud or a ComfyUI server
+    // (`collapseComfyGraph`), which opens its own network connections. The
+    // e2e-server fakes providers and executors, not that target, so every such
+    // run fails on the missing COMFY_SERVER_URL or COMFY_API_KEY. The
+    // base-nodes example suite leaves them out for the same reason. Their
+    // coverage is packages/base-nodes/tests/comfy-workflow-contract.test.ts
+    // (the run on a stubbed transport) and example-workflows-validation.test.ts.
+    if (isComfyGraph(graph as { nodes: Array<{ type?: unknown }> })) {
+      comfyGraphs += 1;
+      continue;
+    }
     const override = overrides[id] ?? overrides[stem] ?? {};
 
     writeFileSync(
@@ -123,6 +136,11 @@ export function prepareSuite(): { count: number; outDir: string } {
     }
   }
 
+  if (comfyGraphs > 0) {
+    console.log(
+      `[prepareSuite] Left out ${comfyGraphs} Comfy graphs, which need a Comfy target`
+    );
+  }
   return { count: manifestWorkflows.length, outDir: SUITE_OUT_DIR };
 }
 
