@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-11-25T11:38:23.109Z",
+  "generated_at": "2026-11-25T16:01:07.369Z",
   "nodes": [
     {
       "type": "anthropic.text.WebSearch",
@@ -16842,6 +16842,53 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/triggers/manualtrigger",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/triggers/manualtrigger.md"
+    },
+    {
+      "type": "nodetool.triggers.ScheduleTrigger",
+      "title": "Schedule Trigger",
+      "namespace": "nodetool.triggers",
+      "description": "",
+      "inputs": [
+        {
+          "name": "max_events",
+          "type": "int",
+          "description": "Events to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor. The scheduler keeps firing an activated trigger regardless.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "cron_expr",
+          "type": "str",
+          "description": "Five fields: minute hour day-of-month month day-of-week. For example 0 8 * * 1-5 is every weekday at 08:00.",
+          "required": true
+        },
+        {
+          "name": "cron_tz",
+          "type": "str",
+          "description": "IANA timezone the expression is read in, such as Europe/Berlin or America/New_York.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "scheduled_at",
+          "type": "str"
+        },
+        {
+          "name": "timestamp",
+          "type": "str"
+        },
+        {
+          "name": "source",
+          "type": "str"
+        },
+        {
+          "name": "event_type",
+          "type": "str"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/triggers/scheduletrigger",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/triggers/scheduletrigger.md"
     },
     {
       "type": "nodetool.triggers.Wait",

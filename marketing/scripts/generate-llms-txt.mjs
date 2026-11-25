@@ -83,6 +83,7 @@ const KEY_PAGE_BLURBS = {
   "/models": "every supported image, video, audio, and language model, by provider.",
   "/node-based-ai": "build AI workflows with nodes instead of prompts.",
   "/node-based-workflows": "node-based workflows you can check, run, and rerun.",
+  "/demo": "the timeline editor and node editor running in the browser, with no download or sign-in.",
 };
 
 const KEY_PAGE_LABELS = {
@@ -101,6 +102,7 @@ const KEY_PAGE_LABELS = {
   "/models": "AI model directory",
   "/node-based-ai": "Node-based AI",
   "/node-based-workflows": "Node-based workflows",
+  "/demo": "Live demo",
 };
 
 function link(label, path, blurb) {
