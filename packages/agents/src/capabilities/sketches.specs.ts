@@ -31,7 +31,7 @@ export const LIST_SKETCHES_SCHEMA: JsonSchema = {
     query: {
       type: "string",
       description:
-        "Only sketches whose name contains this text (case-insensitive)."
+        "Only sketches matching these words in the name, tags or layer text, best match first."
     },
     limit: {
       type: "number",

@@ -1,6 +1,6 @@
 ---
 name: nodetool-rag-indexing
-description: "Build NodeTool document ingestion, vector indexing, retrieval, and RAG pipelines. Use when documents must be chunked into a vector collection and searched by meaning, or when an answer should come from the user's own documents. To find a stored image, video or file by name or tag, use asset_search instead."
+description: "Build NodeTool document ingestion, vector indexing, retrieval, and RAG pipelines. Use when a workflow must chunk documents into a vector collection of its own and query it by meaning. To find a stored image, video, document or workflow by what it contains, or to answer from a file already in the library, use search and search_read instead."
 featured: true
 ---
 

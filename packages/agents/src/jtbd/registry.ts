@@ -26,6 +26,7 @@
 import { createToolLoopBridge } from "../evals/tool-loop-bridge.js";
 import { TOOL_LOOP_NODE_CATALOG } from "../evals/tool-loop-cases.js";
 import { createJsScriptToolBridge } from "../evals/surfaces/js-script.js";
+import { createLibraryToolBridge, LIBRARY_ITEMS } from "../evals/surfaces/library.js";
 import { createModel3DToolBridge } from "../evals/surfaces/model3d.js";
 import { createScriptToolBridge } from "../evals/surfaces/script.js";
 import { createSketchToolBridge } from "../evals/surfaces/sketch.js";
@@ -480,6 +481,55 @@ export const JOBS_TO_BE_DONE: readonly ErasedJob[] = [
   }),
 
   defineJob({
+    id: "library-find-by-content",
+    statement:
+      "When I remember what a picture shows but not its file name, I want it found from my description, so I can use it without scrolling through every render.",
+    surfaces: ["library-search"],
+    difficulty: "smoke",
+    objective:
+      "I made a picture of a fox asleep in the snow a while ago. Find it and tag it hero so I can pick it up for the campaign.",
+    expectedToolCalls: 3,
+    createBridge: () => createLibraryToolBridge(),
+    outcomes: [
+      {
+        name: "right-picture-tagged",
+        describe: "The fox-in-snow render carries the hero tag.",
+        test: (s) => (s.tags[FOX_IN_SNOW_ID] ?? []).includes("hero")
+      },
+      {
+        name: "nothing-else-tagged",
+        describe: "No other item was tagged hero.",
+        test: (s) =>
+          Object.entries(s.tags).every(([id, tags]) => id === FOX_IN_SNOW_ID || !tags.includes("hero"))
+      }
+    ]
+  }),
+
+  defineJob({
+    id: "library-answer-from-pdf",
+    statement:
+      "When the answer to a question is in one of my documents, I want it found and quoted with its page, so I can cite it.",
+    surfaces: ["library-search"],
+    difficulty: "standard",
+    objective:
+      "One of my PDFs is a report on the harbor lighthouse. Find out the year its lamp was replaced and save me a note with the year and the page it is on.",
+    expectedToolCalls: 4,
+    createBridge: () => createLibraryToolBridge(),
+    outcomes: [
+      {
+        name: "year-noted",
+        describe: "A saved note gives 1987 as the year.",
+        test: (s) => s.notes.some((note) => note.includes("1987"))
+      },
+      {
+        name: "page-cited",
+        describe: "The note names page 4.",
+        test: (s) => s.notes.some((note) => /\bp(?:age|\.)?\s*4\b/i.test(note))
+      }
+    ]
+  }),
+
+  defineJob({
     id: "jsscript-write-and-test",
     statement:
       "When I have a data-shaping step no node covers, I want a script written and proved against examples, so I can trust it in a workflow.",
@@ -542,6 +592,9 @@ export const JOBS_TO_BE_DONE: readonly ErasedJob[] = [
     ]
   })
 ];
+
+/** The render the library-find job asks for: the only fox in snow. */
+const FOX_IN_SNOW_ID = LIBRARY_ITEMS.find((item) => item.title === "render-0042.png")!.id;
 
 /** Look one up by id. */
 export function findJob(id: string): ErasedJob | undefined {
