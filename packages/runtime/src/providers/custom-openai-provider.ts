@@ -24,6 +24,7 @@ import {
 import { assertSafePublicHttpsUrl, safeFetch } from "./safe-url.js";
 import {
   classifyListedModel,
+  type ListedModelCapability,
   type ListedModelKind
 } from "./custom-model-kinds.js";
 import type { ImageModel, LanguageModel, VideoModel } from "./types.js";
@@ -78,6 +79,7 @@ interface ListedModel {
   id: string;
   name: string;
   kind: ListedModelKind;
+  capabilities: ListedModelCapability[];
   /** True when the endpoint's own metadata or the user said so, not the id. */
   certain: boolean;
 }
@@ -193,18 +195,49 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
       ...this._imageModels.map((id) => [id, "image"] as const),
       ...this._videoModels.map((id) => [id, "video"] as const)
     ]);
-    const listed: ListedModel[] = rows.map((row) => {
+    const classified = rows.map((row): ListedModel => {
       const name = isString(row.name) && row.name ? row.name : row.id;
       const markedKind = marked.get(row.id);
       if (markedKind) {
-        return { id: row.id, name, kind: markedKind, certain: true };
+        return {
+          id: row.id,
+          name,
+          kind: markedKind,
+          capabilities: [],
+          certain: true
+        };
       }
-      const { kind, source } = classifyListedModel(row);
-      return { id: row.id, name, kind, certain: source === "metadata" };
+      const { kind, source, capability } = classifyListedModel(row);
+      return {
+        id: row.id,
+        name,
+        kind,
+        capabilities: capability ? [capability] : [],
+        certain: source === "metadata"
+      };
     });
+    const listed: ListedModel[] = [];
+    const byIdAndKind = new Map<string, ListedModel>();
+    for (const model of classified) {
+      const key = JSON.stringify([model.id, model.kind]);
+      const existing = byIdAndKind.get(key);
+      if (!existing) {
+        listed.push(model);
+        byIdAndKind.set(key, model);
+        continue;
+      }
+      existing.certain ||= model.certain;
+      for (const capability of model.capabilities) {
+        if (!existing.capabilities.includes(capability)) {
+          existing.capabilities.push(capability);
+        }
+      }
+    }
     const seen = new Set(listed.map((m) => m.id));
     for (const [id, kind] of marked) {
-      if (!seen.has(id)) listed.push({ id, name: id, kind, certain: true });
+      if (!seen.has(id)) {
+        listed.push({ id, name: id, kind, capabilities: [], certain: true });
+      }
     }
     return listed;
   }
@@ -245,11 +278,12 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
     const models = await this.listModels();
     return models
       .filter((m) => m.kind === "image")
-      .map(({ id, name }) => ({
+      .map(({ id, name, capabilities }) => ({
         id,
         name,
         provider: this.provider,
-        supportedTasks: [...IMAGE_TASKS]
+        supportedTasks:
+          capabilities.length > 0 ? [...capabilities] : [...IMAGE_TASKS]
       }));
   }
 
@@ -262,11 +296,12 @@ export class CustomOpenAIProvider extends OpenAICompatProvider {
     const models = await this.listModels();
     return models
       .filter((m) => m.kind === "video")
-      .map(({ id, name }) => ({
+      .map(({ id, name, capabilities }) => ({
         id,
         name,
         provider: this.provider,
-        supportedTasks: [...VIDEO_TASKS]
+        supportedTasks:
+          capabilities.length > 0 ? [...capabilities] : [...VIDEO_TASKS]
       }));
   }
 

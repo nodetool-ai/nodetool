@@ -17,3 +17,5 @@ packages/app-export/src/*.generated.ts text eol=lf
 
 # The generated Comfy template source embeds this license verbatim.
 packages/runtime/tests/fixtures/comfy-templates/LICENSE text eol=lf
+# Demo pages built from web/ (`npm run build:*-embed`). Review the source, not the output.
+marketing/public/embed/** linguist-generated=true -diff

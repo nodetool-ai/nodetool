@@ -47,6 +47,10 @@ rm -rf "$dest"
 mkdir -p "$dest/runtime"
 cp -R "$bundle/." "$dest/"
 find "$dest" -name '*.map' -type f -delete
+# node-gyp leaves its object files in build/*/obj.target. Gatekeeper
+# rejects a macOS app holding unsigned Mach-O object files, and nothing
+# loads them at run time.
+find "$dest" -type d -name obj.target -prune -exec rm -rf {} +
 mv "$dest/_modules" "$dest/node_modules"
 cp "$runtime" "$dest/runtime/$binary"
 chmod 755 "$dest/runtime/$binary"

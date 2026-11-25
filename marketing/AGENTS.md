@@ -144,6 +144,23 @@ when its rendered film exists in
 - Add `StoryboardTeaser` to a landing page with a hand-picked `slugs` list that
   matches the page's topic.
 
+## Timeline Editor Demo
+
+`/studio` loads the app's real timeline editor, read-only, in an iframe when
+the reader opens it. The page is `web/timeline-embed.html`, its code is in
+`web/src/demo/timeline/embed/`, and it shows the Kite, Serein and Cadence
+example timelines.
+
+- Treat `public/embed/timeline/` as generated output. After a change to the
+  timeline editor or the embed, run `npm run build:packages` at the root,
+  then `npm run build:timeline-embed` in `web/`, and commit the result.
+- `web/vite.timeline-embed.config.ts` writes only the chunks the demo loads.
+  A film that needs another lazy chunk must add its module to
+  `RUNTIME_LAZY_MODULES`. A film with media needs its files served from this
+  site, so the three films hold shapes and text only.
+- `tests/e2e/timeline-editor-demo.spec.ts` checks that nothing loads before
+  the reader opens the editor and that an edit is put back.
+
 ## Translated Pages
 
 `/zh/<route>`, `/ja/<route>` and `/ko/<route>` pages translate English pages
@@ -231,6 +248,27 @@ texture, use, or intent.
 - Plan sound per shot before assembly. Keep useful native sound, balance it
   across cuts, and add short fades at joins. Add music, narration, and titles
   only when the brief calls for them.
+
+## Node Editor Demo
+
+`/node-based-workflows` loads the app's real node editor in an iframe when the
+reader opens it. The page is `web/node-editor-embed.html` and its code is in
+`web/src/demo/nodeEditor/`. Run uses the app's own run path, and a fake
+server in the page answers it: generation nodes return the sample stills and
+clips in `public/node-editor-demo/`, picked by words in the prompt. No model
+runs, and the page says so.
+
+- Treat `public/embed/node-editor/` as generated output. After a change to the
+  node editor or the demo, run `npm run build:packages` at the root, then
+  `npm run build:node-editor-embed` in `web/`, and commit the result.
+- The node types come from the node catalog through
+  `npm run generate:node-editor-demo-metadata` in `web/`. A node type the demo
+  adds also needs a case in `web/src/demo/nodeEditor/fakeRunPlan.ts`.
+- The build writes only the chunks the demo loads. A lazy import the demo
+  reaches must be added to `RUNTIME_LAZY_MODULES` in
+  `web/vite.node-editor-embed.config.ts`.
+- `tests/e2e/node-editor-demo.spec.ts` checks that nothing loads before the
+  reader opens the editor and that Run shows the sample still and clip.
 
 ## Local Development and Verification
 
