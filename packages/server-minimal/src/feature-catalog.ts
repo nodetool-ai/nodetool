@@ -297,6 +297,7 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.triggers.FileWatchTrigger",
       "nodetool.triggers.IntervalTrigger",
       "nodetool.triggers.ManualTrigger",
+      "nodetool.triggers.ScheduleTrigger",
       "nodetool.triggers.Wait",
       "nodetool.triggers.WebhookTrigger"
     ]

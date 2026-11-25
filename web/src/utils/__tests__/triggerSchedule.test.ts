@@ -1,4 +1,5 @@
 import {
+  formatCronSchedule,
   formatDuration,
   formatNextFire,
   formatSchedule
@@ -69,6 +70,42 @@ describe("triggerSchedule", () => {
 
     it("returns null when neither field is usable", () => {
       expect(formatSchedule(null, undefined, now)).toBeNull();
+    });
+  });
+
+  describe("formatCronSchedule", () => {
+    it("combines expression, timezone and next fire", () => {
+      expect(
+        formatCronSchedule(
+          "0 8 * * 1-5",
+          "Europe/Berlin",
+          "2026-01-01T14:05:00Z",
+          now
+        )
+      ).toBe("Cron 0 8 * * 1-5 (Europe/Berlin) — next in 14h 5m");
+    });
+
+    it("shows only the expression and zone when there is no next fire", () => {
+      expect(formatCronSchedule("0 8 * * *", "UTC", null, now)).toBe(
+        "Cron 0 8 * * * (UTC)"
+      );
+    });
+
+    it("omits the zone when the server did not send one", () => {
+      expect(formatCronSchedule("0 8 * * *", null, null, now)).toBe(
+        "Cron 0 8 * * *"
+      );
+    });
+
+    it("reports due now for a slot the scheduler has not reached yet", () => {
+      expect(
+        formatCronSchedule("0 8 * * *", "UTC", "2025-12-31T08:00:00Z", now)
+      ).toBe("Cron 0 8 * * * (UTC) — due now");
+    });
+
+    it("returns null without an expression", () => {
+      expect(formatCronSchedule(null, "UTC", "2026-01-01T14:05:00Z", now)).toBeNull();
+      expect(formatCronSchedule("", "UTC", null, now)).toBeNull();
     });
   });
 });

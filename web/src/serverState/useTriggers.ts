@@ -43,6 +43,14 @@ export interface TriggerRegistrationStatus {
    */
   interval_seconds?: number | null;
   /**
+   * Cron expression of a Schedule Trigger. Non-null only for a cron
+   * `kind === "schedule"`, where `interval_seconds` is null. Optional: older
+   * servers omit the field.
+   */
+  cron_expr?: string | null;
+  /** IANA timezone the cron expression is read in. Same rules as `cron_expr`. */
+  cron_tz?: string | null;
+  /**
    * Why the dispatcher disarmed this registration — `failures`, `expired` or
    * `max_runs`. Null when it is armed, or when a person switched it off.
    * Optional: older servers omit the field.

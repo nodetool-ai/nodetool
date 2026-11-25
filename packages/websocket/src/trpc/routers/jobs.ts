@@ -16,6 +16,11 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { rearmTrigger } from "../../triggers/settle.js";
+import {
+  anchorCronSchedule,
+  scheduleCronSettings
+} from "../../triggers/schedule-timing.js";
+import { cronScheduleError } from "@nodetool-ai/nodes-utils";
 import { cancelLocalRuns } from "../../job-control.js";
 import { isRecord } from "../../lib/wire-values.js";
 import {
@@ -306,9 +311,22 @@ export const jobsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const registration = await requireOwnedRegistration(input.id, ctx.userId);
       const wasEnabled = registration.enabled === 1;
+      // A schedule that cannot compute a fire time would arm silently and
+      // never fire. Say so now.
+      const cron = scheduleCronSettings(registration);
+      const scheduleError = cron
+        ? cronScheduleError(cron.expr, cron.timezone)
+        : null;
+      if (scheduleError) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: scheduleError });
+      }
       // Re-arming is a fresh start: a registration the dispatcher gave up on
       // would otherwise disable itself again one failure later.
       rearmTrigger(registration);
+      if (!wasEnabled) {
+        // A cron schedule counts from the moment it is switched on.
+        anchorCronSchedule(registration, Date.now());
+      }
       await registration.save();
       if (!wasEnabled) {
         await RunEvent.appendEvent(

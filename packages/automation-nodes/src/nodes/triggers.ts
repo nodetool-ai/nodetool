@@ -1,9 +1,18 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
+  NodePropertyValidationIssue,
+  NodeValidationOptions,
   StreamingInputs,
   StreamingOutputs,
   TriggerEvent
 } from "@nodetool-ai/node-sdk";
+import {
+  DEFAULT_CRON_EXPR,
+  DEFAULT_CRON_TZ,
+  cronExprError,
+  cronTimezoneError,
+  nextCronFireMs
+} from "@nodetool-ai/nodes-utils";
 import * as fs from "fs";
 import * as path from "path";
 import {
@@ -12,12 +21,14 @@ import {
 } from "../lib/file-watch-match.js";
 import type {
   FileWatchEvent,
-  IntervalTickEvent
+  IntervalTickEvent,
+  ScheduleTickEvent
 } from "../lib/trigger-payload.js";
 import {
   parseFileWatchEvent,
   parseIntervalTick,
   parseManualEvent,
+  parseScheduleTick,
   parseWebhookEvent
 } from "../lib/trigger-payload.js";
 
@@ -430,6 +441,152 @@ export class IntervalTriggerNode extends BaseNode {
 }
 
 // ---------------------------------------------------------------------------
+// ScheduleTriggerNode — fires on a cron expression in an IANA timezone
+// ---------------------------------------------------------------------------
+
+/** `setTimeout` clamps a delay above this to 1 ms, so a long wait is sliced. */
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
+export class ScheduleTriggerNode extends BaseNode {
+  static readonly nodeType = "nodetool.triggers.ScheduleTrigger";
+  static readonly title = "Schedule Trigger";
+  static readonly description =
+    "Fire events at clock times given by a cron expression in a timezone.\n" +
+    "    trigger, schedule, cron, crontab, timezone, daily, weekly, calendar\n\n" +
+    "    Use cases:\n" +
+    "    - Run a workflow every weekday at 08:00 local time\n" +
+    "    - Produce a report on the first day of each month\n" +
+    "    - Keep the same wall-clock time across daylight saving changes\n\n" +
+    "    The expression has five fields: minute, hour, day of month, month,\n" +
+    "    day of week. A time that does not exist on a daylight saving night\n" +
+    "    fires at the next valid instant, and a time that occurs twice fires\n" +
+    "    once. After downtime the trigger fires once, then continues.";
+  static readonly inlineFields = ["cron_expr", "cron_tz"];
+  static readonly inputFields = [];
+  static readonly metadataOutputTypes = {
+    scheduled_at: "str",
+    timestamp: "str",
+    source: "str",
+    event_type: "str"
+  };
+
+  static readonly isTrigger = true;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Max Events",
+    description:
+      "Events to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor. The scheduler keeps firing an activated trigger regardless.",
+    min: 0
+  })
+  declare max_events: number;
+
+  @prop({
+    type: "str",
+    default: DEFAULT_CRON_EXPR,
+    title: "Cron Expression",
+    description:
+      "Five fields: minute hour day-of-month month day-of-week. For example 0 8 * * 1-5 is every weekday at 08:00."
+  })
+  declare cron_expr: string;
+
+  @prop({
+    type: "str",
+    default: DEFAULT_CRON_TZ,
+    title: "Timezone",
+    description:
+      "IANA timezone the expression is read in, such as Europe/Berlin or America/New_York."
+  })
+  declare cron_tz: string;
+
+  /**
+   * Reject a bad expression or timezone when the graph is validated, so
+   * `nodetool validate` and the check before a run name the mistake on this
+   * node instead of leaving a trigger that never fires. A property fed by an
+   * edge is only known at run time and is skipped.
+   */
+  static override validateProperties(
+    properties: Parameters<typeof BaseNode.validateProperties>[0],
+    options: NodeValidationOptions = {}
+  ): NodePropertyValidationIssue[] {
+    const issues = super.validateProperties(properties, options);
+    const connected = new Set(options.connectedHandles ?? []);
+    const issue = (property: string, message: string) => ({
+      nodeId: options.nodeId,
+      nodeType: this.nodeType,
+      property,
+      message,
+      code: "invalid_value" as const
+    });
+    const exprError = connected.has("cron_expr")
+      ? null
+      : cronExprError(String(properties.cron_expr ?? DEFAULT_CRON_EXPR));
+    if (exprError) issues.push(issue("cron_expr", exprError));
+    const timezoneError = connected.has("cron_tz")
+      ? null
+      : cronTimezoneError(String(properties.cron_tz ?? DEFAULT_CRON_TZ));
+    if (timezoneError) issues.push(issue("cron_tz", timezoneError));
+    return issues;
+  }
+
+  async process(): Promise<NoBufferedOutputs> {
+    return {};
+  }
+
+  /**
+   * Wake-up entry point: the scheduler adapter sends the slot it fires for
+   * ({scheduled_at, timestamp}). A bare fire gets the current time for both.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const parsed = parseScheduleTick(event.payload);
+    await outputs.emit("scheduled_at", parsed.scheduled_at);
+    await outputs.emit("timestamp", parsed.timestamp);
+    await outputs.emit("source", parsed.source);
+    await outputs.emit("event_type", parsed.event_type);
+  }
+
+  /**
+   * Editor run: wait for each upcoming slot and emit one event for it, like
+   * `IntervalTriggerNode` does for its interval. There is no event on start,
+   * because a cron schedule has no "now" slot.
+   */
+  async *genProcess(): AsyncGenerator<ScheduleTickEvent> {
+    const expr = this.cron_expr;
+    const timezone = this.cron_tz;
+    const invalid = cronExprError(expr) ?? cronTimezoneError(timezone);
+    if (invalid) throw new Error(invalid);
+
+    const maxEvents = this.max_events;
+    let emitted = 0;
+    let after = Date.now();
+    while (true) {
+      const dueMs = nextCronFireMs(expr, timezone, after);
+      if (dueMs === null) {
+        throw new Error(`Cron expression "${expr}" has no further fire time.`);
+      }
+      let remaining = dueMs - Date.now();
+      while (remaining > 0) {
+        await new Promise((r) => setTimeout(r, Math.min(remaining, MAX_TIMER_MS)));
+        remaining = dueMs - Date.now();
+      }
+      emitted++;
+      yield {
+        scheduled_at: new Date(dueMs).toISOString(),
+        timestamp: new Date().toISOString(),
+        source: "cron",
+        event_type: "tick"
+      };
+      if (maxEvents > 0 && emitted >= maxEvents) return;
+      after = dueMs;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // WebhookTriggerNode — emits the event delivered by the server webhook route
 // ---------------------------------------------------------------------------
 
@@ -698,6 +855,7 @@ export const TRIGGER_NODES = [
   WaitNode,
   ManualTriggerNode,
   IntervalTriggerNode,
+  ScheduleTriggerNode,
   WebhookTriggerNode,
   FileWatchTriggerNode
 ] as const;
