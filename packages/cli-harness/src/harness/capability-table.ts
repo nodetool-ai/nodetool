@@ -2693,6 +2693,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/capabilities-search.test.ts",
     ],
   },
   {
@@ -3593,6 +3594,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/js-scripts-capabilities.test.ts",
+      "packages/agents/tests/capabilities-search.test.ts",
     ],
   },
   {
