@@ -24,6 +24,7 @@ import type { TriggerWakeupService } from "@nodetool-ai/kernel";
 import {
   isPolling,
   pollRegistration,
+  type TriggerPoller,
   type TriggerPollerResolver
 } from "./poll.js";
 import { computeScheduleTiming, SCHEDULE_KIND } from "./schedule-timing.js";
@@ -177,13 +178,20 @@ export async function runSchedulerSweepOnce(opts: {
     // The last poll is still waiting on the remote server.
     if (isPolling(registration.id)) continue;
 
-    const poller = await opts.resolvePoller?.(registration).catch((err) => {
+    let poller: TriggerPoller | null | undefined;
+    try {
+      poller = await opts.resolvePoller?.(registration);
+    } catch (err) {
+      // A failed lookup cannot be told from "this is not a poll trigger". A
+      // plain tick would be ignored by an Email Trigger yet still move
+      // last_fired_at, which hides the missed poll and never counts toward the
+      // failure limit. The registration stays due, so the next sweep retries.
       log.warn(
         `Failed to resolve the poller of registration ${registration.id}`,
         err instanceof Error ? err : new Error(String(err))
       );
-      return null;
-    });
+      continue;
+    }
     if (poller) {
       polls.push(
         pollRegistration(

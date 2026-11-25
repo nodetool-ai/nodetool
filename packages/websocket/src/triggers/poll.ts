@@ -120,6 +120,19 @@ async function resolveSecrets(
 }
 
 /**
+ * Whether the registration a poll started from is still enabled with the same
+ * properties. The window between this read and the deliveries that follow is
+ * a few milliseconds, not the seconds the remote server took.
+ */
+async function isStillServed(polled: TriggerRegistration): Promise<boolean> {
+  const current = await TriggerRegistration.get<TriggerRegistration>(polled.id);
+  if (!current || !current.enabled) return false;
+  return (
+    JSON.stringify(current.config_json) === JSON.stringify(polled.config_json)
+  );
+}
+
+/**
  * Poll one due registration, start a run for each new event, and save the
  * cursor. Never throws: a failure is recorded on the registration.
  */
@@ -145,6 +158,19 @@ export async function pollRegistration(
         cursor,
         secrets
       });
+
+      // The poll waited on a remote server, perhaps for seconds. A trigger
+      // someone stopped or edited in that time must not receive what the old
+      // poll found: inputs for a stopped trigger would sit pending and start
+      // runs when it is turned on again, and an edited filter would still
+      // deliver mail chosen under the old one. Nothing is saved either, so the
+      // cursor `registration-sync` cleared stays cleared.
+      if (!(await isStillServed(registration))) {
+        log.info(
+          `Discarded a poll of registration ${registration.id}: it was stopped or edited meanwhile`
+        );
+        return;
+      }
 
       // Events go out oldest first and the cursor moves with them, so a
       // delivery that fails leaves the cursor at the last event that made it.

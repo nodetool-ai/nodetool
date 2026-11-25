@@ -416,6 +416,81 @@ describe("poll adapter", () => {
       await first;
       expect(mailbox.polls).toHaveLength(1);
     });
+
+    describe("a trigger changed while its poll was waiting on the server", () => {
+      /** A poller held open until released, over a mailbox with two new messages. */
+      function heldPoller() {
+        const mailbox = new FakeMailbox();
+        mailbox.uids = [1, 2];
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => (release = resolve));
+        let started = 0;
+        const poller: TriggerPoller = {
+          requiredSettings: [],
+          poll: async (input) => {
+            started += 1;
+            await gate;
+            return mailbox.poller().poll(input);
+          }
+        };
+        return {
+          poller,
+          release: () => release(),
+          started: () => started
+        };
+      }
+
+      it("delivers nothing when it was turned off", async () => {
+        const registration = await makeRegistration({ cursor: "0" });
+        const held = heldPoller();
+
+        const polling = sweep(held.poller, BASE_TIME);
+        await vi.waitFor(() => expect(held.started()).toBe(1));
+        const row = await reload(registration.id);
+        row.enabled = 0;
+        await row.save();
+        held.release();
+        const { deliver, notify } = await polling;
+
+        // Inputs for a stopped trigger would sit pending and start runs the
+        // moment it is turned on again.
+        expect(deliver).not.toHaveBeenCalled();
+        expect(notify).not.toHaveBeenCalled();
+        expect((await reload(registration.id)).cursor).toBe("0");
+      });
+
+      it("delivers nothing chosen under a filter that was edited", async () => {
+        const registration = await makeRegistration({ cursor: "0" });
+        const held = heldPoller();
+
+        const polling = sweep(held.poller, BASE_TIME);
+        await vi.waitFor(() => expect(held.started()).toBe(1));
+        // What registration-sync does on a save that changes the properties.
+        const row = await reload(registration.id);
+        row.config_json = { interval_seconds: 60, folder: "Other" };
+        row.cursor = null;
+        await row.save();
+        held.release();
+        const { deliver } = await polling;
+
+        expect(deliver).not.toHaveBeenCalled();
+        // The cleared cursor stays cleared, so the next poll takes a baseline.
+        expect((await reload(registration.id)).cursor).toBeNull();
+      });
+
+      it("delivers nothing for a registration that was deleted", async () => {
+        const registration = await makeRegistration({ cursor: "0" });
+        const held = heldPoller();
+
+        const polling = sweep(held.poller, BASE_TIME);
+        await vi.waitFor(() => expect(held.started()).toBe(1));
+        await (await reload(registration.id)).delete();
+        held.release();
+        const { deliver } = await polling;
+
+        expect(deliver).not.toHaveBeenCalled();
+      });
+    });
   });
 
   it("still fires a plain tick for a registration with no poller", async () => {
@@ -434,10 +509,16 @@ describe("poll adapter", () => {
     });
   });
 
-  it("falls back to a plain tick when the poller cannot be resolved", async () => {
-    await makeRegistration();
+  it("skips a registration whose poller cannot be resolved, then polls it on the next sweep", async () => {
+    // A lookup that fails cannot be told from "not a poll trigger". A plain
+    // tick would be ignored by an Email Trigger yet still move last_fired_at,
+    // hiding the missed poll.
+    const mailbox = new FakeMailbox();
+    mailbox.uids = [1];
+    const registration = await makeRegistration({ cursor: "0" });
     const wakeupService = new TriggerWakeupService();
     const spy = vi.spyOn(wakeupService, "deliverTriggerInput");
+
     await runSchedulerSweepOnce({
       wakeupService,
       now: () => BASE_TIME,
@@ -445,7 +526,17 @@ describe("poll adapter", () => {
         throw new Error("workflow table is locked");
       }
     });
-    expect(spy).toHaveBeenCalledTimes(1);
+
+    expect(spy).not.toHaveBeenCalled();
+    const skipped = await reload(registration.id);
+    expect(skipped.last_fired_at).toBeNull();
+    expect(skipped.cursor).toBe("0");
+    expect(skipped.consecutive_failures).toBe(0);
+
+    // The registration is still due, so the next sweep serves it.
+    const { deliver } = await sweep(mailbox.poller(), BASE_TIME + 5_000, wakeupService);
+    expect(deliver).toHaveBeenCalledTimes(1);
+    expect((await reload(registration.id)).cursor).toBe("1");
   });
 });
 
