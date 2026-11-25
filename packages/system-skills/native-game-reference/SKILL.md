@@ -112,7 +112,18 @@ changes the simulation, snapshots or replay, and it does not count toward
 `maxCommands`. A tick keeps 32 lines and reports the rest as one dropped-lines
 warning. Messages longer than 1000 characters are truncated. Log text still
 counts toward the 64 KiB output limit of a script call. Lines logged before a
-script failure appear in the console ahead of the error.
+script failure appear in the console ahead of the error. Add `tag` (up to 64
+characters, such as `"GOLEM_TRUTH"`) and JSON `data` (up to 4096 characters of
+JSON) to a line that a test run should read. `nodetool game simulate --json`
+reports every line under `logs`, so tune difficulty from these numbers rather
+than from frames.
+
+`assert {ok, message}` states a promise of the game, such as "a chain event
+spawns fewer than one offspring". In a test run (`nodetool game simulate`) a
+false `ok` fails the call with the message and the tick. In play it is dropped.
+`input.test` is `true` in a test run and absent in play, so a generator can
+throw in a test and fall back in play. Like `log`, `assert` never counts toward
+`maxCommands`. Write each promise of a level as one assert.
 
 ### Script time limits
 
@@ -195,7 +206,7 @@ one before it. Within a tick they run in this order:
 6. `onFixedUpdate` or `onUpdate`. They are aliases. Define one of them.
 
 `onDestroy` runs alone in the tick after the entity despawns. It may return
-only `hud`, `emit`, `spawn`, `despawn`, `sceneTransition`, `log`, `save` and `load` commands. A scene
+only `hud`, `emit`, `spawn`, `despawn`, `sceneTransition`, `log`, `assert`, `save` and `load` commands. A scene
 transition discards behavior state without calling `onDestroy`.
 
 `after(ticks, name)` calls the object's method `name` once, `ticks` ticks

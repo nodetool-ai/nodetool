@@ -7,14 +7,15 @@ import type { Command } from "commander";
 import { z } from "zod";
 import { gameEvent, gameInputFrame, type GameEvent, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { gameEvent3D, gameInputFrame3D, parsePackageAssetUri, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
-import { createMemoryGameSaveStorage, createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, GamePlayerSaves, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
+import { createMemoryGameSaveStorage, createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, gameScriptLogsOf, GamePlayerSaves, hashGameSnapshot3D, validateGame, validateAnyGame, type GameScriptLogEntry } from "@nodetool-ai/game-runtime";
 import { benchmarkNativeGame } from "./game-benchmark.js";
 import { printCommandError } from "@nodetool-ai/pack-manager/command-errors";
 import { checkoutPackageAssetsDir } from "@nodetool-ai/cli-common/package-assets";
 import { registerGameSmokeCommand } from "./game-smoke.js";
 import { isSweep, runSimulateSweep, type SweepOptions } from "./game-sweep.js";
+import { applyDocumentOverrides, type DocumentOverrideOptions } from "./game-overrides.js";
 
-interface SimulateOptions extends SweepOptions {
+interface SimulateOptions extends SweepOptions, DocumentOverrideOptions {
   assetsDir?: string;
   saves?: string;
 }
@@ -75,7 +76,7 @@ interface PerfOptions {
   json?: boolean;
 }
 
-interface CaptureOptions {
+interface CaptureOptions extends DocumentOverrideOptions {
   ticks: string;
   seed: string;
   inputs?: string;
@@ -211,6 +212,41 @@ async function headlessSaves(path: string | undefined) {
       return { progress: data("progress"), settings: data("settings"), errors };
     }
   };
+}
+
+/** A script failure in a test run, such as a broken `assert`. The tick is the one whose step failed. */
+interface ScriptFailure {
+  readonly tick: number;
+  readonly message: string;
+}
+
+/**
+ * Collects script log lines across a run and turns a failed step into a report entry, keeping the lines logged
+ * before the failure.
+ */
+function scriptRunLog() {
+  const logs: GameScriptLogEntry[] = [];
+  let failure: ScriptFailure | undefined;
+  return {
+    logs,
+    get failure() { return failure; },
+    add(lines: readonly GameScriptLogEntry[] | undefined): void { if (lines) { logs.push(...lines); } },
+    fail(tick: number, error: unknown): void {
+      logs.push(...(gameScriptLogsOf(error) ?? []));
+      failure = { tick, message: error instanceof Error ? error.message : String(error) };
+    }
+  };
+}
+
+/** Text output prints tagged lines, warnings and errors. `--json` reports every line. */
+function printScriptRun(run: ReturnType<typeof scriptRunLog>): void {
+  for (const line of run.logs) {
+    if (line.tag === undefined && line.level === "log") { continue; }
+    const tag = line.tag === undefined ? "" : `${line.tag} `;
+    const data = line.data === undefined ? "" : ` ${JSON.stringify(line.data)}`;
+    process.stdout.write(`Tick ${line.tick}${line.entityId ? ` ${line.entityId}` : ""} ${line.level}: ${tag}${line.message}${data}\n`);
+  }
+  if (run.failure) { process.stdout.write(`Script failed at tick ${run.failure.tick}: ${run.failure.message}\n`); }
 }
 
 async function readAssertions(path: string | undefined, ticks: number): Promise<{ byTick: Map<number, TickAssertion>; tolerance: number } | undefined> {
@@ -385,10 +421,12 @@ export function registerGameCommands(program: Command): void {
     .option("--expect-no-win", "With --bot or --seeds, fail when any run wins")
     .option("--expect-min-score <score>", "With --bot or --seeds, fail when any run scores lower")
     .option("--expect-max-score <score>", "With --bot or --seeds, fail when any run scores higher")
+    .option("--param <name=value>", "Override a script parameter for this run: name=value, or entity:name=value for one entity. Repeatable", collect)
+    .option("--scene <id>", "Start in this scene instead of the entry scene, such as a debug scene")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: SimulateOptions) => {
       try {
-        const validated = validateCliDocument(await readGameDocument(path));
+        const validated = validateCliDocument(applyDocumentOverrides(await readGameDocument(path), options));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
@@ -420,7 +458,7 @@ export function registerGameCommands(program: Command): void {
         const inputs = await readInputs(options.inputs, gameInputFrame);
         const contract = await readAssertions(options.assertions, ticks);
         const storage = await headlessSaves(options.saves);
-        const session = await createScriptedGameSession(document, seed);
+        const session = await createScriptedGameSession(document, seed, undefined, undefined, { test: true });
         let resumed: Awaited<ReturnType<typeof createScriptedGameSession>> | undefined;
         try {
           const events: GameEvent[] = [];
@@ -431,7 +469,7 @@ export function registerGameCommands(program: Command): void {
           const resumeTick = Math.floor(ticks / 2);
           let replayDivergence: AssertionFailure | undefined;
           const startReplay = async (saved: GameSnapshot): Promise<void> => {
-            resumed = await createScriptedGameSession(document, seed, saved);
+            resumed = await createScriptedGameSession(document, seed, saved, undefined, { test: true });
             const difference = firstDifference(saved, resumed.snapshot(), "snapshot");
             if (difference) {
               replayDivergence = { tick: saved.tick, ...difference };
@@ -440,10 +478,13 @@ export function registerGameCommands(program: Command): void {
           if (options.verifyReplay && resumeTick === 0) {
             await startReplay(session.snapshot());
           }
+          const scripts = scriptRunLog();
           for (let tick = 0; tick < ticks; tick += 1) {
             // The replay session steps the same frame, so a delivered load reaches both without storage.
             const input = storage.saves.withLoaded(inputs[tick] ?? EMPTY_INPUT);
-            const result = session.step(input);
+            let result: ReturnType<typeof session.step>;
+            try { result = session.step(input); } catch (error) { scripts.fail(tick + 1, error); break; }
+            scripts.add(result.scriptLogs);
             await storage.after(result.saveRequests, () => session.snapshot());
             events.push(...result.events);
             const assertion = contract?.byTick.get(result.tick);
@@ -465,6 +506,12 @@ export function registerGameCommands(program: Command): void {
               }
             }
           }
+          if (scripts.failure) {
+            const report = { ticks, seed, logs: scripts.logs, scriptFailure: scripts.failure, assertions: { scripts: false }, ok: false };
+            if (options.json) { process.stdout.write(`${JSON.stringify(report)}\n`); } else { printScriptRun(scripts); }
+            process.exitCode = 1;
+            return;
+          }
           const snapshot = session.snapshot();
           const assertions = {
             score: expectedScore === undefined || snapshot.score === expectedScore,
@@ -476,7 +523,7 @@ export function registerGameCommands(program: Command): void {
             ? { resumeTick, verified: !replayDivergence, divergence: replayDivergence }
             : undefined;
           const report = {
-            ticks, seed, snapshot, events, assertions, failures,
+            ticks, seed, snapshot, events, logs: scripts.logs, assertions, failures,
             replay,
             saves: storage.report(),
             ok: Object.values(assertions).every(Boolean)
@@ -484,6 +531,7 @@ export function registerGameCommands(program: Command): void {
           if (options.json) {
             process.stdout.write(`${JSON.stringify(report)}\n`);
           } else {
+            printScriptRun(scripts);
             process.stdout.write(`Tick ${snapshot.tick}: score ${snapshot.score}, won ${snapshot.won}\n`);
             for (const failure of failures) {
               process.stdout.write(`Tick ${failure.tick} ${failure.path}: expected ${JSON.stringify(failure.expected)}, got ${JSON.stringify(failure.actual)}\n`);
@@ -518,10 +566,12 @@ export function registerGameCommands(program: Command): void {
     .option("--backend <canvas2d|webgpu|webgl2>", "Capture backend. Defaults to WebGL2 for 3D", "canvas2d")
     .option("--assets-dir <directory>", "Local media files named <full-asset-id>.<extension>")
     .option("--fail-on-budget", "3D only. Exit 1 when the frame exceeds a performance.budgets count (draw calls, triangles, particles)")
+    .option("--param <name=value>", "Override a script parameter for this capture: name=value, or entity:name=value. Repeatable", collect)
+    .option("--scene <id>", "Start in this scene instead of the entry scene, such as a kit scene that draws every sprite")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: CaptureOptions, command: Command) => {
       try {
-        const validated = validateCliDocument(await readGameDocument(path));
+        const validated = validateCliDocument(applyDocumentOverrides(await readGameDocument(path), options));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
@@ -765,7 +815,7 @@ async function simulateGame3D(document: GameDocument3D, options: SimulateOptions
   const inputs = await readInputs(options.inputs, gameInputFrame3D);
   const contract = await readAssertions3D(options.assertions, ticks);
   const storage = await headlessSaves(options.saves);
-  const sessionOptions = sessionAssetOptions3D(options.assetsDir);
+  const sessionOptions = { ...sessionAssetOptions3D(options.assetsDir), test: true };
   const session = await createGameSession3D(document, seed, undefined, sessionOptions);
   let resumed: Awaited<ReturnType<typeof createGameSession3D>> | undefined;
   try {
@@ -780,10 +830,13 @@ async function simulateGame3D(document: GameDocument3D, options: SimulateOptions
       if (difference) { replayDivergence = { tick: snapshot.tick, ...difference }; }
     };
     if (options.verifyReplay && resumeTick === 0) { await startReplay(session.snapshot()); }
+    const scripts = scriptRunLog();
     for (let tick = 0; tick < ticks; tick++) {
       if (tick % 240 === 0) { await new Promise<void>((resolveTick) => setTimeout(resolveTick, 0)); }
       const input = storage.saves.withLoaded(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] }));
-      const result = session.step(input);
+      let result: ReturnType<typeof session.step>;
+      try { result = session.step(input); } catch (error) { scripts.fail(tick + 1, error); break; }
+      scripts.add(result.scriptLogs);
       await storage.after(result.saveRequests, () => session.snapshot());
       events.push(...result.events);
       const assertion = contract?.byTick.get(result.tick);
@@ -796,14 +849,21 @@ async function simulateGame3D(document: GameDocument3D, options: SimulateOptions
         if (difference) { replayDivergence = { tick: result.tick, ...difference }; }
       }
     }
+    if (scripts.failure) {
+      const report = { dimension: "3d", ticks, seed, logs: scripts.logs, scriptFailure: scripts.failure, assertions: { scripts: false }, ok: false };
+      if (options.json) { process.stdout.write(`${JSON.stringify(report)}\n`); } else { printScriptRun(scripts); }
+      process.exitCode = 1;
+      return;
+    }
     const snapshot = session.snapshot();
     const assertions = { score: expectedScore === undefined || snapshot.score === expectedScore, win: options.expectWin !== true || snapshot.won,
       ticks: failures.length === 0, replay: !replayDivergence };
-    const report = { dimension: "3d", ticks, seed, snapshot, state_hash: await hashGameSnapshot3D(snapshot), events, assertions, failures,
+    const report = { dimension: "3d", ticks, seed, snapshot, state_hash: await hashGameSnapshot3D(snapshot), events, logs: scripts.logs, assertions, failures,
       replay: options.verifyReplay ? { resumeTick, verified: !replayDivergence, divergence: replayDivergence } : undefined,
       saves: storage.report(), ok: Object.values(assertions).every(Boolean) };
     if (options.json) { process.stdout.write(`${JSON.stringify(report)}\n`); }
     else {
+      printScriptRun(scripts);
       process.stdout.write(`Tick ${snapshot.tick}: score ${snapshot.score}, won ${snapshot.won}\n`);
       for (const failure of failures) { process.stdout.write(`Tick ${failure.tick} ${failure.path}: expected ${JSON.stringify(failure.expected)}, got ${JSON.stringify(failure.actual)}\n`); }
       if (replayDivergence) { process.stdout.write(`Replay diverged at tick ${replayDivergence.tick} ${replayDivergence.path}\n`); }
