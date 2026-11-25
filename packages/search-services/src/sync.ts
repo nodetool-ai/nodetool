@@ -9,6 +9,7 @@
 import { and, eq } from "drizzle-orm";
 import { createLogger } from "@nodetool-ai/config";
 import {
+  Asset,
   getDatabase,
   getPortableDb,
   ModelChangeEvent,
@@ -130,6 +131,8 @@ interface PendingWrite {
   userId: string;
   id: string;
   deleted: boolean;
+  /** An asset folder: its descendants show its name in their folder path. */
+  folder: boolean;
 }
 
 const pending = new Map<string, PendingWrite>();
@@ -149,7 +152,8 @@ const onModelChange = (instance: DBModel, event: ModelChangeEvent): void => {
     resourceType,
     userId,
     id,
-    deleted: event === ModelChangeEvent.DELETED
+    deleted: event === ModelChangeEvent.DELETED,
+    folder: resourceType === "asset" && fieldOf(instance, "content_type") === "folder"
   });
   scheduleFlush();
 };
@@ -175,6 +179,8 @@ async function drainPending(): Promise<void> {
     try {
       if (write.deleted) {
         await deleteIndexedItem(write.userId, write.resourceType, write.id);
+      } else if (write.folder) {
+        await resyncFolderDescendants(write.userId, write.id);
       } else {
         await syncRows(write.resourceType, write.userId, [{ id: write.id, version: "" }], {
           indexed: 0,
@@ -188,6 +194,31 @@ async function drainPending(): Promise<void> {
         error: error instanceof Error ? error.message : String(error)
       });
     }
+  }
+}
+
+/**
+ * Re-extract every asset under a folder. A rename or move of the folder
+ * changes the folder path of each of them without touching their own rows.
+ */
+async function resyncFolderDescendants(userId: string, folderId: string): Promise<void> {
+  const { assets } = await Asset.getAssetsRecursive(userId, folderId);
+  const ids: string[] = [];
+  const walk = (rows: ReadonlyArray<Record<string, unknown>>): void => {
+    for (const row of rows) {
+      if (typeof row.id === "string" && row.content_type !== "folder") ids.push(row.id);
+      if (Array.isArray(row.children)) walk(row.children as Array<Record<string, unknown>>);
+    }
+  };
+  walk(assets);
+  const counts = { indexed: 0, skipped: 0, removed: 0 };
+  for (let start = 0; start < ids.length; start += 200) {
+    await syncRows(
+      "asset",
+      userId,
+      ids.slice(start, start + 200).map((id) => ({ id, version: "" })),
+      counts
+    );
   }
 }
 
