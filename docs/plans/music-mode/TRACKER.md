@@ -26,13 +26,12 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | ID | Task | Model | Depends on |
 |---|---|---|---|
 | P1c | Web tracks pass 5: muted Logic-like palette (current colours too saturated), thinner name band, Arp region shows no notes under the chord strip, master pan control (field done) | Opus | SQ2 (one web UI agent at a time) |
-| A22r | Close CE6/CE7: second-review check of round 2 | Sol | none |
 | P2 | Native polish: piano roll, automation, mixer, tracks (offscreen) | Opus | A10, D62-D68 |
-| A16 | Native automation follow-up: F20 and AU6 fixed, in review; AU1-AU5 QML gaps in an Opus pass | Sol, Opus | none |
 | A17 | Native follow-up after A16 and A8 | Sol | A16 |
-| A24b | set_clip_params parity: inPointMs/outPointMs re-slicing, group duration, visual and text style fields (A24 F13 rest) | Sol | none |
-| DSP1 | Engine must-haves: plug-in delay compensation incl. dry path of the wet/dry blend (F1), master true-peak limiter and clip indicator (F3), TPDF dither on 16-bit export (F4), denormal protection FTZ/DAZ in the audio callback and host (F6) | Neon | A16 |
 | DSP2 | Engine should-haves: 32-bit float WAV export and export rate option (F5), windowed-sinc varispeed and higher swresample quality (F7), effect parameter smoothing per block (F8) | Neon | DSP1 |
+| DSP1b | Plug-in delay compensation follows latency changes during playback and plug-in bypass (DSP1 D5): pre-sized delay lines with crossfaded read position, host latency events, offline re-probe | Neon | none |
+| NAT1 | Native set_clip_params tool schema fields (A24b F2) and stored zero fades win in native auto crossfade (A22r R1) | Sol | running |
+| DSP1w | Web parity for DSP1: master.limiter field and tool, clip indicator, 16-bit dither in web export (D21) | Neon | DSP1 |
 | DSP3 | Pan law project setting 0/-3/-4.5 dB and stereo balance (F9) | Neon | DSP2 |
 | SQ3c | Step Sequencer: hardware MIDI input for Learn and Step Input (S1), step-record CC values, live pattern recording (SQ39), MIDI Out audition, Step Input cursor stops at the last row | Sol, then Opus | native MIDI input |
 | CHK | Rerun lost native checks: A2, A2b, A5, A7 | Sol | none |
@@ -76,6 +75,11 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | VST3 | VST state sync F35/F36, master fader preview F24; Neon V1-V10, 3 Sol rounds, closure: 2 new fixed | 80da682fb6; vst and automation ctest 9/9 |
 | SQ3b | Step Sequencer 1/2-step lengths, effect rows, Learn, step input, user library; Neon S1-S18, Sol closure (S3, S18 disputes upheld), N1-N2 fixed; Opus visual pass | bdf3048a0c; ctest 6/6; sq3b-shots/after2/ |
 | WEB-GRIP | Fade-in grip below the clip name; vst effect kind in web tables | 0bc0f014e8, 9bf8697655 |
+| A16 | Native automation: F20, AU6, Neon A1-A8 in 2 Sol rounds; Opus UI AU1-AU5 (curve icon, mode fill, lane dot, whole-lane tint, name bar owns clip gestures) | f41f234e79; automation ctest 9/9 |
+| A24b | Native set_clip_params parity: source window, group duration, style fields; Neon C1-C22, Sol closure N1-N2; A24n native follow-ups | d2eeb36270, 1534368a05; ctest 3/3, 215 checks |
+| A24t | TS set_clip_params matches native: C1-C22, N1-N3; saved documents stay editable | 4cd81cec81; timeline 285, web 78, examples 0 schema failures |
+| DSP1 | PDC (live, offline, voices, automation shift), master true-peak limiter with live toggle and clip latch, 16-bit TPDF dither, denormal guards; Neon D1-D20 in 3 rounds, 2 Sol closures; D5 -> DSP1b | c111511a18; audio ctest 25/25, vst-host 4/4 |
+| A22r | CE6/CE7 second review: CE6 met; R1 stored zero fades, R2 short-overlap crossfade fixed in TS | 6d57939fd3; vitest 32 |
 | A27 | Model routing rule | [agent-model-routing.md](../../agent-model-routing.md), check:agents-docs exit 0 |
 | RA | Reviewer model analysis | [review-model-analysis.md](review-model-analysis.md) |
 | UI | Music editor UI spec | [MUSIC_EDITOR_UI.md](../../design/MUSIC_EDITOR_UI.md) |
