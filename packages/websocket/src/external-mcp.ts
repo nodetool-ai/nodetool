@@ -24,7 +24,12 @@ import {
   type McpRemoteTool,
   type Tool
 } from "@nodetool-ai/agents";
-import { assertSafePublicHttpsUrl, safeFetch } from "@nodetool-ai/runtime";
+import {
+  assertSafePublicHttpsUrl,
+  safeFetch,
+  setExternalMcpResolver,
+  type ExternalMcpAccess
+} from "@nodetool-ai/runtime";
 import {
   CLOUD_PROFILE_ENV,
   NODE_ENV_VAR,
@@ -376,15 +381,27 @@ export async function probeExternalMcpServer(
 }
 
 /**
- * The belt contribution of the user's enabled servers. Syncs the pool with
- * the stored list first, so a server saved from the settings UI is live on
- * the next turn without a restart.
+ * The pool for this user, synced with the stored list first, and the servers
+ * it now holds. A server saved from the settings UI is live on the next turn
+ * or run without a restart. Stdio and private hosts are filtered out here for
+ * a user who may not reach them, so nothing downstream sees them.
  */
-export async function externalMcpToolsFor(userId: string): Promise<Tool[]> {
-  const servers = await loadExternalMcpServers(userId);
+async function syncedPool(
+  userId: string
+): Promise<{ pool: McpClientPool; servers: McpServerConfig[] }> {
   const local = await isLocalMcpAllowedFor(userId);
+  const servers = connectable(
+    (await loadExternalMcpServers(userId)).filter((s) => s.enabled),
+    local
+  );
   const pool = await poolFor(userId);
-  await pool.sync(connectable(servers, local));
+  await pool.sync(servers);
+  return { pool, servers };
+}
+
+/** The belt contribution of the user's enabled servers, for a chat turn. */
+export async function externalMcpToolsFor(userId: string): Promise<Tool[]> {
+  const { pool } = await syncedPool(userId);
   if (pool.serverIds().length === 0) return [];
   return getExternalMcpTools(pool, (serverId, error) => {
     log.warn("External MCP server skipped for this turn", {
@@ -393,6 +410,50 @@ export async function externalMcpToolsFor(userId: string): Promise<Tool[]> {
       error: error.message.split("\n")[0].slice(0, 300)
     });
   });
+}
+
+/**
+ * The same servers for a workflow run: the Code node's belt and the
+ * `CallMcpTool` node reach them through this and nothing else. The user is the
+ * run's own, fixed here, so a graph cannot name another user's servers.
+ */
+export function externalMcpAccessForUser(userId: string): ExternalMcpAccess {
+  return {
+    async servers() {
+      const { servers } = await syncedPool(userId);
+      return servers.map(({ id, name }) => ({ id, name }));
+    },
+    async tools(serverId) {
+      const { pool } = await syncedPool(userId);
+      if (!pool.serverIds().includes(serverId)) {
+        throw new Error(
+          `MCP server "${serverId}" is not configured, is disabled, or is not ` +
+            "available on this deployment"
+        );
+      }
+      let failure: Error | undefined;
+      const found = await pool.discover((_id, error) => {
+        failure = error;
+      }, serverId);
+      const tools = found.get(serverId);
+      if (tools === undefined) {
+        throw new Error(
+          `MCP server "${serverId}" is not answering: ${
+            failure?.message.split("\n")[0].slice(0, 200) ?? "unknown error"
+          }`
+        );
+      }
+      return tools.map((tool) => ({ ...tool, readOnly: tool.readOnly === true }));
+    },
+    async call(serverId, toolName, args, signal) {
+      return (await poolFor(userId)).call(serverId, toolName, args, signal);
+    }
+  };
+}
+
+/** Let workflow runs on this server reach their owner's external MCP servers. */
+export function installExternalMcpResolver(): void {
+  setExternalMcpResolver(externalMcpAccessForUser);
 }
 
 /** Close every user's connections (server shutdown, tests). */
