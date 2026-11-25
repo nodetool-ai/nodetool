@@ -42,6 +42,10 @@ function targetsFromArgs() {
 /**
  * Extract only the node binary and npm tree from a .tar.gz archive. Skipping
  * bin/npm/npx/corepack symlinks keeps cross-platform prefetch working on Windows.
+ *
+ * `--no-same-owner` stops tar running as root from restoring the archive's
+ * uid/gid (1001). Inside a user namespace that maps only root, such as the
+ * flatpak-builder sandbox, that chown fails with EINVAL and tar exits non-zero.
  */
 function extractTarGz(archivePath, info, platform, destDir) {
   const resolvedArchive = path.resolve(archivePath);
@@ -50,13 +54,14 @@ function extractTarGz(archivePath, info, platform, destDir) {
   const tarArgs =
     process.platform === "win32"
       ? [
+          "--no-same-owner",
           "-xzf",
           path.basename(resolvedArchive),
           "-C",
           resolvedDest.replace(/\\/g, "/"),
           ...members,
         ]
-      : ["-xzf", resolvedArchive, "-C", resolvedDest, ...members];
+      : ["--no-same-owner", "-xzf", resolvedArchive, "-C", resolvedDest, ...members];
   const tarOpts =
     process.platform === "win32"
       ? { cwd: path.dirname(resolvedArchive), stdio: "inherit" }
