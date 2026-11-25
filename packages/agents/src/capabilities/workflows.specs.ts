@@ -22,7 +22,8 @@ export const LIST_WORKFLOWS_SCHEMA: JsonSchema = {
     },
     query: {
       type: "string",
-      description: "Optional search query to filter workflows"
+      description:
+        "Only workflows matching these words in the name, description, tags or the text of their nodes, best match first."
     },
     limit: {
       type: "number",

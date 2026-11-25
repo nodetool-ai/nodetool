@@ -197,6 +197,28 @@ Storage has three backends. An in-memory adapter also exists for tests.
 `NODETOOL_STORAGE_BACKEND` selects the backend (`file`, `s3`, or `supabase`, default `file`). Assets and temp files use the same backend with separate buckets: `ASSET_BUCKET` for permanent assets and `TEMP_BUCKET` for intermediate results. See [Storage](storage.md) for configuration details.
 
 
+## API server modules
+
+The full server (`nodetool server serve`, or `npm run dev:server` from a
+checkout) lives in the `@nodetool-ai/websocket` package. Its entry point is
+`packages/websocket/src/server.ts`. The main modules:
+
+| Module | What it does |
+|---|---|
+| `server.ts` | Fastify entry point. Registers CORS, rate limiting, auth, the WebSocket plugin, tRPC, and the route plugins, then starts the listener |
+| `routes/` | Fastify route plugins, one per area: health, workflows, assets, nodes, storage, files, collections, applications, timelines, storyboards, OAuth, provider webhooks, `/v1` |
+| `trpc/` | The tRPC router mounted at `/trpc`. JSON list, metadata, and delete operations live here |
+| `websocket-client-session.ts` | WebSocket connections for workflow execution and chat |
+| `http-api.ts` | Shared request handler and options (`handleApiRequest`, `getUserId`) that route plugins call |
+| `models-api.ts` | Model management and provider registration |
+| `settings-registry.ts` | Reads setting values from the database. The setting definitions live in `@nodetool-ai/config` |
+| `storage-api.ts` | Binary `GET` and `HEAD` for stored assets |
+| `mcp-server.ts` | Model Context Protocol server, mounted at `/mcp` |
+| `openai-api.ts` | OpenAI-compatible `/v1/chat/completions` and `/v1/models` |
+
+`npm run dev:server` runs `scripts/dev-server.mjs`, which starts the server from
+TypeScript source under `tsx watch`. Run `npm run build:packages` first.
+
 ## Python Worker Bridge
 
 Python nodes and Python-only local providers run in a separate worker process. By default the TS backend spawns the worker with `python -m nodetool.worker --stdio` and communicates over a local stdio protocol. When `NODETOOL_WORKER_URL` is set, it connects to a running worker over WebSocket instead:

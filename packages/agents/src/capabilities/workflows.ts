@@ -22,6 +22,7 @@ import { importPack } from "@nodetool-ai/node-catalog";
  * `nodetool.workflows`".
  */
 
+import { libraryMatchIds, ownedRowsInOrder } from "./library-matches.js";
 import { randomUUID } from "node:crypto";
 import type { GraphValidationReport } from "@nodetool-ai/node-sdk";
 import type { Workflow as WorkflowRow } from "@nodetool-ai/models";
@@ -143,9 +144,23 @@ function runEnvironmentOf(run: CapabilityRun) {
 
 async function listUserWorkflows(
   run: CapabilityRun,
-  limit: number
+  limit: number,
+  query?: string
 ): Promise<unknown> {
   const { Workflow } = await import("@nodetool-ai/models");
+  if (query) {
+    // The library index matches the name, description, tags and the text in
+    // the graph's nodes.
+    const userId = userIdOf(run.context);
+    const options: { limit: number; projectId?: string } = { limit };
+    if (run.projectId) options.projectId = run.projectId;
+    const matches = await ownedRowsInOrder(
+      await libraryMatchIds(userId, "workflow", query, options),
+      userId,
+      (id) => Workflow.find(userId, id)
+    );
+    return lightWorkflowList({ workflows: matches.map((w) => workflowRecord(w)), next: null });
+  }
   const [workflows, next] = await Workflow.paginate(userIdOf(run.context), {
     limit,
     projectId: run.projectId
@@ -187,7 +202,7 @@ const listWorkflows: CapabilityExport = {
   spec: listWorkflowsSpec,
   impl: async (run, params) => {
     const workflowType = String(params["workflow_type"] ?? "user");
-    const query = params["query"] as string | undefined;
+    const query = isString(params["query"]) && params["query"].trim() ? params["query"].trim() : undefined;
     const limit = Number(params["limit"] ?? 100);
 
     if (workflowType === "example") {
@@ -196,10 +211,10 @@ const listWorkflows: CapabilityExport = {
     if (workflowType === "all") {
       return {
         examples: await listExampleWorkflows(run, query, limit),
-        user: await listUserWorkflows(run, limit)
+        user: await listUserWorkflows(run, limit, query)
       };
     }
-    return listUserWorkflows(run, limit);
+    return listUserWorkflows(run, limit, query);
   }
 };
 

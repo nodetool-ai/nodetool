@@ -65,6 +65,10 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
     loader: () => import("./costs.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["costs"]
   },
+  search: {
+    loader: () => import("./search.js").then((m) => m.module),
+    specs: CAPABILITY_SPECS["search"]
+  },
   nodes: {
     loader: () => import("./nodes.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["nodes"]

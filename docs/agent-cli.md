@@ -3,7 +3,13 @@ layout: page
 title: "Agent CLI"
 ---
 
-`nodetool agent run` runs one CodeAct turn: the objective is the user message, the model acts by writing sandboxed JavaScript over the toolbelt (the same loop the chat runs), and the final answer prints to stdout. A live trace of tool calls, plan events, and task events streams to stderr. There is no configuration file.
+`nodetool agent run` gives the NodeTool agent one objective, lets it work with the same tools as chat, and prints the final answer to stdout. Progress (tool calls, plans, and tasks) streams to stderr, so you can pipe the answer into a file or another command. There is no configuration file.
+
+Agent commands ship in the `cli-chat` command feature. Install it once:
+
+```bash
+nodetool packs add cli-chat --yes
+```
 
 ## Subcommands
 
@@ -37,17 +43,14 @@ echo "Research the latest AI trends" | \
 
 ### Run budget
 
-`--cost-cap` and `--timeout` override two of the five `NODETOOL_AGENT_*`
-settings a chat turn reads (`NODETOOL_AGENT_TURN_COST_CAP_USD`,
-`NODETOOL_AGENT_TURN_DEADLINE_MS`); concurrency, total turns, and the
-unpriced-token ceiling come from the settings alone.
+`--cost-cap` and `--timeout` override the per-turn defaults
+`NODETOOL_AGENT_TURN_COST_CAP_USD` and `NODETOOL_AGENT_TURN_DEADLINE_MS`. The
+other `NODETOOL_AGENT_*` limits come from your settings only.
 
-The run holds one budget and shares it downward — a sub-agent, an
-`execute_plan` DAG, an `AgentNode` reached through `run_node` — so the ceiling
-bounds the run, not each loop. A cap is admission: a turn whose worst case
-would cross it is refused before the call, not noticed after the money is
-spent. A model with no catalog price has no worst case and is admitted against
-a prompt-token ceiling instead, never as free.
+The budget covers the whole run, including any sub-agents and plans the agent
+starts. The agent checks the cap before each model call and refuses a call
+that could cross it, so the run never spends past the cap. A model with no
+known price is limited by prompt size instead.
 
 A ceiling that stops the run prints its reason and exits non-zero
 (`agent stopped: turn budget of $0.01 reached`); with `--json` the same reason
@@ -71,21 +74,15 @@ the gate escalates. An explicit `--permission-mode` still applies. With
 
 ### Tools
 
-The agent gets the default toolbelt: files, search, browser, PDF, vision,
-critique, memory, assets, todo, plus the platform tools — workflows,
-nodes, jobs, apps, models, and media generation. This is the same belt the chat
-agent and the MCP bridge assemble, so the surfaces cannot drift. The belt is not
-narrowable from the command line — `nodetool agent run` has no `--tools` flag.
+The agent gets the same tools as chat: files, search, browser, PDF, vision,
+critique, memory, assets, and todo lists, plus the NodeTool tools for workflows,
+nodes, jobs, apps, models, and media generation. You cannot narrow the set from
+the command line, because `nodetool agent run` has no `--tools` flag.
 
-The belt is assembled by `buildCliAgentBelt`, shared with the CLI's own chat,
-and carries the capabilities that spawn loops of their own: `run_subtask`,
-`start_subtask`, `wait_subtasks`, `run_search`, and — here, unlike chat — both
-`create_plan` and `execute_plan`. The provider itself is offered `execute_code`
-plus the direct tools; the rest of the belt lives in the sandbox.
-
-### What the planner used to do
-
-The model calls `create_plan` when the objective wants decomposing, and `execute_plan` runs that DAG. The permission gate on `execute_plan` is the plan approval. There are no flags for checkpoints, the plan cache, separate planning and reasoning models, or skill auto-selection, which the model does itself with `load_skill`. `--max-iterations` bounds tool-calling rounds in the turn.
+For a large objective the agent can write a plan, run its tasks, and start
+sub-agents. Running a plan asks for permission like any other external action,
+so in `default` mode that prompt is your plan approval. `--max-iterations`
+bounds the tool-calling rounds of the main turn.
 
 ### `nodetool agent diagnose`
 

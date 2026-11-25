@@ -86,7 +86,7 @@ Selecting an active goal or format chip again clears it. Changing the source or 
 
 ### Storage location
 
-Hugging Face models are stored in the standard Hugging Face cache folder, `~/.cache/huggingface/hub` by default. Downloads, the **Installed** list and the Python worker all read it. To move it, or to see how the Flatpak build and Transformers.js choose their folders, see [Hugging Face tokens and cache](configuration.md#cache-locations). Ollama keeps its models in its own directory. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
+Hugging Face models are stored in the standard Hugging Face cache folder, `~/.cache/huggingface/hub` by default. Downloads, the **Installed** list and the Python worker all read it. To move it, or to see how the Flatpak build and Transformers.js choose their folders, see [Hugging Face tokens and cache](server-configuration.md#cache-locations). Ollama keeps its models in its own directory. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
 
 ---
 

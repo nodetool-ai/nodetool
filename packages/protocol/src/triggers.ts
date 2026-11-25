@@ -11,6 +11,13 @@
 export type TriggerKind = "webhook" | "schedule" | "file_watch" | "manual";
 
 /**
+ * The schedule node that fires on a cron expression. Both schedule nodes
+ * compile to the `schedule` kind. This one is told apart by the `cron_expr`
+ * key in its snapshotted properties.
+ */
+export const CRON_TRIGGER_NODE_TYPE = "nodetool.triggers.ScheduleTrigger";
+
+/**
  * Node type → registration kind. Only nodes listed here compile to a
  * registration; other `nodetool.triggers.*` nodes (e.g. `Wait`) are ignored.
  */
@@ -18,6 +25,7 @@ export const TRIGGER_KIND_BY_NODE_TYPE: Readonly<Record<string, TriggerKind>> =
   {
     "nodetool.triggers.WebhookTrigger": "webhook",
     "nodetool.triggers.IntervalTrigger": "schedule",
+    [CRON_TRIGGER_NODE_TYPE]: "schedule",
     "nodetool.triggers.FileWatchTrigger": "file_watch",
     "nodetool.triggers.ManualTrigger": "manual"
   };

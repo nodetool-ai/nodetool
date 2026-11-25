@@ -75,7 +75,7 @@ export async function resolveSerpApiKey(
   if (typeof value === "string" && value.trim().length > 0) return value;
   throw new SerpApiError(
     "auth",
-    `No SerpAPI key is configured. Add ${SECRET_NAME} in Settings → Secrets ` +
+    `No SerpAPI key is configured. Add ${SECRET_NAME} in Settings → Models & providers → Web search ` +
       "(get one at https://serpapi.com/manage-api-key)."
   );
 }

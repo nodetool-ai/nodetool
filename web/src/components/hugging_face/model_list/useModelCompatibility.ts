@@ -60,7 +60,11 @@ const IMAGE_TYPES = new Set([
   "hf.t5",
   "hf.flux_kontext"
 ]);
-const VIDEO_TYPES = new Set(["hf.text_to_video", "hf.image_to_video"]);
+const VIDEO_TYPES = new Set([
+  "hf.text_to_video",
+  "hf.image_to_video",
+  "hf.lora_ltx"
+]);
 const AUDIO_TYPES = new Set([
   "hf.automatic_speech_recognition",
   "hf.text_to_speech",

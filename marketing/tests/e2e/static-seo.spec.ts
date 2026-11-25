@@ -25,6 +25,13 @@ test("comparison discovery indexes list every indexable alternative", async ({ r
   expect(discoveryText).not.toContain("](https://nodetool.ai/vs/");
 });
 
+/**
+ * Titles written for a list query, where the brand would push the query
+ * terms past the cut-off in results. The page still names NodeTool in its
+ * description and structured data.
+ */
+const UNBRANDED_TITLES = new Set(["/alternatives/comfyui"]);
+
 const MEDIA_MAGIC: Record<string, string> = {
   jpg: "\xff\xd8\xff",
   jpeg: "\xff\xd8\xff",
@@ -97,7 +104,9 @@ test.describe("static marketing output", () => {
 
       const titles = tagContents(html, "title");
       expect(titles, `${route} title`).toHaveLength(1);
-      expect(titles[0]).toMatch(/NodeTool/i);
+      if (!UNBRANDED_TITLES.has(route)) {
+        expect(titles[0]).toMatch(/NodeTool/i);
+      }
 
       const descriptions = metaValues(html, "name", "description");
       expect(descriptions, `${route} meta description`).toHaveLength(1);

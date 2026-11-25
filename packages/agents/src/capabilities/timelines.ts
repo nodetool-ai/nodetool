@@ -19,6 +19,7 @@
  */
 
 import { isShortResourceId } from "@nodetool-ai/protocol";
+import { libraryMatchIds, ownedRowsInOrder } from "./library-matches.js";
 import { timelineColorSpaceError } from "@nodetool-ai/timeline";
 import type {
   TimelineDocument,
@@ -193,14 +194,17 @@ const listTimelines: CapabilityExport = {
     const limit = Math.max(1, Math.min(Number(params["limit"]) || 20, 100));
     const query =
       isString(params["query"])
-        ? params["query"].trim().toLowerCase()
+        ? params["query"].trim()
         : "";
-    // Filter after the read: the name filter is not indexed, and the per-user
-    // limit is what bounds the scan.
-    const rows = await TimelineSequence.listByUser(userId, 100);
+    // A query goes to the library index, which matches names, descriptions,
+    // tags and the text of clips.
     const matching = query
-      ? rows.filter((row) => row.name.toLowerCase().includes(query))
-      : rows;
+      ? await ownedRowsInOrder(
+          await libraryMatchIds(userId, "timeline", query, { limit }),
+          userId,
+          (id) => TimelineSequence.findById(id)
+        )
+      : await TimelineSequence.listByUser(userId, 100);
     return {
       timelines: matching.slice(0, limit).map((row) => ({
         id: row.id,

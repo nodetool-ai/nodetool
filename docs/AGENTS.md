@@ -245,6 +245,7 @@ lazy implementation table disagree.
 | `assets` | `list_assets`, `get_asset`, `save_asset`, `read_asset`, `asset_search`, `asset_list`, `list_images`, `view_image`, `update_asset` |
 | `jobs` | `list_jobs`, `get_job`, `get_job_logs`, `cancel_job` |
 | `costs` | `get_cost_summary` |
+| `search` | `search`, `search_read` — one query over every asset and document the user owns, matched on names, prompts, descriptions, tags and extracted file text, and the passage at a match's locator. CodeAct reaches them as `nodetool.search.query` and `nodetool.search.read`. The `query` of `list_workflows`, `list_timelines`, `list_sketches` and `list_js_scripts` goes through the same index. See [Search services](../packages/search-services/README.md) |
 | `workers` | `list_workers`, `get_worker_status`, `stop_worker` — see and pause rented GPU workers. Renting and destroying stay in the `nodetool worker` CLI, and every call follows the production rule of the tRPC router |
 | `generations` | `list_generations`, `get_generation`, `await_generation`, `cancel_generation`, `reconcile_generation` — the record of every media generation (one row per provider call, opened before the call, closed with cost and asset ids). `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `generate_music` and the storyboard renders return the `generation_id` these take, and accept `background: true` to return it before the provider answers. Design: [media-generation-tracking-design.md](media-generation-tracking-design.md) |
 | `apps` | `list_apps`, `get_app`, `create_app`, `edit_app`, `debug_app`, `delete_app` |
@@ -364,7 +365,7 @@ from inside an agent:
   `create_workflow` and `update_workflow` also refuse a node type the registry
   does not have. A workflow file edited in a project folder passes the same
   checks before it is stored
-  ([Workflows are files in the folder](workspaces.md#workflows-are-files-in-the-folder)).
+  ([Workflows are files in the folder](developer/project-folders.md#workflows-are-files-in-the-folder)).
 - **`debug_workflow`** — run a workflow and return status, outputs, errors, job
   logs, and a graph overview in one call.
 - **`debug_app`** — validate a mini app's bindings, simulate it, and return each
@@ -482,7 +483,7 @@ A **system skill** ships with the build instead of living in a row. It is a
 carries its name, in `packages/system-skills/` in a checkout and staged to
 `_skills/` beside the bundled `server.mjs` in the desktop app and the Docker
 image. `NODETOOL_SYSTEM_SKILLS_DIR` overrides both roots
-([Configuration](configuration.md#environment-variables-index)).
+([Environment Variables](environment-variables.md)).
 
 ```markdown
 ---

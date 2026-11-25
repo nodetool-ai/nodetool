@@ -9,7 +9,7 @@ vi.mock("@nodetool-ai/runtime/media", () => {
 describe("media capabilities without media-codecs", () => {
   it("load, so generation tools work without the codecs", async () => {
     const media = await import("../src/capabilities/media.js");
-    expect(media).toBeDefined();
+    expect(media.generateImage.impl).toBeTypeOf("function");
   });
 
   it("name the install command when an edit needs the codecs", async () => {

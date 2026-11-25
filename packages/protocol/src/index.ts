@@ -84,6 +84,7 @@ export * from "./game-migration.js";
 export * from "./game-slot-prompt.js";
 export * from "./game-asset-catalog.js";
 export * from "./asset-generation.js";
+export * from "./search-metadata.js";
 export * from "./production-authoring.js";
 export * from "./ai-video-production.js";
 export {

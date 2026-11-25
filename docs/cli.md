@@ -26,7 +26,7 @@ Or run a single command without installing:
 npx --package=@nodetool-ai/cli nodetool --help
 ```
 
-**Requires Node.js 22 or later** (`engines` in `packages/cli/package.json`, and the repository pins 24 in `.nvmrc`). Check with `node --version`, and install via [nvm](https://github.com/nvm-sh/nvm) if needed.
+**Requires Node.js 22 or later.** Check with `node --version`, and install via [nvm](https://github.com/nvm-sh/nvm) if needed.
 
 ## Install command features
 
@@ -55,6 +55,18 @@ nodetool game --help
 | Timelines | `cli-timeline` |
 | Sketches | `cli-sketch` |
 | JavaScript script documents | `cli-script` |
+
+`nodetool feature <id> [args...]` runs the commands of one installed feature
+directly. The ID is a feature name from the table above. The arguments after it
+go to that feature's own command list, so `nodetool feature cli-game --help`
+prints only the `game` command. Use it to check that one feature loads. An
+ID with no catalog entry reports `Command feature <id> must have exactly one
+catalog entry`.
+
+```bash
+nodetool feature cli-game --help
+nodetool feature cli-workflow workflows examples --no-keys
+```
 
 Install only the command features needed for the work. They register their own
 commands with the default CLI. The sections below include these optional commands.
@@ -97,20 +109,9 @@ Start with these guides and then inspect the named tools:
 | Playable game | `native-game` | `tools list game` |
 | Markdown document | none | `tools list document` |
 
-Call `nodetool tools call list_projects` to obtain an owned project id for
-project-scoped documents. Local tool calls initialize the Personal project
-(`personal:1`) on a fresh installation.
-
-For a deterministic mini app build without provider charges, run:
-
-```bash
-nodetool packs add audio --yes
-nodetool app build "greeting fixture" --provider fake --model fake-app-greeting --no-judge
-```
-
-The audio pack supplies the required `nodetool.output.Output` node.
-`fake-app-greeting` builds a fixed greeting app and ignores the prompt. It tests
-the build pipeline and interaction checks, not general app generation.
+Documents that belong to a project need a project id. Run
+`nodetool tools call list_projects` to list yours. A fresh installation creates
+the Personal project on the first local tool call.
 
 For games, `list_example_games` and `get_example_game` expose shipped starting
 documents. Follow the guide's installation instructions when a bundled example
@@ -224,7 +225,7 @@ nodetool serve --host 127.0.0.1 --port 7777
 For the classic application API, explicitly install `cli-server` and use
 `nodetool server serve`.
 
-### `nodetool server server serve`
+### `nodetool server serve`
 
 Starts the classic TypeScript WebSocket and HTTP application server, including
 its application routes and static assets. Requires `cli-server`.
@@ -513,6 +514,8 @@ Manage workflows. Reads the local database by default; `--api-url` targets a rem
 
 **Subcommands:** `list` and `get` (both take `--api-url <url>` and `--json`, and `list` takes `--limit <n>`, default 100), `run`, `examples`, `export-dsl`, `export-script`, `export-example`, `export-bundle`, `import-bundle`,
 `migrate-code-inputs`
+
+With the `cli-workflow` feature installed, `examples`, `export-dsl`, `export-script`, `export-example`, `export-bundle` and `import-bundle` also run without the `workflows` prefix. `nodetool examples --no-keys` is the same as `nodetool workflows examples --no-keys`.
 
 ```bash
 # List all workflows
@@ -2690,7 +2693,7 @@ the linking routes the bridge calls do not exist.
 
 Configuration is environment variables plus that optional file. The env vars are
 listed in the
-[Environment Variables Index](configuration.md#environment-variables-index);
+[Environment Variables Index](environment-variables.md);
 the file carries only the tuning knobs:
 
 ```jsonc
@@ -3326,7 +3329,7 @@ again, and a person can read the transcript before any model proposes anything.
 ## Tips
 
 - Set `NODETOOL_API_URL` to avoid passing `--api-url` on every command.
-- See [Environment Variables](configuration.md#environment-variables-index) for a complete list of configurable variables.
+- See [Environment Variables](environment-variables.md) for a complete list of configurable variables.
 
 ## Generation presets
 

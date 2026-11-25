@@ -13,10 +13,10 @@ same change. The page is edited more often than this file, so when in doubt
 the page is the newer of the two. Bring the doc up to it, then fix the page.
 
 The docs share the primary tagline and intro in `BRAND.md`. The homepage and
-README lead with the film promise instead. The homepage pill above the `<h1>`
-reads "Open-source AI film studio · agent + node workflows", the `<h1>` reads
-"Direct AI films, shot by shot.", and the subhead opens "Start with one
-sentence." Under the reel, three linked cards cover films, the agent, and the
+README lead with the studio promise instead. The homepage pill above the
+`<h1>` reads "Films · agent · node workflows", the `<h1>` reads "The
+open-source AI studio you actually control.", and the subhead opens
+"Storyboard, generate, and cut video on a live timeline". Under the reel, three linked cards cover films, the agent, and the
 live timeline. Node workflows follow in "Made it once? Run it again."
 [site-editorial.spec.md § Homepage](site-editorial.spec.md#homepage) holds the
 five blocks.
@@ -29,8 +29,8 @@ These lines appear on more than one surface. Change them everywhere at once.
 |---|---|
 | "Open-source agent-first creative workspace" (tagline) | Docs home `<h1>`, `BRAND.md` |
 | The intro ("Create images, video, audio, and text with agents…") | Docs home lead, `BRAND.md` |
-| "Open-source AI film studio · agent + node workflows" (pill) | Homepage line above the `<h1>`, README title line |
-| "Direct AI films, shot by shot." and its subhead | Homepage `<h1>`, README under the pill |
+| "Films · agent · node workflows" (pill) | Homepage line above the `<h1>`, README title line |
+| "The open-source AI studio you actually control." and its subhead | Homepage `<h1>`, README under the pill |
 | The three cards (films, the agent, the live timeline) and "Made it once? Run it again." | Homepage blocks 1 and 2, README § Films, § The agent, § Node workflows |
 | "Give Claude Code a creative harness." | `/agents` `<h1>`, README § MCP, docs home agents block |
 | The plan table (ChatGPT, Claude, Gemini) | `SubscriptionSection` on `/pricing`, README, docs home |
@@ -71,18 +71,21 @@ Use "agent-first" in supporting copy to explain how agents build and revise
 workflows and documents that creators can inspect and edit. Keep the homepage
 metadata category-led: the `<title>` is "NodeTool | Open-source AI film studio,
 agents, node workflows", which names the three homepage pillars in searched
-words. The homepage pill above the `<h1>` speaks to creators:
-"Open-source AI film studio · agent + node workflows". Edition and audience pages use
+words. The homepage pill above the `<h1>` names the same three pillars:
+"Films · agent · node workflows". The `<h1>` carries "open source", so the
+pill does not repeat it. Edition and audience pages use
 distinct headlines that answer the reason to choose that route: Studio makes
 and revises production work, Cloud evaluates the workspace without an install,
 and Agents builds reusable automation around editable artifacts.
 
-Keep a setup line and a trust line under the homepage CTA. The setup line says
-that Studio signs in with a ChatGPT or Claude plan or uses your own provider
-keys at list price. The trust line says free, open source, and the supported
-desktop platforms, and that the browser version is in alpha. Name AGPL-3.0 in
-the FAQ, the footer, and on `/studio`, not in the hero. Keep "alpha" out of
-button labels.
+The homepage subhead says local models or your own API keys at list price. Keep
+a setup line and a trust line under the homepage CTA. The setup line says the
+agent can also run on a ChatGPT or Claude plan in the desktop app, and that the
+browser version is in alpha. The trust line reads "Open source (AGPL-3.0) ·
+macOS, Windows, Linux · Provider list prices on your keys". It says list prices
+on your keys, not "zero markup", because Cloud credits exist in code and have
+no announced price ([Cost, once](#cost-once)). Keep "alpha" out of button
+labels.
 
 ### The harness line
 

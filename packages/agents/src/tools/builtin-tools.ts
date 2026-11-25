@@ -69,7 +69,10 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "get_thread",
   "get_message",
 
-  // Asset library (discover + reuse generated/uploaded media)
+  // Library search (every asset and document, by content) and the asset
+  // library (discover + reuse generated/uploaded media)
+  "search",
+  "search_read",
   "asset_search",
   "asset_list",
 

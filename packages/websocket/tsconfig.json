@@ -159,6 +159,9 @@
       "path": "../document-services"
     },
     {
+      "path": "../search-services"
+    },
+    {
       "path": "../workflow-services"
     },
     {

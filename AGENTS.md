@@ -205,7 +205,7 @@ workspace manifests. Build in dependency order with `npm run build:packages`.
 | Node definitions and registry | `packages/node-sdk/`, domain node packages, `packages/base-nodes/` re-exports |
 | Lean providers, workspace and actor execution | `packages/{runtime-core,execution-core,nodes-core}/` |
 | Full processing context and kernel compatibility exports | `packages/runtime/`, `packages/kernel/` |
-| HTTP-independent asset, document, archive, error and pack services | `packages/{asset-services,document-services,workflow-services,project-services,error-trace-services,pack-host}/` |
+| HTTP-independent asset, document, search, archive, error and pack services | `packages/{asset-services,document-services,search-services,workflow-services,project-services,error-trace-services,pack-host}/` |
 | Planning and execution agents, chat | `packages/agents/`, `packages/chat/` |
 | Lean execution host and default CLI | `packages/{server-core,server-minimal,cli}/` |
 | Pack metadata, authorized installation and full node registration | `packages/{pack-core,pack-manager,node-catalog}/` |

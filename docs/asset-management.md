@@ -38,11 +38,11 @@ The page header shows the total size, folder count, and file count of the curren
 - Drag files into the Asset Explorer, or use **Upload files**.
 - Drop files onto the workflow canvas. NodeTool uploads them and adds a matching constant node.
 
-The server rejects a single upload above `NODETOOL_MAX_UPLOAD_BYTES` (1 GiB by default) with `Upload for key "<key>" exceeds maximum size`.
+One upload can be up to 1 GB. A larger file is rejected with `Upload for key "<key>" exceeds maximum size`. A server operator can raise the limit, see [Storage](storage.md).
 
 ### Working with Assets in Workflows
 
-Drag any asset from the Asset Explorer onto the workflow canvas. NodeTool adds a constant node for its type, such as `nodetool.constant.Image`, `Video`, `Audio`, `Document`, or `Model3D`. Dragging several selected assets adds one node each. An unsupported type shows an "Unsupported file type" error.
+Drag any asset from the Asset Explorer onto the workflow canvas. NodeTool adds a constant node of its type: Image, Video, Audio, Document, or 3D Model. Dragging several selected assets adds one node each. An unsupported type shows an "Unsupported file type" error.
 
 ---
 
@@ -67,21 +67,15 @@ Open any asset in its viewer by double-clicking it in the Asset Explorer.
 
 ![Collections Explorer](assets/screenshots/collections-explorer.png)
 
-A collection stores indexed text chunks for semantic search, not asset files. See [Collections](collections.md).
+A collection holds the text of your documents for search by meaning. It does not hold asset files. See [Collections](collections.md).
 
 ---
 
 ## Metadata
 
-- Assets track `size`, `content_type`, and `duration` (audio and video), plus a free-form `metadata` object.
-- On the desktop app, an imported video whose longer side is at least `NODETOOL_VIDEO_PROXY_MIN_SIZE_PX` pixels (default 1920) gets a smaller preview proxy built in the background so timeline scrubbing seeks fast. Export reads the original.
-- On the desktop app, the import dialog offers Copy or Link. A linked file stays at its original path and the asset references it in place. Files at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) start on Link. **Collect files** on the project card copies linked files into the project folder. See [Link or copy media](projects.md#link-or-copy-media) and [External assets](storage.md#external-assets).
-
----
-
-## Document Indexing
-
-Import binary formats such as PDF or DOCX into editable Markdown documents first (or extract PDF text in a Code node with `@nodetool-ai/sandbox-pdf`), index the text into a collection with an index node or by dropping text files onto the collection tile, then search it with `vector.QueryText` or `vector.HybridSearch`. See [Indexing](indexing.md).
+- Each asset records its size, its file type, and for audio and video its duration.
+- On the desktop app, an imported video 1920 pixels or more on its longer side gets a smaller preview copy, built in the background, so scrubbing it on a timeline stays fast. Export always reads the original.
+- On the desktop app, the import dialog offers **Copy** or **Link**. A linked file stays where it is on your disk and the asset uses it in place. Files of 1 GB or more start on Link. **Collect files** on the project card copies linked files into the project folder. See [Link or copy media](projects.md#link-or-copy-media).
 
 ---
 
@@ -89,18 +83,18 @@ Import binary formats such as PDF or DOCX into editable Markdown documents first
 
 An asset is a file in its project's folder: generated media in `Generated/`, uploads in `Imported/`, and other files where they were saved. See [assets are files in the folder](workspaces.md#assets-are-files-in-the-folder).
 
-Thumbnails, video proxies, and assets created before project folders, until they [move into the folder](workspaces.md#existing-assets-move-into-the-folder), stay in asset storage. On the desktop that is `$XDG_DATA_HOME/nodetool/assets`, falling back to `~/.local/share/nodetool/assets` on macOS and Linux and `%APPDATA%\nodetool\assets` on Windows. `ASSET_FOLDER` or `STORAGE_PATH` moves it. Deployed instances can use S3-compatible storage or Supabase Storage. See [Storage](storage.md).
+Thumbnails, video previews, and assets created before project folders, until they [move into the folder](workspaces.md#upgrading-from-before-project-folders), stay in NodeTool's asset directory: `~/.local/share/nodetool/assets` on macOS and Linux, `%APPDATA%\nodetool\assets` on Windows. A server can keep them in S3 or Supabase Storage instead. See [Storage](storage.md).
 
 ---
 
 ## If it fails
 
-- **`Unsupported file type: <content type>`** when dragging an asset onto the canvas: no constant node exists for that type.
-- **Asset shows Missing**: an externally referenced file moved or changed. Relink it. See [External assets](storage.md#external-assets). An asset in a project folder shows Missing when its file was deleted or moved out of the folder. Relink and Remove sit next to the badge. See [the asset index follows the folder](workspaces.md#the-asset-index-follows-the-folder).
+- **`Unsupported file type: <content type>`** when dragging an asset onto the canvas: no constant node exists for that file type.
+- **Asset shows Missing**: a linked file moved or changed, or the asset's file was deleted or moved out of the project folder. **Relink** and **Remove** sit next to the badge. See [When a file goes missing](workspaces.md#when-a-file-goes-missing).
 
 ## Next Steps
 
-- [Indexing](indexing.md)
+- [Collections](collections.md)
 - [Storage](storage.md)
 - [Workflow Editor](workflow-editor.md)
 - [Example: Chat with Docs](workflows/chat-with-docs.md)

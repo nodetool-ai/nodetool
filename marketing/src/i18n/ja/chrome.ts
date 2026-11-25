@@ -50,6 +50,7 @@ export const JA_NAV_LABELS: Record<string, string> = {
   "/alternatives": "代替ツールの比較",
   "/alternatives/comfyui": "ComfyUIとの比較",
   "/faq": "よくある質問",
+  "/demo": "ライブデモ",
   "/pricing": "料金",
   "/blog": "ブログ",
   "/tasks": "タスク",

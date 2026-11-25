@@ -50,11 +50,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_workflows",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "21550fd305ce",
+    contract: "a0405c643c4d",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-dispatcher.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
+      "packages/agents/tests/capabilities-search.test.ts",
     ],
     evals: [
       {
@@ -767,6 +767,33 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "search",
+    module: "search",
+    impl: "packages/agents/src/capabilities/search.ts",
+    contract: "2d7a68ac9f7e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-search.test.ts",
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-search.ts",
+        cases: ["api-search-answer-from-pdf", "api-search-asset-by-prompt"],
+      },
+    ],
+  },
+  {
+    name: "search_read",
+    module: "search",
+    impl: "packages/agents/src/capabilities/search.ts",
+    contract: "5d731159adc3",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-search.test.ts",
+    ],
+  },
+  {
     name: "list_workers",
     module: "workers",
     impl: "packages/agents/src/capabilities/workers.ts",
@@ -1110,7 +1137,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "asset_search",
     module: "assets",
     impl: "packages/agents/src/capabilities/assets.ts",
-    contract: "48cf8b892c51",
+    contract: "7825b4f9e558",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-assets.test.ts",
@@ -1152,7 +1179,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "update_asset",
     module: "assets",
     impl: "packages/agents/src/capabilities/assets.ts",
-    contract: "8dfc3e1b4b9e",
+    contract: "598b24b0dd60",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-assets.test.ts",
@@ -1781,6 +1808,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-agents.test.ts",
+      "packages/agents/tests/capabilities-search.test.ts",
     ],
   },
   {
@@ -2316,10 +2344,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_timelines",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "60d09f71d39c",
+    contract: "e0f85ce8de9b",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-search.test.ts",
     ],
   },
   {
@@ -2660,10 +2689,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_sketches",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",
-    contract: "be444e7d7d9a",
+    contract: "cbb21ebf11c0",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/capabilities-search.test.ts",
     ],
   },
   {
@@ -3560,10 +3590,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_js_scripts",
     module: "js-scripts",
     impl: "packages/agents/src/capabilities/js-scripts.ts",
-    contract: "d212a2c14484",
+    contract: "99e5f283df38",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/js-scripts-capabilities.test.ts",
+      "packages/agents/tests/capabilities-search.test.ts",
     ],
   },
   {

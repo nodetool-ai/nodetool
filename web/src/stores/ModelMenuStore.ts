@@ -70,6 +70,7 @@ const isAkiProviderIdentifier = (provider: string): boolean => {
  */
 const KEYLESS_PROVIDERS: ReadonlySet<string> = new Set([
   PROVIDER_IDS.GEMINI_WEB,
+  PROVIDER_IDS.GOOGLE_FLOW,
   PROVIDER_IDS.CHATGPT,
   PROVIDER_IDS.DREAMINA,
   PROVIDER_IDS.CLAUDE_AGENT_SDK,

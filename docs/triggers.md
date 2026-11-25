@@ -1,13 +1,14 @@
 ---
 layout: page
 title: "Triggers"
-description: "Run a workflow on a schedule, when a file changes, when a webhook arrives, or by hand."
+description: "Run a workflow at set times, at a fixed interval, when a file changes, when a webhook arrives, or by hand."
 ---
 
 Each trigger starts a workflow automatically in the background when its event happens. The editor does not need to be open. Add the node, save the workflow, then click the bolt button in the floating toolbar and turn on **Workflow active**.
 
 | Node | Fires when |
 |---|---|
+| Schedule Trigger | A cron expression matches, in a timezone you choose |
 | Interval Trigger | A fixed number of seconds passes |
 | File Watch Trigger | A file or folder changes on the server |
 | Webhook Trigger | An HTTP request reaches `/api/webhooks/{token}` |
@@ -31,7 +32,41 @@ A triggered run also receives three parameters. An Input node with a matching na
 
 ## Trigger nodes
 
-Interval, file watch, webhook, and manual triggers start runs. The Wait node is not a trigger. It is listed here because it sits in the same node group.
+Schedule, interval, file watch, webhook, and manual triggers start runs. The Wait node is not a trigger. It is listed here because it sits in the same node group.
+
+### Schedule Trigger
+
+Fires at clock times, such as every weekday at 08:00 Berlin time.
+
+| Setting | Default | What it does |
+|---------|---------|--------------|
+| Cron Expression | `0 8 * * 1-5` | Five fields: minute, hour, day of month, month, day of week |
+| Timezone | `UTC` | The IANA timezone the expression is read in, such as `Europe/Berlin` or `America/New_York` |
+| Max Events | 0 | Applies only when the node runs inside the editor. The scheduler ignores it |
+
+Outputs: `scheduled_at` (the slot this run is for, as a UTC timestamp), `timestamp` (when the run started), `source`, `event_type`.
+
+| Expression | Fires |
+|------------|-------|
+| `0 8 * * 1-5` | Every weekday at 08:00 |
+| `*/15 * * * *` | Every 15 minutes |
+| `30 18 1 * *` | On the 1st of each month at 18:30 |
+| `0 9,17 * * 1` | Mondays at 09:00 and 17:00 |
+
+Fields accept numbers, lists (`1,15`), ranges (`1-5`), steps (`*/10`), and month and weekday names (`MON-FRI`). When both day of month and day of week are set, either one matching is enough, as in standard cron. Six-field expressions with seconds and `@daily` style shortcuts are not accepted.
+
+An expression or timezone that cannot schedule anything is rejected. `nodetool validate` and the check before a run report it on the node. A save that contains one leaves the trigger off and shows `Schedule not armed: ...` as the **Last error**. Arming it fails with the same message.
+
+The scheduler reads the expression on the wall clock of the timezone, so 08:00 stays 08:00 when daylight saving time starts or ends.
+
+| Situation | What happens |
+|-----------|--------------|
+| The time does not exist (clocks jump forward) | Fires at the first instant after the gap. `30 2 * * *` fires at 03:00 on the night 02:00 is skipped |
+| The time occurs twice (clocks go back) | Fires once, on its first occurrence |
+| The server was stopped through one or more slots | Fires once when it is back, then continues from the next slot. Missed slots do not repeat |
+| You arm the trigger or change its expression | Counting starts then. A slot that passed earlier does not fire |
+
+The scheduler checks for due triggers every 5 seconds, so a run starts within a few seconds of the slot. Inside the editor, the node waits for each upcoming slot and emits one event for it. It does not emit on start.
 
 ### Interval Trigger
 
@@ -45,7 +80,7 @@ Interval, file watch, webhook, and manual triggers start runs. The Wait node is 
 
 Outputs: `tick`, `elapsed_seconds`, `interval_seconds`, `timestamp`, `source`, `event_type`.
 
-The server schedules each run from the previous one, so a slow or stopped server shifts the next run instead of catching up on missed ones. The scheduler checks for due triggers every 5 seconds, so timing is accurate to a few seconds, not to the millisecond. An interval has no fixed clock times. To run at 09:00 every day you need a different approach, such as an external scheduler calling a webhook.
+The server schedules each run from the previous one, so a slow or stopped server shifts the next run instead of catching up on missed ones. The scheduler checks for due triggers every 5 seconds, so timing is accurate to a few seconds, not to the millisecond. An interval has no fixed clock times. To run at 09:00 every day, use a [Schedule Trigger](#schedule-trigger).
 
 ### File Watch Trigger
 
@@ -148,7 +183,7 @@ Click the bolt button in the toolbar to open it. It lists one block for each tri
 |------|---------------|
 | Status badge | **Active**, **Inactive**, or **Stopped** (disarmed by the server) |
 | **Enabled** | Arms or disarms this one trigger |
-| Schedule line | For an interval trigger, `Runs every 5m — next in 4m`. `due now` means the next run is waiting for the scheduler's next check |
+| Schedule line | For an interval trigger, `Runs every 5m — next in 4m`. For a schedule trigger, `Cron 0 8 * * 1-5 (Europe/Berlin) — next in 14h 5m`. `due now` means the next run is waiting for the scheduler's next check. A schedule trigger that is off shows no next run |
 | Last fired | The local date and time of the last event, or `Never` |
 | Stopped reason | Why the server disarmed the trigger |
 | Last error | The message from the most recent failure. A later successful run clears it |
@@ -199,7 +234,7 @@ Triggers run inside the NodeTool server process. Nothing fires while the server 
 - **Desktop.** The server runs on your computer, so file watch triggers see your own folders. The webhook URL points at that local server, so an outside service can reach it only if you expose the port.
 - **Self-hosted.** The server watches folders on the machine it runs on, which inside a container is the container's filesystem. Mount the folder into the container. See [Self-Hosted Deployment](self-hosted-deployment.md).
 
-On restart, a webhook or file event that the server stored but had not yet run starts its run. A missed interval tick does not repeat. The trigger fires once when the server comes back, then continues from there.
+On restart, a webhook or file event that the server stored but had not yet run starts its run. A missed interval tick or schedule slot does not repeat. The trigger fires once when the server comes back, then continues from there.
 
 A server administrator can turn triggers off for one server with `NODETOOL_DISABLE_TRIGGERS=1`. That server runs no triggers and webhook requests to it return `404`. Use it when a second server shares the same database and should not run triggers too. See [Configuration](configuration.md).
 
@@ -209,12 +244,16 @@ The mobile app has no Triggers screen. Manage triggers on desktop or web.
 
 ## Troubleshooting
 
-**The bolt button is missing.** The graph has no interval, file watch, webhook, or manual trigger node. The Wait node does not count.
+**The bolt button is missing.** The graph has no schedule, interval, file watch, webhook, or manual trigger node. The Wait node does not count.
 
 **Nothing fires.**
 - Check that the trigger shows **Active**, not **Inactive**.
 - Check that the server is running and that `NODETOOL_DISABLE_TRIGGERS` is not set on it.
 - Save the workflow after changing a property. The server uses the last saved settings.
+
+**A schedule trigger shows `Schedule not armed`.** The last save contained a cron expression or timezone that cannot schedule. Fix the node, save, and turn the trigger on. See [Schedule Trigger](#schedule-trigger) for the accepted fields.
+
+**A schedule trigger fires at the wrong hour.** The expression is read in the node's **Timezone**, which defaults to `UTC`. Set it to your own zone, such as `Europe/Berlin`.
 
 **An interval trigger fires right after I arm it.** A schedule is measured from when the trigger was created or last fired. If that moment is more than one interval ago, the next run is already due and starts at the scheduler's next check. Turn off **Emit On Start** and set **Initial Delay Seconds** to shape the first run.
 

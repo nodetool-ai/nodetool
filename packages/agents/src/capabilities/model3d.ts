@@ -215,6 +215,7 @@ const listModel3ds: CapabilityExport = {
     const query = isString(params["query"]) ? params["query"].trim() : "";
 
     const { Asset } = await import("@nodetool-ai/models");
+    const { searchAssets } = await import("@nodetool-ai/search-services");
     // Two passes, because an uploaded `.glb` often arrives typed
     // `application/octet-stream` — the reason `normalizeAssetContentType`
     // exists. Filtering on `model/` alone would hide exactly those, and the
@@ -223,12 +224,9 @@ const listModel3ds: CapabilityExport = {
     const page = limit * 4;
     const fetched = await Promise.all(
       ["model", "application/octet-stream"].map(async (contentType) => {
-        const [assets] = query
-          ? await Asset.searchAssetsGlobal(userId, query, {
-              contentType,
-              limit: page
-            })
-          : await Asset.paginate(userId, { contentType, limit: page });
+        const assets = query
+          ? (await searchAssets(userId, query, { contentType, limit: page })).assets
+          : (await Asset.paginate(userId, { contentType, limit: page }))[0];
         return assets;
       })
     );

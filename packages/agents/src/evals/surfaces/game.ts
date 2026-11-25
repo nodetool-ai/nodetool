@@ -170,10 +170,11 @@ function emitsTargetedBonus(source: string): boolean {
 /** onEvent reads `points` from the event payload, by member access or destructuring. */
 function readsEventPoints(source: string): boolean {
   const object = lifecycleObject(source);
-  const names = scriptNodes(object && hookFunction(object, "onEvent")).flatMap((node) =>
-    node.type === "MemberExpression" && node.computed !== true ? [(node.property as ScriptNode).name as string]
-      : node.type === "MemberExpression" ? [String(constantValue(node.property))]
-      : node.type === "Property" ? [propertyName(node) ?? ""] : []);
+  const names = scriptNodes(object && hookFunction(object, "onEvent")).flatMap((node) => {
+    if (node.type === "Property") { return [propertyName(node) ?? ""]; }
+    if (node.type !== "MemberExpression") { return []; }
+    return [node.computed === true ? String(constantValue(node.property)) : (node.property as ScriptNode).name as string];
+  });
   return names.includes("payload") && names.includes("points");
 }
 

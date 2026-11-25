@@ -290,6 +290,11 @@ export const updateInput = z.object({
   sketch_document_id: z.string().nullable().optional(),
   timeline_id: z.string().nullable().optional(),
   favorite: z.boolean().optional(),
+  /**
+   * Replace the asset's tags, stored as `metadata.tags`. Tags are lower-cased
+   * and deduplicated, and library search indexes them as text and a filter.
+   */
+  tags: z.array(z.string()).optional(),
   size: z.number().optional(),
   data: z.string().nullable().optional(),
   data_encoding: z.enum(["base64", "utf-8"]).nullable().optional()
@@ -362,8 +367,10 @@ export const recursiveOutput = z.object({
 export type RecursiveOutput = z.infer<typeof recursiveOutput>;
 
 // ── search (GET /api/assets/search) ──────────────────────────────
-// Matches by name substring. An empty query matches everything, which lets
-// the `@`-mention typeahead show a list of assets before the user narrows it.
+// Searches the library index: name, generation prompt, description and tags,
+// case-insensitive, best match first. An empty query lists every asset,
+// newest first, which lets the `@`-mention typeahead show a list of assets
+// before the user narrows it.
 export const searchInput = z.object({
   query: z.string(),
   /** Restrict search results to one project; omitted is the explicit global search. */
@@ -371,13 +378,20 @@ export const searchInput = z.object({
   content_type: z.string().optional(),
   page_size: z.number().int().min(1).max(10000).default(200),
   cursor: z.string().optional(),
+  /** Only assets a run of this workflow produced. */
   workflow_id: z.string().optional()
 });
 export type SearchInput = z.infer<typeof searchInput>;
 
 export const searchOutput = z.object({
-  assets: z.array(assetResponse),
+  assets: z.array(
+    assetResponse.extend({
+      /** The folder the asset is shown under, such as `Home / Renders`. */
+      folder_path: z.string().nullable().optional()
+    })
+  ),
   next_cursor: z.string().nullable(),
+  /** Every asset that matches, across pages. */
   total_count: z.number(),
   is_global_search: z.boolean()
 });

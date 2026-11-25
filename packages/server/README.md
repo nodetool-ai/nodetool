@@ -17,7 +17,7 @@ From the repository root, after `npm run build:packages`:
 node packages/server/dist/main.js
 ```
 
-The server reads the usual settings: `PORT`, `HOST`, `NODETOOL_ENV`. See [Configuration](../../docs/configuration.md#environment-variables-index). For development, `npm run dev:server` starts the backend on port 7777.
+The server reads the usual settings: `PORT`, `HOST`, `NODETOOL_ENV`. See [Configuration](../../docs/environment-variables.md). For development, `npm run dev:server` starts the backend on port 7777.
 
 ## Test
 

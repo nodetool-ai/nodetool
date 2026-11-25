@@ -1,6 +1,7 @@
 import { FrontendToolRegistry } from "../../tools/frontendTools";
 import { getFrontendToolRuntimeState } from "../../tools/frontendToolRuntimeState";
 import { globalWebSocketManager } from "../GlobalWebSocketManager";
+import { asMock } from "../../../test-utils/doubles";
 
 jest.mock("../../../stores/BASE_URL", () => ({
   BASE_URL: "http://localhost:7777",
@@ -57,7 +58,7 @@ describe("GlobalWebSocketManager renderer tool calls", () => {
     const sendSpy = jest
       .spyOn(globalWebSocketManager, "send")
       .mockResolvedValue(undefined);
-    (FrontendToolRegistry.get as jest.Mock).mockReturnValue(undefined);
+    asMock(FrontendToolRegistry.get).mockReturnValue(undefined);
     setRendererId("renderer-1");
 
     await executeRendererToolCall({
@@ -110,7 +111,7 @@ describe("GlobalWebSocketManager renderer tool calls", () => {
     const sendSpy = jest
       .spyOn(globalWebSocketManager, "send")
       .mockResolvedValue(undefined);
-    (FrontendToolRegistry.get as jest.Mock).mockReturnValue({
+    asMock(FrontendToolRegistry.get).mockReturnValue({
       requireUserConsent: true
     });
     setRendererId("renderer-1");
@@ -139,12 +140,12 @@ describe("GlobalWebSocketManager renderer tool calls", () => {
       .spyOn(globalWebSocketManager, "send")
       .mockResolvedValue(undefined);
     const runtimeState = { fetchWorkflow: jest.fn() };
-    (FrontendToolRegistry.get as jest.Mock).mockReturnValue({
+    asMock(FrontendToolRegistry.get).mockReturnValue({
       requireUserConsent: true
     });
-    (FrontendToolRegistry.call as jest.Mock).mockResolvedValue({ ok: true });
-    (getFrontendToolRuntimeState as jest.Mock).mockReturnValue(runtimeState);
-    (window.confirm as jest.Mock).mockReturnValue(true);
+    asMock(FrontendToolRegistry.call).mockResolvedValue({ ok: true });
+    asMock(getFrontendToolRuntimeState).mockReturnValue(runtimeState);
+    asMock(window.confirm).mockReturnValue(true);
     setRendererId("renderer-1");
 
     await executeRendererToolCall({

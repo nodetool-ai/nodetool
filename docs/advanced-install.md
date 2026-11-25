@@ -74,6 +74,11 @@ To set up the environment by hand:
    pip install nodetool-core nodetool-huggingface   # add nodetool-mlx on Apple Silicon
    ```
 
+   The MLX video nodes also need the LTX engine, which is not on PyPI. The
+   Package Manager installs it with `nodetool-mlx`. By hand, install the two
+   `ltx-*-mlx` requirements listed for the MLX entry in
+   `packages/protocol/src/python-packs.ts`.
+
 4. Start the server so it finds that interpreter:
 
    ```bash
@@ -88,7 +93,7 @@ To set up the environment by hand:
 The server tries `NODETOOL_PYTHON` first. Without it, it uses the active conda
 environment when that environment is named `nodetool` or `conda_env`, then the
 desktop app's environment and `nodetool` environments under `miniconda3` or
-`anaconda3`. The full order is in [Configuration](configuration.md#python-nodes).
+`anaconda3`. The full order is in [Configuration](server-configuration.md#python-nodes).
 To check the environment, run `python -c "import nodetool.worker"` in it. With
 no match, the server log says `Python not found — Python nodes will not be
 available`. When the worker fails to start, the error names the interpreter it
@@ -148,7 +153,7 @@ To check what NodeTool sees on NVIDIA, run `nvidia-smi`, the same check behind
 To pick which GPU Python nodes use, set **NODETOOL_TORCH_DEVICE** in Settings
 to `cuda`, `cuda:1` (a second card), `mps`, or `cpu`. An unavailable device
 logs a warning and falls back to automatic selection. See
-[Configuration](configuration.md#python-nodes).
+[Configuration](server-configuration.md#python-nodes).
 
 ## Stored secrets
 
@@ -168,4 +173,4 @@ printf %s "$OPENAI_API_KEY" | nodetool secrets set OPENAI_API_KEY
 nodetool secrets list   # names only, never values
 ```
 
-See [Configuration](configuration.md) and the [CLI Reference](cli.md).
+See [Settings](configuration.md) and the [CLI Reference](cli.md).

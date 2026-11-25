@@ -6,6 +6,7 @@ import JsonLd from "../../components/JsonLd";
 import ReadMoreLinks from "@/components/ReadMoreLinks";
 import FaqSection from "../../components/FaqSection";
 import HeroDemoPlayer from "../../components/HeroDemoPlayer";
+import NodeEditorDemo from "../../components/NodeEditorDemo";
 import SearchStarter from "../../components/SearchStarter";
 import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
@@ -24,6 +25,8 @@ import { languageAlternates } from "@/i18n/routes";
  * real workflow built, type-checked, run and re-pointed at another model.
  * Every node title, type id, and model name in it, and in the node library
  * below, is a registry entry. Keep the two in step when either changes.
+ *
+ * `NodeEditorDemo` below the reel is the app's own editor, opened on click.
  */
 
 const TITLE = "Node-based workflows for image, video, audio, and text — NodeTool";
@@ -276,6 +279,8 @@ export default function NodeBasedWorkflowsPage() {
             example that ships with NodeTool.
           </p>
         </div>
+
+        <NodeEditorDemo />
 
         <section
           aria-labelledby="nbw-qualities-title"
