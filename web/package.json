@@ -89,6 +89,7 @@
     "prebuild": "node scripts/ensure-packages-built.mjs",
     "build": "vite build",
     "prebuild:staging": "node scripts/ensure-packages-built.mjs",
+    "build:timeline-embed": "vite build --config vite.timeline-embed.config.ts",
     "build:staging": "vite build --mode staging",
     "build:node-editor-embed": "node scripts/generate-node-editor-demo-metadata.mjs --check && vite build --config vite.node-editor-embed.config.ts",
     "generate:node-editor-demo-metadata": "node scripts/generate-node-editor-demo-metadata.mjs",

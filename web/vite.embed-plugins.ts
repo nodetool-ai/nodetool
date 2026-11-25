@@ -1,6 +1,6 @@
 /**
  * Build plugins shared by the static demo pages the marketing site embeds
- * (vite.node-editor-embed.config.ts). Each demo imports a slice of the app
+ * (vite.timeline-embed.config.ts, vite.node-editor-embed.config.ts). Each demo imports a slice of the app
  * whose static import graph reaches most of it, so a plain build writes
  * every lazy chunk the app has. These plugins keep the output to what the
  * demo loads.

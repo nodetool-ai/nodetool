@@ -144,6 +144,23 @@ when its rendered film exists in
 - Add `StoryboardTeaser` to a landing page with a hand-picked `slugs` list that
   matches the page's topic.
 
+## Timeline Editor Demo
+
+`/studio` loads the app's real timeline editor, read-only, in an iframe when
+the reader opens it. The page is `web/timeline-embed.html`, its code is in
+`web/src/demo/timeline/embed/`, and it shows the Kite, Serein and Cadence
+example timelines.
+
+- Treat `public/embed/timeline/` as generated output. After a change to the
+  timeline editor or the embed, run `npm run build:packages` at the root,
+  then `npm run build:timeline-embed` in `web/`, and commit the result.
+- `web/vite.timeline-embed.config.ts` writes only the chunks the demo loads.
+  A film that needs another lazy chunk must add its module to
+  `RUNTIME_LAZY_MODULES`. A film with media needs its files served from this
+  site, so the three films hold shapes and text only.
+- `tests/e2e/timeline-editor-demo.spec.ts` checks that nothing loads before
+  the reader opens the editor and that an edit is put back.
+
 ## Translated Pages
 
 `/zh/<route>`, `/ja/<route>` and `/ko/<route>` pages translate English pages

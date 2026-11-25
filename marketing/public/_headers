@@ -24,6 +24,13 @@
 /*.mp4
   Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
 
+# The timeline editor demo (built from web/, see web/vite.timeline-embed.config.ts).
+# Its scripts and styles carry content hashes, so they never change in place.
+/embed/timeline/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+/embed/timeline/fonts/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
 # The node editor demo (built from web/, see web/vite.node-editor-embed.config.ts).
 # Its scripts and styles carry content hashes, so they never change in place.
 /embed/node-editor/assets/*
