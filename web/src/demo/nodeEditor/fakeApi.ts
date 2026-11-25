@@ -9,8 +9,7 @@
  */
 import type { UnifiedModel } from "../../stores/ApiTypes";
 
-type Answer = unknown;
-type Resolver = Answer | ((input: unknown) => Answer);
+type Resolver = unknown | ((input: unknown) => unknown);
 
 function byProvider(models: UnifiedModel[]): (input: unknown) => UnifiedModel[] {
   return (input) => {
@@ -64,7 +63,7 @@ export const DEMO_TRPC_ANSWERS: Record<string, Resolver> = {
 
 const NOT_IN_DEMO = "Not available in the demo";
 
-function trpcError(path: string): Answer {
+function trpcError(path: string): unknown {
   return {
     error: {
       message: NOT_IN_DEMO,
@@ -90,7 +89,7 @@ function parseInputs(raw: string | null): Record<string, unknown> {
  * The response body for a tRPC GET such as `/trpc/a.b,c.d?batch=1&input=…`.
  * A batched request's `input` is keyed by position.
  */
-export function answerTrpc(pathname: string, search: URLSearchParams): Answer {
+export function answerTrpc(pathname: string, search: URLSearchParams): unknown {
   const batched = search.has("batch");
   const procedures = decodeURIComponent(pathname.replace(/^.*\/trpc\//, "")).split(",");
   const inputs = parseInputs(search.get("input"));
@@ -105,7 +104,7 @@ export function answerTrpc(pathname: string, search: URLSearchParams): Answer {
   return batched ? answers : answers[0];
 }
 
-function jsonResponse(body: Answer, status = 200): Response {
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" }
