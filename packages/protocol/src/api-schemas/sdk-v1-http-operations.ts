@@ -511,7 +511,12 @@ export function matchSdkV1HttpOperation(
           matched = false;
           break;
         }
-        params[part.slice(1, -1)] = decodeURIComponent(segment);
+        try {
+          params[part.slice(1, -1)] = decodeURIComponent(segment);
+        } catch {
+          matched = false;
+          break;
+        }
       } else if (part !== segment) {
         matched = false;
         break;

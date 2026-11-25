@@ -334,6 +334,18 @@ describe("validateBridgeFrame (non-throwing dispatcher gate)", () => {
         .success
     ).toBe(true);
   });
+
+  it("ignores inherited Object.prototype keys as frame type without throwing", () => {
+    for (const key of ["toString", "constructor", "valueOf", "__proto__"]) {
+      expect(getBridgeFrameSchema(key)).toBeUndefined();
+      expect(() =>
+        validateBridgeFrame({ type: key, request_id: "r1", data: {} })
+      ).not.toThrow();
+      expect(
+        validateBridgeFrame({ type: key, request_id: "r1", data: {} }).success
+      ).toBe(true);
+    }
+  });
 });
 
 describe("assertValidBridgeFrame (throwing fake-conformance gate)", () => {

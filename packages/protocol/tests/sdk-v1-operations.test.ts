@@ -204,6 +204,9 @@ describe("matchSdkV1HttpOperation", () => {
     expect(
       matchSdkV1HttpOperation("GET", "/api/workflows//interface")
     ).toBeUndefined();
+    expect(
+      matchSdkV1HttpOperation("GET", "/api/sdk/v1/workflows/%E0%A4%A/interface")
+    ).toBeUndefined();
   });
 });
 
