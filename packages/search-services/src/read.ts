@@ -64,8 +64,14 @@ function locatorMatches(want: Record<string, unknown>, have: Record<string, unkn
   return true;
 }
 
+/** One lookup of {@link findLibraryItem}: the row when found, or why the id was ambiguous. */
+export interface LibraryItemLookup {
+  row?: typeof searchItems.$inferSelect;
+  error?: string;
+}
+
 /** An owner's item by item id or resource id, full or as an exact 12-character prefix. */
-export async function findLibraryItem(userId: string, id: string) {
+export async function findLibraryItem(userId: string, id: string): Promise<LibraryItemLookup> {
   const db = getPortableDb();
   const owner = eq(searchItems.user_id, userId);
   if (isShortResourceId(id)) {
