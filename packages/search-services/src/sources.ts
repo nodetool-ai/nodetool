@@ -11,6 +11,7 @@ import {
   getPortableDb,
   imageDocuments,
   jsScripts,
+  projects,
   scripts,
   storyboards,
   timelineSequences,
@@ -25,6 +26,7 @@ import {
   type DocumentSource,
   type ExtractedItem
 } from "./extract.js";
+import { parseProjectFileResourceId } from "./project-files.js";
 
 /** A source row that exists and is not a library item. */
 export interface ExcludedSource {
@@ -190,11 +192,39 @@ export async function existingSourceIds(
   ids: readonly string[]
 ): Promise<Set<string>> {
   if (ids.length === 0) return new Set();
-  if (resourceType === "project_file") return new Set(ids);
+  if (resourceType === "project_file") {
+    // A folder file exists while its project does. The reconcile removes the
+    // items of files deleted from a folder it can read.
+    const live = await liveProjectIds(
+      userId,
+      ids.map((id) => parseProjectFileResourceId(id)?.projectId).filter((id): id is string => !!id)
+    );
+    return new Set(ids.filter((id) => live.has(parseProjectFileResourceId(id)?.projectId ?? "")));
+  }
   const table = resourceType === "asset" ? assets : DOCUMENT_TABLES[resourceType];
   const rows = await getPortableDb()
     .select({ id: table.id })
     .from(table)
     .where(and(eq(table.user_id, userId), inArray(table.id, [...ids])));
   return new Set(rows.map((row) => row.id));
+}
+
+/** The ids among `projectIds` of projects `userId` owns that are not deleted. */
+export async function liveProjectIds(userId: string, projectIds: readonly string[]): Promise<Set<string>> {
+  const unique = [...new Set(projectIds)];
+  const live = new Set<string>();
+  for (let start = 0; start < unique.length; start += 500) {
+    const rows = await getPortableDb()
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.user_id, userId),
+          inArray(projects.id, unique.slice(start, start + 500)),
+          isNull(projects.deleted_at)
+        )
+      );
+    for (const row of rows) live.add(row.id);
+  }
+  return live;
 }

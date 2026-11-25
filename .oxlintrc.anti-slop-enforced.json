@@ -192,7 +192,6 @@
         "packages/sandbox-compiler/src/**",
         "packages/sandbox-runtime/src/**",
         "packages/sdk/src/**",
-        "packages/search-services/src/**",
         "packages/security/src/**",
         "packages/security-core/src/**",
         "packages/server/src/**",

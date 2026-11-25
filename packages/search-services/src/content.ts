@@ -141,9 +141,15 @@ async function projectFileContent(userId: string, resourceId: string): Promise<C
   if (!folders) throw new Error("This process cannot read project folders.");
   const contentType = projectFileContentType(parsed.path);
   if (!contentType) return null;
-  const bytes = await folders.read(userId, parsed.projectId, parsed.path);
-  if (bytes === null) return null;
-  return fileContent({ contentType, name: parsed.path, size: bytes.byteLength }, async () => bytes);
+  const size = await folders.size(userId, parsed.projectId, parsed.path);
+  if (size === null) return null;
+  let gone = false;
+  const result = await fileContent({ contentType, name: parsed.path, size }, async () => {
+    const bytes = await folders.read(userId, parsed.projectId, parsed.path);
+    if (bytes === null) gone = true;
+    return bytes ?? new Uint8Array();
+  });
+  return gone ? null : result;
 }
 
 /** The locator key each document kind names its parts by (D6). */

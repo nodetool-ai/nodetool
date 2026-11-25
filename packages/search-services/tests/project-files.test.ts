@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { closeDb, initTestDb, ModelObserver } from "@nodetool-ai/models";
+import { eq } from "drizzle-orm";
+import { closeDb, getPortableDb, initTestDb, ModelObserver, projects, searchItems } from "@nodetool-ai/models";
 import {
+  MAX_CONTENT_BYTES,
   parseProjectFileResourceId,
   projectFileContentType,
   readLibraryPassage,
   reconcileLibraryIndex,
   runIndexerPass,
+  searchAssets,
   searchLibrary,
   setProjectFileSource,
   stopLibraryIndexWrites,
@@ -19,8 +22,11 @@ const PROJECT = "proj1";
 const encoder = new TextEncoder();
 
 /** An in-memory folder per project. `unreadable` projects throw on listing. */
+/** Paths the source read, in order. */
+const reads: string[] = [];
+
 function folderSource(
-  folders: Map<string, Map<string, { text: string; modifiedAt: number }>>,
+  folders: Map<string, Map<string, { text: string; modifiedAt: number; size?: number }>>,
   unreadable: Set<string>
 ): ProjectFileSource {
   return {
@@ -36,7 +42,12 @@ function folderSource(
         modifiedAt: file.modifiedAt
       }));
     },
+    async size(_userId, projectId, path) {
+      const file = folders.get(projectId)?.get(path);
+      return file ? (file.size ?? encoder.encode(file.text).byteLength) : null;
+    },
     async read(_userId, projectId, path) {
+      reads.push(path);
       const file = folders.get(projectId)?.get(path);
       return file ? encoder.encode(file.text) : null;
     }
@@ -76,11 +87,16 @@ describe("project file names", () => {
 });
 
 describe.each(dialects)("project folder files on %s", (_name, open) => {
-  let folders: Map<string, Map<string, { text: string; modifiedAt: number }>>;
+  let folders: Map<string, Map<string, { text: string; modifiedAt: number; size?: number }>>;
   let unreadable: Set<string>;
 
   beforeEach(async () => {
     await open();
+    reads.length = 0;
+    const now = new Date().toISOString();
+    await getPortableDb()
+      .insert(projects)
+      .values({ id: PROJECT, user_id: USER, name: "Launch", created_at: now, updated_at: now });
     folders = new Map([
       [
         PROJECT,
@@ -108,6 +124,8 @@ describe.each(dialects)("project folder files on %s", (_name, open) => {
     });
     const read = await readLibraryPassage({ userId: USER, id: hit.resourceId });
     expect(read.ok && read.passages[0]?.text).toContain("old harbour warehouse");
+    // A folder file is a document, not an asset: the asset search leaves it out.
+    expect((await searchAssets(USER, "harbour warehouse")).total).toBe(0);
   });
 
   it("re-reads a changed file and removes a deleted one", async () => {
@@ -132,5 +150,34 @@ describe.each(dialects)("project folder files on %s", (_name, open) => {
     setProjectFileSource(null);
     await index();
     expect((await searchLibrary({ userId: USER, query: "warehouse" })).hits).toHaveLength(1);
+  });
+
+  it("removes the items of a deleted project, and refuses to read them meanwhile", async () => {
+    setProjectFileSource(folderSource(folders, unreadable));
+    await index();
+    const id = `${PROJECT}:notes/launch.md`;
+    expect((await readLibraryPassage({ userId: USER, id })).ok).toBe(true);
+
+    await getPortableDb()
+      .update(projects)
+      .set({ deleted_at: new Date().toISOString() })
+      .where(eq(projects.id, PROJECT));
+    expect((await readLibraryPassage({ userId: USER, id })).ok).toBe(false);
+    // The source no longer lists a deleted project; the reconcile still removes its items.
+    await index();
+    const left = await getPortableDb().select().from(searchItems).where(eq(searchItems.resource_type, "project_file"));
+    expect(left).toEqual([]);
+  });
+
+  it("skips a file over the size limit without reading it", async () => {
+    folders.get(PROJECT)!.set("huge.txt", { text: "small", modifiedAt: 1_000, size: MAX_CONTENT_BYTES + 1 });
+    setProjectFileSource(folderSource(folders, unreadable));
+    await index();
+    expect(reads).not.toContain("huge.txt");
+    const [item] = await getPortableDb()
+      .select({ state: searchItems.state })
+      .from(searchItems)
+      .where(eq(searchItems.resource_id, `${PROJECT}:huge.txt`));
+    expect(item?.state).toBe("skipped");
   });
 });

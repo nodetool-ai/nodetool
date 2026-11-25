@@ -27,6 +27,8 @@ export interface ProjectFileSource {
   projects(userId?: string): Promise<Array<{ userId: string; projectId: string }>>;
   /** Files of one project's folder that no row names. */
   files(userId: string, projectId: string): Promise<ProjectFile[]>;
+  /** A file's size in bytes, or null when it is gone. Asked before `read`, so a large file is never loaded. */
+  size(userId: string, projectId: string, path: string): Promise<number | null>;
   /** A file's bytes, or null when it is gone. */
   read(userId: string, projectId: string, path: string): Promise<Uint8Array | null>;
 }

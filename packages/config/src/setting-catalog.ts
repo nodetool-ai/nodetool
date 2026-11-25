@@ -384,7 +384,7 @@ s(
 s(
   "NODETOOL_SEARCH_DAILY_SPEND_LIMIT",
   "Library Search",
-  "Most US dollars hosted embedding for library search may cost in one day. Empty means no limit."
+  "Most US dollars hosted models for library search may cost in one day: embeddings, captions and transcripts together. Empty means no limit."
 );
 s(
   "NODETOOL_SEARCH_CAPTION_MODEL",

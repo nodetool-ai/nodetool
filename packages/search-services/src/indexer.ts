@@ -149,7 +149,7 @@ export async function runLibraryIndexer(options: LibraryIndexerOptions = {}): Pr
       }
       // Enrichment last: it costs the most, and its chunks are embedded on the next round.
       try {
-        const enriched = await runEnrichPass({ signal: options.signal, limit: 16 });
+        const enriched = await runEnrichPass({ signal: options.signal, limit: 16, owner });
         if (enriched.enriched > 0) {
           log.debug("Library enrich pass", { ...enriched });
           continue;

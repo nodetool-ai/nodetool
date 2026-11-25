@@ -42,6 +42,7 @@ export {
 export { chunkLines, chunkMarkdown, chunkPlainText, PASSAGE_CHARS } from "./chunking.js";
 export {
   extractContent,
+  MAX_CONTENT_BYTES,
   setAssetBytesReader,
   type AssetBytesReader,
   type ContentResult
@@ -103,6 +104,7 @@ export {
   enrichmentModels,
   libraryEnricher,
   MAX_ENRICH_ATTEMPTS,
+  MAX_TRANSCRIBE_SECONDS,
   runEnrichPass,
   setLibraryEnricher,
   transcriptChunks,

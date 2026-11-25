@@ -9,13 +9,15 @@
  * indexer installs a {@link LibraryEnricher}.
  */
 
+import { randomUUID } from "node:crypto";
 import { and, eq, inArray, isNull, lt, ne, notInArray, or, sql } from "drizzle-orm";
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, getPortableDb, searchChunks, searchItems, withTransaction } from "@nodetool-ai/models";
 import type { SearchKind, SearchMetadata } from "@nodetool-ai/protocol";
 import { chunkPlainText } from "./chunking.js";
 import { MAX_CONTENT_BYTES, readAssetBytes } from "./content.js";
-import { spentToday } from "./embed.js";
+import { EMBED_BUDGET_LEASE, EMBED_LEASE_MS, spentToday } from "./embed.js";
+import { acquireSearchLease, claimItems, itemUnclaimed, releaseItemClaims, releaseSearchLease } from "./leases.js";
 import {
   embeddingDailySpendLimit,
   excludedEmbeddingProjects,
@@ -28,6 +30,8 @@ const log = createLogger("nodetool.search.enrich");
 
 /** Failed attempts before an item is left alone until its file changes. */
 export const MAX_ENRICH_ATTEMPTS = 3;
+/** Longest recording sent to a transcript model, in seconds. */
+export const MAX_TRANSCRIBE_SECONDS = 2 * 60 * 60;
 /** Enrichment chunks sort after the extracted body. */
 const ENRICH_ORDINAL_BASE = 100_000;
 
@@ -110,8 +114,36 @@ function sameContent(previous: string | null, sourceVersion: string, model: Enri
 export interface EnrichPass {
   enriched: number;
   failed: number;
-  /** Why the pass stopped early, if it did. */
-  stopped?: "spend_limit";
+  /**
+   * Why the pass stopped early, if it did: the daily spend limit is reached,
+   * or another indexer holds the budget lease for its paid call.
+   */
+  stopped?: "spend_limit" | "budget_busy";
+}
+
+/** Thrown by {@link paidCall} when no paid call may be made now. */
+class BudgetStop extends Error {
+  constructor(readonly reason: "spend_limit" | "budget_busy") {
+    super(reason);
+  }
+}
+
+/**
+ * Make one paid model call under the budget lease, after checking the day's
+ * spend under it, as the embed pass does. Concurrent indexers cannot together
+ * spend past the limit.
+ */
+async function paidCall<T>(owner: string, call: () => Promise<T>): Promise<T> {
+  if (!(await acquireSearchLease(EMBED_BUDGET_LEASE, owner, EMBED_LEASE_MS))) {
+    throw new BudgetStop("budget_busy");
+  }
+  try {
+    const cap = await embeddingDailySpendLimit();
+    if (cap !== null && (await spentToday()) >= cap) throw new BudgetStop("spend_limit");
+    return await call();
+  } finally {
+    await releaseSearchLease(EMBED_BUDGET_LEASE, owner);
+  }
 }
 
 interface Candidate {
@@ -146,6 +178,7 @@ async function candidates(
     eq(searchItems.resource_type, "asset"),
     inArray(searchItems.state, ["ready", "skipped"]),
     lt(searchItems.enrich_attempts, MAX_ENRICH_ATTEMPTS),
+    itemUnclaimed(),
     or(...wanted)
   ];
   if (excluded.length > 0) parts.push(notInArray(searchItems.project_id, [...excluded]));
@@ -261,7 +294,12 @@ export function transcriptChunks(
   return out;
 }
 
-async function enrichOne(item: Candidate, model: EnrichModel, active: LibraryEnricher): Promise<boolean> {
+async function enrichOne(
+  item: Candidate,
+  model: EnrichModel,
+  active: LibraryEnricher,
+  owner: string
+): Promise<boolean> {
   const key = enrichKey(item.sourceVersion, model);
   if (sameContent(item.enrichedVersion, item.sourceVersion, model)) {
     await getPortableDb()
@@ -281,13 +319,17 @@ async function enrichOne(item: Candidate, model: EnrichModel, active: LibraryEnr
     await writeEnrichment(item, key, [], `The file is larger than ${MAX_CONTENT_BYTES / 1024 / 1024} MB.`);
     return false;
   }
+  if (item.kind !== "image" && typeof asset.duration === "number" && asset.duration > MAX_TRANSCRIBE_SECONDS) {
+    await writeEnrichment(item, key, [], `The recording is longer than ${MAX_TRANSCRIBE_SECONDS / 3600} hours.`);
+    return false;
+  }
   const bytes = await readAssetBytes(asset);
   const input: EnrichInput = { bytes, contentType: asset.content_type ?? null, model, userId: item.userId };
   if (item.kind === "image") {
-    const caption = (await active.caption(input)).trim();
+    const caption = (await paidCall(owner, () => active.caption(input))).trim();
     await writeEnrichment(item, key, caption ? [{ field: "caption", text: caption, locator: null }] : [], null);
   } else {
-    await writeEnrichment(item, key, transcriptChunks(await active.transcribe(input)), null);
+    await writeEnrichment(item, key, transcriptChunks(await paidCall(owner, () => active.transcribe(input))), null);
   }
   return true;
 }
@@ -298,24 +340,21 @@ async function enrichOne(item: Candidate, model: EnrichModel, active: LibraryEnr
  * Projects excluded from embedding are excluded here too: their files never
  * reach a model.
  */
-export async function runEnrichPass(options: { limit?: number; signal?: AbortSignal } = {}): Promise<EnrichPass> {
+export async function runEnrichPass(
+  options: { limit?: number; signal?: AbortSignal; owner?: string } = {}
+): Promise<EnrichPass> {
   const pass: EnrichPass = { enriched: 0, failed: 0 };
   const active = enricher;
   if (!active) return pass;
   const models = await enrichmentModels();
   if (!models.caption && !models.transcript) return pass;
   const excluded = await excludedEmbeddingProjects();
+  const owner = options.owner ?? `enrich:${randomUUID()}`;
   const limit = options.limit ?? Number.POSITIVE_INFINITY;
   // Items this pass already tried, so a failure is not retried in the same pass.
   const tried = new Set<string>();
 
-  while (pass.enriched + pass.failed < limit && !options.signal?.aborted) {
-    const cap = await embeddingDailySpendLimit();
-    if (cap !== null && (await spentToday()) >= cap) {
-      log.info("Library enrichment paused at the daily spend limit", { limit_usd: cap });
-      pass.stopped = "spend_limit";
-      break;
-    }
+  outer: while (pass.enriched + pass.failed < limit && !options.signal?.aborted) {
     const batch = (await candidates(models, excluded, 16 + tried.size)).filter((item) => !tried.has(item.id));
     if (batch.length === 0) break;
     for (const item of batch) {
@@ -323,13 +362,23 @@ export async function runEnrichPass(options: { limit?: number; signal?: AbortSig
       tried.add(item.id);
       const model = item.kind === "image" ? models.caption : models.transcript;
       if (!model) continue;
+      // Another indexer working on the item makes the same paid call: leave it to that one.
+      const claims = await claimItems([item.id], owner, EMBED_LEASE_MS);
+      if (claims.size === 0) continue;
       try {
-        if (await enrichOne(item, model, active)) pass.enriched += 1;
+        if (await enrichOne(item, model, active, owner)) pass.enriched += 1;
       } catch (error) {
+        if (error instanceof BudgetStop) {
+          if (error.reason === "spend_limit") log.info("Library enrichment paused at the daily spend limit");
+          pass.stopped = error.reason;
+          break outer;
+        }
         pass.failed += 1;
         const reason = error instanceof Error ? error.message : String(error);
         log.warn("Library enrichment failed", { kind: item.kind, model: model.id, error: reason });
         await recordFailure(item, reason);
+      } finally {
+        await releaseItemClaims(claims);
       }
     }
   }

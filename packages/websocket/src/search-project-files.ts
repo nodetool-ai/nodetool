@@ -35,6 +35,12 @@ export const localProjectFileSource: ProjectFileSource = {
     if (!folder) throw new Error(`The folder of project ${projectId} is not readable here.`);
     return listWorkspaceFiles(userId, projectId, folder);
   },
+  async size(userId, projectId, path) {
+    const folder = await localFolder(userId, projectId);
+    if (!folder) throw new Error(`The folder of project ${projectId} is not readable here.`);
+    const stat = await folder.stat(path);
+    return stat && !stat.isDirectory ? stat.size : null;
+  },
   async read(userId, projectId, path) {
     const folder = await localFolder(userId, projectId);
     if (!folder) throw new Error(`The folder of project ${projectId} is not readable here.`);

@@ -23,7 +23,7 @@ import {
   removeChunkVectors,
   type EmbeddingSpace
 } from "./semantic.js";
-import { acquireSearchLease, releaseSearchLease } from "./leases.js";
+import { acquireSearchLease, claimItems, releaseItemClaims, releaseSearchLease } from "./leases.js";
 
 const log = createLogger("nodetool.search.embed");
 
@@ -108,46 +108,6 @@ async function dropExcludedVectors(excluded: readonly string[]): Promise<void> {
 }
 
 /**
- * Claim items for embedding with the item lease the extractor uses, so two
- * indexers never embed, and pay for, the same chunks. Returns the lease
- * version won for each claimed item.
- */
-async function claimForEmbedding(itemIds: readonly string[], owner: string, now: Date): Promise<Map<string, number>> {
-  const db = getPortableDb();
-  const at = now.toISOString();
-  const expires = new Date(now.getTime() + EMBED_LEASE_MS).toISOString();
-  const won = new Map<string, number>();
-  for (const id of itemIds) {
-    const rows = await db
-      .update(searchItems)
-      .set({
-        lease_owner: owner,
-        lease_expires_at: expires,
-        lease_version: sql`${searchItems.lease_version} + 1`
-      })
-      .where(
-        and(
-          eq(searchItems.id, id),
-          or(isNull(searchItems.lease_expires_at), lt(searchItems.lease_expires_at, at))
-        )
-      )
-      .returning({ id: searchItems.id, version: searchItems.lease_version });
-    if (rows[0]) won.set(rows[0].id, rows[0].version);
-  }
-  return won;
-}
-
-async function releaseEmbeddingClaims(claims: ReadonlyMap<string, number>): Promise<void> {
-  const db = getPortableDb();
-  for (const [id, version] of claims) {
-    await db
-      .update(searchItems)
-      .set({ lease_owner: null, lease_expires_at: null })
-      .where(and(eq(searchItems.id, id), eq(searchItems.lease_version, version)));
-  }
-}
-
-/**
  * Embed chunks that lack a vector in the configured space, newest and
  * highest-priority items first, until none are left or `limit` chunks were
  * embedded. Does nothing without a configured space and an embedder.
@@ -197,9 +157,10 @@ export async function runEmbedPass(
 
     // One owner per provider call keeps the cost on that owner's ledger.
     const userId = rows[0]!.userId;
-    const claims = await claimForEmbedding(
+    const claims = await claimItems(
       [...new Set(rows.filter((row) => row.userId === userId).map((row) => row.itemId))],
       owner,
+      EMBED_LEASE_MS,
       now
     );
     if (claims.size === 0) continue;
@@ -260,7 +221,7 @@ export async function runEmbedPass(
       touched.add(userId);
     } finally {
       if (budgetHeld) await releaseSearchLease(EMBED_BUDGET_LEASE, owner);
-      await releaseEmbeddingClaims(claims);
+      await releaseItemClaims(claims);
     }
   }
 

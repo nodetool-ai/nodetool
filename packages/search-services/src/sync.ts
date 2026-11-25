@@ -30,6 +30,7 @@ import { listProjectFiles } from "./project-files.js";
 import {
   extractSources,
   listSourceVersions,
+  liveProjectIds,
   RESOURCE_TYPE_BY_MODEL,
   type TableResourceType
 } from "./sources.js";
@@ -163,6 +164,7 @@ export async function reconcileLibraryIndex(
  * read are kept, so a disconnected drive does not empty the index.
  */
 async function reconcileProjectFiles(userId: string | undefined, result: ReconcileResult): Promise<void> {
+  await removeProjectFilesOfGoneProjects(userId, result);
   const listed = await listProjectFiles(userId);
   if (!listed) return;
   const items = await getPortableDb()
@@ -196,12 +198,52 @@ async function reconcileProjectFiles(userId: string | undefined, result: Reconci
   }
   await deleteItemsById(orphans);
   result.removed += orphans.length;
+  // A source may still list a project deleted since: its files are not indexed.
+  const projectsByUser = new Map<string, Set<string>>();
+  for (const file of listed.files.values()) {
+    const set = projectsByUser.get(file.userId) ?? new Set<string>();
+    set.add(file.projectId);
+    projectsByUser.set(file.userId, set);
+  }
+  const liveByUser = new Map<string, Set<string>>();
+  for (const [owner, projectIds] of projectsByUser) {
+    liveByUser.set(owner, await liveProjectIds(owner, [...projectIds]));
+  }
   for (const [key, file] of listed.files) {
-    if (current.has(key)) continue;
+    if (current.has(key) || !liveByUser.get(file.userId)?.has(file.projectId)) continue;
     const written = await writeIndexedItem(file);
     result.indexed += 1;
     if (written.pending) result.pending += 1;
   }
+}
+
+/**
+ * Remove the folder-file items of projects that are deleted or gone. Runs in
+ * every host, with or without a folder source: a deleted project's folder is
+ * never listed again, so the listing alone would keep its items forever.
+ */
+async function removeProjectFilesOfGoneProjects(
+  userId: string | undefined,
+  result: ReconcileResult
+): Promise<void> {
+  const items = await getPortableDb()
+    .select({ id: searchItems.id, user_id: searchItems.user_id, project_id: searchItems.project_id })
+    .from(searchItems)
+    .where(
+      and(
+        eq(searchItems.resource_type, "project_file"),
+        userId ? eq(searchItems.user_id, userId) : undefined
+      )
+    );
+  const byUser = new Map<string, typeof items>();
+  for (const item of items) byUser.set(item.user_id, [...(byUser.get(item.user_id) ?? []), item]);
+  const gone: string[] = [];
+  for (const [owner, owned] of byUser) {
+    const live = await liveProjectIds(owner, owned.map((item) => item.project_id));
+    for (const item of owned) if (!live.has(item.project_id)) gone.push(item.id);
+  }
+  await deleteItemsById(gone);
+  result.removed += gone.length;
 }
 
 // ── Inline writes ────────────────────────────────────────────────────

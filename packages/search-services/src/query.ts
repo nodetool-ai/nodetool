@@ -54,6 +54,8 @@ export interface LibrarySearchRequest {
   /** Words or a phrase. Empty lists matching items, newest first. */
   query: string;
   kinds?: readonly SearchKind[];
+  /** Only items of these source tables, such as `asset`. Omitted searches every table. */
+  resourceTypes?: readonly SearchResourceType[];
   /** Restrict to one project. Omitted searches every project. */
   projectId?: string;
   filter?: LibrarySearchFilter;
@@ -171,6 +173,11 @@ function itemConditions(request: LibrarySearchRequest): SQL {
     sql`i.project_id NOT IN (SELECT p.id FROM projects p WHERE p.deleted_at IS NOT NULL)`
   ];
   if (request.projectId) parts.push(sql`i.project_id = ${request.projectId}`);
+  if (request.resourceTypes && request.resourceTypes.length > 0) {
+    parts.push(
+      sql`i.resource_type IN (${sql.join(request.resourceTypes.map((type) => sql`${type}`), sql`, `)})`
+    );
+  }
   if (request.kinds && request.kinds.length > 0) {
     parts.push(sql`i.kind IN (${sql.join(request.kinds.map((kind) => sql`${kind}`), sql`, `)})`);
   }
@@ -336,7 +343,7 @@ async function rankByMeaning(
   const space = await answeringSpace(request.userId, configured);
   const collection = await existingLibraryCollection(request.userId, space);
   if (!collection) return { note: NOT_READY_NOTE };
-  let vector: number[] | null = null;
+  let vector: number[] | null;
   try {
     vector = await embedLibraryQuery(query, space, request.userId);
   } catch {

@@ -10,7 +10,11 @@ import {
   searchItems
 } from "@nodetool-ai/models";
 import {
+  acquireSearchLease,
+  EMBED_BUDGET_LEASE,
   MAX_ENRICH_ATTEMPTS,
+  MAX_TRANSCRIBE_SECONDS,
+  releaseSearchLease,
   readLibraryPassage,
   reconcileLibraryIndex,
   runEnrichPass,
@@ -186,5 +190,50 @@ describe.each(dialects)("enrichment on %s", (_name, open) => {
     delete process.env.NODETOOL_SEARCH_CAPTION_MODEL;
     await runEnrichPass();
     expect(calls.caption).toHaveLength(0);
+  });
+  it("leaves an item another indexer has claimed, and waits on the budget lease", async () => {
+    const photo = await Asset.create({ user_id: USER, name: "IMG_3.jpg", content_type: "image/jpeg" });
+    await index();
+    const calls: Calls = { caption: [], transcribe: [] };
+    setLibraryEnricher(fakeEnricher(calls));
+
+    const future = new Date(Date.now() + 60_000).toISOString();
+    await getPortableDb()
+      .update(searchItems)
+      .set({ lease_owner: "other-indexer", lease_expires_at: future })
+      .where(eq(searchItems.resource_id, photo.id));
+    expect(await runEnrichPass()).toMatchObject({ enriched: 0 });
+    expect(calls.caption).toHaveLength(0);
+
+    await getPortableDb()
+      .update(searchItems)
+      .set({ lease_owner: null, lease_expires_at: null })
+      .where(eq(searchItems.resource_id, photo.id));
+    expect(await acquireSearchLease(EMBED_BUDGET_LEASE, "other-indexer", 60_000)).toBe(true);
+    expect(await runEnrichPass()).toMatchObject({ enriched: 0, failed: 0, stopped: "budget_busy" });
+    expect(calls.caption).toHaveLength(0);
+
+    await releaseSearchLease(EMBED_BUDGET_LEASE, "other-indexer");
+    expect(await runEnrichPass()).toMatchObject({ enriched: 1 });
+    expect(calls.caption).toHaveLength(1);
+  });
+
+  it("does not send a recording longer than the transcript cap", async () => {
+    await Asset.create({
+      user_id: USER,
+      name: "all-day.mp3",
+      content_type: "audio/mpeg",
+      duration: MAX_TRANSCRIBE_SECONDS + 1
+    });
+    await index();
+    const calls: Calls = { caption: [], transcribe: [] };
+    setLibraryEnricher(fakeEnricher(calls));
+    await runEnrichPass();
+    expect(calls.transcribe).toHaveLength(0);
+    const [row] = await getPortableDb()
+      .select({ error: searchItems.enrich_error })
+      .from(searchItems)
+      .where(eq(searchItems.kind, "audio"));
+    expect(row?.error).toMatch(/longer than/);
   });
 });
