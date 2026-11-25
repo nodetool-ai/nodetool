@@ -12,18 +12,15 @@ import { benchmarkNativeGame } from "./game-benchmark.js";
 import { printCommandError } from "@nodetool-ai/pack-manager/command-errors";
 import { checkoutPackageAssetsDir } from "@nodetool-ai/cli-common/package-assets";
 import { registerGameSmokeCommand } from "./game-smoke.js";
+import { isSweep, runSimulateSweep, type SweepOptions } from "./game-sweep.js";
 
-interface SimulateOptions {
-  ticks: string;
-  seed: string;
-  inputs?: string;
+interface SimulateOptions extends SweepOptions {
   assetsDir?: string;
-  expectScore?: string;
-  expectWin?: boolean;
-  assertions?: string;
-  verifyReplay?: boolean;
   saves?: string;
-  json?: boolean;
+}
+
+function collect(value: string, previous: string[] | undefined): string[] {
+  return [...(previous ?? []), value];
 }
 
 const strictGameEvent = z.union(gameEvent.options.map((variant) => variant.strict()));
@@ -380,6 +377,14 @@ export function registerGameCommands(program: Command): void {
     .option("--assertions <file>", "JSON assertions for scene, entities, and ordered events at selected ticks")
     .option("--verify-replay", "Resume at the midpoint and compare snapshots and events tick by tick")
     .option("--saves <file>", "JSON {progress?, settings?} of slot data that script loads read. Saves stay in memory")
+    .option("--bot <bot>", "2D only. Play with a bot: idle, hold, mash, random, or a skill from 0 to 1 that runs --bot-file")
+    .option("--bot-file <file>", "Bot policy for a skill bot: a function or an object with decide(view, bot)")
+    .option("--seeds <count>", "2D only. Run this many seeds from --seed and check every run")
+    .option("--end-event <event>", "With --bot or --seeds, a trigger event that ends the session besides a win. Repeatable", collect)
+    .option("--max-session-ticks <ticks>", "With --bot or --seeds, fail when a session does not end within this many ticks")
+    .option("--expect-no-win", "With --bot or --seeds, fail when any run wins")
+    .option("--expect-min-score <score>", "With --bot or --seeds, fail when any run scores lower")
+    .option("--expect-max-score <score>", "With --bot or --seeds, fail when any run scores higher")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: SimulateOptions) => {
       try {
@@ -388,7 +393,25 @@ export function registerGameCommands(program: Command): void {
           throw new Error(validated.errors.join("\n"));
         }
         const document = validated.document;
-        if (document.schemaVersion === 3) { await simulateGame3D(document, options); return; }
+        if (!isSweep(options)) {
+          for (const [flag, used] of [["--end-event", options.endEvent], ["--max-session-ticks", options.maxSessionTicks], ["--expect-no-win", options.expectNoWin],
+            ["--expect-min-score", options.expectMinScore], ["--expect-max-score", options.expectMaxScore], ["--bot-file", options.botFile]] as const) {
+            if (used !== undefined) { throw new Error(`${flag} needs --bot or --seeds`); }
+          }
+        }
+        if (document.schemaVersion === 3) {
+          if (isSweep(options)) { throw new Error("--bot and --seeds support 2D games only"); }
+          await simulateGame3D(document, options);
+          return;
+        }
+        if (isSweep(options)) {
+          const inputs = await readInputs(options.inputs, gameInputFrame);
+          await runSimulateSweep(document, options, { inputs, createSaves: async () => {
+            const storage = await headlessSaves(options.saves);
+            return { prepare: (input) => storage.saves.withLoaded(input), after: (result, session) => storage.after(result.saveRequests, () => session.snapshot()) };
+          } });
+          return;
+        }
         const ticks = nonnegativeInteger(options.ticks, "ticks");
         const seed = nonnegativeInteger(options.seed, "seed");
         const expectedScore = options.expectScore === undefined
