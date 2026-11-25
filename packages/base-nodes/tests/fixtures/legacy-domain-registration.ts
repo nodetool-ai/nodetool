@@ -53740,6 +53740,140 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
+    title: 'Call MCP Tool',
+    description: 'Call a tool on an external MCP server you configured in Settings.\n' +
+      '    mcp, tool, n8n, home assistant, obsidian, integration, server\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Trigger an n8n or Home Assistant action from a workflow\n' +
+      '    - Read or write notes through an Obsidian MCP server\n' +
+      '    - Run a local script that speaks MCP\n' +
+      '\n' +
+      '    The node runs exactly the server and tool named here, also in a background run. Image content in a tool result is not passed on.',
+    namespace: 'lib.mcp',
+    node_type: 'lib.mcp.CallMcpTool',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'server',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: true,
+        title: 'Server',
+        description: 'Id of an external MCP server from Settings, for example n8n.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: {
+          type: 'mcp_server'
+        },
+        default: ''
+      },
+      {
+        name: 'tool',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: true,
+        title: 'Tool',
+        description: 'Name of the tool on that server, as the server lists it.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: {
+          type: 'mcp_tool'
+        },
+        default: ''
+      },
+      {
+        name: 'input_schema',
+        type: {
+          type: 'dict',
+          type_args: []
+        },
+        required: false,
+        title: 'Input Schema',
+        description: "JSON Schema of the tool's arguments. The editor fills it when you pick a tool. Each property becomes an input.",
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {}
+      }
+    ],
+    outputs: [
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'result',
+        type: {
+          type: 'any',
+          type_args: []
+        }
+      },
+      {
+        name: 'resource_links',
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'dict',
+              type_args: [
+                {
+                  type: 'str',
+                  type_args: []
+                },
+                {
+                  type: 'any',
+                  type_args: []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: true,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
     title: 'Chat Complete',
     description: "Generate text using Mistral AI's chat completion models.\n" +
       '    mistral, chat, ai, text generation, llm, completion\n' +

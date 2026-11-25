@@ -54,6 +54,10 @@ import {
   startResourceChangeFeeds,
   stopResourceChangeFeeds
 } from "./lib/resource-change-bus.js";
+import {
+  reconcileLibraryIndex,
+  startLibraryIndexWrites
+} from "@nodetool-ai/search-services";
 import { isDraining, startDrain, onDrain } from "./drain.js";
 import { chatTurnRegistry } from "./chat-turn-registry.js";
 import { jobRunRegistry } from "./job-run-registry.js";
@@ -394,6 +398,10 @@ try {
   }
 
   startResourceChangeFeeds();
+  // Library search (docs/plans/library-search.md, D4): index assets and
+  // documents as they are written. The reconcile below repairs what a raw
+  // update or a stopped server missed.
+  startLibraryIndexWrites();
 
   // Initialize master key from keychain before any secret access. Callers
   // that need provider credentials bind their own `(key) => getSecret(key,
@@ -533,6 +541,26 @@ try {
     6 * 60 * 60 * 1000
   );
   historyCleanupTimer.unref?.();
+
+  // Backfill and repair the library index. It runs here until the indexer
+  // process exists (plan step A2). Searches never wait for it: each one
+  // reconciles its own owner first.
+  const runLibraryReconcile = (): void => {
+    void reconcileLibraryIndex()
+      .then((result) => {
+        if (result.indexed + result.removed > 0) {
+          log.info("Library index reconciled", { ...result });
+        }
+      })
+      .catch((error) => {
+        log.warn(
+          "Library index reconcile failed",
+          error instanceof Error ? error : new Error(String(error))
+        );
+      });
+  };
+  setTimeout(runLibraryReconcile, 5_000).unref?.();
+  setInterval(runLibraryReconcile, 15 * 60 * 1000).unref?.();
 } catch (err) {
   log.error(
     "Database setup failed",

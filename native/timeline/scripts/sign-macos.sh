@@ -7,11 +7,7 @@
 # uses: the Developer ID certificate in a keychain on the search list, and
 # the notarytool keychain profile AC_PASSWORD (release.yaml stores both).
 # The entitlements are Electron's: the bundled Node needs JIT memory, and
-# the native Node modules load without library validation. The app's own
-# executable keeps library validation: with it disabled, Gatekeeper vets
-# every Mach-O image in the bundle when it assesses the app, and the
-# release's spctl check rejected the notarized app that way. The app loads
-# only code signed with the same team.
+# the native Node modules load without library validation.
 #
 #   scripts/sign-macos.sh "build-package/NodeTool Timeline.app"
 # Environment: MACOS_SIGN_IDENTITY (default "Developer ID Application"),
@@ -29,10 +25,8 @@ profile_file=${MACOS_PROVISIONING_PROFILE:-}
 access_group=${MACOS_KEYCHAIN_ACCESS_GROUP:-}
 entitlements="$(cd "$(dirname "$0")/../../.." && pwd)/electron/entitlements.mac.plist"
 tmp_entitlements=""
-app_entitlements="${TMPDIR:-/tmp}/nodetool-app-entitlements-$$.plist"
 cleanup() {
     [[ -n "$tmp_entitlements" && -f "$tmp_entitlements" ]] && rm -f "$tmp_entitlements"
-    rm -f "$app_entitlements"
 }
 trap cleanup EXIT
 if [[ -n "$profile_file" ]]; then
@@ -51,8 +45,6 @@ if [[ -n "$profile_file" ]]; then
     /usr/libexec/PlistBuddy -c "Add :keychain-access-groups:0 string $access_group" "$tmp_entitlements"
     entitlements="$tmp_entitlements"
 fi
-cp "$entitlements" "$app_entitlements"
-/usr/libexec/PlistBuddy -c "Delete :com.apple.security.cs.disable-library-validation" "$app_entitlements"
 sign=(codesign --force --timestamp --options runtime --sign "$identity")
 
 # Inside out: every Mach-O file, then each framework, then the app. A file
@@ -69,7 +61,7 @@ done < <(find "$app/Contents" -type f ! -path "$app/Contents/MacOS/*" -print0)
 while IFS= read -r -d '' fw; do
     "${sign[@]}" "$fw"
 done < <(find "$app/Contents" -type d -name '*.framework' -print0)
-"${sign[@]}" --entitlements "$app_entitlements" "$app"
+"${sign[@]}" --entitlements "$entitlements" "$app"
 codesign --verify --deep --strict "$app"
 
 zip="${TMPDIR:-/tmp}/notarize-$$.zip"

@@ -119,6 +119,7 @@
     "packages/cli-execution",
     "packages/asset-services",
     "packages/document-services",
+    "packages/search-services",
     "packages/pack-host",
     "packages/workflow-services",
     "packages/project-services",

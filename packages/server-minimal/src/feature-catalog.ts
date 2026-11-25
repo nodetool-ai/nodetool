@@ -2516,6 +2516,7 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "lib.comfy.RunWorkflow",
       "lib.comfy.RunWorkflowOnCloud",
       "lib.comfy.RunWorkflowOnWorker",
+      "lib.mcp.CallMcpTool",
       "lib.stable_diffusion_cpp.GenerateImage",
       "lib.wan2gp.Generate",
       "lib.wan2gp.ImageToVideo",

@@ -394,6 +394,18 @@ export type {
 } from "./cost-reconciler.js";
 export * from "./google/index.js";
 export {
+  EXTERNAL_MCP_CONTEXT_KEY,
+  externalMcpAccessFor,
+  setExternalMcpResolver
+} from "./external-mcp-access.js";
+export type {
+  ExternalMcpAccess,
+  ExternalMcpCallResult,
+  ExternalMcpResolver,
+  ExternalMcpServerInfo,
+  ExternalMcpToolInfo
+} from "./external-mcp-access.js";
+export {
   APPROVAL_DECISIONS,
   PERMISSION_GATE_CONTEXT_KEY,
   decidePermission,

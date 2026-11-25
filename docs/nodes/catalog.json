@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-11-25T11:41:20.931Z",
+  "generated_at": "2026-11-25T16:01:07.369Z",
   "nodes": [
     {
       "type": "anthropic.text.WebSearch",
@@ -3287,6 +3287,51 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/lib/image/warp/tile",
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/image/warp/tile.md"
+    },
+    {
+      "type": "lib.mcp.CallMcpTool",
+      "title": "Call MCP Tool",
+      "namespace": "lib.mcp",
+      "description": "Call a tool on an external MCP server you configured in Settings.\n    mcp, tool, n8n, home assistant, obsidian, integration, server\n\n    Use cases:\n    - Trigger an n8n or Home Assistant action from a workflow\n    - Read or write notes through an Obsidian MCP server\n    - Run a local script that speaks MCP\n\n    The node runs exactly the server and tool named here, also in a background run. Image content in a tool result is not passed on.",
+      "inputs": [
+        {
+          "name": "server",
+          "type": "str",
+          "description": "Id of an external MCP server from Settings, for example n8n.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "tool",
+          "type": "str",
+          "description": "Name of the tool on that server, as the server lists it.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "input_schema",
+          "type": "dict",
+          "description": "JSON Schema of the tool's arguments. The editor fills it when you pick a tool. Each property becomes an input.",
+          "required": false,
+          "default": {}
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "str"
+        },
+        {
+          "name": "result",
+          "type": "any"
+        },
+        {
+          "name": "resource_links",
+          "type": "list[dict[str, any]]"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/mcp/callmcptool",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/mcp/callmcptool.md"
     },
     {
       "type": "lib.sqlite.GetDatabasePath",

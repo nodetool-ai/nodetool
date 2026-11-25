@@ -114,6 +114,7 @@
     { "path": "packages/cli-execution" },
     { "path": "packages/asset-services" },
     { "path": "packages/document-services" },
+    { "path": "packages/search-services" },
     { "path": "packages/pack-host" },
     { "path": "packages/workflow-services" },
     { "path": "packages/project-services" },

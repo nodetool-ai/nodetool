@@ -157,3 +157,13 @@ Open **Settings → Integrations → MCP integration → External servers** in t
 A literal environment or header value is stored encrypted. `${SECRET_NAME}` reads the secret `SECRET_NAME` from your API keys instead.
 
 A server's tools join the agent's toolbelt on the next message, named `mcp_<id>_<tool>`. **Test** connects to a server and lists its tools. **Disable** turns a server off without deleting it. Removing a server takes its tools out of the toolbelt. See [modelcontextprotocol.io](https://modelcontextprotocol.io/) for available MCP servers.
+
+### Use external servers in a workflow
+
+A workflow can call the same servers in two ways. Both reach only your own enabled servers, and a stdio server stays unavailable wherever stdio is.
+
+- **Call MCP Tool node** (`lib.mcp.CallMcpTool`): pick a server and a tool, and the tool's arguments become inputs. The node names one server and one tool, so you chose that call when you built the workflow, and it runs the same way in a background run that nobody watches. A tool that answers with an error fails the node. The outputs are `text`, `result` (the structured content, if any) and `resource_links`. Image content in a result is not passed on.
+- **Code node**: import the tools from `@nodetool-ai/sandbox-nodetool/mcp`, for example `import { mcp_home_get_state } from "@nodetool-ai/sandbox-nodetool/mcp"`. Here the code picks the tool at run time, so the run's permission gate applies. A tool its server marks read-only (`readOnlyHint`) runs. Any other tool asks for approval on every call, and a background run has nobody to ask, so the gate denies it. Use the Call MCP Tool node for a write that a background run must make. A Code node that does not mention an MCP tool opens no connection.
+
+Workflow runs reach these servers only on a NodeTool server, not in `nodetool run`. Secrets a server was started with are blanked out of its results and errors. Treat what a tool returns as data from a third party.
+
