@@ -176,8 +176,10 @@ export function rippleTrim(
   const trimmed = new Map<string, TimelineClip>();
   for (const c of clips) {
     if (!group.has(c.id)) continue;
+    const subject =
+      edge === "start" && deltaMs > c.startMs ? { ...c, startMs: deltaMs } : c;
     const next = trimClip(
-      c,
+      subject,
       edge,
       deltaMs,
       c.id === clipId ? options.maxSourceDurationMs : undefined
