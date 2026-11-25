@@ -1787,7 +1787,7 @@ so an `index` run is safe to repeat after a document changes.
 
 Search the library index and manage it, in process against the local database.
 Library search covers assets, workflows and every other document. It is not a
-collection you create. See [Search services](../packages/search-services/README.md).
+collection you create. See [Search services](https://github.com/nodetool-ai/nodetool/blob/main/packages/search-services/README.md).
 
 **Subcommands:**
 
