@@ -118,6 +118,8 @@ class StepSequencerController : public QObject {
     // the last held note moves it on.
     Q_PROPERTY(bool stepRecording READ stepRecording WRITE setStepRecording NOTIFY stepRecordingChanged)
     Q_PROPERTY(int recordStep READ recordStep WRITE setRecordStep NOTIFY recordStepChanged)
+    // The id of the first MIDI track, or "" when the timeline has none.
+    Q_PROPERTY(QString firstMidiTrackId READ firstMidiTrackId NOTIFY firstMidiTrackIdChanged)
 
   public:
     explicit StepSequencerController(QObject* parent = nullptr);
@@ -173,6 +175,12 @@ class StepSequencerController : public QObject {
     Q_INVOKABLE void stepRecordNoteOff(int pitch);
     // Saves this pattern to the user library (SQ43) and reloads the browser.
     Q_INVOKABLE QVariantMap savePattern(const QString& name, const QString& kind, const QString& folder = {});
+    QString firstMidiTrackId() const { return m_firstMidiTrackId; }
+    // Creates an empty pattern region at `atMs` on `trackId` (the first MIDI track
+    // when empty) as one undo entry, then edits it: clipId becomes its id. The
+    // length is `durationMs`, or 1 bar when it is not positive.
+    // Returns the op result ({ok, clip, ...}) or {ok: false, error}.
+    Q_INVOKABLE QVariantMap createPatternRegion(const QString& trackId, double atMs, double durationMs = 0);
     // Reloads the clip this many times since construction (for tests).
     Q_INVOKABLE int reloadCount() const { return m_reloadCount; }
 
@@ -188,6 +196,7 @@ class StepSequencerController : public QObject {
     void learnModeChanged();
     void stepRecordingChanged();
     void recordStepChanged();
+    void firstMidiTrackIdChanged();
 
   protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -195,6 +204,7 @@ class StepSequencerController : public QObject {
   private:
     void onTimelineChanged();
     void reload();
+    void updateFirstMidiTrack();
     void reloadLibrary();
     void setLastError(const QString& error);
     void ensureSpans();
@@ -231,4 +241,5 @@ class StepSequencerController : public QObject {
     QMap<int, int> m_chordNotes;
     QVariantList m_library;
     int m_reloadCount = 0;
+    QString m_firstMidiTrackId;
 };

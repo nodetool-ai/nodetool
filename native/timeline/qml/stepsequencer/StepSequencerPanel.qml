@@ -121,12 +121,24 @@ Rectangle {
     onWideStepsChanged: scrollX = 0
 
     // ── Selection follows the tracks area (SQ27). ───────────────────────────
+    // A 1-bar empty pattern region at the playhead, on the track of the selected
+    // clip when it is a MIDI track, else on the first MIDI track. Then select it.
+    function newPatternRegion() {
+        const selection = gestures ? (gestures.selection || []) : []
+        const selected = selection.length > 0 ? gestures.clipData(selection[0]) : null
+        const trackId = selected && selected.mediaType === "midi" ? selected.trackId : ""
+        const ms = clock ? (clock.timeMs !== undefined ? clock.timeMs : clock.time) : 0
+        const result = controller.createPatternRegion(trackId || "", ms)
+        if (result.ok && gestures) gestures.selection = [result.clip.id]
+        return result
+    }
     function followSelection() {
         if (!gestures || !linkOn) return
         const selection = gestures.selection || []
         if (selection.length !== 1) return
         const clip = gestures.clipData(selection[0])
-        if (clip && clip.mediaType === "midi" && clip.pattern && controller.clipId !== selection[0]) controller.clipId = selection[0]
+        // A plain MIDI region reaches the controller too, so the panel offers Convert.
+        if (clip && clip.mediaType === "midi" && controller.clipId !== selection[0]) controller.clipId = selection[0]
     }
     Connections {
         target: root.gestures
@@ -498,6 +510,7 @@ Rectangle {
         }
         case "convertToMidi": op("convert_pattern_to_midi", {clipIds: [controller.clipId]}); return true
         case "convertToPattern": op("convert_midi_to_pattern", {clipIds: [controller.clipId]}); return true
+        case "newPatternRegion": newPatternRegion(); return true
         }
         // View > Sort Rows keeps the sort, so new rows land in order (SQ36).
         if (id.indexOf("sort:") === 0) { op("set_pattern_row_sort", {rowSort: id.slice(5)}); return true }
@@ -731,15 +744,21 @@ Rectangle {
             visible: controller.stepRecording && x >= grid.x + root.headerWidth && x < grid.x + grid.width
         }
         Ui.EmptyState {
+            objectName: "stepSequencerEmptyState"
             anchors.centerIn: grid
             width: Math.min(grid.width - Ui.Metrics.xxl, Ui.Metrics.dialogCompactWidth)
+            maxTextWidth: width
             visible: !controller.valid
-            title: controller.convertible ? qsTr("This MIDI region has no pattern") : qsTr("No pattern region selected")
+            readonly property bool hasMidiTrack: controller.firstMidiTrackId !== ""
+            title: controller.convertible ? qsTr("This MIDI region has no pattern") : qsTr("No pattern region")
             message: controller.convertible
                 ? qsTr("Convert it to a pattern region to edit it in the Step Sequencer.")
-                : qsTr("Select a pattern region in the tracks area, or load a pattern from the Pattern Browser.")
-            actionText: controller.convertible ? qsTr("Convert to Pattern Region") : ""
-            onActionTriggered: root.runAction("convertToPattern")
+                : hasMidiTrack
+                    ? qsTr("A pattern region is a MIDI region with a step grid. Create one, select one in the tracks area, or load one from the Pattern Browser.")
+                    : qsTr("A pattern region is a MIDI region with a step grid. Add a MIDI track to create one.")
+            actionText: controller.convertible ? qsTr("Convert to Pattern Region") : qsTr("New Pattern Region")
+            actionEnabled: controller.convertible || hasMidiTrack
+            onActionTriggered: root.runAction(controller.convertible ? "convertToPattern" : "newPatternRegion")
         }
     }
     Ui.Banner {

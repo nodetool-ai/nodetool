@@ -10,6 +10,7 @@
 #include <QJsonObject>
 
 #include <algorithm>
+#include <cmath>
 #include <array>
 #include <utility>
 #include <stdexcept>
@@ -260,7 +261,47 @@ void StepSequencerController::setTimeline(TimelineModel* timeline) {
         connect(m_timeline, &TimelineModel::readOnlyChanged, this, &StepSequencerController::reload);
     }
     emit timelineChanged();
+    updateFirstMidiTrack();
     reload();
+}
+
+void StepSequencerController::updateFirstMidiTrack() {
+    QString id;
+    if (m_timeline) {
+        for (const auto& value : m_timeline->timeline().raw.value(u"tracks").toArray()) {
+            const auto track = value.toObject();
+            if (track.value(u"type").toString() == u"midi") {
+                id = track.value(u"id").toString();
+                break;
+            }
+        }
+    }
+    if (id == m_firstMidiTrackId) return;
+    m_firstMidiTrackId = id;
+    emit firstMidiTrackIdChanged();
+}
+
+QVariantMap StepSequencerController::createPatternRegion(const QString& trackId, double atMs, double durationMs) {
+    const QString target = trackId.isEmpty() ? m_firstMidiTrackId : trackId;
+    if (target.isEmpty()) {
+        const QString error = tr("Add a MIDI track first.");
+        setLastError(error);
+        return QVariantMap{{"ok", false}, {"error", error}};
+    }
+    double bars = 1;
+    if (durationMs > 0 && m_timeline) {
+        const auto tempo = m_timeline->timeline().raw.value(u"tempo").toObject();
+        const auto ts = tempo.value(u"timeSignature").toObject();
+        const double bpm = tempo.value(u"bpm").toDouble(120.0);
+        const double beatUnit = ts.value(u"beatUnit").toDouble(4.0);
+        const double barMs = ts.value(u"beatsPerBar").toDouble(4.0) * (60000.0 / (bpm > 0 ? bpm : 120.0)) * (4.0 / (beatUnit > 0 ? beatUnit : 4.0));
+        if (barMs > 0) bars = durationMs / barMs;
+    }
+    QVariantMap args{{"trackId", target}, {"bars", bars}};
+    if (std::isfinite(atMs) && atMs >= 0) args.insert(QStringLiteral("atMs"), atMs);
+    const auto result = runOp(QStringLiteral("create_pattern_region"), args);
+    if (result.value(QStringLiteral("ok")).toBool()) setClipId(result.value(QStringLiteral("clip")).toMap().value(QStringLiteral("id")).toString());
+    return result;
 }
 
 void StepSequencerController::setClipId(const QString& clipId) {
@@ -315,6 +356,7 @@ QVariantList loadLibrary() {
 }  // namespace
 
 void StepSequencerController::onTimelineChanged() {
+    updateFirstMidiTrack();
     // Skip edits that leave this clip and its track alone (TimelineModel tracks
     // both; a full change reports every id as touched).
     // A tempo or track property edit marks no ids, so compare those inputs too.

@@ -500,6 +500,8 @@ Rectangle {
     TrackHeaderMenu {
         id: headerMenu
         timeline: region.timeline
+        gestures: clipGestures
+        clock: region.clock
         onRenameRequested: id => region.renamingTrackId = id
         RegistryMenuItems {
             menu: headerMenu

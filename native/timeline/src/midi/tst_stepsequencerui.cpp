@@ -154,6 +154,78 @@ Item {
         engine.reset();
     }
 
+    // SQ3d: the empty state creates a 1-bar pattern region at the playhead and edits it.
+    void sq3dNewPatternRegion() {
+        panel()->setProperty("clipId", QString());
+        auto* empty = item("stepSequencerEmptyState");
+        QTRY_VERIFY(empty && empty->isVisible());
+        QCOMPARE(empty->property("title").toString(), QStringLiteral("No pattern region"));
+        QVERIFY(empty->property("actionEnabled").toBool());
+        QCOMPARE(sequencer()->property("firstMidiTrackId").toString(), QStringLiteral("m"));
+        QVERIFY(capture("sq3d-empty"));
+        const int undoBefore = model.undoStack()->count();
+        QVariantMap result;
+        QMetaObject::invokeMethod(sequencer(), "createPatternRegion", Q_RETURN_ARG(QVariantMap, result), Q_ARG(QString, QString()), Q_ARG(double, 2000.0));
+        QVERIFY2(result["ok"].toBool(), qPrintable(result["error"].toString()));
+        const auto id = result["clip"].toMap()["id"].toString();
+        QCOMPARE(sequencer()->property("clipId").toString(), id);
+        QVERIFY(sequencer()->property("valid").toBool());
+        QTRY_VERIFY(!empty->isVisible());
+        const auto clips = QJsonDocument::fromJson(model.documentJson()).object()["clips"].toArray();
+        QCOMPARE(clips.size(), 2);
+        const auto clip = clips[1].toObject();
+        QCOMPARE(clip["trackId"].toString(), QStringLiteral("m"));
+        QCOMPARE(clip["startMs"].toDouble(), 2000.0);
+        QCOMPARE(clip["durationMs"].toDouble(), 2000.0);  // 1 bar at 120 bpm, 4/4.
+        QCOMPARE(model.undoStack()->count(), undoBefore + 1);
+        QVERIFY(capture("sq3d-created"));
+        model.undoStack()->undo();
+        QCOMPARE(QJsonDocument::fromJson(model.documentJson()).object()["clips"].toArray().size(), 1);
+        QTRY_VERIFY(empty->isVisible());
+    }
+    void sq3dNoMidiTrackDisablesAction() {
+        QVERIFY(model.applyEdit(QStringLiteral("removeTrack"), {{"trackId", "m"}}));
+        panel()->setProperty("clipId", QString());
+        auto* empty = item("stepSequencerEmptyState");
+        QTRY_VERIFY(empty && empty->isVisible());
+        QTRY_VERIFY(!empty->property("actionEnabled").toBool());
+        QVERIFY(empty->property("message").toString().contains(QStringLiteral("Add a MIDI track")));
+        QVERIFY(capture("sq3d-no-midi-track"));
+    }
+    // SQ3d: a selected plain MIDI region reaches the controller, so the panel offers Convert.
+    void sq3dSelectedPlainMidiOffersConvert() {
+        QVERIFY(op("convert_pattern_to_midi", {{"clipIds", QStringList{"c"}}})["ok"].toBool());
+        const auto plain = QJsonDocument::fromJson(model.documentJson()).object()["clips"].toArray()[0].toObject();
+        QVERIFY(!plain.contains("pattern"));
+        const QString plainId = plain["id"].toString();
+        const QVariantMap clipRaw = plain.toVariantMap();
+        panel()->setProperty("clipId", QString());
+        // A stand-in tracks area: its gestures report the plain MIDI region as selected.
+        QQmlComponent regionComponent(engine.get());
+        regionComponent.setData(R"(import QtQuick
+QtObject {
+    property var raw
+    property var viewState: null
+    property QtObject gestures: QtObject {
+        property var raw
+        property var selection: []
+        function clipData(id) { return raw }
+    }
+})", QUrl());
+        std::unique_ptr<QObject> region(regionComponent.create());
+        QVERIFY2(region, qPrintable(regionComponent.errorString()));
+        auto* regionGestures = region->property("gestures").value<QObject*>();
+        regionGestures->setProperty("raw", clipRaw);
+        panel()->setProperty("region", QVariant::fromValue(region.get()));
+        regionGestures->setProperty("selection", QStringList{plainId});
+        QTRY_COMPARE(sequencer()->property("clipId").toString(), plainId);
+        QVERIFY(sequencer()->property("convertible").toBool());
+        auto* empty = item("stepSequencerEmptyState");
+        QTRY_VERIFY(empty && empty->isVisible());
+        QCOMPARE(empty->property("actionText").toString(), QStringLiteral("Convert to Pattern Region"));
+        QVERIFY(capture("sq3d-convert"));
+        panel()->setProperty("region", QVariant());
+    }
     void sq3bS1RecordCursor() {
         sequencer()->setProperty("stepRecording", true);
         sequencer()->setProperty("recordStep", 5);

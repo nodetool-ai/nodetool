@@ -4,6 +4,7 @@
 // the loop region, the sequence In and Out range with the loop on. The band
 // takes no pointer input, so the Range tool's drags reach the lane and clips.
 import QtQuick
+import QtQuick.Controls
 import NodeTool.Timeline
 import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
@@ -21,6 +22,11 @@ Item {
     readonly property bool looping: shown && !!clock && clock.loop && !!viewState
         && viewState.rangeInMs === selection.startMs && viewState.rangeOutMs === selection.endMs
 
+    // The Step Sequencer's create path: one undo entry (create_pattern_region).
+    StepSequencerController {
+        id: patternCreator
+        timeline: root.timeline
+    }
     MusicSequenceState {
         id: sequence
         timeline: root.shown ? root.timeline : null
@@ -61,22 +67,15 @@ Item {
             visible: band.width > Ui.Metrics.compact + 2 * Ui.Metrics.xs && band.height > Ui.Metrics.compact + 2 * Ui.Metrics.xs
 
             Ui.EditorButton {
-                objectName: "musicRangeCreateMidi-" + (root.track.id || "")
+                id: createButton
+                objectName: "musicRangeCreate-" + (root.track.id || "")
                 visible: root.track.type === "midi" && !root.track.locked
                 density: Ui.EditorButton.Compact
                 variant: Ui.EditorButton.Flat
                 iconName: "add"
-                accessibleName: qsTr("Create MIDI clip")
-                description: qsTr("Create an empty MIDI clip on this range")
-                onClicked: {
-                    if (!root.timeline || !root.selection) return
-                    const ok = root.timeline.applyEdit("music.createMidiClip", {
-                        trackId: root.selection.trackId,
-                        startMs: root.selection.startMs,
-                        durationMs: root.selection.endMs - root.selection.startMs
-                    })
-                    if (ok) root.selection.clear()
-                }
+                accessibleName: qsTr("Create region")
+                description: qsTr("Create an empty MIDI region or pattern region on this range")
+                onClicked: createMenu.openAt(createButton)
             }
             Ui.EditorButton {
                 objectName: "musicRangeLoop-" + (root.track.id || "")
@@ -89,6 +88,31 @@ Item {
                 onClicked: if (root.gestures) root.gestures.loopMusicSelection()
             }
         }
+    }
+    Ui.ContextMenu {
+        id: createMenu
+        objectName: "musicRangeCreateMenu-" + (root.track.id || "")
+        parent: Overlay.overlay
+        entries: [
+            {id: "midi", label: qsTr("MIDI")},
+            {id: "pattern", label: qsTr("Pattern")}
+        ]
+        onEntryTriggered: id => root.createRegion(id)
+    }
+    // "midi": an empty MIDI region. "pattern": an empty pattern region, selected.
+    function createRegion(kind) {
+        if (!root.timeline || !root.selection) return
+        const trackId = root.selection.trackId
+        const startMs = root.selection.startMs
+        const durationMs = root.selection.endMs - root.selection.startMs
+        if (kind === "midi") {
+            if (root.timeline.applyEdit("music.createMidiClip", {trackId: trackId, startMs: startMs, durationMs: durationMs})) root.selection.clear()
+            return
+        }
+        const result = patternCreator.createPatternRegion(trackId, startMs, durationMs)
+        if (!result.ok) return
+        root.selection.clear()
+        if (root.gestures) root.gestures.selection = [result.clip.id]
     }
     MusicSectionRange {
         anchors.fill: parent

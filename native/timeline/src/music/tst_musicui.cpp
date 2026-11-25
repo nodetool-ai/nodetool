@@ -877,6 +877,47 @@ private slots:
         QTest::keyClick(view.get(), Qt::Key_Escape);
     }
 
+    // SQ3d: the range "+" offers Pattern next to MIDI: an empty pattern region of the range length, one undo entry.
+    void rangeCreatesPatternRegion() {
+        auto raw = musicDocument(false);
+        auto tracks = raw.value("tracks").toArray();
+        auto keys = tracks[2].toObject();
+        keys.insert("type", "midi");
+        tracks[2] = keys;
+        raw.insert("tracks", tracks);
+        openDocument(raw);
+        gestures()->viewState()->zoomTo(25, 0);
+        gestures()->viewState()->flush();
+        selection()->set("c", msToFrame(barMs(2)), msToFrame(barMs(6)));
+        QTRY_VERIFY(item("musicRangeCreate-c") && item("musicRangeCreate-c")->isVisible());
+        click("musicRangeCreate-c");
+        QTRY_VERIFY(item("menu-item-midi") && item("menu-item-pattern") && item("menu-item-pattern")->isVisible());
+        const auto folder = qEnvironmentVariable("NT_PANEL_SCREENSHOTS");
+        if (!folder.isEmpty()) {
+            QVERIFY(QDir().mkpath(folder));
+            QTest::qWait(300);
+            auto* region = item("tracksRegion");
+            const QRect crop = region ? region->mapRectToScene(region->boundingRect()).toRect() : QRect(0, 0, 1800, 1000);
+            const auto frame = view->grabWindow();
+            const qreal dpr = frame.devicePixelRatio();
+            QVERIFY(frame.copy(QRect(crop.topLeft() * dpr, crop.size() * dpr)).save(QDir(folder).filePath("sq3d-range-pattern.png")));
+        }
+        const int before = model.undoStack()->count();
+        click("menu-item-pattern");
+        QCOMPARE(model.undoStack()->count(), before + 1);
+        QJsonObject created;
+        for (const auto& value : model.clipsJson()) {
+            const auto c = value.toObject();
+            if (c.value("trackId").toString() == "c") created = c;
+        }
+        QVERIFY(created.value("pattern").isObject());
+        QCOMPARE(created.value("startMs").toDouble(), barMs(2));
+        QCOMPARE(created.value("durationMs").toDouble(), barMs(6) - barMs(2));
+        QCOMPARE(gestures()->selection(), QStringList{created.value("id").toString()});
+        model.undoStack()->undo();
+        for (const auto& value : model.clipsJson()) QVERIFY(value.toObject().value("trackId").toString() != "c");
+    }
+
     void fxBadgeShowsOnlyOnAClipWithEffects() {
         auto raw = musicDocument(false);
         auto clips = raw.value("clips").toArray();
