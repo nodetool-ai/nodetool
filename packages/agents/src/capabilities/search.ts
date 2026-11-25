@@ -184,6 +184,8 @@ const searchRead: CapabilityExport = {
     if (!isNonBlankString(params["id"])) return { error: "id is required: the id of a search hit." };
     const { readLibraryPassage } = await import("@nodetool-ai/search-services");
     const request: Parameters<typeof readLibraryPassage>[0] = { userId, id: params["id"].trim() };
+    const projectId = await scopeProjectId(run, params);
+    if (projectId) request.projectId = projectId;
     if (isObjectLike(params["locator"])) request.locator = params["locator"] as Record<string, unknown>;
     const before = countOf(params["before"]);
     const after = countOf(params["after"]);

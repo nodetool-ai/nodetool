@@ -9,6 +9,7 @@
 import { and, eq } from "drizzle-orm";
 import { createLogger } from "@nodetool-ai/config";
 import {
+  Asset,
   getDatabase,
   getPortableDb,
   ModelChangeEvent,
@@ -155,6 +156,8 @@ interface PendingWrite {
   userId: string;
   id: string;
   deleted: boolean;
+  /** An asset folder: its descendants show its name in their folder path. */
+  folder: boolean;
 }
 
 const pending = new Map<string, PendingWrite>();
@@ -174,7 +177,8 @@ const onModelChange = (instance: DBModel, event: ModelChangeEvent): void => {
     resourceType,
     userId,
     id,
-    deleted: event === ModelChangeEvent.DELETED
+    deleted: event === ModelChangeEvent.DELETED,
+    folder: resourceType === "asset" && fieldOf(instance, "content_type") === "folder"
   });
   scheduleFlush();
 };
@@ -200,6 +204,8 @@ async function drainPending(): Promise<void> {
     try {
       if (write.deleted) {
         await deleteIndexedItem(write.userId, write.resourceType, write.id);
+      } else if (write.folder) {
+        await resyncFolderDescendants(write.userId, write.id);
       } else {
         // A person's own change goes ahead of backfill (D14).
         const result = emptyResult();
@@ -212,6 +218,31 @@ async function drainPending(): Promise<void> {
         error: error instanceof Error ? error.message : String(error)
       });
     }
+  }
+}
+
+/**
+ * Re-extract every asset under a folder. A rename or move of the folder
+ * changes the folder path of each of them without touching their own rows.
+ */
+async function resyncFolderDescendants(userId: string, folderId: string): Promise<void> {
+  const { assets } = await Asset.getAssetsRecursive(userId, folderId);
+  const ids: string[] = [];
+  const walk = (rows: ReadonlyArray<Record<string, unknown>>): void => {
+    for (const row of rows) {
+      if (typeof row.id === "string" && row.content_type !== "folder") ids.push(row.id);
+      if (Array.isArray(row.children)) walk(row.children as Array<Record<string, unknown>>);
+    }
+  };
+  walk(assets);
+  const counts = emptyResult();
+  for (let start = 0; start < ids.length; start += 200) {
+    await syncRows(
+      "asset",
+      userId,
+      ids.slice(start, start + 200).map((id) => ({ id })),
+      counts
+    );
   }
 }
 
@@ -241,16 +272,28 @@ const OWNER_RECONCILE_TTL_MS = 60_000;
 
 const reconciledAt = new WeakMap<DatabaseConnection, Map<string, number>>();
 const inFlight = new Map<string, Promise<void>>();
+/** Set by a host whose indexer or sweep reconciles the index on its own. */
+let maintained = false;
 
 /**
- * Make sure one owner's items are current before a query. A host that runs no
- * sweep, such as the CLI, still gets a complete index. The result is cached
- * per connection and owner for a minute, and the inline writes cover changes
- * made in this process meanwhile.
+ * Declare that this host keeps the index current with its own reconcile, as
+ * the server does with the indexer process or its sweep. Queries then never
+ * reconcile, so a search costs one index query however large the library.
+ */
+export function setLibraryIndexMaintained(value: boolean): void {
+  maintained = value;
+}
+
+/**
+ * Make sure one owner's items are current before a query. In a maintained
+ * host this only flushes the inline writes. A host that runs no sweep, such
+ * as the CLI, reconciles the owner first, cached per connection and owner for
+ * a minute; the inline writes cover changes made in this process meanwhile.
  */
 export async function ensureLibraryIndexed(userId: string): Promise<void> {
   startLibraryIndexWrites();
   await flushLibraryIndexWrites();
+  if (maintained) return;
   const connection = getDatabase();
   const owners = reconciledAt.get(connection) ?? new Map<string, number>();
   reconciledAt.set(connection, owners);

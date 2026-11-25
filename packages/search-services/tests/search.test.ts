@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   Asset,
   closeDb,
+  getDatabase,
   getPortableDb,
   initTestDb,
   ModelObserver,
@@ -9,12 +10,13 @@ import {
   searchItems,
   Workflow
 } from "@nodetool-ai/models";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   extractDocument,
   reconcileLibraryIndex,
   searchAssets,
   searchLibrary,
+  setLibraryIndexMaintained,
   snippetOf,
   stopLibraryIndexWrites
 } from "../src/index.js";
@@ -164,6 +166,20 @@ describe.each(dialects)("library search on %s", (_name, init) => {
     expect(await reconcileLibraryIndex()).toEqual({ indexed: 0, excluded: 0, removed: 1, pending: 0 });
   });
 
+  it("does not reconcile on a query in a host that maintains the index", async () => {
+    await init();
+    setLibraryIndexMaintained(true);
+    try {
+      stopLibraryIndexWrites();
+      await Asset.create({ user_id: USER, name: "unsignalled.png", content_type: "image/png" });
+      expect((await searchLibrary({ userId: USER, query: "unsignalled" })).total).toBe(0);
+      await reconcileLibraryIndex();
+      expect((await searchLibrary({ userId: USER, query: "unsignalled" })).total).toBe(1);
+    } finally {
+      setLibraryIndexMaintained(false);
+    }
+  });
+
   it("answers asset searches with rows, folder paths and the full total", async () => {
     await init();
     const folder = await Asset.create({ user_id: USER, name: "Renders", content_type: "folder", parent_id: USER });
@@ -179,6 +195,56 @@ describe.each(dialects)("library search on %s", (_name, init) => {
     expect(images.assets.map((asset) => asset.id)).toEqual([inside.id]);
     // The folder itself is not a library item.
     expect((await searchAssets(USER, "renders")).total).toBe(0);
+  });
+
+  it("updates the folder path of every asset under a renamed folder", async () => {
+    await init();
+    const outer = await Asset.create({ user_id: USER, name: "Renders", content_type: "folder", parent_id: USER });
+    const inner = await Asset.create({ user_id: USER, name: "Night", content_type: "folder", parent_id: outer.id });
+    const deep = await Asset.create({ user_id: USER, name: "owl.png", content_type: "image/png", parent_id: inner.id });
+    expect((await searchAssets(USER, "owl")).folderPaths.get(deep.id)).toBe("Home / Renders / Night");
+
+    outer.name = "Archive";
+    await outer.save();
+    expect((await searchAssets(USER, "owl")).folderPaths.get(deep.id)).toBe("Home / Archive / Night");
+  });
+
+  it("matches across accents in either direction", async () => {
+    await init();
+    const accented = await Asset.create({ user_id: USER, name: "Café menu.png", content_type: "image/png" });
+    const plain = await Asset.create({ user_id: USER, name: "resume.pdf", content_type: "application/pdf" });
+    const cafe = await searchLibrary({ userId: USER, query: "cafe" });
+    expect(cafe.hits.map((hit) => hit.resourceId)).toEqual([accented.id]);
+    const resume = await searchLibrary({ userId: USER, query: "résumé" });
+    expect(resume.hits.map((hit) => hit.resourceId)).toEqual([plain.id]);
+  });
+
+  it("filters on favorite: false as well as true", async () => {
+    await init();
+    const starred = await Asset.create({ user_id: USER, name: "star-a.png", content_type: "image/png" });
+    starred.favorite = true;
+    await starred.save();
+    const other = await Asset.create({ user_id: USER, name: "star-b.png", content_type: "image/png" });
+    const yes = await searchLibrary({ userId: USER, query: "star", filter: { favorite: true } });
+    expect(yes.hits.map((hit) => hit.resourceId)).toEqual([starred.id]);
+    const no = await searchLibrary({ userId: USER, query: "star", filter: { favorite: false } });
+    expect(no.hits.map((hit) => hit.resourceId)).toEqual([other.id]);
+  });
+});
+
+describe("search tables on postgres", () => {
+  it("enable row level security so the public API roles cannot read them", async () => {
+    await initPgliteDb();
+    const connection = getDatabase();
+    if (connection.dialect !== "postgres") throw new Error("expected postgres");
+    const result = await connection.db.execute(
+      sql`SELECT relname, relrowsecurity FROM pg_class WHERE relname IN ('nodetool_search_items', 'nodetool_search_chunks', 'nodetool_search_leases') ORDER BY relname`
+    );
+    expect(result.rows).toEqual([
+      { relname: "nodetool_search_chunks", relrowsecurity: true },
+      { relname: "nodetool_search_items", relrowsecurity: true },
+      { relname: "nodetool_search_leases", relrowsecurity: true }
+    ]);
   });
 });
 
