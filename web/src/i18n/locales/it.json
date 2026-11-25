@@ -21154,7 +21154,8 @@
       "heading": "Libreria",
       "indexing": "Indicizzazione della libreria: {{ready}} di {{total}} elementi pronti",
       "embedding": "Passaggi ancora da incorporare per la ricerca per significato: {{count}}",
-      "noMatch": "Nulla nella tua libreria corrisponde a «{{query}}». Cercato in tutti i progetti."
+      "noMatch": "Nulla nella tua libreria corrisponde a «{{query}}». Cercato in tutti i progetti.",
+      "failed": "La ricerca nella libreria non è riuscita. Mancano i risultati della tua libreria."
     },
     "setup": {
       "heading": "Ricerca per significato",

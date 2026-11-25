@@ -21154,7 +21154,8 @@
       "heading": "Bibliothèque",
       "indexing": "Indexation de la bibliothèque : {{ready}} sur {{total}} éléments prêts",
       "embedding": "Passages restant à vectoriser pour la recherche par le sens : {{count}}",
-      "noMatch": "Rien dans votre bibliothèque ne correspond à « {{query}} ». Tous les projets ont été parcourus."
+      "noMatch": "Rien dans votre bibliothèque ne correspond à « {{query}} ». Tous les projets ont été parcourus.",
+      "failed": "La recherche dans la bibliothèque a échoué. Les résultats de votre bibliothèque manquent."
     },
     "setup": {
       "heading": "Recherche par le sens",

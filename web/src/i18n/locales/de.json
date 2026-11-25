@@ -20835,7 +20835,8 @@
       "heading": "Bibliothek",
       "indexing": "Bibliothek wird indiziert: {{ready}} von {{total}} Elementen bereit",
       "embedding": "Abschnitte, die für die Suche nach Bedeutung noch eingebettet werden: {{count}}",
-      "noMatch": "Nichts in deiner Bibliothek passt zu „{{query}}“. Alle Projekte durchsucht."
+      "noMatch": "Nichts in deiner Bibliothek passt zu „{{query}}“. Alle Projekte durchsucht.",
+      "failed": "Die Bibliothekssuche ist fehlgeschlagen. Ergebnisse aus deiner Bibliothek fehlen."
     },
     "setup": {
       "heading": "Suche nach Bedeutung",

@@ -17,6 +17,19 @@ jest.mock("../../../hooks/useProjects", () => ({
   useProjects: () => ({ data: [{ id: "p1", name: "Harbour film" }] })
 }));
 jest.mock("../../../utils/browser", () => ({ isElectron: true }));
+jest.mock("../../support/ErrorBanner", () => ({
+  __esModule: true,
+  default: ({ children, onRetry, "data-testid": testId }: {
+    children: React.ReactNode;
+    onRetry: () => void;
+    "data-testid": string;
+  }) => (
+    <div data-testid={testId}>
+      {children}
+      <button onClick={onRetry}>Try again</button>
+    </div>
+  )
+}));
 jest.mock("../../ui_primitives", () => {
   const actual = jest.requireActual("../../ui_primitives");
   return { ...actual, ResponsiveImage: ({ alt }: { alt: string }) => <img alt={alt} data-testid="thumbnail" /> };
@@ -87,6 +100,22 @@ it("shows a hit with its passage and location, and opens it on select", async ()
   expect(screen.getByText("Harbour film / Notes")).toBeInTheDocument();
   await userEvent.click(screen.getByText("logbook.txt"));
   expect(openResource).toHaveBeenCalledWith({ kind: "asset", id: "asset-1" });
+});
+
+it("shows a failed search with a retry instead of an empty result", async () => {
+  const refetch = jest.fn();
+  queryHook.mockReturnValue({
+    data: undefined,
+    isFetching: false,
+    isError: true,
+    error: { message: "Database not initialized" },
+    refetch
+  });
+  renderGroup("lighthouse");
+  expect(await screen.findByTestId("library-search-error")).toHaveTextContent("Library search failed");
+  expect(screen.queryByTestId("library-no-match")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByText("Try again"));
+  expect(refetch).toHaveBeenCalled();
 });
 
 it("names the scope when nothing matches", async () => {

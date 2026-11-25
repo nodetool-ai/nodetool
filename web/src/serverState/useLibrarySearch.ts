@@ -3,7 +3,7 @@
  * the debounced query the command palette sends, the index status it shows
  * while items are pending, and the search-by-meaning setup.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type {
   QueryOutput,
   StatusOutput
@@ -21,6 +21,10 @@ export interface LibrarySearchState {
   data: QueryOutput | undefined;
   isFetching: boolean;
   isError: boolean;
+  /** The failure's message while `isError`. */
+  error: string | null;
+  /** Ask again after a failure. */
+  retry: () => void;
 }
 
 /** Search the library as the user types, across every project. */
@@ -35,11 +39,18 @@ export const useLibrarySearch = (text: string, enabled: boolean): LibrarySearchS
     { query, limit: 8 },
     { enabled: active, staleTime: 10_000, placeholderData: (previous) => previous, retry: false }
   );
+  const { refetch } = result;
+  const retry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+  const isError = active && result.isError;
   return {
     query,
     data: active ? result.data : undefined,
     isFetching: active && result.isFetching,
-    isError: active && result.isError
+    isError,
+    error: isError ? (result.error?.message ?? null) : null,
+    retry
   };
 };
 

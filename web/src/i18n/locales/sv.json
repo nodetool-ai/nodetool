@@ -20835,7 +20835,8 @@
       "heading": "Bibliotek",
       "indexing": "Indexerar biblioteket: {{ready}} av {{total}} objekt klara",
       "embedding": "Avsnitt kvar att bädda in för sökning på betydelse: {{count}}",
-      "noMatch": "Inget i ditt bibliotek matchar ”{{query}}”. Sökte i alla projekt."
+      "noMatch": "Inget i ditt bibliotek matchar ”{{query}}”. Sökte i alla projekt.",
+      "failed": "Bibliotekssökningen misslyckades. Resultat från ditt bibliotek saknas."
     },
     "setup": {
       "heading": "Sök på betydelse",
