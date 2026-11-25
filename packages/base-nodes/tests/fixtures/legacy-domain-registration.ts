@@ -19275,6 +19275,135 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
+    title: 'Schedule Trigger',
+    description: 'Fire events at clock times given by a cron expression in a timezone.\n' +
+      '    trigger, schedule, cron, crontab, timezone, daily, weekly, calendar\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Run a workflow every weekday at 08:00 local time\n' +
+      '    - Produce a report on the first day of each month\n' +
+      '    - Keep the same wall-clock time across daylight saving changes\n' +
+      '\n' +
+      '    The expression has five fields: minute, hour, day of month, month,\n' +
+      '    day of week. A time that does not exist on a daylight saving night\n' +
+      '    fires at the next valid instant, and a time that occurs twice fires\n' +
+      '    once. After downtime the trigger fires once, then continues.',
+    namespace: 'nodetool.triggers',
+    node_type: 'nodetool.triggers.ScheduleTrigger',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'max_events',
+        type: {
+          type: 'int',
+          type_args: []
+        },
+        required: false,
+        title: 'Max Events',
+        description: 'Events to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor. The scheduler keeps firing an activated trigger regardless.',
+        min: 0,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'cron_expr',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Cron Expression',
+        description: 'Five fields: minute hour day-of-month month day-of-week. For example 0 8 * * 1-5 is every weekday at 08:00.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: '0 8 * * 1-5'
+      },
+      {
+        name: 'cron_tz',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Timezone',
+        description: 'IANA timezone the expression is read in, such as Europe/Berlin or America/New_York.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 'UTC'
+      }
+    ],
+    outputs: [
+      {
+        name: 'scheduled_at',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'timestamp',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'source',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'event_type',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'cron_expr',
+      'cron_tz'
+    ],
+    input_fields: [],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: true,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: true,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
     title: 'Webhook Trigger',
     description: 'Run the workflow whenever an HTTP request arrives at its webhook URL.\n' +
       '    trigger, webhook, http, api, request, integration\n' +

@@ -15,15 +15,31 @@
 import { randomBytes, createHash } from "node:crypto";
 import { RunEvent, TriggerRegistration } from "@nodetool-ai/models";
 import type { Workflow as WorkflowModel } from "@nodetool-ai/models";
-import { TRIGGER_KIND_BY_NODE_TYPE } from "@nodetool-ai/protocol";
+import {
+  CRON_TRIGGER_NODE_TYPE,
+  TRIGGER_KIND_BY_NODE_TYPE
+} from "@nodetool-ai/protocol";
 import type { TriggerKind } from "@nodetool-ai/protocol";
+import {
+  DEFAULT_CRON_EXPR,
+  DEFAULT_CRON_TZ,
+  cronScheduleError
+} from "@nodetool-ai/nodes-utils";
 import {
   isObjectLike,
   isString
 } from "../lib/wire-values.js";
+import { anchorCronSchedule } from "./schedule-timing.js";
 
 export { TRIGGER_KIND_BY_NODE_TYPE };
 export type { TriggerKind };
+
+/**
+ * Prefix of the `last_error` that sync writes for a schedule it will not arm,
+ * so a later save with a corrected schedule can tell its own message apart
+ * from a failure that a run recorded.
+ */
+const INVALID_SCHEDULE_PREFIX = "Schedule not armed: ";
 
 /** Keys `syncRegistrations` writes into a webhook registration's `config_json`
  * that are not part of the node's own property snapshot — stripped out
@@ -118,7 +134,18 @@ function collectTriggerNodes(workflow: WorkflowModel): TriggerNodeEntry[] {
     if (!nodeId || !nodeType) continue;
     const kind = TRIGGER_KIND_BY_NODE_TYPE[nodeType];
     if (!kind) continue;
-    entries.push({ nodeId, kind, props: extractNodeProps(node) });
+    const props = extractNodeProps(node);
+    // The graph stores only the properties a user touched. Fill the cron
+    // ones in so the registration is recognizably a cron schedule, and the
+    // snapshot says what it will run on.
+    entries.push({
+      nodeId,
+      kind,
+      props:
+        nodeType === CRON_TRIGGER_NODE_TYPE
+          ? { cron_expr: DEFAULT_CRON_EXPR, cron_tz: DEFAULT_CRON_TZ, ...props }
+          : props
+    });
   }
   return entries;
 }
@@ -181,7 +208,14 @@ export async function syncRegistrations(
       entry.props
     );
 
-    const enabled = options.enabled ?? wasEnabled;
+    // A schedule the scheduler cannot compute is never armed. The popover
+    // shows why in "Last error" instead of a trigger that is on and silent.
+    const { cron_expr: cronExpr, cron_tz: cronTz } = entry.props;
+    const scheduleError =
+      entry.kind === "schedule" && isString(cronExpr)
+        ? cronScheduleError(cronExpr, isString(cronTz) ? cronTz : DEFAULT_CRON_TZ)
+        : null;
+    const enabled = scheduleError ? false : (options.enabled ?? wasEnabled);
 
     let registration: TriggerRegistration;
     if (current) {
@@ -190,6 +224,15 @@ export async function syncRegistrations(
       current.enabled = enabled ? 1 : 0;
       if (propsChanged) {
         current.cursor = null;
+      }
+      if (scheduleError) {
+        current.last_error = INVALID_SCHEDULE_PREFIX + scheduleError;
+      } else if (current.last_error?.startsWith(INVALID_SCHEDULE_PREFIX)) {
+        current.last_error = null;
+      }
+      // A cron schedule counts from now when it is edited or switched on.
+      if (propsChanged || (enabled && !wasEnabled)) {
+        anchorCronSchedule(current, Date.now());
       }
       await current.save();
       registration = current;
@@ -201,7 +244,10 @@ export async function syncRegistrations(
         kind: entry.kind,
         config_json: config,
         enabled: enabled ? 1 : 0,
-        cursor: null
+        cursor: null,
+        last_error: scheduleError
+          ? INVALID_SCHEDULE_PREFIX + scheduleError
+          : null
       });
     }
 

@@ -118,6 +118,31 @@ export function parseIntervalTick(
   };
 }
 
+/** What `nodetool.triggers.ScheduleTrigger` emits — one field per declared slot. */
+export type ScheduleTickEvent = {
+  scheduled_at: string;
+  timestamp: string;
+  source: "cron";
+  event_type: "tick";
+};
+
+/**
+ * The scheduler adapter sends the slot it is firing for (`scheduled_at`) and
+ * the delivery time. A bare fire carries neither, so both fall back to now.
+ */
+export function parseScheduleTick(
+  payload: TriggerEvent["payload"]
+): ScheduleTickEvent {
+  const fields = envelopeOf(payload);
+  const now = new Date().toISOString();
+  return {
+    scheduled_at: stringField(fields, "scheduled_at", now),
+    timestamp: stringField(fields, "timestamp", now),
+    source: "cron",
+    event_type: "tick"
+  };
+}
+
 /** What `nodetool.triggers.WebhookTrigger` emits — one field per declared slot. */
 export type WebhookEvent = {
   body: unknown;
