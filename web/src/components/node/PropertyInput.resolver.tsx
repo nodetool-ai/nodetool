@@ -53,6 +53,10 @@ import {
   MediaDurationProperty,
   MediaStrengthProperty
 } from "../properties/MediaPickerProperties";
+import {
+  McpServerProperty,
+  McpToolProperty
+} from "../properties/McpToolProperties";
 import { InputProperty } from "./InputProperty";
 import type { PropertyProps } from "./PropertyInput.types";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -145,6 +149,10 @@ function customComponentForType(
       return MediaDurationProperty;
     case "media_strength":
       return MediaStrengthProperty;
+    case "mcp_server":
+      return McpServerProperty;
+    case "mcp_tool":
+      return McpToolProperty;
     default:
       return null;
   }
