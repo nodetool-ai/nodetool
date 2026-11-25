@@ -19,15 +19,58 @@
 #include <QThread>
 #include <QVariantList>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <span>
 #include <stop_token>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace nt::audio::vst {
+
+// Packed (generation << 32) | latencySamples atomic shared between VstLiveChannel
+// and VstHostClient's LatencyTargetRegistry so older SHM/RPC latency replies never
+// overwrite a newer `latencyChanged` event.
+using VstLatencyTarget = std::atomic<std::uint64_t>;
+inline constexpr int kMaxVstLatencySamples = 960000;
+
+inline constexpr std::uint64_t packVstLatency(std::uint64_t generation, int latencySamples) noexcept {
+    const int clamped = latencySamples < 0 ? 0 : (latencySamples > kMaxVstLatencySamples ? kMaxVstLatencySamples : latencySamples);
+    return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(generation)) << 32) |
+           static_cast<std::uint32_t>(clamped);
+}
+
+inline constexpr int unpackVstLatencySamples(std::uint64_t packed) noexcept {
+    return static_cast<int>(static_cast<std::uint32_t>(packed & 0xFFFFFFFFu));
+}
+
+inline constexpr std::uint64_t unpackVstLatencyGeneration(std::uint64_t packed) noexcept {
+    return static_cast<std::uint64_t>(packed >> 32);
+}
+
+// Lock-free monotonic update: applies (generation, latencySamples) iff generation >= current generation.
+inline bool updateMonotonicVstLatency(VstLatencyTarget& target, int latencySamples,
+                                      std::uint64_t generation) noexcept {
+    const std::uint32_t nextGen = static_cast<std::uint32_t>(generation);
+    const std::uint64_t nextPacked = packVstLatency(nextGen, latencySamples);
+    std::uint64_t cur = target.load(std::memory_order_acquire);
+    for (;;) {
+        const std::uint32_t curGen = static_cast<std::uint32_t>(cur >> 32);
+        if (nextGen < curGen) {
+            return false;
+        }
+        if (cur == nextPacked) {
+            return true;
+        }
+        if (target.compare_exchange_weak(cur, nextPacked, std::memory_order_acq_rel, std::memory_order_acquire)) {
+            return true;
+        }
+    }
+}
 
 struct VstPluginInfo {
     QString uid;
@@ -94,13 +137,27 @@ public:
     // Live shared-memory session control (used by VstLiveChannel / VstLivePool).
     bool openLive(const QString& instance, const QString& path, const QString& uid, const QString& state,
                   double sampleRate, int maxBlockFrames, const QString& shmPath, const QString& sockPath,
-                  int* latencySamples = nullptr, QString* error = nullptr, int timeoutMs = 30000);
+                  int* latencySamples = nullptr, QString* error = nullptr, int timeoutMs = 30000,
+                  std::uint64_t* latencyGeneration = nullptr);
     // Re-prepares an open live instance for `sampleRate` on the host's message thread,
     // so the live worker never has to (processLiveBlock refuses a mismatched rate).
     bool prepareLive(const QString& instance, double sampleRate, int maxBlockFrames, int* latencySamples = nullptr,
-                     QString* error = nullptr, int timeoutMs = 15000);
-    bool setLiveState(const QString& instance, const QString& state, QString* error = nullptr, int timeoutMs = 15000);
+                     QString* error = nullptr, int timeoutMs = 15000,
+                     std::uint64_t* latencyGeneration = nullptr);
+    bool probeLiveLatency(const QString& instance, double sampleRate, int maxBlockFrames, int* latencySamples,
+                          QString* error = nullptr, int timeoutMs = 15000,
+                          std::uint64_t* latencyGeneration = nullptr);
+    bool setLiveState(const QString& instance, const QString& state, QString* error = nullptr, int timeoutMs = 15000,
+                      int* latencySamples = nullptr, std::uint64_t* latencyGeneration = nullptr);
     void closeLiveAsync(const QString& instance);
+
+    // Registers a weak packed atomic latency sink updated immediately on HostWorker's thread
+    // when NodeToolVstHost emits a `latencyChanged` event (e.g. VST3 kLatencyChanged).
+    void registerLatencyTarget(const QString& instance, std::weak_ptr<VstLatencyTarget> target);
+    // Removes `instance` only if its stored target is expired or matches `target`, so closing an
+    // older channel never clobbers a replacement channel registered under the same key.
+    // Returns true if `target` was the active registration (or none remained), false if a newer target owns `instance`.
+    bool unregisterLatencyTarget(const QString& instance, const VstLatencyTarget* target);
 
     // Increments each time the helper process exits/restarts, allowing live pools to drop stale channels.
     [[nodiscard]] std::uint64_t hostEpoch() const noexcept { return m_hostEpoch.load(std::memory_order_acquire); }
@@ -123,10 +180,12 @@ signals:
     void editorClosedReply(const QString& instance);
     void pluginStateChanged(const QString& instance, const QString& state, quint64 generation = 0);
     void pluginEditorClosed(const QString& instance, const QString& state, quint64 generation = 0);
+    void pluginLatencyChanged(const QString& instance, int latencySamples);
     void hostExited();
 
 private:
     class HostWorker;
+    struct LatencyTargetRegistry;
 
     bool sendSync(const QJsonObject& request, QJsonObject* reply, QString* error, int timeoutMs, std::stop_token stop = {});
 
@@ -135,6 +194,9 @@ private:
     QStringList m_extraScanDirs;
     bool m_hasScanned = false;
     std::vector<VstPluginInfo> m_cachedPlugins;
+
+    // Shared with HostWorker so m_thread updates latency sinks directly without dereferencing VstHostClient.
+    std::shared_ptr<LatencyTargetRegistry> m_latencyRegistry;
 
     QThread m_thread;
     std::unique_ptr<HostWorker> m_worker;

@@ -101,6 +101,15 @@ static void event(const String& name, const String& instance, const String& stat
     send(body);
 }
 
+static void latencyEvent(const String& instance, int latencySamples, std::uint64_t latencyGeneration) {
+    auto body = object();
+    body.getDynamicObject()->setProperty("event", "latencyChanged");
+    body.getDynamicObject()->setProperty("instance", instance);
+    body.getDynamicObject()->setProperty("latencySamples", std::clamp(latencySamples, 0, kShmMaxLatencySamples));
+    body.getDynamicObject()->setProperty("latencyGeneration", static_cast<juce::int64>(latencyGeneration));
+    send(body);
+}
+
 // Scanner main thread owns and joins the monitor. Its state crosses threads under
 // the mutex. Parent death ends the entire scanner even when plug-in discovery hangs.
 class ScannerParentWatch {
@@ -292,6 +301,7 @@ private:
             const int frames = static_cast<int>(std::min<std::uint32_t>(shm->header.numFrames, kShmMaxFrames));
             const int numMidi = static_cast<int>(std::min<std::uint32_t>(shm->header.numMidiEvents, kShmMaxMidiEvents));
             int latency = 0;
+            std::uint64_t latencyGen = 0;
             bool ok = false;
             {
                 // Re-assert FTZ/DAZ each block in case a plug-in alters FP control state.
@@ -299,10 +309,11 @@ private:
                 ok = inst_->processLiveBlock(
                     shm->header.sampleRate, frames, (flags & kShmFlagReset) != 0,
                     shm->inLeft, shm->inRight, shm->outLeft, shm->outRight,
-                    shm->midi, numMidi, scratchBlock, scratchMidi, &latency);
+                    shm->midi, numMidi, scratchBlock, scratchMidi, &latency, &latencyGen);
             }
             // Read under the instance lock inside processLiveBlock: a state load changes it.
             shm->header.latencySamples = latency;
+            shm->header.latencyGeneration = latencyGen;
             shm->header.status = ok ? 0u : 1u;
             shm->header.responseSeq.store(seq, std::memory_order_release);
             ssize_t w = 0;
@@ -349,6 +360,9 @@ public:
         liveSessions_.clear();
 #endif
         editors_.clear();
+        for (auto& [_, inst] : instances_) {
+            if (inst) inst->setLatencyChangedCallback({});
+        }
         instances_.clear();
     }
 
@@ -403,10 +417,12 @@ public:
                 fail(id, "Cannot connect to live audio socket " + sockPath);
                 return;
             }
-            const int latency = inst->plugin() ? std::max(0, inst->plugin()->getLatencySamples()) : 0;
+            std::uint64_t latencyGen = 0;
+            const int latency = inst->refreshLatency(&latencyGen);
             liveSessions_[key] = std::make_unique<LiveSession>(std::move(inst), std::move(shm), std::move(sock));
             auto body = object();
             body.getDynamicObject()->setProperty("latencySamples", latency);
+            body.getDynamicObject()->setProperty("latencyGeneration", static_cast<juce::int64>(latencyGen));
             reply(id, body);
 #else
             fail(id, "Live shared-memory VST hosting is not supported on Windows yet");
@@ -420,13 +436,28 @@ public:
                 fail(id, error);
                 return;
             }
-            const int latency = it->second->plugin() ? std::max(0, it->second->plugin()->getLatencySamples()) : 0;
+            std::uint64_t latencyGen = 0;
+            const int latency = it->second->refreshLatency(&latencyGen);
             auto body = object();
             body.getDynamicObject()->setProperty("latencySamples", latency);
+            body.getDynamicObject()->setProperty("latencyGeneration", static_cast<juce::int64>(latencyGen));
             reply(id, body);
 #else
             fail(id, "Live shared-memory VST hosting is not supported on Windows yet");
 #endif
+        } else if (cmd == "getLatency") {
+            auto it = instances_.find(key);
+            if (it == instances_.end()) { fail(id, "Unknown instance " + key); return; }
+            int latency = 0;
+            std::uint64_t latencyGen = 0;
+            String error;
+            const double rate = req.hasProperty("sampleRate") ? (double)req["sampleRate"] : 0.0;
+            const int maxFrames = req.hasProperty("maxBlockFrames") ? std::max(64, (int)req["maxBlockFrames"]) : 512;
+            if (!it->second->probeLiveLatency(rate, maxFrames, latency, error, &latencyGen)) { fail(id, error); return; }
+            auto body = object();
+            body.getDynamicObject()->setProperty("latencySamples", latency);
+            body.getDynamicObject()->setProperty("latencyGeneration", static_cast<juce::int64>(latencyGen));
+            reply(id, body);
         } else if (cmd == "setState" || cmd == "joinLiveState") {
             String error;
             auto inst = ensure(key, req, error, false);
@@ -452,7 +483,12 @@ public:
             if (auto editor = editors_.find(key); editor != editors_.end()) {
                 editor->second.lastState = inst->getState();
             }
-            reply(id, object());
+            std::uint64_t latencyGen = 0;
+            const int latency = inst->refreshLatency(&latencyGen);
+            auto body = object();
+            body.getDynamicObject()->setProperty("latencySamples", latency);
+            body.getDynamicObject()->setProperty("latencyGeneration", static_cast<juce::int64>(latencyGen));
+            reply(id, body);
         } else if (cmd == "setLiveState") {
             auto it = instances_.find(key);
             if (it == instances_.end()) { fail(id, "Unknown instance " + key); return; }
@@ -460,7 +496,12 @@ public:
                 String error;
                 if (!it->second->setState(req["state"].toString(), error)) { fail(id, error); return; }
             }
-            reply(id, object());
+            std::uint64_t latencyGen = 0;
+            const int latency = it->second->refreshLatency(&latencyGen);
+            auto body = object();
+            body.getDynamicObject()->setProperty("latencySamples", latency);
+            body.getDynamicObject()->setProperty("latencyGeneration", static_cast<juce::int64>(latencyGen));
+            reply(id, body);
         } else if (cmd == "closeLive") {
 #if !JUCE_WINDOWS
             liveSessions_.erase(key);
@@ -507,6 +548,9 @@ public:
             liveSessions_.erase(key);
 #endif
             closeEditor(key, false);
+            if (auto it = instances_.find(key); it != instances_.end() && it->second) {
+                it->second->setLatencyChangedCallback({});
+            }
             // A render still running keeps its instance until it finishes.
             instances_.erase(key);
             generations_.erase(key);
@@ -531,8 +575,10 @@ private:
             liveSessions_.erase(key);
 #endif
             closeEditor(key, false);
+            if (slot) slot->setLatencyChangedCallback({});
             auto inst = std::make_shared<Instance>();
             if (!inst->load(path, uid, error)) { instances_.erase(key); return nullptr; }
+            inst->setLatencyChangedCallback([key](int lat, std::uint64_t gen) { latencyEvent(key, lat, gen); });
             slot = std::move(inst);
         }
         const bool editing = editors_.count(key) > 0;

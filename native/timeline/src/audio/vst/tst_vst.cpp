@@ -29,9 +29,21 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstring>
+#include <numbers>
 #include <thread>
 #include <map>
 #include <vector>
+
+#ifndef Q_OS_WIN
+#include <cerrno>
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/mman.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#endif
 
 using namespace nt::audio::vst;
 
@@ -2040,6 +2052,569 @@ for line in sys.stdin:
         plan.tracks.push_back(std::move(tp));
         nt::audio::serviceMixPlanControl(plan);
         QCOMPARE(probe->calls, 1);
+    }
+
+    // DSP1b: Offline export must re-probe latency on a pooled live VST channel even when
+    // the plug-in's latency changed in the host after opening at the same sample rate.
+    void dsp1b_offlineExportReprobesPooledVstLatency() {
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString gainVst = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
+        if (hostExe.isEmpty() || gainVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or GainEffect.vst3 not built in native/vst-host/build");
+        }
+        auto client = sharedVstHostClient();
+        client->setOverrideExecutable(hostExe);
+        client->setExtraScanDirs({QFileInfo(gainVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client->scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* gain = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == gainVst) gain = &p;
+        }
+        QVERIFY(gain != nullptr);
+
+        QJsonObject state0Reply, state512Reply;
+        QVERIFY2(client->setParameters(
+                     QJsonObject{{"instance", "dsp1b-setup0"}, {"path", gain->path}, {"uid", gain->uid},
+                                 {"state", QJsonValue::Null},
+                                 {"changes", QJsonArray{QJsonObject{{"index", 0}, {"value", 0.25}},
+                                                        QJsonObject{{"index", 1}, {"value", 0.0}}}}},
+                     &state0Reply, &error),
+                 qPrintable(error));
+        QVERIFY2(client->setParameters(
+                     QJsonObject{{"instance", "dsp1b-setup512"}, {"path", gain->path}, {"uid", gain->uid},
+                                 {"state", QJsonValue::Null},
+                                 {"changes", QJsonArray{QJsonObject{{"index", 0}, {"value", 0.25}},
+                                                        QJsonObject{{"index", 1}, {"value", 512.0 / 2048.0}}}}},
+                     &state512Reply, &error),
+                 qPrintable(error));
+        const QString state0 = state0Reply.value("state").toString();
+        const QString state512 = state512Reply.value("state").toString();
+        const QJsonObject gainRef{{"uid", gain->uid}, {"name", gain->name}, {"vendor", gain->vendor}, {"path", gain->path}};
+
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+        const QString wavPath = tmp.filePath(QStringLiteral("imp_reprobe.wav"));
+        constexpr int kFrames = 8192;
+        constexpr int kImpulseFrame = 1000;
+        std::vector<float> impulse(std::size_t{kFrames} * 2, 0.0f);
+        impulse[std::size_t{kImpulseFrame} * 2] = 0.5f;
+        impulse[std::size_t{kImpulseFrame} * 2 + 1] = 0.5f;
+        QVERIFY(writeStereoFloatWav(wavPath, 48000, impulse));
+
+        auto makeTl = [&](const QString& state) {
+            const QJsonObject fx{{"id", "reprobe-fx"}, {"type", "vst"}, {"enabled", true},
+                                 {"plugin", gainRef}, {"state", state}, {"wet", 1.0}};
+            const QJsonObject raw{
+                {"id", "tl-dsp1b-reprobe"}, {"name", "DSP1b Reprobe"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+                {"durationMs", 200}, {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", QJsonArray{
+                    QJsonObject{{"id", "t1"}, {"name", "VST"}, {"type", "audio"}, {"index", 0},
+                                {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{fx}}},
+                    QJsonObject{{"id", "t2"}, {"name", "Dry"}, {"type", "audio"}, {"index", 1},
+                                {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{}}}}},
+                {"clips", QJsonArray{
+                    QJsonObject{{"id", "c1"}, {"trackId", "t1"}, {"name", "I1"}, {"startMs", 0}, {"durationMs", 200},
+                                {"inPointMs", 0}, {"mediaType", "audio"}, {"status", "generated"}, {"mediaPath", wavPath}},
+                    QJsonObject{{"id", "c2"}, {"trackId", "t2"}, {"name", "I2"}, {"startMs", 0}, {"durationMs", 200},
+                                {"inPointMs", 0}, {"mediaType", "audio"}, {"status", "generated"}, {"mediaPath", wavPath}}}}};
+            return parseRaw(raw);
+        };
+
+        // 1. Open and pool the channel at 48 kHz with initial latency = 0.
+        const auto firstOut = nt::audio::renderOffline(makeTl(state0), 48000, 0, 200);
+        QVERIFY2(std::abs(firstOut[std::size_t{kImpulseFrame} * 2] - 0.75f) < 1e-3f,
+                 qPrintable(QStringLiteral("baseline 0-latency render peak=%1").arg(firstOut[std::size_t{kImpulseFrame} * 2])));
+
+        // 2. Mutate the live plug-in instance's latency in the host to 512 while keeping the timeline's
+        //    `state` IDENTICAL to state0 (and stale the channel's cached latency back to 0).
+        //    VstLivePool::acquire sees appliedState() == state0 so it does NOT call setLiveState, and
+        //    prepareRate(48000) is a no-op; ONLY reprobeMixPlanLatency() can discover 512 from the host.
+        {
+            auto pooled = sharedVstLivePool().acquire(*client, QStringLiteral("fx:t1:reprobe-fx"),
+                                                      gain->path, gain->uid, state0, 48000.0, &error);
+            QVERIFY2(pooled && pooled->connected(), qPrintable(error));
+            QCOMPARE(pooled->appliedState(), state0);
+            QVERIFY2(client->setLiveState(QStringLiteral("fx:t1:reprobe-fx"), state512, &error), qPrintable(error));
+            QTRY_COMPARE_WITH_TIMEOUT(pooled->latencySamples(), 512, 2000);
+            // Reset local cached latency to 0 to prove reprobeMixPlanLatency fetches 512 from the host.
+            pooled->setLatencySamples(0);
+            QCOMPARE(pooled->latencySamples(), 0);
+            QCOMPARE(pooled->appliedState(), state0);
+
+            const auto secondOut = nt::audio::renderOffline(makeTl(state0), 48000, 0, 200);
+            QCOMPARE(pooled->latencySamples(), 512);
+            QVERIFY2(std::abs(secondOut[std::size_t{kImpulseFrame} * 2] - 0.75f) < 1e-3f,
+                     qPrintable(QStringLiteral("reprobed offline render misaligned at frame 1000: got %1 expected 0.75")
+                                    .arg(secondOut[std::size_t{kImpulseFrame} * 2])));
+            QVERIFY2(std::abs(secondOut[std::size_t{kImpulseFrame + 512} * 2]) < 1e-4f,
+                     qPrintable(QStringLiteral("uncompensated ghost at +512 after pooled latency change: %1")
+                                    .arg(secondOut[std::size_t{kImpulseFrame + 512} * 2])));
+        }
+
+        // 2b. D4: Continuous-sine live bypass/un-bypass on VstLiveEffectProcessor (wet == 1.0, 512 latency)
+        //     must produce neither a hard click nor a 512-sample mute hole on un-bypass.
+        {
+            const auto tlActive = makeTl(state512);
+            const auto plan = nt::audio::buildMixPlan(tlActive);
+            nt::audio::prepareMixPlan(plan, 48000.0);
+            QVERIFY(!plan.tracks.empty() && !plan.tracks[0].processors.empty());
+            auto fxProc = plan.tracks[0].processors[0];
+
+            constexpr int kSineFrames = 8192;
+            std::vector<float> sine(std::size_t{kSineFrames} * 2, 0.0f);
+            for (int i = 0; i < kSineFrames; ++i) {
+                const float s = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * 440.0 * i / 48000.0));
+                sine[static_cast<std::size_t>(i) * 2] = s;
+                sine[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            std::vector<float> processed(std::size_t{kSineFrames} * 2, 0.0f);
+            for (int at = 0; at < kSineFrames; at += 128) {
+                if (at == 2048) fxProc->setBypassed(true);
+                if (at == 4096) fxProc->setBypassed(false);
+                auto blk = std::span<float>(processed.data() + static_cast<std::size_t>(at) * 2, 128 * 2);
+                std::copy_n(sine.data() + static_cast<std::size_t>(at) * 2, 128 * 2, blk.data());
+                nt::audio::BlockContext ctx{48000.0, static_cast<double>(at) * 1000.0 / 48000.0,
+                                            1000.0 / 48000.0, false, 0};
+                (void)fxProc->processBlock(blk, ctx);
+            }
+            for (int boundary : {2048, 4096}) {
+                float maxStep = 0.0f;
+                for (int f = boundary - 8; f < boundary + 640; ++f) {
+                    const float step = std::abs(processed[static_cast<std::size_t>(f) * 2] -
+                                                processed[static_cast<std::size_t>(f - 1) * 2]);
+                    maxStep = std::max(maxStep, step);
+                }
+                QVERIFY2(maxStep < 0.08f,
+                         qPrintable(QStringLiteral("D4 VST bypass/un-bypass click at frame %1: maxStep=%2")
+                                        .arg(boundary).arg(maxStep)));
+            }
+            // No 512-sample mute hole after un-bypass at frame 4096.
+            float postUnbypassPeak = 0.0f;
+            for (int f = 4096 + 64; f < 4096 + 448; ++f) {
+                postUnbypassPeak = std::max(postUnbypassPeak, std::abs(processed[static_cast<std::size_t>(f) * 2]));
+            }
+            QVERIFY2(postUnbypassPeak > 0.1f,
+                     qPrintable(QStringLiteral("D4 VST un-bypass mute hole: peak=%1").arg(postUnbypassPeak)));
+        }
+
+        // 2c. D9: Closing an older channel for the same instance key must not unregister a newer channel.
+        {
+            const QString key = QStringLiteral("fx:d9-replace");
+            auto ch1 = VstLiveChannel::open(*client, key, gain->path, gain->uid, state0, 48000.0, &error);
+            QVERIFY2(ch1 && ch1->connected(), qPrintable(error));
+            auto ch2 = VstLiveChannel::open(*client, key, gain->path, gain->uid, state0, 48000.0, &error);
+            QVERIFY2(ch2 && ch2->connected(), qPrintable(error));
+            // Old channel closes after replacement ch2 has already registered under `key`.
+            ch1->close(client.get());
+            QVERIFY2(client->setLiveState(key, state512, &error), qPrintable(error));
+            QTRY_COMPARE_WITH_TIMEOUT(ch2->latencySamples(), 512, 2000);
+
+            // 2d. D10: Monotonic latency generation rejects stale SHM / setLiveState values.
+            const std::uint64_t currentGen = ch2->latencyGeneration();
+            QVERIFY(currentGen >= 2);
+            QVERIFY(!ch2->updateLatency(0, currentGen - 1));
+            QCOMPARE(ch2->latencySamples(), 512);
+            QVERIFY(ch2->updateLatency(256, currentGen + 1));
+            QCOMPARE(ch2->latencySamples(), 256);
+            QVERIFY(!ch2->updateLatency(0, currentGen));
+            QCOMPARE(ch2->latencySamples(), 256);
+            ch2->close(client.get());
+        }
+
+        // 3. Host `latencyChanged` event updates VstLiveChannel::latencySamples() and emits
+        //    VstHostClient::pluginLatencyChanged; bypassing the VST effect via live AudioEngine
+        //    setTimeline drops PDC latency to 0 and keeps tracks aligned without clicks.
+        {
+            QSignalSpy latencySpy(client.get(), &VstHostClient::pluginLatencyChanged);
+            auto ch = sharedVstLivePool().acquire(*client, QStringLiteral("fx:t1:reprobe-fx"),
+                                                  gain->path, gain->uid, state0, 48000.0, &error);
+            QVERIFY2(ch && ch->connected(), qPrintable(error));
+            QCOMPARE(ch->latencySamples(), 0);
+            QVERIFY2(client->setLiveState(QStringLiteral("fx:t1:reprobe-fx"), state512, &error), qPrintable(error));
+            QTRY_COMPARE_WITH_TIMEOUT(ch->latencySamples(), 512, 2000);
+            QTRY_VERIFY_WITH_TIMEOUT(
+                latencySpy.count() >= 1 &&
+                    latencySpy.last().at(0).toString() == QStringLiteral("fx:t1:reprobe-fx") &&
+                    latencySpy.last().at(1).toInt() == 512,
+                2000);
+
+            // Live AudioEngine bypass toggle on VST effect: PDC drops 512 -> 0 -> 512 in place!
+            auto activeTl = std::make_shared<nt::Timeline>(makeTl(state512));
+            auto bypassedRaw = activeTl->raw;
+            auto tracks = bypassedRaw.value(u"tracks").toArray();
+            auto t0 = tracks[0].toObject();
+            auto fxArr = t0.value(u"effects").toArray();
+            auto fxObj = fxArr[0].toObject();
+            fxObj.insert(QStringLiteral("enabled"), false);
+            fxArr[0] = fxObj;
+            t0.insert(QStringLiteral("effects"), fxArr);
+            tracks[0] = t0;
+            bypassedRaw.insert(QStringLiteral("tracks"), tracks);
+            auto bypassedTl = std::make_shared<nt::Timeline>(parseRaw(bypassedRaw));
+
+            nt::audio::AudioEngine engine;
+            engine.setTimeline(activeTl);
+            nt::audio::AudioEngine::Options opts;
+            opts.backend = nt::audio::AudioEngine::Backend::Manual;
+            opts.sampleRate = 48000;
+            std::string startErr;
+            QVERIFY2(engine.start(opts, &startErr), startErr.c_str());
+            nt::playback::TransportCommand cmd;
+            cmd.seq = 1; cmd.playing = true; cmd.rate = 1.0; cmd.seekSeq = 1; cmd.seekMs = 0.0;
+            engine.feed().command.store(cmd);
+            QTRY_VERIFY(engine.stats().sessions >= 1);
+            QTest::qWait(60);
+            std::vector<float> blk(std::size_t{480} * 2, 0.0f);
+            engine.renderManual(blk, 0);
+            QCOMPARE(engine.stats().pdcLatencyFrames, 512);
+            const auto buildsBeforeBypass = engine.stats().planBuilds;
+            // Pause and bypass: workerLoop must keep pdcLatencyFrames at 0 even before next audio block.
+            cmd.seq = 2; cmd.playing = false;
+            engine.feed().command.store(cmd);
+            engine.setTimeline(bypassedTl);
+            QTest::qWait(30);
+            QCOMPARE(engine.stats().pdcLatencyFrames, 0);
+            QCOMPARE(engine.stats().planBuilds, buildsBeforeBypass);
+            // Resume while bypassed, then re-enable live.
+            cmd.seq = 3; cmd.playing = true;
+            engine.feed().command.store(cmd);
+            engine.renderManual(blk, 10'000'000LL);
+            QCOMPARE(engine.stats().pdcLatencyFrames, 0);
+            engine.setTimeline(activeTl);
+            engine.renderManual(blk, 20'000'000LL);
+            QCOMPARE(engine.stats().pdcLatencyFrames, 512);
+            QCOMPARE(engine.stats().planBuilds, buildsBeforeBypass);
+            engine.stop();
+        }
+    }
+
+    // C4: Continuous dry-path latency overflow (> prepared capacity) must NOT hard-mute or
+    // discard history on adoption; it must retain/drain the old ring while filling the new ring
+    // and crossfade cleanly once ready, for both wet=0 (dry-only) and mixed wet/dry.
+    void c4_vstDryDelayContinuousOverflowRetainsHistoryAndCrossfades() {
+        // Part A: Direct VstDryDelayLine continuous overflow -> serviceOverflow -> drain -> crossfade.
+        {
+            VstDryDelayLine delay;
+            delay.prepare(48000.0, 0);
+            constexpr int kOverflowDelay = 300000;
+            QVERIFY(static_cast<std::size_t>(kOverflowDelay) > delay.maxDelay());
+
+            constexpr int kJumpAt = 2048;
+            constexpr int kServiceAt = 2560;  // 4 blocks in overflow before control thread grows ring
+            constexpr int kTotal = kServiceAt + kOverflowDelay + 2048;
+            std::vector<float> sine(std::size_t{kTotal} * 2, 0.0f);
+            for (int i = 0; i < kTotal; ++i) {
+                const float s = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * 440.0 * i / 48000.0));
+                sine[static_cast<std::size_t>(i) * 2] = s;
+                sine[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            std::vector<float> out(std::size_t{kTotal} * 2, 0.0f);
+            for (int at = 0; at < kTotal; at += 128) {
+                if (at == kServiceAt) {
+                    QCOMPARE(delay.overflowDelay(), std::size_t{kOverflowDelay});
+                    QVERIFY(delay.serviceOverflow());
+                    QCOMPARE(delay.overflowDelay(), std::size_t{0});
+                }
+                const int target = (at < kJumpAt) ? 512 : kOverflowDelay;
+                const auto inSpan = std::span<const float>(sine.data() + static_cast<std::size_t>(at) * 2, 128 * 2);
+                const auto outSpan = std::span<float>(out.data() + static_cast<std::size_t>(at) * 2, 128 * 2);
+                const bool ok = delay.process(inSpan, outSpan, target, at == 0);
+                if (at >= kJumpAt && at < kServiceAt) {
+                    QVERIFY(!ok);
+                } else if (at >= kServiceAt) {
+                    QVERIFY(ok);
+                }
+            }
+            // Reclaim retired ring off-thread.
+            QVERIFY(!delay.serviceOverflow());
+
+            float maxStep = 0.0f;
+            int silentBlocks = 0;
+            for (int at = 1024; at < kTotal - 128; at += 128) {
+                float blockPeak = 0.0f;
+                for (int f = 0; f < 128; ++f) {
+                    const int idx = at + f;
+                    const float cur = out[static_cast<std::size_t>(idx) * 2];
+                    const float prev = out[static_cast<std::size_t>(idx - 1) * 2];
+                    maxStep = std::max(maxStep, std::abs(cur - prev));
+                    blockPeak = std::max(blockPeak, std::abs(cur));
+                }
+                if (blockPeak < 0.05f) {
+                    ++silentBlocks;
+                }
+            }
+            QVERIFY2(silentBlocks == 0,
+                     qPrintable(QStringLiteral("C4 VstDryDelayLine continuous overflow had %1 silent blocks").arg(silentBlocks)));
+            QVERIFY2(maxStep < 0.08f,
+                     qPrintable(QStringLiteral("C4 VstDryDelayLine continuous overflow clicked: maxStep=%1").arg(maxStep)));
+
+            // Verify the grown ring delays a fresh impulse by exact kOverflowDelay samples.
+            std::vector<float> impIn(std::size_t{128} * 2, 0.0f);
+            std::vector<float> impOut(std::size_t{128} * 2, 0.0f);
+            constexpr int kImpAt = 100;
+            int foundAt = -1;
+            float foundVal = 0.0f;
+            for (int at = 0; at < kImpAt + kOverflowDelay + 512; at += 128) {
+                std::fill(impIn.begin(), impIn.end(), 0.0f);
+                if (kImpAt >= at && kImpAt < at + 128) {
+                    const int off = kImpAt - at;
+                    impIn[static_cast<std::size_t>(off) * 2] = 0.75f;
+                    impIn[static_cast<std::size_t>(off) * 2 + 1] = 0.75f;
+                }
+                QVERIFY(delay.process(impIn, impOut, kOverflowDelay, at == 0));
+                for (int f = 0; f < 128; ++f) {
+                    if (std::abs(impOut[static_cast<std::size_t>(f) * 2]) > 0.1f && foundAt < 0) {
+                        foundAt = at + f;
+                        foundVal = impOut[static_cast<std::size_t>(f) * 2];
+                    }
+                }
+            }
+            QCOMPARE(foundAt, kImpAt + kOverflowDelay);
+            QVERIFY(std::abs(foundVal - 0.75f) < 1e-6f);
+        }
+
+        // Part B: End-to-end VstLiveEffectProcessor continuous overflow for wet=0.0 (dry-only) and wet=0.5 (mixed).
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString gainVst = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
+        if (hostExe.isEmpty() || gainVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or GainEffect.vst3 not built in native/vst-host/build");
+        }
+        auto client = sharedVstHostClient();
+        client->setOverrideExecutable(hostExe);
+        client->setExtraScanDirs({QFileInfo(gainVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client->scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* gain = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == gainVst) gain = &p;
+        }
+        QVERIFY(gain != nullptr);
+
+        QJsonObject state0Reply;
+        QVERIFY2(client->setParameters(
+                     QJsonObject{{"instance", "c4-setup0"}, {"path", gain->path}, {"uid", gain->uid},
+                                 {"state", QJsonValue::Null},
+                                 {"changes", QJsonArray{QJsonObject{{"index", 0}, {"value", 0.25}},
+                                                        QJsonObject{{"index", 1}, {"value", 0.0}}}}},
+                     &state0Reply, &error),
+                 qPrintable(error));
+        const QString state0 = state0Reply.value("state").toString();
+        const QJsonObject gainRef{{"uid", gain->uid}, {"name", gain->name}, {"vendor", gain->vendor}, {"path", gain->path}};
+
+        for (const double wet : {0.0, 0.5}) {
+            const QString fxId = wet == 0.0 ? QStringLiteral("c4-dry") : QStringLiteral("c4-mix");
+            const QString instanceKey = QStringLiteral("fx:a1:") + fxId;
+            const auto cleanup = qScopeGuard([&] { sharedVstLivePool().closeInstance(instanceKey, client.get()); });
+
+            const QJsonObject fx{{"id", fxId}, {"type", "vst"}, {"enabled", true},
+                                 {"plugin", gainRef}, {"state", state0}, {"wet", wet}};
+            const QJsonObject raw{
+                {"id", "tl-c4"}, {"name", "C4"}, {"fps", 30}, {"width", 1920}, {"height", 1080}, {"durationMs", 2000},
+                {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", QJsonArray{QJsonObject{{"id", "a1"}, {"name", "A1"}, {"type", "audio"}, {"index", 0},
+                                                  {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{fx}}}}},
+                {"clips", QJsonArray{QJsonObject{{"id", "c1"}, {"trackId", "a1"}, {"name", "Sine"}, {"startMs", 0},
+                                                 {"durationMs", 2000}, {"inPointMs", 0}, {"mediaType", "audio"},
+                                                 {"status", "generated"}, {"mediaPath", "unused.wav"}}}}};
+            const auto tl = parseRaw(raw);
+            auto plan = nt::audio::buildMixPlan(tl);
+            nt::audio::prepareMixPlan(plan, 48000.0);
+            auto ch = sharedVstLivePool().acquire(*client, instanceKey, gain->path, gain->uid, state0, 48000.0, &error);
+            QVERIFY2(ch && ch->connected(), qPrintable(error));
+
+            constexpr int kJumpAt = 2048;
+            constexpr int kServiceAt = 3072;
+            constexpr int kTotal = 6144;
+            std::vector<float> sine(std::size_t{kTotal} * 2, 0.0f);
+            for (int i = 0; i < kTotal; ++i) {
+                const float s = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * 440.0 * i / 48000.0));
+                sine[static_cast<std::size_t>(i) * 2] = s;
+                sine[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            nt::audio::VoicePcm vp{};
+            vp.linear = sine.data();
+            vp.linearCount = kTotal;
+            std::vector<float> out(std::size_t{kTotal} * 2, 0.0f);
+            nt::audio::MixStats st;
+
+            for (int at = 0; at < kTotal; at += 128) {
+                if (at == kJumpAt) {
+                    // Simulate a live plug-in latency jump beyond the prepared dry-ring capacity (262144).
+                    QVERIFY(ch->updateLatency(300000, ch->latencyGeneration() + 1000));
+                }
+                if (at == kServiceAt) {
+                    nt::audio::serviceMixPlanControl(plan);
+                }
+                nt::audio::mixBlock(plan, &vp, 48000.0, at * 1000.0 / 48000.0, 1000.0 / 48000.0, 128,
+                                    out.data() + static_cast<std::size_t>(at) * 2, st);
+            }
+
+            const double inputRms = rmsInterleaved(sine, kJumpAt, kTotal);
+            const double overflowRms = rmsInterleaved(out, kJumpAt, kServiceAt);
+            const double adoptedRms = rmsInterleaved(out, kServiceAt, kTotal);
+            const double expectedRatio = (wet == 0.0) ? 1.0 : 0.75;
+            QVERIFY2(overflowRms > (expectedRatio - 0.15) * inputRms,
+                     qPrintable(QStringLiteral("C4 wet=%1 dropped dry during overflow: rms=%2 input=%3")
+                                    .arg(wet).arg(overflowRms).arg(inputRms)));
+            QVERIFY2(adoptedRms > (expectedRatio - 0.15) * inputRms,
+                     qPrintable(QStringLiteral("C4 wet=%1 dropped dry after ring adoption: rms=%2 input=%3")
+                                    .arg(wet).arg(adoptedRms).arg(inputRms)));
+
+            float maxStep = 0.0f;
+            for (int f = kJumpAt - 8; f < kTotal; ++f) {
+                const float step = std::abs(out[static_cast<std::size_t>(f) * 2] -
+                                            out[static_cast<std::size_t>(f - 1) * 2]);
+                maxStep = std::max(maxStep, step);
+            }
+            QVERIFY2(maxStep < 0.08f,
+                     qPrintable(QStringLiteral("C4 wet=%1 clicked across overflow/adoption: maxStep=%2")
+                                    .arg(wet).arg(maxStep)));
+        }
+    }
+
+    // SHM v2/v3 version mismatch integration test in both directions:
+    // 1. v2 client -> v3 host: real NodeToolVstHost rejects v2 SHM header cleanly and stays healthy.
+    // 2. v3 client -> v2 host: real VstLiveChannel::open fails cleanly when a v2 host rejects v3.
+    void shmVersionMismatchRejectedInBothDirections() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString gainVst = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
+        if (hostExe.isEmpty() || gainVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or GainEffect.vst3 not built in native/vst-host/build");
+        }
+
+        // Direction 1: v2 client -> real v3 host (tst_vsthostprotocol).
+        {
+            VstHostClient client;
+            client.setOverrideExecutable(hostExe);
+            client.setExtraScanDirs({QFileInfo(gainVst).absolutePath()});
+            std::vector<VstPluginInfo> plugins;
+            QString error;
+            QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+            const VstPluginInfo* gain = nullptr;
+            for (const auto& p : plugins) {
+                if (QFileInfo(p.path).canonicalFilePath() == gainVst) gain = &p;
+            }
+            QVERIFY(gain != nullptr);
+
+            const QString tag = QUuid::createUuid().toString(QUuid::Id128).left(16);
+            const QString shmPath = QDir::temp().filePath(QStringLiteral("ntv-v2-%1.bin").arg(tag));
+            const QString sockPath = QStringLiteral("/tmp/ntv-v2-%1.sock").arg(tag);
+            const auto cleanupFiles = qScopeGuard([&] {
+                ::unlink(shmPath.toUtf8().constData());
+                ::unlink(sockPath.toUtf8().constData());
+            });
+
+            // Create a v2-sized SHM file (HEAD's v2 ShmHeader was 64 bytes smaller than v3) with version = 2.
+            const std::size_t v2Size = sizeof(vsthost::ShmBuffer) - 64;
+            const int shmFd = ::open(shmPath.toUtf8().constData(), O_CREAT | O_RDWR | O_EXCL, 0600);
+            QVERIFY(shmFd >= 0);
+            const auto closeShm = qScopeGuard([shmFd] { ::close(shmFd); });
+            QCOMPARE(::ftruncate(shmFd, static_cast<off_t>(v2Size)), 0);
+            void* raw = ::mmap(nullptr, v2Size, PROT_READ | PROT_WRITE, MAP_SHARED, shmFd, 0);
+            QVERIFY(raw != MAP_FAILED);
+            const auto unmapShm = qScopeGuard([raw] { ::munmap(raw, v2Size); });
+            std::memset(raw, 0, v2Size);
+            auto* header = static_cast<vsthost::ShmHeader*>(raw);
+            header->magic = vsthost::kShmMagic;
+            header->version = 2u;  // v2 client talking to v3 host
+            header->maxFrames = vsthost::kShmMaxFrames;
+
+            const int listenFd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+            QVERIFY(listenFd >= 0);
+            const auto closeListen = qScopeGuard([listenFd] { ::close(listenFd); });
+            sockaddr_un addr{};
+            addr.sun_family = AF_UNIX;
+            const QByteArray sockUtf8 = sockPath.toUtf8();
+            QVERIFY(static_cast<std::size_t>(sockUtf8.size()) < sizeof(addr.sun_path));
+            ::unlink(sockUtf8.constData());
+            std::memcpy(addr.sun_path, sockUtf8.constData(), static_cast<std::size_t>(sockUtf8.size()) + 1);
+            QCOMPARE(::bind(listenFd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)), 0);
+            QCOMPARE(::listen(listenFd, 1), 0);
+
+            const std::uint64_t epochBefore = client.hostEpoch();
+            int latency = -1;
+            error.clear();
+            const bool opened = client.openLive(QStringLiteral("fx:shm-v2-mismatch"), gain->path, gain->uid, {},
+                                                48000.0, static_cast<int>(vsthost::kShmMaxFrames),
+                                                shmPath, sockPath, &latency, &error, 10000);
+            QVERIFY2(!opened, "v3 host must reject v2 SHM header");
+            QVERIFY2(error.contains(QStringLiteral("Shared memory header mismatch")), qPrintable(error));
+            QCOMPARE(client.hostEpoch(), epochBefore);
+
+            // Host must reject before connecting to the audio socket.
+            pollfd pfd{};
+            pfd.fd = listenFd;
+            pfd.events = POLLIN;
+            QCOMPARE(::poll(&pfd, 1, 50), 0);
+
+            // Host remains healthy for a subsequent valid v3 live channel.
+            error.clear();
+            auto v3Channel = VstLiveChannel::open(client, QStringLiteral("fx:shm-v3-ok"), gain->path, gain->uid,
+                                                  {}, 48000.0, &error);
+            QVERIFY2(v3Channel && v3Channel->connected(), qPrintable(error));
+            std::vector<float> block(std::size_t{128} * 2, 0.5f);
+            QVERIFY(v3Channel->processBlock(block, {}, 48000.0, true, 500));
+            QVERIFY(std::abs(block[0] - 0.25f) < 1e-4f);
+            v3Channel->close(&client);
+        }
+
+        // Direction 2: real v3 client (VstLiveChannel::open) -> v2 host.
+        {
+            QTemporaryDir dir;
+            QVERIFY(dir.isValid());
+            QFile v2Host(dir.filePath(QStringLiteral("v2-host")));
+            QVERIFY(v2Host.open(QIODevice::WriteOnly));
+            v2Host.write(R"PY(#!/usr/bin/env python3
+import json, os, struct, sys
+K_MAGIC = 0x4E545653
+K_V2 = 2
+for line in sys.stdin:
+    req = json.loads(line)
+    cmd = req.get('cmd')
+    if cmd == 'quit':
+        break
+    if cmd == 'openLive':
+        shm_path = req['shmPath']
+        sock_path = req['sockPath']
+        with open(shm_path, 'rb') as f:
+            magic, version, max_frames = struct.unpack('<III', f.read(12))
+        seen = dict(magic=magic, version=version, maxFrames=max_frames,
+                    size=os.path.getsize(shm_path), shmPath=shm_path, sockPath=sock_path)
+        with open(__file__ + '.seen', 'w') as out:
+            json.dump(seen, out)
+        if magic != K_MAGIC or version != K_V2:
+            print(json.dumps(dict(id=req['id'], ok=False, error='Shared memory header mismatch')), flush=True)
+            continue
+    print(json.dumps(dict(id=req['id'], ok=True)), flush=True)
+)PY");
+            v2Host.close();
+            QVERIFY(v2Host.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+
+            VstHostClient v2Client;
+            v2Client.setOverrideExecutable(v2Host.fileName());
+            QString error;
+            auto ch = VstLiveChannel::open(v2Client, QStringLiteral("fx:shm-v3-to-v2"), QStringLiteral("/dummy.vst3"),
+                                           QStringLiteral("dummy"), {}, 48000.0, &error);
+            QVERIFY2(!ch, "v3 client must fail cleanly when v2 host rejects v3 SHM header");
+            QVERIFY2(error.contains(QStringLiteral("Shared memory header mismatch")), qPrintable(error));
+
+            QFile seenFile(v2Host.fileName() + QStringLiteral(".seen"));
+            QVERIFY(seenFile.open(QIODevice::ReadOnly));
+            const QJsonObject seen = QJsonDocument::fromJson(seenFile.readAll()).object();
+            QCOMPARE(static_cast<std::uint32_t>(seen.value(QStringLiteral("magic")).toInteger()), vsthost::kShmMagic);
+            QCOMPARE(static_cast<std::uint32_t>(seen.value(QStringLiteral("version")).toInteger()), vsthost::kShmVersion);
+            QCOMPARE(static_cast<std::size_t>(seen.value(QStringLiteral("size")).toInteger()), sizeof(vsthost::ShmBuffer));
+            // Client must unlink temporary shm and socket paths on rejection.
+            QVERIFY(!QFileInfo::exists(seen.value(QStringLiteral("shmPath")).toString()));
+            QVERIFY(!QFileInfo::exists(seen.value(QStringLiteral("sockPath")).toString()));
+        }
+#endif
     }
 };
 

@@ -155,13 +155,53 @@ QVariantMap pluginInfoToVariant(const VstPluginInfo& info) {
     };
 }
 
+// Thread-safe latency target registry shared by VstHostClient and HostWorker
+// so HostWorker updates targets on m_thread without dereferencing VstHostClient.
+struct VstHostClient::LatencyTargetRegistry {
+    std::mutex mutex;
+    std::unordered_map<std::string, std::weak_ptr<VstLatencyTarget>> targets;
+
+    void registerTarget(const QString& instance, std::weak_ptr<VstLatencyTarget> target) {
+        std::lock_guard<std::mutex> lock(mutex);
+        targets[instance.toStdString()] = std::move(target);
+    }
+
+    bool unregisterTarget(const QString& instance, const VstLatencyTarget* target) {
+        std::lock_guard<std::mutex> lock(mutex);
+        const auto it = targets.find(instance.toStdString());
+        if (it == targets.end()) return true;
+        const auto existing = it->second.lock();
+        if (!existing || existing.get() == target) {
+            targets.erase(it);
+            return true;
+        }
+        return false;
+    }
+
+    void notify(const QString& instance, int latencySamples, std::uint64_t generation) {
+        std::shared_ptr<VstLatencyTarget> target;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            const auto key = instance.toStdString();
+            if (auto it = targets.find(key); it != targets.end()) {
+                target = it->second.lock();
+                if (!target) { targets.erase(it); }
+            }
+        }
+        if (target) {
+            (void)updateMonotonicVstLatency(*target, latencySamples, generation);
+        }
+    }
+};
+
 // Worker living exclusively on VstHostClient::m_thread. Owns the QProcess and
 // matches JSON-line replies to pending callers.
 class VstHostClient::HostWorker final : public QObject {
 public:
     using Callback = std::function<void(bool ok, const QJsonObject& reply, const QString& error)>;
 
-    explicit HostWorker(VstHostClient* owner) : m_owner(owner) {}
+    HostWorker(VstHostClient* owner, std::shared_ptr<LatencyTargetRegistry> latencyRegistry)
+        : m_owner(owner), m_latencyRegistry(std::move(latencyRegistry)) {}
 
     void sendRequest(const QString& executable, QJsonObject request, int timeoutMs, Callback callback) {
         if (m_shuttingDown) {
@@ -426,6 +466,20 @@ private:
                 m_restorations.erase(restoration);
             }
             const QPointer<VstHostClient> owner = m_owner;
+            if (event == u"latencyChanged") {
+                const int latencySamples = std::clamp(msg.value(u"latencySamples").toInt(0), 0, kMaxVstLatencySamples);
+                const auto latencyGen = static_cast<std::uint64_t>(
+                    std::max<qint64>(0, msg.value(u"latencyGeneration").toInteger(0)));
+                if (m_latencyRegistry) {
+                    m_latencyRegistry->notify(instance, latencySamples, latencyGen);
+                }
+                if (owner) {
+                    QMetaObject::invokeMethod(owner, [owner, instance, latencySamples]() {
+                        if (owner) emit owner->pluginLatencyChanged(instance, latencySamples);
+                    }, Qt::QueuedConnection);
+                }
+                return;
+            }
             if (!owner) return;
             if (event == u"state") {
                 QMetaObject::invokeMethod(owner, [owner, instance, state, generation]() {
@@ -489,6 +543,8 @@ private:
     }
 
     QPointer<VstHostClient> m_owner;
+    // Shared with VstHostClient so latency notifications never dereference m_owner across threads.
+    std::shared_ptr<LatencyTargetRegistry> m_latencyRegistry;
     std::unique_ptr<QProcess> m_process;
     QString m_startedPath;
     QByteArray m_buffer;
@@ -497,8 +553,10 @@ private:
     bool m_shuttingDown = false;
 };
 
-VstHostClient::VstHostClient(QObject* parent) : QObject(parent) {
-    m_worker = std::make_unique<HostWorker>(this);
+VstHostClient::VstHostClient(QObject* parent)
+    : QObject(parent),
+      m_latencyRegistry(std::make_shared<LatencyTargetRegistry>()) {
+    m_worker = std::make_unique<HostWorker>(this, m_latencyRegistry);
     m_worker->moveToThread(&m_thread);
     m_thread.setObjectName(QStringLiteral("VstHostClient"));
     m_thread.start();
@@ -828,7 +886,8 @@ bool VstHostClient::processAudio(const QString& path, const QString& uid, const 
 
 bool VstHostClient::openLive(const QString& instance, const QString& path, const QString& uid, const QString& state,
                              double sampleRate, int maxBlockFrames, const QString& shmPath, const QString& sockPath,
-                             int* latencySamples, QString* error, int timeoutMs) {
+                             int* latencySamples, QString* error, int timeoutMs,
+                             std::uint64_t* latencyGeneration) {
     const QJsonObject req{
         {QStringLiteral("cmd"), QStringLiteral("openLive")},
         {QStringLiteral("instance"), instance},
@@ -842,12 +901,16 @@ bool VstHostClient::openLive(const QString& instance, const QString& path, const
     };
     QJsonObject reply;
     if (!sendSync(req, &reply, error, timeoutMs)) return false;
-    if (latencySamples) *latencySamples = reply.value(u"latencySamples").toInt(0);
+    if (latencySamples) *latencySamples = std::clamp(reply.value(u"latencySamples").toInt(0), 0, kMaxVstLatencySamples);
+    if (latencyGeneration) {
+        *latencyGeneration = static_cast<std::uint64_t>(std::max<qint64>(0, reply.value(u"latencyGeneration").toInteger(0)));
+    }
     return true;
 }
 
 bool VstHostClient::prepareLive(const QString& instance, double sampleRate, int maxBlockFrames,
-                                int* latencySamples, QString* error, int timeoutMs) {
+                                int* latencySamples, QString* error, int timeoutMs,
+                                std::uint64_t* latencyGeneration) {
     const QJsonObject req{
         {QStringLiteral("cmd"), QStringLiteral("prepareLive")},
         {QStringLiteral("instance"), instance},
@@ -856,18 +919,62 @@ bool VstHostClient::prepareLive(const QString& instance, double sampleRate, int 
     };
     QJsonObject reply;
     if (!sendSync(req, &reply, error, timeoutMs)) return false;
-    if (latencySamples) *latencySamples = reply.value(u"latencySamples").toInt(0);
+    if (latencySamples) *latencySamples = std::clamp(reply.value(u"latencySamples").toInt(0), 0, kMaxVstLatencySamples);
+    if (latencyGeneration) {
+        *latencyGeneration = static_cast<std::uint64_t>(std::max<qint64>(0, reply.value(u"latencyGeneration").toInteger(0)));
+    }
     return true;
 }
 
-bool VstHostClient::setLiveState(const QString& instance, const QString& state, QString* error, int timeoutMs) {
+bool VstHostClient::probeLiveLatency(const QString& instance, double sampleRate, int maxBlockFrames,
+                                     int* latencySamples, QString* error, int timeoutMs,
+                                     std::uint64_t* latencyGeneration) {
+    const QJsonObject req{
+        {QStringLiteral("cmd"), QStringLiteral("getLatency")},
+        {QStringLiteral("instance"), instance},
+        {QStringLiteral("sampleRate"), sampleRate},
+        {QStringLiteral("maxBlockFrames"), maxBlockFrames},
+    };
+    QJsonObject reply;
+    if (!sendSync(req, &reply, error, timeoutMs)) return false;
+    if (latencySamples) *latencySamples = std::clamp(reply.value(u"latencySamples").toInt(0), 0, kMaxVstLatencySamples);
+    if (latencyGeneration) {
+        *latencyGeneration = static_cast<std::uint64_t>(std::max<qint64>(0, reply.value(u"latencyGeneration").toInteger(0)));
+    }
+    return true;
+}
+
+bool VstHostClient::setLiveState(const QString& instance, const QString& state, QString* error, int timeoutMs,
+                                 int* latencySamples, std::uint64_t* latencyGeneration) {
     const QJsonObject req{
         {QStringLiteral("cmd"), QStringLiteral("setLiveState")},
         {QStringLiteral("instance"), instance},
         {QStringLiteral("state"), state},
     };
     QJsonObject reply;
-    return sendSync(req, &reply, error, timeoutMs);
+    if (!sendSync(req, &reply, error, timeoutMs)) return false;
+    if (reply.contains(u"latencySamples")) {
+        if (latencySamples) {
+            *latencySamples = std::clamp(reply.value(u"latencySamples").toInt(0), 0, kMaxVstLatencySamples);
+        }
+        if (latencyGeneration) {
+            *latencyGeneration = static_cast<std::uint64_t>(std::max<qint64>(0, reply.value(u"latencyGeneration").toInteger(0)));
+        }
+    }
+    return true;
+}
+
+void VstHostClient::registerLatencyTarget(const QString& instance, std::weak_ptr<VstLatencyTarget> target) {
+    if (m_latencyRegistry) {
+        m_latencyRegistry->registerTarget(instance, std::move(target));
+    }
+}
+
+bool VstHostClient::unregisterLatencyTarget(const QString& instance, const VstLatencyTarget* target) {
+    if (m_latencyRegistry) {
+        return m_latencyRegistry->unregisterTarget(instance, target);
+    }
+    return true;
 }
 
 void VstHostClient::closeLiveAsync(const QString& instance) {

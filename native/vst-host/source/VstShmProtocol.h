@@ -24,9 +24,12 @@
 namespace vsthost {
 
 inline constexpr std::uint32_t kShmMagic = 0x4E545653u;  // "NTVS"
-inline constexpr std::uint32_t kShmVersion = 2;
+inline constexpr std::uint32_t kShmVersion = 3;
 inline constexpr std::uint32_t kShmMaxFrames = 512;
 inline constexpr std::uint32_t kShmMaxMidiEvents = 256;
+// Hard upper bound on reported plug-in latency (10 s at 96 kHz / 20 s at 48 kHz)
+// to prevent signed integer overflow and unbounded allocations from broken plug-ins.
+inline constexpr std::int32_t kShmMaxLatencySamples = 960000;
 
 inline constexpr std::uint32_t kShmFlagReset = 1u << 0;
 inline constexpr std::uint32_t kShmFlagClose = 1u << 1;
@@ -74,6 +77,7 @@ struct alignas(64) ShmHeader {
     std::atomic<std::uint64_t> responseSeq;
     std::int32_t latencySamples;
     std::uint32_t status;  // 0 = ok, 1 = error, 2 = closed
+    std::uint64_t latencyGeneration;
 };
 
 struct alignas(64) ShmBuffer {

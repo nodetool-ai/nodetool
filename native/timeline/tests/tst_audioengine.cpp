@@ -9,7 +9,9 @@
 #include "audio/AudioEngine.h"
 #include "audio/AudioMode.h"
 #include "audio/AudioSource.h"
+#include "audio/Mixer.h"
 #include <QProcess>
+#include <QScopeGuard>
 #include <QTemporaryDir>
 
 #include <QCommandLineParser>
@@ -347,6 +349,76 @@ private slots:
         QCOMPARE(engine.feed().device.load().generation, genStopped + 1);
         stopEdits.store(true, std::memory_order_release);
         editor.join();
+        engine.stop();
+    }
+
+    // D7: Concurrent publishPlan edits and live dynamic PDC updates in workerLoop must never
+    // overwrite pendingPdcLatencyFrames with a stale plan's latency.
+    void dsp1b_pdcLatencyUpdateNoRaceWithPublishPlan() {
+        class DynLatProc final : public BlockProcessor {
+        public:
+            explicit DynLatProc(std::shared_ptr<std::atomic<int>> lat) : m_lat(std::move(lat)) {}
+            int latencySamples() const noexcept override { return m_lat->load(std::memory_order_acquire); }
+            void process(std::span<float>, const BlockContext&) noexcept override {}
+        private:
+            std::shared_ptr<std::atomic<int>> m_lat;
+        };
+
+        auto dynLat = std::make_shared<std::atomic<int>>(0);
+        const auto token = registerMixPlanStage(
+            "dsp1b-d7-race",
+            [dynLat](const Timeline& tl, MixPlan& plan) {
+                if (tl.id == "tl-high" && !plan.tracks.empty()) {
+                    plan.tracks[0].processors.push_back(std::make_shared<DynLatProc>(dynLat));
+                }
+            },
+            900);
+        const auto cleanup = qScopeGuard([token] { unregisterMixPlanStage(token); });
+
+        auto makeTl = [](const std::string& id) {
+            auto tl = std::make_shared<Timeline>();
+            tl->id = id;
+            tl->durationMs = 1000.0;
+            tl->raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                                 {QStringLiteral("limiter"), false}});
+            Track t;
+            t.id = "t0";
+            t.type = TrackType::Audio;
+            tl->tracks.push_back(std::move(t));
+            return tl;
+        };
+        auto tlHigh = makeTl("tl-high");
+        auto tlZero = makeTl("tl-zero");
+
+        AudioEngine engine;
+        engine.setTimeline(tlHigh);
+        AudioEngine::Options opts;
+        opts.backend = AudioEngine::Backend::Manual;
+        opts.sampleRate = 48000;
+        std::string err;
+        QVERIFY2(engine.start(opts, &err), err.c_str());
+
+        playback::TransportCommand cmd;
+        cmd.seq = 1; cmd.playing = true; cmd.rate = 1.0; cmd.seekSeq = 1; cmd.seekMs = 0.0;
+        engine.feed().command.store(cmd);
+        QTRY_VERIFY(engine.stats().sessions >= 1);
+
+        std::atomic<bool> stopMutating{false};
+        std::thread latMutator([&] {
+            for (int i = 0; !stopMutating.load(std::memory_order_acquire); ++i) {
+                dynLat->store((i & 1) ? 512 : 256, std::memory_order_release);
+            }
+        });
+        for (int i = 0; i < 60; ++i) {
+            engine.setTimelineAsync((i & 1) ? tlZero : tlHigh);
+        }
+        // Final timeline has 0 PDC latency; worker must converge to 0 and stay at 0.
+        engine.setTimeline(tlZero);
+        stopMutating.store(true, std::memory_order_release);
+        latMutator.join();
+        QTRY_COMPARE_WITH_TIMEOUT(engine.stats().pdcLatencyFrames, 0, 1000);
+        QTest::qWait(30);
+        QCOMPARE(engine.stats().pdcLatencyFrames, 0);
         engine.stop();
     }
 };

@@ -161,9 +161,11 @@ std::shared_ptr<VstLiveChannel> VstLiveChannel::open(VstHostClient& client, cons
 
     // 3. Tell NodeToolVstHost to load/prepare the instance, map shm, and connect to sockPath.
     int latency = 0;
+    std::uint64_t latencyGen = 0;
     const std::uint64_t epoch = client.hostEpoch();
     const bool opened = client.openLive(instance, path, uid, state, sampleRate,
-                                        static_cast<int>(vsthost::kShmMaxFrames), shmPath, sockPath, &latency, error);
+                                        static_cast<int>(vsthost::kShmMaxFrames), shmPath, sockPath,
+                                        &latency, error, 30000, &latencyGen);
     // Unlink both paths right away: the kernel keeps both alive until all open fds/mmaps close.
     ::unlink(sockUtf8.constData());
     ::unlink(shmPath.toUtf8().constData());
@@ -209,7 +211,8 @@ std::shared_ptr<VstLiveChannel> VstLiveChannel::open(VstHostClient& client, cons
     channel->m_path = path;
     channel->m_uid = uid;
     channel->m_appliedState = state;
-    channel->m_latencySamples.store(latency, std::memory_order_release);
+    channel->m_latencyState->store(packVstLatency(latencyGen, latency), std::memory_order_release);
+    client.registerLatencyTarget(instance, channel->m_latencyState);
     channel->m_connected.store(true, std::memory_order_release);
     return channel;
 #endif
@@ -268,7 +271,7 @@ bool VstLiveChannel::processBlock(std::span<float> stereo, std::span<const vstho
     if (m_shm->header.responseSeq.load(std::memory_order_acquire) != seq || m_shm->header.status != 0) {
         return false;
     }
-    m_latencySamples.store(m_shm->header.latencySamples, std::memory_order_release);
+    (void)updateLatency(m_shm->header.latencySamples, m_shm->header.latencyGeneration);
 
     for (std::size_t i = 0; i < frames; ++i) {
         stereo[i * 2] = m_shm->outLeft[i];
@@ -282,11 +285,28 @@ bool VstLiveChannel::prepareRate(double sampleRate, QString* error) {
     if (!m_client || !m_connected.load(std::memory_order_acquire)) return false;
     if (m_preparedRate.load(std::memory_order_acquire) == sampleRate) return true;
     int latency = 0;
-    if (!m_client->prepareLive(m_instance, sampleRate, static_cast<int>(vsthost::kShmMaxFrames), &latency, error)) {
+    std::uint64_t latencyGen = 0;
+    if (!m_client->prepareLive(m_instance, sampleRate, static_cast<int>(vsthost::kShmMaxFrames),
+                               &latency, error, 15000, &latencyGen)) {
         return false;
     }
-    m_latencySamples.store(latency, std::memory_order_release);
+    (void)updateLatency(latency, latencyGen);
     m_preparedRate.store(sampleRate, std::memory_order_release);
+    return true;
+}
+
+bool VstLiveChannel::probeLatency(double sampleRate, QString* error) {
+    if (!m_client || !m_connected.load(std::memory_order_acquire)) return false;
+    int latency = 0;
+    std::uint64_t latencyGen = 0;
+    if (!m_client->probeLiveLatency(m_instance, sampleRate, static_cast<int>(vsthost::kShmMaxFrames),
+                                    &latency, error, 15000, &latencyGen)) {
+        return false;
+    }
+    (void)updateLatency(latency, latencyGen);
+    if (sampleRate >= 8000.0 && sampleRate <= 384000.0) {
+        m_preparedRate.store(sampleRate, std::memory_order_release);
+    }
     return true;
 }
 
@@ -315,7 +335,9 @@ void VstLiveChannel::close(VstHostClient* client) {
     m_busy.clear(std::memory_order_release);
 #endif
     if (client && !m_instance.isEmpty()) {
-        client->closeLiveAsync(m_instance);
+        if (client->unregisterLatencyTarget(m_instance, m_latencyState.get())) {
+            client->closeLiveAsync(m_instance);
+        }
     }
 }
 
@@ -341,8 +363,13 @@ std::shared_ptr<VstLiveChannel> VstLivePool::acquire(VstHostClient& client, cons
     if (existing && existing->connected() && existing->epoch() == currentEpoch &&
         existing->path() == path && existing->uid() == uid) {
         if (!editorOpen && existing->appliedState() != state) {
-            if (client.setLiveState(instance, state, error)) {
+            int updatedLatency = -1;
+            std::uint64_t updatedGen = 0;
+            if (client.setLiveState(instance, state, error, 15000, &updatedLatency, &updatedGen)) {
                 existing->setAppliedState(state);
+                if (updatedLatency >= 0) {
+                    (void)existing->updateLatency(updatedLatency, updatedGen);
+                }
             }
         }
         return existing;

@@ -53,12 +53,28 @@ public:
     // host's live worker never prepares on the audio thread. No-op at the prepared rate.
     bool prepareRate(double sampleRate, QString* error = nullptr);
 
+    // Control/offline thread. Always queries NodeToolVstHost for the plug-in's current
+    // effective latency at `sampleRate` (used before offline export even when reusing a pooled channel).
+    bool probeLatency(double sampleRate, QString* error = nullptr);
+
     // Control thread. Waits until the audio callback has left processBlock, then releases
     // the socket and the shared memory. Safe to call twice and from any non-audio thread.
     void close(VstHostClient* client = nullptr);
 
     [[nodiscard]] bool connected() const noexcept { return m_connected.load(std::memory_order_acquire); }
-    [[nodiscard]] int latencySamples() const noexcept { return m_latencySamples.load(std::memory_order_acquire); }
+    [[nodiscard]] int latencySamples() const noexcept {
+        return unpackVstLatencySamples(m_latencyState->load(std::memory_order_acquire));
+    }
+    [[nodiscard]] std::uint64_t latencyGeneration() const noexcept {
+        return unpackVstLatencyGeneration(m_latencyState->load(std::memory_order_acquire));
+    }
+    bool updateLatency(int latency, std::uint64_t generation) noexcept {
+        return updateMonotonicVstLatency(*m_latencyState, latency, generation);
+    }
+    // Resets cached latency and generation (e.g., to force a fresh re-probe in tests).
+    void setLatencySamples(int latency) noexcept {
+        m_latencyState->store(packVstLatency(0, latency), std::memory_order_release);
+    }
     [[nodiscard]] std::uint64_t epoch() const noexcept { return m_epoch; }
     [[nodiscard]] const QString& instance() const noexcept { return m_instance; }
     [[nodiscard]] const QString& path() const noexcept { return m_path; }
@@ -74,7 +90,9 @@ private:
     std::atomic_flag m_busy = ATOMIC_FLAG_INIT;
     std::uint64_t m_seq = 0;
     std::uint64_t m_epoch = 0;
-    std::atomic<int> m_latencySamples{0};
+    // Shared as std::weak_ptr with VstHostClient's LatencyTargetRegistry so host `latencyChanged`
+    // events update latency monotonically without holding channel ownership.
+    std::shared_ptr<VstLatencyTarget> m_latencyState = std::make_shared<VstLatencyTarget>(0);
     std::atomic<double> m_preparedRate{0.0};
     // Used by prepareRate() only, on a control thread. The host client is process-wide and
     // outlives every channel it opened.

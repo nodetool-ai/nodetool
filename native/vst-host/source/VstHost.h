@@ -5,8 +5,9 @@
 // loads native plug-in code into its own process: a crashing plug-in takes down
 // only this helper.
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <map>
 #include <atomic>
+#include <functional>
+#include <map>
 #include <mutex>
 #include "VstShmProtocol.h"
 
@@ -52,6 +53,11 @@ juce::FileSearchPath defaultSearchPath();
 // thread. `lock` serializes rendering against state reads and writes.
 class Instance {
 public:
+    Instance() = default;
+    ~Instance();
+    Instance(const Instance&) = delete;
+    Instance& operator=(const Instance&) = delete;
+
     // Loads `path` (and the type `uid` names inside it, or the first instrument/plug-in).
     bool load(const juce::String& path, const juce::String& uid, juce::String& error);
     const juce::String& path() const { return path_; }
@@ -83,13 +89,32 @@ public:
     // Prepares the plug-in for real-time shared-memory streaming at `sampleRate`.
     bool prepareLive(double sampleRate, int maxBlockFrames, juce::String& error);
 
+    // Ensures live preparation at `sampleRate` (without resetting if already prepared at that rate)
+    // and re-probes the plug-in's current effective latency (0 when bypassed).
+    bool probeLiveLatency(double sampleRate, int maxBlockFrames, int& latencyOut, juce::String& error,
+                          std::uint64_t* latencyGenerationOut = nullptr);
+
     // Processes one real-time block using caller-owned pre-allocated scratch buffers.
     bool processLiveBlock(double sampleRate, int numFrames, bool reset,
                           const float* inL, const float* inR,
                           float* outL, float* outR,
                           const ShmMidiEvent* midiEvents, int numMidiEvents,
                           juce::AudioBuffer<float>& scratchBlock, juce::MidiBuffer& scratchMidi,
-                          int* latencySamples = nullptr);
+                          int* latencySamples = nullptr,
+                          std::uint64_t* latencyGeneration = nullptr);
+
+    // Current effective latency in samples (0 when bypassed) and its monotonic generation,
+    // kept synced via AudioProcessorListener (restartComponent kLatencyChanged), prepare, state loads, and processLiveBlock.
+    int latencySamples() const noexcept {
+        return unpackLatency(packedLatency_.load(std::memory_order_acquire));
+    }
+    std::uint64_t latencyGeneration() const noexcept {
+        return unpackGeneration(packedLatency_.load(std::memory_order_acquire));
+    }
+    int refreshLatency(std::uint64_t* latencyGenerationOut = nullptr);
+    std::uint64_t latencyChangeCount() const noexcept { return latencyGeneration(); }
+    // Callback is always invoked on the JUCE message thread (polled by a message-thread timer).
+    void setLatencyChangedCallback(std::function<void(int, std::uint64_t)> callback);
 
     // Note expression events decoded from live blocks and not delivered. JUCE
     // 8.0.4 hosts a VST3 through juce::MidiBuffer, which has no note
@@ -104,18 +129,62 @@ public:
     std::recursive_mutex lock;
 
 private:
+    static constexpr std::uint64_t packLatency(std::uint32_t gen, int latency) noexcept {
+        return (static_cast<std::uint64_t>(gen) << 32) |
+               static_cast<std::uint32_t>(latency < 0 ? 0 : latency);
+    }
+    static constexpr std::uint32_t unpackGeneration(std::uint64_t packed) noexcept {
+        return static_cast<std::uint32_t>(packed >> 32);
+    }
+    static constexpr int unpackLatency(std::uint64_t packed) noexcept {
+        return static_cast<int>(static_cast<std::uint32_t>(packed & 0xFFFFFFFFu));
+    }
+
+    // Owned by Instance; attached to plugin_ in load() and detached before plugin_ destruction.
+    struct PluginListener final : juce::AudioProcessorListener {
+        explicit PluginListener(Instance& owner) : owner_(owner) {}
+        void audioProcessorParameterChanged(juce::AudioProcessor* processor, int parameterIndex, float newValue) override;
+        void audioProcessorChanged(juce::AudioProcessor* processor, const ChangeDetails& details) override;
+        Instance& owner_;
+    };
+
+    // Owned by Instance; polls lock-free atomic latency state on the JUCE message thread
+    // so audio and listener threads never post OS messages, allocate, or acquire locks.
+    struct LatencyPoller final : juce::Timer {
+        explicit LatencyPoller(Instance& owner) : owner_(owner) {}
+        void timerCallback() override;
+        Instance& owner_;
+    };
+
+    std::uint64_t recordLatencyUpdate(int newLatency, bool forceNotify) noexcept;
+    void deliverLatencyNotification();
     void prepare(double sampleRate, bool nonRealtime = true, int blockSize = block_);
 
     juce::AudioPluginFormatManager formats_;
     std::unique_ptr<juce::AudioPluginInstance> plugin_;
+    PluginListener listener_{*this};
+    LatencyPoller poller_{*this};
     juce::String path_, uid_, appliedState_, defaultState_;
     bool isInstrument_ = false;
-    // Written by the live worker thread, read by any thread without `lock`: atomic.
+    // Packed (generation << 32) | latencySamples. Lock-free across audio, listener, and message threads.
+    std::atomic<std::uint64_t> packedLatency_{0};
+    std::atomic<bool> forceNotifyPending_{false};
+    std::atomic<bool> latencyNotifyPending_{false};
     std::atomic<std::uint64_t> droppedNoteExpression_{0};
+    // Message-thread-only tracking of the last delivered latencyChanged callback.
+    int lastNotifiedLatency_ = -1;
+    // Guards latencyChangedCallback_ on the message thread (never acquired on audio/listener threads).
+    std::mutex callbackMutex_;
+    std::function<void(int, std::uint64_t)> latencyChangedCallback_;
     bool preparedNonRealtime_ = true;
     int preparedBlockSize_ = 0;
     double preparedRate_ = 0;
     static constexpr int block_ = 512;
+    static constexpr int kLatencyPollIntervalMs = 10;
+    static_assert(std::atomic<std::uint64_t>::is_always_lock_free,
+                  "64-bit packed latency atomic must be lock-free");
+    static_assert(std::atomic<bool>::is_always_lock_free,
+                  "latency notification pending flag must be lock-free");
 };
 
 // Apply the requested state and render as one serialized operation.

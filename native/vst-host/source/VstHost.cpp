@@ -3,6 +3,112 @@
 #include <cmath>
 
 namespace vsthost {
+namespace {
+int effectiveLatencyOf(const juce::AudioProcessor* plugin) {
+    if (!plugin) return 0;
+    if (auto* bypass = plugin->getBypassParameter(); bypass && bypass->getValue() >= 0.5f) {
+        return 0;
+    }
+    return std::clamp(plugin->getLatencySamples(), 0, kShmMaxLatencySamples);
+}
+} // namespace
+
+Instance::~Instance() {
+    poller_.stopTimer();
+    setLatencyChangedCallback({});
+    {
+        std::lock_guard<std::recursive_mutex> guard(lock);
+        if (plugin_) {
+            plugin_->removeListener(&listener_);
+            plugin_.reset();
+        }
+    }
+}
+
+void Instance::setLatencyChangedCallback(std::function<void(int, std::uint64_t)> callback) {
+    const bool hasCallback = static_cast<bool>(callback);
+    {
+        std::lock_guard<std::mutex> guard(callbackMutex_);
+        latencyChangedCallback_ = std::move(callback);
+    }
+    if (hasCallback) {
+        if (juce::MessageManager::getInstanceWithoutCreating() != nullptr) {
+            poller_.startTimer(kLatencyPollIntervalMs);
+        }
+    } else {
+        poller_.stopTimer();
+    }
+}
+
+std::uint64_t Instance::recordLatencyUpdate(int newLatency, bool forceNotify) noexcept {
+    const int clamped = std::clamp(newLatency, 0, kShmMaxLatencySamples);
+    std::uint64_t cur = packedLatency_.load(std::memory_order_acquire);
+    for (;;) {
+        const int curLat = unpackLatency(cur);
+        const std::uint32_t curGen = unpackGeneration(cur);
+        if (clamped == curLat && !forceNotify) {
+            return cur;
+        }
+        const std::uint32_t nextGen = curGen + 1u;
+        const std::uint64_t next = packLatency(nextGen, clamped);
+        if (packedLatency_.compare_exchange_weak(cur, next, std::memory_order_acq_rel, std::memory_order_acquire)) {
+            if (forceNotify) {
+                forceNotifyPending_.store(true, std::memory_order_release);
+            }
+            latencyNotifyPending_.store(true, std::memory_order_release);
+            return next;
+        }
+    }
+}
+
+void Instance::LatencyPoller::timerCallback() {
+    owner_.deliverLatencyNotification();
+}
+
+void Instance::deliverLatencyNotification() {
+    if (!latencyNotifyPending_.exchange(false, std::memory_order_acq_rel)) {
+        return;
+    }
+    const bool forced = forceNotifyPending_.exchange(false, std::memory_order_acq_rel);
+    const std::uint64_t packed = packedLatency_.load(std::memory_order_acquire);
+    const int lat = unpackLatency(packed);
+    const std::uint32_t gen = unpackGeneration(packed);
+    if (!forced && lat == lastNotifiedLatency_) {
+        return;
+    }
+    lastNotifiedLatency_ = lat;
+    std::function<void(int, std::uint64_t)> cb;
+    {
+        std::lock_guard<std::mutex> guard(callbackMutex_);
+        cb = latencyChangedCallback_;
+    }
+    if (cb) cb(lat, gen);
+}
+
+void Instance::PluginListener::audioProcessorParameterChanged(juce::AudioProcessor* processor, int, float) {
+    if (!processor || processor->getBypassParameter() == nullptr) return;
+    const int lat = effectiveLatencyOf(processor);
+    if (lat != owner_.latencySamples()) {
+        (void)owner_.recordLatencyUpdate(lat, false);
+    }
+}
+
+void Instance::PluginListener::audioProcessorChanged(juce::AudioProcessor* processor, const ChangeDetails& details) {
+    if (!processor) return;
+    const int lat = effectiveLatencyOf(processor);
+    if (details.latencyChanged || lat != owner_.latencySamples()) {
+        (void)owner_.recordLatencyUpdate(lat, details.latencyChanged);
+    }
+}
+
+int Instance::refreshLatency(std::uint64_t* latencyGenerationOut) {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    const std::uint64_t packed = recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
+    if (latencyGenerationOut) {
+        *latencyGenerationOut = unpackGeneration(packed);
+    }
+    return unpackLatency(packed);
+}
 
 bool renderWithState(Instance& inst, bool applyState, const juce::String& state,
                      double sampleRate, juce::int64 frames, const std::vector<NoteEvent>& events,
@@ -101,13 +207,23 @@ bool Instance::load(const juce::String& path, const juce::String& uid, juce::Str
     auto plugin = formats_.createPluginInstance(*pick, rate, block_, error);
     if (!plugin) return false;
     std::lock_guard<std::recursive_mutex> guard(lock);
+    if (plugin_) {
+        plugin_->removeListener(&listener_);
+    }
     plugin_ = std::move(plugin);
+    plugin_->addListener(&listener_);
     path_ = path;
     uid_ = pick->createIdentifierString();
     isInstrument_ = pick->isInstrument;
     appliedState_ = {};
     preparedRate_ = 0;
     preparedBlockSize_ = 0;
+    const int initLat = effectiveLatencyOf(plugin_.get());
+    const std::uint32_t nextGen = unpackGeneration(packedLatency_.load(std::memory_order_acquire)) + 1u;
+    packedLatency_.store(packLatency(nextGen, initLat), std::memory_order_release);
+    lastNotifiedLatency_ = initLat;
+    forceNotifyPending_.store(false, std::memory_order_release);
+    latencyNotifyPending_.store(false, std::memory_order_release);
     defaultState_ = getState();
     return true;
 }
@@ -133,6 +249,7 @@ bool Instance::setState(const juce::String& base64, juce::String& error) {
     if (!juce::Base64::convertFromBase64(decoded, target)) { error = "Plug-in state is not valid base64"; return false; }
     plugin_->setStateInformation(decoded.getData(), (int)decoded.getDataSize());
     appliedState_ = target;
+    (void)recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
     return true;
 }
 
@@ -285,6 +402,7 @@ void Instance::prepare(double sampleRate, bool nonRealtime, int blockSize) {
     preparedRate_ = sampleRate;
     preparedNonRealtime_ = nonRealtime;
     preparedBlockSize_ = blockSize;
+    (void)recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
 }
 
 bool Instance::prepareLive(double sampleRate, int maxBlockFrames, juce::String& error) {
@@ -294,6 +412,23 @@ bool Instance::prepareLive(double sampleRate, int maxBlockFrames, juce::String& 
     const int bs = juce::jlimit(64, static_cast<int>(kShmMaxFrames), maxBlockFrames);
     prepare(sampleRate, false, bs);
     plugin_->reset();
+    (void)recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
+    return true;
+}
+
+bool Instance::probeLiveLatency(double sampleRate, int maxBlockFrames, int& latencyOut, juce::String& error,
+                                std::uint64_t* latencyGenerationOut) {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    if (!plugin_) { error = "No plug-in loaded"; return false; }
+    if (sampleRate >= 8000 && sampleRate <= 384000) {
+        const int bs = juce::jlimit(64, static_cast<int>(kShmMaxFrames), maxBlockFrames);
+        prepare(sampleRate, false, bs);
+    }
+    const std::uint64_t packed = recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
+    latencyOut = unpackLatency(packed);
+    if (latencyGenerationOut) {
+        *latencyGenerationOut = unpackGeneration(packed);
+    }
     return true;
 }
 
@@ -302,7 +437,7 @@ bool Instance::processLiveBlock(double sampleRate, int numFrames, bool reset,
                                 float* outL, float* outR,
                                 const ShmMidiEvent* midiEvents, int numMidiEvents,
                                 juce::AudioBuffer<float>& scratchBlock, juce::MidiBuffer& scratchMidi,
-                                int* latencySamples) {
+                                int* latencySamples, std::uint64_t* latencyGeneration) {
     const ScopedDenormalGuard denormalGuard;
     std::lock_guard<std::recursive_mutex> guard(lock);
     if (!plugin_ || numFrames <= 0 || numFrames > static_cast<int>(kShmMaxFrames)) return false;
@@ -312,7 +447,6 @@ bool Instance::processLiveBlock(double sampleRate, int numFrames, bool reset,
         preparedBlockSize_ < numFrames) {
         return false;
     }
-    if (latencySamples) *latencySamples = std::max(0, plugin_->getLatencySamples());
     const int inChannels = plugin_->getTotalNumInputChannels();
     const int outChannels = plugin_->getTotalNumOutputChannels();
     const int channels = std::max(2, std::max(inChannels, outChannels));
@@ -368,6 +502,9 @@ bool Instance::processLiveBlock(double sampleRate, int numFrames, bool reset,
         }
     }
     plugin_->processBlock(scratchBlock, scratchMidi);
+    const std::uint64_t packed = recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
+    if (latencySamples) *latencySamples = unpackLatency(packed);
+    if (latencyGeneration) *latencyGeneration = unpackGeneration(packed);
     if (outL && outR) {
         if (outChannels >= 1) {
             std::memcpy(outL, scratchBlock.getReadPointer(0), static_cast<size_t>(numFrames) * sizeof(float));
@@ -390,7 +527,7 @@ bool Instance::render(double sampleRate, juce::int64 frames, const std::vector<N
     if (frames < 0 || frames > (juce::int64)(sampleRate * 60 * 30)) { error = "Render is longer than 30 minutes"; return false; }
     prepare(sampleRate);
     plugin_->reset();
-    const int latency = std::max(0, plugin_->getLatencySamples());
+    const int latency = unpackLatency(recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false));
     const juce::int64 processFrames = frames + latency;
 
     // Note-ons and note-offs in frame order; at one frame, offs go first so a
@@ -452,7 +589,7 @@ bool Instance::process(double sampleRate, const juce::AudioBuffer<float>& input,
     if (frames < 0 || frames > (juce::int64)(sampleRate * 60 * 30)) { error = "Process buffer is longer than 30 minutes"; return false; }
     prepare(sampleRate);
     plugin_->reset();
-    const int latency = std::max(0, plugin_->getLatencySamples());
+    const int latency = unpackLatency(recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false));
     const juce::int64 processFrames = frames + latency;
 
     const int inChannels = plugin_->getTotalNumInputChannels();

@@ -116,6 +116,11 @@ public:
     bool keepsActiveInput() const noexcept override { return inner_->keepsActiveInput(); }
     bool setParameter(std::string_view name,double value) noexcept override { return inner_->setParameter(name,value); }
     int latencySamples() const noexcept override { return inner_->latencySamples(); }
+    void setBypassed(bool b) noexcept override { inner_->setBypassed(b); }
+    bool bypassed() const noexcept override { return inner_->bypassed(); }
+    void onBypassedBlock(std::span<const float> stereo,const audio::BlockContext& ctx) noexcept override { inner_->onBypassedBlock(stereo,ctx); }
+    void reprobeLatency(double rate) override { inner_->reprobeLatency(rate); }
+    void serviceControlThread() override { inner_->serviceControlThread(); }
     void process(std::span<float> stereo,const audio::BlockContext& context) noexcept override {
         if (quantum_) {
             // DynamicsCompressorNode's AudioParams are k-rate.

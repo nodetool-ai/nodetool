@@ -1741,6 +1741,811 @@ private slots:
                                     .arg(burstStart).arg(meter.truePeakDb(), 0, 'f', 2)));
         }
     }
+
+    // DSP1b: dynamic plug-in latency changes during playback must update PDC delay lines
+    // with zero audio-thread allocations, click-free crossfade, and sample-accurate alignment.
+    void dsp1b_dynamicLatencyChangeCrossfadesWithoutAllocationOrClick() {
+        class VariableDelayProc final : public BlockProcessor {
+        public:
+            explicit VariableDelayProc(std::shared_ptr<std::atomic<int>> targetLat)
+                : m_targetLat(std::move(targetLat)) {}
+            void prepare(double) override {
+                m_buf.assign(std::size_t{4096} * 2, 0.0f);
+                m_w = 0;
+            }
+            void reset() noexcept override {
+                BlockProcessor::reset();
+                std::fill(m_buf.begin(), m_buf.end(), 0.0f);
+                m_w = 0;
+            }
+            int latencySamples() const noexcept override {
+                return m_targetLat->load(std::memory_order_acquire);
+            }
+            void process(std::span<float> stereo, const BlockContext&) noexcept override {
+                const int d = std::clamp(m_targetLat->load(std::memory_order_acquire), 0, 4095);
+                const int cap = static_cast<int>(m_buf.size() / 2);
+                const int n = static_cast<int>(stereo.size() / 2);
+                for (int f = 0; f < n; ++f) {
+                    const float inL = stereo[static_cast<std::size_t>(f) * 2];
+                    const float inR = stereo[static_cast<std::size_t>(f) * 2 + 1];
+                    m_buf[static_cast<std::size_t>(m_w) * 2] = inL;
+                    m_buf[static_cast<std::size_t>(m_w) * 2 + 1] = inR;
+                    int r = m_w - d;
+                    if (r < 0) r += cap;
+                    stereo[static_cast<std::size_t>(f) * 2] = m_buf[static_cast<std::size_t>(r) * 2];
+                    stereo[static_cast<std::size_t>(f) * 2 + 1] = m_buf[static_cast<std::size_t>(r) * 2 + 1];
+                    m_w = (m_w + 1 == cap) ? 0 : m_w + 1;
+                }
+            }
+        private:
+            std::shared_ptr<std::atomic<int>> m_targetLat;
+            std::vector<float> m_buf;
+            int m_w = 0;
+        };
+
+        auto targetLat = std::make_shared<std::atomic<int>>(0);
+        const auto token = registerMixPlanStage(
+            "dsp1b-var-lat",
+            [targetLat](const Timeline&, MixPlan& plan) {
+                if (!plan.tracks.empty()) {
+                    plan.tracks[0].processors.push_back(std::make_shared<VariableDelayProc>(targetLat));
+                }
+            },
+            900);
+        const auto cleanup = qScopeGuard([token] { unregisterMixPlanStage(token); });
+
+        // Track 0 has the variable-latency plugin (muted clip so we inspect Track 1's crossfade cleanly first).
+        Timeline tl;
+        tl.raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                            {QStringLiteral("limiter"), false}});
+        tl.tracks = {track("t0", TrackType::Audio), track("t1", TrackType::Audio)};
+        Clip c0 = clip("c0", "t0", MediaType::Audio, 0.0, 2000.0);
+        c0.volumeDb = -120.0;
+        Clip c1 = clip("c1", "t1", MediaType::Audio, 0.0, 2000.0);
+        tl.clips = {c0, c1};
+        tl.durationMs = 2000.0;
+
+        const auto plan = buildMixPlan(tl);
+        prepareMixPlan(plan, kRate);
+        QCOMPARE(planLatencySamples(plan), 0);
+
+        // Continuous 440 Hz sine on Track 1; switch Track 0 latency 0 -> 512 -> 1024 -> 0 during playback.
+        constexpr int kTotalFrames = 16384;
+        std::vector<float> sine(std::size_t{kTotalFrames} * 2, 0.0f);
+        for (int i = 0; i < kTotalFrames; ++i) {
+            const float s = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * 440.0 * i / kRate));
+            sine[static_cast<std::size_t>(i) * 2] = s;
+            sine[static_cast<std::size_t>(i) * 2 + 1] = s;
+        }
+        VoicePcm vp[2]{};
+        vp[0].linear = sine.data(); vp[0].linearCount = kTotalFrames;
+        vp[1].linear = sine.data(); vp[1].linearCount = kTotalFrames;
+
+        std::vector<float> recorded(std::size_t{kTotalFrames} * 2, 0.0f);
+        MixStats st;
+        std::size_t allocs = 0;
+        for (int at = 0; at < kTotalFrames; at += 128) {
+            if (at == 2048) targetLat->store(512, std::memory_order_release);
+            if (at == 6144) targetLat->store(1024, std::memory_order_release);
+            if (at == 10240) targetLat->store(0, std::memory_order_release);
+            nt::testing::allocations = 0;
+            nt::testing::countAllocations = true;
+            mixBlock(plan, vp, kRate, frameMs(at), 1000.0 / kRate, 128,
+                     recorded.data() + static_cast<std::size_t>(at) * 2, st);
+            nt::testing::countAllocations = false;
+            allocs += nt::testing::allocations;
+            if (at == 2048) QCOMPARE(planLatencySamples(plan), 512);
+            if (at == 6144) QCOMPARE(planLatencySamples(plan), 1024);
+            if (at == 10240) QCOMPARE(planLatencySamples(plan), 0);
+        }
+        QCOMPARE(allocs, std::size_t{0});
+
+        // Verify no clicks and no mute hole across all three transitions (2048, 6144, 10240).
+        // Natural max step of 0.5*sin(2*pi*440*n/48000) is ~0.0288; crossfade over >= 32 samples keeps step < 0.08.
+        for (int boundary : {2048, 6144, 10240}) {
+            float maxStep = 0.0f;
+            for (int f = boundary - 8; f < boundary + 256; ++f) {
+                const float step = std::abs(recorded[static_cast<std::size_t>(f) * 2] -
+                                            recorded[static_cast<std::size_t>(f - 1) * 2]);
+                maxStep = std::max(maxStep, step);
+            }
+            QVERIFY2(maxStep < 0.08f,
+                     qPrintable(QStringLiteral("click at latency switch frame %1: maxStep=%2").arg(boundary).arg(maxStep)));
+        }
+
+        // Now verify both tracks' impulses align sample-accurately after a runtime 0 -> 512 jump.
+        targetLat->store(0, std::memory_order_release);
+        c0.volumeDb = 0.0;
+        tl.clips = {c0, c1};
+        const auto alignPlan = buildMixPlan(tl);
+        prepareMixPlan(alignPlan, kRate);
+        std::vector<float> imp(std::size_t{4096} * 2, 0.0f);
+        imp[std::size_t{2000} * 2] = 0.5f;
+        imp[std::size_t{2000} * 2 + 1] = 0.5f;
+        vp[0].linear = imp.data(); vp[0].linearCount = 4096;
+        vp[1].linear = imp.data(); vp[1].linearCount = 4096;
+        std::vector<float> alignOut(std::size_t{4096} * 2, 0.0f);
+        for (int at = 0; at < 4096; at += 128) {
+            if (at == 1024) targetLat->store(512, std::memory_order_release);
+            mixBlock(alignPlan, vp, kRate, frameMs(at), 1000.0 / kRate, 128,
+                     alignOut.data() + static_cast<std::size_t>(at) * 2, st);
+        }
+        // Impulse at frame 2000 delayed by 512 on BOTH tracks -> sums to 1.0 at frame 2512, 0 at frame 2000.
+        QVERIFY2(std::abs(alignOut[std::size_t{2000} * 2]) < 1e-4f,
+                 qPrintable(QStringLiteral("Track 1 did not follow 0->512 latency jump: frame 2000=%1")
+                                .arg(alignOut[std::size_t{2000} * 2])));
+        QVERIFY2(std::abs(alignOut[std::size_t{2512} * 2] - 1.0f) < 1e-4f,
+                 qPrintable(QStringLiteral("expected aligned sum 1.0 at frame 2512, got %1")
+                                .arg(alignOut[std::size_t{2512} * 2])));
+    }
+
+    // DSP1b: A bypassed plug-in reports 0 latency to compensation, and bypassing/un-bypassing
+    // during playback crossfades sibling track delay lines with zero audio-thread allocations.
+    void dsp1b_bypassedPluginReportsZeroLatencyAndCrossfades() {
+        class FixedDelayProc final : public BlockProcessor {
+        public:
+            explicit FixedDelayProc(int lat) : m_lat(lat) {}
+            void prepare(double) override {
+                m_buf.assign(static_cast<std::size_t>(m_lat + 1) * 2, 0.0f);
+                m_w = 0;
+                m_valid = 0;
+            }
+            void reset() noexcept override {
+                BlockProcessor::reset();
+                m_w = 0;
+                m_valid = 0;
+            }
+            void onBypassedBlock(std::span<const float>, const BlockContext&) noexcept override {
+                m_w = 0;
+                m_valid = 0;
+            }
+            int latencySamples() const noexcept override { return m_lat; }
+            void process(std::span<float> stereo, const BlockContext&) noexcept override {
+                const int cap = static_cast<int>(m_buf.size() / 2);
+                const int n = static_cast<int>(stereo.size() / 2);
+                for (int f = 0; f < n; ++f) {
+                    const float inL = stereo[static_cast<std::size_t>(f) * 2];
+                    const float inR = stereo[static_cast<std::size_t>(f) * 2 + 1];
+                    m_buf[static_cast<std::size_t>(m_w) * 2] = inL;
+                    m_buf[static_cast<std::size_t>(m_w) * 2 + 1] = inR;
+                    float outL = 0.0f, outR = 0.0f;
+                    if (m_valid >= m_lat) {
+                        int r = m_w - m_lat;
+                        if (r < 0) r += cap;
+                        outL = m_buf[static_cast<std::size_t>(r) * 2];
+                        outR = m_buf[static_cast<std::size_t>(r) * 2 + 1];
+                    }
+                    stereo[static_cast<std::size_t>(f) * 2] = outL;
+                    stereo[static_cast<std::size_t>(f) * 2 + 1] = outR;
+                    m_w = (m_w + 1 == cap) ? 0 : m_w + 1;
+                    if (m_valid < cap) ++m_valid;
+                }
+            }
+        private:
+            int m_lat;
+            std::vector<float> m_buf;
+            int m_w = 0;
+            int m_valid = 0;
+        };
+
+        auto proc = std::make_shared<FixedDelayProc>(512);
+        const auto token = registerMixPlanStage(
+            "dsp1b-bypass-lat",
+            [proc](const Timeline&, MixPlan& plan) {
+                if (!plan.tracks.empty()) {
+                    plan.tracks[0].processors.push_back(proc);
+                }
+            },
+            900);
+        const auto cleanup = qScopeGuard([token] { unregisterMixPlanStage(token); });
+
+        Timeline tl;
+        tl.raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                            {QStringLiteral("limiter"), false}});
+        tl.tracks = {track("t0", TrackType::Audio), track("t1", TrackType::Audio)};
+        tl.clips = {clip("c0", "t0", MediaType::Audio, 0.0, 2000.0),
+                    clip("c1", "t1", MediaType::Audio, 0.0, 2000.0)};
+        tl.durationMs = 2000.0;
+
+        const auto plan = buildMixPlan(tl);
+        prepareMixPlan(plan, kRate);
+        QCOMPARE(planLatencySamples(plan), 512);
+
+        // Impulse at 1000 (active -> aligns at 1512), bypass at 2048 -> impulse at 3000 (bypassed -> aligns at 3000),
+        // un-bypass at 4096 -> impulse at 5000 (active -> aligns at 5512). Zero audio-thread allocations throughout.
+        constexpr int kTotal = 8192;
+        std::vector<float> imp(std::size_t{kTotal} * 2, 0.0f);
+        for (int at : {1000, 3000, 5000}) {
+            imp[static_cast<std::size_t>(at) * 2] = 0.5f;
+            imp[static_cast<std::size_t>(at) * 2 + 1] = 0.5f;
+        }
+        VoicePcm vp[2]{};
+        vp[0].linear = imp.data(); vp[0].linearCount = kTotal;
+        vp[1].linear = imp.data(); vp[1].linearCount = kTotal;
+
+        std::vector<float> out(std::size_t{kTotal} * 2, 0.0f);
+        MixStats st;
+        std::size_t allocs = 0;
+        for (int at = 0; at < kTotal; at += 128) {
+            if (at == 2048) {
+                proc->setBypassed(true);
+                QCOMPARE(proc->effectiveLatencySamples(), 0);
+            }
+            if (at == 4096) {
+                proc->setBypassed(false);
+                QCOMPARE(proc->effectiveLatencySamples(), 512);
+            }
+            nt::testing::allocations = 0;
+            nt::testing::countAllocations = true;
+            mixBlock(plan, vp, kRate, frameMs(at), 1000.0 / kRate, 128,
+                     out.data() + static_cast<std::size_t>(at) * 2, st);
+            nt::testing::countAllocations = false;
+            allocs += nt::testing::allocations;
+            if (at == 2048) QCOMPARE(planLatencySamples(plan), 0);
+            if (at == 4096) QCOMPARE(planLatencySamples(plan), 512);
+        }
+        QCOMPARE(allocs, std::size_t{0});
+        QVERIFY2(std::abs(out[std::size_t{1512} * 2] - 1.0f) < 1e-4f,
+                 qPrintable(QStringLiteral("active impulse@1512=%1").arg(out[std::size_t{1512} * 2])));
+        QVERIFY2(std::abs(out[std::size_t{3000} * 2] - 1.0f) < 1e-4f,
+                 qPrintable(QStringLiteral("bypassed impulse@3000=%1").arg(out[std::size_t{3000} * 2])));
+        QVERIFY2(std::abs(out[std::size_t{3512} * 2]) < 1e-4f,
+                 qPrintable(QStringLiteral("bypassed ghost@3512=%1").arg(out[std::size_t{3512} * 2])));
+        QVERIFY2(std::abs(out[std::size_t{5512} * 2] - 1.0f) < 1e-4f,
+                 qPrintable(QStringLiteral("re-enabled impulse@5512=%1").arg(out[std::size_t{5512} * 2])));
+    }
+
+    // DSP1b: renderOffline must invoke reprobeLatency() before computing PDC trim/delay and rendering.
+    void dsp1b_offlineExportReprobesLatencyBeforeRender() {
+        class ReprobeDelayProc final : public BlockProcessor {
+        public:
+            explicit ReprobeDelayProc(std::shared_ptr<std::atomic<int>> reprobeCount)
+                : m_reprobeCount(std::move(reprobeCount)) {}
+            void prepare(double) override {
+                m_buf.assign(std::size_t{1024} * 2, 0.0f);
+                m_w = 0;
+                m_valid = 0;
+                m_reportedLat = 0;  // stale until reprobeLatency() is called
+            }
+            void reprobeLatency(double) override {
+                m_reprobeCount->fetch_add(1, std::memory_order_acq_rel);
+                m_reportedLat = 512;
+            }
+            int latencySamples() const noexcept override { return m_reportedLat; }
+            void process(std::span<float> stereo, const BlockContext&) noexcept override {
+                constexpr int kLat = 512;
+                const int cap = static_cast<int>(m_buf.size() / 2);
+                const int n = static_cast<int>(stereo.size() / 2);
+                for (int f = 0; f < n; ++f) {
+                    const float inL = stereo[static_cast<std::size_t>(f) * 2];
+                    const float inR = stereo[static_cast<std::size_t>(f) * 2 + 1];
+                    m_buf[static_cast<std::size_t>(m_w) * 2] = inL;
+                    m_buf[static_cast<std::size_t>(m_w) * 2 + 1] = inR;
+                    float outL = 0.0f, outR = 0.0f;
+                    if (m_valid >= kLat) {
+                        int r = m_w - kLat;
+                        if (r < 0) r += cap;
+                        outL = m_buf[static_cast<std::size_t>(r) * 2];
+                        outR = m_buf[static_cast<std::size_t>(r) * 2 + 1];
+                    }
+                    stereo[static_cast<std::size_t>(f) * 2] = outL;
+                    stereo[static_cast<std::size_t>(f) * 2 + 1] = outR;
+                    m_w = (m_w + 1 == cap) ? 0 : m_w + 1;
+                    if (m_valid < cap) ++m_valid;
+                }
+            }
+        private:
+            std::shared_ptr<std::atomic<int>> m_reprobeCount;
+            std::vector<float> m_buf;
+            int m_w = 0;
+            int m_valid = 0;
+            int m_reportedLat = 0;
+        };
+
+        auto reprobeCount = std::make_shared<std::atomic<int>>(0);
+        const auto token = registerMixPlanStage(
+            "dsp1b-offline-reprobe",
+            [reprobeCount](const Timeline&, MixPlan& plan) {
+                if (!plan.tracks.empty()) {
+                    plan.tracks[0].processors.push_back(std::make_shared<ReprobeDelayProc>(reprobeCount));
+                }
+            },
+            900);
+        const auto cleanup = qScopeGuard([token] { unregisterMixPlanStage(token); });
+
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString impWav = dir.filePath(QStringLiteral("reprobe_imp.wav"));
+        constexpr int kFrames = 4800;
+        {
+            QFile f(impWav);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            const std::uint32_t dataBytes = kFrames * 8;
+            const auto put32 = [&](std::uint32_t v) { f.write(reinterpret_cast<const char*>(&v), 4); };
+            const auto put16 = [&](std::uint16_t v) { f.write(reinterpret_cast<const char*>(&v), 2); };
+            f.write("RIFF"); put32(36 + dataBytes); f.write("WAVEfmt "); put32(16); put16(3); put16(2);
+            put32(48000); put32(48000 * 8); put16(8); put16(32); f.write("data"); put32(dataBytes);
+            for (int i = 0; i < kFrames; ++i) {
+                const float s = (i == 1000) ? 0.5f : 0.0f;
+                f.write(reinterpret_cast<const char*>(&s), 4);
+                f.write(reinterpret_cast<const char*>(&s), 4);
+            }
+        }
+        Timeline tl;
+        tl.raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                            {QStringLiteral("limiter"), false}});
+        tl.tracks = {track("t0", TrackType::Audio), track("t1", TrackType::Audio)};
+        Clip c0 = clip("c0", "t0", MediaType::Audio, 0.0, 100.0);
+        c0.mediaPath = impWav.toStdString();
+        Clip c1 = clip("c1", "t1", MediaType::Audio, 0.0, 100.0);
+        c1.mediaPath = impWav.toStdString();
+        tl.clips = {c0, c1};
+        tl.durationMs = 100.0;
+
+        const auto out = renderOffline(tl, 48000, 0.0, 100.0);
+        QVERIFY(reprobeCount->load(std::memory_order_acquire) >= 1);
+        QVERIFY2(std::abs(out[std::size_t{1000} * 2] - 1.0f) < 1e-4f,
+                 qPrintable(QStringLiteral("reprobed offline export expected 1.0 at frame 1000, got %1")
+                                .arg(out[std::size_t{1000} * 2])));
+        QVERIFY2(std::abs(out[std::size_t{1512} * 2]) < 1e-4f,
+                 qPrintable(QStringLiteral("ghost impulse at 1512: %1").arg(out[std::size_t{1512} * 2])));
+    }
+
+    // D3 + D12.2: Multi-clip voice-level dynamic PDC (decrease, mid-process increase, bypass).
+    void dsp1b_voiceLevelDynamicPdcIncreaseDecreaseAndBypass() {
+        class VoiceDynDelayProc final : public BlockProcessor {
+        public:
+            explicit VoiceDynDelayProc(std::shared_ptr<std::atomic<int>> nextLat, bool applyInsideProcess)
+                : m_nextLat(std::move(nextLat)), m_applyInsideProcess(applyInsideProcess) {}
+            void prepare(double) override {
+                m_buf.assign(std::size_t{2048} * 2, 0.0f);
+                m_w = 0;
+                m_reported = m_nextLat->load(std::memory_order_acquire);
+            }
+            void reset() noexcept override {
+                BlockProcessor::reset();
+                std::fill(m_buf.begin(), m_buf.end(), 0.0f);
+                m_w = 0;
+            }
+            int latencySamples() const noexcept override {
+                return m_applyInsideProcess ? m_reported : m_nextLat->load(std::memory_order_acquire);
+            }
+            void process(std::span<float> stereo, const BlockContext&) noexcept override {
+                const int d = std::clamp(m_nextLat->load(std::memory_order_acquire), 0, 2047);
+                m_reported = d;
+                const int cap = static_cast<int>(m_buf.size() / 2);
+                const int n = static_cast<int>(stereo.size() / 2);
+                for (int f = 0; f < n; ++f) {
+                    m_buf[static_cast<std::size_t>(m_w) * 2] = stereo[static_cast<std::size_t>(f) * 2];
+                    m_buf[static_cast<std::size_t>(m_w) * 2 + 1] = stereo[static_cast<std::size_t>(f) * 2 + 1];
+                    int r = m_w - d;
+                    if (r < 0) r += cap;
+                    stereo[static_cast<std::size_t>(f) * 2] = m_buf[static_cast<std::size_t>(r) * 2];
+                    stereo[static_cast<std::size_t>(f) * 2 + 1] = m_buf[static_cast<std::size_t>(r) * 2 + 1];
+                    m_w = (m_w + 1 == cap) ? 0 : m_w + 1;
+                }
+            }
+        private:
+            std::shared_ptr<std::atomic<int>> m_nextLat;
+            bool m_applyInsideProcess = false;
+            int m_reported = 0;
+            std::vector<float> m_buf;
+            int m_w = 0;
+        };
+
+        // Part A: Latency decrease (512 -> 0) discovered during Clip 1's process() must NOT
+        // inject a bogus 512-sample voiceDelay onto Clip 1 or report stale 512 into track PDC.
+        {
+            auto nextLat = std::make_shared<std::atomic<int>>(512);
+            auto proc = std::make_shared<VoiceDynDelayProc>(nextLat, /*applyInsideProcess=*/true);
+            const auto token = registerMixPlanStage(
+                "dsp1b-d3-dec",
+                [proc](const Timeline&, MixPlan& plan) {
+                    if (plan.voices.size() >= 2) {
+                        plan.voices[1].processors.push_back(proc);
+                    }
+                },
+                900);
+            const auto cleanup = qScopeGuard([token] { unregisterMixPlanStage(token); });
+
+            Timeline tl;
+            tl.raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                                {QStringLiteral("limiter"), false}});
+            tl.tracks = {track("t0", TrackType::Audio)};
+            Clip c0 = clip("c0", "t0", MediaType::Audio, 0.0, 1000.0);
+            Clip c1 = clip("c1", "t0", MediaType::Audio, 0.0, 1000.0);
+            tl.clips = {c0, c1};
+            tl.durationMs = 1000.0;
+
+            const auto plan = buildMixPlan(tl);
+            prepareMixPlan(plan, kRate);
+            QCOMPARE(planLatencySamples(plan), 512);
+
+            constexpr int kTotal = 4096;
+            std::vector<float> zero(std::size_t{kTotal} * 2, 0.0f);
+            std::vector<float> imp(std::size_t{kTotal} * 2, 0.0f);
+            imp[std::size_t{1024} * 2] = 0.8f;
+            imp[std::size_t{1024} * 2 + 1] = 0.8f;
+            VoicePcm vp[2]{};
+            vp[0].linear = zero.data(); vp[0].linearCount = kTotal;
+            vp[1].linear = imp.data(); vp[1].linearCount = kTotal;
+            std::vector<float> out(std::size_t{kTotal} * 2, 0.0f);
+            MixStats st;
+            for (int at = 0; at < kTotal; at += 128) {
+                if (at == 1024) {
+                    nextLat->store(0, std::memory_order_release);
+                }
+                mixBlock(plan, vp, kRate, frameMs(at), 1000.0 / kRate, 128,
+                         out.data() + static_cast<std::size_t>(at) * 2, st);
+                if (at == 1024) {
+                    QCOMPARE(planLatencySamples(plan), 0);
+                }
+            }
+            // Clip 1's impulse at frame 1024 must exit immediately at frame 1024 (not delayed to 1536).
+            QVERIFY2(std::abs(out[std::size_t{1024} * 2] - 0.8f) < 1e-4f,
+                     qPrintable(QStringLiteral("D3 decrease injected bogus voice delay: frame 1024=%1")
+                                    .arg(out[std::size_t{1024} * 2])));
+            QVERIFY2(std::abs(out[std::size_t{1536} * 2]) < 1e-4f,
+                     qPrintable(QStringLiteral("D3 decrease bogus ghost at 1536=%1")
+                                    .arg(out[std::size_t{1536} * 2])));
+        }
+
+        // Part B: Latency increase (0 -> 512) discovered during Clip 1's process() must delay
+        // Clip 0 on the SAME block rather than mixing Clip 0 uncompensated for one block.
+        {
+            auto nextLat = std::make_shared<std::atomic<int>>(0);
+            auto proc = std::make_shared<VoiceDynDelayProc>(nextLat, /*applyInsideProcess=*/true);
+            const auto token = registerMixPlanStage(
+                "dsp1b-d3-inc",
+                [proc](const Timeline&, MixPlan& plan) {
+                    if (plan.voices.size() >= 2) {
+                        plan.voices[1].processors.push_back(proc);
+                    }
+                },
+                900);
+            const auto cleanup = qScopeGuard([token] { unregisterMixPlanStage(token); });
+
+            Timeline tl;
+            tl.raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                                {QStringLiteral("limiter"), false}});
+            tl.tracks = {track("t0", TrackType::Audio)};
+            tl.clips = {clip("c0", "t0", MediaType::Audio, 0.0, 1000.0),
+                        clip("c1", "t0", MediaType::Audio, 0.0, 1000.0)};
+            tl.durationMs = 1000.0;
+
+            const auto plan = buildMixPlan(tl);
+            prepareMixPlan(plan, kRate);
+            QCOMPARE(planLatencySamples(plan), 0);
+
+            constexpr int kTotal = 4096;
+            std::vector<float> imp0(std::size_t{kTotal} * 2, 0.0f);
+            std::vector<float> zero(std::size_t{kTotal} * 2, 0.0f);
+            // Place Clip 0 impulse at frame 1024 + 80 (after 64-sample crossfade on the SAME block at 1024).
+            imp0[std::size_t{1104} * 2] = 0.5f;
+            imp0[std::size_t{1104} * 2 + 1] = 0.5f;
+            VoicePcm vp[2]{};
+            vp[0].linear = imp0.data(); vp[0].linearCount = kTotal;
+            vp[1].linear = zero.data(); vp[1].linearCount = kTotal;
+            std::vector<float> out(std::size_t{kTotal} * 2, 0.0f);
+            MixStats st;
+            for (int at = 0; at < kTotal; at += 128) {
+                if (at == 1024) {
+                    nextLat->store(512, std::memory_order_release);
+                }
+                mixBlock(plan, vp, kRate, frameMs(at), 1000.0 / kRate, 128,
+                         out.data() + static_cast<std::size_t>(at) * 2, st);
+            }
+            // Clip 0's impulse at frame 1104 (within the transition block 1024..1151) must be delayed to 1616,
+            // NOT emitted uncompensated at frame 1104.
+            QVERIFY2(std::abs(out[std::size_t{1104} * 2]) < 1e-4f,
+                     qPrintable(QStringLiteral("D3 increase left Clip 0 uncompensated on transition block: frame 1104=%1")
+                                    .arg(out[std::size_t{1104} * 2])));
+            QVERIFY2(std::abs(out[std::size_t{1616} * 2] - 0.5f) < 1e-4f,
+                     qPrintable(QStringLiteral("D3 increase expected Clip 0 delayed to 1616: got %1")
+                                    .arg(out[std::size_t{1616} * 2])));
+
+            // Part C: Voice bypass drops latency to 0 and aligns both voices.
+            proc->setBypassed(true);
+            mixBlock(plan, vp, kRate, frameMs(kTotal), 1000.0 / kRate, 128, out.data(), st);
+            QCOMPARE(planLatencySamples(plan), 0);
+        }
+    }
+
+    // D4 + D12.3: Continuous-signal bypass and un-bypass must crossfade without clicks on the bypassed track itself.
+    void dsp1b_bypassContinuousSineClickFreeOnBypassedTrack() {
+        class WarmDelayProc final : public BlockProcessor {
+        public:
+            explicit WarmDelayProc(int lat) : m_lat(lat) {}
+            void prepare(double) override {
+                m_buf.assign(static_cast<std::size_t>(m_lat + 1) * 2, 0.0f);
+                m_w = 0;
+                m_valid = 0;
+            }
+            void reset() noexcept override {
+                BlockProcessor::reset();
+                m_w = 0;
+                m_valid = 0;
+            }
+            void onBypassedBlock(std::span<const float> stereo, const BlockContext&) noexcept override {
+                const int cap = static_cast<int>(m_buf.size() / 2);
+                const int n = static_cast<int>(stereo.size() / 2);
+                for (int f = 0; f < n; ++f) {
+                    m_buf[static_cast<std::size_t>(m_w) * 2] = stereo[static_cast<std::size_t>(f) * 2];
+                    m_buf[static_cast<std::size_t>(m_w) * 2 + 1] = stereo[static_cast<std::size_t>(f) * 2 + 1];
+                    m_w = (m_w + 1 == cap) ? 0 : m_w + 1;
+                    if (m_valid < cap) ++m_valid;
+                }
+            }
+            int latencySamples() const noexcept override { return m_lat; }
+            void process(std::span<float> stereo, const BlockContext&) noexcept override {
+                const int cap = static_cast<int>(m_buf.size() / 2);
+                const int n = static_cast<int>(stereo.size() / 2);
+                for (int f = 0; f < n; ++f) {
+                    const float inL = stereo[static_cast<std::size_t>(f) * 2];
+                    const float inR = stereo[static_cast<std::size_t>(f) * 2 + 1];
+                    m_buf[static_cast<std::size_t>(m_w) * 2] = inL;
+                    m_buf[static_cast<std::size_t>(m_w) * 2 + 1] = inR;
+                    float outL = 0.0f, outR = 0.0f;
+                    if (m_valid >= m_lat) {
+                        int r = m_w - m_lat;
+                        if (r < 0) r += cap;
+                        outL = m_buf[static_cast<std::size_t>(r) * 2];
+                        outR = m_buf[static_cast<std::size_t>(r) * 2 + 1];
+                    }
+                    stereo[static_cast<std::size_t>(f) * 2] = outL;
+                    stereo[static_cast<std::size_t>(f) * 2 + 1] = outR;
+                    m_w = (m_w + 1 == cap) ? 0 : m_w + 1;
+                    if (m_valid < cap) ++m_valid;
+                }
+            }
+        private:
+            int m_lat;
+            std::vector<float> m_buf;
+            int m_w = 0;
+            int m_valid = 0;
+        };
+
+        auto proc = std::make_shared<WarmDelayProc>(512);
+        const auto token = registerMixPlanStage(
+            "dsp1b-d4-bypass-sine",
+            [proc](const Timeline&, MixPlan& plan) {
+                if (!plan.tracks.empty()) {
+                    plan.tracks[0].processors.push_back(proc);
+                }
+            },
+            900);
+        const auto cleanup = qScopeGuard([token] { unregisterMixPlanStage(token); });
+
+        Timeline tl;
+        tl.raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                            {QStringLiteral("limiter"), false}});
+        tl.tracks = {track("t0", TrackType::Audio), track("t1", TrackType::Audio)};
+        Clip c0 = clip("c0", "t0", MediaType::Audio, 0.0, 2000.0);
+        Clip c1 = clip("c1", "t1", MediaType::Audio, 0.0, 2000.0);
+        c1.volumeDb = -120.0;  // isolate Track 0 (the bypassed track itself)
+        tl.clips = {c0, c1};
+        tl.durationMs = 2000.0;
+
+        const auto plan = buildMixPlan(tl);
+        prepareMixPlan(plan, kRate);
+
+        constexpr int kTotal = 8192;
+        std::vector<float> sine(std::size_t{kTotal} * 2, 0.0f);
+        for (int i = 0; i < kTotal; ++i) {
+            const float s = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * 440.0 * i / kRate));
+            sine[static_cast<std::size_t>(i) * 2] = s;
+            sine[static_cast<std::size_t>(i) * 2 + 1] = s;
+        }
+        VoicePcm vp[2]{};
+        vp[0].linear = sine.data(); vp[0].linearCount = kTotal;
+        vp[1].linear = sine.data(); vp[1].linearCount = kTotal;
+        std::vector<float> out(std::size_t{kTotal} * 2, 0.0f);
+        MixStats st;
+        std::size_t allocs = 0;
+        for (int at = 0; at < kTotal; at += 128) {
+            if (at == 2048) proc->setBypassed(true);
+            if (at == 4096) proc->setBypassed(false);
+            nt::testing::allocations = 0;
+            nt::testing::countAllocations = true;
+            mixBlock(plan, vp, kRate, frameMs(at), 1000.0 / kRate, 128,
+                     out.data() + static_cast<std::size_t>(at) * 2, st);
+            nt::testing::countAllocations = false;
+            allocs += nt::testing::allocations;
+        }
+        QCOMPARE(allocs, std::size_t{0});
+        for (int boundary : {2048, 4096}) {
+            float maxStep = 0.0f;
+            for (int f = boundary - 8; f < boundary + 256; ++f) {
+                const float step = std::abs(out[static_cast<std::size_t>(f) * 2] -
+                                            out[static_cast<std::size_t>(f - 1) * 2]);
+                maxStep = std::max(maxStep, step);
+            }
+            QVERIFY2(maxStep < 0.08f,
+                     qPrintable(QStringLiteral("D4 click on bypassed track at frame %1: maxStep=%2")
+                                    .arg(boundary).arg(maxStep)));
+        }
+    }
+
+    // D5 + D12.3: Changing latency while a 64-sample DelayLine crossfade is in progress
+    // (on sub-64-frame callback blocks) must finish the active fade without a step click.
+    void dsp1b_delayLineSub64MidFadeRetargetingClickFree() {
+        class LatReporterProc final : public BlockProcessor {
+        public:
+            explicit LatReporterProc(std::shared_ptr<std::atomic<int>> lat) : m_lat(std::move(lat)) {}
+            int latencySamples() const noexcept override { return m_lat->load(std::memory_order_acquire); }
+            void process(std::span<float>, const BlockContext&) noexcept override {}
+        private:
+            std::shared_ptr<std::atomic<int>> m_lat;
+        };
+
+        auto lat = std::make_shared<std::atomic<int>>(0);
+        const auto token = registerMixPlanStage(
+            "dsp1b-d5-midfade",
+            [lat](const Timeline&, MixPlan& plan) {
+                if (!plan.tracks.empty()) {
+                    plan.tracks[0].processors.push_back(std::make_shared<LatReporterProc>(lat));
+                }
+            },
+            900);
+        const auto cleanup = qScopeGuard([token] { unregisterMixPlanStage(token); });
+
+        Timeline tl;
+        tl.raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                            {QStringLiteral("limiter"), false}});
+        tl.tracks = {track("t0", TrackType::Audio), track("t1", TrackType::Audio)};
+        Clip c0 = clip("c0", "t0", MediaType::Audio, 0.0, 2000.0);
+        c0.volumeDb = -120.0;
+        Clip c1 = clip("c1", "t1", MediaType::Audio, 0.0, 2000.0);
+        tl.clips = {c0, c1};
+        tl.durationMs = 2000.0;
+
+        const auto plan = buildMixPlan(tl);
+        prepareMixPlan(plan, kRate);
+
+        constexpr int kTotal = 4096;
+        std::vector<float> sine(std::size_t{kTotal} * 2, 0.0f);
+        for (int i = 0; i < kTotal; ++i) {
+            const float s = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * 440.0 * i / kRate));
+            sine[static_cast<std::size_t>(i) * 2] = s;
+            sine[static_cast<std::size_t>(i) * 2 + 1] = s;
+        }
+        VoicePcm vp[2]{};
+        vp[0].linear = sine.data(); vp[0].linearCount = kTotal;
+        vp[1].linear = sine.data(); vp[1].linearCount = kTotal;
+        std::vector<float> out(std::size_t{kTotal} * 2, 0.0f);
+        MixStats st;
+        // 32-frame callback fragments; retarget at 1024 (0->512) and mid-fade at 1056 (512->1024).
+        for (int at = 0; at < kTotal; at += 32) {
+            if (at == 1024) lat->store(512, std::memory_order_release);
+            if (at == 1056) lat->store(1024, std::memory_order_release);
+            mixBlock(plan, vp, kRate, frameMs(at), 1000.0 / kRate, 32,
+                     out.data() + static_cast<std::size_t>(at) * 2, st);
+        }
+        float maxStep = 0.0f;
+        for (int f = 1016; f < 1300; ++f) {
+            const float step = std::abs(out[static_cast<std::size_t>(f) * 2] -
+                                        out[static_cast<std::size_t>(f - 1) * 2]);
+            maxStep = std::max(maxStep, step);
+        }
+        QVERIFY2(maxStep < 0.08f,
+                 qPrintable(QStringLiteral("D5 mid-fade retarget click: maxStep=%1").arg(maxStep)));
+    }
+
+    // D6 + D12.1: DelayLine overflow ring growth (> 65536 frames) must adopt without clicks
+    // or >1.36s silence dropout, and must clamp pathological latencies without overflow.
+    void dsp1b_delayLineOverflowRingGrowthAndCeiling() {
+        class OverflowLatProc final : public BlockProcessor {
+        public:
+            explicit OverflowLatProc(std::shared_ptr<std::atomic<int>> lat) : m_lat(std::move(lat)) {}
+            int latencySamples() const noexcept override { return m_lat->load(std::memory_order_acquire); }
+            void process(std::span<float>, const BlockContext&) noexcept override {}
+        private:
+            std::shared_ptr<std::atomic<int>> m_lat;
+        };
+
+        auto lat = std::make_shared<std::atomic<int>>(0);
+        const auto token = registerMixPlanStage(
+            "dsp1b-d6-overflow",
+            [lat](const Timeline&, MixPlan& plan) {
+                if (!plan.tracks.empty()) {
+                    plan.tracks[0].processors.push_back(std::make_shared<OverflowLatProc>(lat));
+                }
+            },
+            900);
+        const auto cleanup = qScopeGuard([token] { unregisterMixPlanStage(token); });
+
+        Timeline tl;
+        tl.raw.insert(QStringLiteral("master"), QJsonObject{{QStringLiteral("volumeDb"), 0.0},
+                                                            {QStringLiteral("limiter"), false}});
+        tl.tracks = {track("t0", TrackType::Audio), track("t1", TrackType::Audio)};
+        Clip c0 = clip("c0", "t0", MediaType::Audio, 0.0, 5000.0);
+        c0.volumeDb = -120.0;
+        Clip c1 = clip("c1", "t1", MediaType::Audio, 0.0, 5000.0);
+        tl.clips = {c0, c1};
+        tl.durationMs = 5000.0;
+
+        const auto plan = buildMixPlan(tl);
+        prepareMixPlan(plan, kRate);
+
+        constexpr int kOverflowLat = 70000;
+        constexpr int kJumpAt = 70016;    // after the initial 65536-frame ring is full of live audio
+        constexpr int kServiceAt = 70144;
+        constexpr int kTotal = 160000;
+        std::vector<float> sine(std::size_t{kTotal} * 2, 0.0f);
+        for (int i = 0; i < kTotal; ++i) {
+            const float s = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * 440.0 * i / kRate));
+            sine[static_cast<std::size_t>(i) * 2] = s;
+            sine[static_cast<std::size_t>(i) * 2 + 1] = s;
+        }
+        VoicePcm vp[2]{};
+        vp[0].linear = sine.data(); vp[0].linearCount = kTotal;
+        vp[1].linear = sine.data(); vp[1].linearCount = kTotal;
+        std::vector<float> out(std::size_t{kTotal} * 2, 0.0f);
+        MixStats st;
+        std::size_t allocs = 0;
+        for (int at = 0; at < kTotal; at += 128) {
+            if (at == kJumpAt) {
+                lat->store(kOverflowLat, std::memory_order_release);
+            }
+            if (at == kServiceAt) {
+                // Control/worker thread services overflow off the audio thread.
+                serviceMixPlanControl(plan);
+            }
+            nt::testing::allocations = 0;
+            nt::testing::countAllocations = true;
+            mixBlock(plan, vp, kRate, frameMs(at), 1000.0 / kRate, 128,
+                     out.data() + static_cast<std::size_t>(at) * 2, st);
+            nt::testing::countAllocations = false;
+            allocs += nt::testing::allocations;
+        }
+        // Reclaim retired ring off-thread.
+        serviceMixPlanControl(plan);
+        QCOMPARE(allocs, std::size_t{0});
+
+        // Verify no hard click AND no silence dropout across adoption (kServiceAt) and ring fill (~kServiceAt + 70000).
+        float maxStep = 0.0f;
+        int silentBlocks = 0;
+        for (int at = kJumpAt; at < kTotal - 128; at += 128) {
+            float blockPeak = 0.0f;
+            for (int f = 0; f < 128; ++f) {
+                const int idx = at + f;
+                const float cur = out[static_cast<std::size_t>(idx) * 2];
+                const float prev = out[static_cast<std::size_t>(idx - 1) * 2];
+                maxStep = std::max(maxStep, std::abs(cur - prev));
+                blockPeak = std::max(blockPeak, std::abs(cur));
+            }
+            if (blockPeak < 0.05f) {
+                ++silentBlocks;
+            }
+        }
+        QVERIFY2(maxStep < 0.08f,
+                 qPrintable(QStringLiteral("D6 click during overflow ring adoption/fill: maxStep=%1").arg(maxStep)));
+        QCOMPARE(silentBlocks, 0);
+
+        // Verify the grown ring now delays accurately by the full 70000 samples.
+        std::vector<float> imp(std::size_t{kTotal} * 2, 0.0f);
+        imp[std::size_t{1000} * 2] = 0.75f;
+        imp[std::size_t{1000} * 2 + 1] = 0.75f;
+        vp[0].linear = imp.data(); vp[0].linearCount = kTotal;
+        vp[1].linear = imp.data(); vp[1].linearCount = kTotal;
+        std::vector<float> impOut(std::size_t{kTotal} * 2, 0.0f);
+        // Seek back to 0 to reset cursors on the already-grown ring.
+        for (int at = 0; at < kTotal; at += 128) {
+            mixBlock(plan, vp, kRate, frameMs(at), 1000.0 / kRate, 128,
+                     impOut.data() + static_cast<std::size_t>(at) * 2, st);
+        }
+        QVERIFY2(std::abs(impOut[std::size_t{1000 + kOverflowLat} * 2] - 0.75f) < 1e-4f,
+                 qPrintable(QStringLiteral("D6 grown ring expected 0.75 at %1, got %2")
+                                .arg(1000 + kOverflowLat).arg(impOut[std::size_t{1000 + kOverflowLat} * 2])));
+
+        // Verify pathological INT_MAX latency is clamped cleanly without overflow or crash.
+        lat->store(std::numeric_limits<int>::max(), std::memory_order_release);
+        std::vector<float> scratch(128 * 2, 0.0f);
+        mixBlock(plan, vp, kRate, frameMs(kTotal), 1000.0 / kRate, 128, scratch.data(), st);
+        serviceMixPlanControl(plan);
+        mixBlock(plan, vp, kRate, frameMs(kTotal + 128), 1000.0 / kRate, 128, scratch.data(), st);
+        serviceMixPlanControl(plan);
+    }
 };
 
 QTEST_APPLESS_MAIN(TstMixer)

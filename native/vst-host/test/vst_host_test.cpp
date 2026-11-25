@@ -5,9 +5,26 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <thread>
+#if JUCE_MAC
+#include <CoreFoundation/CoreFoundation.h>
+#endif
 #include "../source/VstHost.h"
 
 namespace {
+void pumpMessageQueue(int milliseconds) {
+#if JUCE_MAC
+    const auto end = juce::Time::getMillisecondCounterHiRes() + static_cast<double>(milliseconds);
+    while (juce::Time::getMillisecondCounterHiRes() < end) {
+        CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0.005, false);
+    }
+#else
+    if (auto* mm = juce::MessageManager::getInstanceWithoutCreating()) {
+        juce::Timer::callAfterDelay(milliseconds, [mm] { mm->stopDispatchLoop(); });
+        mm->runDispatchLoop();
+    }
+#endif
+}
 juce::File testTempFile(const juce::String& extension) {
     const auto directory = juce::SystemStats::getEnvironmentVariable("NT_VST_TEST_TMPDIR", {});
     if (directory.isEmpty()) return juce::File::createTempFile(extension);
@@ -378,6 +395,177 @@ int main(int argc, char** argv) {
                 check(subOutL[0] == 0.0f && subOutR[0] == 0.0f,
                       "denormal inputs are flushed to zero inside vst-host processLiveBlock",
                       juce::String(subOutL[0]));
+
+                // DSP1b: runtime latency change via parameter triggers restartComponent(kLatencyChanged)
+                // and updates reported latency during live streaming without re-preparing.
+                Instance dynFx;
+                check(dynFx.load(fxPath, fx.uid(), error) && dynFx.prepareLive(rate, 128, error),
+                      "loads and prepares effect for dynamic latency test", error);
+                int liveLat = -1;
+                std::vector<float> dynIn(128, 0.25f), dynOutL(128, 0.0f), dynOutR(128, 0.0f);
+                juce::AudioBuffer<float> dynScratch(4, 128);
+                juce::MidiBuffer dynMidi;
+                check(dynFx.processLiveBlock(rate, 128, false, dynIn.data(), dynIn.data(),
+                                             dynOutL.data(), dynOutR.data(), nullptr, 0, dynScratch, dynMidi, &liveLat) &&
+                      liveLat == 0,
+                      "initial live latency is 0", juce::String(liveLat));
+                auto dynParams = dynFx.plugin()->getParameters();
+                check(dynParams.size() >= 2, "dynamic effect exposes latency parameter");
+                if (dynParams.size() >= 2) {
+                    int callbackLat = -1;
+                    int callbackCount = 0;
+                    std::uint64_t lastGen = 0;
+                    dynFx.setLatencyChangedCallback([&](int lat, std::uint64_t gen) {
+                        callbackLat = lat;
+                        lastGen = gen;
+                        ++callbackCount;
+                    });
+                    const auto beforeChanges = dynFx.latencyChangeCount();
+                    dynParams[1]->setValueNotifyingHost(512.0f / 2048.0f);
+                    // Pump JUCE message queue so VST3 restartComponent(kLatencyChanged) delivers.
+                    pumpMessageQueue(50);
+                    check(dynFx.latencyChangeCount() > beforeChanges && callbackCount >= 1 && callbackLat == 512 && lastGen > beforeChanges,
+                          "restartComponent(kLatencyChanged) invokes Instance latency callback",
+                          juce::String(callbackLat));
+                    check(dynFx.latencySamples() == 512,
+                          "Instance::latencySamples() updated immediately on kLatencyChanged",
+                          juce::String(dynFx.latencySamples()));
+                    std::uint64_t liveGen = 0;
+                    check(dynFx.processLiveBlock(rate, 128, false, dynIn.data(), dynIn.data(),
+                                                 dynOutL.data(), dynOutR.data(), nullptr, 0, dynScratch, dynMidi, &liveLat, &liveGen),
+                          "processes live block after latency parameter change");
+                    check(liveLat == 512 && liveGen >= lastGen,
+                          "runtime latency parameter change updates live latency via kLatencyChanged",
+                          juce::String(liveLat));
+                    int probedLat = -1;
+                    std::uint64_t probedGen = 0;
+                    check(dynFx.probeLiveLatency(rate, 128, probedLat, error, &probedGen) && probedLat == 512 && probedGen >= liveGen,
+                          "probeLiveLatency returns updated latency without resetting",
+                          juce::String(probedLat));
+
+                    // D1 + D2: When latency changes and processLiveBlock on a background worker thread
+                    // observes the new latency before the JUCE message loop dispatches kLatencyChanged,
+                    // the callback MUST still fire (not be dropped) AND MUST run exclusively on the
+                    // JUCE message thread (never synchronously on the worker thread).
+                    bool callbackRanOnMessageThread = true;
+                    callbackCount = 0;
+                    callbackLat = -1;
+                    const std::uint64_t genBeforeD2 = lastGen;
+                    dynFx.setLatencyChangedCallback([&](int lat, std::uint64_t gen) {
+                        auto* mm = juce::MessageManager::getInstanceWithoutCreating();
+                        if (!mm || !mm->isThisTheMessageThread()) {
+                            callbackRanOnMessageThread = false;
+                        }
+                        callbackLat = lat;
+                        lastGen = gen;
+                        ++callbackCount;
+                    });
+                    // Change latency parameter on the message thread (queues kLatencyChanged),
+                    // then immediately run processLiveBlock on a worker thread BEFORE pumping the loop.
+                    dynParams[1]->setValueNotifyingHost(1024.0f / 2048.0f);
+                    std::thread workerThread([&] {
+                        int workerLat = -1;
+                        std::uint64_t workerGen = 0;
+                        dynFx.processLiveBlock(rate, 128, false, dynIn.data(), dynIn.data(),
+                                               dynOutL.data(), dynOutR.data(), nullptr, 0,
+                                               dynScratch, dynMidi, &workerLat, &workerGen);
+                    });
+                    workerThread.join();
+                    check(callbackCount == 0 && callbackRanOnMessageThread,
+                          "D1: latency callback never executes synchronously on listener or audio/worker thread");
+                    pumpMessageQueue(60);
+                    check(callbackRanOnMessageThread,
+                          "D1: coalesced latency callback runs on the JUCE message thread");
+                    check(callbackCount >= 1 && callbackLat == 1024 && lastGen > genBeforeD2,
+                          "D2: latency callback is not dropped when processLiveBlock observes new latency first",
+                          "count=" + juce::String(callbackCount) + " lat=" + juce::String(callbackLat));
+
+                    // C1: audio/listener latency updates must never post OS messages via AsyncUpdater.
+                    {
+                        const auto sourceDir = juce::File(__FILE__).getParentDirectory().getParentDirectory().getChildFile("source");
+                        const auto hostHeader = sourceDir.getChildFile("VstHost.h").loadFileAsString();
+                        const auto hostSource = sourceDir.getChildFile("VstHost.cpp").loadFileAsString();
+                        check(hostHeader.isNotEmpty() && hostSource.isNotEmpty(), "C1: reads VstHost sources");
+                        check(!hostHeader.contains("AsyncUpdater") && !hostSource.contains("triggerAsyncUpdate"),
+                              "C1: VstHost uses message-thread timer polling, never AsyncUpdater/triggerAsyncUpdate");
+
+                        // Coalesced multi-step worker-thread latency changes deliver final value on message thread.
+                        callbackRanOnMessageThread = true;
+                        callbackCount = 0;
+                        callbackLat = -1;
+                        const std::uint64_t genBeforeBurst = lastGen;
+                        for (const int stepLat : {256, 768, 1280}) {
+                            dynParams[1]->setValueNotifyingHost(static_cast<float>(stepLat) / 2048.0f);
+                            std::thread burstWorker([&] {
+                                int workerLat = -1;
+                                std::uint64_t workerGen = 0;
+                                dynFx.processLiveBlock(rate, 128, false, dynIn.data(), dynIn.data(),
+                                                       dynOutL.data(), dynOutR.data(), nullptr, 0,
+                                                       dynScratch, dynMidi, &workerLat, &workerGen);
+                            });
+                            burstWorker.join();
+                        }
+                        check(callbackCount == 0 && callbackRanOnMessageThread,
+                              "C1: worker-thread latency burst never executes callback synchronously");
+                        pumpMessageQueue(60);
+                        check(callbackRanOnMessageThread && callbackCount >= 1 && callbackLat == 1280 && lastGen > genBeforeBurst,
+                              "C1: message-thread timer delivers coalesced final latency",
+                              "count=" + juce::String(callbackCount) + " lat=" + juce::String(callbackLat));
+
+                        // Destroying an Instance with an unpumped pending latency update is clean.
+                        int destroyedCbCount = 0;
+                        {
+                            Instance transientFx;
+                            check(transientFx.load(fxPath, fx.uid(), error) && transientFx.prepareLive(rate, 128, error),
+                                  "C1: loads transient effect for destroy-while-pending test", error);
+                            transientFx.setLatencyChangedCallback([&](int, std::uint64_t) { ++destroyedCbCount; });
+                            auto tParams = transientFx.plugin()->getParameters();
+                            if (tParams.size() >= 2) {
+                                tParams[1]->setValueNotifyingHost(512.0f / 2048.0f);
+                                std::thread w([&] {
+                                    int wl = -1;
+                                    transientFx.processLiveBlock(rate, 128, false, dynIn.data(), dynIn.data(),
+                                                                 dynOutL.data(), dynOutR.data(), nullptr, 0,
+                                                                 dynScratch, dynMidi, &wl);
+                                });
+                                w.join();
+                            }
+                        }
+                        pumpMessageQueue(40);
+                        check(destroyedCbCount == 0, "C1: destroyed Instance never fires pending timer callback");
+                        // Restore 1024 for D12.4 bypass check below.
+                        dynParams[1]->setValueNotifyingHost(1024.0f / 2048.0f);
+                        pumpMessageQueue(60);
+                    }
+
+                    // D12.4: VST3 internal bypass parameter drops effective latency to 0 and emits callback.
+                    auto* bypassParam = dynFx.plugin()->getBypassParameter();
+                    check(bypassParam != nullptr, "D12.4: GainEffect exposes a VST3 bypass parameter");
+                    if (bypassParam != nullptr) {
+                        callbackCount = 0;
+                        callbackLat = -1;
+                        bypassParam->setValueNotifyingHost(1.0f);
+                        pumpMessageQueue(60);
+                        check(dynFx.latencySamples() == 0,
+                              "D12.4: bypassed VST3 plugin reports 0 effective latency",
+                              juce::String(dynFx.latencySamples()));
+                        check(callbackCount >= 1 && callbackLat == 0,
+                              "D12.4: bypassing VST3 plugin emits latencyChanged(0)",
+                              "count=" + juce::String(callbackCount) + " lat=" + juce::String(callbackLat));
+
+                        callbackCount = 0;
+                        callbackLat = -1;
+                        bypassParam->setValueNotifyingHost(0.0f);
+                        pumpMessageQueue(60);
+                        check(dynFx.latencySamples() == 1024,
+                              "D12.4: un-bypassing VST3 plugin restores latency",
+                              juce::String(dynFx.latencySamples()));
+                        check(callbackCount >= 1 && callbackLat == 1024,
+                              "D12.4: un-bypassing VST3 plugin emits latencyChanged(1024)",
+                              "count=" + juce::String(callbackCount) + " lat=" + juce::String(callbackLat));
+                    }
+                    dynFx.setLatencyChangedCallback({});
+                }
             }
         }
     }

@@ -21,6 +21,9 @@
 #include "audio/PcmRing.h"
 #include "model/TimelineTypes.h"
 
+#include <algorithm>
+#include <array>
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -32,6 +35,9 @@
 namespace nt::audio {
 
 inline constexpr int kMixBlockFrames = 128;
+// Hard upper bound on reported plug-in latency (10 s at 96 kHz / 20 s at 48 kHz)
+// to prevent signed integer overflow and unbounded ring allocations from broken plug-ins.
+inline constexpr int kMaxProcessorLatencySamples = 960000;
 // AudioEngine::Options defaults to 48000, AudioCli::kRate renders at 48000.
 inline constexpr double kDefaultMixRate = 48000;
 
@@ -52,7 +58,11 @@ public:
     virtual ~BlockProcessor() = default;
     virtual void process(std::span<float> stereo, const BlockContext&) noexcept = 0;
     virtual void prepare(double) {}
-    virtual void reset() noexcept { activeInQuantum_ = false; }
+    virtual void reset() noexcept {
+        activeInQuantum_ = false;
+        bypassStateInitialized_ = false;
+        bypassMix_ = 0.0f;
+    }
     // Stateful extensions report audio anywhere in the rest of this quantum,
     // even if the current callback fragment itself contains only zeros.
     virtual bool hasPendingOutput(int) const noexcept { return false; }
@@ -66,11 +76,28 @@ public:
     // Reported processing delay in samples at the prepared sample rate.
     // Queried during prepareMixPlan (control thread) and on the audio thread.
     virtual int latencySamples() const noexcept { return 0; }
+    // Thread-safe live bypass. A bypassed processor passes audio through untouched
+    // and reports 0 latency to plug-in delay compensation.
+    virtual void setBypassed(bool bypassed) noexcept { bypassed_.store(bypassed, std::memory_order_release); }
+    virtual bool bypassed() const noexcept { return bypassed_.load(std::memory_order_acquire); }
+    [[nodiscard]] int effectiveLatencySamples() const noexcept {
+        return bypassed() ? 0 : std::clamp(latencySamples(), 0, kMaxProcessorLatencySamples);
+    }
+    // Audio-thread hook called instead of process() when bypassed() is true
+    // (e.g., to keep internal dry-path history warm and mark host clocks discontinuous).
+    virtual void onBypassedBlock(std::span<const float>, const BlockContext&) noexcept {}
+    // Control/offline thread: re-probes latency from external plug-in hosts before rendering.
+    virtual void reprobeLatency(double) {}
     // Non-audio control/worker thread maintenance (e.g., growing overflowed delay buffers
     // off the audio thread and publishing them atomically). Never called on the audio thread.
     virtual void serviceControlThread() {}
 private:
+    static constexpr int kBypassCrossfadeFrames = 64;
     bool activeInQuantum_ = false;
+    std::atomic<bool> bypassed_{false};
+    bool bypassStateInitialized_ = false;
+    float bypassMix_ = 0.0f;  // 0.0 = active (wet), 1.0 = bypassed (dry); audio thread only
+    std::array<float, static_cast<std::size_t>(kMixBlockFrames) * 2> bypassDryScratch_{};
 };
 
 // Constructed on the control thread. Only the active render thread calls beginBlock/valueAt.
@@ -145,6 +172,8 @@ struct MixPlan {
 MixPlan buildMixPlan(const Timeline& timeline);
 // Control-thread preparation. A rate change resets all effect state.
 void prepareMixPlan(const MixPlan& plan, double sampleRate);
+// Control/offline-thread latency re-probe before offline render.
+void reprobeMixPlanLatency(const MixPlan& plan, double sampleRate);
 // Control/worker-thread maintenance for processors in `plan` (never call on audio thread).
 void serviceMixPlanControl(const MixPlan& plan);
 

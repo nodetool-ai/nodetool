@@ -146,11 +146,13 @@ public:
     // Audio thread (O(1), no buffer fill): invalidates buffered frames on discontinuity/idle.
     void reset() noexcept;
 
-    // Audio thread (O(frames), no allocation, no locks): adopts any pending grown ring in O(1),
-    // records `inStereo` into the ring buffer even at zero latency, and writes latency-compensated
-    // dry audio to `outStereo`, crossfading smoothly if `targetDelay` changes continuously.
-    // If `targetDelay` exceeds `maxDelay()`, does NOT clamp to a misaligned delay: records
-    // `overflowDelay()`, zeroes `outStereo`, and returns false.
+    // Audio thread (O(frames), no allocation, no locks): adopts any pending grown ring in O(1)
+    // while retaining/draining the previous ring until the grown ring fills to targetDelay and
+    // crossfades smoothly, records `inStereo` into the ring buffer even at zero latency, and
+    // writes latency-compensated dry audio to `outStereo`.
+    // If `targetDelay` exceeds `maxDelay()`, records `overflowDelay()` and returns false; during
+    // continuous playback keeps outputting from the existing ring at its active delay (no click or
+    // hard mute), and mutes only on a cold discontinuous start into overflow with no prior history.
     bool process(std::span<const float> inStereo, std::span<float> outStereo,
                  int targetDelay, bool discontinuous) noexcept;
 
@@ -170,16 +172,24 @@ private:
         std::size_t cap = 0;
     };
 
+    void clearDrainState() noexcept;
+    void retireDrainingRing() noexcept;
     void adoptPendingRing(std::size_t requested) noexcept;
+    static void readFromRing(const Ring& ring, std::size_t ringCap, std::size_t ringWritePos,
+                             std::size_t ringValidFrames, std::size_t delayFrames,
+                             float& outL, float& outR) noexcept;
     void readDelayed(std::size_t delayFrames, float& outL, float& outR) const noexcept;
 
     // Owned by VstDryDelayLine. Active ring is touched on audio thread during process();
-    // on swap, its pointer moves to m_retiredRing (never freed on the audio thread).
+    // on overflow adoption, the previous ring moves to m_drainingRing while the grown ring
+    // fills in parallel, then moves to m_retiredRing (never freed on the audio thread).
     std::unique_ptr<Ring> m_ring;
+    std::unique_ptr<Ring> m_drainingRing;
     // Lock-free handoff slots owned by VstDryDelayLine, freed only on control/worker thread
     // or in ~VstDryDelayLine().
     std::atomic<Ring*> m_pendingRing{nullptr};
     std::atomic<Ring*> m_retiredRing{nullptr};
+    std::atomic<bool> m_transitionInProgress{false};
     std::size_t m_cap = 0;
     std::atomic<std::size_t> m_activeCap{0};
     std::size_t m_preparedMaxDelay = 0;  // control/worker thread only
@@ -189,6 +199,14 @@ private:
     std::size_t m_fadeFromDelay = 0;
     int m_fadePos = 0;
     int m_fadeLen = 0;
+    // Old ring cursors while m_drainingRing is non-null (audio thread only).
+    std::size_t m_drainCap = 0;
+    std::size_t m_drainWritePos = 0;
+    std::size_t m_drainValidFrames = 0;
+    std::size_t m_drainDelay = 0;
+    int m_drainFadePos = 0;
+    int m_drainFadeLen = 0;
+    bool m_overflowMuted = false;  // true only on cold discontinuous overflow start
     std::atomic<std::size_t> m_overflowDelay{0};
 };
 

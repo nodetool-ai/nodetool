@@ -91,6 +91,127 @@ bool onlyMixerAutomationChanged(const Timeline& before,const Timeline& after) {
     return true;
 }
 
+// Returns true when `before` and `after` differ only in `enabled` flags of existing
+// track or master effects whose processors are already live in `plan`, updating those
+// processors' atomic bypass flags in place so PDC delay lines crossfade without reset.
+bool applyInPlaceEffectBypass(const Timeline& before, const Timeline& after, const MixPlan& plan) {
+    if (before.tracks.size() != after.tracks.size() || before.clips.size() != after.clips.size() ||
+        before.sourcePath != after.sourcePath || before.masterVolumeDb != after.masterVolumeDb) {
+        return false;
+    }
+    for (std::size_t i = 0; i < before.clips.size(); ++i) {
+        if (before.clips[i].id != after.clips[i].id || before.clips[i].mediaPath != after.clips[i].mediaPath ||
+            before.clips[i].audioPath != after.clips[i].audioPath || before.clips[i].raw != after.clips[i].raw) {
+            return false;
+        }
+    }
+    auto stripMasterEffects = [](const QJsonObject& raw) {
+        QJsonObject copy = raw;
+        copy.remove(QStringLiteral("tracks"));
+        auto master = copy.value(QStringLiteral("master")).toObject();
+        master.remove(QStringLiteral("effects"));
+        copy.insert(QStringLiteral("master"), master);
+        return copy;
+    };
+    if (stripMasterEffects(before.raw) != stripMasterEffects(after.raw)) { return false; }
+
+    struct Toggle {
+        BlockProcessor* processor;
+        bool bypassed;
+    };
+    std::vector<Toggle> toggles;
+    const auto collect = [&](const QJsonArray& oldFx, const QJsonArray& newFx, const Processors& procs) -> bool {
+        if (oldFx.size() != newFx.size()) { return false; }
+        for (qsizetype i = 0; i < oldFx.size(); ++i) {
+            auto a = oldFx[i].toObject();
+            auto b = newFx[i].toObject();
+            const bool aEn = a.value(QStringLiteral("enabled")).toBool(false);
+            const bool bEn = b.value(QStringLiteral("enabled")).toBool(false);
+            a.remove(QStringLiteral("enabled"));
+            b.remove(QStringLiteral("enabled"));
+            if (a != b) { return false; }
+            if (aEn == bEn) { continue; }
+            const std::string id = b.value(QStringLiteral("id")).toString().toStdString();
+            if (id.empty()) { return false; }
+            BlockProcessor* found = nullptr;
+            for (const auto& proc : procs) {
+                if (proc && proc->id == id) { found = proc.get(); break; }
+            }
+            if (!found) { return false; }
+            toggles.push_back({found, !bEn});
+        }
+        return true;
+    };
+
+    if (!collect(before.raw.value(QStringLiteral("master")).toObject().value(QStringLiteral("effects")).toArray(),
+                 after.raw.value(QStringLiteral("master")).toObject().value(QStringLiteral("effects")).toArray(),
+                 plan.processors)) {
+        return false;
+    }
+    for (std::size_t i = 0; i < before.tracks.size(); ++i) {
+        const auto& oldT = before.tracks[i];
+        const auto& newT = after.tracks[i];
+        if (oldT.id != newT.id || oldT.type != newT.type || oldT.muted != newT.muted || oldT.solo != newT.solo ||
+            oldT.volumeDb != newT.volumeDb || oldT.pan != newT.pan || oldT.mixerOverride != newT.mixerOverride) {
+            return false;
+        }
+        auto oldRaw = oldT.raw;
+        auto newRaw = newT.raw;
+        const auto oldFx = oldRaw.value(QStringLiteral("effects")).toArray();
+        const auto newFx = newRaw.value(QStringLiteral("effects")).toArray();
+        oldRaw.remove(QStringLiteral("effects"));
+        newRaw.remove(QStringLiteral("effects"));
+        if (oldRaw != newRaw) { return false; }
+        if (oldFx == newFx) { continue; }
+        const TrackPlan* bus = nullptr;
+        for (const auto& tp : plan.tracks) {
+            if (tp.trackId == newT.id) { bus = &tp; break; }
+        }
+        if (!bus || !collect(oldFx, newFx, bus->processors)) { return false; }
+    }
+    if (toggles.empty()) { return false; }
+    for (const auto& t : toggles) {
+        t.processor->setBypassed(t.bypassed);
+    }
+    return true;
+}
+
+int computeEffectivePlanLatency(const MixPlan& plan) noexcept {
+    if (!plan.state) { return 0; }
+    bool anyVoiceProc = false;
+    for (const auto& v : plan.voices) {
+        if (!v.processors.empty()) {
+            anyVoiceProc = true;
+            break;
+        }
+    }
+    int maxTrack = 0;
+    for (std::size_t i = 0; i < plan.tracks.size(); ++i) {
+        int voiceMax = 0;
+        if (anyVoiceProc) {
+            for (const auto& v : plan.voices) {
+                if (v.trackIndex == i && !v.processors.empty()) {
+                    int sum = 0;
+                    for (const auto& p : v.processors) {
+                        if (p) { sum += p->effectiveLatencySamples(); }
+                    }
+                    voiceMax = std::max(voiceMax, sum);
+                }
+            }
+        }
+        int sum = voiceMax;
+        for (const auto& p : plan.tracks[i].processors) {
+            if (p) { sum += p->effectiveLatencySamples(); }
+        }
+        maxTrack = std::max(maxTrack, sum);
+    }
+    int master = 0;
+    for (const auto& p : plan.processors) {
+        if (p) { master += p->effectiveLatencySamples(); }
+    }
+    return maxTrack + master;
+}
+
 // One mix snapshot's PCM: rings are retained across unchanged mappings and
 // released by the worker after the callback no longer reads their snapshots.
 // Thread affinity: the decode worker builds, fills and frees it. The device
@@ -267,9 +388,10 @@ struct AudioEngine::Impl {
 
     std::atomic<std::uint64_t> notifState{0};
     std::atomic<double> pendingSimulatedLatencySec{0.0};
-    std::atomic<int> pendingPdcLatencyFrames{0};
-    std::atomic<int> pendingLimiterLatencyFrames{0};
-    std::atomic<std::uint64_t> latencyEditSeq{0};
+    // Guarded by mutex: written by publishPlan/start/stop, read by drainDevicePublications.
+    int pendingPdcLatencyFrames = 0;
+    int pendingLimiterLatencyFrames = 0;
+    std::uint64_t latencyEditSeq = 0;
     std::uint64_t workerNotifSeq = 0;       // worker thread only while running
     std::uint64_t workerNotifGen = 0;       // worker thread only while running
     std::uint64_t workerLatencySeq = 0;     // worker thread only while running
@@ -660,7 +782,15 @@ struct AudioEngine::Impl {
     void drainDevicePublications() {
         const std::uint64_t state = notifState.load(std::memory_order_acquire);
         const std::uint64_t seq = state >> kNotifSeqShift;
-        const std::uint64_t latSeq = latencyEditSeq.load(std::memory_order_acquire);
+        std::uint64_t latSeq = workerLatencySeq;
+        int nextPdc = 0;
+        int nextLimiter = 0;
+        {
+            std::lock_guard lock(mutex);
+            latSeq = latencyEditSeq;
+            nextPdc = pendingPdcLatencyFrames;
+            nextLimiter = pendingLimiterLatencyFrames;
+        }
         if (seq == workerNotifSeq && latSeq == workerLatencySeq) {
             return;
         }
@@ -684,10 +814,8 @@ struct AudioEngine::Impl {
             workerNotifSeq = seq;
         }
         if (latSeq != workerLatencySeq) {
-            pdcLatencyFrames.store(pendingPdcLatencyFrames.load(std::memory_order_acquire),
-                                   std::memory_order_release);
-            masterLimiterLatencyFrames.store(pendingLimiterLatencyFrames.load(std::memory_order_acquire),
-                                             std::memory_order_release);
+            pdcLatencyFrames.store(nextPdc, std::memory_order_release);
+            masterLimiterLatencyFrames.store(nextLimiter, std::memory_order_release);
             workerLatencySeq = latSeq;
         }
         updateTotalLatency();
@@ -1048,7 +1176,7 @@ struct AudioEngine::Impl {
                 const auto hasPendingWork = [&] {
                     return stopWorker || planVersion != seenVersion ||
                            (notifState.load(std::memory_order_acquire) >> kNotifSeqShift) != workerNotifSeq ||
-                           latencyEditSeq.load(std::memory_order_acquire) != workerLatencySeq;
+                           latencyEditSeq != workerLatencySeq;
                 };
                 if (idle) {
                     wake.wait_for(lock, kIdlePoll, hasPendingWork);
@@ -1120,6 +1248,21 @@ struct AudioEngine::Impl {
             wake.notify_all();
             if (current && current->plan) {
                 serviceMixPlanControl(*current->plan);
+                const int livePdc = computeEffectivePlanLatency(*current->plan);
+                bool applyLivePdc = false;
+                {
+                    std::lock_guard lock(mutex);
+                    if (latencyEditSeq == workerLatencySeq && planVersion == current->planVersion &&
+                        livePdc != pdcLatencyFrames.load(std::memory_order_acquire)) {
+                        pdcLatencyFrames.store(livePdc, std::memory_order_release);
+                        applyLivePdc = true;
+                    }
+                }
+                if (applyLivePdc) {
+                    updateTotalLatency();
+                    publishDevice(running.load(std::memory_order_acquire) &&
+                                  !deviceStopped.load(std::memory_order_relaxed));
+                }
             }
             if (current) {
                 const bool primed = fill(*current, cmd.playing);
@@ -1184,12 +1327,15 @@ std::uint64_t AudioEngine::publishPlan(std::shared_ptr<const Timeline> timeline)
         plan=std::make_shared<MixPlan>(*previous);
         automation::refreshMixerAutomation(*timeline,*plan);
         applyMixPlanStage("automationMeters",*timeline,*plan);
+    } else if (timeline && document && previous->state && applyInPlaceEffectBypass(*document,*timeline,*previous)) {
+        // Bypass toggled in place on live processors so PDC delay lines crossfade smoothly without reset.
+        plan=std::make_shared<MixPlan>(*previous);
     } else {
         plan=std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
         prepareMixPlan(*plan,d.sampleRate);
         d.planBuilds.fetch_add(1);
     }
-    const int nextPdcLatency = planLatencySamples(*plan);
+    const int nextPdcLatency = computeEffectivePlanLatency(*plan);
     const int nextLimiterLatency = plan->masterLimiterEnabled
         ? MasterLimiter::latencyFramesForRate(d.sampleRate) : 0;
     std::uint64_t version = 0;
@@ -1197,9 +1343,9 @@ std::uint64_t AudioEngine::publishPlan(std::shared_ptr<const Timeline> timeline)
         std::lock_guard lock(d.mutex);
         d.controlTimeline=std::move(timeline);
         d.plan=std::move(plan);
-        d.pendingPdcLatencyFrames.store(nextPdcLatency, std::memory_order_release);
-        d.pendingLimiterLatencyFrames.store(nextLimiterLatency, std::memory_order_release);
-        d.latencyEditSeq.fetch_add(1, std::memory_order_acq_rel);
+        d.pendingPdcLatencyFrames = nextPdcLatency;
+        d.pendingLimiterLatencyFrames = nextLimiterLatency;
+        ++d.latencyEditSeq;
         version = ++d.planVersion;
         d.wake.notify_all();
     }
@@ -1216,7 +1362,10 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     d.workerNotifGen = 0;
     d.workerLatencySeq = 0;
     d.publishedNotifSeq = 0;
-    d.latencyEditSeq.store(0, std::memory_order_release);
+    {
+        std::lock_guard lock(d.mutex);
+        d.latencyEditSeq = 0;
+    }
     d.deviceStopped.store(false, std::memory_order_release);
     const auto fail = [&](const std::string& why) {
         if (error) *error = why;
@@ -1283,8 +1432,11 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     const int initialLimiter = d.plan->masterLimiterEnabled ? d.masterLimiter->latencySamples() : 0;
     d.pdcLatencyFrames.store(initialPdc, std::memory_order_release);
     d.masterLimiterLatencyFrames.store(initialLimiter, std::memory_order_release);
-    d.pendingPdcLatencyFrames.store(initialPdc, std::memory_order_release);
-    d.pendingLimiterLatencyFrames.store(initialLimiter, std::memory_order_release);
+    {
+        std::lock_guard lock(d.mutex);
+        d.pendingPdcLatencyFrames = initialPdc;
+        d.pendingLimiterLatencyFrames = initialLimiter;
+    }
     d.deviceLatencySec.store(initialDevLatency, std::memory_order_release);
     d.updateTotalLatency();
     d.driver = std::make_unique<CallbackClockDriver>(d.feed);
@@ -1350,8 +1502,11 @@ void AudioEngine::stop() {
     if (wasRunning) d.publishDevice(false);
     d.pdcLatencyFrames.store(0, std::memory_order_release);
     d.masterLimiterLatencyFrames.store(0, std::memory_order_release);
-    d.pendingPdcLatencyFrames.store(0, std::memory_order_release);
-    d.pendingLimiterLatencyFrames.store(0, std::memory_order_release);
+    {
+        std::lock_guard lock(d.mutex);
+        d.pendingPdcLatencyFrames = 0;
+        d.pendingLimiterLatencyFrames = 0;
+    }
     d.published.store(nullptr);
     d.inUse.store(nullptr);
     d.wrapSlot.store(nullptr);
@@ -1454,6 +1609,7 @@ std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, doubl
     if (interrupted()) return {};
     const MixPlan plan = buildMixPlan(timeline);
     prepareMixPlan(plan, sampleRate);
+    reprobeMixPlanLatency(plan, sampleRate);
     const double sr = sampleRate;
     const auto total = static_cast<std::int64_t>(std::llround(durationMs * sr / 1000.0));
     MasterLimiter limiter;
