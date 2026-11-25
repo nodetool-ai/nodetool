@@ -56,6 +56,18 @@ nodetool game --help
 | Sketches | `cli-sketch` |
 | JavaScript script documents | `cli-script` |
 
+`nodetool feature <id> [args...]` runs the commands of one installed feature
+directly. The ID is a feature name from the table above. The arguments after it
+go to that feature's own command list, so `nodetool feature cli-game --help`
+prints only the `game` command. Use it to check that one feature loads. An
+ID with no catalog entry reports `Command feature <id> must have exactly one
+catalog entry`.
+
+```bash
+nodetool feature cli-game --help
+nodetool feature cli-workflow workflows examples --no-keys
+```
+
 Install only the command features needed for the work. They register their own
 commands with the default CLI. The sections below include these optional commands.
 For MCP alone, the standalone `nodetool-mcp` executable is also available from
@@ -502,6 +514,8 @@ Manage workflows. Reads the local database by default; `--api-url` targets a rem
 
 **Subcommands:** `list` and `get` (both take `--api-url <url>` and `--json`, and `list` takes `--limit <n>`, default 100), `run`, `examples`, `export-dsl`, `export-script`, `export-example`, `export-bundle`, `import-bundle`,
 `migrate-code-inputs`
+
+With the `cli-workflow` feature installed, `examples`, `export-dsl`, `export-script`, `export-example`, `export-bundle` and `import-bundle` also run without the `workflows` prefix. `nodetool examples --no-keys` is the same as `nodetool workflows examples --no-keys`.
 
 ```bash
 # List all workflows
