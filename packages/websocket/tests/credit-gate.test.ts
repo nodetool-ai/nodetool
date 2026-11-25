@@ -101,4 +101,23 @@ describe("credit gate", () => {
       expect(decision.refusal).toBe("insufficient_credits");
     }
   });
+
+  it("ignores non-finite reservations so NaN cannot poison subsequent spend checks", async () => {
+    reserveSpend(USER, "bad-nan", Number.NaN);
+    expect(reservedSpendUsd(USER)).toBe(0);
+
+    const overBudget = await admitSpend(USER, 100);
+    expect(overBudget.allowed).toBe(false);
+    releaseSpend(USER, "bad-nan");
+  });
+
+  it("sanitizes a NaN estimate in admitSpend so existing reservations still enforce the balance", async () => {
+    reserveSpend(USER, "real-job", 4);
+    try {
+      const decision = await admitSpend(USER, Number.NaN);
+      expect(decision.allowed).toBe(false);
+    } finally {
+      releaseSpend(USER, "real-job");
+    }
+  });
 });
