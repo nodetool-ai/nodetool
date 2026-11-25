@@ -155,9 +155,11 @@ function assetIdFromReference(value: string): string | null {
     path = value.slice("asset://".length);
   } else if (value.startsWith("/api/storage/")) {
     path = value.slice("/api/storage/".length);
+  } else if (value.startsWith("api/storage/")) {
+    path = value.slice("api/storage/".length);
   } else if (routePath !== null) {
     path = routePath.slice("/api/storage/".length);
-  } else if (/^(?:memory|file|s3|supabase):\/\//.test(value)) {
+  } else if (/^(?:memory|file|s3|supabase):\/\//i.test(value)) {
     path = value.slice(value.indexOf("://") + 3);
   } else if (!value.includes("://") && !value.startsWith("/api/")) {
     path = value;
@@ -177,8 +179,9 @@ const scopedAssetStorageKey = (
 const requiresStoredAssetOwnership = (value: string): boolean =>
   value.startsWith("asset://") ||
   value.startsWith("/api/storage/") ||
+  value.startsWith("api/storage/") ||
   storageRoutePathOfUrl(value) !== null ||
-  /^(?:memory|file|s3|supabase):\/\//.test(value);
+  /^(?:memory|file|s3|supabase):\/\//i.test(value);
 
 /**
  * Whether a reference names a key under the run's own project. Only the path
@@ -190,18 +193,31 @@ const isRunProjectStorageReference = (
   run: Parameters<CapabilityImpl>[0],
   value: string
 ): boolean => {
+  const routePath = storageRoutePathOfUrl(value);
+  let rawKey: string;
+  if (value.startsWith("/api/storage/")) {
+    rawKey = value.slice("/api/storage/".length);
+  } else if (value.startsWith("api/storage/")) {
+    rawKey = value.slice("api/storage/".length);
+  } else if (routePath !== null) {
+    rawKey = routePath.slice("/api/storage/".length);
+  } else if (/^(?:memory|file|s3|supabase):\/\//i.test(value)) {
+    rawKey = value.slice(value.indexOf("://") + 3);
+  } else {
+    return false;
+  }
   // An http(s) URL is read by its parsed pathname, where `%2e%2e` is already a
   // dot segment. A storage adapter decodes the key, so check it decoded too.
-  let path = (storageRoutePathOfUrl(value) ?? value).split(/[?#]/)[0] ?? "";
+  let key = rawKey.split(/[?#]/)[0] ?? "";
   try {
-    path = decodeURIComponent(path);
+    key = decodeURIComponent(key);
   } catch {
     return false;
   }
-  if (path.split(/[\\/]/).some((segment) => segment === ".." || segment === ".")) {
+  if (key.split(/[\\/]/).some((segment) => segment === ".." || segment === ".")) {
     return false;
   }
-  return path.includes(`projects/${resolveProjectId(run, {})}/`);
+  return key.startsWith(`projects/${resolveProjectId(run, {})}/`);
 };
 
 /**

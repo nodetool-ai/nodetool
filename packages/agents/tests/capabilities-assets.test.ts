@@ -619,6 +619,35 @@ describe("asset references never read the host disk", () => {
     })) as Record<string, unknown>;
     expect(read.success).toBe(false);
   });
+
+  it("save_asset refuses a relative api/storage/ key owned by another user", async () => {
+    const foreign = new TextEncoder().encode("other user's bytes");
+    const storage = {
+      store: async (key: string) => `memory://${key}`,
+      retrieve: async (uri: string) =>
+        uri === "api/storage/other-user/abc.png" ? foreign : null
+    };
+    const ctx = makeContext({ storage });
+    const saved = (await asTool("save_asset", ctx).process(ctx, {
+      name: "stolen.png",
+      source: "api/storage/other-user/abc.png"
+    })) as Record<string, unknown>;
+    expect(saved.success).toBe(false);
+  });
+
+  it("read_asset refuses a foreign key that merely contains projects/<id>/ mid-path", async () => {
+    const foreign = new TextEncoder().encode("other user's bytes");
+    const storage = {
+      store: async (key: string) => `memory://${key}`,
+      retrieve: async (uri: string) =>
+        uri === "/api/storage/other-user/projects/default/abc.png" ? foreign : null
+    };
+    const ctx = makeContext({ storage });
+    const read = (await asTool("read_asset", ctx).process(ctx, {
+      name: "/api/storage/other-user/projects/default/abc.png"
+    })) as Record<string, unknown>;
+    expect(read.success).toBe(false);
+  });
 });
 
 describe("view_image", () => {

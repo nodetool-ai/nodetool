@@ -32,6 +32,7 @@ describe("isStorageReference", () => {
     expect(isStorageReference("s3://bucket/x.png")).toBe(true);
     expect(isStorageReference("memory://x.png")).toBe(true);
     expect(isStorageReference("/api/storage/x.png")).toBe(true);
+    expect(isStorageReference("api/storage/x.png")).toBe(true);
     expect(isStorageReference("asset://x")).toBe(false);
     expect(isStorageReference("https://example.com/x.png")).toBe(false);
   });
@@ -95,6 +96,12 @@ describe("ownedStorageReference", () => {
     const { context } = contextOwning([OWN_ID]);
     const decision = await ownedStorageReference(context, `/api/storage/${OTHER_ID}.png`);
     expect(decision.ok).toBe(false);
+    const relative = await ownedStorageReference(
+      context,
+      `api/storage/victim-user/${OTHER_ID}.png`,
+      "p1"
+    );
+    expect(relative.ok).toBe(false);
   });
 
   it("rewrites an owned object to its asset so the read is owner-checked", async () => {

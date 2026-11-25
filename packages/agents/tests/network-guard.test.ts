@@ -51,6 +51,17 @@ describe("assertFetchUrlAllowed", () => {
     );
   });
 
+  it.each([
+    "http://localhost./api",
+    "http://sub.localhost./api",
+    "http://ip6-localhost/api",
+    "http://ip6-loopback/api",
+    "http://metadata.google.internal/computeMetadata/v1/",
+    "http://printer.local/status"
+  ])("refuses internal/local hostname %s", (url) => {
+    expect(() => assertFetchUrlAllowed(url)).toThrow(/blocked/);
+  });
+
   it("refuses a non-http scheme", () => {
     expect(() => assertFetchUrlAllowed("file:///etc/passwd")).toThrow(
       /unsupported scheme/
