@@ -10,6 +10,7 @@ import { faqPageSchema, toQaPairs } from "@/lib/jsonld";
 import FeaturesSection from "@/components/FeaturesSection";
 import UseCasesShowcase from "@/components/UseCasesShowcase";
 import LocalModelDemo from "@/components/LocalModelDemo";
+import NodeEditorDemo from "@/components/NodeEditorDemo";
 import WorkflowFlowDiagram from "@/components/WorkflowFlowDiagram";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import {
@@ -180,6 +181,12 @@ export default async function SolutionPage({
 
         {/* Shared body sections */}
         {entry.sections.includes("local-demo") && <LocalModelDemo />}
+        {entry.sections.includes("node-editor-demo") && (
+          <NodeEditorDemo
+            title="Try the editor before you install."
+            intro="This is Studio's node editor, open in your browser with no account and no download. In Studio the same canvas runs on your computer, and each node can use a local model. Edit the prompt, rewire the nodes, and press Run to see how a graph runs."
+          />
+        )}
         {entry.sections.includes("features") && <FeaturesSection />}
         {entry.sections.includes("use-cases") && <UseCasesShowcase />}
 
