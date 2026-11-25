@@ -53,7 +53,8 @@
     "@nodetool-ai/project-services": "*",
     "@nodetool-ai/error-trace-services": "*",
     "@nodetool-ai/core-nodes": "*",
-    "@nodetool-ai/text-nodes": "*"
+    "@nodetool-ai/text-nodes": "*",
+    "@nodetool-ai/search-services": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

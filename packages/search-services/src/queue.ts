@@ -15,6 +15,7 @@ import {
 import type { SearchResourceType } from "@nodetool-ai/protocol";
 import type { ExtractedChunk } from "./extract.js";
 import { METADATA_FIELDS } from "./index-writer.js";
+import { removeChunkVectors } from "./semantic.js";
 
 /** How long one claim holds an item. */
 export const LEASE_MS = 10 * 60 * 1000;
@@ -118,7 +119,8 @@ export async function completeItem(
   result: { status: "ready"; chunks: ExtractedChunk[] } | { status: "skipped"; reason: string }
 ): Promise<boolean> {
   const now = new Date().toISOString();
-  return withTransaction(async () => {
+  let removed: string[] = [];
+  const done = await withTransaction(async () => {
     const db = getPortableDb();
     const updated = await db
       .update(searchItems)
@@ -158,9 +160,17 @@ export async function completeItem(
       for (let start = 0; start < rows.length; start += 200) {
         await db.insert(searchChunks).values(rows.slice(start, start + 200));
       }
+      const kept = new Set(rows.map((row) => row.id));
+      removed = stale.filter((id) => !kept.has(id));
+    } else {
+      removed = stale;
     }
     return true;
   });
+  // Chunk ids are reused, so a replaced chunk's vector is overwritten when it
+  // is embedded again. Only ids that are gone need their vectors removed.
+  if (removed.length > 0) await removeChunkVectors(item.userId, removed);
+  return done;
 }
 
 /** Record a failed attempt: retry with backoff, or stay `failed` after the last one. */

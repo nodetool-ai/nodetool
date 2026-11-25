@@ -61,6 +61,7 @@ import {
 import {
   isSearchIndexerProcess,
   runSearchIndexerProcess,
+  installLibraryQueryEmbedder,
   searchIndexerMode,
   superviseSearchIndexer,
   type SearchIndexerSupervisor
@@ -561,7 +562,9 @@ try {
   const indexerMode = searchIndexerMode();
   if (indexerMode === "child") {
     searchIndexer = superviseSearchIndexer();
-  } else if (indexerMode === "off") {
+  }
+  installLibraryQueryEmbedder(searchIndexer);
+  if (indexerMode === "off") {
     // No indexer: keep metadata current here. File content is not indexed.
     const runLibraryReconcile = (): void => {
       void reconcileLibraryIndex()

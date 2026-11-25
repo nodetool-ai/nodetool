@@ -1,0 +1,173 @@
+/**
+ * The embed step of the indexer (docs/plans/library-search.md, D14.3): give
+ * every chunk a vector in the configured space. A chunk whose
+ * `embedding_space` differs is embedded again, so a model change rebuilds the
+ * index in the background and resumes where it stopped (D11). When an owner
+ * has no chunk left outside the new space, the old collections are dropped.
+ */
+
+import { and, eq, gte, inArray, isNull, like, ne, notInArray, or, sql, sum } from "drizzle-orm";
+import { createLogger } from "@nodetool-ai/config";
+import { getPortableDb, predictions, searchChunks, searchItems } from "@nodetool-ai/models";
+import {
+  dropLibraryCollections,
+  embeddingDailySpendLimit,
+  excludedEmbeddingProjects,
+  IN_PROCESS_EMBEDDING_PROVIDERS,
+  libraryCollection,
+  libraryEmbedder,
+  libraryEmbeddingSpace,
+  LIBRARY_PARTITION_KEY,
+  normalize,
+  type EmbeddingSpace
+} from "./semantic.js";
+
+const log = createLogger("nodetool.search.embed");
+
+/** Chunks embedded in one provider call. */
+export const EMBED_BATCH_SIZE = 32;
+/** Job id prefix of hosted embedding calls, so their cost can be summed. */
+export const EMBED_JOB_PREFIX = "library-search-";
+
+export interface EmbedPass {
+  embedded: number;
+  /** Why the pass stopped early, if it did. */
+  stopped?: "spend_limit";
+}
+
+/** Chunks of `userId` (or every owner) that lack a vector in `space`, outside excluded projects. */
+function unembeddedCondition(space: EmbeddingSpace, excluded: readonly string[], userId?: string) {
+  const parts = [
+    ne(searchItems.state, "excluded"),
+    or(isNull(searchChunks.embedding_space), ne(searchChunks.embedding_space, space.id))
+  ];
+  if (excluded.length > 0) parts.push(notInArray(searchItems.project_id, [...excluded]));
+  if (userId) parts.push(eq(searchItems.user_id, userId));
+  return and(...parts);
+}
+
+/** How many of an owner's chunks still need a vector in `space`. */
+export async function unembeddedChunkCount(userId: string, space: EmbeddingSpace): Promise<number> {
+  const excluded = await excludedEmbeddingProjects();
+  const [row] = await getPortableDb()
+    .select({ n: sql<number>`COUNT(*)` })
+    .from(searchChunks)
+    .innerJoin(searchItems, eq(searchItems.id, searchChunks.item_id))
+    .where(unembeddedCondition(space, excluded, userId));
+  return Number(row?.n ?? 0);
+}
+
+/** US dollars hosted library embedding cost since midnight UTC. */
+async function spentToday(): Promise<number> {
+  const midnight = new Date();
+  midnight.setUTCHours(0, 0, 0, 0);
+  const [row] = await getPortableDb()
+    .select({ total: sum(predictions.cost) })
+    .from(predictions)
+    .where(and(like(predictions.job_id, `${EMBED_JOB_PREFIX}%`), gte(predictions.created_at, midnight.toISOString())));
+  return Number(row?.total ?? 0);
+}
+
+/** The text a chunk is embedded as: its item title gives a short passage its subject. */
+function embeddingText(title: string, field: string, text: string): string {
+  return field === "title" ? text : `${title}\n\n${text}`;
+}
+
+/**
+ * Embed chunks that lack a vector in the configured space, newest and
+ * highest-priority items first, until none are left or `limit` chunks were
+ * embedded. Does nothing without a configured space and an embedder.
+ */
+export async function runEmbedPass(
+  options: { limit?: number; batchSize?: number; signal?: AbortSignal } = {}
+): Promise<EmbedPass> {
+  const pass: EmbedPass = { embedded: 0 };
+  const space = await libraryEmbeddingSpace();
+  const embedder = libraryEmbedder();
+  if (!space || !embedder) return pass;
+  const excluded = await excludedEmbeddingProjects();
+  const limit = options.limit ?? Number.POSITIVE_INFINITY;
+  const batchSize = options.batchSize ?? EMBED_BATCH_SIZE;
+  const hosted = !IN_PROCESS_EMBEDDING_PROVIDERS.has(space.provider) && space.provider !== "ollama";
+  const touched = new Set<string>();
+
+  while (pass.embedded < limit && !options.signal?.aborted) {
+    if (hosted) {
+      const cap = await embeddingDailySpendLimit();
+      if (cap !== null && (await spentToday()) >= cap) {
+        log.info("Library embedding paused at the daily spend limit", { limit_usd: cap });
+        pass.stopped = "spend_limit";
+        break;
+      }
+    }
+    const rows = await getPortableDb()
+      .select({
+        id: searchChunks.id,
+        field: searchChunks.field,
+        text: searchChunks.text,
+        userId: searchItems.user_id,
+        projectId: searchItems.project_id,
+        itemId: searchItems.id,
+        title: searchItems.title
+      })
+      .from(searchChunks)
+      .innerJoin(searchItems, eq(searchItems.id, searchChunks.item_id))
+      .where(unembeddedCondition(space, excluded))
+      .orderBy(sql`${searchItems.priority} DESC`, sql`${searchItems.updated_at} DESC`, searchChunks.id)
+      .limit(Math.min(batchSize, limit - pass.embedded));
+    if (rows.length === 0) break;
+
+    // One owner per provider call keeps the cost on that owner's ledger.
+    const owner = rows[0]!.userId;
+    const batch = rows.filter((row) => row.userId === owner);
+    const vectors = await embedder.embed(
+      batch.map((row) => embeddingText(row.title, row.field, row.text)),
+      space,
+      owner
+    );
+    if (vectors.length !== batch.length) {
+      throw new Error(`The embedding model returned ${vectors.length} vectors for ${batch.length} passages.`);
+    }
+    const collection = await libraryCollection(owner, space);
+    await collection.upsert(
+      batch.map((row, index) => ({
+        id: row.id,
+        embedding: normalize(vectors[index]!),
+        metadata: { item_id: row.itemId, [LIBRARY_PARTITION_KEY]: row.projectId }
+      }))
+    );
+    // Mark only chunks whose text is still the embedded text: a chunk the
+    // extractor replaced meanwhile keeps its null space and is embedded again.
+    const db = getPortableDb();
+    for (const row of batch) {
+      await db
+        .update(searchChunks)
+        .set({ embedding_space: space.id })
+        .where(and(eq(searchChunks.id, row.id), eq(searchChunks.text, row.text)));
+    }
+    pass.embedded += batch.length;
+    touched.add(owner);
+  }
+
+  // An owner whose chunks are all in the new space no longer needs the old ones.
+  for (const userId of touched) {
+    if ((await unembeddedChunkCount(userId, space)) === 0) {
+      await dropLibraryCollections(userId, space);
+    }
+  }
+  return pass;
+}
+
+/** Chunk ids of the given items, for removing their vectors. */
+export async function chunkIdsOfItems(itemIds: readonly string[]): Promise<Map<string, string[]>> {
+  const byUser = new Map<string, string[]>();
+  for (let start = 0; start < itemIds.length; start += 500) {
+    const rows = await getPortableDb()
+      .select({ id: searchChunks.id, userId: searchItems.user_id })
+      .from(searchChunks)
+      .innerJoin(searchItems, eq(searchItems.id, searchChunks.item_id))
+      .where(inArray(searchChunks.item_id, itemIds.slice(start, start + 500)));
+    for (const row of rows) byUser.set(row.userId, [...(byUser.get(row.userId) ?? []), row.id]);
+  }
+  return byUser;
+}

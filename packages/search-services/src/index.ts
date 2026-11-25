@@ -18,7 +18,9 @@ export {
   type ReconcileResult
 } from "./sync.js";
 export {
+  fuseRankings,
   libraryIndexState,
+  MIN_SEMANTIC_SIMILARITY,
   queryTerms,
   searchLibrary,
   snippetOf,
@@ -26,6 +28,7 @@ export {
   type LibrarySearchHit,
   type LibrarySearchIndexState,
   type LibrarySearchMatch,
+  type LibrarySearchMode,
   type LibrarySearchRequest,
   type LibrarySearchResult
 } from "./query.js";
@@ -63,3 +66,24 @@ export {
   type LibraryReadRequest,
   type LibraryReadResult
 } from "./read.js";
+export {
+  DEFAULT_LOCAL_EMBEDDING,
+  IN_PROCESS_EMBEDDING_PROVIDERS,
+  LIBRARY_SEARCH_SETTINGS,
+  dropLibraryCollections,
+  embedLibraryQuery,
+  embeddingSpace,
+  libraryCollectionName,
+  libraryCollections,
+  libraryEmbedder,
+  libraryEmbeddingSpace,
+  setLibraryEmbedder,
+  setLibraryQueryEmbedder,
+  setLibraryVectorProvider,
+  setupLibrarySemanticSearch,
+  type EmbeddingSpace,
+  type LibraryEmbedder,
+  type LibraryQueryEmbedder
+} from "./semantic.js";
+export { EMBED_JOB_PREFIX, runEmbedPass, unembeddedChunkCount, type EmbedPass } from "./embed.js";
+export { libraryIndexStatus, rebuildLibraryIndex, type LibraryIndexStatus } from "./status.js";

@@ -11,7 +11,9 @@ import {
   withTransaction
 } from "@nodetool-ai/models";
 import type { SearchResourceType } from "@nodetool-ai/protocol";
+import { chunkIdsOfItems } from "./embed.js";
 import { EXTRACTOR_VERSION, type ExtractedItem } from "./extract.js";
+import { removeChunkVectors } from "./semantic.js";
 
 /** `|a|b|`, so a filter on one tag is a `LIKE '%|a|%'` match. */
 export function encodeTags(tags: readonly string[]): string | null {
@@ -36,7 +38,8 @@ export async function writeIndexedItem(
   options: { priority?: number } = {}
 ): Promise<{ pending: boolean }> {
   const now = new Date().toISOString();
-  return withTransaction(async () => {
+  let removed: string[] = [];
+  const written = await withTransaction(async () => {
     const db = getPortableDb();
     const [existing] = await db
       .select({
@@ -96,11 +99,22 @@ export async function writeIndexedItem(
           }
         : {};
     const settled = state === "ready" && !extracted.hasContent ? { indexed_at: now, error: null } : {};
+    const chunks = extracted.chunks.filter((chunk) => chunk.text.trim());
     if (existing) {
       await db
         .update(searchItems)
         .set({ ...row, ...queued, ...settled })
         .where(eq(searchItems.id, itemId));
+      const previous = await db
+        .select({ id: searchChunks.id })
+        .from(searchChunks)
+        .where(
+          and(eq(searchChunks.item_id, itemId), inArray(searchChunks.field, [...METADATA_FIELDS]))
+        );
+      removed = previous.map((chunk) => chunk.id).filter((id) => {
+        const ordinal = Number(id.slice(id.lastIndexOf("_m") + 2));
+        return !(Number.isInteger(ordinal) && ordinal < chunks.length);
+      });
       await db
         .delete(searchChunks)
         .where(
@@ -109,7 +123,6 @@ export async function writeIndexedItem(
     } else {
       await db.insert(searchItems).values({ id: itemId, ...row, ...queued, ...settled });
     }
-    const chunks = extracted.chunks.filter((chunk) => chunk.text.trim());
     if (chunks.length > 0) {
       await db.insert(searchChunks).values(
         chunks.map((chunk, ordinal) => ({
@@ -124,11 +137,14 @@ export async function writeIndexedItem(
     }
     return { pending: state === "pending" };
   });
+  if (removed.length > 0) await removeChunkVectors(extracted.userId, removed);
+  return written;
 }
 
 /** Remove items and their chunks. Ids are item ids. */
 export async function deleteItemsById(itemIds: readonly string[]): Promise<void> {
   if (itemIds.length === 0) return;
+  const vectorIds = await chunkIdsOfItems(itemIds);
   await withTransaction(async () => {
     const db = getPortableDb();
     for (let start = 0; start < itemIds.length; start += 500) {
@@ -137,6 +153,7 @@ export async function deleteItemsById(itemIds: readonly string[]): Promise<void>
       await db.delete(searchItems).where(inArray(searchItems.id, batch));
     }
   });
+  for (const [userId, chunkIds] of vectorIds) await removeChunkVectors(userId, chunkIds);
 }
 
 /** Remove the item for one source row, if it has one. */

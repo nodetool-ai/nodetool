@@ -9,6 +9,8 @@ import {
   SqliteVecStore,
   VecCollection,
   VecNotFoundError,
+  DIMENSION_METADATA_KEY,
+  PARTITION_KEY_METADATA_KEY,
   type EmbeddingFunction
 } from "./sqlite-vec-store.js";
 import {
@@ -157,7 +159,8 @@ class SqliteVecCollectionAdapter implements VectorCollection {
       queryEmbeddings: query.embedding ? [query.embedding] : undefined,
       queryURIs: query.uri ? [query.uri] : undefined,
       nResults: query.topK ?? 10,
-      whereDocument
+      whereDocument,
+      partition: query.partition
     });
 
     const ids = r.ids[0] ?? [];
@@ -232,10 +235,12 @@ export class SqliteVecProvider implements VectorProvider {
 
   async listCollections(): Promise<CollectionInfo[]> {
     const cols = await this.store.listCollections();
-    return cols.map((c) => ({
-      name: c.name,
-      metadata: c.metadata
-    }));
+    return cols.map((c) => {
+      const info: CollectionInfo = { name: c.name, metadata: c.metadata };
+      const dimension = c.metadata[DIMENSION_METADATA_KEY];
+      if (typeof dimension === "number") info.dimension = dimension;
+      return info;
+    });
   }
 
   async getCollection(opts: GetCollectionOptions): Promise<VectorCollection> {
@@ -256,11 +261,13 @@ export class SqliteVecProvider implements VectorProvider {
   async createCollection(
     opts: CreateCollectionOptions
   ): Promise<VectorCollection> {
-    const metadata = opts.metadata
+    const metadata: Record<string, string | number | boolean> = opts.metadata
       ? (Object.fromEntries(
-          Object.entries(opts.metadata).filter(([, v]) => v !== null)
+          Object.entries(opts.metadata).filter(([, v]) => v !== null && v !== undefined)
         ) as Record<string, string | number | boolean>)
-      : undefined;
+      : {};
+    if (opts.partitionKey) metadata[PARTITION_KEY_METADATA_KEY] = opts.partitionKey;
+    if (opts.dimension && opts.dimension > 0) metadata[DIMENSION_METADATA_KEY] = opts.dimension;
     const inner = await this.store.createCollection({
       name: opts.name,
       metadata,

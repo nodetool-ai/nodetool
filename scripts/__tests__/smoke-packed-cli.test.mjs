@@ -16,7 +16,7 @@ import { packageManagerInvocation } from "../package-manager.mjs";
 
 it("retains the published command inventory across independent feature checks", () => {
   const verified = new Set([...REQUIRED_COMMANDS, ...Object.values(FEATURE_REQUIRED_COMMANDS).flat()]);
-  for (const command of ["run", "info", "serve", "chat", "workflows", "jobs", "assets", "models", "storage", "secrets", "settings", "mcp", "projects", "package", "packs", "runtime", "worker", "deploy", "agent", "db", "debug", "app", "apps", "validate", "timeline", "sketch", "game", "jsscript", "reliability", "node", "generate", "extension", "eval", "jtbd", "affected", "harness", "collections", "costs", "errors", "generations", "runs", "auth", "telegram", "help"]) {
+  for (const command of ["run", "info", "serve", "chat", "workflows", "jobs", "assets", "models", "storage", "secrets", "settings", "mcp", "projects", "package", "packs", "runtime", "worker", "deploy", "agent", "db", "debug", "app", "apps", "validate", "timeline", "sketch", "game", "jsscript", "reliability", "node", "generate", "extension", "eval", "jtbd", "affected", "harness", "collections", "search", "costs", "errors", "generations", "runs", "auth", "telegram", "help"]) {
     expect(verified.has(command), `No independent packed check owns ${command}`).toBe(true);
   }
 });

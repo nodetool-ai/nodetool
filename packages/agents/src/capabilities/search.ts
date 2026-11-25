@@ -124,6 +124,8 @@ const search: CapabilityExport = {
     const projectId = await scopeProjectId(run, params);
     if (projectId) request.projectId = projectId;
     if (isNonBlankString(params["cursor"])) request.cursor = params["cursor"];
+    const mode = params["mode"];
+    if (mode === "keyword" || mode === "semantic" || mode === "auto") request.mode = mode;
 
     const result = await searchLibrary(request);
     const names = await projectNames(userId, result.hits.map((hit) => hit.projectId));
@@ -161,7 +163,7 @@ const search: CapabilityExport = {
       total: result.total,
       index: result.index
     };
-    if (params["mode"] === "semantic") {
+    if (params["mode"] === "semantic" && result.index.mode === "keyword" && !result.index.note) {
       answer.note = "Search by meaning is not set up for this library, so this was a keyword search.";
     }
     if (hits.some((hit) => hit.matches.length > 0)) answer.notice = UNTRUSTED_NOTICE;

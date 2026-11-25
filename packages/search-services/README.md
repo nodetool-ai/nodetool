@@ -77,13 +77,49 @@ const result = await searchLibrary({
   limit: 20
 });
 // result.hits[n].matches: [{ field: "prompt", snippet: "…red fox…", locator }]
-// result.index: { mode: "keyword", pending, failed }
+// result.index: { mode: "hybrid" | "semantic" | "keyword", pending, failed, note? }
 ```
 
 A query matches an item when one passage holds every word as a word prefix,
 or when its title contains the query. Full-text hits rank first. A query of
 one or two characters matches the start of a title. An empty query lists
 items newest first. Matching is case-insensitive on both dialects.
+
+## Search by meaning
+
+When an embedding model is set (`NODETOOL_SEARCH_SEMANTIC`,
+`NODETOOL_SEARCH_EMBEDDING_PROVIDER` and `NODETOOL_SEARCH_EMBEDDING_MODEL`, as
+settings in the `Library Search` group or as
+[environment variables](../../docs/environment-variables.md)), the indexer
+embeds every chunk after extracting it, and a query runs a vector search beside
+the lexical one. The two rankings merge by reciprocal rank fusion and
+`index.mode` is `hybrid`. `mode: "keyword"` skips the vector layer and
+`mode: "semantic"` ranks by meaning alone.
+
+- Vectors live in managed collections of the default vector provider, one per
+  owner and model, named with the `nodetool_library__` prefix and partitioned
+  by project. A record holds the chunk id, the vector, and the item and
+  project ids. Authoring surfaces (the collections router and REST route, the
+  collection tools, `nodetool collections` and the `vector.*` nodes) refuse
+  them. `nodetool search status` shows them.
+- A vector hit is joined to its item under the caller's user id and filters,
+  so it can never return another owner's item. A hit whose chunk is gone is
+  dropped and its vector deleted.
+- The host installs the embedder. In a server, local models (Transformers.js,
+  node-llama-cpp) load only in the indexer process, and the server asks it for
+  query vectors over IPC. A hosted model runs through the generation seam, so
+  its cost lands in the prediction ledger. When no vector is available the
+  query matches words and `index.note` says why.
+- Each chunk records the space its vector is in. Changing the model embeds the
+  chunks again into a new collection while the old one keeps answering. When
+  none is left, the old collection is dropped.
+- `libraryIndexStatus(userId)` reports items by state and vector coverage.
+  `rebuildLibraryIndex(userId, "vectors" | "all")` queues a rebuild.
+
+The headless commands are `nodetool search query|read|status|setup|rebuild|indexer`
+([CLI reference](../../docs/cli.md#nodetool-search)).
+
+## Reading a passage
 
 `readLibraryPassage({ userId, id, locator, before, after })` returns the
 passage at a match's locator and its neighbours, from the index, without

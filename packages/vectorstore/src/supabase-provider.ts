@@ -31,7 +31,7 @@ import {
   type VectorQuery,
   type VectorRecord
 } from "./provider.js";
-import type { EmbeddingFunction } from "./sqlite-vec-store.js";
+import { PARTITION_KEY_METADATA_KEY, type EmbeddingFunction } from "./sqlite-vec-store.js";
 
 // ---------------------------------------------------------------------------
 // Options
@@ -335,6 +335,19 @@ class SupabaseCollectionAdapter implements VectorCollection {
     }));
   }
 
+  /** The metadata filter with the partition key's value added, when a partition is named. */
+  private withPartition(
+    metadata: SplitFilter["metadata"],
+    partition: string | undefined
+  ): SplitFilter["metadata"] {
+    if (partition === undefined) return metadata;
+    const key = this.state.metadata[PARTITION_KEY_METADATA_KEY];
+    if (typeof key !== "string" || !key) {
+      throw new Error(`Collection '${this.state.name}' has no partition key.`);
+    }
+    return { ...(metadata ?? {}), [key]: partition };
+  }
+
   async query(query: VectorQuery): Promise<VectorMatch[]> {
     const split = splitFilter(query.filter);
     const topK = query.topK ?? 10;
@@ -352,7 +365,7 @@ class SupabaseCollectionAdapter implements VectorCollection {
         p_collection: this.state.name,
         p_query_embedding: encodePgVector(queryEmbedding),
         p_match_count: topK,
-        p_metadata_filter: split.metadata,
+        p_metadata_filter: this.withPartition(split.metadata, query.partition),
         p_document_match: split.documentMatch
       });
       if (error) {
@@ -565,7 +578,9 @@ export class SupabaseProvider implements VectorProvider {
     opts: CreateCollectionOptions
   ): Promise<VectorCollection> {
     const metric = opts.metric ?? "cosine";
-    const metadata = opts.metadata ?? {};
+    const metadata: CollectionMetadata = opts.partitionKey
+      ? { ...(opts.metadata ?? {}), [PARTITION_KEY_METADATA_KEY]: opts.partitionKey }
+      : (opts.metadata ?? {});
     const dimension = opts.dimension ?? null;
 
     const client = this.getClient();

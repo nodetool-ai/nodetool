@@ -6,7 +6,7 @@ export const COMMAND_FEATURES: Readonly<Record<string, string>> = {
   jobs: "cli-workflow", assets: "cli-workflow", secrets: "cli-workflow",
   debug: "cli-workflow", node: "cli-workflow", settings: "cli-workflow",
   runs: "cli-workflow", generate: "cli-workflow", generations: "cli-workflow",
-  projects: "cli-workflow", collections: "cli-workflow",
+  projects: "cli-workflow", collections: "cli-workflow", search: "cli-workflow",
   errors: "cli-workflow", costs: "cli-workflow",
   "export-script": "cli-workflow", "export-dsl": "cli-workflow",
   "export-example": "cli-workflow", examples: "cli-workflow", "export-bundle": "cli-workflow", "import-bundle": "cli-workflow",

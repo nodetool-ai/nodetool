@@ -1,6 +1,9 @@
 export {
   OWNER_METADATA_KEY,
   RESERVED_COLLECTION_METADATA_KEYS,
+  MANAGED_COLLECTION_PREFIX,
+  MANAGED_METADATA_KEY,
+  isManagedCollection,
   MAX_COLLECTION_NAME_LENGTH,
   collectionOwner,
   canAccessCollection,
@@ -97,6 +100,8 @@ export {
   VecNotFoundError,
   getDefaultStore,
   resetDefaultStore,
+  DIMENSION_METADATA_KEY,
+  PARTITION_KEY_METADATA_KEY,
   type CollectionMetadata,
   type CollectionInfo,
   type DocumentRecord,
