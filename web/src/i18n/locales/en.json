@@ -9056,7 +9056,8 @@
         "provider-options": "Provider options",
         "observability": "Observability",
         "data-and-storage": "Data & storage",
-        "other": "Other"
+        "other": "Other",
+        "library-search": "Library search"
       },
       "credentials": {
         "genericButton": "Get your API key",
@@ -20818,6 +20819,46 @@
       "scriptMissing": "Script not found: {{name}}",
       "scriptEmpty": "This script has no lines yet.",
       "openScript": "Open script"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Name",
+      "prompt": "Prompt",
+      "description": "Description",
+      "body": "Text",
+      "caption": "Caption",
+      "transcript": "Transcript"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Library",
+      "indexing": "Indexing the library: {{ready}} of {{total}} items ready",
+      "embedding": "Passages left to embed for search by meaning: {{count}}",
+      "noMatch": "Nothing in your library matches “{{query}}”. Searched every project."
+    },
+    "setup": {
+      "heading": "Search by meaning",
+      "description": "Find items by what they show or say, not only by the words in them. The local model runs on this computer, so your content stays here.",
+      "local": "Download the local model ({{size}} MB)",
+      "provider": "Use a provider model",
+      "providerNote": "Passages that will be sent to the provider you choose: {{count}}",
+      "notNow": "Not now"
+    },
+    "status": {
+      "loadFailed": "Could not read the library search status.",
+      "items": "{{ready}} of {{total}} items indexed",
+      "pending": "Waiting to be indexed: {{count}}",
+      "failed": "Could not be indexed: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "Search by meaning uses {{model}}.",
+      "semanticOff": "Search by meaning is off. Keyword search works without it.",
+      "vectors": "{{embedded}} of {{total}} passages embedded",
+      "rebuildingVectors": "The new model is embedding the library. Search uses the previous model until it finishes.",
+      "turnOff": "Turn search by meaning off",
+      "embedAgain": "Embed again",
+      "rebuild": "Rebuild index",
+      "providerHint": "To use a provider model, set the provider and model above. Passages sent to that provider: {{count}}"
     }
   }
 }

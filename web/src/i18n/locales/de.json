@@ -9056,7 +9056,8 @@
         "provider-options": "Anbieteroptionen",
         "observability": "Beobachtbarkeit",
         "data-and-storage": "Daten und Speicher",
-        "other": "Sonstiges"
+        "other": "Sonstiges",
+        "library-search": "Bibliothekssuche"
       },
       "credentials": {
         "genericButton": "API-Schlüssel abrufen",
@@ -20818,6 +20819,46 @@
       "scriptMissing": "Sprechertext nicht gefunden: {{name}}",
       "scriptEmpty": "Dieser Sprechertext hat noch keine Zeilen.",
       "openScript": "Sprechertext öffnen"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Name",
+      "prompt": "Prompt",
+      "description": "Beschreibung",
+      "body": "Text",
+      "caption": "Bildunterschrift",
+      "transcript": "Transkript"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Bibliothek",
+      "indexing": "Bibliothek wird indiziert: {{ready}} von {{total}} Elementen bereit",
+      "embedding": "Abschnitte, die für die Suche nach Bedeutung noch eingebettet werden: {{count}}",
+      "noMatch": "Nichts in deiner Bibliothek passt zu „{{query}}“. Alle Projekte durchsucht."
+    },
+    "setup": {
+      "heading": "Suche nach Bedeutung",
+      "description": "Finde Elemente nach dem, was sie zeigen oder sagen, nicht nur nach den Wörtern darin. Das lokale Modell läuft auf diesem Computer, deine Inhalte bleiben hier.",
+      "local": "Lokales Modell herunterladen ({{size}} MB)",
+      "provider": "Modell eines Anbieters verwenden",
+      "providerNote": "Abschnitte, die an den gewählten Anbieter gesendet werden: {{count}}",
+      "notNow": "Nicht jetzt"
+    },
+    "status": {
+      "loadFailed": "Der Status der Bibliothekssuche konnte nicht gelesen werden.",
+      "items": "{{ready}} von {{total}} Elementen indiziert",
+      "pending": "Warten auf Indizierung: {{count}}",
+      "failed": "Nicht indizierbar: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "Die Suche nach Bedeutung verwendet {{model}}.",
+      "semanticOff": "Die Suche nach Bedeutung ist aus. Die Stichwortsuche funktioniert ohne sie.",
+      "vectors": "{{embedded}} von {{total}} Abschnitten eingebettet",
+      "rebuildingVectors": "Das neue Modell bettet die Bibliothek ein. Bis dahin sucht das vorherige Modell.",
+      "turnOff": "Suche nach Bedeutung ausschalten",
+      "embedAgain": "Neu einbetten",
+      "rebuild": "Index neu aufbauen",
+      "providerHint": "Für ein Anbietermodell oben Anbieter und Modell eintragen. An diesen Anbieter gesendete Abschnitte: {{count}}"
     }
   }
 }

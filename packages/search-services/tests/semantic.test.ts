@@ -256,6 +256,7 @@ describe.each(dialects)("library index status on %s", (_name, init) => {
     const status = await libraryIndexStatus(USER);
     expect(status.items).toMatchObject({ ready: 3, pending: 0, failed: 0, total: 3 });
     expect(status.semantic.space).toBe("fake:concepts-v1");
+    expect(status.semantic.choice).toBe("on");
     expect(status.semantic.remaining).toBe(0);
     expect(status.semantic.embedded).toBe(status.chunks);
     expect(status.semantic.collections).toEqual(["fake:concepts-v1"]);
@@ -266,6 +267,18 @@ describe.each(dialects)("library index status on %s", (_name, init) => {
     expect(rebuilding.semantic.collections).toEqual([]);
     await runEmbedPass();
     expect((await libraryIndexStatus(USER)).semantic.remaining).toBe(0);
+  });
+
+  it("reports the choice as unset until someone turns search by meaning on or off", async () => {
+    await init();
+    delete process.env.NODETOOL_SEARCH_EMBEDDING_PROVIDER;
+    expect((await libraryIndexStatus(USER)).semantic.choice).toBe("unset");
+    process.env.NODETOOL_SEARCH_SEMANTIC = "off";
+    try {
+      expect((await libraryIndexStatus(USER)).semantic.choice).toBe("off");
+    } finally {
+      delete process.env.NODETOOL_SEARCH_SEMANTIC;
+    }
   });
 
   it("a full rebuild extracts every file again", async () => {

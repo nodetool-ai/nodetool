@@ -338,6 +338,11 @@ export interface AssetWithPath extends Asset {
   folder_name: string;
   folder_path: string;
   folder_id: string;
+  /** From a search: the best passage that matched, when it was not the name. */
+  match?: {
+    field: "title" | "prompt" | "description" | "body" | "caption" | "transcript";
+    snippet: string;
+  } | null;
 }
 
 export interface AssetSearchResult {

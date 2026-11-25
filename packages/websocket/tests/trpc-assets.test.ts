@@ -545,6 +545,36 @@ describe("assets router", () => {
       });
       expect(result.is_global_search).toBe(false);
     });
+
+    it("forwards the filters and returns what matched", async () => {
+      const a1 = makeAsset({ id: "a1", name: "render.png" });
+      searchMock().mockResolvedValue({
+        ...found([a1]),
+        hits: new Map([["a1", { matches: [{ field: "prompt", snippet: "a red fox", locator: null }] }]])
+      });
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.assets.search({
+        query: "fox",
+        favorite: true,
+        tags: ["hero"],
+        model: "flux-dev",
+        created_after: "2026-01-01",
+        created_before: "2026-02-01"
+      });
+
+      expect(searchAssets).toHaveBeenCalledWith("user-1", "fox", {
+        limit: 200,
+        filter: {
+          favorite: true,
+          tags: ["hero"],
+          model: "flux-dev",
+          createdAfter: "2026-01-01",
+          createdBefore: "2026-02-01"
+        }
+      });
+      expect(result.assets[0]!.match).toEqual({ field: "prompt", snippet: "a red fox", locator: null });
+    });
   });
 
   // ── update: tags ────────────────────────────────────────────────

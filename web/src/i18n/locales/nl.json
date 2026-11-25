@@ -9056,7 +9056,8 @@
         "provider-options": "Provider opties",
         "observability": "Waarneembaarheid",
         "data-and-storage": "Gegevens & opslag",
-        "other": "Anders"
+        "other": "Anders",
+        "library-search": "Zoeken in bibliotheek"
       },
       "credentials": {
         "genericButton": "Haal uw API-sleutel op",
@@ -20818,6 +20819,46 @@
       "scriptMissing": "Script niet gevonden: {{name}}",
       "scriptEmpty": "Dit script heeft nog geen regels.",
       "openScript": "Script openen"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Naam",
+      "prompt": "Prompt",
+      "description": "Beschrijving",
+      "body": "Tekst",
+      "caption": "Onderschrift",
+      "transcript": "Transcript"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Bibliotheek",
+      "indexing": "Bibliotheek indexeren: {{ready}} van {{total}} items klaar",
+      "embedding": "Passages die nog ingebed moeten worden voor zoeken op betekenis: {{count}}",
+      "noMatch": "Niets in je bibliotheek komt overeen met ‘{{query}}’. Alle projecten doorzocht."
+    },
+    "setup": {
+      "heading": "Zoeken op betekenis",
+      "description": "Vind items op wat ze tonen of zeggen, niet alleen op de woorden erin. Het lokale model draait op deze computer, dus je inhoud blijft hier.",
+      "local": "Lokaal model downloaden ({{size}} MB)",
+      "provider": "Model van een provider gebruiken",
+      "providerNote": "Passages die naar de gekozen provider worden gestuurd: {{count}}",
+      "notNow": "Niet nu"
+    },
+    "status": {
+      "loadFailed": "De status van het zoeken in de bibliotheek kon niet worden gelezen.",
+      "items": "{{ready}} van {{total}} items geïndexeerd",
+      "pending": "Wacht op indexering: {{count}}",
+      "failed": "Kon niet worden geïndexeerd: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "Zoeken op betekenis gebruikt {{model}}.",
+      "semanticOff": "Zoeken op betekenis staat uit. Zoeken op woorden werkt zonder.",
+      "vectors": "{{embedded}} van {{total}} passages ingebed",
+      "rebuildingVectors": "Het nieuwe model bedt de bibliotheek in. Tot het klaar is, zoekt het vorige model.",
+      "turnOff": "Zoeken op betekenis uitzetten",
+      "embedAgain": "Opnieuw inbedden",
+      "rebuild": "Index opnieuw opbouwen",
+      "providerHint": "Stel hierboven de provider en het model in om een providermodel te gebruiken. Passages naar die provider: {{count}}"
     }
   }
 }

@@ -9200,7 +9200,8 @@
         "provider-options": "Opções de provedor",
         "observability": "Observabilidade",
         "data-and-storage": "Dados e armazenamento",
-        "other": "Outro"
+        "other": "Outro",
+        "library-search": "Pesquisa na biblioteca"
       },
       "credentials": {
         "genericButton": "Obtenha sua chave API",
@@ -21137,6 +21138,46 @@
       "scriptMissing": "Roteiro não encontrado: {{name}}",
       "scriptEmpty": "Este roteiro ainda não tem falas.",
       "openScript": "Abrir roteiro"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Nome",
+      "prompt": "Prompt",
+      "description": "Descrição",
+      "body": "Texto",
+      "caption": "Legenda",
+      "transcript": "Transcrição"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Biblioteca",
+      "indexing": "Indexando a biblioteca: {{ready}} de {{total}} itens prontos",
+      "embedding": "Trechos que faltam incorporar para a pesquisa por significado: {{count}}",
+      "noMatch": "Nada na sua biblioteca corresponde a “{{query}}”. Todos os projetos foram pesquisados."
+    },
+    "setup": {
+      "heading": "Pesquisa por significado",
+      "description": "Encontre itens pelo que mostram ou dizem, não só pelas palavras que contêm. O modelo local roda neste computador, então seu conteúdo fica aqui.",
+      "local": "Baixar o modelo local ({{size}} MB)",
+      "provider": "Usar um modelo de provedor",
+      "providerNote": "Trechos que serão enviados ao provedor escolhido: {{count}}",
+      "notNow": "Agora não"
+    },
+    "status": {
+      "loadFailed": "Não foi possível ler o estado da pesquisa na biblioteca.",
+      "items": "{{ready}} de {{total}} itens indexados",
+      "pending": "Aguardando indexação: {{count}}",
+      "failed": "Não foi possível indexar: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "A pesquisa por significado usa {{model}}.",
+      "semanticOff": "A pesquisa por significado está desativada. A pesquisa por palavras funciona sem ela.",
+      "vectors": "{{embedded}} de {{total}} trechos incorporados",
+      "rebuildingVectors": "O novo modelo está incorporando a biblioteca. A pesquisa usa o modelo anterior até terminar.",
+      "turnOff": "Desativar a pesquisa por significado",
+      "embedAgain": "Incorporar novamente",
+      "rebuild": "Reconstruir o índice",
+      "providerHint": "Para usar um modelo de provedor, defina o provedor e o modelo acima. Trechos enviados a esse provedor: {{count}}"
     }
   }
 }

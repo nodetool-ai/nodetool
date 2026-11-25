@@ -22,6 +22,7 @@ import { useAuthStore } from '../stores/AuthStore';
 import type { RootStackParamList, TabScreenNavigationProp, TabScreenRouteProp } from '../navigation/types';
 import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState';
 import { useTheme } from '../hooks/useTheme';
+import { FONT_SIZE, SPACING } from '../utils/tokens';
 import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -46,6 +47,9 @@ const assetIconName = (asset: Asset): keyof typeof Ionicons.glyphMap => {
   return 'document-outline';
 };
 
+/** A search result says what matched when it was not the name. */
+type SearchedAsset = Asset & { match?: { field: string; snippet: string } | null };
+
 const AssetCard = React.memo(function AssetCard({
   asset,
   size,
@@ -54,7 +58,7 @@ const AssetCard = React.memo(function AssetCard({
   onPress,
   onLongPress,
 }: {
-  asset: Asset;
+  asset: SearchedAsset;
   size: number;
   colors: ThemeColors;
   shadows: ThemeShadows;
@@ -114,6 +118,14 @@ const AssetCard = React.memo(function AssetCard({
         >
           {asset.name}
         </Text>
+        {asset.match && asset.match.field !== 'title' ? (
+          <Text
+            style={[styles.cardMatch, { color: colors.textSecondary }]}
+            numberOfLines={2}
+          >
+            {asset.match.snippet}
+          </Text>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -141,7 +153,7 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
     { enabled: !isSearching }
   );
   const activeQuery = isSearching ? searchAssetsQuery : folderAssetsQuery;
-  const assets = (activeQuery.data?.assets ?? []) as Asset[];
+  const assets = (activeQuery.data?.assets ?? []) as SearchedAsset[];
   const isLoading = activeQuery.isLoading;
   const isRefreshing = activeQuery.isRefetching;
   const loadError = activeQuery.error
@@ -300,7 +312,7 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
   }, [handlePickImage, handlePickDocument]);
 
   const renderAsset = useCallback(
-    ({ item }: { item: Asset }) => (
+    ({ item }: { item: SearchedAsset }) => (
       <AssetCard
         asset={item}
         size={itemSize}
@@ -527,5 +539,9 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  cardMatch: {
+    fontSize: FONT_SIZE.caption,
+    marginTop: SPACING.xxs,
   },
 });

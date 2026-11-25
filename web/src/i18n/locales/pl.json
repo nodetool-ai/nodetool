@@ -9344,7 +9344,8 @@
         "provider-options": "Opcje dostawcy",
         "observability": "Obserwowalność",
         "data-and-storage": "Dane i pamięć",
-        "other": "Inne"
+        "other": "Inne",
+        "library-search": "Wyszukiwanie w bibliotece"
       },
       "credentials": {
         "genericButton": "Zdobądź klucz API",
@@ -21456,6 +21457,46 @@
       "scriptMissing": "Nie znaleziono skryptu: {{name}}",
       "scriptEmpty": "Ten skrypt nie ma jeszcze kwestii.",
       "openScript": "Otwórz skrypt"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Nazwa",
+      "prompt": "Prompt",
+      "description": "Opis",
+      "body": "Tekst",
+      "caption": "Podpis",
+      "transcript": "Transkrypcja"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Biblioteka",
+      "indexing": "Indeksowanie biblioteki: gotowe {{ready}} z {{total}} elementów",
+      "embedding": "Fragmenty do osadzenia na potrzeby wyszukiwania według znaczenia: {{count}}",
+      "noMatch": "Nic w Twojej bibliotece nie pasuje do „{{query}}”. Przeszukano wszystkie projekty."
+    },
+    "setup": {
+      "heading": "Wyszukiwanie według znaczenia",
+      "description": "Znajduj elementy po tym, co pokazują lub mówią, a nie tylko po zawartych w nich słowach. Model lokalny działa na tym komputerze, więc Twoje treści zostają tutaj.",
+      "local": "Pobierz model lokalny ({{size}} MB)",
+      "provider": "Użyj modelu dostawcy",
+      "providerNote": "Fragmenty, które zostaną wysłane do wybranego dostawcy: {{count}}",
+      "notNow": "Nie teraz"
+    },
+    "status": {
+      "loadFailed": "Nie udało się odczytać stanu wyszukiwania w bibliotece.",
+      "items": "Zaindeksowano {{ready}} z {{total}} elementów",
+      "pending": "Czeka na indeksowanie: {{count}}",
+      "failed": "Nie udało się zaindeksować: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "Wyszukiwanie według znaczenia używa {{model}}.",
+      "semanticOff": "Wyszukiwanie według znaczenia jest wyłączone. Wyszukiwanie słów działa bez niego.",
+      "vectors": "Osadzono {{embedded}} z {{total}} fragmentów",
+      "rebuildingVectors": "Nowy model osadza bibliotekę. Do czasu zakończenia wyszukiwanie używa poprzedniego modelu.",
+      "turnOff": "Wyłącz wyszukiwanie według znaczenia",
+      "embedAgain": "Osadź ponownie",
+      "rebuild": "Przebuduj indeks",
+      "providerHint": "Aby użyć modelu dostawcy, ustaw powyżej dostawcę i model. Fragmenty wysłane do tego dostawcy: {{count}}"
     }
   }
 }
