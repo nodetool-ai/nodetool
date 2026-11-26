@@ -8,7 +8,7 @@ vi.mock("openai", () => {
   return {
     OpenAI: function () {
       return {
-        chat: { completions: { create: mockCreate } }
+        responses: { create: mockCreate }
       };
     }
   };
@@ -73,6 +73,43 @@ describe("the openai web-search backend", () => {
     // With a fake key the openai SDK will throw, caught and returned as error
     expect(result).toHaveProperty("error");
     expect(typeof result.error).toBe("string");
+  });
+
+  it("returns the answer text and cited sources from a Responses API result", async () => {
+    setApiKey("fake");
+    mockCreate.mockResolvedValueOnce({
+      output: [
+        {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: "Rates held.",
+              annotations: [
+                {
+                  type: "url_citation",
+                  url: "https://a.example",
+                  title: "A",
+                  start_index: 0,
+                  end_index: 11
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+    const result = await openAiWebSearch(ctx, { query: "rates" });
+    expect(mockCreate.mock.calls.at(-1)?.[0]).toMatchObject({
+      tools: [{ type: "web_search" }],
+      input: "rates"
+    });
+    expect(result).toEqual({
+      query: "rates",
+      results: "Rates held.",
+      sources: [{ title: "A", url: "https://a.example", snippet: "Rates held." }],
+      status: "success"
+    });
   });
 });
 
