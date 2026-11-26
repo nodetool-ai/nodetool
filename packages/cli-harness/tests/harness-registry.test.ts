@@ -390,6 +390,12 @@ describe("docs pointers resolve", () => {
 });
 
 describe("harness gate", () => {
+  it("runs the performance ratchet with the native design contracts", () => {
+    const harness = HARNESSES.find((entry) => entry.id === "native-ui-design");
+    expect(harness?.command).toContain("native/ui_primitives/tools/check_performance.py");
+    expect(harness?.selfcheck?.command).toContain("native/ui_primitives/tools/check_performance.py");
+  });
+
   it.each([
     "native/ui_primitives/qml/EditorButton.qml",
     "native/chat/qml/ChatComposer.qml",

@@ -1,0 +1,1650 @@
+{
+  "native/chat/qml/ChatComposer.qml": {
+    "R1": 10,
+    "R2": 1
+  },
+  "native/chat/qml/ChatPanel.qml": {
+    "R1": 2
+  },
+  "native/chat/qml/ConversationView.qml": {
+    "R1": 3
+  },
+  "native/chat/qml/DeleteThreadDialog.qml": {
+    "R1": 1
+  },
+  "native/chat/qml/Main.qml": {
+    "R1": 1,
+    "R2": 1
+  },
+  "native/chat/qml/MessageDelegate.qml": {
+    "R1": 19,
+    "R2": 10
+  },
+  "native/chat/qml/ProviderKeyDialog.qml": {
+    "R1": 3
+  },
+  "native/chat/qml/ThreadList.qml": {
+    "R1": 1
+  },
+  "native/chat/src/main.cpp": {
+    "R4": 2
+  },
+  "native/chat/src/runtime/ChatSession.h": {
+    "R3": 20
+  },
+  "native/entities/qml/EntityCard.qml": {
+    "R1": 1
+  },
+  "native/entities/qml/EntityImagePickerDialog.qml": {
+    "K11": 1,
+    "R1": 3,
+    "R2": 1
+  },
+  "native/entities/qml/EntityKind.qml": {
+    "R1": 3
+  },
+  "native/files/qml/FilesPanel.qml": {
+    "R1": 2,
+    "R2": 4
+  },
+  "native/files/src/ProjectFiles.h": {
+    "R3": 1
+  },
+  "native/gpu-preview/src/GpuFrameSource.h": {
+    "R3": 1
+  },
+  "native/gpu-preview/src/ShaderFrameSource.h": {
+    "R3": 1
+  },
+  "native/media-player/src/VideoFrameItem.h": {
+    "R5-painted": 1
+  },
+  "native/media/qml/AssetGallery.qml": {
+    "K11": 3,
+    "R1": 10,
+    "R2": 2
+  },
+  "native/media/qml/AssetGrid.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/media/qml/AssetItem.qml": {
+    "R1": 4
+  },
+  "native/media/src/AssetListModel.h": {
+    "R3": 1
+  },
+  "native/model-picker/qml/ModelPicker.qml": {
+    "K11": 5,
+    "R1": 4
+  },
+  "native/model-picker/qml/ModelPickerButton.qml": {
+    "R1": 1
+  },
+  "native/model-picker/src/ModelPickerCatalog.h": {
+    "R3": 6
+  },
+  "native/node-editor/qml/ActionPanel.qml": {
+    "K11": 2,
+    "R1": 9,
+    "R2": 1
+  },
+  "native/node-editor/qml/AssetPropertyEditor.qml": {
+    "R1": 10,
+    "R2": 1
+  },
+  "native/node-editor/qml/AuthoredControls.qml": {
+    "R1": 3
+  },
+  "native/node-editor/qml/CanvasDropPanel.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/CanvasMedia.qml": {
+    "R1": 4
+  },
+  "native/node-editor/qml/CanvasTabStrip.qml": {
+    "K11": 1,
+    "R1": 1
+  },
+  "native/node-editor/qml/CardMediaPlayer.qml": {
+    "K11": 1,
+    "R1": 5
+  },
+  "native/node-editor/qml/Catalog.qml": {
+    "R1": 15,
+    "R2": 10
+  },
+  "native/node-editor/qml/CodePropertyEditor.qml": {
+    "R2": 4
+  },
+  "native/node-editor/qml/CodeSyntax.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/CollectionPropertyEditor.qml": {
+    "R1": 5,
+    "R2": 1
+  },
+  "native/node-editor/qml/ColorPropertyEditor.qml": {
+    "K11": 1,
+    "R1": 5
+  },
+  "native/node-editor/qml/ColumnsEditor.qml": {
+    "R1": 3
+  },
+  "native/node-editor/qml/ComfyWorkflowDialog.qml": {
+    "R1": 3,
+    "R2": 1
+  },
+  "native/node-editor/qml/CommandMenu.qml": {
+    "R1": 3
+  },
+  "native/node-editor/qml/CompatibleNodePicker.qml": {
+    "K11": 2,
+    "R1": 4
+  },
+  "native/node-editor/qml/CompositorLayoutPanel.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/ContextMenuPanel.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/DataTableEditor.qml": {
+    "R1": 8,
+    "R2": 7
+  },
+  "native/node-editor/qml/DataframeOutput.qml": {
+    "K11": 1,
+    "R1": 5
+  },
+  "native/node-editor/qml/DocumentPropertyEditor.qml": {
+    "R1": 6,
+    "R2": 1
+  },
+  "native/node-editor/qml/DynamicPortDialog.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/DynamicPorts.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/EditorChat.qml": {
+    "K11": 2,
+    "R1": 2
+  },
+  "native/node-editor/qml/ExamplesPanel.qml": {
+    "R1": 9,
+    "R2": 2
+  },
+  "native/node-editor/qml/FilePropertyEditor.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/FindPanel.qml": {
+    "K11": 1,
+    "R1": 2
+  },
+  "native/node-editor/qml/GenerationHistory.qml": {
+    "R1": 6,
+    "R2": 1
+  },
+  "native/node-editor/qml/GenerationsPanel.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/node-editor/qml/HeaderRow.qml": {
+    "R1": 1,
+    "R2": 3
+  },
+  "native/node-editor/qml/ImageComparisonOutput.qml": {
+    "R1": 5
+  },
+  "native/node-editor/qml/ImageSizePropertyEditor.qml": {
+    "R1": 5,
+    "R2": 2
+  },
+  "native/node-editor/qml/ImageViewer.qml": {
+    "R1": 5
+  },
+  "native/node-editor/qml/InlinePropertyEditor.qml": {
+    "R1": 9,
+    "R2": 4
+  },
+  "native/node-editor/qml/InlineTitleEditor.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/Inspector.qml": {
+    "R1": 6
+  },
+  "native/node-editor/qml/LibraryPanel.qml": {
+    "K11": 1,
+    "R1": 5,
+    "R2": 1
+  },
+  "native/node-editor/qml/MediaGallery.qml": {
+    "K11": 1,
+    "R1": 9,
+    "R2": 9
+  },
+  "native/node-editor/qml/MediaListPropertyEditor.qml": {
+    "K11": 1,
+    "R1": 7
+  },
+  "native/node-editor/qml/MediaParameterPropertyEditor.qml": {
+    "R1": 8,
+    "R2": 3
+  },
+  "native/node-editor/qml/MediaPreview.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/MiniMapPopups.qml": {
+    "K11": 1,
+    "R1": 2
+  },
+  "native/node-editor/qml/Model3DPropertyEditor.qml": {
+    "R1": 4
+  },
+  "native/node-editor/qml/ModelPropertyEditor.qml": {
+    "R1": 7,
+    "R2": 3
+  },
+  "native/node-editor/qml/NodeMenu.qml": {
+    "R1": 23,
+    "R2": 7
+  },
+  "native/node-editor/qml/NotificationsPanel.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/ObjectOutput.qml": {
+    "R1": 3
+  },
+  "native/node-editor/qml/OptionalPacksSection.qml": {
+    "R1": 4,
+    "R2": 4
+  },
+  "native/node-editor/qml/PathPropertyEditor.qml": {
+    "R1": 3
+  },
+  "native/node-editor/qml/ProjectFilesDock.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/PropertyField.qml": {
+    "R1": 5
+  },
+  "native/node-editor/qml/ProviderPriceChip.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/QueueOverlay.qml": {
+    "K11": 5,
+    "R1": 18,
+    "R2": 11
+  },
+  "native/node-editor/qml/QueuePanel.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/RecordTypeEditor.qml": {
+    "R1": 5,
+    "R2": 1
+  },
+  "native/node-editor/qml/RemainingResourcePropertyEditor.qml": {
+    "K11": 4,
+    "R1": 12,
+    "R2": 5
+  },
+  "native/node-editor/qml/RichOutput.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/node-editor/qml/RunOutput.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/node-editor/qml/RunTracePanel.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/ServerSyncPanel.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/SetupPanel.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/node-editor/qml/ShortcutKeyboard.qml": {
+    "K11": 2,
+    "R1": 6
+  },
+  "native/node-editor/qml/StatusBar.qml": {
+    "R1": 1
+  },
+  "native/node-editor/qml/StructuredPropertyEditor.qml": {
+    "R1": 7
+  },
+  "native/node-editor/qml/TextOutput.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/Toolbar.qml": {
+    "R1": 1,
+    "R2": 1
+  },
+  "native/node-editor/qml/ToolsPropertyEditor.qml": {
+    "K11": 2,
+    "R1": 7,
+    "R2": 2
+  },
+  "native/node-editor/qml/TraceAttributeList.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/TraceLogDetails.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/TraceLogList.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/TraceSpanDetails.qml": {
+    "R1": 3
+  },
+  "native/node-editor/qml/TraceSpanLane.qml": {
+    "R1": 2
+  },
+  "native/node-editor/qml/TraceSpanPicker.qml": {
+    "R1": 5,
+    "R2": 2
+  },
+  "native/node-editor/qml/VersionGraphPreview.qml": {
+    "R1": 5,
+    "R2": 1,
+    "R5-canvas": 1
+  },
+  "native/node-editor/qml/VersionHistoryPanel.qml": {
+    "R1": 7,
+    "R2": 1
+  },
+  "native/node-editor/qml/WorkerProfilesDialog.qml": {
+    "R1": 3,
+    "R2": 1
+  },
+  "native/node-editor/qml/WorkersPanel.qml": {
+    "R1": 5,
+    "R2": 1
+  },
+  "native/node-editor/qml/WorkflowBrowser.qml": {
+    "R1": 4,
+    "R2": 3
+  },
+  "native/node-editor/qml/WorkflowDetails.qml": {
+    "R1": 1,
+    "R2": 1
+  },
+  "native/node-editor/qml/WorkflowPropertyEditor.qml": {
+    "K11": 1,
+    "R1": 11,
+    "R2": 3
+  },
+  "native/node-editor/src/canvas/MiniMapItem.h": {
+    "R5-painted": 1
+  },
+  "native/node-editor/src/graph/CanvasDropController.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/graph/CompatibleNodePicker.h": {
+    "R3": 2
+  },
+  "native/node-editor/src/graph/InlinePropertyPresenter.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/interfaces/DocumentTabs.h": {
+    "R3": 2
+  },
+  "native/node-editor/src/interfaces/ExampleGallery.h": {
+    "R3": 2
+  },
+  "native/node-editor/src/interfaces/FirstWorkflowGuide.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/interfaces/GenerationActivity.h": {
+    "R3": 2
+  },
+  "native/node-editor/src/interfaces/NodeCatalog.h": {
+    "R3": 4
+  },
+  "native/node-editor/src/interfaces/NodeInspector.h": {
+    "R3": 4
+  },
+  "native/node-editor/src/interfaces/Notifications.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/interfaces/PriceChip.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/interfaces/RunState.h": {
+    "R3": 2
+  },
+  "native/node-editor/src/interfaces/Selection.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/interfaces/StatusModel.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/interfaces/WorkerFleet.h": {
+    "R3": 5
+  },
+  "native/node-editor/src/library/LibraryBrowser.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/media/AudioWaveform.h": {
+    "R3": 1,
+    "R5-painted": 1
+  },
+  "native/node-editor/src/media/LiveAudioVisualizer.h": {
+    "R5-painted": 1
+  },
+  "native/node-editor/src/media/MediaGalleryModel.h": {
+    "R3": 2
+  },
+  "native/node-editor/src/media/VideoFrameView.h": {
+    "R5-painted": 2
+  },
+  "native/node-editor/src/properties/ComfyWorkflowLoader.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/properties/CompositorLayoutEditor.h": {
+    "R3": 3
+  },
+  "native/node-editor/src/properties/DynamicPortsController.h": {
+    "R3": 4
+  },
+  "native/node-editor/src/run/GenerationHistory.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/run/RunOutputModel.h": {
+    "R3": 2
+  },
+  "native/node-editor/src/run/RunTraceController.h": {
+    "R3": 8
+  },
+  "native/node-editor/src/server/ComfyBackend.h": {
+    "R3": 3
+  },
+  "native/node-editor/src/server/PackSetup.h": {
+    "R3": 2
+  },
+  "native/node-editor/src/server/SetupController.h": {
+    "R3": 3
+  },
+  "native/node-editor/src/server/StoryDocumentSource.h": {
+    "R3": 1
+  },
+  "native/node-editor/src/server/WorkflowBrowser.h": {
+    "R3": 2
+  },
+  "native/node-editor/src/server/WorkflowSession.h": {
+    "R3": 5
+  },
+  "native/node-editor/src/server/WorkflowVersions.h": {
+    "R3": 4
+  },
+  "native/node-editor/src/ui/EditorWindow.h": {
+    "R3": 1
+  },
+  "native/script/qml/ScriptDocumentEditor.qml": {
+    "K11": 1,
+    "R1": 4
+  },
+  "native/script/src/ScriptLines.h": {
+    "R3": 3
+  },
+  "native/storyboard/qml/LinkDocumentDialog.qml": {
+    "K11": 1,
+    "R1": 3,
+    "R2": 1
+  },
+  "native/storyboard/qml/ShotCard.qml": {
+    "R1": 6
+  },
+  "native/storyboard/qml/ShotEditForm.qml": {
+    "K11": 3,
+    "R1": 7,
+    "R2": 1
+  },
+  "native/storyboard/qml/ShotEditViewer.qml": {
+    "K11": 1,
+    "R1": 8
+  },
+  "native/storyboard/qml/ShotEditor.qml": {
+    "K11": 1,
+    "R1": 19,
+    "R2": 5
+  },
+  "native/storyboard/qml/ShotGraphicsEditor.qml": {
+    "K11": 1,
+    "R1": 5,
+    "R2": 1
+  },
+  "native/storyboard/qml/ShotMediaViewer.qml": {
+    "K11": 2,
+    "R1": 6
+  },
+  "native/storyboard/qml/ShotTakesGallery.qml": {
+    "K11": 3,
+    "R1": 10
+  },
+  "native/storyboard/qml/StoryboardBoard.qml": {
+    "K11": 4,
+    "R1": 26,
+    "R2": 15
+  },
+  "native/storyboard/qml/StoryboardDocumentEditor.qml": {
+    "R1": 1
+  },
+  "native/storyboard/src/StoryWorkspace.h": {
+    "R3": 2
+  },
+  "native/timeline/qml/ExportVideoDialog.qml": {
+    "R1": 15,
+    "R2": 5
+  },
+  "native/timeline/qml/Inspector/AudioEffectsFields.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/Inspector/AudioGainDialog.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/Inspector/AudioGainHost.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Inspector/AudioSection.qml": {
+    "R1": 7
+  },
+  "native/timeline/qml/Inspector/CaptionStyle.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/Inspector/KeyframeAnimations.qml": {
+    "R1": 4,
+    "R2": 7
+  },
+  "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml": {
+    "R1": 7,
+    "R2": 2
+  },
+  "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml": {
+    "R1": 4,
+    "R2": 3
+  },
+  "native/timeline/qml/Inspector/KeyframeClipDiamonds.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/Inspector/MotionAnimationCatalog.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/Inspector/MotionAnimationParam.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/Inspector/ReframeFocusOverlay.qml": {
+    "R1": 6,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/Inspector/ReframePreview.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/Inspector/ReframeSection.qml": {
+    "R1": 9,
+    "R2": 3
+  },
+  "native/timeline/qml/Inspector/ShapeSection.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/Inspector/SpeedDurationDialog.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/qml/Inspector/SpeedTimeRemap.qml": {
+    "R1": 7
+  },
+  "native/timeline/qml/Inspector/TextContentInput.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Inspector/TextFillFields.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/Inspector/TextFontPicker.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/Inspector/TextStyleEdits.qml": {
+    "R1": 6
+  },
+  "native/timeline/qml/Inspector/TextStyleNumber.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Inspector/TextStyleSection.qml": {
+    "R1": 6
+  },
+  "native/timeline/qml/Inspector/TimelineInspector.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/Inspector/TransitionEasingField.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Inspector/TransitionSection.qml": {
+    "R1": 8,
+    "R2": 1
+  },
+  "native/timeline/qml/Inspector/primitives/ClipIdentityCard.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Inspector/primitives/InspectorHeader.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/Inspector/primitives/InspectorPillInput.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Inspector/primitives/InspectorSectionTitle.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Inspector/primitives/InspectorSliderRow.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/PasteAttributesDialog.qml": {
+    "K11": 1,
+    "R1": 6,
+    "R2": 3
+  },
+  "native/timeline/qml/Preferences/KeyboardLayoutPrompt.qml": {
+    "K11": 1,
+    "R1": 1
+  },
+  "native/timeline/qml/ProjectSettingsDialog.qml": {
+    "R1": 2,
+    "R2": 1
+  },
+  "native/timeline/qml/SaveBanners.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/SourceDragArea.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/SourceRangeBar.qml": {
+    "K11": 1
+  },
+  "native/timeline/qml/SourceViewerPanel.qml": {
+    "R1": 9
+  },
+  "native/timeline/qml/TimelineDocumentActions.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/TimelineEditor.qml": {
+    "R1": 4,
+    "R2": 2
+  },
+  "native/timeline/qml/TimelineListPanel.qml": {
+    "K11": 1,
+    "R1": 8,
+    "R2": 1
+  },
+  "native/timeline/qml/Tracks/AddTrackButton.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Tracks/Clip.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/Tracks/ClipBody.qml": {
+    "R1": 3,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/Tracks/ClipFadeGrips.qml": {
+    "R1": 5,
+    "R2": 1
+  },
+  "native/timeline/qml/Tracks/ClipFadeShapeMenu.qml": {
+    "K11": 1,
+    "R1": 1,
+    "R2": 1
+  },
+  "native/timeline/qml/Tracks/GroupBracket.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/Tracks/MidiNoteLines.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/Tracks/RubberBandOverlay.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Tracks/ShortcutsSheet.qml": {
+    "K11": 4,
+    "R1": 6
+  },
+  "native/timeline/qml/Tracks/TimeRuler.qml": {
+    "K11": 1,
+    "R1": 2,
+    "R2": 1
+  },
+  "native/timeline/qml/Tracks/TimelineScrollbar.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Tracks/ToolToggle.qml": {
+    "K11": 3,
+    "R1": 5
+  },
+  "native/timeline/qml/Tracks/TrackHeader.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Tracks/TrackHeaderMenu.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/Tracks/TrackLane.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/Tracks/TracksRegion.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/Tracks/TrimEditMarks.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/Tracks/automation/AutomationAddLaneHeader.qml": {
+    "K11": 1,
+    "R1": 3,
+    "R2": 1
+  },
+  "native/timeline/qml/Tracks/automation/AutomationCurveOverlay.qml": {
+    "R1": 3,
+    "R2": 2
+  },
+  "native/timeline/qml/Tracks/automation/AutomationHeaderRow.qml": {
+    "K11": 2,
+    "R1": 6,
+    "R2": 2
+  },
+  "native/timeline/qml/Tracks/automation/AutomationLaneHeader.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml": {
+    "K11": 1,
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/qml/Tracks/automation/AutomationLaneView.qml": {
+    "K11": 1,
+    "R1": 9,
+    "R2": 1,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/Tracks/automation/AutomationLanes.qml": {
+    "K11": 1,
+    "R1": 5,
+    "R2": 1
+  },
+  "native/timeline/qml/Tracks/automation/AutomationUIState.qml": {
+    "R1": 2,
+    "R2": 3
+  },
+  "native/timeline/qml/activity/ActivityPanel.qml": {
+    "K11": 1,
+    "R1": 6,
+    "R2": 5
+  },
+  "native/timeline/qml/ai/AiInspectorSection.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/ai/AiPanel.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/ai/ClipOperations.qml": {
+    "R1": 7,
+    "R2": 1
+  },
+  "native/timeline/qml/ai/GenerateToolbar.qml": {
+    "R1": 11,
+    "R2": 1
+  },
+  "native/timeline/qml/ai/LineDelivery.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/ai/RegenerateClip.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/ai/WorkflowClip.qml": {
+    "R1": 13
+  },
+  "native/timeline/qml/aiassist/TimelineAgentPanel.qml": {
+    "K11": 2,
+    "R1": 6
+  },
+  "native/timeline/qml/assets/AssetDropOverlay.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/assets/AssetExplorer.qml": {
+    "K11": 1,
+    "R1": 10,
+    "R2": 5
+  },
+  "native/timeline/qml/assets/AssetPreview.qml": {
+    "R1": 2,
+    "R2": 1
+  },
+  "native/timeline/qml/audio/AudioPanel.qml": {
+    "R1": 8,
+    "R2": 2
+  },
+  "native/timeline/qml/audio/LoudnessMeterView.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/color/ColorPanel.qml": {
+    "R1": 16,
+    "R2": 9
+  },
+  "native/timeline/qml/color/ColorWheel.qml": {
+    "R1": 2,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/color/ScopeGrid.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/color/ScopeTile.qml": {
+    "R1": 3,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/color/ScopesPanel.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/qml/dock/DockCanvas.qml": {
+    "K11": 1,
+    "R1": 10,
+    "R2": 12
+  },
+  "native/timeline/qml/dock/DockGroup.qml": {
+    "R1": 5,
+    "R2": 6
+  },
+  "native/timeline/qml/dock/DockLayoutMenu.qml": {
+    "K11": 2,
+    "R1": 2,
+    "R2": 1
+  },
+  "native/timeline/qml/dock/DockLayoutStore.h": {
+    "R3": 2
+  },
+  "native/timeline/qml/dock/DockRegionView.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/dock/DockTabStrip.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/dock/StablePanelHost.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/effectcontrols/EffectControlsDiamond.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/effectcontrols/EffectControlsGraph.qml": {
+    "R1": 11,
+    "R5-canvas": 2
+  },
+  "native/timeline/qml/effectcontrols/EffectControlsGroup.qml": {
+    "R1": 6,
+    "R2": 2
+  },
+  "native/timeline/qml/effectcontrols/EffectControlsHandle.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/effectcontrols/EffectControlsPanel.qml": {
+    "R1": 13,
+    "R2": 3
+  },
+  "native/timeline/qml/effectcontrols/EffectControlsRow.qml": {
+    "R1": 7
+  },
+  "native/timeline/qml/effectcontrols/EffectControlsRuler.qml": {
+    "R1": 2,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/effectmasks/EffectMaskOverlay.qml": {
+    "R1": 8,
+    "R2": 8
+  },
+  "native/timeline/qml/effects/EffectDropOverlay.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/effects/EffectsPanel.qml": {
+    "R1": 9,
+    "R2": 3
+  },
+  "native/timeline/qml/effects/EffectsPanelRow.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/entities/EntityAssistPopover.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/entities/EntityEditorDialog.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/qml/entities/EntityPanel.qml": {
+    "K11": 1,
+    "R1": 3
+  },
+  "native/timeline/qml/entities/EntityReferenceDialog.qml": {
+    "R1": 6,
+    "R2": 2
+  },
+  "native/timeline/qml/export/ExportFramePanel.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/export/ExportQueueCard.qml": {
+    "K11": 1
+  },
+  "native/timeline/qml/export/QuickExportButton.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/files/FilesDock.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/framehold/FrameHoldHost.qml": {
+    "R1": 3,
+    "R2": 2
+  },
+  "native/timeline/qml/fx/FxKnob.qml": {
+    "R1": 2,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/fx/FxStepper.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/instruments/BassSynthPanel.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/instruments/DeviceMenu.qml": {
+    "R1": 3,
+    "R2": 1
+  },
+  "native/timeline/qml/instruments/DrumKitPanel.qml": {
+    "R1": 2,
+    "R2": 1
+  },
+  "native/timeline/qml/instruments/InstrumentRack.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/instruments/ModalSynthPanel.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/instruments/SamplerPanel.qml": {
+    "R1": 6,
+    "R2": 1,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/instruments/WavetableSynthPanel.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/interchange/PremierePanel.qml": {
+    "K11": 1,
+    "R1": 1
+  },
+  "native/timeline/qml/markers/MarkerEditDialog.qml": {
+    "K11": 1,
+    "R1": 3,
+    "R2": 1
+  },
+  "native/timeline/qml/markers/MarkerEditHost.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/markers/MarkerLane.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/qml/markers/MarkersPanel.qml": {
+    "K11": 2,
+    "R1": 8,
+    "R2": 4
+  },
+  "native/timeline/qml/menus/ClipContextMenu.qml": {
+    "R1": 12,
+    "R2": 6
+  },
+  "native/timeline/qml/menus/ClipMenuEntry.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/menus/MenuActionItem.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/menus/TrackLaneContextMenu.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/mixer/ChannelStrip.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/mixer/ChannelStripView.qml": {
+    "R1": 3,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/mixer/EffectDevicePopover.qml": {
+    "K11": 3,
+    "R1": 8,
+    "R2": 1
+  },
+  "native/timeline/qml/mixer/InsertSlots.qml": {
+    "K11": 1,
+    "R1": 2
+  },
+  "native/timeline/qml/mixer/InstrumentDevicePopover.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/mixer/MixerCompressorCurve.qml": {
+    "K11": 1,
+    "R1": 3,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/mixer/MixerEq3Curve.qml": {
+    "K11": 1,
+    "R1": 3,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/mixer/MixerFader.qml": {
+    "R2": 1
+  },
+  "native/timeline/qml/mixer/MixerPanel.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/mixer/MixerView.qml": {
+    "K11": 1
+  },
+  "native/timeline/qml/motionpanel/MotionPanel.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/music/MusicCleanupHost.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/music/MusicClipJob.qml": {
+    "R1": 9,
+    "R2": 2
+  },
+  "native/timeline/qml/music/MusicContextBracket.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/music/MusicControlBar.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/music/MusicHint.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/music/MusicJobList.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/music/MusicMode.qml": {
+    "R1": 3,
+    "R2": 2
+  },
+  "native/timeline/qml/music/MusicPanel.qml": {
+    "R1": 6
+  },
+  "native/timeline/qml/music/MusicProjectWindow.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/music/MusicRangeOverlay.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/music/MusicSectionRange.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/music/MusicSetup.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/music/MusicTakeList.qml": {
+    "R1": 6,
+    "R2": 4
+  },
+  "native/timeline/qml/music/MusicToast.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/music/MusicToolbar.qml": {
+    "R1": 6,
+    "R2": 1
+  },
+  "native/timeline/qml/music/NewMusicProjectDialog.qml": {
+    "R1": 3,
+    "R2": 3
+  },
+  "native/timeline/qml/pianoroll/PianoRollInspector.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/pianoroll/PianoRollPanel.qml": {
+    "R1": 33,
+    "R2": 19,
+    "R5-canvas": 6
+  },
+  "native/timeline/qml/pianoroll/PianoRollToolbar.qml": {
+    "R1": 6
+  },
+  "native/timeline/qml/pianoroll/StepEditorInspector.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/qml/pianoroll/StepEditorPanel.qml": {
+    "R1": 19,
+    "R2": 31,
+    "R5-canvas": 2
+  },
+  "native/timeline/qml/pianoroll/StepEditorRow.qml": {
+    "R1": 2,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/pianoroll/StepEditorToolbar.qml": {
+    "R1": 6,
+    "R2": 4
+  },
+  "native/timeline/qml/preview/MonitorGuides.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/preview/MonitorSafeMargins.qml": {
+    "K11": 1
+  },
+  "native/timeline/qml/preview/MonitorSettingsMenu.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/preview/PreviewArea.qml": {
+    "R1": 12,
+    "R2": 4
+  },
+  "native/timeline/qml/preview/TimecodeField.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/preview/TrimMonitorView.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/providersettings/ProviderSettingsDialog.qml": {
+    "R1": 4,
+    "R2": 6
+  },
+  "native/timeline/qml/reference/ComparisonView.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/reference/ReferencePanel.qml": {
+    "R1": 6,
+    "R2": 1
+  },
+  "native/timeline/qml/remix/RemixHost.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/remix/RemixPlanStrip.qml": {
+    "K11": 2,
+    "R1": 2
+  },
+  "native/timeline/qml/scenedetect/SceneEditDialog.qml": {
+    "K11": 1,
+    "R1": 2
+  },
+  "native/timeline/qml/scenedetect/SceneEditHost.qml": {
+    "R1": 2
+  },
+  "native/timeline/qml/stepsequencer/StepSequencerBrowser.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/stepsequencer/StepSequencerInspector.qml": {
+    "R1": 15,
+    "R2": 2
+  },
+  "native/timeline/qml/stepsequencer/StepSequencerPanel.qml": {
+    "R1": 14,
+    "R2": 30
+  },
+  "native/timeline/qml/stepsequencer/StepSequencerPatternBar.qml": {
+    "R1": 5,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/stepsequencer/StepSequencerRow.qml": {
+    "R1": 9,
+    "R2": 3,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/stepsequencer/StepSequencerToolbar.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/qml/storyworkspace/ScriptVoicePicker.qml": {
+    "R1": 2,
+    "R2": 1
+  },
+  "native/timeline/qml/storyworkspace/ShotClipPlayer.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml": {
+    "K11": 8,
+    "R1": 21,
+    "R2": 8
+  },
+  "native/timeline/qml/storyworkspace/StoryWorkspacePanel.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/storyworkspace/StoryboardPanel.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/takes/TakeBadge.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/takes/TakeGridView.qml": {
+    "R1": 5
+  },
+  "native/timeline/qml/takes/TakeStatus.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/transcript/CaptionsTab.qml": {
+    "K11": 1,
+    "R1": 3
+  },
+  "native/timeline/qml/transcript/TextPanel.qml": {
+    "K11": 1,
+    "R1": 4
+  },
+  "native/timeline/qml/transcript/TranscriptTab.qml": {
+    "K11": 1,
+    "R1": 3
+  },
+  "native/timeline/qml/vst/VstPluginControl.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/qml/vst/VstStateSync.qml": {
+    "R2": 1
+  },
+  "native/timeline/qml/wiring/RegistryContextMenu.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/wiring/RegistryMenuItems.qml": {
+    "R1": 4
+  },
+  "native/timeline/qml/wiring/SlotItems.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/wiring/w/CompressorCurve.qml": {
+    "K11": 2,
+    "R1": 1,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/wiring/w/CompressorEditor.qml": {
+    "K11": 1
+  },
+  "native/timeline/qml/wiring/w/EffectCard.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/qml/wiring/w/EffectEditor.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/wiring/w/Eq3Curve.qml": {
+    "K11": 3,
+    "R1": 5,
+    "R5-canvas": 1
+  },
+  "native/timeline/qml/wiring/w/Eq3Editor.qml": {
+    "K11": 1
+  },
+  "native/timeline/qml/wiring/w/ExportButton.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/wiring/w/FableEffectEditor.qml": {
+    "K11": 3,
+    "R1": 7
+  },
+  "native/timeline/qml/wiring/w/FilterEditor.qml": {
+    "R2": 1
+  },
+  "native/timeline/qml/wiring/w/KnobList.qml": {
+    "K11": 1,
+    "R1": 3
+  },
+  "native/timeline/qml/wiring/w/SpeedDurationHost.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/wiring/w/TrackEffectParams.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/wiring/w/TrackEffectsButton.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/wiring/w/TrackEffectsDockPanel.qml": {
+    "R1": 1
+  },
+  "native/timeline/qml/wiring/w/TrackEffectsHost.qml": {
+    "R1": 3
+  },
+  "native/timeline/qml/wiring/w/TrackEffectsPanel.qml": {
+    "K11": 1,
+    "R1": 5
+  },
+  "native/timeline/src/activity/ActivityController.h": {
+    "R3": 1
+  },
+  "native/timeline/src/activity/local/LocalActivity.h": {
+    "R3": 1
+  },
+  "native/timeline/src/ai/GenerationController.h": {
+    "R3": 2
+  },
+  "native/timeline/src/ai/catalog/EntityReferenceController.h": {
+    "R3": 3
+  },
+  "native/timeline/src/aiassist/AssistController.h": {
+    "R3": 5
+  },
+  "native/timeline/src/aiassist/AssistantSession.h": {
+    "R3": 2
+  },
+  "native/timeline/src/aiassist/BeatVoicing.h": {
+    "R3": 1
+  },
+  "native/timeline/src/aiassist/ProductionReview.h": {
+    "R3": 1
+  },
+  "native/timeline/src/aiassist/ShotWorkflow.h": {
+    "R3": 3
+  },
+  "native/timeline/src/app/MenuRegistry.h": {
+    "R3": 1
+  },
+  "native/timeline/src/app/PanelRegistry.h": {
+    "R3": 1
+  },
+  "native/timeline/src/app/PanelSlot.qml": {
+    "K11": 1,
+    "R1": 2
+  },
+  "native/timeline/src/app/Preferences/Preferences.h": {
+    "R3": 2
+  },
+  "native/timeline/src/assets/AssetBrowser.h": {
+    "R3": 6
+  },
+  "native/timeline/src/assets/libraryscrub/LibraryScrub.h": {
+    "R5-painted": 1
+  },
+  "native/timeline/src/audio/automation/AutomationController.h": {
+    "R3": 6
+  },
+  "native/timeline/src/audio/vst/VstHostModel.h": {
+    "R3": 5
+  },
+  "native/timeline/src/colorpanel/ScopesController.h": {
+    "R3": 1
+  },
+  "native/timeline/src/edit/ClipGestureController.h": {
+    "R3": 11
+  },
+  "native/timeline/src/edit/audioroles/AudioRoles.h": {
+    "R3": 2
+  },
+  "native/timeline/src/edit/audioroles/LoudnessMeters.h": {
+    "R3": 1
+  },
+  "native/timeline/src/edit/clipaudio/ClipAudio.h": {
+    "R3": 2
+  },
+  "native/timeline/src/edit/clipeffects/ClipEffectsEdits.qml": {
+    "R1": 5,
+    "R2": 4
+  },
+  "native/timeline/src/edit/clipeffects/ClipEffectsUi.h": {
+    "R3": 1
+  },
+  "native/timeline/src/edit/clipeffects/EffectFields.qml": {
+    "R1": 5,
+    "R2": 2
+  },
+  "native/timeline/src/edit/clipeffects/EffectMasksSection.qml": {
+    "R1": 7,
+    "R2": 1
+  },
+  "native/timeline/src/edit/clipeffects/EffectNumber.qml": {
+    "R1": 4
+  },
+  "native/timeline/src/edit/clipeffects/ToneCurveEditor.qml": {
+    "R1": 13,
+    "R2": 5,
+    "R5-canvas": 1
+  },
+  "native/timeline/src/edit/framehold/FrameHoldController.h": {
+    "R3": 4
+  },
+  "native/timeline/src/edit/inspectorsections/AudioSection.qml": {
+    "R1": 4
+  },
+  "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml": {
+    "R1": 4
+  },
+  "native/timeline/src/edit/inspectorsections/InspectorEdits.h": {
+    "R3": 2
+  },
+  "native/timeline/src/edit/inspectorsections/InspectorSectionRegistry.h": {
+    "R3": 1
+  },
+  "native/timeline/src/edit/inspectorsections/MediaSection.qml": {
+    "R1": 5,
+    "R2": 1
+  },
+  "native/timeline/src/edit/inspectorsections/RegisteredInspectorSections.qml": {
+    "R1": 4,
+    "R2": 1
+  },
+  "native/timeline/src/edit/inspectorsections/TestInspectorSection.qml": {
+    "R1": 3
+  },
+  "native/timeline/src/edit/inspectorsections/TimingSection.qml": {
+    "R1": 5
+  },
+  "native/timeline/src/edit/keyframes/ClipInspectorController.h": {
+    "R3": 8
+  },
+  "native/timeline/src/edit/sourceEdit/SourceViewerState.h": {
+    "R3": 3
+  },
+  "native/timeline/src/edit/speed/SpeedController.h": {
+    "R3": 1
+  },
+  "native/timeline/src/edit/tracks/TrackHeaderActions.h": {
+    "R3": 1
+  },
+  "native/timeline/src/edit/transitions/TransitionController.h": {
+    "R3": 1
+  },
+  "native/timeline/src/edit/trim/TrimMode.h": {
+    "R3": 2
+  },
+  "native/timeline/src/entities/EntityAssist.h": {
+    "R3": 2
+  },
+  "native/timeline/src/entities/EntityLibrary.h": {
+    "R3": 3
+  },
+  "native/timeline/src/export/ExportPresets.h": {
+    "R3": 4
+  },
+  "native/timeline/src/export/ExportQueue.h": {
+    "R3": 1
+  },
+  "native/timeline/src/export/FrameExporter.h": {
+    "R3": 2
+  },
+  "native/timeline/src/main.cpp": {
+    "R4": 13
+  },
+  "native/timeline/src/markers/MarkerSession.h": {
+    "R3": 2
+  },
+  "native/timeline/src/midi/BassSynthCatalog.h": {
+    "R3": 4
+  },
+  "native/timeline/src/midi/PianoRollController.h": {
+    "R3": 4
+  },
+  "native/timeline/src/midi/SamplerHelper.h": {
+    "R3": 1
+  },
+  "native/timeline/src/midi/StepSequencerController.h": {
+    "R3": 11
+  },
+  "native/timeline/src/midi/WavetableCatalog.h": {
+    "R3": 5
+  },
+  "native/timeline/src/midi/modal/ModalCatalog.h": {
+    "R3": 6
+  },
+  "native/timeline/src/model/TimelineModel.h": {
+    "R3": 3
+  },
+  "native/timeline/src/model/TrackWindowModel.h": {
+    "R3": 1
+  },
+  "native/timeline/src/motion/blurcontrols/MotionBlur.qml": {
+    "R1": 5
+  },
+  "native/timeline/src/motion/controls/AdvancedMotion.qml": {
+    "R1": 12,
+    "R2": 1
+  },
+  "native/timeline/src/motion/controls/FollowPathControls.h": {
+    "R3": 4
+  },
+  "native/timeline/src/motion/tracking/TrackBinding.qml": {
+    "R1": 5,
+    "R2": 1
+  },
+  "native/timeline/src/music/MusicCleanup.h": {
+    "R3": 2
+  },
+  "native/timeline/src/music/MusicJobs.h": {
+    "R3": 4
+  },
+  "native/timeline/src/music/MusicPanelModel.h": {
+    "R3": 3
+  },
+  "native/timeline/src/music/MusicProjectRules.h": {
+    "R3": 4
+  },
+  "native/timeline/src/music/MusicSetup.h": {
+    "R3": 1
+  },
+  "native/timeline/src/preview/crop/ReframeController.h": {
+    "R3": 3
+  },
+  "native/timeline/src/preview/gizmo/TransformGizmoController.h": {
+    "R3": 2,
+    "R5-painted": 1
+  },
+  "native/timeline/src/providersettings/ProviderSettings.h": {
+    "R3": 2
+  },
+  "native/timeline/src/reference/ReferenceController.h": {
+    "R3": 1
+  },
+  "native/timeline/src/remix/clip/RemixController.h": {
+    "R3": 1
+  },
+  "native/timeline/src/scenedetect/SceneEditController.h": {
+    "R3": 1
+  },
+  "native/timeline/src/server/AutosaveController.h": {
+    "R3": 1
+  },
+  "native/timeline/src/server/TimelineAssetCacheContext.h": {
+    "R4": 1
+  },
+  "native/timeline/src/server/TimelineList/ProjectSettingsValues.h": {
+    "R3": 1
+  },
+  "native/timeline/src/server/TimelineList/TimelineListController.h": {
+    "R3": 5
+  },
+  "native/timeline/src/server/sync/ExternalConflictsBanner.qml": {
+    "R1": 4
+  },
+  "native/timeline/src/server/sync/SyncE2eHost.cpp": {
+    "R4": 1
+  },
+  "native/timeline/src/takes/TakeGrid.h": {
+    "R3": 1
+  },
+  "native/timeline/src/transcript/TranscriptSession.h": {
+    "R3": 1
+  },
+  "native/timeline/src/ui/MediaPreviews.h": {
+    "R3": 3
+  },
+  "native/timeline/src/ui/MidiNoteLines.h": {
+    "R3": 2
+  },
+  "native/timeline/src/ui/MonitorMiniTimeline.h": {
+    "R3": 2,
+    "R5-painted": 1
+  },
+  "native/timeline/src/ui/MonitorRulerCanvas.h": {
+    "R3": 1,
+    "R5-painted": 1
+  },
+  "native/timeline/src/ui/MonitorViewState.h": {
+    "R3": 1
+  },
+  "native/timeline/src/ui/MonitorZoomBar.h": {
+    "R5-painted": 1
+  },
+  "native/timeline/src/ui/RulerCanvas.h": {
+    "R3": 2,
+    "R5-painted": 1
+  },
+  "native/timeline/src/ui/Tempo/TempoGridQml.h": {
+    "R3": 5
+  },
+  "native/timeline/src/ui/tests_qml/TestMonitorPictureView.qml": {
+    "R1": 4
+  },
+  "native/timeline/src/ui/tests_qml/TestMonitorView.qml": {
+    "R1": 4
+  },
+  "native/timeline/src/wiring/TestSlotProbe.qml": {
+    "R1": 5
+  },
+  "native/timeline/src/wiring/TestTrackLane.qml": {
+    "R1": 2
+  },
+  "native/timeline/src/wiring/w/TrackEffectsModel.h": {
+    "R3": 3
+  },
+  "native/ui_primitives/qml/Chip.qml": {
+    "R1": 1
+  },
+  "native/ui_primitives/qml/ChipMenu.qml": {
+    "K11": 1,
+    "R1": 3,
+    "R2": 1
+  },
+  "native/ui_primitives/qml/ContextMenu.qml": {
+    "R1": 2
+  },
+  "native/ui_primitives/qml/DocumentTabStrip.qml": {
+    "R1": 4
+  },
+  "native/ui_primitives/qml/EditorButton.qml": {
+    "R1": 1
+  },
+  "native/ui_primitives/qml/Fader.qml": {
+    "R1": 2
+  },
+  "native/ui_primitives/qml/Icon.qml": {
+    "R1": 1
+  },
+  "native/ui_primitives/qml/LevelMeter.qml": {
+    "R1": 4
+  },
+  "native/ui_primitives/qml/MenuButton.qml": {
+    "R1": 1
+  },
+  "native/ui_primitives/qml/ProviderIcon.qml": {
+    "R1": 1,
+    "R2": 1
+  },
+  "native/ui_primitives/qml/SegmentedControl.qml": {
+    "R1": 4
+  },
+  "native/ui_primitives/qml/Select.qml": {
+    "R1": 3
+  },
+  "native/ui_primitives/qml/TabBar.qml": {
+    "R1": 3
+  },
+  "native/ui_primitives/qml/Text.qml": {
+    "R1": 1
+  }
+}

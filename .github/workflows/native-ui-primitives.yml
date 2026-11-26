@@ -4,11 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - "native/ui_primitives/**"
-      - "native/chat/**"
-      - "native/model-picker/**"
-      - "native/timeline/qml/**"
-      - "native/timeline/src/**"
+      - "native/**"
       - ".github/workflows/native-ui-primitives.yml"
       - "docker/ci-native/**"
 
@@ -103,11 +99,12 @@ jobs:
           # The offscreen FreeType backend does not discover Windows system fonts.
           echo "QT_QPA_FONTDIR=$WINDIR/Fonts" >> "$GITHUB_ENV"
 
-      - name: Check native design and dependencies
+      - name: Check native design, dependencies and performance
         run: |
           python -m unittest discover -s native/ui_primitives/tests -p 'test_*.py' -v
           python native/ui_primitives/tools/check_design.py --strict
           python native/ui_primitives/tools/check_dependencies.py
+          python native/ui_primitives/tools/check_performance.py
 
       - name: Configure and build without backend packages
         run: |

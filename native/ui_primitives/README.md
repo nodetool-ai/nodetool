@@ -229,3 +229,5 @@ options, and selection or Escape returns focus to the chip.
 The preview is disabled, so a click anywhere on the card reaches the card, and
 controls inside the preview take no focus. The host owns image resolution and
 selection commits.
+
+Run `npm run check:native-performance` to check per-file debt in `native/*/qml` and `native/*/src`, or `npm run check:native-performance -- --update` to save lower baseline counts.

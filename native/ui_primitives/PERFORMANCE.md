@@ -197,3 +197,5 @@ Read the source page when a rule needs more detail.
     `QSG_RENDER_LOOP=basic`, time the action with `QElapsedTimer`, and assert
     a budget. Also assert the item count of the panel, because it is stable
     across machines.
+
+Run `npm run check:native-performance` to check per-file debt in `native/*/qml` and `native/*/src`, or `npm run check:native-performance -- --update` to save lower baseline counts.
