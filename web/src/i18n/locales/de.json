@@ -20819,6 +20819,22 @@
       "scriptMissing": "Sprechertext nicht gefunden: {{name}}",
       "scriptEmpty": "Dieser Sprechertext hat noch keine Zeilen.",
       "openScript": "Sprechertext öffnen"
+    },
+    "sidePanel": {
+      "tabs": "Seitenleiste",
+      "chat": "KI-Chat",
+      "structure": "Struktur"
+    },
+    "outline": {
+      "source": "Struktur von",
+      "current": "Aktuell",
+      "snapshot": "Snapshot",
+      "label": "Dokumentstruktur",
+      "snapshotLabel": "Snapshot-Struktur",
+      "emptyTitle": "Keine Überschriften",
+      "emptyBody": "Beginne eine Zeile mit #, ## oder ###, um eine Überschrift einzufügen. Überschriften erscheinen hier, damit du direkt zu ihnen springen kannst.",
+      "snapshotEmptyBody": "Dieser Snapshot hat keine Überschriften.",
+      "noSnapshotBody": "Wähle einen Snapshot aus, um seine Struktur zu sehen."
     }
   },
   "librarySearch": {

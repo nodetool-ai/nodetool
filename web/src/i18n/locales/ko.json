@@ -20819,6 +20819,22 @@
       "scriptMissing": "스크립트를 찾을 수 없습니다: {{name}}",
       "scriptEmpty": "이 스크립트에는 아직 대사가 없습니다.",
       "openScript": "스크립트 열기"
+    },
+    "sidePanel": {
+      "tabs": "사이드 패널",
+      "chat": "AI 채팅",
+      "structure": "구조"
+    },
+    "outline": {
+      "source": "구조 대상",
+      "current": "현재",
+      "snapshot": "스냅샷",
+      "label": "문서 구조",
+      "snapshotLabel": "스냅샷 구조",
+      "emptyTitle": "제목 없음",
+      "emptyBody": "줄을 #, ## 또는 ###로 시작하면 제목이 됩니다. 제목은 여기에 표시되며 클릭하면 바로 이동합니다.",
+      "snapshotEmptyBody": "이 스냅샷에는 제목이 없습니다.",
+      "noSnapshotBody": "스냅샷을 선택하면 구조가 표시됩니다."
     }
   },
   "librarySearch": {

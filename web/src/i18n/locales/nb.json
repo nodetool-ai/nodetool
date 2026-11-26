@@ -20819,6 +20819,22 @@
       "scriptMissing": "Fant ikke manuset: {{name}}",
       "scriptEmpty": "Dette manuset har ingen replikker ennå.",
       "openScript": "Åpne manus"
+    },
+    "sidePanel": {
+      "tabs": "Sidepanel",
+      "chat": "KI-chat",
+      "structure": "Struktur"
+    },
+    "outline": {
+      "source": "Struktur for",
+      "current": "Gjeldende",
+      "snapshot": "Øyeblikksbilde",
+      "label": "Dokumentstruktur",
+      "snapshotLabel": "Struktur for øyeblikksbilde",
+      "emptyTitle": "Ingen overskrifter",
+      "emptyBody": "Start en linje med #, ## eller ### for å legge til en overskrift. Overskrifter vises her slik at du kan hoppe rett til dem.",
+      "snapshotEmptyBody": "Dette øyeblikksbildet har ingen overskrifter.",
+      "noSnapshotBody": "Velg et øyeblikksbilde for å se strukturen."
     }
   },
   "librarySearch": {

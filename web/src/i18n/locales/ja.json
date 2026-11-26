@@ -20819,6 +20819,22 @@
       "scriptMissing": "スクリプトが見つかりません：{{name}}",
       "scriptEmpty": "このスクリプトにはまだセリフがありません。",
       "openScript": "スクリプトを開く"
+    },
+    "sidePanel": {
+      "tabs": "サイドパネル",
+      "chat": "AI チャット",
+      "structure": "構成"
+    },
+    "outline": {
+      "source": "表示する構成",
+      "current": "現在",
+      "snapshot": "スナップショット",
+      "label": "ドキュメントの構成",
+      "snapshotLabel": "スナップショットの構成",
+      "emptyTitle": "見出しがありません",
+      "emptyBody": "行頭に #、##、### を付けると見出しになります。見出しはここに表示され、クリックでその位置へ移動できます。",
+      "snapshotEmptyBody": "このスナップショットには見出しがありません。",
+      "noSnapshotBody": "スナップショットを選択すると構成が表示されます。"
     }
   },
   "librarySearch": {

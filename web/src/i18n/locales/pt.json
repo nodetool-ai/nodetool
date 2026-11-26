@@ -21138,6 +21138,22 @@
       "scriptMissing": "Roteiro não encontrado: {{name}}",
       "scriptEmpty": "Este roteiro ainda não tem falas.",
       "openScript": "Abrir roteiro"
+    },
+    "sidePanel": {
+      "tabs": "Painel lateral",
+      "chat": "Chat de IA",
+      "structure": "Estrutura"
+    },
+    "outline": {
+      "source": "Estrutura de",
+      "current": "Atual",
+      "snapshot": "Snapshot",
+      "label": "Estrutura do documento",
+      "snapshotLabel": "Estrutura do snapshot",
+      "emptyTitle": "Nenhum título",
+      "emptyBody": "Comece uma linha com #, ## ou ### para adicionar um título. Os títulos aparecem aqui para você ir direto até eles.",
+      "snapshotEmptyBody": "Este snapshot não tem títulos.",
+      "noSnapshotBody": "Selecione um snapshot para ver a estrutura."
     }
   },
   "librarySearch": {

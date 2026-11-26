@@ -37,6 +37,10 @@ import {
 } from "./DocumentDisplayControls";
 import { DOCUMENT_THEME, documentEditorStyles } from "./documentEditorStyles";
 import { DOCUMENT_NODES, MarkdownDocumentBinding } from "./markdownBlockCodec";
+import {
+  DocumentOutlinePlugin,
+  type DocumentOutline
+} from "./DocumentOutlinePlugin";
 
 export interface SnapshotVersionMeta {
   version: number;
@@ -52,6 +56,8 @@ export interface DocumentSnapshotViewerProps {
   error?: unknown;
   paperTheme?: DocumentPaperTheme;
   zoom?: number;
+  /** Receives the snapshot's heading outline, or null when none is shown. */
+  onOutlineChange?: (outline: DocumentOutline | null) => void;
 }
 
 function SnapshotContentPlugin({ content }: { content: string }): null {
@@ -73,7 +79,8 @@ export const DocumentSnapshotViewer = ({
   isLoading,
   error = null,
   paperTheme = "theme",
-  zoom = 1
+  zoom = 1,
+  onOutlineChange
 }: DocumentSnapshotViewerProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -236,6 +243,9 @@ export const DocumentSnapshotViewer = ({
                   ErrorBoundary={LexicalErrorBoundary}
                 />
                 <SnapshotContentPlugin content={content} />
+                {onOutlineChange && (
+                  <DocumentOutlinePlugin onChange={onOutlineChange} />
+                )}
               </LexicalComposer>
             </div>
           </div>

@@ -20819,6 +20819,22 @@
       "scriptMissing": "Script niet gevonden: {{name}}",
       "scriptEmpty": "Dit script heeft nog geen regels.",
       "openScript": "Script openen"
+    },
+    "sidePanel": {
+      "tabs": "Zijpaneel",
+      "chat": "AI-chat",
+      "structure": "Structuur"
+    },
+    "outline": {
+      "source": "Structuur van",
+      "current": "Huidig",
+      "snapshot": "Snapshot",
+      "label": "Documentstructuur",
+      "snapshotLabel": "Snapshotstructuur",
+      "emptyTitle": "Geen koppen",
+      "emptyBody": "Begin een regel met #, ## of ### om een kop toe te voegen. Koppen verschijnen hier zodat je er direct naartoe kunt springen.",
+      "snapshotEmptyBody": "Deze snapshot heeft geen koppen.",
+      "noSnapshotBody": "Selecteer een snapshot om de structuur te zien."
     }
   },
   "librarySearch": {

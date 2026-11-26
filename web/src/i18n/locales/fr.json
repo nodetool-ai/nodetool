@@ -21138,6 +21138,22 @@
       "scriptMissing": "Script introuvable : {{name}}",
       "scriptEmpty": "Ce script n’a pas encore de lignes.",
       "openScript": "Ouvrir le script"
+    },
+    "sidePanel": {
+      "tabs": "Panneau latéral",
+      "chat": "Chat IA",
+      "structure": "Structure"
+    },
+    "outline": {
+      "source": "Structure de",
+      "current": "Actuel",
+      "snapshot": "Instantané",
+      "label": "Structure du document",
+      "snapshotLabel": "Structure de l'instantané",
+      "emptyTitle": "Aucun titre",
+      "emptyBody": "Commencez une ligne par #, ## ou ### pour ajouter un titre. Les titres apparaissent ici pour que vous puissiez y accéder directement.",
+      "snapshotEmptyBody": "Cet instantané n'a aucun titre.",
+      "noSnapshotBody": "Sélectionnez un instantané pour voir sa structure."
     }
   },
   "librarySearch": {

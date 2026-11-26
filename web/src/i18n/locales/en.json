@@ -20819,6 +20819,22 @@
       "scriptMissing": "Script not found: {{name}}",
       "scriptEmpty": "This script has no lines yet.",
       "openScript": "Open script"
+    },
+    "sidePanel": {
+      "tabs": "Side panel",
+      "chat": "AI Chat",
+      "structure": "Structure"
+    },
+    "outline": {
+      "source": "Structure of",
+      "current": "Current",
+      "snapshot": "Snapshot",
+      "label": "Document structure",
+      "snapshotLabel": "Snapshot structure",
+      "emptyTitle": "No headings",
+      "emptyBody": "Start a line with #, ## or ### to add a heading. Headings show up here so you can jump to them.",
+      "snapshotEmptyBody": "This snapshot has no headings.",
+      "noSnapshotBody": "Select a snapshot to see its structure."
     }
   },
   "librarySearch": {

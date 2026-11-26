@@ -21138,6 +21138,22 @@
       "scriptMissing": "Copione non trovato: {{name}}",
       "scriptEmpty": "Questo copione non ha ancora battute.",
       "openScript": "Apri copione"
+    },
+    "sidePanel": {
+      "tabs": "Pannello laterale",
+      "chat": "Chat IA",
+      "structure": "Struttura"
+    },
+    "outline": {
+      "source": "Struttura di",
+      "current": "Attuale",
+      "snapshot": "Snapshot",
+      "label": "Struttura del documento",
+      "snapshotLabel": "Struttura dello snapshot",
+      "emptyTitle": "Nessun titolo",
+      "emptyBody": "Inizia una riga con #, ## o ### per aggiungere un titolo. I titoli compaiono qui così puoi saltare direttamente a essi.",
+      "snapshotEmptyBody": "Questo snapshot non ha titoli.",
+      "noSnapshotBody": "Seleziona uno snapshot per vederne la struttura."
     }
   },
   "librarySearch": {
