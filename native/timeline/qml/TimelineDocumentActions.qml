@@ -37,7 +37,7 @@ Item {
         // shows only the timelines on this computer.
         accountServers: typeof nativeAccountServers !== "undefined" ? nativeAccountServers : null
         listShown: listPopup.visible
-        onOpenRequested: root.showList()
+        onOpenRequested: { if (!actions.switching) root.showList() }
         onSwitched: listPopup.close()
         onErrorChanged: {
             if (error && musicDialog.opened) musicDialog.error = error
@@ -60,13 +60,8 @@ Item {
         if (refresh) actions.prepareList()
         listPopup.open()
     }
-    Shortcut {
-        sequence: "Ctrl+O"
-        context: Qt.WindowShortcut
-        enabled: !listPopup.visible && !actions.switching
-        onActivated: root.showList()
-    }
-    component ActionButton: ToolButton { activeFocusOnTab: true }
+
+    component ActionButton: ToolButton { focusPolicy: Qt.TabFocus }
     Row {
         id: buttons
         spacing: Ui.Metrics.micro

@@ -13,6 +13,9 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QKeyEvent>
+#ifdef Q_OS_MACOS
+#include <CoreFoundation/CoreFoundation.h>
+#endif
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QQmlComponent>
@@ -27,11 +30,25 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <type_traits>
 #include <private/qguiapplication_p.h>
 #include <qpa/qplatformmenu.h>
 #include <qpa/qplatformtheme.h>
 using namespace nt::app;
 namespace {
+// UI thread only.
+class PopupKeyCounter : public QObject {
+public:
+    int count = 0;
+    bool eventFilter(QObject*, QEvent* event) override {
+        if (event->type() == QEvent::KeyPress && static_cast<QKeyEvent*>(event)->key() == Qt::Key_Space) {
+            ++count;
+            event->accept();
+            return true;
+        }
+        return false;
+    }
+};
 // A platform menu bar that records what ShellMenus builds. No QPA plugin on
 // this machine has one, so the native path would otherwise run on macOS only.
 class RecordingItem : public QPlatformMenuItem {
@@ -108,6 +125,23 @@ public:
     QPlatformMenuBar* createPlatformMenuBar() const override { return new RecordingBar; }
 };
 }
+// UI thread only. The visual parent owns the item.
+class DefaultAcceptedEscapeItem : public QQuickItem {
+public:
+    using QQuickItem::QQuickItem;
+    int escapes = 0;
+    bool acceptedOnDelivery = false;
+protected:
+    bool event(QEvent* event) override {
+        if (event->type() == QEvent::KeyPress && static_cast<QKeyEvent*>(event)->key() == Qt::Key_Escape) {
+            ++escapes;
+            acceptedOnDelivery = event->isAccepted();
+            return true;
+        }
+        return QQuickItem::event(event);
+    }
+};
+
 class TestAppShell : public QObject {
     Q_OBJECT
     TestAssetCacheRoot m_testCache;
@@ -119,6 +153,13 @@ class TestAppShell : public QObject {
             if (auto* found = shellItem(child)) {
                 return found;
             }
+        }
+        return nullptr;
+    }
+    QQuickItem* named(QQuickItem* root, const QString& name) {
+        if (root->objectName() == name) { return root; }
+        for (auto* child : root->childItems()) {
+            if (auto* found = named(child, name)) { return found; }
         }
         return nullptr;
     }
@@ -140,6 +181,571 @@ class TestAppShell : public QObject {
         QCoreApplication::processEvents();
     }
 private slots:
+    void globalShortcutAfterControlClick_data() {
+        QTest::addColumn<QString>("control");
+        for (const auto& name : {"Button", "Slider", "ComboBox", "ListView", "dock", "stepSequencer", "manyItems"}) {
+            QTest::newRow(name) << QString::fromLatin1(name);
+        }
+    }
+    void globalShortcutAfterControlClick() {
+        QFETCH(QString, control);
+        TimelineModel model;
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        QQmlComponent component(view.engine());
+        std::unique_ptr<QObject> object;
+        QQuickItem* item = nullptr;
+        if (control == "dock") {
+            item = named(view.rootObject(), "dockTab_tracks");
+        } else {
+            if (control == "stepSequencer") {
+                component.loadFromModule("NodeTool.Timeline", "StepSequencerPanel");
+            } else {
+                const QString type = control == "manyItems" ? QString("Item") : control;
+                const QString children = control == "manyItems" ? QString("Repeater { model: 10000; Item {} }") : QString();
+                component.setData(("import QtQuick\nimport QtQuick.Controls\n" + type +
+                    " { width: 180; height: 40; focus: true; " + children + " }").toUtf8(), QUrl());
+            }
+            object.reset(component.create());
+            QVERIFY2(object, qPrintable(component.errorString()));
+            item = qobject_cast<QQuickItem*>(object.get());
+            QVERIFY(item);
+            item->setParentItem(view.rootObject());
+            item->setSize(QSizeF(400, 240));
+            item->setZ(1000);
+        }
+        QVERIFY(item);
+        QCoreApplication::processEvents();
+        QTest::mouseClick(&view, Qt::LeftButton, {}, item->mapToScene(control == "stepSequencer" ? QPointF(395, 235) : QPointF(30, 20)).toPoint());
+        if (control == "ComboBox") {
+            if (auto* popup = item->property("popup").value<QObject*>()) {
+                QMetaObject::invokeMethod(popup, "close");
+                QTRY_VERIFY(!popup->property("visible").toBool());
+            }
+        }
+        const bool before = clock.playing();
+        QTest::keyClick(&view, Qt::Key_Space);
+        QCOMPARE(clock.playing(), !before);
+        item->forceActiveFocus(Qt::TabFocusReason);
+        QTest::keyClick(&view, Qt::Key_Space);
+        QCOMPARE(clock.playing(), before);
+    }
+    void textEditorsKeepSpace_data() {
+        QTest::addColumn<QString>("control");
+        for (const auto& type : {"TextField", "TextArea", "TextInput", "TextEdit", "SpinBox", "ComboBox"}) {
+            QTest::newRow(type) << QString::fromLatin1(type);
+        }
+    }
+    void textEditorsKeepSpace() {
+        QFETCH(QString, control);
+        TimelineModel model;
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        QQmlComponent component(view.engine());
+        component.setData(("import QtQuick\nimport QtQuick.Controls\n" + control +
+            " { width: 200; height: 100; " + ((control == "SpinBox" || control == "ComboBox") ? "editable: true" : "") + " }").toUtf8(), QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* field = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(field);
+        field->setParentItem(view.rootObject());
+        auto* input = (control == "SpinBox" || control == "ComboBox") ? field->property("contentItem").value<QQuickItem*>() : field;
+        QVERIFY(input);
+        input->forceActiveFocus();
+        QTest::keyClick(&view, Qt::Key_Space);
+        QVERIFY(!clock.playing());
+        QVERIFY(input->hasActiveFocus());
+        if (control != "SpinBox") { QCOMPARE(input->property("text").toString(), QString(" ")); }
+    }
+    void globalShortcutKindsAndTextOwnership() {
+        TimelineModel model;
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        auto* gestures = view.rootObject()->findChild<ClipGestureController*>("clipGestures");
+        QVERIFY(gestures);
+        QQmlComponent component(view.engine());
+        component.setData(R"(import QtQuick
+import QtQuick.Controls
+import NodeTool.UiPrimitives as Ui
+Item {
+    width: 300; height: 160
+    Ui.EditorButton { objectName: "button"; width: 100; height: 40; property int activations: 0; onClicked: activations++ }
+    TextField { objectName: "text"; y: 50; width: 200 }
+    Popup { objectName: "popup"; modal: true; focus: true; width: 100; height: 100 }
+    Menu { objectName: "menu"; MenuItem { text: "Local menu item" } }
+})", QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* surface = qobject_cast<QQuickItem*>(object.get());
+        surface->setParentItem(view.rootObject());
+        surface->setZ(1000);
+        auto* button = surface->findChild<QQuickItem*>("button");
+        auto* text = surface->findChild<QQuickItem*>("text");
+        auto* popup = surface->findChild<QObject*>("popup");
+        auto* menu = surface->findChild<QObject*>("menu");
+        QVERIFY(button && text && popup && menu);
+        QObject saveProbe;
+        saveProbe.setProperty("count", 0);
+        const QPointer<QObject> saveGuard(&saveProbe);
+        QVERIFY(registerShellMenuItem({"Help", "test.key1Save", "Test save shortcut", "Ctrl+S", {}, {}, 0, {}, {},
+            [saveGuard](const QVariantMap&) {
+                if (!saveGuard) { return false; }
+                saveGuard->setProperty("count", saveGuard->property("count").toInt() + 1);
+                return true;
+            }}));
+        const auto removeSave = qScopeGuard([] { unregisterShellMenuItem("test.key1Save"); });
+        button->forceActiveFocus(Qt::TabFocusReason);
+        QTest::keyClick(&view, Qt::Key_S, Qt::ControlModifier);
+        QCOMPARE(saveProbe.property("count").toInt(), 1);
+        QTest::keyClick(&view, Qt::Key_S, Qt::MetaModifier);
+        QCOMPARE(saveProbe.property("count").toInt(), 1);
+        gestures->setActiveTool("razor");
+        QTest::keyClick(&view, Qt::Key_V);
+        QCOMPARE(gestures->activeTool(), QString("select"));
+        clock.seek(0);
+        QTest::keyClick(&view, Qt::Key_Right);
+        QVERIFY(clock.currentTimeMs() > 0);
+        const auto clips = model.clipsJson();
+        QVERIFY(!clips.isEmpty());
+        gestures->setSelection({clips.first().toObject().value("id").toString()});
+        QTest::keyClick(&view, Qt::Key_Escape);
+        QVERIFY(gestures->selection().isEmpty());
+        gestures->setSelection({clips.first().toObject().value("id").toString()});
+        QTest::keyClick(&view, Qt::Key_Delete);
+        QVERIFY(model.clipsJson().size() < clips.size());
+        QTest::keyClick(&view, Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(model.clipsJson(), clips);
+        QVERIFY(button->hasActiveFocus());
+        QTest::keyClick(&view, Qt::Key_Return);
+        QCOMPARE(button->property("activations").toInt(), 1);
+        QVERIFY(model.applyEdit("addMarker", {{"id", "key1-text-undo"}, {"timeMs", 100}}));
+        const auto documentBeforeTyping = model.documentJson();
+        text->forceActiveFocus();
+        QTest::keyClick(&view, Qt::Key_Z, Qt::MetaModifier);
+        QCOMPARE(model.documentJson(), documentBeforeTyping);
+        QTest::keyClick(&view, Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(model.documentJson(), documentBeforeTyping);
+        QTest::keyClick(&view, Qt::Key_A);
+        QTest::keyClick(&view, Qt::Key_Space);
+        QTest::keyClick(&view, Qt::Key_B);
+        QCOMPARE(text->property("text").toString(), QString("a b"));
+        QTest::keyClick(&view, Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(model.clipsJson(), clips);
+        QVERIFY(!clock.playing());
+        QTest::keyClick(&view, Qt::Key_S, Qt::ControlModifier);
+        QCOMPARE(saveProbe.property("count").toInt(), 2);
+        text->forceActiveFocus();
+        QTest::keyClick(&view, Qt::Key_A, Qt::ControlModifier);
+        QTest::keyClick(&view, Qt::Key_Delete);
+        QCOMPARE(text->property("text").toString(), QString());
+        QCOMPARE(model.clipsJson(), clips);
+        QMetaObject::invokeMethod(popup, "open");
+        QTRY_VERIFY(popup->property("visible").toBool());
+        QTest::keyClick(&view, Qt::Key_Space);
+        QVERIFY(!clock.playing());
+        QTest::keyClick(&view, Qt::Key_S, Qt::ControlModifier);
+        QCOMPARE(saveProbe.property("count").toInt(), 2);
+        QTest::keyClick(&view, Qt::Key_Escape);
+        QTRY_VERIFY(!popup->property("visible").toBool());
+        QMetaObject::invokeMethod(menu, "open");
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QTest::keyClick(&view, Qt::Key_S, Qt::ControlModifier);
+        QCOMPARE(saveProbe.property("count").toInt(), 2);
+        QTest::keyClick(&view, Qt::Key_Space);
+        QVERIFY(!clock.playing());
+        QMetaObject::invokeMethod(menu, "close");
+    }
+    void reviewRegression_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto* scenario : {"F2-textEscape", "F2-toggleSpace", "F1-defaultAcceptedEscape", "E2-focusedNonmodal", "E2-popupOrder", "E6-exactSymbol", "E6-exactMinus", "E5-selectFocus", "E4-localShortcut", "E2-select", "D2-orphanModal", "D2-menuReset", "D3-escape", "D3-disabled", "D4-symbol", "D5-repeat", "D6-click", "D6-toggle", "D6-switch", "D6-radio", "D7-registry"}) {
+            QTest::newRow(scenario) << QString::fromLatin1(scenario);
+        }
+    }
+    void reviewRegression() {
+        QFETCH(QString, scenario);
+        if (scenario == "D7-registry") {
+            QVERIFY(std::none_of(shellMenuEntries().begin(), shellMenuEntries().end(), [](const auto& entry) {
+                return entry.action == "test.key1Save";
+            }));
+            return;
+        }
+        TimelineModel model;
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        QQmlComponent component(view.engine());
+        component.setData(R"(import QtQuick
+import QtQuick.Controls
+import NodeTool.UiPrimitives as Ui
+Item {
+    id: reviewSurface
+    width: 300; height: 200
+    property int globalActivations: 0
+    Shortcut { sequence: "F33"; enabled: localPopup.visible; onActivated: reviewSurface.globalActivations++ }
+    property int escapes: 0
+    property int keys: 0
+    Keys.onEscapePressed: event => { escapes++; event.accepted = true }
+    Keys.onPressed: event => { if (event.key === Qt.Key_F34) { keys++; event.accepted = true } }
+    Ui.EditorButton { objectName: "chrome"; width: 100; height: 40 }
+    CheckBox { objectName: "toggle"; y: 60 }
+    Switch { objectName: "switch"; y: 100 }
+    RadioButton { objectName: "radio"; y: 140 }
+    Popup { objectName: "orphan"; modal: true; focus: false; parent: Overlay.overlay; width: 100; height: 100 }
+    TextField { objectName: "textA"; x: 160; width: 100; height: 32 }
+    TextField { objectName: "textB"; x: 160; y: 50; width: 100; height: 32 }
+    Ui.Select {
+        objectName: "select"; y: 100; width: 150
+        options: [{label: "One", value: 1}, {label: "Two", value: 2}]; value: 1
+        popup.exit: Transition { PauseAnimation { duration: 40 } }
+    }
+    Popup {
+        id: localPopup
+        objectName: "localPopup"; modal: true; focus: true; width: 100; height: 100
+        property int activations: 0
+        contentItem: Item {
+            focus: true
+            Shortcut { sequence: "Space"; context: Qt.WindowShortcut; enabled: localPopup.visible; onActivated: localPopup.activations++ }
+        }
+    }
+    Popup { objectName: "nonmodal"; modal: false; focus: false; width: 100; height: 100; contentItem: Item {} }
+    Popup { objectName: "higher"; z: 20; modal: true; focus: false; width: 100; height: 100 }
+    Popup { objectName: "lower"; z: 10; modal: true; focus: false; width: 100; height: 100 }
+    ToolTip { objectName: "tip"; text: "Hint" }
+})", QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* surface = qobject_cast<QQuickItem*>(object.get());
+        surface->setParentItem(view.rootObject());
+        surface->setZ(1000);
+        surface->forceActiveFocus();
+        if (scenario == "F2-textEscape" || scenario == "F2-toggleSpace") {
+            auto* background = surface->findChild<QQuickItem*>(scenario == "F2-textEscape" ? "textA" : "toggle");
+            background->forceActiveFocus(Qt::TabFocusReason);
+            QVERIFY(background->hasActiveFocus());
+            auto* popup = surface->findChild<QObject*>("orphan");
+            QMetaObject::invokeMethod(popup, "open");
+            QTRY_VERIFY(popup->property("visible").toBool());
+            QCOMPARE(view.activeFocusItem(), background);
+            if (scenario == "F2-textEscape") {
+                QTest::keyClick(&view, Qt::Key_Escape);
+                QTRY_VERIFY(!popup->property("visible").toBool());
+            } else {
+                QVERIFY(background->property("visualFocus").toBool());
+                QTest::keyClick(&view, Qt::Key_Space);
+                QVERIFY(!background->property("checked").toBool());
+                QVERIFY(!clock.playing());
+                QMetaObject::invokeMethod(popup, "close");
+            }
+        } else if (scenario == "F1-defaultAcceptedEscape") {
+            DefaultAcceptedEscapeItem control(view.rootObject());
+            control.forceActiveFocus();
+            auto* gestures = view.rootObject()->findChild<ClipGestureController*>("clipGestures");
+            const QString id = model.clipsJson().first().toObject().value("id").toString();
+            gestures->setSelection({id});
+            QTest::keyClick(&view, Qt::Key_Escape);
+            QCOMPARE(control.escapes, 1);
+            QVERIFY(control.acceptedOnDelivery);
+            QCOMPARE(gestures->selection(), QStringList{id});
+        } else if (scenario == "E2-focusedNonmodal") {
+            auto* popup = surface->findChild<QObject*>("nonmodal");
+            QMetaObject::invokeMethod(popup, "open");
+            QTRY_VERIFY(popup->property("visible").toBool());
+            auto* content = popup->property("contentItem").value<QQuickItem*>();
+            QVERIFY(content);
+            content->forceActiveFocus();
+            QTRY_VERIFY(content->hasActiveFocus());
+            QTest::keyClick(&view, Qt::Key_Space);
+            QVERIFY(!clock.playing());
+            QMetaObject::invokeMethod(popup, "close");
+        } else if (scenario == "E2-popupOrder") {
+            auto* higher = surface->findChild<QObject*>("higher");
+            auto* lower = surface->findChild<QObject*>("lower");
+            QMetaObject::invokeMethod(higher, "open");
+            QMetaObject::invokeMethod(lower, "open");
+            QTRY_VERIFY(higher->property("visible").toBool() && lower->property("visible").toBool());
+            surface->forceActiveFocus();
+            PopupKeyCounter highKeys;
+            PopupKeyCounter lowKeys;
+            auto* highContent = higher->property("contentItem").value<QQuickItem*>();
+            auto* lowContent = lower->property("contentItem").value<QQuickItem*>();
+            QVERIFY(highContent && lowContent && highContent->parentItem() && lowContent->parentItem());
+            highContent->parentItem()->installEventFilter(&highKeys);
+            lowContent->parentItem()->installEventFilter(&lowKeys);
+            QTest::keyClick(&view, Qt::Key_Space);
+            QCOMPARE(highKeys.count, 1);
+            QCOMPARE(lowKeys.count, 0);
+            QVERIFY(!clock.playing());
+            QMetaObject::invokeMethod(higher, "close");
+            QMetaObject::invokeMethod(lower, "close");
+        } else if (scenario == "E6-exactSymbol" || scenario == "E6-exactMinus") {
+            const auto symbolKey = scenario == "E6-exactMinus" ? Qt::Key_Minus : Qt::Key_Equal;
+            const QString symbol = scenario == "E6-exactMinus" ? "-" : "=";
+            QQuickWindow shortcutWindow;
+            shortcutWindow.resize(300, 200);
+            shortcutWindow.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&shortcutWindow));
+            ShellMenus menus;
+            menus.setAnchor(shortcutWindow.contentItem());
+            QObject probe;
+            const QPointer<QObject> guard(&probe);
+            for (const auto& name : {QString("exact"), QString("plain")}) {
+                probe.setProperty(name.toUtf8().constData(), 0);
+                QVERIFY(registerShellMenuItem({"Help", "test." + name, name, (name == "exact" ? "Ctrl+Shift+" : "Ctrl+") + symbol, {}, {}, 0, {}, {},
+                    [guard, name](const QVariantMap&) {
+                        if (!guard) { return false; }
+                        const auto property = name.toUtf8();
+                        guard->setProperty(property.constData(), guard->property(property.constData()).toInt() + 1);
+                        return true;
+                    }}));
+            }
+            const auto remove = qScopeGuard([] {
+                unregisterShellMenuItem("test.exact");
+                unregisterShellMenuItem("test.plain");
+            });
+            QTest::keyClick(&shortcutWindow, symbolKey, Qt::ControlModifier | Qt::ShiftModifier);
+            QCOMPARE(probe.property("exact").toInt(), 1);
+            QCOMPARE(probe.property("plain").toInt(), 0);
+        } else if (scenario == "E5-selectFocus") {
+            auto* textA = surface->findChild<QQuickItem*>("textA");
+            auto* textB = surface->findChild<QQuickItem*>("textB");
+            auto* select = surface->findChild<QQuickItem*>("select");
+            auto* popup = select->property("popup").value<QObject*>();
+            QTest::mouseClick(&view, Qt::LeftButton, {}, textA->mapToScene(QPointF(20, 16)).toPoint());
+            QTRY_VERIFY(textA->hasActiveFocus());
+            QTest::mouseClick(&view, Qt::LeftButton, {}, select->mapToScene(QPointF(20, 16)).toPoint());
+            QTRY_VERIFY(popup->property("visible").toBool());
+            QTest::mouseClick(&view, Qt::LeftButton, {}, textB->mapToScene(QPointF(20, 16)).toPoint());
+            QTRY_VERIFY(!popup->property("visible").toBool());
+            QTRY_VERIFY(textB->hasActiveFocus());
+            QTest::mouseClick(&view, Qt::LeftButton, {}, select->mapToScene(QPointF(20, 16)).toPoint());
+            QTRY_VERIFY(popup->property("visible").toBool());
+            QTest::keyClick(&view, Qt::Key_Escape);
+            QTRY_VERIFY(!popup->property("visible").toBool());
+            QTRY_VERIFY(textB->hasActiveFocus());
+        } else if (scenario == "E4-localShortcut") {
+            auto* popup = surface->findChild<QObject*>("localPopup");
+            QMetaObject::invokeMethod(popup, "open");
+            QTRY_VERIFY(popup->property("visible").toBool());
+            QTest::keyClick(&view, Qt::Key_Space);
+            QCOMPARE(popup->property("activations").toInt(), 1);
+            QTest::keyClick(&view, Qt::Key_F33);
+            QCOMPARE(surface->property("globalActivations").toInt(), 0);
+            QVERIFY(!clock.playing());
+            QMetaObject::invokeMethod(popup, "close");
+        } else if (scenario == "E2-select") {
+            auto* select = surface->findChild<QQuickItem*>("select");
+            auto* popup = select->property("popup").value<QObject*>();
+            QMetaObject::invokeMethod(popup, "open");
+            QTRY_VERIFY(popup->property("visible").toBool());
+            QTest::keyClick(&view, Qt::Key_Down);
+            QTest::keyClick(&view, Qt::Key_Space);
+            QVERIFY(!clock.playing());
+            QTRY_VERIFY(!popup->property("visible").toBool());
+        } else if (scenario == "D2-orphanModal") {
+            auto* popup = surface->findChild<QObject*>("orphan");
+            QVERIFY(popup);
+            const auto reparent = qScopeGuard([&] { popup->setParent(surface); });
+            popup->setParent(nullptr);
+            QMetaObject::invokeMethod(popup, "open");
+            QTRY_VERIFY(popup->property("visible").toBool());
+            QTest::keyClick(&view, Qt::Key_Space);
+            QVERIFY(!clock.playing());
+            QMetaObject::invokeMethod(popup, "close");
+            auto* tip = surface->findChild<QObject*>("tip");
+            QMetaObject::invokeMethod(tip, "open");
+            QTest::keyClick(&view, Qt::Key_Space);
+            QVERIFY(clock.playing());
+        } else if (scenario == "D2-menuReset") {
+            RecordingTheme theme;
+            auto* original = QGuiApplicationPrivate::platform_theme;
+            QGuiApplicationPrivate::platform_theme = &theme;
+            const auto restore = qScopeGuard([original] { QGuiApplicationPrivate::platform_theme = original; });
+            for (auto* installed : view.rootObject()->findChildren<ShellMenus*>()) {
+                QCoreApplication::instance()->removeEventFilter(installed);
+            }
+            ShellMenus menus;
+            menus.setAnchor(view.rootObject());
+            auto* menu = RecordingBar::last->named("File");
+            QVERIFY(menu);
+            // AppKit validates shortcuts without ever starting menu tracking.
+            emit menu->aboutToShow();
+            emit menu->aboutToShow();
+            auto* text = surface->findChild<QQuickItem*>("textA");
+            text->forceActiveFocus();
+            QTest::keyClick(&view, Qt::Key_A);
+            QCOMPARE(text->property("text").toString(), QString("a"));
+            surface->forceActiveFocus();
+            QTest::keyClick(&view, Qt::Key_Space);
+#ifdef Q_OS_MACOS
+            QVERIFY(clock.playing());
+#else
+            QVERIFY(!clock.playing());
+#endif
+            emit menu->aboutToHide();
+            QTest::keyClick(&view, Qt::Key_Space);
+#ifndef Q_OS_MACOS
+            QVERIFY(clock.playing());
+            QTest::keyClick(&view, Qt::Key_Space);
+#endif
+            QVERIFY(!clock.playing());
+#ifdef Q_OS_MACOS
+            CFRunLoopTimerContext context{0, &view, nullptr, nullptr, nullptr};
+            const std::unique_ptr<std::remove_pointer_t<CFRunLoopTimerRef>, decltype(&CFRelease)> timer(CFRunLoopTimerCreate(nullptr, CFAbsoluteTimeGetCurrent(), 0, 0, 0,
+                [](CFRunLoopTimerRef, void* data) {
+                    auto* window = static_cast<QQuickView*>(data);
+                    QEvent deactivate(QEvent::WindowDeactivate);
+                    QCoreApplication::sendEvent(window, &deactivate);
+                    QTest::keyClick(window, Qt::Key_Space);
+                    CFRunLoopStop(CFRunLoopGetCurrent());
+                }, &context), &CFRelease);
+            CFRunLoopAddTimer(CFRunLoopGetCurrent(), timer.get(), CFSTR("NSEventTrackingRunLoopMode"));
+            CFRunLoopRunInMode(CFSTR("NSEventTrackingRunLoopMode"), 1, false);
+            CFRunLoopTimerInvalidate(timer.get());
+            QVERIFY(!clock.playing());
+            QTest::keyClick(&view, Qt::Key_Space);
+            QVERIFY(clock.playing());
+#endif
+        } else if (scenario == "D3-escape") {
+            auto* gestures = view.rootObject()->findChild<ClipGestureController*>("clipGestures");
+            const QString id = model.clipsJson().first().toObject().value("id").toString();
+            gestures->setSelection({id});
+            QTest::keyClick(&view, Qt::Key_Escape);
+            QCOMPARE(surface->property("escapes").toInt(), 1);
+            QCOMPARE(gestures->selection(), QStringList({id}));
+        } else if (scenario == "D6-click") {
+            auto* button = surface->findChild<QQuickItem*>("chrome");
+            QTest::mouseClick(&view, Qt::LeftButton, {}, button->mapToScene(QPointF(20, 20)).toPoint());
+            QCOMPARE(button->property("focusPolicy").toInt(), int(Qt::TabFocus));
+            QVERIFY(!button->hasActiveFocus());
+            button->forceActiveFocus(Qt::TabFocusReason);
+            QVERIFY(button->hasActiveFocus());
+        } else if (scenario == "D6-toggle" || scenario == "D6-switch" || scenario == "D6-radio") {
+            const QString name = scenario == "D6-switch" ? "switch" : scenario == "D6-radio" ? "radio" : "toggle";
+            auto* toggle = surface->findChild<QQuickItem*>(name);
+            toggle->forceActiveFocus(Qt::TabFocusReason);
+            QTest::keyClick(&view, Qt::Key_Space);
+            QVERIFY(toggle->property("checked").toBool());
+            QVERIFY(!clock.playing());
+        } else {
+            int runs = 0;
+            const QPointer<QObject> guard(surface);
+            const QString action = "test." + scenario;
+            QVERIFY(registerShellMenuItem({"Help", action, "Review probe", scenario == "D4-symbol" ? "Ctrl++" : scenario == "D5-repeat" ? "F35" : "F34", {}, {}, 0,
+                [scenario](const QVariantMap&) { return scenario != "D3-disabled"; }, {},
+                [guard, &runs](const QVariantMap&) { if (guard) { ++runs; } return true; }}));
+            const auto removeProbe = qScopeGuard([action] { unregisterShellMenuItem(action); });
+            if (scenario == "D3-disabled") {
+                QTest::keyClick(&view, Qt::Key_F34);
+                QCOMPARE(surface->property("keys").toInt(), 1);
+            } else if (scenario == "D4-symbol") {
+                QKeyEvent key(QEvent::KeyPress, Qt::Key_Plus, Qt::ShiftModifier | Qt::ControlModifier, "+");
+                QCoreApplication::sendEvent(&view, &key);
+                QCOMPARE(runs, 1);
+            } else {
+                QTest::keyClick(&view, Qt::Key_F35);
+                QCOMPARE(runs, 1);
+                QKeyEvent repeat(QEvent::KeyPress, Qt::Key_F35, Qt::NoModifier, {}, true);
+                QCoreApplication::sendEvent(&view, &repeat);
+                QCOMPARE(runs, 1);
+                const double before = clock.currentTimeMs();
+                QKeyEvent step(QEvent::KeyPress, Qt::Key_Right, Qt::NoModifier, {}, true);
+                QCoreApplication::sendEvent(&view, &step);
+                QVERIFY(clock.currentTimeMs() > before);
+            }
+        }
+    }
+    void chromePrimitivesKeepClickFocus_data() {
+        QTest::addColumn<QString>("control");
+        for (const auto* control : {"EditorButton", "CheckBox", "Toggle", "Select", "TabBar"}) {
+            QTest::newRow(control) << QString::fromLatin1(control);
+        }
+    }
+    void chromePrimitivesKeepClickFocus() {
+        QFETCH(QString, control);
+        TimelineModel model;
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        QQmlComponent component(view.engine());
+        const QString properties = control == "TabBar" ? "tabs: [{label: 'One', value: 1}]; value: 1;" : "";
+        component.setData(("import QtQuick; import NodeTool.UiPrimitives as Ui\nUi." + control
+            + " { width: 200; height: 40; " + properties + " }").toUtf8(), QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* item = qobject_cast<QQuickItem*>(object.get());
+        item->setParentItem(view.rootObject());
+        item->setZ(1000);
+        view.rootObject()->forceActiveFocus();
+        const QPointer<QQuickItem> priorFocus = view.activeFocusItem();
+        QTest::mouseClick(&view, Qt::LeftButton, {}, item->mapToScene(QPointF(20, 20)).toPoint());
+        if (auto* popup = item->property("popup").value<QObject*>()) {
+            QMetaObject::invokeMethod(popup, "close");
+            QTRY_VERIFY(!popup->property("visible").toBool());
+        }
+        QCOMPARE(view.activeFocusItem(), priorFocus.data());
+        QVERIFY(!item->hasActiveFocus());
+        QTest::keyClick(&view, Qt::Key_Space);
+        QVERIFY(clock.playing());
+    }
+    void readOnlyTextKeepsSelection_data() {
+        QTest::addColumn<QString>("control");
+        QTest::newRow("TextField") << QString("TextField");
+        QTest::newRow("TextArea") << QString("TextArea");
+    }
+    void readOnlyTextKeepsSelection() {
+        QFETCH(QString, control);
+        TimelineModel model;
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        QQmlComponent component(view.engine());
+        component.setData(("import QtQuick; import QtQuick.Controls\n" + control + " { width: 200; text: \"Copy this\"; readOnly: true; selectByMouse: true }").toUtf8(), QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* text = qobject_cast<QQuickItem*>(object.get());
+        text->setParentItem(view.rootObject());
+        text->forceActiveFocus();
+        QTest::keyClick(&view, Qt::Key_A, Qt::ControlModifier);
+        QCOMPARE(text->property("selectedText").toString(), QString("Copy this"));
+        QGuiApplication::clipboard()->clear();
+        QTest::keyClick(&view, Qt::Key_C, Qt::ControlModifier);
+        QCOMPARE(QGuiApplication::clipboard()->text(), QString("Copy this"));
+        auto* gestures = view.rootObject()->findChild<ClipGestureController*>("clipGestures");
+        const auto before = model.clipsJson();
+        gestures->setSelection({before.first().toObject().value("id").toString()});
+        QVERIFY(gestures->runAction("copy"));
+        QVERIFY(model.applyEdit("addMarker", {{"id", "readonly-history"}, {"timeMs", 100}}));
+        const auto documentBefore = model.documentJson();
+        for (const auto key : {Qt::Key_X, Qt::Key_V, Qt::Key_Z, Qt::Key_Delete, Qt::Key_Backspace}) {
+            QTest::keyClick(&view, key, key == Qt::Key_Delete || key == Qt::Key_Backspace ? Qt::NoModifier : Qt::ControlModifier);
+            QCOMPARE(model.documentJson(), documentBefore);
+        }
+        ShellMenus menus;
+        menus.setAnchor(view.rootObject());
+        for (const auto* action : {"cut", "paste", "undo", "redo", "deleteSelected"}) {
+            QVERIFY(!menus.trigger(QString::fromLatin1(action)));
+            QCOMPARE(model.documentJson(), documentBefore);
+        }
+        QCOMPARE(text->property("text").toString(), QString("Copy this"));
+        QTest::keyClick(&view, Qt::Key_Space);
+        QVERIFY(clock.playing());
+        QCOMPARE(view.activeFocusItem(), text);
+        QCOMPARE(text->property("selectedText").toString(), QString("Copy this"));
+        QGuiApplication::clipboard()->clear();
+        QTest::keyClick(&view, Qt::Key_C, Qt::ControlModifier);
+        QCOMPARE(QGuiApplication::clipboard()->text(), QString("Copy this"));
+        clock.pause();
+        clock.seek(1500);
+        QCoreApplication::processEvents();
+        const double time = clock.currentTimeMs();
+        QTest::keyClick(&view, Qt::Key_Left);
+        QCOMPARE(clock.currentTimeMs(), time);
+        QVERIFY(menus.trigger("playPause"));
+        QCOMPARE(view.activeFocusItem(), text);
+    }
     void editMenuKeepsTextFocus_data() {
         QTest::addColumn<QString>("action");
         for (const auto& action : {"cut", "copy", "paste", "selectAll", "undo", "deleteSelected"}) {

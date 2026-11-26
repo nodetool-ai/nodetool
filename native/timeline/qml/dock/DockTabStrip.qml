@@ -151,7 +151,6 @@ Rectangle {
                             if (dragged) root.dock.finishDrag()
                             else if (event.button === Qt.MiddleButton && tab.closable) root.dock.store.dispatch({type: "hide", panelId: tab.panelId})
                             else if (event.button === Qt.RightButton) root.groupView.openMenu(tab.panelId, tab)
-                            else tab.forceActiveFocus()
                         }
                         onCanceled: root.dock.cancelDrag()
                     }

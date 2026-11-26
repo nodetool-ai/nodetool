@@ -12,8 +12,10 @@ function(nt_shell_tests)
     nt_add_timeline_qml(tst_appshell OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_appshell_qml/NodeTool/Timeline)
     add_test(NAME tst_appshell_menus COMMAND tst_appshell shellRegistration menus shortcutsAreNotShared conversions dispatch
         registeredEntriesRefuseBadInput registeredEntriesInDescription registeredEntryDispatch registeredEntriesInPlatformMenus
-        editMenuKeepsTextFocus viewMenuRunsItsTimelineCommandWhileTyping)
+        editMenuKeepsTextFocus viewMenuRunsItsTimelineCommandWhileTyping globalShortcutAfterControlClick globalShortcutKindsAndTextOwnership textEditorsKeepSpace chromePrimitivesKeepClickFocus)
     set_tests_properties(tst_appshell_menus PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;NODETOOL_TIMELINE_PREFERENCES=${CMAKE_CURRENT_BINARY_DIR}/shell-test-startup.ini")
+    add_test(NAME tst_appshell_key1 COMMAND tst_appshell readOnlyTextKeepsSelection reviewRegression)
+    set_tests_properties(tst_appshell_key1 PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
     qt_add_executable(tst_appshell_isolation src/app/Menus/tst_appshell_isolation.cpp
         src/app/PanelRegistry.cpp "${CMAKE_CURRENT_BINARY_DIR}/nt_qml_panels.cpp")
     set_target_properties(tst_appshell_isolation PROPERTIES MACOSX_BUNDLE FALSE)

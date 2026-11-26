@@ -44,9 +44,11 @@ struct ShellMenuEntry {
     MenuPredicate checked = {};  // set: the item shows a checkmark
     MenuPredicate run = {};
     QString disabledReason = {};  // why the item is off while `enabled` is false
+    bool repeatable = false;
 };
 const QStringList& shellMenuNames();
 bool registerShellMenuItem(ShellMenuEntry entry);
+bool unregisterShellMenuItem(const QString& action);
 const std::vector<ShellMenuEntry>& shellMenuEntries();
 // The entries of one menu in display order.
 std::vector<ShellMenuEntry> shellMenuEntries(const QString& menu);

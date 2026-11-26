@@ -3,6 +3,7 @@ import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 Basic.CheckBox {
     id: root
+    focusPolicy: Qt.TabFocus
     property string accessibleName: text
     property int density: Ui.EditorButton.Compact
     signal checkedChangedByUser(bool checked)

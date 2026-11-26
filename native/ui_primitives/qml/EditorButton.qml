@@ -4,6 +4,7 @@ import QtQuick.Controls.Basic as Basic
 
 Basic.Button {
     id: root
+    focusPolicy: Qt.TabFocus
     enum Density { Compact, Standard, Comfortable }
     enum Variant { Default, Primary, Flat, Destructive, Outlined }
     // Outlined is the web editor button: accent ink on an accent outline, 28 tall, caption label.

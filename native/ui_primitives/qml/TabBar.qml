@@ -90,7 +90,7 @@ Item {
                     anchors.topMargin: root.filled ? Ui.Metrics.micro : 0
                     anchors.bottomMargin: root.filled ? Ui.Metrics.micro : 0
                     enabled: cell.available
-                    focusPolicy: root.tabStop(cell.index) ? Qt.StrongFocus : Qt.ClickFocus
+                    focusPolicy: root.tabStop(cell.index) ? Qt.TabFocus : Qt.NoFocus
                     Accessible.ignored: true
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     contentItem: Item {}

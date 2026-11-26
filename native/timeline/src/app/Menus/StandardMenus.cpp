@@ -10,6 +10,7 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "edit/sourceEdit/SourceViewerState.h"
+#include "edit/trim/TrimMode.h"
 #include "ui/TimelineViewState.h"
 
 #include <QJsonArray>
@@ -215,7 +216,9 @@ std::vector<Group> table() {
         {"Playback", "play", 0, {{"playPause", "Play / Pause", editor, {}, {}, [](const QVariantMap& c) {
                                      auto* g = gestures(c);
                                      if (!g || !g->clock()) { return false; }
-                                     g->clock()->toggle();
+                                     if (c.value("autoRepeat").toBool()) { return true; }
+                                     if (g->trimMode()->active()) { g->trimMode()->toggleLoop(); }
+                                     else { g->clock()->toggle(); }
                                      return true;
                                  }, "Space"},
                                  {"playInToOut", "Play In to Out", editor},
@@ -241,7 +244,10 @@ const bool registered = [] {
         for (const auto& row : group.rows) {
             const Need& need = row.need.enabled ? row.need : editor;
             registerShellMenuItem({group.menu, row.action, row.label, row.shortcut, row.submenu, group.group, order++,
-                                   need.enabled, row.checked, row.run, need.reason});
+                                   need.enabled, row.checked, row.run, need.reason,
+                                   group.group == "history" || group.group == "step" || group.group == "goTo"
+                                       || group.group == "goToMarker" || group.group == "tracks"
+                                       || row.action == "zoomIn" || row.action == "zoomOut"});
         }
     }
     return true;

@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QVariantList>
 #include <QPointer>
+#include <QSet>
 #include <QQuickItem>
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <vector>
@@ -31,6 +32,7 @@ QKeyCombination bindingCombination(const QStringList& keys);
 std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList& recent = {},
                                        const QVariantMap& context = {});
 
+// UI thread only. The anchor window owns focus and shortcut delivery.
 class ShellMenus : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -46,7 +48,7 @@ public:
     void setKeyboardPreset(const QString& preset);
     Preferences* preferences() const { return m_preferences; }
     void setPreferences(Preferences* preferences);
-    Q_INVOKABLE bool trigger(const QString& action);
+    Q_INVOKABLE bool trigger(const QString& action, bool autoRepeat = false);
 signals:
     void anchorChanged();
     void keyboardPresetChanged();
@@ -60,6 +62,7 @@ private:
         QPlatformMenu* menu = nullptr;
         QString action;
     };
+    bool eventFilter(QObject* watched, QEvent* event) override;
     void rebuild();
     void populate(QPlatformMenu* menu, const std::vector<ShellMenuItem>& items);
     QVariantMap menuContext() const;
@@ -69,5 +72,6 @@ private:
     QPointer<QQuickItem> m_anchor;
     QString m_preset = QStringLiteral("premiere");
     QPointer<QObject> m_bar;
+    QSet<QPlatformMenu*> m_openMenus;
 };
 }

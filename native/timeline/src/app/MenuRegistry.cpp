@@ -55,6 +55,9 @@ bool nt::app::registerShellMenuItem(ShellMenuEntry entry) {
     entries().push_back(std::move(entry));
     return true;
 }
+bool nt::app::unregisterShellMenuItem(const QString& action) {
+    return std::erase_if(entries(), [&](const auto& entry) { return entry.action == action; }) != 0;
+}
 const std::vector<nt::app::ShellMenuEntry>& nt::app::shellMenuEntries() {
     return entries();
 }
