@@ -318,28 +318,38 @@ export function tokenizeStoryboardLine(text: string, entities?: StoryboardMarkdo
     }
     push("text", s.slice(at));
   };
-  const heading = matchStoryboardHeading(text);
-  if (heading) {
-    push("syntax", heading.mark + heading.prefix);
-    const rest = text.slice(heading.bodyStart);
-    if (heading.anchor) {
-      const at = heading.anchor.start - heading.bodyStart;
-      inline(rest.slice(0, at)); push("id", heading.anchor.text); inline(rest.slice(at + heading.anchor.text.length));
-    } else inline(rest);
-  } else if (matchImage(text)) {
-    push("syntax", text);
-  } else {
+  /** `s` as inline runs, with the `{#id}` at `index` drawn as its own run. */
+  const inlineAround = (s: string, index: number, idText: string): void => {
+    inline(s.slice(0, index));
+    push("id", idText);
+    inline(s.slice(index + idText.length));
+  };
+  const drawLine = (): void => {
+    const heading = matchStoryboardHeading(text);
+    if (heading) {
+      push("syntax", heading.mark + heading.prefix);
+      const rest = text.slice(heading.bodyStart);
+      if (heading.anchor) inlineAround(rest, heading.anchor.start - heading.bodyStart, heading.anchor.text);
+      else inline(rest);
+      return;
+    }
+    if (matchImage(text)) {
+      push("syntax", text);
+      return;
+    }
     const field = matchStoryboardField(text);
     if (field) {
       push("syntax", field.pre); push("label", field.label); push("syntax", field.post); push("text", field.gap);
       const anchor = findAnchor(field.body);
-      if (anchor) { inline(field.body.slice(0, anchor.index)); push("id", anchor.text); inline(field.body.slice(anchor.index + anchor.length)); }
+      if (anchor) inlineAround(field.body, anchor.index, anchor.text);
       else inline(field.body);
-    } else {
-      const bullet = /^\s*[-*•]\s+/.exec(text);
-      if (bullet) { push("syntax", bullet[0]); inline(text.slice(bullet[0].length)); } else inline(text);
+      return;
     }
-  }
+    const bullet = /^\s*[-*•]\s+/.exec(text);
+    if (bullet) push("syntax", bullet[0]);
+    inline(text.slice(bullet?.[0].length ?? 0));
+  };
+  drawLine();
   return out.map((t) => t.text).join("") === text ? out : text ? [{ kind: "text", text }] : [];
 }
 
