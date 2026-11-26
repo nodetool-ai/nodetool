@@ -920,6 +920,8 @@ private slots:
         reset();
         QStringList problems;
         int ran = 0, off = 0;
+        const QSet<QString> accountActions{"accountSignIn", "accountOtherServer", "accountSwitchServer", "shareTimeline"};
+        QSet<QString> unavailableAccountActions;
         const auto visit = [&](auto&& self, const std::vector<nt::app::ShellMenuItem>& items, const QString& path) -> void {
             for (const auto& entry : items) {
                 if (entry.separator) { continue; }
@@ -927,6 +929,7 @@ private slots:
                 if (!entry.children.empty()) { self(self, entry.children, name); continue; }
                 if (!entry.enabled) {
                     ++off;
+                    if (accountActions.contains(entry.action)) { unavailableAccountActions.insert(entry.action); }
                     if (entry.disabledReason.isEmpty()) { problems << name + " is off with no reason"; }
                     continue;
                 }
@@ -946,8 +949,10 @@ private slots:
         QVERIFY(ran > 40);
         // Off even with everything available: the trim mode items until it is on, the keyframe items
         // while two clips are selected, Remove Filler Words with no filler word, and File > Publish
-        // to Cloud and Synchronize with no account.
-        if (rich) { QVERIFY2(off < 17, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
+        // to Cloud, Synchronize and the account actions with no account.
+        QCOMPARE(unavailableAccountActions, accountActions);
+        const int editingOff = off - int(unavailableAccountActions.size());
+        if (rich) { QVERIFY2(editingOff < 17, qPrintable(QString::number(editingOff))); } else { QVERIFY(editingOff > 10); }
         source->setProperty("asset", QVariantMap{});
     }
     void toggleItemsShowACheckmark() {
@@ -1115,7 +1120,8 @@ private slots:
         QTest::addColumn<QStringList>("labels");
         QTest::newRow("file") << "File" << QStringList{"Open Recent", "Open Timeline…", "New Timeline", "---",
             "New Music Project…", "---", "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
-            "Project Settings…", "---", "Publish to Cloud…", "Synchronize…", "---", "Settings…", "Quit"};
+            "Project Settings…", "---", "Publish to Cloud…", "Synchronize…", "---",
+            "Sign In to NodeTool Cloud…", "Sign In to Another Server…", "Switch Cloud Server…", "Share…", "---", "Settings…", "Quit"};
         QTest::newRow("edit") << "Edit" << QStringList{"Undo", "Redo", "---", "Cut", "Copy", "Paste", "Paste Insert", "Paste Attributes…", "---",
             "Delete", "Ripple Delete", "Duplicate", "Duplicate with Gap", "---",
             "Select All", "Deselect All", "Select Clips at Playhead", "Select Next Clip", "Select Previous Clip", "---", "Label", "---", "Clean Up Unused Music Takes…"};
@@ -1145,7 +1151,7 @@ private slots:
         QTest::newRow("window") << "Window" << QStringList{"Workspaces", "---", "Maximize Frame", "Next Panel", "Previous Panel", "Left Panels", "Right Panels", "---",
             "Library", "Effects", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Scripts", "Storyboards", "Text", "Effect Controls", "Motion", "Color", "Scopes",
             "Entities", "Markers", "Files", "Assistant", "AI", "Activity", "Music",
-            "Piano Roll", "Step Editor", "Effect Chain"};
+            "Piano Roll", "Step Editor", "Step Sequencer", "Effect Chain"};
     }
     void menuBarGroups() {
         QFETCH(QString, path);
