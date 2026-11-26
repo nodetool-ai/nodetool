@@ -113,7 +113,7 @@ export class EmbeddingNode extends BaseNode {
  * reasoning model at its default effort: web search needs effort above
  * `minimal`.
  */
-const OPENAI_WEB_SEARCH_MODEL = "gpt-5.4-mini";
+const OPENAI_WEB_SEARCH_MODEL = "gpt-5.6-sol";
 
 /** Output handles WebSearchNode.process() emits. */
 type WebSearchNodeOutputs = {
