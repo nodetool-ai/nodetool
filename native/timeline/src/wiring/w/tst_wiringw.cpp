@@ -58,6 +58,20 @@ class TestWiringW : public WiringFixture {
     }
     QJsonArray effects(const QString& id = "a") const { return track(id).value("effects").toArray(); }
     QString effectId(int index = 0) const { return effects().at(index).toObject().value("id").toString(); }
+    nt::MixerReturn::Snapshot gainOverride(const QString& id) const {
+        const auto snapshot = model.snapshot();
+        const auto* channel = snapshot->findTrack("a");
+        nt::MixerReturn::Snapshot value;
+        if (channel) {
+            for (const auto& parameter : channel->deviceParameters) {
+                if (parameter.deviceId == id.toStdString() && parameter.name == "gainDb") {
+                    parameter.state->volumeReturn.read(value);
+                    break;
+                }
+            }
+        }
+        return value;
+    }
     void add(const QString& type) { click("fx-add-a"); click("fx-add-type-a-" + type); }
 private slots:
     void initTestCase() {
@@ -278,19 +292,25 @@ private slots:
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
         QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
         QVERIFY(knob->property("dragging").toBool());
-        QVERIFY(doc() != before);
+        QCOMPARE(doc(), before);
+        QVERIFY(gainOverride(id).active(0));
+        QVERIFY(gainOverride(id).at(0) != 0);
         QCOMPARE(model.undoStack()->count(), undoCount);
         knob->setEnabled(false);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 10));
         QCOMPARE(doc(), before);
+        QVERIFY(!gainOverride(id).active(0));
         QCOMPARE(model.undoStack()->count(), undoCount);
         knob->setEnabled(true);
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
         QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
-        QVERIFY(doc() != before);
+        QCOMPARE(doc(), before);
+        QVERIFY(gainOverride(id).active(0));
+        QVERIFY(gainOverride(id).at(0) != 0);
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 10));
         QCOMPARE(doc(), before);
+        QVERIFY(!gainOverride(id).active(0));
         QCOMPARE(model.undoStack()->count(), undoCount);
     }
     void cancelCurveDragRestoresDraft_data() {
@@ -449,9 +469,12 @@ private slots:
         QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
         QTest::mouseMove(view.get(), from - QPoint(0, 20), 20);
         QCOMPARE(model.undoStack()->count(), 3);
-        QVERIFY(effects()[0].toObject().value("gainDb").toDouble() != 0);
+        QCOMPARE(effects()[0].toObject().value("gainDb").toDouble(), 0.0);
+        QVERIFY(gainOverride(id).active(0));
+        const double previewGain = gainOverride(id).at(0);
+        QVERIFY(previewGain != 0);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 20));
-        QTRY_VERIFY(effects()[0].toObject().value("gainDb").toDouble() != 0);
+        QTRY_COMPARE(effects()[0].toObject().value("gainDb").toDouble(), previewGain);
         QCOMPARE(model.undoStack()->count(), 4);
         add("filter"); QCOMPARE(model.undoStack()->count(), 5);
         click("fx-grip-" + id);
@@ -543,9 +566,12 @@ private slots:
             for (const char ch : text) { QTest::keyClick(view.get(), ch); }
         };
         typeValue("3.5");
-        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
+        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 0.0);
+        QVERIFY(gainOverride(id).active(0));
+        QCOMPARE(gainOverride(id).at(0), 3.5);
         QCOMPARE(model.undoStack()->count(), before);
         QTest::keyClick(view.get(), Qt::Key_Return);
+        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
         QCOMPARE(model.undoStack()->count(), before + 1);
         model.undoStack()->undo(); QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 0.0);
         model.undoStack()->redo(); QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
@@ -555,8 +581,12 @@ private slots:
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
         typeValue("-2.4");
+        QVERIFY(gainOverride(id).active(0));
+        QCOMPARE(gainOverride(id).at(0), -2.4);
+        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
+        QVERIFY(!gainOverride(id).active(0));
         const bool wasPlaying = clock.playing();
         click(fieldName);
         QTest::keyClick(view.get(), Qt::Key_Space);

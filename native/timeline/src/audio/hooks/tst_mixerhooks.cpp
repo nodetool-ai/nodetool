@@ -73,14 +73,15 @@ private slots:
     void expandsAndSilencesSegments() {
         using namespace nt::audio;
         m_tokens.push_back(registerVoiceExpander("test", [](const nt::Clip&, const VoicePlan&) {
-            return std::vector<VoiceSegment>{{0, 4, 0, 2, false}, {4, 4, 0, -1, true}};
+            return std::vector<VoiceSegment>{{0, 4, 64, 2, false}, {4, 4, 0, -1, true}};
         }));
         const auto plan = buildMixPlan(document());
         QCOMPARE(plan.voices.size(), std::size_t(2));
-        QCOMPARE(plan.voices.front().sourceFrameAt(2, 1000), 4.0);
-        std::array<float, 32> input; input.fill(1);
+        QCOMPARE(plan.voices.front().sourceFrameAt(2, 1000), 68.0);
+        // Keep the 2x sinc kernel inside constant PCM so this tests segment gain, not source-edge ringing.
+        std::array<float, 256> input; input.fill(1);
         std::array<VoicePcm, 2> pcm{};
-        for (auto& voice : pcm) { voice.linear = input.data(); voice.linearCount = 16; }
+        for (auto& voice : pcm) { voice.linear = input.data(); voice.linearCount = 128; }
         std::array<float, 16> output{};
         MixStats stats;
         mixBlock(plan, pcm.data(), 1000, 0, 1, 8, output.data(), stats);

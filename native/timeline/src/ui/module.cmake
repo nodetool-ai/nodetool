@@ -141,7 +141,9 @@ function(nt_ui_tests)
     nt_add_timeline_qml(tst_tracksui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_tracksui_qml/NodeTool/Timeline)
     add_test(NAME tst_tracksui COMMAND tst_tracksui)
     # No window is ever shown: the offscreen platform and the software renderer.
-    set_tests_properties(tst_tracksui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    set_tests_properties(tst_tracksui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;NT_TRACKSUI_OFFSCREEN_SUITE=1")
+    add_test(NAME tst_tracksui_scenegraph COMMAND tst_tracksui filmstripTexturesSurviveASceneGraphInvalidation)
+    set_tests_properties(tst_tracksui_scenegraph PROPERTIES LABELS window)
 
 endfunction()
 nt_tests(nt_ui_tests)
