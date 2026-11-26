@@ -3,24 +3,27 @@
 // "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
 
 import { callNode } from "../guest-core.js";
-import type { VideoRef } from "../../types.js";
+import type { AudioRef, VideoRef } from "../../types.js";
 
 // Render Timeline — nodetool.timeline.RenderTimeline
 export type RenderTimelineInputs = {
   timeline?: unknown;
   include_audio?: boolean;
-  format?: "mp4" | "webm" | "mov" | "png_sequence";
+  format?: "mp4" | "webm" | "mov" | "png_sequence" | "wav";
   alpha?: boolean;
   video_codec?: string;
   motion_blur_samples?: number;
   shutter_angle?: number;
   bitrate?: number;
   preview_scale?: number;
+  audio_sample_rate?: number;
+  audio_bit_depth?: number;
 };
 
 export interface RenderTimelineOutputs {
   output: VideoRef;
   frames: unknown;
+  audio: AudioRef;
 }
 
 export function renderTimeline(inputs: RenderTimelineInputs): Promise<RenderTimelineOutputs> {

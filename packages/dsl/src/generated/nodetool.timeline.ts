@@ -1,28 +1,31 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
-import type { VideoRef } from "../types.js";
+import type { AudioRef, VideoRef } from "../types.js";
 
 // Render Timeline — nodetool.timeline.RenderTimeline
 export type RenderTimelineInputs = {
   timeline?: Connectable<unknown>;
   include_audio?: Connectable<boolean>;
-  format?: Connectable<"mp4" | "webm" | "mov" | "png_sequence">;
+  format?: Connectable<"mp4" | "webm" | "mov" | "png_sequence" | "wav">;
   alpha?: Connectable<boolean>;
   video_codec?: Connectable<string>;
   motion_blur_samples?: Connectable<number>;
   shutter_angle?: Connectable<number>;
   bitrate?: Connectable<number>;
   preview_scale?: Connectable<number>;
+  audio_sample_rate?: Connectable<number>;
+  audio_bit_depth?: Connectable<number>;
 };
 
 export interface RenderTimelineOutputs {
   output: VideoRef;
   frames: unknown;
+  audio: AudioRef;
 }
 
 export function renderTimeline(inputs: RenderTimelineInputs, options?: NodeOptions): NodeWithOutputs<RenderTimelineOutputs> {
-  return createNode("nodetool.timeline.RenderTimeline", inputs, { id: options?.id, outputNames: ["output", "frames"], outputTypes: {"output":"video","frames":"document"} });
+  return createNode("nodetool.timeline.RenderTimeline", inputs, { id: options?.id, outputNames: ["output", "frames", "audio"], outputTypes: {"output":"video","frames":"document","audio":"audio"} });
 }
 
 // Timeline Transcript — nodetool.timeline.Transcript
