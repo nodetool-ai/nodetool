@@ -122,7 +122,7 @@ export interface EnrichPass {
 }
 
 /** Thrown by {@link paidCall} when no paid call may be made now. */
-class BudgetStop extends Error {
+export class BudgetStop extends Error {
   constructor(readonly reason: "spend_limit" | "budget_busy") {
     super(reason);
   }
@@ -133,7 +133,7 @@ class BudgetStop extends Error {
  * spend under it, as the embed pass does. Concurrent indexers cannot together
  * spend past the limit.
  */
-async function paidCall<T>(owner: string, call: () => Promise<T>): Promise<T> {
+export async function paidCall<T>(owner: string, call: () => Promise<T>): Promise<T> {
   if (!(await acquireSearchLease(EMBED_BUDGET_LEASE, owner, EMBED_LEASE_MS))) {
     throw new BudgetStop("budget_busy");
   }

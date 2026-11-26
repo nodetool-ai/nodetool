@@ -19,7 +19,7 @@ const rebuildHook = trpc.search.rebuild.useMutation as unknown as jest.Mock;
 const status: StatusOutput = {
   items: { ready: 4, pending: 0, failed: 1, skipped: 0, total: 5 },
   chunks: 20,
-  semantic: { space: "transformers_js:Xenova/all-MiniLM-L6-v2", choice: "on", embedded: 18, remaining: 2, collections: ["a"] },
+  semantic: { space: "transformers_js:Xenova/all-MiniLM-L6-v2", choice: "on", embedded: 18, remaining: 2, collections: ["a"], images: { space: null, embedded: 0, remaining: 0 } },
   failures: [{ item_id: "i1", title: "scan.pdf", error: "The PDF is encrypted." }],
   can_set_up: true,
   local_model: { provider: "transformers_js", model: "Xenova/all-MiniLM-L6-v2", download_megabytes: 91 }

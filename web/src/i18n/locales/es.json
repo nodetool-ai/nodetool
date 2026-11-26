@@ -21147,7 +21147,8 @@
       "description": "Descripción",
       "body": "Texto",
       "caption": "Pie de foto",
-      "transcript": "Transcripción"
+      "transcript": "Transcripción",
+      "image": "Coincide por la propia imagen"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -21175,6 +21176,7 @@
       "semanticOff": "La búsqueda por significado está desactivada. La búsqueda por palabras funciona sin ella.",
       "vectors": "{{embedded}} de {{total}} fragmentos incrustados",
       "rebuildingVectors": "El nuevo modelo está incrustando la biblioteca. La búsqueda usa el modelo anterior hasta que termine.",
+      "images": "Las imágenes se incrustan con {{model}}: {{embedded}} listas, {{remaining}} pendientes.",
       "turnOff": "Desactivar la búsqueda por significado",
       "embedAgain": "Incrustar de nuevo",
       "rebuild": "Reconstruir el índice",

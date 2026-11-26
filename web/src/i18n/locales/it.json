@@ -21147,7 +21147,8 @@
       "description": "Descrizione",
       "body": "Testo",
       "caption": "Didascalia",
-      "transcript": "Trascrizione"
+      "transcript": "Trascrizione",
+      "image": "Corrisponde all’immagine stessa"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -21175,6 +21176,7 @@
       "semanticOff": "La ricerca per significato è disattivata. La ricerca per parole funziona senza.",
       "vectors": "{{embedded}} di {{total}} passaggi incorporati",
       "rebuildingVectors": "Il nuovo modello sta incorporando la libreria. Fino al termine la ricerca usa il modello precedente.",
+      "images": "Le immagini vengono incorporate con {{model}}: {{embedded}} completate, {{remaining}} rimanenti.",
       "turnOff": "Disattiva la ricerca per significato",
       "embedAgain": "Incorpora di nuovo",
       "rebuild": "Ricostruisci l’indice",

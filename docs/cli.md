@@ -1814,10 +1814,14 @@ collection you create. See [Search services](https://github.com/nodetool-ai/node
 - `read <id>` — an item's passages, or the passage at `--locator '<json>'` with
   `--before` and `--after` neighbours.
 - `status` — items by state, passages with vectors, the embedding model and its
-  collections.
-- `setup [--model <provider:model>] [--off]` — turn search by meaning on. The
-  default model is `transformers_js:Xenova/all-MiniLM-L6-v2`, which runs
-  locally. A hosted model receives the passage text.
+  collections, and the image model with its image counts.
+- `setup [--model <provider:model>] [--off] [--image-model <provider:model|off>]`
+  — turn search by meaning on. The default model is
+  `transformers_js:Xenova/all-MiniLM-L6-v2`, which runs locally. A hosted model
+  receives the passage text. `--image-model` also embeds the images
+  themselves with a model that shares a space with its text, such as
+  `transformers_js:Xenova/clip-vit-base-patch32`. A hosted image model
+  receives the image files.
 - `rebuild [--vectors]` — extract and embed every item again, or only embed.
 - `indexer [--once]` — run the indexer in this process, or until the queue is
   empty.

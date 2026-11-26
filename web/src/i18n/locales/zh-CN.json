@@ -20828,7 +20828,8 @@
       "description": "描述",
       "body": "文本",
       "caption": "图片说明",
-      "transcript": "转录文本"
+      "transcript": "转录文本",
+      "image": "与图片本身匹配"
     },
     "matchedIn": "{{field}}：{{snippet}}",
     "palette": {
@@ -20856,6 +20857,7 @@
       "semanticOff": "按含义搜索已关闭。关键词搜索无需它即可使用。",
       "vectors": "{{total}} 个段落中已嵌入 {{embedded}} 个",
       "rebuildingVectors": "新模型正在嵌入素材库。完成前，搜索仍使用之前的模型。",
+      "images": "图片使用 {{model}} 嵌入：已完成 {{embedded}} 张，剩余 {{remaining}} 张。",
       "turnOff": "关闭按含义搜索",
       "embedAgain": "重新嵌入",
       "rebuild": "重建索引",

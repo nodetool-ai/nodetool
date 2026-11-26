@@ -5,10 +5,11 @@
  * API docs: https://api.jina.ai/redoc
  */
 
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { BaseProvider, type EmbeddingImage, type ProviderCapability } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import type { EmbeddingModel, Message, ProviderStreamItem } from "./types.js";
 import {
+  normalizeEmbeddingImages,
   normalizeEmbeddingTexts,
   postEmbeddingRequest,
   sortEmbeddingsByIndex
@@ -18,6 +19,11 @@ import {
 const log = createLogger("nodetool.runtime.providers.jina");
 
 const JINA_API_BASE_URL = "https://api.jina.ai/v1";
+
+/** Jina models that embed images and text into one space. */
+function isJinaClipModel(model: string): boolean {
+  return model.startsWith("jina-clip-");
+}
 
 const JINA_EMBEDDING_MODELS: EmbeddingModel[] = [
   {
@@ -131,7 +137,8 @@ export class JinaProvider extends BaseProvider {
     const model = args.model || "jina-embeddings-v3";
     const body: Record<string, unknown> = {
       model,
-      input: texts
+      // The CLIP models take typed inputs, so text and images share one request shape.
+      input: isJinaClipModel(model) ? texts.map((text) => ({ text })) : texts
     };
     if (this.task && model.startsWith("jina-embeddings-v3")) {
       body.task = this.task;
@@ -151,6 +158,40 @@ export class JinaProvider extends BaseProvider {
       label: "Jina"
     });
 
+    return sortEmbeddingsByIndex(data.data ?? []);
+  }
+
+  /** Embed images with a Jina CLIP model, in the space of its text embeddings. */
+  override async generateImageEmbedding(args: {
+    images: EmbeddingImage[];
+    model: string;
+    dimensions?: number;
+  }): Promise<number[][]> {
+    if (!this.apiKey) {
+      throw new Error("JINA_API_KEY is not configured");
+    }
+    const model = args.model || "jina-clip-v2";
+    if (!isJinaClipModel(model)) {
+      throw new Error(`Jina model ${model} does not embed images. Use jina-clip-v2.`);
+    }
+    const body: Record<string, unknown> = {
+      model,
+      input: normalizeEmbeddingImages(args.images).map((image) => ({
+        image: Buffer.from(image.data).toString("base64")
+      }))
+    };
+    if (args.dimensions) {
+      body.dimensions = args.dimensions;
+    }
+    const data = await postEmbeddingRequest<{
+      data?: Array<{ embedding: number[]; index?: number }>;
+    }>({
+      fetchFn: this._fetch,
+      url: `${JINA_API_BASE_URL}/embeddings`,
+      apiKey: this.apiKey,
+      body,
+      label: "Jina"
+    });
     return sortEmbeddingsByIndex(data.data ?? []);
   }
 }

@@ -64,8 +64,46 @@ type TransformersEnv = {
   allowLocalModels?: boolean;
 };
 
+/** One tensor of a CLIP encoder's output. */
+export interface ClipTensor {
+  dims: number[];
+  tolist(): number[][];
+}
+
+/** The tensors a CLIP tokenizer or image processor makes and an encoder reads. */
+export type ClipInputs = Record<string, unknown>;
+
+export type ClipTokenizer = (
+  texts: string[],
+  options: { padding: boolean; truncation: boolean }
+) => ClipInputs;
+export type ClipImageProcessor = (images: RawImage[]) => Promise<ClipInputs>;
+
+interface ClipModel {
+  dispose?(): Promise<void>;
+}
+export interface ClipTextModel extends ClipModel {
+  (inputs: ClipInputs): Promise<{ text_embeds: ClipTensor }>;
+}
+export interface ClipVisionModel extends ClipModel {
+  (inputs: ClipInputs): Promise<{ image_embeds: ClipTensor }>;
+}
+
+type Pretrained<T> = {
+  from_pretrained(repoId: string, options: Record<string, unknown>): Promise<T>;
+};
+
 type TransformersModule = {
   pipeline: PipelineFn;
+  /**
+   * The four classes CLIP embeddings load through. The feature-extraction
+   * pipelines return CLIP's unprojected hidden states, which text and images
+   * do not share.
+   */
+  CLIPTokenizer?: Pretrained<ClipTokenizer>;
+  CLIPImageProcessor?: Pretrained<ClipImageProcessor>;
+  CLIPTextModelWithProjection?: Pretrained<ClipTextModel>;
+  CLIPVisionModelWithProjection?: Pretrained<ClipVisionModel>;
   env?: TransformersEnv;
   RawImage?: {
     fromBlob(blob: Blob): Promise<RawImage>;

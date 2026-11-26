@@ -21147,7 +21147,8 @@
       "description": "Descrição",
       "body": "Texto",
       "caption": "Legenda",
-      "transcript": "Transcrição"
+      "transcript": "Transcrição",
+      "image": "Corresponde à própria imagem"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -21175,6 +21176,7 @@
       "semanticOff": "A pesquisa por significado está desativada. A pesquisa por palavras funciona sem ela.",
       "vectors": "{{embedded}} de {{total}} trechos incorporados",
       "rebuildingVectors": "O novo modelo está incorporando a biblioteca. A pesquisa usa o modelo anterior até terminar.",
+      "images": "As imagens são incorporadas com {{model}}: {{embedded}} prontas, {{remaining}} restantes.",
       "turnOff": "Desativar a pesquisa por significado",
       "embedAgain": "Incorporar novamente",
       "rebuild": "Reconstruir o índice",

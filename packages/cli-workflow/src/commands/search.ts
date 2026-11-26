@@ -10,6 +10,7 @@ import { getSecret } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   DEFAULT_LOCAL_EMBEDDING,
+  DEFAULT_LOCAL_IMAGE_EMBEDDING,
   EMBED_JOB_PREFIX,
   IN_PROCESS_EMBEDDING_PROVIDERS,
   libraryIndexStatus,
@@ -21,9 +22,11 @@ import {
   runLibraryIndexer,
   searchLibrary,
   setLibraryEmbedder,
+  setupLibraryImageSearch,
   setupLibrarySemanticSearch,
   stopLibraryIndexWrites,
   type EmbeddingSpace,
+  type LibraryImage,
   type LibrarySearchMode
 } from "@nodetool-ai/search-services";
 import { SEARCH_KINDS, type SearchKind } from "@nodetool-ai/protocol";
@@ -40,32 +43,49 @@ function fail(error: unknown): never {
 
 let transformersRegistered = false;
 
-/** Embed through the runtime providers: hosted models through the generation seam, local ones directly. */
-async function embedTexts(texts: string[], space: EmbeddingSpace, userId: string): Promise<number[][]> {
+/** The Transformers.js provider is a pack; register it before its first local call. */
+async function ensureLocalProvider(provider: string): Promise<void> {
+  if (provider !== "transformers_js" || transformersRegistered) return;
+  const { importPack } = await import("@nodetool-ai/node-catalog");
+  const pack = await importPack<{ registerTransformersJsProvider(): void }>(
+    "transformers-js",
+    "@nodetool-ai/transformers-js-provider"
+  );
+  pack.registerTransformersJsProvider();
+  transformersRegistered = true;
+}
+
+/**
+ * Embed texts, or images with `images`, through the runtime providers:
+ * hosted models through the generation seam, local ones directly.
+ */
+async function embedInputs(
+  input: { texts: string[] } | { images: LibraryImage[] },
+  space: EmbeddingSpace,
+  userId: string
+): Promise<number[][]> {
   const context = new ProcessingContext({
     jobId: `${EMBED_JOB_PREFIX}${randomUUID()}`,
     userId,
     secretResolver: getSecret
   });
+  const images =
+    "images" in input
+      ? input.images.map((image) => ({ data: image.bytes, mimeType: image.contentType ?? undefined }))
+      : null;
   let result: unknown;
   if (IN_PROCESS_EMBEDDING_PROVIDERS.has(space.provider)) {
-    if (space.provider === "transformers_js" && !transformersRegistered) {
-      const { importPack } = await import("@nodetool-ai/node-catalog");
-      const pack = await importPack<{ registerTransformersJsProvider(): void }>(
-        "transformers-js",
-        "@nodetool-ai/transformers-js-provider"
-      );
-      pack.registerTransformersJsProvider();
-      transformersRegistered = true;
-    }
+    await ensureLocalProvider(space.provider);
     const provider = await context.getProvider(space.provider);
-    result = await provider.generateEmbedding({ text: texts, model: space.model });
+    result = images
+      ? await provider.generateImageEmbedding({ images, model: space.model })
+      : await provider.generateEmbedding({ text: "texts" in input ? input.texts : [], model: space.model });
   } else {
     result = await context.runProviderPrediction({
       provider: space.provider,
       capability: "generate_embedding",
       model: space.model,
-      params: { text: texts }
+      params: images ? { images } : { text: "texts" in input ? input.texts : [] }
     });
   }
   if (!Array.isArray(result) || !result.every((row) => Array.isArray(row))) {
@@ -78,7 +98,10 @@ async function embedTexts(texts: string[], space: EmbeddingSpace, userId: string
 async function openIndex(): Promise<void> {
   await setupLocalDb();
   stopLibraryIndexWrites();
-  setLibraryEmbedder({ embed: embedTexts });
+  setLibraryEmbedder({
+    embed: (texts, space, userId) => embedInputs({ texts }, space, userId),
+    embedImages: (images, space, userId) => embedInputs({ images }, space, userId)
+  });
 }
 
 function parseModel(value: string): { provider: string; model: string } {
@@ -196,7 +219,10 @@ export function registerSearchCommands(program: Command): void {
           "embedding model": status.semantic.space ?? "off (keyword search only)",
           "passages with vectors": status.semantic.embedded,
           "passages to embed": status.semantic.remaining,
-          collections: status.semantic.collections.join(", ")
+          collections: status.semantic.collections.join(", "),
+          "image model": status.semantic.images.space ?? "off",
+          "images with vectors": status.semantic.images.embedded,
+          "images to embed": status.semantic.images.remaining
         });
         for (const failure of status.failures) console.log(`failed: ${failure.title}: ${failure.error ?? ""}`);
       } catch (error) {
@@ -211,21 +237,43 @@ export function registerSearchCommands(program: Command): void {
     )
     .option("--model <provider:model>", "Embedding model, such as openai:text-embedding-3-small")
     .option("--off", "Turn search by meaning off; keyword search stays")
+    .option(
+      "--image-model <provider:model|off>",
+      `Also embed images with a CLIP-style model, such as ${DEFAULT_LOCAL_IMAGE_EMBEDDING.provider}:${DEFAULT_LOCAL_IMAGE_EMBEDDING.model}; off stops it`
+    )
     .option("--json", "Output as JSON")
-    .action(async (opts: { model?: string; off?: boolean; json?: boolean }) => {
+    .action(async (opts: { model?: string; off?: boolean; imageModel?: string; json?: boolean }) => {
       try {
         await setupLocalDb();
         const space = opts.off ? null : parseModel(opts.model ?? `${DEFAULT_LOCAL_EMBEDDING.provider}:${DEFAULT_LOCAL_EMBEDDING.model}`);
         await setupLibrarySemanticSearch(space);
-        const message = space
-          ? `Search by meaning uses ${space.provider}:${space.model}. The indexer embeds the library in the background.` +
-            (IN_PROCESS_EMBEDDING_PROVIDERS.has(space.provider) ? "" : ` Passage text is sent to ${space.provider}.`)
-          : "Search by meaning is off. Keyword search stays.";
+        const messages = [
+          space
+            ? `Search by meaning uses ${space.provider}:${space.model}. The indexer embeds the library in the background.` +
+              (IN_PROCESS_EMBEDDING_PROVIDERS.has(space.provider) ? "" : ` Passage text is sent to ${space.provider}.`)
+            : "Search by meaning is off. Keyword search stays."
+        ];
+        let imageModel: string | null | undefined;
+        if (opts.imageModel !== undefined) {
+          const image = opts.imageModel.trim().toLowerCase() === "off" ? null : parseModel(opts.imageModel);
+          await setupLibraryImageSearch(image);
+          imageModel = image ? `${image.provider}:${image.model}` : null;
+          messages.push(
+            image
+              ? `Images are embedded with ${imageModel}.` +
+                  (IN_PROCESS_EMBEDDING_PROVIDERS.has(image.provider) ? "" : ` Image files are sent to ${image.provider}.`)
+              : "Images are found by their text only."
+          );
+        }
         if (opts.json) {
-          asJson({ semantic: space ? `${space.provider}:${space.model}` : null });
+          const result: { semantic: string | null; image_model?: string | null } = {
+            semantic: space ? `${space.provider}:${space.model}` : null
+          };
+          if (imageModel !== undefined) result.image_model = imageModel;
+          asJson(result);
           return;
         }
-        console.log(message);
+        console.log(messages.join(" "));
       } catch (error) {
         fail(error);
       }

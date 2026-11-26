@@ -130,6 +130,8 @@ export interface VectorCollection {
     ids?: string[];
     limit?: number;
     offset?: number;
+    /** Also return each record's stored vector. */
+    includeEmbeddings?: boolean;
   }): Promise<VectorRecord[]>;
 
   /** Vector / text / URI search. Results sorted by ascending distance. */

@@ -1,7 +1,8 @@
 /**
  * The indexer loop (D13, D14): reconcile, claim pending items and extract
- * their content one at a time, embed chunks that lack a vector, then add
- * captions and transcripts when enrichment is on. It runs in its own OS process in a
+ * their content one at a time, embed chunks that lack a vector, embed images
+ * when an image model is set, then add captions and transcripts when
+ * enrichment is on. It runs in its own OS process in a
  * server deployment (the `search-indexer` role) and in process for the CLI
  * and tests. The database is the queue, so any number of loops may run.
  */
@@ -12,6 +13,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { extractContent } from "./content.js";
 import { runEmbedPass } from "./embed.js";
 import { runEnrichPass } from "./enrich.js";
+import { runImageEmbedPass } from "./image-embed.js";
 import { claimPendingItems, completeItem, dropClaimedItem, failItem } from "./queue.js";
 import { reconcileLibraryIndex, setLibraryIndexerWake } from "./sync.js";
 
@@ -144,6 +146,18 @@ export async function runLibraryIndexer(options: LibraryIndexerOptions = {}): Pr
       } catch (error) {
         // A provider error waits for the next poll instead of spinning.
         log.warn("Library embedding failed", {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+      // Image vectors after text: one model call per image.
+      try {
+        const images = await runImageEmbedPass({ signal: options.signal, limit: 64, owner });
+        if (images.embedded > 0) {
+          log.debug("Library image embed pass", { ...images });
+          continue;
+        }
+      } catch (error) {
+        log.warn("Library image embedding failed", {
           error: error instanceof Error ? error.message : String(error)
         });
       }

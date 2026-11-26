@@ -46,7 +46,7 @@ const setupHook = trpc.search.setup.useMutation as unknown as jest.Mock;
 const status = (overrides: Partial<StatusOutput> = {}): StatusOutput => ({
   items: { ready: 3, pending: 0, failed: 0, skipped: 0, total: 3 },
   chunks: 12,
-  semantic: { space: null, choice: "on", embedded: 0, remaining: 0, collections: [] },
+  semantic: { space: null, choice: "on", embedded: 0, remaining: 0, collections: [], images: { space: null, embedded: 0, remaining: 0 } },
   failures: [],
   can_set_up: true,
   local_model: { provider: "transformers_js", model: "Xenova/all-MiniLM-L6-v2", download_megabytes: 91 },
@@ -104,6 +104,19 @@ it("shows a hit with its passage and location, and opens it on select", async ()
   expect(screen.getByText("Harbour film / Notes")).toBeInTheDocument();
   await userEvent.click(screen.getByText("logbook.txt"));
   expect(openResource).toHaveBeenCalledWith({ kind: "asset", id: "asset-1" });
+});
+
+it("says an image matched by its picture when no passage names it", async () => {
+  queryHook.mockReturnValue({
+    data: answer([
+      { ...hit, kind: "image", title: "IMG_0001.png", content_type: "image/png", matches: [{ field: "image", snippet: "", locator: null }] }
+    ]),
+    isFetching: false,
+    isError: false
+  });
+  renderGroup("dog on a beach");
+  expect(await screen.findByText("IMG_0001.png")).toBeInTheDocument();
+  expect(screen.getByText("Matched by the picture itself")).toBeInTheDocument();
 });
 
 it("opens a project folder file as a file tab of its project's folder", async () => {
@@ -168,7 +181,7 @@ it("offers search by meaning once, on an empty search, until someone chooses", a
   const mutateAsync = jest.fn();
   setupHook.mockReturnValue({ mutateAsync, isPending: false, error: null });
   statusHook.mockReturnValue({
-    data: status({ semantic: { space: null, choice: "unset", embedded: 0, remaining: 0, collections: [] } }),
+    data: status({ semantic: { space: null, choice: "unset", embedded: 0, remaining: 0, collections: [], images: { space: null, embedded: 0, remaining: 0 } } }),
     isLoading: false,
     isError: false
   });

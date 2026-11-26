@@ -21466,7 +21466,8 @@
       "description": "Opis",
       "body": "Tekst",
       "caption": "Podpis",
-      "transcript": "Transkrypcja"
+      "transcript": "Transkrypcja",
+      "image": "Dopasowano po samym obrazie"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -21494,6 +21495,7 @@
       "semanticOff": "Wyszukiwanie według znaczenia jest wyłączone. Wyszukiwanie słów działa bez niego.",
       "vectors": "Osadzono {{embedded}} z {{total}} fragmentów",
       "rebuildingVectors": "Nowy model osadza bibliotekę. Do czasu zakończenia wyszukiwanie używa poprzedniego modelu.",
+      "images": "Obrazy są osadzane modelem {{model}}: {{embedded}} gotowe, {{remaining}} pozostało.",
       "turnOff": "Wyłącz wyszukiwanie według znaczenia",
       "embedAgain": "Osadź ponownie",
       "rebuild": "Przebuduj indeks",

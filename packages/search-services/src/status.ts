@@ -8,10 +8,12 @@
 import { and, count, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { getPortableDb, searchChunks, searchItems } from "@nodetool-ai/models";
 import { unembeddedChunkCount } from "./embed.js";
+import { embeddedImageCount, unembeddedImageCount } from "./image-embed.js";
 import {
   dropLibraryCollections,
   libraryCollections,
   libraryEmbeddingSpace,
+  libraryImageSpace,
   librarySemanticChoice
 } from "./semantic.js";
 import { reconcileLibraryIndex, wakeLibraryIndexer } from "./sync.js";
@@ -30,6 +32,15 @@ export interface LibraryIndexStatus {
     remaining: number;
     /** Spaces with a collection; more than one while a rebuild runs. */
     collections: string[];
+    /** Image vectors, when an image model is set. */
+    images: {
+      /** `provider:model`, or null when image vectors are off. */
+      space: string | null;
+      /** Images with a vector in that space. */
+      embedded: number;
+      /** Images still waiting for one, outside excluded projects. */
+      remaining: number;
+    };
   };
   /** The most recent failures, newest first. */
   failures: Array<{ itemId: string; title: string; error: string | null }>;
@@ -62,6 +73,12 @@ export async function libraryIndexStatus(userId: string): Promise<LibraryIndexSt
     remaining = await unembeddedChunkCount(userId, space);
     collections = (await libraryCollections(userId)).map((collection) => collection.space.id);
   }
+  const imageSpace = await libraryImageSpace();
+  const images = {
+    space: imageSpace?.id ?? null,
+    embedded: imageSpace ? await embeddedImageCount(userId, imageSpace) : 0,
+    remaining: imageSpace ? await unembeddedImageCount(userId, imageSpace) : 0
+  };
   const failures = await db
     .select({ itemId: searchItems.id, title: searchItems.title, error: searchItems.error })
     .from(searchItems)
@@ -79,14 +96,22 @@ export async function libraryIndexStatus(userId: string): Promise<LibraryIndexSt
   return {
     items,
     chunks: Number(chunkRow?.n ?? 0),
-    semantic: { space: space?.id ?? null, choice: await librarySemanticChoice(), embedded, remaining, collections },
+    semantic: {
+      space: space?.id ?? null,
+      choice: await librarySemanticChoice(),
+      embedded,
+      remaining,
+      collections,
+      images
+    },
     failures
   };
 }
 
 /**
- * Rebuild one owner's index. `vectors` embeds every chunk again and drops the
- * collections; `all` also extracts every item again. The indexer does the work.
+ * Rebuild one owner's index. `vectors` embeds every chunk and image again and
+ * drops the collections; `all` also extracts every item again. The indexer
+ * does the work.
  */
 export async function rebuildLibraryIndex(userId: string, scope: "vectors" | "all" = "all"): Promise<{ items: number }> {
   const db = getPortableDb();
@@ -101,13 +126,19 @@ export async function rebuildLibraryIndex(userId: string, scope: "vectors" | "al
       .update(searchChunks)
       .set({ embedding_space: null })
       .where(and(inArray(searchChunks.item_id, batch), isNotNull(searchChunks.embedding_space)));
+    await db
+      .update(searchItems)
+      .set({ image_embedded_version: null, image_embed_attempts: 0, image_embed_error: null })
+      .where(inArray(searchItems.id, batch));
     if (scope === "all") {
       // The next reconcile sees an old extractor version and queues every
       // item that has content, as after an extractor upgrade.
       await db.update(searchItems).set({ extractor_version: 0 }).where(inArray(searchItems.id, batch));
     }
   }
-  if (await libraryEmbeddingSpace()) await dropLibraryCollections(userId);
+  if ((await libraryEmbeddingSpace()) || (await libraryImageSpace())) {
+    await dropLibraryCollections(userId, undefined, "all");
+  }
   if (scope === "all") await reconcileLibraryIndex({ userId });
   wakeLibraryIndexer();
   return { items: ids.length };

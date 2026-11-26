@@ -20828,7 +20828,8 @@
       "description": "説明",
       "body": "テキスト",
       "caption": "キャプション",
-      "transcript": "文字起こし"
+      "transcript": "文字起こし",
+      "image": "画像そのものに一致"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -20856,6 +20857,7 @@
       "semanticOff": "意味検索はオフです。キーワード検索はなしでも使えます。",
       "vectors": "{{total}} 件中 {{embedded}} 件の文章を埋め込み済み",
       "rebuildingVectors": "新しいモデルがライブラリを埋め込んでいます。完了するまで検索は以前のモデルを使います。",
+      "images": "画像は {{model}} で埋め込まれます: {{embedded}} 件完了、残り {{remaining}} 件。",
       "turnOff": "意味検索をオフにする",
       "embedAgain": "再度埋め込む",
       "rebuild": "インデックスを再構築",

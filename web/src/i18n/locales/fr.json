@@ -21147,7 +21147,8 @@
       "description": "Description",
       "body": "Texte",
       "caption": "Légende",
-      "transcript": "Transcription"
+      "transcript": "Transcription",
+      "image": "Correspond à l’image elle-même"
     },
     "matchedIn": "{{field}} : {{snippet}}",
     "palette": {
@@ -21175,6 +21176,7 @@
       "semanticOff": "La recherche par le sens est désactivée. La recherche par mots fonctionne sans elle.",
       "vectors": "{{embedded}} sur {{total}} passages vectorisés",
       "rebuildingVectors": "Le nouveau modèle vectorise la bibliothèque. La recherche utilise l’ancien modèle jusqu’à la fin.",
+      "images": "Les images sont vectorisées avec {{model}} : {{embedded}} faites, {{remaining}} restantes.",
       "turnOff": "Désactiver la recherche par le sens",
       "embedAgain": "Vectoriser à nouveau",
       "rebuild": "Reconstruire l’index",

@@ -15,6 +15,7 @@ import {
   embeddingDailySpendLimit,
   excludedEmbeddingProjects,
   IN_PROCESS_EMBEDDING_PROVIDERS,
+  imageVectorId,
   libraryCollection,
   libraryEmbedder,
   libraryEmbeddingSpace,
@@ -234,16 +235,31 @@ export async function runEmbedPass(
   return pass;
 }
 
-/** Chunk ids of the given items, for removing their vectors. */
+/**
+ * Vector ids of the given items, by owner, for removing their vectors: each
+ * chunk's id and the item's image vector id.
+ */
 export async function chunkIdsOfItems(itemIds: readonly string[]): Promise<Map<string, string[]>> {
   const byUser = new Map<string, string[]>();
+  const add = (userId: string, id: string): void => {
+    const list = byUser.get(userId);
+    if (list) list.push(id);
+    else byUser.set(userId, [id]);
+  };
   for (let start = 0; start < itemIds.length; start += 500) {
-    const rows = await getPortableDb()
+    const batch = itemIds.slice(start, start + 500);
+    const db = getPortableDb();
+    const items = await db
+      .select({ id: searchItems.id, userId: searchItems.user_id, imageVersion: searchItems.image_embedded_version })
+      .from(searchItems)
+      .where(inArray(searchItems.id, batch));
+    for (const item of items) if (item.imageVersion) add(item.userId, imageVectorId(item.id));
+    const rows = await db
       .select({ id: searchChunks.id, userId: searchItems.user_id })
       .from(searchChunks)
       .innerJoin(searchItems, eq(searchItems.id, searchChunks.item_id))
-      .where(inArray(searchChunks.item_id, itemIds.slice(start, start + 500)));
-    for (const row of rows) byUser.set(row.userId, [...(byUser.get(row.userId) ?? []), row.id]);
+      .where(inArray(searchChunks.item_id, batch));
+    for (const row of rows) add(row.userId, row.id);
   }
   return byUser;
 }

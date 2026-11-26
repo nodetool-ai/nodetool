@@ -49,14 +49,18 @@ export const SEARCH_RESOURCE_TYPES = [
 export const SearchResourceType = z.enum(SEARCH_RESOURCE_TYPES);
 export type SearchResourceType = z.infer<typeof SearchResourceType>;
 
-/** The part of an item a chunk of text came from. */
+/**
+ * The part of an item a chunk of text came from. `image` names no chunk: a
+ * hit matched by its picture's vector carries it, with an empty snippet.
+ */
 export const SEARCH_FIELDS = [
   "title",
   "prompt",
   "description",
   "body",
   "caption",
-  "transcript"
+  "transcript",
+  "image"
 ] as const;
 
 export const SearchField = z.enum(SEARCH_FIELDS);

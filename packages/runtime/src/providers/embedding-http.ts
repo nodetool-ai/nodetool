@@ -4,6 +4,7 @@
  */
 
 import { isNonEmptyString } from "@nodetool-ai/protocol";
+import type { EmbeddingImage } from "./base-provider.js";
 
 /** Wrap a single string in an array and reject empty input. */
 export function normalizeEmbeddingTexts(text: string | string[]): string[] {
@@ -51,4 +52,18 @@ export function sortEmbeddingsByIndex(
   return ordered
     .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
     .map((row) => row.embedding);
+}
+
+/** Reject an empty image list or an image with no bytes. */
+export function normalizeEmbeddingImages(images: EmbeddingImage[]): EmbeddingImage[] {
+  if (images.length === 0 || images.some((image) => image.data.byteLength === 0)) {
+    throw new Error("images must not be empty");
+  }
+  return images;
+}
+
+/** An image as a `data:` URI, the form the multimodal embedding APIs accept. */
+export function imageDataUri(image: EmbeddingImage): string {
+  const mime = image.mimeType?.startsWith("image/") ? image.mimeType : "image/png";
+  return `data:${mime};base64,${Buffer.from(image.data).toString("base64")}`;
 }

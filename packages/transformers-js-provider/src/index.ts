@@ -2,6 +2,7 @@ import { registerProvider } from "@nodetool-ai/runtime";
 import { TransformersJsProvider } from "./transformers-js-provider.js";
 
 export { TransformersJsProvider } from "./transformers-js-provider.js";
+export { DEFAULT_CLIP_MODEL, isClipModel } from "./clip-embeddings.js";
 export {
   discoverASRModels,
   discoverEmbeddingModels,

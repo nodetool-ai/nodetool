@@ -20828,7 +20828,8 @@
       "description": "Kuvaus",
       "body": "Teksti",
       "caption": "Kuvateksti",
-      "transcript": "Litterointi"
+      "transcript": "Litterointi",
+      "image": "Osuma itse kuvassa"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -20856,6 +20857,7 @@
       "semanticOff": "Merkityshaku on pois päältä. Sanahaku toimii ilman sitä.",
       "vectors": "{{embedded}}/{{total}} katkelmaa upotettu",
       "rebuildingVectors": "Uusi malli upottaa kirjastoa. Haku käyttää edellistä mallia, kunnes se valmistuu.",
+      "images": "Kuvat upotetaan mallilla {{model}}: {{embedded}} valmiina, {{remaining}} jäljellä.",
       "turnOff": "Poista merkityshaku käytöstä",
       "embedAgain": "Upota uudelleen",
       "rebuild": "Rakenna indeksi uudelleen",

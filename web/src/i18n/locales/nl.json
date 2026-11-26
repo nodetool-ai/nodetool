@@ -20828,7 +20828,8 @@
       "description": "Beschrijving",
       "body": "Tekst",
       "caption": "Onderschrift",
-      "transcript": "Transcript"
+      "transcript": "Transcript",
+      "image": "Gevonden in de afbeelding zelf"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -20856,6 +20857,7 @@
       "semanticOff": "Zoeken op betekenis staat uit. Zoeken op woorden werkt zonder.",
       "vectors": "{{embedded}} van {{total}} passages ingebed",
       "rebuildingVectors": "Het nieuwe model bedt de bibliotheek in. Tot het klaar is, zoekt het vorige model.",
+      "images": "Afbeeldingen worden ingebed met {{model}}: {{embedded}} klaar, {{remaining}} te gaan.",
       "turnOff": "Zoeken op betekenis uitzetten",
       "embedAgain": "Opnieuw inbedden",
       "rebuild": "Index opnieuw opbouwen",

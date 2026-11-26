@@ -210,7 +210,9 @@ const LibrarySearchCommands: React.FC<LibrarySearchCommandsProps> = ({ search })
                       {hit.title}
                     </Text>
                     {match && match.field !== "title" && (
-                      <Caption sx={{ overflowWrap: "anywhere" }}>{match.snippet}</Caption>
+                      <Caption sx={{ overflowWrap: "anywhere" }}>
+                        {match.snippet || t(`librarySearch.field.${match.field}`)}
+                      </Caption>
                     )}
                     {location && <Caption color="muted">{location}</Caption>}
                   </FlexColumn>
