@@ -3,12 +3,14 @@
 #include <QPointer>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+// UI thread only. QML parent owns the controller and its diagnostic counters.
 class InspectorEdits : public QObject {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* model READ model WRITE setModel NOTIFY modelChanged)
     // The whole document as a map. Each read converts every clip: a section binds a narrow property below instead.
     Q_PROPERTY(QVariantMap document READ document NOTIFY documentChanged)
+    Q_PROPERTY(int documentReadCount READ documentReadCount)
     // While false, the narrow properties below hold their last value and no model change reaches them.
     Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
     // The group clips as {id, parentId, name}. Notifies only when that list changes.
@@ -21,6 +23,7 @@ public:
     TimelineModel* model() const { return m_model; }
     void setModel(TimelineModel* model);
     QVariantMap document() const;
+    int documentReadCount() const { return m_documentReadCount; }
     bool active() const { return m_active; }
     void setActive(bool active);
     QVariantList groupClips() const { return m_groupClips.toVariantList(); }
@@ -40,6 +43,7 @@ signals:
     void parentIdChanged();
     void childCountChanged();
 private:
+    mutable int m_documentReadCount=0;
     void refresh();
     bool gestureIntact() const;
     void showClips(const QJsonArray& clips);

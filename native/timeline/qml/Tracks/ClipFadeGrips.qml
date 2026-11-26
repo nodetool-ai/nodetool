@@ -12,7 +12,8 @@ Item {
     property var gestures: null
     property var viewState: null
     readonly property real msPerPx: viewState ? viewState.msPerPx : 10
-    readonly property bool selected: gestures && gestures.selection.indexOf(clip.id) >= 0
+    ClipInteractionState { id: interaction; gestures: root.gestures; clipId: root.clip.id || "" }
+    readonly property bool selected: interaction.selected
     readonly property bool locked: !!clip.locked || !!(body && body.locked)
     readonly property var body: {
         let item = parent

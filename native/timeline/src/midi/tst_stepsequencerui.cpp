@@ -484,6 +484,44 @@ Item {
         QCOMPARE(snarePaint.size(), 0);
     }
 
+    void perf2PlayheadDoesNotPaintCells() {
+        auto* canvas=cellCanvas("stepCells-k");
+        QVERIFY(canvas);
+        auto* outline=item("stepPlayingOutline-k-onOff");
+        QVERIFY(outline);
+        QCOMPARE(outline->x(),0.0);
+        QVERIFY(!outline->isVisible());
+        clock.play();
+        QTest::qWait(60);
+        QSignalSpy painted(canvas,SIGNAL(painted()));
+        for (int i=0;i<32;++i) {
+            clock.seek((i%16)*125.0);
+            QCOMPARE(item("stepRow-k")->property("playingStep").toInt(),i%16);
+            QVariant stepX;
+            QVERIFY(QMetaObject::invokeMethod(panel(),"stepX",Q_RETURN_ARG(QVariant,stepX),Q_ARG(QVariant,i%16)));
+            const double expectedX=stepX.toDouble()-panel()->property("scrollX").toDouble()-outline->property("join").toDouble();
+            QCOMPARE(outline->x(),expectedX);
+            QCOMPARE(outline->isVisible(),outline->x()+outline->width()>0 && outline->x()<outline->parentItem()->width());
+            window->grabWindow();
+            QTest::qWait(10);
+        }
+        clock.pause();
+        qInfo()<<"PERF2 observed step paints"<<painted.count();
+        QCOMPARE(painted.count(),0);
+
+        qInfo()<<"PERF2 step lane paints / 32 advances"<<painted.count();
+        clock.play(); clock.seek(0);
+        panel()->setProperty("scrollX",1);
+        QVERIFY(outline->x()<0 && outline->x()+outline->width()>0);
+        QVERIFY(outline->isVisible());
+        panel()->setProperty("scrollX",100);
+        QVERIFY(outline->x()+outline->width()<=0);
+        QVERIFY(!outline->isVisible());
+        clock.stop();
+        QCOMPARE(outline->x(),0.0);
+        QVERIFY(!outline->isVisible());
+    }
+
     void canvasRepaintsWhenLaneRoleChanges() {
         auto* canvas = cellCanvas("stepCells-k");
         auto* lane = item("stepLane-k");

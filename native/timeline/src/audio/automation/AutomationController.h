@@ -6,8 +6,25 @@
 #include <QPointer>
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
+#include <array>
 #include <string>
 #include <vector>
+
+// UI thread only. Owned as a member by the mixer controller.
+class MixerChannelModel : public QAbstractListModel {
+    Q_OBJECT
+    QML_ANONYMOUS
+public:
+    explicit MixerChannelModel(QObject* parent=nullptr) : QAbstractListModel(parent) {}
+    int rowCount(const QModelIndex& parent={}) const override { return parent.isValid() ? 0 : static_cast<int>(m_ids.size()); }
+    QVariant data(const QModelIndex& index,int role) const override {
+        return index.isValid() && index.row()>=0 && index.row()<m_ids.size() && role==Qt::UserRole ? m_ids[index.row()] : QVariant{};
+    }
+    QHash<int,QByteArray> roleNames() const override { return {{Qt::UserRole,"channelTrackId"}}; }
+    void apply(const QJsonArray& tracks);
+private:
+    QStringList m_ids;
+};
 
 // UI thread only. QML parent owns this controller, timeline is a guarded borrow.
 class AutomationController : public QObject {
@@ -17,7 +34,9 @@ class AutomationController : public QObject {
     Q_PROPERTY(QString trackId MEMBER trackId WRITE setTrackId NOTIFY changed)
     Q_PROPERTY(bool master MEMBER master WRITE setMaster NOTIFY changed)
     Q_PROPERTY(QVariantMap channel READ channel NOTIFY channelChanged)
+    Q_PROPERTY(int pointMoveCalls READ pointMoveCalls)
     Q_PROPERTY(QVariantList tracks READ tracks NOTIFY tracksChanged)
+    Q_PROPERTY(MixerChannelModel* channels READ channels CONSTANT)
 public:
     explicit AutomationController(QObject* parent = nullptr);
     ~AutomationController() override;
@@ -28,6 +47,8 @@ public:
     QString trackId;
     bool master = false;
     QVariantMap channel() const;
+    int pointMoveCalls() const { return pointMoveCalls_; }
+    MixerChannelModel* channels() { return &m_channels; }
     QVariantList tracks() const;
     Q_INVOKABLE QVariant call(const QString& name, const QJsonArray& args) const;
     Q_INVOKABLE QString newId() const;
@@ -55,6 +76,7 @@ signals:
     void channelChanged();
     void tracksChanged();
 private:
+    mutable int pointMoveCalls_=0;
     QSet<QString> previewDevices_;
     QHash<QString,QSet<QString>> recordingDeviceParams_;
     QSet<QString> previewMixerParams_;
@@ -66,6 +88,7 @@ private:
     QPointer<TimelineModel> timeline_;
     QJsonObject channelState_;
     QJsonArray tracksState_;
+    MixerChannelModel m_channels;
     void refresh();
 };
 
@@ -80,9 +103,12 @@ public:
     // one channel (the mixer strip and the track header) would split the
     // peaks. A read within one meter frame returns the previous reading.
     // UI thread only.
+    Q_INVOKABLE bool hasSignal() const;
     Q_INVOKABLE QVariantList take(const QString& channelId) const;
+    Q_INVOKABLE double peak(const QString& channelId, int channel) const;
   private:
-    struct Reading { qint64 atMs = -1000; QVariantList peaks; };
+    const std::array<float,2>& read(const QString& channelId) const;
+    struct Reading { qint64 atMs = -1000; std::array<float,2> peaks{}; };
     mutable QHash<QString, Reading> readings_;
     mutable qint64 lastPrunedMs_=-1000;
     QElapsedTimer clock_ = [] { QElapsedTimer t; t.start(); return t; }();

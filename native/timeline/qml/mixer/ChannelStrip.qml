@@ -6,6 +6,8 @@ Ui.Surface {
     variant: Ui.Surface.Panel
     property TimelineModel timeline: null
     property string trackId: ""
+    property bool metering: true
+    function cancelGesture() { view.cancelGesture() }
     property bool master: false
     property bool compact: false
     readonly property var channel: controller.channel
@@ -78,11 +80,13 @@ Ui.Surface {
     AutomationController { id: controller; timeline: root.timeline; trackId: root.trackId; master: root.master }
     Rectangle { x: 1; y: 0; width: parent.width-2; height: 3; color: root.accent; radius: Ui.Metrics.micro }
     Connections { target: root.timeline; function onDocumentReplaced() { view.cancelGesture() } }
-    AutomationReadout { id: volumeReading; timeline: root.timeline; trackId: root.trackId; target: ({kind:"mixer",param:"volumeDb"}); clock: root.visible && root.recorder ? root.recorder.clock : null }
-    AutomationReadout { id: panReading; timeline: root.timeline; trackId: root.trackId; target: ({kind:"mixer",param:"pan"}); clock: root.visible && root.recorder ? root.recorder.clock : null }
+    AutomationReadout { id: volumeReading; timeline: root.timeline; trackId: root.trackId; target: ({kind:"mixer",param:"volumeDb"}); clock: root.visible && root.metering && root.recorder ? root.recorder.clock : null }
+    AutomationReadout { id: panReading; timeline: root.timeline; trackId: root.trackId; target: ({kind:"mixer",param:"pan"}); clock: root.visible && root.metering && root.recorder ? root.recorder.clock : null }
     ChannelStripView {
         id: view
         anchors.fill: parent; anchors.margins: Ui.Metrics.xs; anchors.topMargin: Ui.Metrics.md
+        meterClock: root.recorder ? root.recorder.clock : null
+        metering: root.metering
         liveDb: root.master ? (root.channel.volumeDb || 0) : volumeReading.value
         livePan: panReading.value
         volumeRecording: root.volumeConsumed

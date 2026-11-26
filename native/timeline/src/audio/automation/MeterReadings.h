@@ -14,5 +14,6 @@ void beginMeterPlan();
 // native-rules #1: returns std::shared_ptr with no comment on why unique ownership is impossible
 std::shared_ptr<MeterPeaks> publishMeter(const std::string& id);
 std::array<float,2> takeMeter(const std::string& id);
+bool metersHaveSignal();
 bool hasMeter(const std::string& id);
 }

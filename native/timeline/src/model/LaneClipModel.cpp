@@ -35,7 +35,7 @@ void LaneClipModel::setTimeline(TimelineModel* timeline) {
     m_timeline = timeline;
     if (m_timeline) {
         connect(m_timeline, &TimelineModel::clipsChanged, this, [this]() {
-            if (!m_timeline->trackTouched(m_trackId) && rebase()) return;
+            if (!m_timeline->trackClipIndexChanged(m_trackId) && rebase()) { return; }
             rebuildClips();
             recompute();
         });
@@ -72,30 +72,29 @@ void LaneClipModel::setPinnedClipId(const QString& id) {
 }
 
 bool LaneClipModel::rebase() {
-    // No clip of this lane changed and every clip kept its index: point the
-    // same rows at the new snapshot, with no scan and no row signal.
-    const auto next = m_timeline->snapshot();
-    if (!m_snapshot || m_snapshotNext != m_snapshot || next->clips.size() != m_snapshot->clips.size()) return false;
-    const nt::Clip* oldBase = m_snapshot->clips.data();
-    const nt::Clip* newBase = next->clips.data();
-    for (auto& c : m_clips) c = newBase + (c - oldBase);
-    for (auto& c : m_rows) c = newBase + (c - oldBase);
-    m_snapshot = next;
-    m_snapshotNext = next;
+    if (!m_snapshot || m_snapshotNext!=m_snapshot) { return false; }
+    const auto next=m_timeline->snapshot();
+    // The shared index already proved this lane's membership and values unchanged.
+    // Rebind by ID so insertion/removal in another lane cannot invalidate offsets.
+    for (const auto* c : m_clips) { if (!next->findClip(c->id)) { return false; } }
+    for (const auto* c : m_rows) { if (!next->findClip(c->id)) { return false; } }
+    for (auto& c : m_clips) { c=next->findClip(c->id); }
+    for (auto& c : m_rows) { c=next->findClip(c->id); }
+    m_snapshot=next;
+    m_snapshotNext=next;
     return true;
 }
 
 void LaneClipModel::rebuildClips() {
+    ++m_rebuildCount;
     m_snapshotNext = m_timeline ? m_timeline->snapshot() : nullptr;
     m_clips.clear();
     m_prefixMaxEnd.clear();
     if (!m_snapshotNext || m_trackId.isEmpty()) return;
-    const std::string track = m_trackId.toStdString();
-    for (const auto& c : m_snapshotNext->clips) {
-        if (c.trackId == track) m_clips.push_back(&c);
+    for (const auto i : m_timeline->trackClipIndices(m_trackId)) {
+        ++m_rebuildClipVisits;
+        m_clips.push_back(&m_snapshotNext->clips[i]);
     }
-    std::stable_sort(m_clips.begin(), m_clips.end(),
-                     [](const nt::Clip* a, const nt::Clip* b) { return a->startMs < b->startMs; });
     double maxEnd = -std::numeric_limits<double>::infinity();
     for (const nt::Clip* c : m_clips) {
         maxEnd = std::max(maxEnd, c->endMs());
@@ -107,23 +106,31 @@ void LaneClipModel::recompute() {
     ++m_recomputes;
     // The clips to show, in start order.
     std::vector<const nt::Clip*> next;
-    const std::string pinned = m_pinned.toStdString();
-    bool pinnedIn = pinned.empty();
     if (m_view) {
-        const nt::ui::ClipWindow w = m_view->clipWindow();
-        // Clips before `first` all end before the window.
-        const size_t first = static_cast<size_t>(
-            std::lower_bound(m_prefixMaxEnd.begin(), m_prefixMaxEnd.end(), w.startMs) - m_prefixMaxEnd.begin());
-        for (size_t i = pinned.empty() ? first : 0; i < m_clips.size(); ++i) {
-            const nt::Clip* c = m_clips[i];
-            const bool inWindow = i >= first && nt::ui::clipInWindow(c->startMs, c->durationMs, w);
-            const bool isPinned = !pinned.empty() && c->id == pinned;
-            if (inWindow || isPinned) {
-                next.push_back(c);
-                pinnedIn = pinnedIn || isPinned;
+        const nt::ui::ClipWindow w=m_view->clipWindow();
+        const size_t first=static_cast<size_t>(std::lower_bound(m_prefixMaxEnd.begin(),m_prefixMaxEnd.end(),w.startMs)-m_prefixMaxEnd.begin());
+        for (size_t i=first; i<m_clips.size(); ++i) {
+            ++m_windowVisits;
+            const auto* c=m_clips[i];
+            if (c->startMs>=w.endMs) { break; }
+            if (nt::ui::clipInWindow(c->startMs,c->durationMs,w)) { next.push_back(c); }
+        }
+        // Resolve the pin by ID, then search only its owning lane's sorted index.
+        const auto* pin=m_timeline && !m_pinned.isEmpty() ? m_timeline->findClip(m_pinned) : nullptr;
+        if (pin && pin->trackId==m_trackId.toStdString()) {
+            const auto it=std::lower_bound(m_clips.begin(),m_clips.end(),pin->startMs,
+                [](const nt::Clip* c,double ms) { return c->startMs<ms; });
+            for (auto at=it; at!=m_clips.end() && (*at)->startMs==pin->startMs; ++at) {
+                ++m_windowVisits;
+                if ((*at)->id!=pin->id) { continue; }
+                if (std::ranges::find(next,*at)==next.end()) {
+                    const auto where=std::lower_bound(next.begin(),next.end(),*at,[](const nt::Clip* a,const nt::Clip* b) {
+                        return a->startMs<b->startMs || (a->startMs==b->startMs && a<b);
+                    });
+                    next.insert(where,*at);
+                }
+                break;
             }
-            // Past the window end only the pinned clip can still be kept.
-            if (i >= first && c->startMs >= w.endMs && (pinnedIn || pinned.empty())) break;
         }
     } else {
         next = m_clips;

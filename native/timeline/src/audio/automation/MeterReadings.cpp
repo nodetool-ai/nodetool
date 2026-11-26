@@ -22,6 +22,15 @@ std::shared_ptr<MeterPeaks> publishMeter(const std::string& id) {
     r.channels[id]=peaks;
     return peaks;
 }
+bool metersHaveSignal() {
+    auto& r=registry();
+    const std::scoped_lock lock(r.mutex);
+    for (const auto& [id, weak] : r.channels) {
+        const auto peaks=weak.lock();
+        if (peaks && (peaks->left.load(std::memory_order_relaxed)>0 || peaks->right.load(std::memory_order_relaxed)>0)) { return true; }
+    }
+    return false;
+}
 bool hasMeter(const std::string& id) {
     auto& r=registry(); const std::scoped_lock lock(r.mutex);
     const auto found=r.channels.find(id);

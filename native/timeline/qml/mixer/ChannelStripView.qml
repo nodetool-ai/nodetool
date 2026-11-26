@@ -5,6 +5,8 @@ import NodeTool.UiPrimitives as Ui
 import "faderTaper.js" as Taper
 Item {
     id: root
+    property var meterClock: null
+    property bool metering: true
     property var channel: ({})
     property string channelId: ""
     property string channelName: ""
@@ -221,6 +223,9 @@ Item {
                 onCanceled: { root.volumeGesture=false; root.draftDb=root.channel.volumeDb || 0; root.volumeCanceled() }
             }
             MixerMeter {
+                objectName: "mixer-meter-"+root.channelId
+                clock: root.meterClock
+                active: root.metering
                 x: fader.x+fader.width+Ui.Metrics.xs; width: 12; height: parent.height
                 channelId: root.channelId
             }

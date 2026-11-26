@@ -236,7 +236,6 @@ Item {
                 id: paint
                 anchors.fill: parent
                 readonly property var rowData: root.row
-                readonly property int playingStep: root.playingStep
                 readonly property color rowColor: root.rowColor
                 readonly property string mode: lane.mode
                 readonly property bool showValues: lane.showValues
@@ -256,6 +255,7 @@ Item {
                     return JSON.stringify(own)
                 }
                 readonly property var previews: JSON.parse(previewSignature)
+                readonly property var ties: Modes.tieContinuations(rowData,previews,Math.min(rowData.lengthSteps,firstStep+stepWindow))
                 readonly property bool barMode: lane.barMode
                 readonly property bool mainLane: lane.main
                 onBarModeChanged: requestPaint()
@@ -266,9 +266,9 @@ Item {
                 readonly property real cellWidth: cells.cellWidth
                 readonly property real scrollX: root.panel.scrollX
                 readonly property int stepWindow: root.panel.stepWindow
+                readonly property string textFont: Ui.Typography.canvasFont(Ui.Typography.MonoCaption)
                 onTextFontChanged: requestPaint()
                 onRowDataChanged: requestPaint()
-                onPlayingStepChanged: requestPaint()
                 onRowColorChanged: requestPaint()
                 onModeChanged: requestPaint()
                 onShowValuesChanged: requestPaint()
@@ -314,11 +314,11 @@ Item {
                     const range = Modes.range(row, mode)
                     const selected = selectedKeys
                     const preview = previews
-                    ctx.font = Ui.Typography.canvasFont(Ui.Typography.MonoCaption)
+                    ctx.font = textFont
                     ctx.textBaseline = "bottom"
                     // A single forward pass carries tie state, including a tie
                     // starting before the visible page. No backwards scan per cell.
-                    const ties = Modes.tieContinuations(row, preview, end)
+                    const ties = paint.ties
                     for (let i = 0; i < end; ++i) {
                         const data = steps[i] || ({})
                         const continues = ties[i]
@@ -331,16 +331,15 @@ Item {
                         const x = root.panel.stepX(i) - scrollX - join
                         const w = cellWidth - gap + join
                         if (x + w <= 0 || x >= width) continue
-                        const playing = playingStep === i
                         const isSelected = selected[key] === true
                         const fill = mode === "loop" ? Qt.alpha(color, inLoop ? 0.55 : 0.12)
                             : bars ? Qt.alpha(color, on ? 0.2 : 0.08)
                             : on ? (row.mute ? Qt.alpha(color, 0.45) : color)
                             : Qt.alpha(color, mainLane ? 0.16 : 0.1)
-                        const border = playing || isSelected ? Ui.Metrics.focus : Ui.Metrics.border
+                        const border = isSelected ? Ui.Metrics.focus : Ui.Metrics.border
                         // Rectangle borders lie inside their bounds.
                         box(ctx, x + border / 2, y + border / 2, w - border, h - border, Ui.Metrics.micro,
-                            fill, border, playing ? Ui.Theme.textPrimary : isSelected ? Ui.Theme.borderFocus : Qt.alpha(color, on ? 0.9 : 0.28))
+                            fill, border, isSelected ? Ui.Theme.borderFocus : Qt.alpha(color, on ? 0.9 : 0.28))
                         const f = p && p.value !== undefined ? (p.value - range.min) / Math.max(1e-9, range.max - range.min) : Modes.fraction(row, i, mode)
                         const clamped = Math.max(0, Math.min(1, f))
                         if (bars) {
@@ -388,6 +387,19 @@ Item {
                         }
                     }
                 }
+            }
+            Rectangle {
+                objectName: "stepPlayingOutline-" + root.row.id + "-" + lane.mode
+                visible: root.playingStep >= 0 && root.playingStep < root.row.lengthSteps && x+width>0 && x<paint.width
+                readonly property real join: paint.ties[root.playingStep] ? cells.gap+Ui.Metrics.border+(root.playingStep%4===0 ? Ui.Metrics.xs : 0) : 0
+                x: root.playingStep>=0 ? root.panel.stepX(root.playingStep)-paint.scrollX-join : 0
+                y: Ui.Metrics.micro
+                width: paint.cellWidth-cells.gap+join
+                height: paint.height-2*Ui.Metrics.micro
+                radius: Ui.Metrics.micro
+                color: "transparent"
+                border.width: Ui.Metrics.focus
+                border.color: Ui.Theme.textPrimary
             }
             Rectangle {
                 anchors.bottom: parent.bottom

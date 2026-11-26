@@ -23,9 +23,12 @@ Rectangle {
     readonly property var points: dragging || pendingCreation.running ? draft : (currentLane.points || [])
     readonly property real labelValue: curveLabelValue()
     readonly property real firstPointPosition: points.length ? points[0].timeMs/msPerPx : viewportLeft
-    readonly property real labelPosition: dragging && selected >= 0 && points[selected]
+    readonly property real labelPosition: (draftRevision, dragging) && selected >= 0 && points[selected]
         ? points[selected].timeMs/msPerPx
         : firstPointPosition >= viewportLeft && firstPointPosition <= viewportLeft+viewportWidth ? firstPointPosition : viewportLeft
+    property int draftRevision: 0
+    property int paintedPointCount: 0
+    property int pointVisits: 0
     property var draft: []
     property int selected: -1
     property bool dragging: false
@@ -38,10 +41,11 @@ Rectangle {
     color: mainLane ? "transparent" : Ui.Theme.surfaceCanvas; clip: true; activeFocusOnTab: true
     Accessible.role: Accessible.Grouping
     Accessible.name: "Automation lane: " + (spec ? spec.group + " " + spec.label : "Removed device")
-    AutomationController { id: controller; timeline: root.timeline; trackId: root.track.id || "" }
+    AutomationController { id: controller; objectName: "automationLaneController"; timeline: root.timeline; trackId: root.track.id || "" }
     function yOf(value) { return spec ? 6 + (1-Targets.automationValueToNorm(spec,value))*Math.max(1,height-12) : 28 }
     function valueAtY(y) { return Targets.automationNormToValue(spec,1-(y-6)/Math.max(1,height-12)) }
     function curveLabelValue() {
+        const revision=draftRevision
         if (!spec) { return 0 }
         if (dragging && selected>=0 && points[selected]) { return points[selected].value }
         if (!points.length) { return spec.value }
@@ -54,12 +58,46 @@ Rectangle {
         const bottom = 6+Math.min(TimelineMetrics.clipNameBandHeight,Math.max(0,height-12))
         return mainLane && y>=6 && y<bottom && controller.clipNameAt(x*msPerPx,4*msPerPx)
     }
+    function lowerBound(time) {
+        let lo=0, hi=points.length
+        while (lo<hi) {
+            const mid=Math.floor((lo+hi)/2)
+            ++pointVisits
+            if (points[mid].timeMs<time) lo=mid+1
+            else hi=mid
+        }
+        return lo
+    }
+    function upperBound(time) {
+        let lo=0, hi=points.length
+        while (lo<hi) {
+            const mid=Math.floor((lo+hi)/2)
+            ++pointVisits
+            if (points[mid].timeMs<=time) lo=mid+1
+            else hi=mid
+        }
+        return lo
+    }
+    property real tileLeft: 0
+    function updateTile() {
+        const span=Math.max(1,viewportWidth)
+        if (viewportLeft<tileLeft+span*.25 && tileLeft>0 || viewportLeft+span>tileLeft+span*1.75) {
+            tileLeft=Math.max(0,viewportLeft-span*.5)
+        }
+    }
+    onViewportLeftChanged: updateTile()
+    onViewportWidthChanged: updateTile()
+    Component.onCompleted: updateTile()
     function hitIndex(x,y) {
         var hit=-1, distance=7*Ui.Theme.uiScale
-        points.forEach(function(p,i) {
-            var d=Math.hypot(p.timeMs/msPerPx-x,root.yOf(p.value)-y)
+        const first = lowerBound((x-distance)*msPerPx)
+        const end = lowerBound((x+distance)*msPerPx+0.001)
+        for (let i=first; i<end; ++i) {
+            const p=points[i]
+            ++pointVisits
+            const d=Math.hypot(p.timeMs/msPerPx-x,root.yOf(p.value)-y)
             if(d<=distance) { hit=i; distance=d }
-        })
+        }
         return hit
     }
     function commit(next) { controller.setGesturePoints(lane.id,next,controller.gestureGeneration()) }
@@ -100,6 +138,7 @@ Rectangle {
     }
     onActiveFocusChanged: if (!activeFocus) { flushPending(); finish(true) }
     Component.onDestruction: flushPending()
+    onDraftRevisionChanged: curve.requestPaint()
     onPointsChanged: curve.requestPaint()
     onWidthChanged: curve.requestPaint()
     onHeightChanged: curve.requestPaint()
@@ -125,8 +164,9 @@ Rectangle {
     Canvas {
         id: curve
         objectName: "automation-curve-canvas"
-        x: root.viewportLeft
-        width: Math.max(0,Math.min(root.viewportWidth,root.width-x))
+        // Retain a two-viewport tile while scrolling within its first half.
+        x: root.tileLeft
+        width: Math.max(0,Math.min(root.viewportWidth*2,root.width-x))
         height: root.height
         onXChanged: requestPaint()
         onWidthChanged: requestPaint()
@@ -134,9 +174,9 @@ Rectangle {
             var ctx=getContext("2d"); ctx.reset()
             var ps=root.points, vertices=[]
             const from=curve.x*root.msPerPx, to=(curve.x+curve.width)*root.msPerPx
-            var first=0, last=ps.length
-            while (first+1<ps.length && ps[first+1].timeMs<from) { ++first }
-            while (last>first+1 && ps[last-2].timeMs>to) { --last }
+            const first=Math.max(0,root.lowerBound(from)-1)
+            const last=Math.min(ps.length,root.upperBound(to)+1)
+            root.paintedPointCount=last-first
             if(ps.length) vertices=controller.call("automationBreakpoints",[ps.slice(first,last),from,{maxStepMs:Math.max(1,root.msPerPx*3)}])
             if (!vertices.length) vertices=[{timeMs:0,value:root.spec?root.spec.value:0}]
             var stroke=root.on?root.parameterColor:Ui.Theme.textDisabled
@@ -144,15 +184,18 @@ Rectangle {
             if (ps.length) {
                 vertices.forEach(function(p,i){ var x=p.timeMs/root.msPerPx-curve.x,y=root.yOf(p.value); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y) })
             } else ctx.moveTo(0,root.spec?root.yOf(root.spec.value):28)
-            var last=vertices[vertices.length-1]
-            ctx.lineTo(width,root.spec?root.yOf(last.value):28)
+            var tail=vertices[vertices.length-1]
+            ctx.lineTo(width,root.spec?root.yOf(tail.value):28)
             ctx.strokeStyle=stroke; ctx.lineWidth=1.5
             ctx.stroke()
-            ps.forEach(function(p,i) {
+            for (let i=first; i<last; ++i) {
+                const p=ps[i]
+                ++root.pointVisits
+                if (p.timeMs<from || p.timeMs>to) continue
                 ctx.beginPath(); ctx.arc(p.timeMs/root.msPerPx-curve.x,root.yOf(p.value),Ui.Metrics.sm/2,0,2*Math.PI)
                 ctx.fillStyle=root.on && i === root.selected ? Ui.Theme.textOnAccent : stroke; ctx.fill()
                 if (i === root.selected) { ctx.strokeStyle=stroke; ctx.lineWidth=Ui.Metrics.focus; ctx.stroke() }
-            })
+            }
         }
     }
     Rectangle {
@@ -183,7 +226,7 @@ Rectangle {
             }
             root.gestureMoved=false; root.pressPosition=Qt.point(event.x,event.y)
             root.gestureGeneration=controller.gestureGeneration()
-            root.draft=root.currentLane.points || []
+            root.draft=(root.currentLane.points || []).slice()
             if(hit<0) {
                 if (!root.draft.length && !(root.currentTrack.automation || []).some(l => l.id === root.lane.id)) root.draft=[{timeMs:0,value:root.spec.value}]
                 var added=controller.call("addAutomationPoint",[root.draft,{timeMs:Math.round(Math.max(0,event.x*root.msPerPx)),value:root.valueAtY(event.y)}])
@@ -195,7 +238,13 @@ Rectangle {
             if (!root.dragging) return
             root.gestureMoved = root.gestureMoved || event.x!==root.pressPosition.x || event.y!==root.pressPosition.y
             var time=event.modifiers & Qt.ShiftModifier ? root.startTimeMs : Math.round(Math.max(0,event.x*root.msPerPx))
-            root.draft=controller.call("moveAutomationPoint",[root.draft,root.selected,time,root.valueAtY(event.y)])
+            const i=root.selected
+            const lo=i>0 ? root.draft[i-1].timeMs : 0
+            const hi=i+1<root.draft.length ? root.draft[i+1].timeMs : Infinity
+            root.draft[i]=Object.assign({},root.draft[i],{timeMs:Math.min(hi,Math.max(lo,time)),value:root.valueAtY(event.y)})
+            root.draftChanged()
+            root.pointsChanged()
+            ++root.draftRevision
         }
         onReleased: root.finish()
         onCanceled: root.cancel()

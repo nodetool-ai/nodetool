@@ -22,6 +22,7 @@
 #include <memory>
 #include <vector>
 
+// UI thread only. Lane delegates borrow rows held by the immutable snapshot.
 class LaneClipModel : public QAbstractListModel {
     Q_OBJECT
     QML_ELEMENT
@@ -72,6 +73,9 @@ public:
     void setPinnedClipId(const QString& id);
     int count() const { return rowCount(); }
     int trackClipCount() const { return static_cast<int>(m_clips.size()); }
+    quint64 rebuildClipVisits() const { return m_rebuildClipVisits; }
+    quint64 windowVisits() const { return m_windowVisits; }
+    quint64 rebuildCount() const { return m_rebuildCount; }
     int recomputeCount() const { return m_recomputes; }
     int dataChangedRows() const { return m_dataChangedRows; }
     // The ids in row order, for tests.
@@ -90,8 +94,8 @@ signals:
     void recomputed();
 
 private:
-    void rebuildClips();
     bool rebase();
+    void rebuildClips();
     void recompute();
 
     QPointer<TimelineModel> m_timeline;
@@ -107,6 +111,9 @@ private:
     std::vector<double> m_prefixMaxEnd;
     // The rows: the clip shown by each delegate.
     std::vector<const nt::Clip*> m_rows;
+    quint64 m_rebuildClipVisits = 0;
+    quint64 m_windowVisits = 0;
+    quint64 m_rebuildCount = 0;
     int m_recomputes = 0;
     int m_dataChangedRows = 0;
 };

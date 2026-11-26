@@ -130,6 +130,14 @@ public:
     void settleTransient();
     // O(1) through the snapshot's id index. Null: no such clip.
     const nt::Clip* findClip(const QString& clipId) const;
+    // Borrowed indices into timeline(), built once per document snapshot on the UI thread.
+    const std::vector<size_t>& trackClipIndices(const QString& trackId) const;
+    bool trackClipIndexChanged(const QString& trackId) const;
+    quint64 trackIndexVisits() const { return m_trackIndexVisits; }
+    quint64 clipQueryVisits() const { return m_clipQueryVisits; }
+    quint64 effectClipReads() const { return m_effectClipReads; }
+    Q_INVOKABLE QVariantMap clipAt(const QString& trackId, double ms) const;
+    Q_INVOKABLE QVariantList effectClips(const QStringList& ids) const;
     // True when the last clips change touched the clip. A change that added,
     // removed or reordered clips, or a new document, touches every clip.
     Q_INVOKABLE bool clipTouched(const QString& clipId) const;
@@ -195,6 +203,13 @@ signals:
     void effectMatteChanged();
 
 private:
+    mutable std::shared_ptr<const nt::Timeline> m_trackIndexSource; // Keeps indexed storage alive across edits.
+    mutable QHash<QString, std::vector<size_t>> m_trackClipIndices;
+    mutable QSet<QString> m_indexChangedTracks;
+    mutable quint64 m_trackIndexVisits = 0;
+    mutable quint64 m_clipQueryVisits = 0;
+    mutable quint64 m_effectClipReads = 0;
+    mutable QHash<QString,std::vector<double>> m_trackMaxEnds;
     bool m_pushingCommand = false;
     bool replaceDocument(const QJsonObject& raw);
     // An undo or redo step: the document, keeping the current project.

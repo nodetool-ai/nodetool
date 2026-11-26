@@ -22,6 +22,7 @@
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
 #include <QAccessible>
+#include <QAbstractItemModelTester>
 #include <QGuiApplication>
 #include <QStyleHints>
 #include <QQmlEngine>
@@ -118,6 +119,278 @@ private slots:
         QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
         QCoreApplication::processEvents();
     }
+    void perf2MeterTickSleepsAndDecays() {
+        auto peaks=nt::automation::publishMeter("perf2-meter");
+        QVERIFY(open(R"(Item { id: fixture; width:200; height:100; required property var timeline; required property var clock
+            property int ticks: AutomationUIState.meterTicks
+            MixerMeter { id: meter; objectName:"perf2Meter"; width:12; height:100; channelId:"perf2-meter"; clock:fixture.clock; decay:0.5 }
+        })",{{"clock",QVariant::fromValue(&clock)}}));
+        auto* meter=item("perf2Meter");
+        QVERIFY(meter);
+        const int ticks=root->property("ticks").toInt();
+        QTest::qWait(120);
+        qInfo()<<"PERF2 observed idle meter polls"<<meter->property("polls").toInt();
+        QCOMPARE(meter->property("polls").toInt(),0);
+        QCOMPARE(root->property("ticks").toInt(),ticks);
+        clock.play();
+        QTRY_VERIFY(meter->property("polls").toInt()>0);
+        clock.pause();
+        QTest::qWait(20);
+        peaks->left.store(.75f); peaks->right.store(.5f);
+        QVERIFY(QMetaObject::invokeMethod(meter,"updateLevels"));
+        QVERIFY(meter->property("decaying").toBool());
+        QTRY_VERIFY_WITH_TIMEOUT(!meter->property("decaying").toBool(),3000);
+        const int polls=meter->property("polls").toInt();
+        QTest::qWait(120);
+        QCOMPARE(meter->property("polls").toInt(),polls);
+        qInfo()<<"PERF2 stopped meter polls / 120ms"<<0<<"decay polls"<<polls;
+        meter->setProperty("clipLeft",true);
+        meter->setProperty("heldLeft",0.5);
+        meter->setProperty("channelId","reused-channel");
+        QVERIFY(!meter->property("clipLeft").toBool());
+        QCOMPARE(meter->property("heldLeft").toDouble(),0.0);
+    }
+
+    void perf2MeterClearsOnDeactivation() {
+        QVERIFY(open(R"(Item { width:200; height:100; required property var timeline
+            MixerMeter { objectName:"resetMeter"; width:12; height:100 }
+        })"));
+        auto* meter=item("resetMeter"); QVERIFY(meter);
+        meter->setProperty("heldLeft",.8);
+        meter->setProperty("peakRight",.6);
+        meter->setProperty("active",false);
+        QCOMPARE(meter->property("heldLeft").toDouble(),0.0);
+        QCOMPARE(meter->property("peakRight").toDouble(),0.0);
+        meter->setProperty("active",true);
+        meter->setProperty("heldRight",.5);
+        meter->setVisible(false);
+        QCOMPARE(meter->property("heldRight").toDouble(),0.0);
+    }
+
+    void perf2MeterUsesPrimitive() {
+        QVERIFY(open(R"(Item { width:200; height:100; required property var timeline
+            MixerMeter { objectName:"primitiveMeter"; width:12; height:100 }
+        })"));
+        const auto children=item("primitiveMeter")->childItems();
+        QVERIFY(std::any_of(children.begin(),children.end(),[](const auto* child) {
+            return QByteArray(child->metaObject()->className()).startsWith("LevelMeter");
+        }));
+    }
+
+    void perf2PausedMeterSeesAudition() {
+        auto peaks=nt::automation::publishMeter("audition");
+        QVERIFY(open(R"(Item { width:200; height:100; required property var timeline
+            MixerMeter { objectName:"auditionMeter"; width:12; height:100; channelId:"audition" }
+        })"));
+        peaks->left.store(.75f); peaks->right.store(.25f);
+        auto* meter=item("auditionMeter"); QVERIFY(meter);
+        QTRY_VERIFY_WITH_TIMEOUT(meter->property("heldLeft").toDouble()>0,500);
+    }
+
+    void perf2MixerUsesStableModel() {
+        QVERIFY(open(R"(MixerView { width:800; height:300; required timeline })"));
+        auto* channels=item("mixerChannels"); QVERIFY(channels);
+        auto* list=qvariant_cast<QObject*>(channels->property("model"));
+        QVERIFY(qobject_cast<QAbstractItemModel*>(list));
+    }
+
+    void perf2MixerModelKeepsPersistentRows() {
+        MixerChannelModel channels;
+        QAbstractItemModelTester tester(&channels,QAbstractItemModelTester::FailureReportingMode::QtTest);
+        const auto audio=[](const QString& id) { return QJsonObject{{"id",id},{"type","audio"}}; };
+        channels.apply({audio("a"),audio("b"),audio("c")});
+        QPersistentModelIndex retained(channels.index(1));
+        QSignalSpy resets(&channels,&QAbstractItemModel::modelReset);
+        channels.apply({audio("c"),audio("a"),audio("b"),audio("d")});
+        QCOMPARE(retained.data(Qt::UserRole).toString(),QString("b"));
+        QCOMPARE(retained.row(),2);
+        channels.apply({audio("d"),audio("b"),audio("a")});
+        QCOMPARE(retained.data(Qt::UserRole).toString(),QString("b"));
+        QCOMPARE(retained.row(),1);
+        QCOMPARE(resets.count(),0);
+        QJsonArray many;
+        for (int i=0;i<10000;++i) { many.append(audio(QString::number(i))); }
+        channels.apply(many);
+        QSignalSpy moves(&channels,&QAbstractItemModel::rowsMoved);
+        QJsonArray rotated; rotated.append(many.last());
+        for (int i=0;i<many.size()-1;++i) { rotated.append(many[i]); }
+        channels.apply(rotated);
+        QCOMPARE(channels.rowCount(),10000);
+        QCOMPARE(moves.count(),1);
+        QCOMPARE(resets.count(),0);
+    }
+
+    void perf2AutomationIncludesBoundaryStep() {
+        QVERIFY(open(R"(Item { width:600; height:56; required property var timeline
+            AutomationLaneView { width:2000; height:56; timeline:parent.timeline; track:({id:"a",type:"audio"}); lane:({id:"boundary",target:{kind:"mixer",param:"volumeDb"},points:[{timeMs:0,value:-6},{timeMs:12000,value:-12},{timeMs:12000,value:0}]}); viewportWidth:600 }
+        })"));
+        auto* lane=item("automation-lane-boundary"); QVERIFY(lane);
+        QTRY_COMPARE(lane->property("paintedPointCount").toInt(),3);
+    }
+
+    void perf2AutomationTileHasHysteresis() {
+        QVERIFY(open(R"(Flickable { id:fixture; width:600; height:56; required property var timeline; contentWidth:100000; contentHeight:56; contentX:599; interactive:false; clip:true
+            AutomationLaneView { width:100000; height:56; timeline:fixture.timeline; track:({id:"a",type:"audio"}); lane:({id:"lane",target:{kind:"mixer",param:"volumeDb"},points:[]}); viewportLeft:fixture.contentX; viewportWidth:fixture.width }
+        })"));
+        auto* canvas=item("automation-curve-canvas"); QVERIFY(canvas);
+        const double tile=canvas->x();
+        for (int i=0;i<20;++i) { root->setProperty("contentX",i%2 ? 599 : 600); QCoreApplication::processEvents(); QTest::qWait(1); QCOMPARE(canvas->x(),tile); }
+        QCOMPARE(canvas->x(),tile);
+    }
+
+    void perf2AutomationPointWorkIsBounded() {
+        QJsonArray points;
+        for (int i=0;i<10000;++i) { points.append(QJsonObject{{"timeMs",i*100},{"value",-6}}); }
+        AutomationController c; c.setTimeline(&model); c.setTrackId("a");
+        c.setGesturePoints("lane",points,c.gestureGeneration());
+        QVERIFY(open(R"(Flickable { id: fixture; width:600; height:56; required property var timeline; contentWidth:100000; contentHeight:56; contentX:50000; clip:true; interactive:false
+            AutomationLaneView { width:100000; height:56; timeline:fixture.timeline; track:({id:"a",type:"audio"}); lane:({id:"lane",target:{kind:"mixer",param:"volumeDb"},points:[]}); viewportLeft:fixture.contentX; viewportWidth:fixture.width }
+        })"));
+        QTest::qWait(60);
+        auto* lane=item("automation-lane-lane");
+        QVERIFY(lane);
+        auto* canvas=item("automation-curve-canvas");
+        QVERIFY(canvas);
+        QSignalSpy painted(canvas,SIGNAL(painted()));
+        const double initialX=canvas->x();
+        for (int i=0;i<120;++i) {
+            root->setProperty("contentX",50000+i);
+            window->grabWindow();
+            QTest::qWait(1);
+        }
+        const int scrollPaints=painted.count();
+        qInfo()<<"PERF2 observed scroll paints"<<scrollPaints;
+        QCOMPARE(canvas->x(),initialX);
+        QCOMPARE(painted.count(),0);
+        lane->setProperty("pointVisits",0);
+        QVariant hit;
+        QVERIFY(QMetaObject::invokeMethod(lane,"hitIndex",Q_RETURN_ARG(QVariant,hit),Q_ARG(QVariant,50000),Q_ARG(QVariant,28)));
+        const int visits=lane->property("pointVisits").toInt();
+        QVERIFY2(visits<40,qPrintable(QString::number(visits)));
+        auto* controller=lane->findChild<QObject*>("automationLaneController");
+        QVERIFY(controller);
+        QVariant y;
+        QVERIFY(QMetaObject::invokeMethod(lane,"yOf",Q_RETURN_ARG(QVariant,y),Q_ARG(QVariant,-6)));
+        const auto at=lane->mapToScene({50200,y.toDouble()}).toPoint();
+        QTest::mousePress(window.get(),Qt::LeftButton,Qt::NoModifier,at);
+        QSignalSpy pointChanges(lane,SIGNAL(pointsChanged()));
+        const int selectedBefore=lane->property("selected").toInt();
+        QVERIFY(selectedBefore>=0);
+        for (int i=1;i<=120;++i) { QTest::mouseMove(window.get(),at+QPoint(i,0)); }
+        QTest::mouseMove(window.get(),at+QPoint(120,-1000));
+        QVERIFY(pointChanges.count()>0);
+        QCOMPARE(controller->property("pointMoveCalls").toInt(),0);
+        QVERIFY(lane->property("dragging").toBool());
+        QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,at+QPoint(120,-1000));
+        const auto committed=track()["automation"].toArray()[0].toObject()["points"].toArray();
+        QCOMPARE(committed.size(),10000);
+        QCOMPARE(committed[selectedBefore].toObject()["timeMs"].toDouble(),502100.0);
+        QCOMPARE(committed[selectedBefore].toObject()["value"].toDouble(),6.0);
+        qInfo()<<"PERF2 automation paints / 120 scroll steps"<<scrollPaints<<"hit visits"<<visits;
+    }
+
+    void perf2EffectsPanelAvoidsDocumentConversion() {
+        QJsonArray clips;
+        for (int i=0;i<1000;++i) { clips.append(QJsonObject{{"id",QString("c%1").arg(i)},{"trackId","v"},{"mediaType","video"},{"startMs",i*1000},{"durationMs",800}}); }
+        auto raw=doc(); raw["clips"]=clips;
+        auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
+        QVERIFY(open(R"(Item { width:800; height:600; required property var timeline; required property var clock
+            property var gestures: ({selection:["c0","c999"]})
+            EffectsPanel { anchors.fill:parent }
+        })",{{"clock",QVariant::fromValue(&clock)}}));
+        auto* panel=item("effectsPanel"); QVERIFY(panel);
+        QTRY_COMPARE(panel->property("selectedClips").toList().size(),2);
+        for (int i=0;i<20;++i) {
+            auto c=model.findClip("c500")->raw; c["name"]=QString::number(i);
+            QVERIFY(model.patchClips({c}));
+        }
+        int conversions=0;
+        for (auto* object : panel->findChildren<QObject*>()) { conversions+=object->property("documentReadCount").toInt(); }
+        qInfo()<<"PERF2 observed document conversions"<<conversions;
+        QCOMPARE(conversions,0);
+        qInfo()<<"PERF2 effects panel full-document conversions / 20 edits"<<conversions;
+    }
+
+    void perf2DropOverlayUsesCompactClip() {
+        auto raw=doc();
+        raw["clips"]=QJsonArray{QJsonObject{{"id","drop-clip"},{"name","Drop target"},{"trackId","v"},{"mediaType","video"},{"startMs",0},{"durationMs",1000}}};
+        const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
+        QVERIFY(open(R"(Item { width:800; height:600; required property var timeline; required property var clock
+            Item { objectName:"tracksRegion"; width:800; height:400; property real lanesHeight:400; property real headerWidth:100; property var rows:[]; property var viewState:({scrollTopPx:0,scrollLeftPx:0,msPerPx:10}) }
+            Item { objectName:"assetExplorer"; property QtObject browser: QtObject { function trackAt(rows,y) { return "v" } } }
+            EffectsPanel { id: effects; width:320; height:600 }
+            EffectDropOverlay { id: overlay }
+            function verifyTarget() {
+                const clip=overlay.clipAt(10,10,0)
+                return clip && clip.id==="drop-clip" && clip.name==="Drop target" && effects.canApply("video",clip)
+                    && !effects.canApply("audio",clip) && effects.applyTo("video","blur","Blur",[clip])
+            }
+        })",{{"clock",QVariant::fromValue(&clock)}}));
+        QCoreApplication::processEvents();
+        QVariant result;
+        QVERIFY(QMetaObject::invokeMethod(root.get(),"verifyTarget",Q_RETURN_ARG(QVariant,result)));
+        QVERIFY(result.toBool());
+        QVERIFY(!model.findClip("drop-clip")->raw["effects"].toArray().isEmpty());
+    }
+
+    void perf2MixerVirtualizesAndSleeps() {
+        QJsonArray tracks;
+        for (int i=0;i<64;++i) { tracks.append(QJsonObject{{"id",QString("a%1").arg(i)},{"type","audio"},{"index",i}}); }
+        auto raw=doc(); raw["tracks"]=tracks;
+        auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
+        QVERIFY(open(R"(MixerView { width:800; height:300; required timeline; required property var clock
+            Component.onCompleted: { AutomationUIState.timeline=timeline; timeline.automationRecorder.clock=clock }
+        })",{{"clock",QVariant::fromValue(&clock)}}));
+        QTest::qWait(100);
+        auto* channels=item("mixerChannels");
+        const auto count=[&](auto&& self,QQuickItem* at)->int {
+            int result=at->objectName().startsWith("mixer-strip-") ? 1 : 0;
+            for (auto* child : at->childItems()) { result+=self(self,child); }
+            return result;
+        };
+        const int strips=count(count,qobject_cast<QQuickItem*>(root.get()));
+        qInfo()<<"PERF2 observed instantiated strips"<<strips;
+        QVERIFY2(strips<12,qPrintable(QString::number(strips)));
+        QVERIFY(channels);
+        QVERIFY(item("mixer-strip-master"));
+        const double masterX=item("mixer-strip-master")->x();
+        QPointer<QQuickItem> firstMeter=item("mixer-meter-a0");
+        QVERIFY(firstMeter);
+        clock.play();
+        QTRY_VERIFY(firstMeter->property("polls").toInt()>0);
+        channels->setProperty("contentX",125);
+        QTRY_VERIFY(firstMeter && !firstMeter->property("active").toBool());
+        const int polls=firstMeter->property("polls").toInt();
+        QTest::qWait(120);
+        QVERIFY(firstMeter);
+        QCOMPARE(firstMeter->property("polls").toInt(),polls);
+        QCOMPARE(item("mixer-strip-master")->x(),masterX);
+        clock.pause();
+        QPointer<QQuickItem> retained=item("mixer-strip-a1");
+        QVERIFY(retained);
+        auto* channelModel=qobject_cast<QAbstractItemModel*>(qvariant_cast<QObject*>(channels->property("model")));
+        QVERIFY(channelModel);
+        QSignalSpy resets(channelModel,&QAbstractItemModel::modelReset);
+        QVERIFY(model.applyEdit("addTrack",{{"type","audio"}}));
+        const auto added=QString::fromStdString(model.timeline().tracks.back().id);
+        QCoreApplication::processEvents();
+        QCOMPARE(channels->property("contentX").toDouble(),125.0);
+        QCOMPARE(item("mixer-strip-a1"),retained.data());
+        QVERIFY(model.applyEdit("removeTrack",{{"trackId",added}}));
+        QStringList ordered;
+        for (const auto& track : model.timeline().tracks) { ordered.append(QString::fromStdString(track.id)); }
+        ordered.swapItemsAt(62,63);
+        QVERIFY(model.applyEdit("reorderTracks",{{"orderedIds",QJsonArray::fromStringList(ordered)}}));
+        QCoreApplication::processEvents();
+        QCOMPARE(channels->property("contentX").toDouble(),125.0);
+        QCOMPARE(item("mixer-strip-a1"),retained.data());
+        QCOMPARE(resets.count(),0);
+        qInfo()<<"PERF2 instantiated strips / 65 channels"<<strips<<"offscreen polls / 120ms"<<firstMeter->property("polls").toInt()-polls;
+    }
+
     void gestureMultipleCommitsA1() {
         AutomationController c; c.setTimeline(&model); c.trackId="a";
         const auto gen=c.gestureGeneration();
@@ -1203,8 +1476,10 @@ track: ({id:"a",type:"audio"}); lane: ({id:"virtual",target:{kind:"mixer",param:
         QQuickItem* canvas=nullptr;
         for (auto* child:lane->childItems()) { if (child->inherits("QQuickCanvasItem")) { canvas=child; break; } }
         QVERIFY(canvas);
-        QVERIFY(canvas->width()<=600);
-        QCOMPARE(canvas->x(),100.);
+        // A retained tile covers the viewport with at most one viewport of overscan.
+        QVERIFY(canvas->width()<=1200);
+        QVERIFY(canvas->x()<=100.);
+        QVERIFY(canvas->x()+canvas->width()>=700.);
     }
     void retargetPreservesRemovedCurveF14() {
         const auto lanes=QJsonDocument::fromJson(R"([{"id":"gone","target":{"kind":"device","deviceId":"gone","param":"q"},"points":[{"timeMs":0,"value":-0.5},{"timeMs":1000,"value":0.8,"easing":"hold"}]}])").array();

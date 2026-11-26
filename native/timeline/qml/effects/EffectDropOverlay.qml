@@ -13,19 +13,24 @@ Item {
     property var timelineModel: null
     readonly property var browser: explorer ? explorer.browser : null
     property string warning: ""
+    property int targetRevision: 0
+    Connections {
+        target: overlay.timelineModel
+        function onTimelineChanged() { ++overlay.targetRevision }
+    }
     Component.onCompleted: Qt.callLater(() => {
         const editor = Context.editorFor(overlay)
         overlay.region = Context.itemNamed(editor, "tracksRegion")
         overlay.explorer = Context.itemNamed(editor, "assetExplorer")
         overlay.timelineModel = editor ? editor.timeline : null
     })
-    InspectorEdits { id: edits; model: overlay.timelineModel }
-    function clipAt(x, y) {
+    function clipAt(x, y, revision) {
         if (!region || !browser || y >= region.lanesHeight - TimelineMetrics.toolbarHeight) return null
         const view = region.viewState
         const trackId = browser.trackAt(region.rows, y + view.scrollTopPx)
         const ms = (x + view.scrollLeftPx) * view.msPerPx
-        return (edits.document.clips || []).find(clip => clip.trackId === trackId && ms >= clip.startMs && ms < clip.startMs + clip.durationMs) || null
+        const clip=timelineModel ? timelineModel.clipAt(trackId,ms) : ({})
+        return clip.id ? clip : null
     }
     DropArea {
         id: effectDrop
@@ -36,7 +41,7 @@ Item {
         width: overlay.region ? overlay.region.width - overlay.region.headerWidth : 0
         height: overlay.region ? overlay.region.lanesHeight : 0
         keys: ["application/x-nodetool-effect"]
-        readonly property var targetClip: containsDrag ? overlay.clipAt(drag.x, drag.y) : null
+        readonly property var targetClip: containsDrag ? overlay.clipAt(drag.x, drag.y, overlay.targetRevision) : null
         readonly property bool dropAllowed: !!targetClip && !!drag.source && drag.source.canApplyTo(targetClip)
         onDropped: drop => {
             const clip = overlay.clipAt(drop.x, drop.y)

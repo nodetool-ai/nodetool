@@ -43,10 +43,17 @@ Rectangle {
     onParentChanged: Qt.callLater(attach)
     readonly property var timelineModel: editor ? editor.timeline : null
     readonly property var selectionIds: gestures ? gestures.selection : []
-    InspectorEdits { id: edits; model: root.timelineModel }
-    // Read only while the panel shows, because the document changes with every preview.
-    readonly property var document: root.visible ? edits.document : ({})
-    readonly property var selectedClips: (document.clips || []).filter(clip => selectionIds.indexOf(clip.id) >= 0)
+    property var selectedClips: []
+    function refreshSelection() { selectedClips=visible && timelineModel ? timelineModel.effectClips(selectionIds) : [] }
+    onSelectionIdsChanged: refreshSelection()
+    onTimelineModelChanged: refreshSelection()
+    onVisibleChanged: refreshSelection()
+    Connections {
+        target: root.timelineModel
+        function onTimelineChanged() { root.refreshSelection() }
+    }
+    readonly property string audioReason: computeDisabledReason("audio")
+    readonly property string videoReason: computeDisabledReason("video")
     property string status: ""
     property bool statusIsWarning: false
 
@@ -55,11 +62,12 @@ Rectangle {
         return kind === "audio" ? sound : !sound
     }
     function editable(clip) {
-        return !clip.locked && !(document.tracks || []).some(track => track.id === clip.trackId && track.locked)
+        return !clip.locked
     }
     function canApply(kind, clip) { return accepts(kind, clip) && editable(clip) }
     // Why double-clicking this kind of effect does nothing now, or "" when it works.
-    function disabledReason(kind) {
+    function disabledReason(kind) { return kind === "audio" ? audioReason : videoReason }
+    function computeDisabledReason(kind) {
         if (selectionIds.length === 0) return "Select a clip on the timeline first."
         const fitting = selectedClips.filter(clip => accepts(kind, clip))
         if (fitting.length === 0) return kind === "audio" ? "Select an audio clip for this effect." : "Select a video, image or text clip for this effect."

@@ -86,7 +86,7 @@ void AutomationController::refresh() {
         else if (const auto* track=timeline_->timeline().findTrack(trackId.toStdString())) { channel=track->raw; }
     }
     if (channel!=channelState_) { channelState_=channel; emit channelChanged(); }
-    if (tracks!=tracksState_) { tracksState_=tracks; emit tracksChanged(); }
+    if (tracks!=tracksState_) { tracksState_=tracks; m_channels.apply(tracks); emit tracksChanged(); }
 }
 void AutomationController::setTimeline(TimelineModel* timeline) {
     if (timeline_ == timeline) { return; }
@@ -160,6 +160,7 @@ QVariantList AutomationController::tracks() const {
     return timeline_->timeline().raw["tracks"].toArray().toVariantList();
 }
 QVariant AutomationController::call(const QString& name, const QJsonArray& args) const {
+    if (name==u"moveAutomationPoint") { ++pointMoveCalls_; }
     return nt::automation::call(name, args).toVariant();
 }
 QString AutomationController::newId() const { return QUuid::createUuid().toString(QUuid::Id128); }
@@ -218,7 +219,9 @@ void AutomationController::patchLane(const QString& laneId, const QJsonObject& p
 }
 
 #include "MeterReadings.h"
-QVariantList AutomationMeters::take(const QString& channelId) const {
+bool AutomationMeters::hasSignal() const { return nt::automation::metersHaveSignal(); }
+
+const std::array<float,2>& AutomationMeters::read(const QString& channelId) const {
     constexpr qint64 kFrameMs = 16;
     const qint64 now=clock_.elapsed();
     if (now-lastPrunedMs_>=kFrameMs) {
@@ -227,7 +230,11 @@ QVariantList AutomationMeters::take(const QString& channelId) const {
         }
         lastPrunedMs_=now;
     }
-    if (!nt::automation::hasMeter(channelId.toStdString())) { readings_.remove(channelId); return {0.f,0.f}; }
+    if (!nt::automation::hasMeter(channelId.toStdString())) {
+        readings_.remove(channelId);
+        static const std::array<float,2> empty{};
+        return empty;
+    }
     Reading& last=readings_[channelId];
     if (now - last.atMs >= kFrameMs) {
         const auto peaks=nt::automation::takeMeter(channelId.toStdString());
@@ -235,6 +242,15 @@ QVariantList AutomationMeters::take(const QString& channelId) const {
         last.atMs = now;
     }
     return last.peaks;
+}
+
+double AutomationMeters::peak(const QString& channelId, int channel) const {
+    return read(channelId)[channel==1 ? 1 : 0];
+}
+
+QVariantList AutomationMeters::take(const QString& channelId) const {
+    const auto& frame=read(channelId);
+    return {frame[0],frame[1]};
 }
 
 bool AutomationController::clipNameAt(double timeMs, double minimumDurationMs) const {
@@ -334,3 +350,39 @@ double AutomationController::laneValueAt(const QString& laneId, double timeMs, d
 
 QJsonArray AutomationParameters::instrumentTargets(const QJsonObject& instrument) const { return nt::automation::instrumentAutomationSpecs(instrument); }
 QJsonObject AutomationParameters::effectDefaults(const QString& type) const { return nt::automation::trackEffectDefaults(type); }
+
+void MixerChannelModel::apply(const QJsonArray& tracks) {
+    QStringList next;
+    for (const auto& value : tracks) {
+        const auto track=value.toObject();
+        if (track["type"]=="audio" || track["type"]=="midi") { next.append(track["id"].toString()); }
+    }
+    if (next==m_ids) { return; }
+    const QSet<QString> wanted(next.begin(),next.end());
+    for (int i=static_cast<int>(m_ids.size())-1; i>=0;) {
+        if (wanted.contains(m_ids[i])) { --i; continue; }
+        int first=i;
+        while (first>0 && !wanted.contains(m_ids[first-1])) { --first; }
+        beginRemoveRows({},first,i); m_ids.remove(first,i-first+1); endRemoveRows(); i=first-1;
+    }
+    QSet<QString> existing(m_ids.begin(),m_ids.end());
+    QStringList added;
+    for (const auto& id : next) { if (!existing.contains(id)) { added.append(id); } }
+    if (!added.isEmpty()) {
+        const int start=static_cast<int>(m_ids.size());
+        beginInsertRows({},start,start+static_cast<int>(added.size())-1);
+        m_ids.append(added); endInsertRows();
+    }
+    if (m_ids==next) { return; }
+    // Qt Quick preserves the viewport and delegates for row moves.
+    for (int i=0;i<next.size();++i) {
+        if (m_ids[i]==next[i]) { continue; }
+        const int from=static_cast<int>(m_ids.indexOf(next[i],i+1));
+        int count=1;
+        while (from+count<m_ids.size() && i+count<next.size() && m_ids[from+count]==next[i+count]) { ++count; }
+        beginMoveRows({},from,from+count-1,{},i);
+        std::rotate(m_ids.begin()+i,m_ids.begin()+from,m_ids.begin()+from+count);
+        endMoveRows();
+        i+=count-1;
+    }
+}

@@ -51,6 +51,7 @@ void InspectorEdits::refresh() {
     if (children != m_childCount) { m_childCount = children; emit childCountChanged(); }
 }
 QVariantMap InspectorEdits::document() const {
+    ++m_documentReadCount;
     return m_model ? m_model->timeline().raw.toVariantMap() : QVariantMap{};
 }
 bool InspectorEdits::apply(const QString& action, const QJsonObject& payload) {

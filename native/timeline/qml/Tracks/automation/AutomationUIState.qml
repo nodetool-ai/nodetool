@@ -5,6 +5,25 @@ import "automationTargets.js" as Targets
 QtObject {
     id: state
     property AutomationRecorder recorder: timeline ? timeline.automationRecorder : null
+    signal meterTick()
+    property int decayingMeters: 0
+    property int meterTicks: 0
+    property int playingMeters: 0
+    property int activeMeters: 0
+    property Timer meterTimer: Timer {
+        interval: 33
+        repeat: true
+        running: state.playingMeters>0 || state.decayingMeters>0
+        onTriggered: { ++state.meterTicks; state.meterTick() }
+    }
+    // The UI probes the existing atomic peaks while transport is stopped.
+    // Audio publication stays allocation-free and never calls back into QML.
+    property Timer auditionProbe: Timer {
+        interval: 50
+        repeat: true
+        running: state.activeMeters>0 && !state.meterTimer.running
+        onTriggered: if (AutomationMeters.hasSignal()) { ++state.meterTicks; state.meterTick() }
+    }
     property bool showAutomation: false
     property var shownAutomationTrackIds: []
     property var shownParameters: ({})

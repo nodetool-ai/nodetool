@@ -12,7 +12,7 @@ import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 import "../mixer/faderTaper.js" as Taper
-import "../mixer/meterLevels.js" as Levels
+import "../mixer" as Mixer
 
 Rectangle {
     id: header
@@ -287,7 +287,6 @@ Rectangle {
         property bool consumed: false
         property real draftDb: channelDb
         readonly property real displayDb: slider.editing ? draftDb : channelDb
-        property var levels: [0, 0]
         x: instrumentIcon.x + instrumentIcon.width + Ui.Metrics.sm
         y: header.volumeRowY
         width: Math.max(0, header.width - x - Ui.Metrics.sm)
@@ -346,39 +345,17 @@ Rectangle {
         }
         // The level meter under the slider track: left and right peaks, the
         // mixer's meter source and taper.
-        Column {
-            id: meter
+        Mixer.MixerMeter {
             objectName: "trackMeter-" + header.trackId
-            y: slider.height + Ui.Metrics.micro
+            clock: header.volumeRecorder ? header.volumeRecorder.clock : null
+            channelId: header.trackId
+            active: header.volumeShown
+            horizontal: true
+            y: slider.height+Ui.Metrics.micro
             width: parent.width
-            spacing: Ui.Metrics.border
-            Repeater {
-                model: 2
-                delegate: Rectangle {
-                    id: bar
-                    required property int index
-                    readonly property real level: Taper.dbToFaderPosition(Levels.db(volumeSlider.levels[index] || 0))
-                    width: meter.width
-                    height: Ui.Metrics.micro
-                    color: Ui.Theme.borderSubtle
-                    Rectangle {
-                        width: parent.width * Math.max(0, Math.min(1, bar.level))
-                        height: parent.height
-                        color: bar.level >= 1 ? Ui.Theme.statusError : bar.level >= 0.86 ? Ui.Theme.statusWarning : Ui.Theme.statusSuccess
-                    }
-                }
-            }
+            height: 2*Ui.Metrics.micro+Ui.Metrics.border
         }
-        Timer {
-            interval: 33
-            running: header.volumeShown && header.visible
-            repeat: true
-            onTriggered: {
-                const next = AutomationMeters.take(header.trackId)
-                const held = volumeSlider.levels
-                volumeSlider.levels = [Math.max(next[0], (held[0] || 0) * 0.85), Math.max(next[1], (held[1] || 0) * 0.85)]
-            }
-        }
+
     }
 
     // Effects and delete show while the pointer is on the

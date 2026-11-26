@@ -39,9 +39,15 @@ Item {
 
     readonly property double msPerPx: viewState ? viewState.msPerPx : 10
     readonly property bool interactionLocked: locked || trackLocked
-    readonly property bool selected: gestures !== null && gestures.selection.indexOf(clipId) >= 0
+    ClipInteractionState { id: interaction; gestures: clipItem.gestures; clipId: clipItem.clipId }
+    readonly property bool selected: interaction.selected
     readonly property bool underGesture: gestures !== null && gestures.activeClipId === clipId
-    readonly property var toolPreview: gestures ? gestures.toolPreview : ({})
+    property int toolPreviewHandlerRuns: 0
+    readonly property var toolPreview: interaction.toolPreview
+    Connections {
+        target: interaction
+        function onToolPreviewChanged() { ++clipItem.toolPreviewHandlerRuns }
+    }
     // MIN_TRIM_HANDLE_CLIP_WIDTH_PX: the two 8 px grips leave 12 px of body.
     readonly property bool trimHandles: width >= 28
 

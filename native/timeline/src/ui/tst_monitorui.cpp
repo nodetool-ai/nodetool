@@ -149,6 +149,41 @@ private slots:
     void init() { open(300); QVERIFY(monitor()); QVERIFY(compositor()); monitor()->setFit(); }
     void cleanup() { view.reset(); }
 
+    void perf2ClockMovesWithoutBackdropPaint() {
+        auto* bar=scrubBar();
+        QVERIFY(bar);
+        settle();
+        view->grabWindow();
+        const int before=bar->paintCount();
+        for (int i=1;i<=120;++i) {
+            clock.seek(i*10);
+            settle();
+            view->grabWindow();
+        }
+        qInfo()<<"PERF2 observed monitor paints"<<bar->paintCount()-before;
+        QCOMPARE(bar->paintCount(),before);
+        auto* playhead=bar->findChild<QQuickItem*>("monitorMiniPlayhead");
+        QVERIFY(playhead);
+        QVERIFY(std::abs(playhead->x()+playhead->width()/2-bar->xForTime(clock.time()))<0.01);
+        qInfo()<<"PERF2 monitor backdrop paints / 120 ticks"<<bar->paintCount()-before;
+    }
+
+    void perf2PlayheadColorRepaintsChild() {
+        auto* bar=scrubBar(); QVERIFY(bar);
+        clock.seek(1200); settle();
+        view->grabWindow(); settle();
+        auto* playhead=bar->findChild<QQuickItem*>("monitorMiniPlayhead"); QVERIFY(playhead);
+        const QRect bounds(playhead->mapToScene({0,0}).toPoint(),playhead->size().toSize());
+        const auto beforeImage=view->grabWindow().copy(bounds);
+        QVERIFY(!beforeImage.isNull());
+        const int before=bar->paintCount();
+        bar->setPlayheadColor(QColor(Qt::magenta));
+        settle();
+        const auto afterImage=view->grabWindow().copy(bounds);
+        QVERIFY(beforeImage!=afterImage);
+        QVERIFY(bar->paintCount()>before);
+    }
+
     void timecodeForms() {
         typeInto(timecode(), "115");
         QTest::keyClick(view.get(), Qt::Key_Return);

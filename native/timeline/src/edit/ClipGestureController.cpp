@@ -195,6 +195,8 @@ ClipGestureController::ClipGestureController(QQuickItem* parent)
 }
 
 ClipGestureController::~ClipGestureController() {
+    const auto observers=m_clipObservers.values();
+    for (auto* observer : observers) { observer->setGestures(nullptr); }
     // QQuickItem's destructor emits windowChanged after our members are gone.
     disconnect(this, &QQuickItem::windowChanged, this, &ClipGestureController::watchWindow);
     watchWindow(nullptr);
@@ -303,9 +305,19 @@ void ClipGestureController::setLanesViewport(QQuickItem* v) {
     m_viewport = v;
     emit changed();
 }
+void ClipGestureController::writeSelection(const QStringList& ids) {
+    const QSet<QString> next(ids.begin(),ids.end());
+    const auto affected=(m_selectionSet-next) | (next-m_selectionSet);
+    m_selection=ids;
+    m_selectionSet=next;
+    for (const auto& id : affected) {
+        for (auto* observer : m_clipObservers.values(id)) { observer->refreshSelection(); }
+    }
+}
+
 void ClipGestureController::clearClipSelection() {
     if (m_selection.isEmpty() && m_selectedGap.isEmpty() && m_selectedEdit.isEmpty()) return;
-    m_selection.clear();
+    writeSelection({});
     m_selectedGap.clear();
     m_selectedEdit.clear();
     emit selectionChanged();
@@ -316,7 +328,7 @@ void ClipGestureController::setSelection(const QStringList& ids) {
     if (ids == m_selection && m_selectedGap.isEmpty() && m_selectedEdit.isEmpty()) return;
     m_selectedGap.clear();
     m_selectedEdit.clear();
-    m_selection = ids;
+    writeSelection(ids);
     emit selectionChanged();
 }
 void ClipGestureController::setRippleMode(bool on) {
@@ -596,12 +608,29 @@ double ClipGestureController::laneMsAt(double sceneX) const {
     return x * m_view->msPerPx();
 }
 
+void ClipGestureController::publishToolPreview(const QVariantMap& preview) {
+    if (m_toolPreview==preview) { return; }
+    const auto ids=[](const QVariantMap& value) {
+        auto result=value.value("clipIds").toStringList();
+        const auto id=value.value("clipId").toString();
+        if (!id.isEmpty()) { result.append(id); }
+        return QSet<QString>(result.begin(),result.end());
+    };
+    const auto oldIds=ids(m_toolPreview), nextIds=ids(preview);
+    m_toolPreview=preview;
+    const auto affected=oldIds | nextIds;
+    for (const auto& id : affected) {
+        for (auto* observer : m_clipObservers.values(id)) { observer->refreshPreview(); }
+        emit clipToolPreviewChanged(id,nextIds.contains(id) ? preview : QVariantMap{});
+    }
+    emit toolPreviewChanged();
+}
+
 void ClipGestureController::clearToolHover(const QString& id) {
     if (!id.isEmpty() && m_toolPreview.value("clipId").toString() != id) { return; }
     m_razorTargets.clear();
     if (!m_toolPreview.isEmpty()) {
-        m_toolPreview.clear();
-        emit toolPreviewChanged();
+        publishToolPreview({});
     }
 }
 
@@ -688,7 +717,7 @@ void ClipGestureController::updateToolHover(const QString& id, const QString& pa
     const auto point = m_viewport ? m_viewport->mapFromScene({sceneX, sceneY}) : QPointF();
     const QVariantMap preview{{"clipId", id}, {"clipIds", ids}, {"timeMs", atMs}, {"part", part},
                               {"available", available}, {"label", label}, {"x", point.x()}, {"y", point.y()}};
-    if (m_toolPreview != preview) { m_toolPreview = preview; emit toolPreviewChanged(); }
+    publishToolPreview(preview);
 }
 
 bool ClipGestureController::pressClip(const QString& id, const QString& pressedPart, double sceneX, double sceneY,
@@ -1595,7 +1624,7 @@ bool ClipGestureController::selectGapAt(const QString& trackId, double timeMs) {
     if (!m_timeline || lockedTrackIds(editDoc()).contains(trackId)) { return false; }
     const auto gap = findGap(editDoc().clips, trackId, timeMs);
     if (!gap) { return false; }
-    m_selection.clear();
+    writeSelection({});
     m_selectedEdit.clear();
     m_selectedGap = {{"trackId", trackId}, {"startMs", gap->startMs}, {"endMs", gap->endMs}};
     emit selectionChanged();
@@ -2316,4 +2345,35 @@ QString ClipGestureController::joinSelectedClips() {
     for (const auto& id : ids) { if (m_timeline->findClip(id)) { surviving.append(id); } }
     setSelection(surviving);
     return {};
+}
+
+ClipInteractionState::~ClipInteractionState() { detach(); }
+void ClipInteractionState::detach() {
+    if (m_gestures) { m_gestures->m_clipObservers.remove(m_clipId,this); }
+}
+void ClipInteractionState::attach() {
+    if (m_gestures && !m_clipId.isEmpty()) { m_gestures->m_clipObservers.insert(m_clipId,this); }
+    refreshSelection();
+    refreshPreview();
+    emit subscriptionChanged();
+}
+void ClipInteractionState::setGestures(ClipGestureController* value) {
+    if (m_gestures==value) { return; }
+    detach(); m_gestures=value; attach();
+}
+void ClipInteractionState::setClipId(const QString& value) {
+    if (m_clipId==value) { return; }
+    detach(); m_clipId=value; attach();
+}
+void ClipInteractionState::refreshSelection() {
+    const bool next=m_gestures && m_gestures->isSelected(m_clipId);
+    if (next==m_selected) { return; }
+    m_selected=next;
+    emit selectedChanged();
+}
+void ClipInteractionState::refreshPreview() {
+    const auto next=m_gestures ? m_gestures->toolPreviewForClip(m_clipId) : QVariantMap{};
+    if (next==m_preview) { return; }
+    m_preview=next;
+    emit toolPreviewChanged();
 }

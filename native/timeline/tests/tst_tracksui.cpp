@@ -1517,6 +1517,152 @@ private slots:
         QVERIFY(rows->rowCount() > 0);
     }
 
+    void perf2HoverOnlyUpdatesItsClip() {
+        load({4,100});
+        auto* target=itemNamed("clip-c-0-0");
+        auto* untouched=itemNamed("clip-c-1-0");
+        QVERIFY(target && untouched);
+        const int handlersBefore=untouched->property("toolPreviewHandlerRuns").toInt();
+        QSignalSpy updates(untouched,SIGNAL(toolPreviewChanged()));
+        const auto at=target->mapToScene({20,20});
+        for (int i=0;i<120;++i) {
+            controller()->updateToolHover("c-0-0","body",at.x()+i*0.1,at.y(),0);
+        }
+        qInfo()<<"PERF2 observed unrelated hover updates"<<updates.count();
+        QCOMPARE(updates.count(),0);
+        QCOMPARE(untouched->property("toolPreviewHandlerRuns").toInt(),handlersBefore);
+        QVERIFY2(itemsNamed("musicLoopRepeats-").isEmpty(),"Non-loop clips allocated seam canvases");
+        qInfo()<<"PERF2 unrelated clip hover binding updates / 120 moves"<<updates.count();
+        const auto readsBefore=controller()->selectionReads();
+        controller()->setSelection({"c-0-0"});
+        QVERIFY(controller()->selectionReads()-readsBefore<=2);
+        QVERIFY(target->property("selected").toBool());
+        controller()->setSelection({"c-1-0"});
+        QVERIFY(!target->property("selected").toBool());
+        QVERIFY(untouched->property("selected").toBool());
+    }
+
+    void perf2SelectionSubscriptionsAreBounded() {
+        load({4,100});
+        const auto before=controller()->selectionReads();
+        controller()->setSelection({"c-0-0"});
+        QVERIFY(controller()->selectionReads()-before<=2);
+    }
+
+    void perf2SeamCanvasesAreLazy() {
+        load({4,100},10,0);
+        const int seams=itemsNamed("musicLoopRepeats-").size();
+        qInfo()<<"PERF2 observed non-loop seam canvases"<<seams;
+        QCOMPARE(seams,0);
+        auto clip=model->findClip("c-0-0")->raw;
+        clip["durationMs"]=1000000;
+        clip["loopLengthMs"]=1000;
+        QVERIFY(model->patchClips({clip}));
+        frame();
+        auto* canvas=itemNamed("musicLoopRepeats-c-0-0");
+        QVERIFY(canvas);
+        QVERIFY(canvas->width()>0);
+        QVERIFY(canvas->width()<=vs->viewportWidthPx());
+    }
+
+    void perf2ForeignPinDoesNotScanLane() {
+        TimelineModel doc; doc.setTimeline(makeTimeline({2,200}));
+        TimelineViewState state; state.setViewportWidthPx(600); state.zoomTo(10,0); state.flush();
+        LaneClipModel lane; lane.setTrackId("track-1"); lane.setTimeline(&doc); lane.setViewState(&state);
+        const auto before=lane.windowVisits();
+        lane.setPinnedClipId("c-0-199");
+        const auto visits=lane.windowVisits()-before;
+        qInfo()<<"PERF2 observed foreign-pin clip visits"<<visits;
+        QVERIFY(visits<20);
+    }
+
+    void perf2UnrelatedInsertionDoesNotRebuildLane() {
+        TimelineModel doc; doc.setTimeline(makeTimeline({2,200}));
+        LaneClipModel lane; lane.setTrackId("track-1"); lane.setTimeline(&doc);
+        const auto before=lane.rebuildCount();
+        auto clips=doc.clipsJson();
+        auto added=doc.findClip("c-0-0")->raw; added["id"]="added"; clips.append(added);
+        QVERIFY(doc.replaceClips(clips));
+        const auto rebuilds=lane.rebuildCount()-before;
+        qInfo()<<"PERF2 observed unrelated insertion lane rebuilds"<<rebuilds;
+        QCOMPARE(rebuilds,0);
+    }
+
+    void perf2SharedLaneIndexAndForeignPin() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({64,200}));
+        TimelineViewState state;
+        state.setViewportWidthPx(600);
+        state.zoomTo(10,0);
+        state.flush();
+        std::vector<std::unique_ptr<LaneClipModel>> lanes;
+        for (int t=0; t<64; ++t) {
+            auto lane=std::make_unique<LaneClipModel>();
+            lane->setTrackId(QStringLiteral("track-%1").arg(t));
+            lane->setTimeline(&doc);
+            lane->setViewState(&state);
+            lanes.push_back(std::move(lane));
+        }
+        quint64 rebuildVisits=0;
+        for (const auto& lane : lanes) { rebuildVisits+=lane->rebuildClipVisits(); }
+        qInfo()<<"PERF2 observed lane rebuild visits"<<rebuildVisits;
+        QCOMPARE(rebuildVisits,12800);
+        QCOMPARE(doc.trackIndexVisits(),12800);
+        quint64 visits=0;
+        for (auto& lane : lanes) {
+            const auto before=lane->windowVisits();
+            lane->setPinnedClipId("c-0-199");
+            visits+=lane->windowVisits()-before;
+        }
+        QVERIFY2(visits<1500,qPrintable(QString::number(visits)));
+        const auto untouched=lanes[1]->rebuildCount();
+        auto clip=doc.findClip("c-0-0")->raw;
+        clip.insert("name","renamed");
+        const auto indexBefore=doc.trackIndexVisits();
+        QVERIFY(doc.patchClips({clip}));
+        QVERIFY(doc.trackIndexVisits()-indexBefore<=200);
+        QCOMPARE(lanes[1]->rebuildCount(),untouched);
+        auto clips=doc.clipsJson();
+        auto added=doc.findClip("c-0-0")->raw; added["id"]="added";
+        clips.append(added);
+        QVERIFY(doc.replaceClips(clips));
+        QCOMPARE(lanes[1]->rebuildCount(),untouched);
+        qInfo()<<"PERF2 lane index visits"<<doc.trackIndexVisits()<<"pin window visits"<<visits;
+    }
+
+    void perf2ForeignEditReleasesIndexedSnapshot() {
+        TimelineModel doc; doc.setTimeline(makeTimeline({2,200}));
+        LaneClipModel lane; lane.setTrackId("track-1"); lane.setTimeline(&doc);
+        const std::weak_ptr<const nt::Timeline> before=doc.snapshot();
+        auto clip=doc.findClip("c-0-0")->raw; clip["name"]="foreign edit";
+        QVERIFY(doc.patchClips({clip}));
+        QVERIFY(before.expired());
+        const auto* empty=&doc.trackClipIndices("missing-0");
+        for (int i=1;i<10000;++i) { QCOMPARE(&doc.trackClipIndices(QString("missing-%1").arg(i)),empty); }
+        QCOMPARE(lane.clipIds().front(),QString("c-1-0"));
+    }
+
+    void perf2EffectQueriesAreBounded() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({64,200}));
+        const auto before=doc.clipQueryVisits();
+        for (int i=0;i<120;++i) {
+            const auto clip=doc.clipAt("track-32",5000);
+            QVERIFY(!clip.isEmpty());
+        }
+        const auto visits=doc.clipQueryVisits()-before;
+        QVERIFY2(visits<2000,qPrintable(QString::number(visits)));
+        QCOMPARE(doc.trackIndexVisits(),12800);
+        const auto reads=doc.effectClipReads();
+        QCOMPARE(doc.effectClips({"c-0-0","c-63-199"}).size(),2);
+        QCOMPARE(doc.effectClipReads()-reads,2);
+        qInfo()<<"PERF2 effect hit-test visits / 120 queries"<<visits;
+        const auto selected=doc.effectClips({"c-63-199","c-0-0","c-0-0"});
+        QCOMPARE(selected.size(),2);
+        QCOMPARE(selected.front().toMap().value("id").toString(),QString("c-0-0"));
+        QVERIFY(doc.clipAt("track-32",5800).isEmpty());
+    }
+
     // F7: a lane model follows a replaced document without being recreated.
     void laneModelFollowsADocumentReplacement() {
         TimelineModel doc;

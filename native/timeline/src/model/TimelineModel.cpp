@@ -406,7 +406,35 @@ bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& 
     full.clips = std::move(nextClips);
     full.revision = nt::nextTimelineRevision();
     if (!sameIds) full.indexClips();
+    // In-place patches retain clip offsets. Update only the affected lanes.
+    const bool incrementalIndex = sameIds && m_trackIndexSource == m_timeline;
     m_timeline = std::make_shared<const nt::Timeline>(std::move(full));
+    if (incrementalIndex) {
+        m_indexChangedTracks = changedTracks;
+        if (m_transient) { m_indexChangedTracks.unite(m_transient->trackIds); }
+        for (size_t i=0; i<reuse.size(); ++i) {
+            if (reuse[i]>=0) { continue; }
+            const auto& before=m_trackIndexSource->clips[i];
+            const auto& after=m_timeline->clips[i];
+            if (before.trackId==after.trackId) { continue; }
+            auto& source=m_trackClipIndices[QString::fromStdString(before.trackId)];
+            std::erase(source,i);
+            m_trackClipIndices[QString::fromStdString(after.trackId)].push_back(i);
+        }
+        for (const auto& track : changedTracks) {
+            auto& indices=m_trackClipIndices[track];
+            m_trackIndexVisits+=indices.size();
+            std::stable_sort(indices.begin(),indices.end(),[this](size_t a,size_t b) {
+                return m_timeline->clips[a].startMs<m_timeline->clips[b].startMs;
+            });
+            auto& ends=m_trackMaxEnds[track];
+            ends.clear();
+            double end=-std::numeric_limits<double>::infinity();
+            for (const auto i : indices) { end=std::max(end,m_timeline->clips[i].endMs()); ends.push_back(end); }
+        }
+        m_trackIndexSource=m_timeline;
+    }
+
     m_tracks->rebind(m_timeline.get());
     if (transient) {
         if (!m_transient) m_transient.emplace(Transient{});
@@ -1070,4 +1098,110 @@ std::optional<double> TimelineModel::mixerOverrideValue(const QString& trackId, 
     if (!state) { return {}; }
     const double value=(param=="pan" ? state->pan : state->volumeDb).load(std::memory_order_relaxed);
     return std::isfinite(value) ? std::optional<double>(value) : std::nullopt;
+}
+
+const std::vector<size_t>& TimelineModel::trackClipIndices(const QString& trackId) const {
+    if (m_trackIndexSource != m_timeline) {
+        m_indexChangedTracks.clear();
+        auto previousIndices=std::move(m_trackClipIndices);
+        m_trackClipIndices.clear();
+        auto previousEnds=std::move(m_trackMaxEnds);
+        m_trackMaxEnds.clear();
+        for (size_t i=0; i<m_timeline->clips.size(); ++i) {
+            ++m_trackIndexVisits;
+            m_trackClipIndices[QString::fromStdString(m_timeline->clips[i].trackId)].push_back(i);
+        }
+        QSet<QString> unchangedTracks;
+        for (auto it=m_trackClipIndices.begin(); it!=m_trackClipIndices.end(); ++it) {
+            auto& indices=it.value();
+            const auto previous=previousIndices.constFind(it.key());
+            bool same=m_trackIndexSource && previous!=previousIndices.cend() && previous->size()==indices.size();
+            if (same) {
+                for (const auto i : indices) {
+                    if (i>=m_trackIndexSource->clips.size()) { same=false; break; }
+                    const auto& a=m_trackIndexSource->clips[i];
+                    const auto& b=m_timeline->clips[i];
+                    if (a.id!=b.id || a.trackId!=b.trackId || a.startMs!=b.startMs || a.durationMs!=b.durationMs || a.raw!=b.raw || a.mediaPath!=b.mediaPath || a.audioPath!=b.audioPath) { same=false; break; }
+                }
+            }
+            if (same) {
+                // Stable clip offsets let untouched tracks retain their sorted index and prefix ends.
+                unchangedTracks.insert(it.key());
+                indices=*previous;
+                m_trackMaxEnds[it.key()]=std::move(previousEnds[it.key()]);
+                continue;
+            }
+            std::stable_sort(indices.begin(),indices.end(),[this](size_t a,size_t b) { return m_timeline->clips[a].startMs<m_timeline->clips[b].startMs; });
+            auto& ends=m_trackMaxEnds[it.key()];
+            double end=-std::numeric_limits<double>::infinity();
+            for (const auto i : indices) { end=std::max(end,m_timeline->clips[i].endMs()); ends.push_back(end); }
+        }
+        for (auto it=m_trackClipIndices.cbegin(); it!=m_trackClipIndices.cend(); ++it) {
+            if (unchangedTracks.contains(it.key())) { continue; }
+            const auto previous=previousIndices.constFind(it.key());
+            bool changed=!m_trackIndexSource || previous==previousIndices.cend() || previous->size()!=it->size();
+            if (!changed) {
+                for (size_t p=0; p<it->size(); ++p) {
+                    const auto& a=m_trackIndexSource->clips[(*previous)[p]];
+                    const auto& b=m_timeline->clips[(*it)[p]];
+                    if (a.id!=b.id || a.trackId!=b.trackId || a.startMs!=b.startMs || a.durationMs!=b.durationMs || a.raw!=b.raw || a.mediaPath!=b.mediaPath || a.audioPath!=b.audioPath) { changed=true; break; }
+                }
+            }
+            if (changed) { m_indexChangedTracks.insert(it.key()); }
+        }
+        for (auto it=previousIndices.cbegin(); it!=previousIndices.cend(); ++it) {
+            if (!m_trackClipIndices.contains(it.key())) { m_indexChangedTracks.insert(it.key()); }
+        }
+        m_trackIndexSource=m_timeline;
+    }
+    static const std::vector<size_t> empty;
+    const auto found=m_trackClipIndices.constFind(trackId);
+    return found==m_trackClipIndices.cend() ? empty : found.value();
+}
+
+namespace {
+QVariantMap effectClip(const nt::Clip& c, const nt::Timeline& timeline) {
+    const auto* track=timeline.findTrack(c.trackId);
+    return {{"id",QString::fromStdString(c.id)}, {"name",QString::fromStdString(c.name)},
+            {"trackId",QString::fromStdString(c.trackId)}, {"mediaType",c.raw.value("mediaType").toString()},
+            {"locked",c.raw.value("locked").toBool() || (track && track->locked)}};
+}
+}
+QVariantMap TimelineModel::clipAt(const QString& trackId, double ms) const {
+    const auto& indices=trackClipIndices(trackId);
+    static const std::vector<double> empty;
+    const auto foundEnds=m_trackMaxEnds.constFind(trackId);
+    const auto& ends=foundEnds==m_trackMaxEnds.cend() ? empty : foundEnds.value();
+    const auto first=std::upper_bound(ends.begin(),ends.end(),ms,[this](double value,double end) { ++m_clipQueryVisits; return value<end; });
+    size_t found=m_timeline->clips.size();
+    for (size_t pos=static_cast<size_t>(first-ends.begin()); pos<indices.size(); ++pos) {
+        ++m_clipQueryVisits;
+        const auto i=indices[pos];
+        const auto& c=m_timeline->clips[i];
+        if (c.startMs>ms) { break; }
+        if (ms>=c.startMs && ms<c.endMs()) { found=std::min(found,i); }
+    }
+    if (found<m_timeline->clips.size()) { return effectClip(m_timeline->clips[found],*m_timeline); }
+    return {};
+}
+QVariantList TimelineModel::effectClips(const QStringList& ids) const {
+    std::vector<size_t> selected;
+    QSet<QString> seen;
+    for (const auto& id : ids) {
+        if (seen.contains(id)) { continue; }
+        seen.insert(id);
+        ++m_effectClipReads;
+        if (const auto* c=findClip(id)) { selected.push_back(static_cast<size_t>(c-m_timeline->clips.data())); }
+    }
+    // Match document order and select each clip once, as the original document filter did.
+    std::sort(selected.begin(),selected.end());
+    QVariantList result;
+    result.reserve(static_cast<qsizetype>(selected.size()));
+    for (const auto i : selected) { result.append(effectClip(m_timeline->clips[i],*m_timeline)); }
+    return result;
+}
+
+bool TimelineModel::trackClipIndexChanged(const QString& trackId) const {
+    trackClipIndices(trackId);
+    return m_indexChangedTracks.contains(trackId);
 }
