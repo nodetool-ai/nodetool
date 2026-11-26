@@ -166,6 +166,10 @@ if(NOT DEFINED NT_QML_DISCOVERY_FILES)
         qml/fx/FxPower.qml
         qml/fx/FxStepper.qml
         qml/instruments/BassSynthPanel.qml
+        qml/instruments/DeviceCatalog.js
+        qml/instruments/DeviceMenu.qml
+        qml/instruments/DrumKitPanel.qml
+        qml/instruments/InstrumentRack.qml
         qml/interchange/PremierePanel.qml
         qml/markers/MarkerEditDialog.qml
         qml/markers/MarkerEditHost.qml

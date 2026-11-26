@@ -4,6 +4,7 @@
 #include "midi/BassSynthPresets.h"
 #include "midi/WavetablePresets.h"
 #include "midi/modal/ModalPresets.h"
+#include "midi/InstrumentEdits.h"
 
 #include <algorithm>
 
@@ -374,6 +375,10 @@ QList<Command> buildAllowed() {
          {P{"width", ParamKind::Number, true, "Width in pixels.", {}, {}, 16, 7680}, P{"height", ParamKind::Number, true, "Height in pixels.", {}, {}, 16, 7680},
           P{"fps", ParamKind::Number, true, "Frames per second.", {}, {}, 1, 240}});
 
+    edit("instrument.setBuiltin", "Replace a MIDI track's instrument with a built-in instrument",
+         {track, P{"type", ParamKind::Choice, true, "Built-in instrument: drum sampler, analog bass, wavetable, sampler, modal or subtractive.",
+                   nt::midi::builtinInstrumentTypes()},
+          P{"preset", ParamKind::Text, false, "Optional preset id: a bass, wavetable or modal preset, or the drum kit '808' or 'uzu'."}});
     // Analog bass synth (BASS1): curated presets and all voice parameters.
     edit("bass.setPreset", "Load an analog bass synth preset onto a MIDI track",
          {track, P{"preset", ParamKind::Choice, true, "Curated bass preset id.", nt::midi::bassPresetIds()}});

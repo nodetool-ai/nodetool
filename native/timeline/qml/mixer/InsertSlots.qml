@@ -2,6 +2,8 @@ import QtQuick
 import NodeTool.UiPrimitives as Ui
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
+import "../instruments"
+import "../instruments/DeviceCatalog.js" as Catalog
 Item {
     id: root
     property string channelId: ""
@@ -56,18 +58,16 @@ Item {
         menuButton: true
         menuExpanded: addMenu.visible
         onClicked: addMenu.openAt(addButton)
-        Ui.ContextMenu {
+        DeviceMenu {
             id: addMenu
-            returnFocusTo: addButton
-            Repeater {
-                model: [{type:"gain",label:"Gain"},{type:"eq3",label:"3-Band EQ"},{type:"filter",label:"Filter"},{type:"compressor",label:"Compressor"},{type:"vst",label:"VST3 Plugin"}]
-                delegate: Ui.MenuItem {
-                    required property var modelData
-                    objectName: "add-" + modelData.type + "-" + root.channelId
-                    text: modelData.label
-                    onTriggered: root.add(modelData.type === "vst" ? VstHost.makeVstEffect() : modelData.type)
-                }
-            }
+            rowPrefix: "add-"
+            rowSuffix: "-" + root.channelId
+            searchLabel: qsTr("Search effects")
+            entries: Catalog.effectEntries(["gain", "eq3", "filter", "compressor"],
+                                           ({ gain: "Gain", eq3: "3-Band EQ", filter: "Filter", compressor: "Compressor" }), [], VstHost.effects)
+            onChosen: entry => root.add(entry.kind === "vst"
+                ? VstHost.makeVstEffect(entry.plugin ? { uid: entry.plugin.uid, name: entry.plugin.name, vendor: entry.plugin.vendor, path: entry.plugin.path } : ({}))
+                : entry.type)
         }
     }
 }

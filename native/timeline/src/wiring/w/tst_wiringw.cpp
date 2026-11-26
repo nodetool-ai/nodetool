@@ -340,6 +340,87 @@ private slots:
         QCOMPARE(doc(), before);
         QCOMPARE(model.undoStack()->count(), undoCount);
     }
+    void saveShot(const QString& name) {
+        const auto dir = qEnvironmentVariable("NT_SHOT_DIR");
+        if (dir.isEmpty()) { return; }
+        QVERIFY(view->grabWindow().save(dir + "/" + name + ".png"));
+    }
+    static QStringList menuSections(QQuickItem* list) {
+        QStringList out;
+        for (const auto& line : list->property("model").toList()) {
+            const auto row = line.toMap();
+            if (row.value("kind") == "header") { out.append(row.value("label").toString()); }
+        }
+        return out;
+    }
+    void instrumentMenu() {
+        auto document = QJsonDocument::fromJson(fixtureDocument).object();
+        auto tracks = document.value("tracks").toArray();
+        tracks.append(QJsonObject{{"id", "m"}, {"name", "Keys"}, {"type", "midi"}, {"index", 3}, {"heightPx", 80},
+                                  {"visible", true}, {"locked", false}, {"muted", false}, {"solo", false},
+                                  {"instrument", QJsonObject{{"type", "subtractive"}}}});
+        document.insert("tracks", tracks);
+        auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        const auto instrument = [this] { return track("m").value("instrument").toObject(); };
+        QTRY_VERIFY(item("track-fx-m"));
+        click("track-fx-m");
+        QTRY_VERIFY(item("instrument-menu-m") && item("instrument-menu-m")->isVisible());
+        QVERIFY(item("subtractive-note"));
+        const auto before = doc();
+        const auto undoBase = model.undoStack()->count();
+        click("instrument-menu-m");
+        QTRY_VERIFY(item("instrument-item-m-list") && item("instrument-item-m-list")->isVisible());
+        QCOMPARE(menuSections(item("instrument-item-m-list")), QStringList({"Built-in", "Plug-ins"}));
+        for (const auto* type : {"drum", "bass", "wavetable", "sampler", "modal", "subtractive"}) {
+            QTRY_VERIFY2(item("instrument-item-m-" + QString::fromLatin1(type)), type);
+        }
+        saveShot("instrument-menu");
+        click("instrument-item-m-bass");
+        QTRY_COMPARE(instrument().value("type").toString(), QString("bass"));
+        QVERIFY(!instrument().value("preset").toString().isEmpty());
+        QCOMPARE(model.undoStack()->count(), undoBase + 1);
+        QTRY_VERIFY(item("bassSynthPanel") && item("bassSynthPanel")->isVisible());
+        saveShot("instrument-bass-panel");
+        // The search field filters both groups.
+        click("instrument-menu-m");
+        QTRY_VERIFY(item("instrument-item-m-list") && item("instrument-item-m-list")->isVisible());
+        const auto lines = item("instrument-item-m-list")->property("model").toList();
+        QString vstKey;
+        for (const auto& line : lines) {
+            const auto row = line.toMap();
+            if (row.value("kind") == "vst") { vstKey = row.value("key").toString(); break; }
+        }
+        QVERIFY(!vstKey.isEmpty());
+        click("instrument-item-m-" + vstKey);
+        QTRY_COMPARE(instrument().value("type").toString(), QString("vst"));
+        QCOMPARE(model.undoStack()->count(), undoBase + 2);
+        click("instrument-menu-m");
+        QTRY_VERIFY(item("instrument-item-m-drum"));
+        click("instrument-item-m-drum");
+        QTRY_COMPARE(instrument().value("type").toString(), QString("drum"));
+        QTRY_VERIFY(item("drumKitPanel") && item("drumKitPanel")->isVisible());
+        QCOMPARE(model.undoStack()->count(), undoBase + 3);
+        model.undoStack()->undo();
+        QTRY_COMPARE(instrument().value("type").toString(), QString("vst"));
+        model.undoStack()->undo();
+        QTRY_COMPARE(instrument().value("type").toString(), QString("bass"));
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+        // The effect menu lists built-in and FableSynth effects with the plug-ins.
+        click("fx-add-m");
+        QTRY_VERIFY(item("fx-add-type-m-list") && item("fx-add-type-m-list")->isVisible());
+        QCOMPARE(menuSections(item("fx-add-type-m-list")), QStringList({"Built-in", "Plug-ins"}));
+        QVERIFY(item("fx-add-type-m-reverb"));
+        QVERIFY(item("fx-add-type-m-search") && item("fx-add-type-m-search")->isVisible());
+        saveShot("effect-menu");
+        for (const char key : {'v', 'e', 'r', 'b'}) { QTest::keyClick(view.get(), key); }
+        QTRY_COMPARE(item("fx-add-type-m-list")->property("model").toList().size(), 2);
+        QTest::keyClick(view.get(), Qt::Key_Return);
+        QTRY_COMPARE(effects("m").size(), 1);
+        QCOMPARE(effects("m").at(0).toObject().value("type").toString(), QString("fable"));
+    }
     void effectEdits() {
         QVERIFY(item("track-fx-a")); click("track-fx-a");
         const auto before = doc();

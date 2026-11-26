@@ -936,6 +936,40 @@ for line in sys.stdin:
         QVERIFY(!zoneAfterClear2.contains("loopMode"));
     }
 
+    // instrument.setBuiltin replaces a MIDI track's instrument, the same edit the instrument menu uses.
+    void builtinInstrumentCommand() {
+        static const QString TRACK_MIDI = "44444444444400000000000000000005";
+        const auto text = QStringLiteral(R"({"id":"%1","name":"Inst","fps":30,"width":640,"height":360,"durationMs":10000,
+          "tracks":[{"id":"%2","name":"Keys","type":"midi","index":0,"heightPx":80,"visible":true,"locked":false,
+            "instrument":{"type":"subtractive"}}],
+          "clips":[]})")
+            .arg(TIMELINE, TRACK_MIDI);
+        auto parsed = nt::parseTimelineJson(text.toUtf8());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCoreApplication::processEvents();
+        const auto entry = commandEntry("instrument.setBuiltin");
+        QVERIFY2(!entry.isEmpty(), "instrument.setBuiltin missing from allowed commands");
+        const auto types = entry.value("parameters").toMap().value("properties").toMap().value("type").toMap().value("enum").toStringList();
+        QCOMPARE(types, QStringList({"drum", "bass", "wavetable", "sampler", "modal", "subtractive"}));
+        const auto before = doc();
+        const auto instrument = [this] { return doc().value("tracks").toArray().at(0).toObject().value("instrument").toObject(); };
+        QVERIFY(!run("instrument.setBuiltin", {{"track_id", TRACK_MIDI}, {"type", "theremin"}}).value("ok").toBool());
+        QCOMPARE(model.undoStack()->count(), 0);
+        auto res = run("instrument.setBuiltin", {{"track_id", TRACK_MIDI}, {"type", "drum"}, {"preset", "uzu"}});
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        QCOMPARE(instrument().value("type").toString(), QStringLiteral("drum"));
+        QCOMPARE(instrument().value("kit").toString(), QStringLiteral("uzu"));
+        res = run("instrument.setBuiltin", {{"track_id", TRACK_MIDI.left(12)}, {"type", "modal"}});
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        QCOMPARE(instrument().value("type").toString(), QStringLiteral("modal"));
+        QVERIFY(!instrument().value("preset").toString().isEmpty());
+        QCOMPARE(model.undoStack()->count(), 2);
+        model.undoStack()->undo();
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+    }
+
     // E2: wavetable.setPreset and wavetable.setParams dispatched through ui_timeline_run_command.
     void wavetableAssistantCommands() {
         static const QString TRACK_MIDI = "44444444444400000000000000000004";

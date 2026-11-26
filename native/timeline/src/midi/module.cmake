@@ -12,6 +12,7 @@ nt_sources(audio src/midi/PatternAudioStage.h src/midi/PatternAudioStage.cpp
     src/midi/BassSynth.h src/midi/BassSynth.cpp
     src/midi/BassSynthPresets.h src/midi/BassSynthPresets.cpp
     src/midi/BassSynthEdits.h src/midi/BassSynthEdits.cpp
+    src/midi/InstrumentEdits.h src/midi/InstrumentEdits.cpp
     src/midi/MultisampleSampler.h src/midi/MultisampleSampler.cpp
     src/midi/SamplerEdits.h src/midi/SamplerEdits.cpp
     src/midi/modal/ModalDsp.h src/midi/modal/ModalDsp.cpp
