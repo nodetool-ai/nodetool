@@ -15,9 +15,10 @@ Read the source page when a rule needs more detail.
 
 ## Frame budget
 
-1. A frame at 60 FPS has about 16 ms. Keep work on the UI thread to a few
-   milliseconds per frame. Move decoding, parsing, file and network work to a
-   worker thread and hand results back with a queued signal, as
+1. The timeline targets 120 Hz, so a frame has about 8.3 ms. Keep GUI-thread
+   work to about 4 ms per frame. The render thread needs the rest, and the GUI
+   thread blocks during the sync step. Move decoding, parsing, file and network
+   work to a worker thread and hand results back with a queued signal, as
    [native rule 10](../AGENTS.md#threads) requires.
 2. Never call `processEvents()` or spin a nested event loop from C++ that QML
    calls. Other bindings run in the middle of the handler and can destroy the
@@ -130,3 +131,69 @@ Read the source page when a rule needs more detail.
     - `QSG_VISUALIZE=batches`, `clip`, `changes` or `overdraw` colors the
       window to show unmerged batches, clips that break batching, items that
       change each frame and translucent overdraw.
+
+## Data across C++ and QML
+
+30. Do not send a JSON or QVariant document across C++ to QML in a hot path.
+    The engine deep-copies a `QVariantList`, `QVariantMap`, `QJsonArray` or
+    `QJsonObject` into new JavaScript values on each read. Expose rows as
+    `QAbstractListModel` roles, or answer a small `Q_INVOKABLE` query that
+    returns a scalar. Send patches, not full arrays: emit `dataChanged` for
+    the changed rows and roles. A hot path is any code that runs on a
+    playback tick, scroll, zoom, drag, pointer move or meter update.
+31. Give each `Q_PROPERTY` its own `NOTIFY` signal. A shared `changed()`
+    signal re-evaluates every binding on every property that uses it.
+32. Expose a small record as a `Q_GADGET` with `QML_VALUE_TYPE`, not as a
+    `QVariantMap`. Typed fields compile ahead of time. Use a map only at a
+    JSON boundary.
+33. Use `QQmlListProperty` only for child objects declared in QML. A view
+    resets on any change to it.
+34. Register C++ objects with `QML_ELEMENT` or `QML_SINGLETON`. Do not use
+    `setContextProperty`. The compiler cannot type a context property, so
+    every binding that reads it runs in the interpreter.
+
+## Delegates
+
+35. A delegate reads its own roles. Do not scan the whole model in a
+    delegate: no `indexOf`, `filter`, `find` or `mapToItem` over all rows.
+    Expose `selected`, `pinned` and similar flags as roles that C++ updates.
+36. Qualify every lookup (`root.width`, not `width` from an outer scope) and
+    fix `qmllint` unqualified-access warnings in hot files.
+37. Do not give each delegate its own `Menu`, `Popup`, `ToolTip` or
+    `Instantiator`. Share one per view and open it with the row as an
+    argument. Set `active: false` on an `Instantiator` in a closed menu.
+
+## Drawing
+
+38. Draw curves, rulers, grids, waveforms, meters and note lanes in a C++
+    `QQuickItem` with `updatePaintNode` and one `QSGGeometryNode`. Do not use
+    `Canvas` or a full-size `QQuickPaintedItem` for content that changes on
+    scroll, zoom or a playback tick. Both re-rasterize the whole area and
+    upload a new texture.
+39. Do not repaint for a scroll. Move the drawn item with `x` or a
+    transform, and redraw only when the visible range leaves the drawn range.
+40. Draw a moving marker, such as a playhead or a step outline, as its own
+    small item. The content under it does not repaint.
+41. Draw more than about 100 repeated marks, such as ticks, grid lines or
+    meter segments, in one node instead of one `Rectangle` each.
+42. Copy data into scene-graph nodes only in `updatePaintNode`. The GUI
+    thread is blocked there, so it is the only safe hand-off to the render
+    thread.
+
+## Timers and clocks
+
+43. Drive meters and playheads from one clock per window. Do not run a
+    `Timer` per item. Stop the clock when the panel is hidden.
+
+## Loading
+
+44. Open a heavy panel with `Loader { asynchronous: true }` and show a
+    placeholder until the status is `Loader.Ready`. Creation then spreads
+    over several frames.
+
+## Measure in tests
+
+45. Measure timing in an offscreen test: set `QT_QPA_PLATFORM=offscreen` and
+    `QSG_RENDER_LOOP=basic`, time the action with `QElapsedTimer`, and assert
+    a budget. Also assert the item count of the panel, because it is stable
+    across machines.
