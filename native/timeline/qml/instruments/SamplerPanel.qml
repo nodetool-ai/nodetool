@@ -131,13 +131,22 @@ Ui.Surface {
         SamplerHelper.analyzeAudioFile(reqId, urlText, root.projectDir)
     }
 
+    AutomationController { id: live; timeline: root.timeline; trackId: root.trackId }
+    function previewParam(name, value) {
+        if (readOnly) return
+        const patch = {}; patch[name] = value
+        live.previewDevice("instrument", patch)
+    }
+    function cancelPreview() { live.cancelDevice("instrument") }
+    onVisibleChanged: if (!visible) cancelPreview()
+
     function commitParam(name, value) {
         if (root.readOnly) return
         root.parameterCommitted(name, value)
         if (root.timeline && root.trackId !== "") {
             const payload = { trackId: root.trackId }
             payload[name] = value
-            root.timeline.applyEdit("sampler.setParams", payload)
+            live.commitDevice("instrument", { [name]: value }, "sampler.setParams", payload)
         }
     }
 
@@ -201,6 +210,7 @@ Ui.Surface {
         property real resetValue: 0.0
         property string sliderName: ""
         property bool controlEnabled: !root.readOnly
+        signal previewed(real nextValue)
         signal committed(real nextValue)
 
         Layout.fillWidth: true
@@ -225,6 +235,9 @@ Ui.Surface {
             resetValue: row.resetValue
             resetOnDoubleTap: true
             accessibleName: row.labelText
+            cancelOnFocusLoss: true
+            onValuePreviewed: v => row.previewed(v)
+            onEditCanceled: root.cancelPreview()
             onValueCommitted: v => row.committed(v)
         }
 
@@ -555,6 +568,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(Math.max(0.5, root.attackMsValue), 0.5, 4000.0)
             resetValue: root.toLogNorm(2.0, 0.5, 4000.0)
             readoutText: root.formatMs(root.attackMsValue)
+            onPreviewed: v => root.previewParam("attackMs", v <= 0.001 ? 0.0 : root.fromLogNorm(v, 0.5, 4000.0))
             onCommitted: v => root.commitParam("attackMs", v <= 0.001 ? 0.0 : root.fromLogNorm(v, 0.5, 4000.0))
         }
 
@@ -564,6 +578,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(Math.max(1.0, root.decayMsValue), 1.0, 4000.0)
             resetValue: root.toLogNorm(100.0, 1.0, 4000.0)
             readoutText: root.formatMs(root.decayMsValue)
+            onPreviewed: v => root.previewParam("decayMs", root.fromLogNorm(v, 1.0, 4000.0))
             onCommitted: v => root.commitParam("decayMs", root.fromLogNorm(v, 1.0, 4000.0))
         }
 
@@ -573,6 +588,7 @@ Ui.Surface {
             sliderValue: root.sustainValue
             resetValue: 1.0
             readoutText: root.formatPct(root.sustainValue)
+            onPreviewed: v => root.previewParam("sustain", v)
             onCommitted: v => root.commitParam("sustain", v)
         }
 
@@ -582,6 +598,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(Math.max(1.0, root.releaseMsValue), 1.0, 5000.0)
             resetValue: root.toLogNorm(120.0, 1.0, 5000.0)
             readoutText: root.formatMs(root.releaseMsValue)
+            onPreviewed: v => root.previewParam("releaseMs", root.fromLogNorm(v, 1.0, 5000.0))
             onCommitted: v => root.commitParam("releaseMs", root.fromLogNorm(v, 1.0, 5000.0))
         }
 

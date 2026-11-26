@@ -90,13 +90,22 @@ Ui.Surface {
         }
     }
 
+    AutomationController { id: live; timeline: root.timeline; trackId: root.trackId }
+    function previewParam(name, value) {
+        if (readOnly) return
+        const patch = {}; patch[name] = value
+        live.previewDevice("instrument", patch)
+    }
+    function cancelPreview() { live.cancelDevice("instrument") }
+    onVisibleChanged: if (!visible) cancelPreview()
+
     function commitParam(name, value) {
         if (root.readOnly) return
         root.parameterCommitted(name, value)
         if (root.timeline && root.trackId !== "") {
             const payload = { trackId: root.trackId }
             payload[name] = value
-            root.timeline.applyEdit("modal.setParams", payload)
+            live.commitDevice("instrument", { [name]: value }, "modal.setParams", payload)
         }
     }
 
@@ -110,6 +119,7 @@ Ui.Surface {
         property real resetValue: 0.0
         property string sliderName: ""
         property bool controlEnabled: !root.readOnly
+        signal previewed(real nextValue)
         signal committed(real nextValue)
 
         Layout.fillWidth: true
@@ -134,6 +144,9 @@ Ui.Surface {
             resetValue: row.resetValue
             resetOnDoubleTap: true
             accessibleName: row.labelText
+            cancelOnFocusLoss: true
+            onValuePreviewed: v => row.previewed(v)
+            onEditCanceled: root.cancelPreview()
             onValueCommitted: v => row.committed(v)
         }
 
@@ -240,6 +253,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(root.malletStiffValue, 100.0, 5000.0)
             resetValue: root.toLogNorm(600.0, 100.0, 5000.0)
             readoutText: root.formatHz(root.malletStiffValue)
+            onPreviewed: v => root.previewParam("malletStiff", root.fromLogNorm(v, 100.0, 5000.0))
             onCommitted: v => root.commitParam("malletStiff", root.fromLogNorm(v, 100.0, 5000.0))
         }
 
@@ -249,6 +263,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(root.decayValue, 0.01, 100.0)
             resetValue: root.toLogNorm(1.0, 0.01, 100.0)
             readoutText: root.formatSec(root.decayValue)
+            onPreviewed: v => root.previewParam("aDecay", root.fromLogNorm(v, 0.01, 100.0))
             onCommitted: v => root.commitParam("aDecay", root.fromLogNorm(v, 0.01, 100.0))
         }
 
@@ -260,6 +275,7 @@ Ui.Surface {
             sliderValue: root.toneValue
             resetValue: 0.0
             readoutText: root.formatSignedPct(root.toneValue)
+            onPreviewed: v => root.previewParam("aTone", v)
             onCommitted: v => root.commitParam("aTone", v)
         }
 
@@ -271,6 +287,7 @@ Ui.Surface {
             sliderValue: root.hitValue
             resetValue: 0.26
             readoutText: root.formatPct(root.hitValue * 2.0)
+            onPreviewed: v => root.previewParam("aHit", v)
             onCommitted: v => root.commitParam("aHit", v)
         }
 
@@ -280,6 +297,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(Math.max(0.0001, root.inharmValue), 0.0001, 1.0)
             resetValue: 0.0
             readoutText: root.formatPct(root.inharmValue)
+            onPreviewed: v => root.previewParam("aInharm", root.fromLogNorm(v, 0.0001, 1.0))
             onCommitted: v => root.commitParam("aInharm", root.fromLogNorm(v, 0.0001, 1.0))
         }
 
@@ -290,6 +308,7 @@ Ui.Surface {
             sliderValue: root.abMixValue
             resetValue: 0.50
             readoutText: root.formatPct(root.abMixValue)
+            onPreviewed: v => root.previewParam("abMix", v)
             onCommitted: v => root.commitParam("abMix", v)
         }
     }

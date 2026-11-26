@@ -92,13 +92,22 @@ Ui.Surface {
         }
     }
 
+    AutomationController { id: live; timeline: root.timeline; trackId: root.trackId }
+    function previewParam(name, value) {
+        if (readOnly) return
+        const patch = {}; patch[name] = value
+        live.previewDevice("instrument", patch)
+    }
+    function cancelPreview() { live.cancelDevice("instrument") }
+    onVisibleChanged: if (!visible) cancelPreview()
+
     function commitParam(name, value) {
         if (root.readOnly) return
         root.parameterCommitted(name, value)
         if (root.timeline && root.trackId !== "") {
             const payload = { trackId: root.trackId }
             payload[name] = value
-            root.timeline.applyEdit("bass.setParams", payload)
+            live.commitDevice("instrument", { [name]: value }, "bass.setParams", payload)
         }
     }
 
@@ -112,6 +121,7 @@ Ui.Surface {
         property real resetValue: 0.0
         property string sliderName: ""
         property bool controlEnabled: !root.readOnly
+        signal previewed(real nextValue)
         signal committed(real nextValue)
 
         Layout.fillWidth: true
@@ -136,6 +146,9 @@ Ui.Surface {
             resetValue: row.resetValue
             resetOnDoubleTap: true
             accessibleName: row.labelText
+            cancelOnFocusLoss: true
+            onValuePreviewed: v => row.previewed(v)
+            onEditCanceled: root.cancelPreview()
             onValueCommitted: v => row.committed(v)
         }
 
@@ -199,6 +212,7 @@ Ui.Surface {
             sliderValue: root.subLevelValue
             resetValue: 0.55
             readoutText: root.formatPct(root.subLevelValue)
+            onPreviewed: v => root.previewParam("subLevel", v)
             onCommitted: v => root.commitParam("subLevel", v)
         }
 
@@ -208,6 +222,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(root.cutoffHzValue, 20.0, 18000.0)
             resetValue: root.toLogNorm(340.0, 20.0, 18000.0)
             readoutText: root.formatHz(root.cutoffHzValue)
+            onPreviewed: v => root.previewParam("cutoffHz", root.fromLogNorm(v, 20.0, 18000.0))
             onCommitted: v => root.commitParam("cutoffHz", root.fromLogNorm(v, 20.0, 18000.0))
         }
 
@@ -217,6 +232,7 @@ Ui.Surface {
             sliderValue: root.resonanceValue
             resetValue: 0.62
             readoutText: root.formatPct(root.resonanceValue)
+            onPreviewed: v => root.previewParam("resonance", v)
             onCommitted: v => root.commitParam("resonance", v)
         }
 
@@ -228,6 +244,7 @@ Ui.Surface {
             sliderValue: root.envAmountValue
             resetValue: 2.8
             readoutText: root.formatOct(root.envAmountValue)
+            onPreviewed: v => root.previewParam("filterEnvAmount", v)
             onCommitted: v => root.commitParam("filterEnvAmount", v)
         }
 
@@ -237,6 +254,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(root.decayMsValue, 5.0, 4000.0)
             resetValue: root.toLogNorm(180.0, 5.0, 4000.0)
             readoutText: root.formatMs(root.decayMsValue)
+            onPreviewed: v => root.previewParam("filterDecayMs", root.fromLogNorm(v, 5.0, 4000.0))
             onCommitted: v => root.commitParam("filterDecayMs", root.fromLogNorm(v, 5.0, 4000.0))
         }
 
@@ -246,6 +264,7 @@ Ui.Surface {
             sliderValue: root.accentValue
             resetValue: 0.70
             readoutText: root.formatPct(root.accentValue)
+            onPreviewed: v => root.previewParam("accentAmount", v)
             onCommitted: v => root.commitParam("accentAmount", v)
         }
 
@@ -257,6 +276,7 @@ Ui.Surface {
             sliderValue: root.glideMsValue
             resetValue: 60.0
             readoutText: root.formatMs(root.glideMsValue)
+            onPreviewed: v => root.previewParam("slideMs", v)
             onCommitted: v => root.commitParam("slideMs", v)
         }
 
@@ -269,6 +289,7 @@ Ui.Surface {
             sliderValue: root.pulseWidthValue
             resetValue: 0.50
             readoutText: root.formatPct(root.pulseWidthValue)
+            onPreviewed: v => root.previewParam("pulseWidth", v)
             onCommitted: v => root.commitParam("pulseWidth", v)
         }
 

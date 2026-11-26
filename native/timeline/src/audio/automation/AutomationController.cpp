@@ -1,11 +1,81 @@
 #include <cmath>
 #include "AutomationController.h"
 #include "Automation.h"
+#include "AutomationRecorder.h"
 #include <QUuid>
 #include <algorithm>
 
 AutomationController::AutomationController(QObject* parent) : QObject(parent) {
     connect(this,&AutomationController::changed,this,&AutomationController::refresh);
+}
+AutomationController::~AutomationController() { cancelDevices(); }
+void AutomationController::cancelDevices() {
+    const auto devices=previewDevices_;
+    for (const auto& device:devices) { cancelDevice(device); }
+    if (timeline_) {
+        for (const auto& param:previewMixerParams_) { timeline_->setMixerOverride(trackId,param,std::nullopt,master); }
+    }
+    previewMixerParams_.clear();
+}
+void AutomationController::previewDevice(const QString& deviceId,const QJsonObject& patch) {
+    if (!timeline_ || timeline_->readOnly()) { return; }
+    const auto* track=timeline_->timeline().findTrack(trackId.toStdString());
+    if (!master && (!track || track->locked)) { return; }
+    previewDevices_.insert(deviceId);
+    auto* recorder=timeline_->automationRecorder();
+    if (!master && recorder->consumes(trackId)) {
+        const auto values=patch.contains("params") ? patch["params"].toObject() : patch;
+        for (auto it=values.begin();it!=values.end();++it) {
+            if (it.value().isDouble()) {
+                const auto key=deviceId+QChar(0x1f)+it.key();
+                recordingDeviceParams_[deviceId].insert(key);
+                recorder->record(trackId,key,it.value().toDouble());
+            }
+        }
+        return;
+    }
+    timeline_->setDeviceOverride(master ? QString{} : trackId,deviceId,patch);
+}
+void AutomationController::cancelDevice(const QString& deviceId) {
+    const auto recorded=recordingDeviceParams_.take(deviceId);
+    if (timeline_) {
+        for (const auto& key:recorded) { timeline_->automationRecorder()->gestureCancel(trackId,key); }
+    }
+    if (timeline_ && previewDevices_.remove(deviceId)) { timeline_->setDeviceOverride(master ? QString{} : trackId,deviceId,{}); }
+}
+void AutomationController::commitDevice(const QString& deviceId,const QJsonObject& patch,const QString& action,QJsonObject payload) {
+    if (!timeline_ || timeline_->readOnly()) { cancelDevice(deviceId); return; }
+    auto* recorder=timeline_->automationRecorder();
+    const auto values=patch.contains("params") ? patch["params"].toObject() : patch;
+    if (!master && recorder->consumes(trackId)) {
+        previewDevices_.remove(deviceId);
+        for (auto it=values.begin();it!=values.end();++it) {
+            if (!it.value().isDouble()) { continue; }
+            const auto key=deviceId+QChar(0x1f)+it.key();
+            recordingDeviceParams_[deviceId].insert(key);
+            recorder->record(trackId,key,it.value().toDouble());
+        }
+        for (const auto& key:recordingDeviceParams_.take(deviceId)) { recorder->gestureEnd(trackId,key); }
+        return;
+    }
+    const auto snapshot=timeline_->snapshot();
+    const auto* track=snapshot->findTrack(trackId.toStdString());
+    const auto channel=master ? snapshot->raw["master"].toObject() : track ? track->raw : QJsonObject{};
+    bool changed=false, driven=false;
+    const auto& parameters=master ? snapshot->masterDeviceParameters : track ? track->deviceParameters : snapshot->masterDeviceParameters;
+    for (const auto& p:parameters) {
+        const auto name=QString::fromStdString(p.name);
+        if (p.deviceId==deviceId.toStdString() && values[name].isDouble() && values[name].toDouble()!=p.base) { changed=true; }
+    }
+    if (channel["automationMode"]!="off") {
+        for (const auto& value:channel["automation"].toArray()) {
+            const auto lane=value.toObject(),target=lane["target"].toObject();
+            if (lane["enabled"]!=false && target["kind"]=="device" && target["deviceId"]==deviceId && values.contains(target["param"].toString())) { driven=true; }
+        }
+    }
+    if (previewDevices_.remove(deviceId)) { timeline_->setDeviceOverride(master ? QString{} : trackId,deviceId,changed && !driven ? patch : QJsonObject{},changed && !driven); }
+    if (!master) { payload["trackId"]=trackId; }
+    if (!timeline_->applyEdit(action,payload)) { timeline_->setDeviceOverride(master ? QString{} : trackId,deviceId,{}); }
 }
 void AutomationController::refresh() {
     QJsonObject channel;
@@ -20,6 +90,7 @@ void AutomationController::refresh() {
 }
 void AutomationController::setTimeline(TimelineModel* timeline) {
     if (timeline_ == timeline) { return; }
+    cancelDevices();
     if (timeline_) { disconnect(timeline_, nullptr, this, nullptr); }
     if (history_) { disconnect(history_, nullptr, this, nullptr); }
     timeline_ = timeline;
@@ -27,14 +98,14 @@ void AutomationController::setTimeline(TimelineModel* timeline) {
     ++gestureGeneration_;
     if (timeline_) {
         const QPointer<AutomationController> self(this);
-        connect(timeline_, &TimelineModel::documentReplaced, this, [self] { if (self) { ++self->gestureGeneration_; } });
+        connect(timeline_, &TimelineModel::documentReplaced, this, [self] { if (self) { self->cancelDevices(); ++self->gestureGeneration_; } });
         connect(timeline_, &TimelineSource::sourceChanged, this, [self] {
             if (!self) { return; }
-            if (!self->timeline_->pushingCommand()) { ++self->gestureGeneration_; }
+            if (!self->timeline_->pushingCommand()) { self->cancelDevices(); ++self->gestureGeneration_; }
             self->refresh();
         });
         connect(history_, &QUndoStack::indexChanged, this, [self] {
-            if (self && self->timeline_ && !self->timeline_->pushingCommand()) { ++self->gestureGeneration_; }
+            if (self && self->timeline_ && !self->timeline_->pushingCommand()) { self->cancelDevices(); ++self->gestureGeneration_; }
         });
         connect(timeline_, &QObject::destroyed, this, [self] {
             if (!self) { return; }
@@ -49,12 +120,14 @@ void AutomationController::setTimeline(TimelineModel* timeline) {
 }
 void AutomationController::setTrackId(const QString& value) {
     if (trackId == value) { return; }
+    cancelDevices();
     trackId = value;
     ++gestureGeneration_;
     emit changed();
 }
 void AutomationController::setMaster(bool value) {
     if (master == value) { return; }
+    cancelDevices();
     master = value;
     ++gestureGeneration_;
     emit changed();
@@ -98,8 +171,9 @@ void AutomationController::edit(const QString& action, QJsonObject payload) {
 }
 void AutomationController::previewMixer(const QString& param, double value) {
     if (!timeline_ || (master && param!="volumeDb")) { return; }
-    if (std::isnan(value)) { timeline_->setMixerOverride(trackId,param,std::nullopt,master); return; }
+    if (std::isnan(value)) { previewMixerParams_.remove(param); timeline_->setMixerOverride(trackId,param,std::nullopt,master); return; }
     if (timeline_->readOnly() || !std::isfinite(value) || (param!="volumeDb" && param!="pan")) { return; }
+    previewMixerParams_.insert(param);
     timeline_->setMixerOverride(trackId,param,std::clamp(value,param=="pan" ? -1. : -120.,param=="pan" ? 1. : 24.),master);
 }
 void AutomationController::commitMixer(const QString& param,double value) {
@@ -109,6 +183,7 @@ void AutomationController::commitMixer(const QString& param,double value) {
     }
     value=std::clamp(value,param=="pan" ? -1. : -120.,param=="pan" ? 1. : 24.);
     // Publish before edit observers can compile a plan containing the committed value.
+    previewMixerParams_.remove(param);
     timeline_->holdMixerOverride(trackId,param,value,master);
     QJsonObject payload{{param=="pan" ? "pan" : "db",value}};
     if (!master) { payload.insert("trackId",trackId); }

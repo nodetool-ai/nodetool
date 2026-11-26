@@ -10,7 +10,7 @@ HookRegistrations registerPlaybackHooks() {
     for (const auto token : {reframe::registerCropDecorator(), automation::registerPictureAutomation()}) {
         hooks.add([token] { unregisterSceneHook(token); });
     }
-    for (const auto token : {speed::registerTimeRemapAudio(), automation::registerMixerAutomation()}) {
+    for (const auto token : {speed::registerTimeRemapAudio(), automation::registerMixerAutomation(), automation::registerLiveDeviceOverrides()}) {
         hooks.add([token] { audio::unregisterMixPlanStage(token); });
     }
     const auto loops = audio::registerVoiceExpander("clipLoops", [](const Clip& clip, const audio::VoicePlan& voice)

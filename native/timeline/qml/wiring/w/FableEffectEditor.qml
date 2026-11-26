@@ -207,6 +207,7 @@ EffectEditor {
                             required property string modelData
                             width: editor.cell; height: knob.implicitHeight
                             FxKnob {
+                                cancelOnFocusLoss: true
                                 id: knob
                                 objectName: "fable-knob-" + editor.effect.id + "-" + knobCell.modelData
                                 anchors.horizontalCenter: parent.horizontalCenter

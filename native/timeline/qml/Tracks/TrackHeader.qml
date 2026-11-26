@@ -262,6 +262,11 @@ Rectangle {
         }
     }
 
+    Component.onDestruction: {
+        if (volumeSlider.consumed && header.volumeRecorder) { header.volumeRecorder.gestureCancel(header.trackId, "volumeDb") }
+        else if (slider.editing) { automation.previewMixer("volumeDb", NaN) }
+    }
+
     // The instrument icon, the volume slider and its level meter. The slider
     // uses the mixer's automation value and dB taper. A drag commits once on
     // release. A double-click resets to 0 dB.
@@ -301,25 +306,29 @@ Rectangle {
             value: Taper.dbToFaderPosition(volumeSlider.channelDb)
             accessibleName: header.name + " volume"
             enabled: header.timeline !== null
+            cancelOnFocusLoss: true
             onEditStarted: volumeSlider.consumed=header.volumeRecorder ? header.volumeRecorder.gestureStart(header.trackId,"volumeDb") : false
             onValuePreviewed: position => {
                 volumeSlider.draftDb=Taper.faderPositionToDb(position)
                 if (header.volumeRecorder && (volumeSlider.consumed || header.volumeRecorder.consumes(header.trackId))) {
+                    if (!volumeSlider.consumed) automation.previewMixer("volumeDb", NaN)
                     volumeSlider.consumed=true
                     header.volumeRecorder.record(header.trackId,"volumeDb",volumeSlider.draftDb)
-                }
+                } else { automation.previewMixer("volumeDb", volumeSlider.draftDb) }
             }
             onValueCommitted: position => {
                 const db = Taper.faderPositionToDb(position)
                 if (volumeSlider.consumed || (header.volumeRecorder && header.volumeRecorder.consumes(header.trackId))) {
+                    if (!volumeSlider.consumed) automation.previewMixer("volumeDb", NaN)
                     if (header.volumeRecorder) {
                         header.volumeRecorder.record(header.trackId,"volumeDb",db)
                         header.volumeRecorder.gestureEnd(header.trackId,"volumeDb")
                     }
-                } else if (db !== volumeSlider.channelDb) { automation.edit("setTrackVolume", {db: db}) }
+                } else { automation.commitMixer("volumeDb", db) }
                 volumeSlider.consumed=false
             }
             onEditCanceled: {
+                automation.previewMixer("volumeDb", NaN)
                 if (header.volumeRecorder) { header.volumeRecorder.gestureCancel(header.trackId,"volumeDb") }
                 volumeSlider.consumed=false
                 volumeSlider.draftDb=volumeSlider.channelDb

@@ -1,3 +1,8 @@
+#include "midi/MultisampleSampler.h"
+#include "audio/automation/Automation.h"
+#include "midi/BassSynthPresets.h"
+#include "midi/WavetablePresets.h"
+#include "midi/modal/ModalPresets.h"
 #include "motion/gesture/ClipDelta.h"
 #include "model/TimelineModel.h"
 #include "audio/automation/AutomationRecorder.h"
@@ -131,6 +136,9 @@ TimelineModel::TimelineModel(QObject* parent)
       m_timeline(std::make_shared<const nt::Timeline>()),
       m_tracks(new TrackListModel(this)),
       m_undo(new QUndoStack(this)) {
+    connect(m_undo, &QUndoStack::indexChanged, this, [this] {
+        if (!pushingCommand()) { clearMixerOverrides(); }
+    });
     connect(this, &TimelineModel::timelineChanged, this, &TimelineSource::sourceChanged);
     connect(this, &TimelineModel::previewChanged, this, &TimelineSource::sourceChanged);
 }
@@ -854,10 +862,104 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
     return false;
 }
 
+namespace {
+QString deviceKey(const QString& track, const QString& device, const QString& param) {
+    return track + QChar(0x1f) + device + QChar(0x1f) + param;
+}
+QJsonObject deviceValues(QJsonObject object, bool instrument) {
+    QJsonObject result;
+    const auto collect = [&](const QJsonObject& fields, const QString& prefix) {
+        for (auto it=fields.begin();it!=fields.end();++it) {
+            if (it.value().isDouble()) { result[prefix+it.key()]=it.value(); }
+        }
+    };
+    if (instrument) {
+        if (object["type"]=="sampler") { object=nt::midi::samplerSpecToJson(nt::midi::samplerSpecFromJson(object)); }
+        const auto type=object["type"].toString();
+        if (type=="bass") { object=nt::midi::bassParamsToJson(nt::midi::bassParamsFromJson(object)); }
+        else if (type=="wavetable") { object=nt::midi::wavetableParamsToJson(nt::midi::wavetableParamsFromJson(object)); }
+        else if (type=="modal") { object=nt::midi::modalParamsToJson(nt::midi::modalParamsFromJson(object)); }
+        for (const auto& entry:nt::automation::instrumentAutomationSpecs(object)) {
+            const auto spec=entry.toObject(); result[spec["target"].toObject()["param"].toString()]=spec["value"];
+        }
+        for (const auto* osc:{"oscA","oscB"}) {
+            const auto fields=object[osc].toObject();
+            for (auto it=fields.begin();it!=fields.end();++it) {
+                if (!it.value().isDouble()) { continue; }
+                auto field=it.key(); field[0]=field[0].toUpper(); result[QString::fromLatin1(osc)+field]=it.value();
+            }
+        }
+        for (const auto* env:{"amp","mod"}) {
+            const auto fields=object[QString::fromLatin1(env)+"Env"].toObject();
+            for (auto it=fields.begin();it!=fields.end();++it) {
+                if (!it.value().isDouble()) { continue; }
+                auto field=it.key(); field[0]=field[0].toUpper(); result[QString::fromLatin1(env)+field]=it.value();
+            }
+        }
+        if ((object["type"]=="vst" || object["type"]=="drum") && !object.contains("gainDb")) { object["gainDb"]=0.; }
+    } else {
+        auto type=object["type"].toString();
+        if (type=="fable") { type="fable:"+object["kind"].toString(); }
+        const auto defaults=nt::automation::trackEffectDefaults(type);
+        for (auto it=defaults.begin();it!=defaults.end();++it) {
+            if (!object.contains(it.key())) { object[it.key()]=it.value(); }
+        }
+        auto params=defaults["params"].toObject();
+        const auto stored=object["params"].toObject();
+        for (auto it=stored.begin();it!=stored.end();++it) { params[it.key()]=it.value(); }
+        object["params"]=params;
+        collect(object["params"].toObject(),{});
+    }
+    collect(object,{});
+    return result;
+}
+}
+void TimelineModel::setDeviceOverride(const QString& trackId,const QString& deviceId,const QJsonObject& patch,bool hold) {
+    if (readOnly() && !patch.isEmpty()) { return; }
+    const auto current=snapshot();
+    const auto* track=current->findTrack(trackId.toStdString());
+    const auto& parameters=trackId.isEmpty() ? current->masterDeviceParameters : track ? track->deviceParameters : current->masterDeviceParameters;
+    if (!trackId.isEmpty() && !track) { return; }
+    if (track && track->locked && !patch.isEmpty()) { return; }
+    const auto device=deviceId.toStdString();
+    const auto values=patch.contains("params") ? patch["params"].toObject() : patch;
+    for (const auto& parameter:parameters) {
+        const auto name=QString::fromStdString(parameter.name);
+        if (parameter.deviceId!=device || (!hold && !patch.isEmpty() && !values.contains(name))) { continue; }
+        auto& state=*parameter.state;
+        const double value=values[name].isDouble() ? values[name].toDouble() : std::numeric_limits<double>::quiet_NaN();
+        nt::MixerReturn::Snapshot next;
+        if (std::isfinite(value)) {
+            next.untilPlan=hold; next.startMs=0; next.values.fill(value);
+        }
+        state.volumeReturn.publish(next);
+    }
+    if (const auto revision=m_deviceRevisions.value(trackId)) { revision->fetch_add(1,std::memory_order_release); }
+}
 std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
     if (m_mixerSnapshotSource==m_timeline && m_mixerSnapshot) { return m_mixerSnapshot; }
     auto next=std::make_shared<nt::Timeline>(*m_timeline);
     QSet<QString> present;
+    QSet<QString> deviceKeys;
+    const auto attachDevices=[&](const QString& trackId,const QJsonObject& raw,std::vector<nt::DeviceParameter>& parameters) {
+        auto& revision=m_deviceRevisions[trackId];
+        // The model and audio plans share this lock-free input revision.
+        if (!revision) { revision=std::make_shared<std::atomic<std::uint64_t>>(0); }
+        const auto append=[&](const QString& device,const QJsonObject& values) {
+            for (auto it=values.begin();it!=values.end();++it) {
+                const auto key=deviceKey(trackId,device,it.key()); deviceKeys.insert(key);
+                auto& state=m_deviceOverrides[key];
+                // Both the model and immutable plans retain the handoff until their last release.
+                if (!state) { state=std::make_shared<nt::MixerOverride>(); }
+                parameters.push_back({device.toStdString(),it.key().toStdString(),it.value().toDouble(),state,revision,state->volumeReturn.generation()});
+            }
+        };
+        if (raw["instrument"].isObject()) { append("instrument",deviceValues(raw["instrument"].toObject(),true)); }
+        for (const auto& value:raw["effects"].toArray()) {
+            const auto effect=value.toObject(); append(effect["id"].toString(),deviceValues(effect,false));
+        }
+    };
+    attachDevices({},next->raw["master"].toObject(),next->masterDeviceParameters);
     auto& master=m_masterMixerOverride;
     // The model and immutable audio plans share this atomic handoff.
     if (!master) { master=std::make_shared<nt::MixerOverride>(); }
@@ -869,6 +971,7 @@ std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
         // Every published sound track already has its handoff, including before its first gesture.
         if (!state) { state=std::make_shared<nt::MixerOverride>(); }
         track.mixerOverride=state;
+        attachDevices(id,track.raw,track.deviceParameters);
     }
     for (auto i=m_mixerOverrides.begin();i!=m_mixerOverrides.end();) {
         if (present.contains(i.key())) { ++i; continue; }
@@ -876,6 +979,19 @@ std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
         i.value()->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
         i.value()->pan.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
         i=m_mixerOverrides.erase(i);
+    }
+    for (auto it=m_deviceOverrides.begin();it!=m_deviceOverrides.end();) {
+        if (deviceKeys.contains(it.key())) { ++it; continue; }
+        it.value()->volumeReturn.publish({});
+        it.value()->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+        const auto trackId=it.key().section(QChar(0x1f),0,0);
+        if (const auto revision=m_deviceRevisions.value(trackId)) { revision->fetch_add(1,std::memory_order_release); }
+        it=m_deviceOverrides.erase(it);
+    }
+    for (auto it=m_deviceRevisions.begin();it!=m_deviceRevisions.end();) {
+        if (it.key().isEmpty() || present.contains(it.key())) { ++it; continue; }
+        it.value()->fetch_add(1,std::memory_order_release);
+        it=m_deviceRevisions.erase(it);
     }
     m_mixerSnapshotSource=m_timeline; m_mixerSnapshot=next;
     return next;
@@ -929,6 +1045,13 @@ TimelineModel::~TimelineModel() {
     clearMixerOverrides();
 }
 void TimelineModel::clearMixerOverrides() {
+    for (const auto& state:m_deviceOverrides) {
+        state->volumeReturn.publish({});
+        state->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+    }
+    for (const auto& revision:m_deviceRevisions) { revision->fetch_add(1,std::memory_order_release); }
+    m_deviceOverrides.clear();
+    m_deviceRevisions.clear();
     if (m_masterMixerOverride) {
         m_masterMixerOverride->volumeReturn.publish({});
         m_masterMixerOverride->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);

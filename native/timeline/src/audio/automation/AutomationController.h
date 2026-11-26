@@ -20,6 +20,7 @@ class AutomationController : public QObject {
     Q_PROPERTY(QVariantList tracks READ tracks NOTIFY tracksChanged)
 public:
     explicit AutomationController(QObject* parent = nullptr);
+    ~AutomationController() override;
     TimelineModel* timeline() const { return timeline_; }
     void setTimeline(TimelineModel* timeline);
     void setTrackId(const QString& value);
@@ -44,6 +45,9 @@ public:
     Q_INVOKABLE void patchLane(const QString& laneId, const QJsonObject& patch, bool remove = false);
     Q_INVOKABLE void edit(const QString& action, QJsonObject payload);
     // Live mixer value during a drag: the audio and the readout hear it, the document does not. NaN releases it.
+    Q_INVOKABLE void previewDevice(const QString& deviceId, const QJsonObject& patch);
+    Q_INVOKABLE void cancelDevice(const QString& deviceId);
+    Q_INVOKABLE void commitDevice(const QString& deviceId, const QJsonObject& patch, const QString& action, QJsonObject payload);
     Q_INVOKABLE void previewMixer(const QString& param, double value);
     Q_INVOKABLE void commitMixer(const QString& param, double value);
 signals:
@@ -51,6 +55,10 @@ signals:
     void channelChanged();
     void tracksChanged();
 private:
+    QSet<QString> previewDevices_;
+    QHash<QString,QSet<QString>> recordingDeviceParams_;
+    QSet<QString> previewMixerParams_;
+    void cancelDevices();
     quint64 gestureGeneration_ = 0;
     QString gestureTrackId_;
     bool gestureMaster_ = false;

@@ -11,7 +11,7 @@ Ui.Popover {
     property string effectId: ""
     property var previews: ({})
     property var openGeneration: 0
-    signal finishGestures()
+    signal cancelGestures()
     readonly property var effect: (controller.channel.effects || []).find(e => e.id === effectId) || null
     readonly property var displayed: Object.assign({},effect || {},previews)
     readonly property var fields: effect ? ({
@@ -21,21 +21,24 @@ Ui.Popover {
     })[effect.type] || [] : []
     width: Math.min(parent?parent.width:420,effect ? (effect.type==="fable" ? TrackEffectsReference.data.fableWidths[effect.kind] : ({gain:200,eq3:420,filter:240,compressor:380,vst:300})[effect.type]) || 320 : 320)
     height: Math.min(implicitHeight,parent?parent.height*.9:implicitHeight)
-    onAboutToHide:root.finishGestures()
+    onAboutToHide: { root.cancelGestures(); root.cancelPreview() }
     AutomationController { id:controller; timeline:root.timeline; trackId:root.trackId; master:root.trackId==="" }
     Connections { target:root.timeline; function onDocumentReplaced() { root.close() } }
     function show(trackId,effectId,anchor) {
-        root.finishGestures()
-        root.trackId=trackId; root.effectId=effectId; root.previews={}; root.openGeneration=controller.generation()
+        root.cancelGestures()
+        root.cancelPreview()
+        root.trackId=trackId; root.effectId=effectId; root.previews={}; root.openGeneration=controller.gestureGeneration()
         root.openAt(anchor)
     }
     function formatHz(hz) { return hz>=1000?(hz/1000).toFixed(hz>=10000?1:2)+" kHz":Math.round(hz)+" Hz" }
     function fieldValue(def,value) { return Number((def.min+Math.round((Math.max(def.min,Math.min(def.max,value))-def.min)/def.step)*def.step).toFixed(4)) }
-    function preview(p) { previews=Object.assign({},previews,p) }
+    function preview(p) { previews=Object.assign({},previews,p); controller.previewDevice(effectId, previews) }
+    function cancelPreview() { controller.cancelDevice(effectId); previews={} }
     function patch(p) {
-        if(controller.generation()!==openGeneration)return
+        if(controller.gestureGeneration()!==openGeneration) { cancelPreview(); return }
+        const finalPatch=Object.assign({},previews,p)
         previews={}
-        controller.edit(trackId===""?"updateMasterEffect":"updateTrackEffect",{effectId:effectId,patch:p})
+        controller.commitDevice(effectId,finalPatch,trackId===""?"updateMasterEffect":"updateTrackEffect",{effectId:effectId,patch:finalPatch})
     }
     Flickable {
         anchors.fill: parent
@@ -55,8 +58,8 @@ Ui.Popover {
                     spacing:Ui.Metrics.md
                     MixerEq3Curve {
                         id:eqCurve
-                        width:parent.width;effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p);onCanceled:root.previews={}
-                        Connections { target:root; function onFinishGestures() { eqCurve.finish() } }
+                        width:parent.width;effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p);onCanceled:root.cancelPreview()
+                        Connections { target:root; function onCancelGestures() { eqCurve.cancel() } }
                     }
                     Row {
                         width:parent.width;spacing:Ui.Metrics.micro
@@ -85,8 +88,8 @@ Ui.Popover {
                     spacing:Ui.Metrics.md
                     MixerCompressorCurve {
                         id:compressorCurve
-                        effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p);onCanceled:root.previews={}
-                        Connections { target:root; function onFinishGestures() { compressorCurve.finish() } }
+                        effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p);onCanceled:root.cancelPreview()
+                        Connections { target:root; function onCancelGestures() { compressorCurve.cancel() } }
                     }
                     Grid {
                         width:parent.width-188;columns:2;spacing:Ui.Metrics.micro
@@ -112,7 +115,7 @@ Ui.Popover {
                     effect:root.displayed; disabled:root.effect===null || root.effect.enabled===false
                     onPreview:p=>root.preview(p)
                     onCommit:p=>{const all=Object.assign({},root.previews,p); if(Object.keys(all).length) root.patch(all); else root.previews={}}
-                    onEditCanceled:root.previews={}
+                    onEditCanceled:root.cancelPreview()
                 }
             }
             Column {
@@ -132,6 +135,7 @@ Ui.Popover {
             Repeater {
                 model:root.fields
                 delegate:InspectorSliderRow {
+                    cancelOnFocusLoss: true
                     required property var modelData
                     width:params.width;objectName:"effect-param-"+modelData.param
                     label:modelData.label;min:modelData.min;max:modelData.max;step:modelData.step
@@ -140,6 +144,7 @@ Ui.Popover {
                     value:current
                     display:current.toFixed(modelData.digits===undefined?(modelData.step<1?2:0):modelData.digits)+(modelData.unit?" "+modelData.unit:"")
                     onPreview:value=>{var p={};p[modelData.param]=root.fieldValue(modelData,value);root.preview(p)}
+                    onCanceled: root.cancelPreview()
                     onChange:value=>{var p={};p[modelData.param]=root.fieldValue(modelData,value);root.patch(p)}
                 }
             }
@@ -155,6 +160,8 @@ Ui.Popover {
                     wet: root.effect && root.effect.wet !== undefined ? root.effect.wet : 1.0
                     disabled: root.effect === null || root.effect.enabled === false
                     onPluginChosen: pluginRef => root.patch({ plugin: pluginRef, state: null })
+                    onParameterPreviewed: patch => root.preview(patch)
+                    onEditCanceled: root.cancelPreview()
                     onWetChangedRequested: value => root.patch({ wet: value })
                 }
             }

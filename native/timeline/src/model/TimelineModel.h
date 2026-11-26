@@ -79,6 +79,7 @@ public:
     // UI-thread writes, audio-thread atomic reads. Never changes document/undo.
     std::optional<double> mixerOverrideValue(const QString& trackId, const QString& param, bool master = false) const;
     void setMixerOverride(const QString& trackId, const QString& param, std::optional<double> value, bool master = false);
+    void setDeviceOverride(const QString& trackId, const QString& deviceId, const QJsonObject& patch, bool hold = false);
     void holdMixerOverride(const QString& trackId,const QString& param,double value, bool master = false);
     void releaseMixerOverride(const QString& trackId,const QString& param,double endMs,double value,double after);
 
@@ -215,6 +216,8 @@ private:
     std::optional<QSet<QString>> m_changedClipIds;
     // UI-only map. The model and published plans share each atomic handoff.
     // Model and published audio snapshots share the atomic master handoff.
+    mutable QHash<QString, std::shared_ptr<std::atomic<std::uint64_t>>> m_deviceRevisions;
+    mutable QHash<QString, std::shared_ptr<nt::MixerOverride>> m_deviceOverrides;
     mutable std::shared_ptr<nt::MixerOverride> m_masterMixerOverride;
     mutable QHash<QString, std::shared_ptr<nt::MixerOverride>> m_mixerOverrides;
     // Shared with snapshot readers. Keep the source alive to compare cache identity safely.

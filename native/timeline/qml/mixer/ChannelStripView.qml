@@ -119,7 +119,7 @@ Item {
                 }
                 onEnabledChanged: if (!enabled && root.panGesture) cancel()
                 onVisibleChanged: if (!visible && root.panGesture) cancel()
-                onActiveFocusChanged: if(!activeFocus) finish()
+                onActiveFocusChanged: if(!activeFocus && root.panGesture) cancel()
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape && root.panGesture) { cancel(); event.accepted=true; return }
                     var current=root.displayPan, next=current

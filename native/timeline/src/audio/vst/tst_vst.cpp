@@ -1405,6 +1405,37 @@ for line in sys.stdin:
 
         // 3. Add GainEffect.vst3 (default 0.5x gain) to the MIDI track -> RMS halves.
         const QJsonObject fxEnabled{{"id", "fx1"}, {"type", "vst"}, {"enabled", true}, {"plugin", gainRef}, {"state", QJsonValue::Null}, {"wet", 1.0}};
+        {
+            auto plan=nt::audio::buildMixPlan(makeMidiTimeline(QJsonArray{fxEnabled}),nt::audio::RenderMode::Offline);
+            nt::audio::prepareMixPlan(plan,48000);
+            std::shared_ptr<nt::audio::BlockProcessor> instrument,effect;
+            for (const auto& bus:plan.tracks) {
+                for (const auto& processor:bus.processors) {
+                    if (processor->id=="vst-instrument") { instrument=processor; }
+                    if (processor->id=="fx1") { effect=processor; }
+                }
+            }
+            QVERIFY(instrument); QVERIFY(effect);
+            QVERIFY(instrument->setParameter("gainDb",-12.)); QVERIFY(effect->setParameter("wet",.25));
+            nt::audio::prepareMixPlan(plan,48000,128);
+            std::vector<float> pcm(96000);
+            for (int frame=0;frame<48000;frame+=128) {
+                nt::audio::MixStats stats{};
+                nt::audio::mixBlock(plan,nullptr,48000,frame*1000./48000,1000./48000,std::min(128,48000-frame),pcm.data()+frame*2,stats);
+            }
+            const double expected=duringNote*std::pow(10.,-12./20.)*.875;
+            QVERIFY2(std::abs(rmsInterleaved(pcm,14000,34000)-expected)<expected*.03,"VST prepare must retain live gain and wet targets");
+            std::array<float,1024> block{}; block.fill(1.f);
+            effect->process(block,{48000,2000,1000./48000});
+            float previous=block.back();
+            double time=2000+512*1000./48000;
+            for (double wet:{1.,.25}) {
+                QVERIFY(effect->setParameter("wet",wet)); block.fill(1.f);
+                effect->process(block,{48000,time,1000./48000}); time+=512*1000./48000;
+                for (std::size_t i=0;i<block.size();i+=2) { QVERIFY(std::abs(block[i]-previous)<.002f); previous=block[i]; }
+                QVERIFY(std::abs(block.back()-(1.-wet*.5))<1e-4);
+            }
+        }
         const auto trackFxPcm = nt::audio::renderOffline(makeMidiTimeline(QJsonArray{fxEnabled}), 48000, 0, 1000);
         const double fxRms = rmsInterleaved(trackFxPcm, 14000, 34000);
         QVERIFY2(std::abs(fxRms - 0.5 * duringNote) < 0.02 * duringNote,

@@ -32,6 +32,8 @@
 #include <QJsonDocument>
 #include <QtTest>
 #include <memory>
+#include <thread>
+#include <atomic>
 
 class TestAutomationUi : public QObject {
     Q_OBJECT
@@ -105,13 +107,13 @@ Component.onCompleted: { Ui.Theme.uiScale=testScale; AutomationUIState.showAutom
 private slots:
     void init() {
         model.setReadOnly(false);
-        clock.pause(); clock.setDurationMs(10000); clock.seek(0);
+        clock.stop(); clock.setDurationMs(10000); clock.seek(0);
         nt::automation::registerEdits();
         const auto parsed=nt::parseTimelineJson(R"({"name":"P2","fps":30,"width":640,"height":360,"durationMs":10000,"tracks":[{"id":"a","type":"audio","index":0,"name":"Vox","volumeDb":-6,"automation":[{"id":"lane","target":{"kind":"mixer","param":"volumeDb"},"points":[]}]},{"id":"v","type":"video","index":1}],"clips":[],"master":{"volumeDb":0}})");
         QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
     }
     void cleanup() {
-        clock.pause();
+        clock.stop();
         window.reset(); root.reset(); engine.reset();
         QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
         QCoreApplication::processEvents();
@@ -552,7 +554,7 @@ lane: ({id:"virtual-pan",target:{kind:"mixer",param:"pan"},points:[]}) })"));
         QVERIFY(recorder); clock.play();
         QVERIFY(recorder->gestureStart("a","volumeDb")); recorder->record("a","volumeDb",-12);
         window.reset(); root.reset(); engine.reset(); QCoreApplication::processEvents();
-        QVERIFY(recorder); clock.pause();
+        QVERIFY(recorder); clock.stop();
         QVERIFY(!track()["automation"].toArray()[0].toObject()["points"].toArray().empty());
     }
     void detachedMixerRecordsF15() {
@@ -603,6 +605,467 @@ lane: ({id:"virtual-pan",target:{kind:"mixer",param:"pan"},points:[]}) })"));
         const auto options=root->property("options").toList();
         QVERIFY(options.size()>1000);
         QVERIFY(std::none_of(options.begin(),options.end(),[](const auto& value) { return value.toMap()["key"]=="mixer:volumeDb"; }));
+    }
+    void instrumentLiveGesture_data() {
+        QTest::addColumn<QString>("type"); QTest::addColumn<QByteArray>("panel");
+        QTest::addColumn<QString>("sliderName"); QTest::addColumn<QString>("parameter");
+        QTest::addColumn<double>("preview"); QTest::addColumn<double>("expected");
+        QTest::newRow("bass") << QString("bass") << QByteArray("BassSynthPanel") << QString("bassCutoffSlider") << QString("cutoffHz") << .5 << 600.;
+        QTest::newRow("wavetable") << QString("wavetable") << QByteArray("WavetableSynthPanel") << QString("wtResonanceSlider") << QString("resonance") << .45 << .45;
+        QTest::newRow("wavetable-knob") << QString("wavetable") << QByteArray("WavetableSynthPanel") << QString("wtOscAPosKnob") << QString("oscAPosition") << .35 << .35;
+        QTest::newRow("modal") << QString("modal") << QByteArray("ModalSynthPanel") << QString("modalToneSlider") << QString("aTone") << .25 << .25;
+        QTest::newRow("drum") << QString("drum") << QByteArray("DrumKitPanel") << QString("drumGainSlider") << QString("gainDb") << -12. << -12.;
+        QTest::newRow("sampler") << QString("sampler") << QByteArray("SamplerPanel") << QString("samplerSustainSlider") << QString("sustain") << .25 << .25;
+    }
+    void instrumentLiveGesture() {
+        QFETCH(QString,type); QFETCH(QByteArray,panel); QFETCH(QString,sliderName);
+        QFETCH(QString,parameter); QFETCH(double,preview); QFETCH(double,expected);
+        auto raw=doc(); auto tracks=raw["tracks"].toArray(); auto t=tracks[0].toObject();
+        t["type"]="midi"; tracks[0]=t; raw["tracks"]=tracks;
+        model.setTimeline(requireValue(nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline));
+        QVERIFY(model.applyEdit("instrument.setBuiltin",{{"trackId","a"},{"type",type}}));
+        // A test insert observes the public DSP setter boundary, beneath live/automation stages.
+        struct Probe final : nt::audio::BlockProcessor {
+            std::string parameter; double value=-999;
+            explicit Probe(const QString& name):parameter(name.toStdString()) { id="instrument"; }
+            bool setParameter(std::string_view name,double next) noexcept override {
+                if (name==parameter) { value=next; return true; } return false;
+            }
+            void process(std::span<float>,const nt::audio::BlockContext&) noexcept override {}
+        };
+        // The test and its scoped stage share this probe until unregistering the stage.
+        auto probe=std::make_shared<Probe>(parameter);
+        const auto token=nt::audio::registerMixPlanStage("live1-probe",[probe](const nt::Timeline&,nt::audio::MixPlan& plan) {
+            if (plan.tracks.empty()) { nt::audio::TrackPlan bus; bus.trackId="a"; plan.tracks.push_back(std::move(bus)); }
+            for (auto& bus:plan.tracks) { if (bus.trackId=="a") { bus.processors.push_back(probe); } }
+        },97);
+        const auto cleanup=qScopeGuard([token] { nt::audio::unregisterMixPlanStage(token); });
+        auto plan=nt::audio::buildMixPlan(*model.snapshot());
+        QVERIFY(open(panel+R"( { width:500; required timeline; trackId:"a" })"));
+        auto* slider=item(sliderName); QVERIFY(slider);
+        const bool knob=sliderName.endsWith("Knob");
+        const auto original=model.documentJson(); const int count=model.undoStack()->count();
+        QVERIFY(QMetaObject::invokeMethod(slider,knob ? "forceActiveFocus" : "begin"));
+        QVERIFY(QMetaObject::invokeMethod(slider,knob ? "change" : "valuePreviewed",Q_ARG(double,preview)));
+        std::array<float,256> samples{};
+        for (auto& processor:plan.tracks[0].processors) { processor->process(samples,{48000,0,1000./48000}); }
+        QVERIFY2(std::abs(probe->value-expected)<.001,qPrintable(QString::number(probe->value)));
+        QCOMPARE(model.documentJson(),original); QCOMPARE(model.undoStack()->count(),count);
+        QVERIFY(QMetaObject::invokeMethod(slider,knob ? "gestureCanceled" : "cancel"));
+        for (auto& processor:plan.tracks[0].processors) { processor->process(samples,{48000,10,1000./48000}); }
+        QVERIFY(probe->value!=expected); QCOMPARE(model.documentJson(),original);
+        QVERIFY(QMetaObject::invokeMethod(slider,knob ? "forceActiveFocus" : "begin"));
+        QVERIFY(QMetaObject::invokeMethod(slider,knob ? "change" : "valuePreviewed",Q_ARG(double,preview)));
+        for (auto& processor:plan.tracks[0].processors) { processor->process(samples,{48000,12,1000./48000}); }
+        root->setProperty("visible",false);
+        for (auto& processor:plan.tracks[0].processors) { processor->process(samples,{48000,14,1000./48000}); }
+        QVERIFY(probe->value!=expected); QCOMPARE(model.documentJson(),original);
+        root->setProperty("visible",true);
+        slider->forceActiveFocus();
+        if (knob) { QVERIFY(QMetaObject::invokeMethod(slider,"nudge",Q_ARG(QVariant,0.))); }
+        else { QVERIFY(QMetaObject::invokeMethod(slider,"begin")); }
+        QVERIFY(QMetaObject::invokeMethod(slider,knob ? "change" : "valuePreviewed",Q_ARG(double,preview)));
+        for (auto& processor:plan.tracks[0].processors) { processor->process(samples,{48000,16,1000./48000}); }
+        QQuickItem focusSink; focusSink.setParentItem(window->contentItem()); focusSink.forceActiveFocus(); QCoreApplication::processEvents();
+        for (auto& processor:plan.tracks[0].processors) { processor->process(samples,{48000,18,1000./48000}); }
+        QVERIFY(probe->value!=expected); QCOMPARE(model.undoStack()->count(),count);
+        QVERIFY(QMetaObject::invokeMethod(slider,knob ? "forceActiveFocus" : "begin"));
+        QVERIFY(QMetaObject::invokeMethod(slider,knob ? "change" : "valuePreviewed",Q_ARG(double,preview)));
+        if (knob) { QVERIFY(QMetaObject::invokeMethod(slider,"gestureEnd")); }
+        else { QVERIFY(QMetaObject::invokeMethod(slider,"valueCommitted",Q_ARG(double,preview))); }
+        QCOMPARE(model.undoStack()->count(),count+1);
+        model.undoStack()->undo(); QCOMPARE(model.documentJson(),original);
+    }
+    void effectLiveGesture_data() {
+        QTest::addColumn<QString>("type"); QTest::addColumn<QString>("parameter"); QTest::addColumn<double>("value");
+        QTest::newRow("gain") << QString("gain") << QString("gainDb") << -12.;
+        QTest::newRow("eq3") << QString("eq3") << QString("midGainDb") << -8.;
+        QTest::newRow("filter") << QString("filter") << QString("frequency") << 750.;
+        QTest::newRow("compressor") << QString("compressor") << QString("thresholdDb") << -36.;
+        for (const auto& kind:{"eq","comp","ott","limiter","drive","chorus","echo","reverb"}) {
+            const auto type="fable:"+QString::fromLatin1(kind);
+            const auto defaults=nt::automation::trackEffectDefaults(type)["params"].toObject();
+            QVERIFY(!defaults.isEmpty());
+            auto it=defaults.begin(); while (it!=defaults.end() && !it.value().isDouble()) { ++it; }
+            QVERIFY(it!=defaults.end());
+            QTest::newRow(kind) << type << it.key() << it.value().toDouble()+.1;
+        }
+        QTest::newRow("vst") << QString("vst") << QString("wet") << .25;
+        QTest::newRow("vst-instrument") << QString("vst-instrument") << QString("gainDb") << -12.;
+        QTest::newRow("drum-instrument") << QString("drum-instrument") << QString("pad0.pan") << .25;
+    }
+    void effectLiveGesture() {
+        QFETCH(QString,type); QFETCH(QString,parameter); QFETCH(double,value);
+        const bool instrument=type.endsWith("-instrument");
+        if (instrument) {
+            auto raw=doc(); auto tracks=raw["tracks"].toArray(); auto channel=tracks[0].toObject();
+            channel["type"]="midi";
+            channel["instrument"]=QJsonObject{{"type",type=="vst-instrument" ? "vst" : "drum"},{"gainDb",0.}};
+            tracks[0]=channel; raw["tracks"]=tracks;
+            model.setTimeline(requireValue(nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline));
+        } else { QVERIFY(model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect",type}})); }
+        const auto effect=instrument ? track()["instrument"].toObject() : track()["effects"].toArray().last().toObject();
+        const auto id=instrument ? QStringLiteral("instrument") : effect["id"].toString();
+        struct Probe final : nt::audio::BlockProcessor {
+            std::string parameter; double value=-999;
+            Probe(std::string idValue,std::string name):parameter(std::move(name)) { id=std::move(idValue); }
+            bool setParameter(std::string_view name,double next) noexcept override {
+                if (name==parameter) { value=next; return true; } return false;
+            }
+            void process(std::span<float>,const nt::audio::BlockContext&) noexcept override {}
+        };
+        // The test and the immutable plan share the DSP boundary probe.
+        auto probe=std::make_shared<Probe>(type=="vst-instrument" ? "vst-instrument" : id.toStdString(),parameter.toStdString());
+        nt::audio::MixPlan plan; nt::audio::TrackPlan bus; bus.trackId="a"; bus.processors.push_back(probe); plan.tracks.push_back(std::move(bus));
+        nt::audio::applyMixPlanStage("liveDevices",*model.snapshot(),plan);
+        AutomationController controller; controller.setTimeline(&model); controller.trackId="a";
+        const QJsonObject fields{{parameter,value}};
+        const QJsonObject patch=type.startsWith("fable:") ? QJsonObject{{"params",fields}} : fields;
+        const auto original=model.documentJson(); const int count=model.undoStack()->count();
+        controller.previewDevice(id,patch);
+        std::array<float,256> samples{};
+        plan.tracks[0].processors[0]->process(samples,{48000,0,1000./48000});
+        QCOMPARE(probe->value,value); QCOMPARE(model.documentJson(),original); QCOMPARE(model.undoStack()->count(),count);
+        controller.cancelDevice(id);
+        plan.tracks[0].processors[0]->process(samples,{48000,10,1000./48000});
+        QVERIFY(probe->value!=value); QCOMPARE(model.documentJson(),original);
+        controller.previewDevice(id,patch);
+        if (instrument) {
+            auto next=effect;
+            if (type=="drum-instrument") { next["fableParams"]=patch; }
+            else { next[parameter]=value; }
+            controller.commitDevice(id,patch,"setTrackInstrument",{{"instrument",next}});
+        } else { controller.commitDevice(id,patch,"updateTrackEffect",{{"effectId",id},{"patch",patch}}); }
+        QCOMPARE(model.undoStack()->count(),count+1);
+        plan.tracks[0].processors[0]->process(samples,{48000,20,1000./48000});
+        QCOMPARE(probe->value,value);
+        model.undoStack()->undo(); QCOMPARE(model.documentJson(),original);
+        plan.tracks[0].processors[0]->process(samples,{48000,30,1000./48000});
+        QVERIFY2(probe->value!=value,"Undo must release the committed device hold in an already published plan");
+    }
+    void samplerCrossfadeCommitOnly() {
+        auto raw=doc(); auto tracks=raw["tracks"].toArray(); auto t=tracks[0].toObject();
+        t["type"]="midi"; t["instrument"]=QJsonObject{{"type","sampler"},{"zones",QJsonArray{QJsonObject{{"id","zone"},{"mediaPath","memory.wav"},{"loopMode","sustain"},{"loopCrossfadeMs",10.}}}}};
+        tracks[0]=t; raw["tracks"]=tracks;
+        model.setTimeline(requireValue(nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline));
+        QVERIFY(open(R"(SamplerPanel { width:500; required timeline; trackId:"a"; instrument: ({type:"sampler",zones:[{id:"zone",mediaPath:"memory.wav",loopMode:"sustain",loopCrossfadeMs:10}]}) })"));
+        auto* slider=item("samplerLoopXfadeSlider"); QVERIFY(slider);
+        QSignalSpy committed(root.get(),SIGNAL(zoneActionCommitted(QString,QVariant)));
+        const auto original=model.documentJson(); const int count=model.undoStack()->count();
+        QVERIFY(QMetaObject::invokeMethod(slider,"begin"));
+        QVERIFY(QMetaObject::invokeMethod(slider,"valuePreviewed",Q_ARG(double,50.)));
+        QCOMPARE(model.documentJson(),original); QCOMPARE(model.undoStack()->count(),count);
+        for (const auto& p:model.snapshot()->tracks[0].deviceParameters) {
+            nt::MixerReturn::Snapshot state; p.state->volumeReturn.read(state); QVERIFY(!std::isfinite(state.startMs));
+        }
+        QVERIFY(QMetaObject::invokeMethod(slider,"valueCommitted",Q_ARG(double,50.)));
+        QCOMPARE(committed.count(),1);
+        QCOMPARE(model.undoStack()->count(),count+1);
+        QCOMPARE(track()["instrument"].toObject()["zones"].toArray()[0].toObject()["loopCrossfadeMs"].toDouble(),50.);
+        model.undoStack()->undo(); QCOMPARE(model.documentJson(),original);
+    }
+    void effectCardCancelsOnDeviceChange_data() {
+        QTest::addColumn<bool>("master"); QTest::newRow("track") << false; QTest::newRow("master") << true;
+    }
+    void effectCardCancelsOnDeviceChange() {
+        QFETCH(bool,master);
+        QVERIFY(model.applyEdit(master ? "addMasterEffect" : "addTrackEffect",{{"trackId","a"},{"effect","gain"}}));
+        const auto channel=master ? doc()["master"].toObject() : track(); const auto effect=channel["effects"].toArray().last().toObject();
+        const auto id=effect["id"].toString();
+        const auto snapshot=model.snapshot();
+        const auto& parameters=master ? snapshot->masterDeviceParameters : snapshot->tracks[0].deviceParameters;
+        const auto parameter=std::find_if(parameters.begin(),parameters.end(),[&](const auto& p) { return p.deviceId==id.toStdString() && p.name=="gainDb"; });
+        QVERIFY(parameter!=parameters.end());
+        QVERIFY(open(R"(Item { id:host; width:500; height:500; required property TimelineModel timeline
+            required property var testEffect; required property string channelId
+            property var track: ({id:channelId}); property bool isVideo:false
+            property var strings:TrackEffectsReference.data.strings; property var reference:TrackEffectsReference.data
+            property var effects:[testEffect]; property int draggingIndex:-1; property int dropIndex:-1
+            property alias card:card
+            EffectCard { id:card; effect:host.testEffect; effectIndex:0; panel:host; rackRow:host }
+        })",{{"testEffect",effect.toVariantMap()},{"channelId",master ? "" : "a"}}));
+        auto* card=root->property("card").value<QObject*>(); QVERIFY(card);
+        QVERIFY(QMetaObject::invokeMethod(card,"preview",Q_ARG(QVariant,(QVariantMap{{"gainDb",-12.}}))));
+        nt::MixerReturn::Snapshot state; parameter->state->volumeReturn.read(state); QCOMPARE(state.values[0],-12.);
+        auto next=effect; next["id"]="replacement"; root->setProperty("testEffect",next.toVariantMap());
+        parameter->state->volumeReturn.read(state); QVERIFY(!std::isfinite(state.startMs));
+    }
+    void effectPopoverToDsp_data() {
+        QTest::addColumn<bool>("master"); QTest::addColumn<QString>("ending");
+        for (bool master:{false,true}) {
+            for (const auto* ending:{"cancel","hide","external","commit"}) {
+                QTest::newRow(qPrintable(QString(master ? "master-" : "track-")+ending)) << master << QString(ending);
+            }
+        }
+    }
+    void effectPopoverToDsp() {
+        QFETCH(bool,master); QFETCH(QString,ending);
+        QVERIFY(model.applyEdit(master ? "addMasterEffect" : "addTrackEffect",{{"trackId","a"},{"effect","gain"}}));
+        const auto channel=master ? doc()["master"].toObject() : track();
+        const auto id=channel["effects"].toArray().last().toObject()["id"].toString();
+        struct Probe final : nt::audio::BlockProcessor {
+            double gain=1;
+            bool setParameter(std::string_view name,double value) noexcept override {
+                if (name!="gainDb") { return false; } gain=std::pow(10.,value/20.); return true;
+            }
+            void process(std::span<float> samples,const nt::audio::BlockContext&) noexcept override { for (auto& sample:samples) { sample*=gain; } }
+        };
+        auto probe=std::make_shared<Probe>(); probe->id=id.toStdString();
+        nt::audio::MixPlan plan;
+        if (master) { plan.processors.push_back(probe); }
+        else { nt::audio::TrackPlan bus; bus.trackId="a"; bus.processors.push_back(probe); plan.tracks.push_back(std::move(bus)); }
+        nt::audio::applyMixPlanStage("liveDevices",*model.snapshot(),plan);
+        auto processor=master ? plan.processors[0] : plan.tracks[0].processors[0];
+        QVERIFY(open(R"(Item { id:host; width:500; height:500; required property TimelineModel timeline
+            required property string channelId; required property string deviceId
+            property alias popup:popup
+            Item { id:anchor; width:20; height:20 }
+            EffectDevicePopover { id:popup; timeline:host.timeline }
+            function showTest() { popup.show(channelId,deviceId,anchor) }
+        })",{{"channelId",master ? "" : "a"},{"deviceId",id}}));
+        QVERIFY(QMetaObject::invokeMethod(root.get(),"showTest")); QCoreApplication::processEvents();
+        auto* row=item("effect-param-gainDb"); QVERIFY(row);
+        const int count=model.undoStack()->count(); const auto original=model.documentJson();
+        QVERIFY(QMetaObject::invokeMethod(row,"preview",Q_ARG(double,-12.)));
+        std::array<float,256> samples{}; samples.fill(1.f); processor->process(samples,{48000,0,1000./48000});
+        QVERIFY(std::abs(samples.back()-.25118864f)<1e-5f); QCOMPARE(model.documentJson(),original);
+        if (ending=="external") { emit model.sourceChanged(); }
+        if (ending=="hide") { auto* popup=root->property("popup").value<QObject*>(); QVERIFY(popup); QVERIFY(QMetaObject::invokeMethod(popup,"close")); }
+        else if (ending=="cancel") { QVERIFY(QMetaObject::invokeMethod(row,"canceled")); }
+        else { QVERIFY(QMetaObject::invokeMethod(row,"change",Q_ARG(double,-12.))); }
+        if (ending=="commit") { QCOMPARE(model.undoStack()->count(),count+1); model.undoStack()->undo(); }
+        else { QCOMPARE(model.undoStack()->count(),count); }
+        samples.fill(1.f); processor->process(samples,{48000,10,1000./48000});
+        QCOMPARE(samples.back(),1.f);
+    }
+    void instrumentRackCancels_data() {
+        QTest::addColumn<bool>("hide");
+        QTest::newRow("hide") << true; QTest::newRow("plugin") << false;
+    }
+    void instrumentRackCancels() {
+        QFETCH(bool,hide);
+        auto raw=doc(); auto tracks=raw["tracks"].toArray(); auto t=tracks[0].toObject();
+        t["type"]="midi"; t["instrument"]=QJsonObject{{"type","vst"},{"gainDb",0.}}; tracks[0]=t; raw["tracks"]=tracks;
+        model.setTimeline(requireValue(nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline));
+        QVERIFY(open(R"(InstrumentRack { width:500; required timeline; track: ({id:"a",type:"midi",instrument:{type:"vst",gainDb:0}}) })"));
+        auto* controller=root->findChild<AutomationController*>(); QVERIFY(controller);
+        QObject* control=nullptr;
+        for (auto* child:root->findChildren<QObject*>()) {
+            if (QString::fromLatin1(child->metaObject()->className()).startsWith("VstPluginControl")) { control=child; break; }
+        }
+        QVERIFY(control);
+        QVERIFY(QMetaObject::invokeMethod(control,"parameterPreviewed",Q_ARG(QVariant,(QVariantMap{{"gainDb",-12.}}))));
+        const auto snapshot=model.snapshot(); const auto& parameter=*std::find_if(snapshot->tracks[0].deviceParameters.begin(),snapshot->tracks[0].deviceParameters.end(),[](const auto& p) { return p.name=="gainDb"; });
+        if (hide) { root->setProperty("visible",false); }
+        else { QVERIFY(QMetaObject::invokeMethod(control,"pluginChosen",Q_ARG(QVariant,QVariantMap{}))); }
+        nt::MixerReturn::Snapshot state; parameter.state->volumeReturn.read(state);
+        QVERIFY2(!std::isfinite(state.startMs) && !std::isfinite(parameter.state->volumeDb.load()),"Rack cancellation must release its live device input");
+    }
+    void deviceAutomationGesture_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* name : {"read", "touch", "latch", "write"}) { QTest::newRow(name) << QString(name); }
+    }
+    void deviceAutomationGesture() {
+        QFETCH(QString,mode);
+        QVERIFY(model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect","gain"}}));
+        const auto effect=track()["effects"].toArray().last().toObject(); const auto id=effect["id"].toString();
+        const QJsonObject target{{"kind","device"},{"deviceId",id},{"param","gainDb"}};
+        AutomationController controller; controller.setTimeline(&model); controller.setTrackId("a");
+        controller.createWithPoints(target,{{QJsonObject{{"timeMs",0},{"value",-3.}}},{QJsonObject{{"timeMs",1000},{"value",-3.}}}},controller.generation());
+        QVERIFY(model.applyEdit("setTrackAutomationMode",{{"trackId","a"},{"mode",mode}}));
+        qint64 now=0; PlaybackClock transport; transport.setNowSource([&now] { return now; });
+        model.automationRecorder()->setClock(&transport); transport.setDurationMs(10000); transport.play();
+        const int count=model.undoStack()->count();
+        controller.previewDevice(id,{{"gainDb",-12.}});
+        now=100000000; transport.tick();
+        controller.commitDevice(id,{{"gainDb",-12.}},"updateTrackEffect",{{"effectId",id},{"patch",QJsonObject{{"gainDb",-12.}}}});
+        if (mode=="read") {
+            nt::MixerReturn::Snapshot state;
+            for (const auto& p:model.snapshot()->tracks[0].deviceParameters) { if (p.deviceId==id.toStdString() && p.name=="gainDb") { p.state->volumeReturn.read(state); } }
+            QVERIFY2(!state.untilPlan,"Read release must return to the lane rather than pinning the edited base");
+        } else {
+            transport.stop();
+            QCOMPARE(track()["effects"].toArray().last().toObject()["gainDb"].toDouble(),effect["gainDb"].toDouble());
+            bool recorded=false;
+            for (const auto& value:track()["automation"].toArray()) {
+                const auto lane=value.toObject();
+                if (lane["target"].toObject()==target) { recorded=nt::automation::automationValueAt(lane["points"].toArray(),0,-3.)!=-3.; }
+            }
+            QVERIFY(recorded);
+            QCOMPARE(model.undoStack()->count(),count+(mode=="write" ? 3 : 1));
+        }
+    }
+    void deviceNewLaneReturnsToBase() {
+        QVERIFY(model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect","filter"}}));
+        const auto effect=track()["effects"].toArray().last().toObject(); const auto id=effect["id"].toString();
+        QVERIFY(model.applyEdit("setTrackAutomationMode",{{"trackId","a"},{"mode","touch"}}));
+        model.automationRecorder()->setClock(&clock); clock.setDurationMs(10000); clock.play();
+        AutomationController controller; controller.setTimeline(&model); controller.setTrackId("a");
+        controller.previewDevice(id,{{"frequency",750.}});
+        controller.commitDevice(id,{{"frequency",750.}},"updateTrackEffect",{{"effectId",id},{"patch",QJsonObject{{"frequency",750.}}}});
+        clock.stop();
+        bool found=false;
+        for (const auto& value:track()["automation"].toArray()) {
+            const auto lane=value.toObject(),target=lane["target"].toObject();
+            if (target["deviceId"]==id && target["param"]=="frequency") {
+                found=true; QCOMPARE(nt::automation::automationValueAt(lane["points"].toArray(),1000,0),effect["frequency"].toDouble());
+            }
+        }
+        QVERIFY(found);
+    }
+    void deviceRecordingCancel() {
+        QVERIFY(model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect","gain"}}));
+        const auto id=track()["effects"].toArray().last().toObject()["id"].toString();
+        QVERIFY(model.applyEdit("setTrackAutomationMode",{{"trackId","a"},{"mode","touch"}}));
+        model.automationRecorder()->setClock(&clock); clock.setDurationMs(10000); clock.play();
+        const auto original=model.documentJson();
+        AutomationController controller; controller.setTimeline(&model); controller.setTrackId("a");
+        controller.previewDevice(id,{{"gainDb",-12.}}); controller.cancelDevice(id); clock.stop();
+        QCOMPARE(model.documentJson(),original);
+    }
+    void concurrentDeviceHandoff() {
+        QVERIFY(model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect","gain"}}));
+        const auto id=track()["effects"].toArray().last().toObject()["id"].toString();
+        struct Probe final : nt::audio::BlockProcessor {
+            double value=-12.; bool dropped=false; int blocks=0;
+            bool setParameter(std::string_view name,double next) noexcept override {
+                if (name=="gainDb") { value=next; } return true;
+            }
+            void process(std::span<float>,const nt::audio::BlockContext&) noexcept override { dropped|=value==0; ++blocks; }
+        };
+        auto probe=std::make_shared<Probe>(); probe->id=id.toStdString();
+        nt::audio::MixPlan plan; nt::audio::TrackPlan bus; bus.trackId="a"; bus.processors.push_back(probe); plan.tracks.push_back(std::move(bus));
+        nt::audio::applyMixPlanStage("liveDevices",*model.snapshot(),plan);
+        model.setDeviceOverride("a",id,{{"gainDb",-12.}});
+        std::atomic<bool> started=false;
+        // The scoped worker borrows this plan until join. Only it touches the processor and probe.
+        std::jthread audio([&plan,&started](std::stop_token stop) {
+            std::array<float,32> samples{}; started.store(true);
+            while (!stop.stop_requested()) { plan.tracks[0].processors[0]->process(samples,{48000,0,1000./48000}); }
+        });
+        while (!started.load()) { std::this_thread::yield(); }
+        for (int i=0;i<10000;++i) {
+            model.setDeviceOverride("a",id,{{"gainDb",-12.}},true);
+            model.setDeviceOverride("a",id,{{"gainDb",-6.}});
+        }
+        audio.request_stop(); audio.join();
+        QVERIFY(probe->blocks>0); QVERIFY2(!probe->dropped,"A preview/hold handoff must never expose the stale base");
+    }
+    void deviceHandoff_data() {
+        QTest::addColumn<QString>("transition");
+        for (const auto* name : {"stale-plan", "sibling", "noop", "deleted", "reload", "track-delete", "unchanged"}) { QTest::newRow(name) << QString(name); }
+    }
+    void deviceHandoff() {
+        QFETCH(QString,transition);
+        QVERIFY(model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect","eq3"}}));
+        const auto effect=track()["effects"].toArray().last().toObject();
+        const auto id=effect["id"].toString();
+        struct Probe final : nt::audio::BlockProcessor {
+            double low=0,mid=0; int calls=0;
+            bool setParameter(std::string_view name,double value) noexcept override {
+                ++calls;
+                if (name=="lowGainDb") { low=value; }
+                if (name=="midGainDb") { mid=value; }
+                return true;
+            }
+            void process(std::span<float>,const nt::audio::BlockContext&) noexcept override {}
+        };
+        auto probe=std::make_shared<Probe>(); probe->id=id.toStdString();
+        auto snapshot=model.snapshot();
+        nt::audio::MixPlan plan; nt::audio::TrackPlan bus; bus.trackId="a"; bus.processors.push_back(probe); plan.tracks.push_back(std::move(bus));
+        AutomationController controller; controller.setTimeline(&model); controller.setTrackId("a");
+        controller.previewDevice(id,{{"lowGainDb",-12.},{"midGainDb",-6.}});
+        std::array<float,256> samples{};
+        const auto render=[&] { plan.tracks[0].processors[0]->process(samples,{48000,0,1000./48000}); };
+        if (transition=="stale-plan") {
+            controller.commitDevice(id,{{"lowGainDb",-12.}},"updateTrackEffect",{{"effectId",id},{"patch",QJsonObject{{"lowGainDb",-12.}}}});
+            nt::audio::applyMixPlanStage("liveDevices",*snapshot,plan);
+            render(); QCOMPARE(probe->low,-12.);
+            return;
+        }
+        nt::audio::applyMixPlanStage("liveDevices",*snapshot,plan);
+        render(); QCOMPARE(probe->mid,-6.);
+        if (transition=="sibling") {
+            controller.commitDevice(id,{{"lowGainDb",-12.}},"updateTrackEffect",{{"effectId",id},{"patch",QJsonObject{{"lowGainDb",-12.}}}});
+            render(); QCOMPARE(probe->mid,0.);
+        } else if (transition=="noop") {
+            const int count=model.undoStack()->count();
+            controller.commitDevice(id,{{"lowGainDb",0.}},"updateTrackEffect",{{"effectId",id},{"patch",QJsonObject{{"lowGainDb",0.}}}});
+            render(); QCOMPARE(probe->low,0.); QCOMPARE(probe->mid,0.); QCOMPARE(model.undoStack()->count(),count);
+        } else if (transition=="deleted" || transition=="reload" || transition=="track-delete") {
+            if (transition=="deleted") { QVERIFY(model.applyEdit("removeTrackEffect",{{"trackId","a"},{"effectId",id}})); }
+            else if (transition=="track-delete") { QVERIFY(model.applyEdit("removeTrack",{{"trackId","a"}})); }
+            else { model.setTimeline(requireValue(nt::parseTimelineJson(model.documentJson()).timeline)); }
+            (void)model.snapshot(); render(); QCOMPARE(probe->low,0.);
+        } else {
+            const int before=probe->calls; render(); QCOMPARE(probe->calls,before);
+        }
+    }
+    void mixerPreviewLifetime_data() {
+        QTest::addColumn<QString>("transition");
+        for (const auto* name : {"track", "master", "destroy", "external"}) { QTest::newRow(name) << QString(name); }
+    }
+    void mixerPreviewLifetime() {
+        QFETCH(QString,transition);
+        auto controller=std::make_unique<AutomationController>();
+        controller->setTimeline(&model); controller->setTrackId("a");
+        controller->previewMixer("volumeDb",-18.);
+        QVERIFY(model.mixerOverrideValue("a","volumeDb"));
+        if (transition=="track") { controller->setTrackId("b"); }
+        else if (transition=="master") { controller->setMaster(true); }
+        else if (transition=="destroy") { controller.reset(); }
+        else { emit model.sourceChanged(); }
+        QVERIFY2(!model.mixerOverrideValue("a","volumeDb"),"A controller must release its mixer preview before losing the gesture");
+    }
+    void deviceLivePreviewBeforeCommit() {
+        QVERIFY(model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect",QJsonObject{{"id","live-gain"},{"type","gain"},{"enabled",true},{"gainDb",0}}}}));
+        auto raw=doc(); raw["clips"]=QJsonArray{QJsonObject{{"id","c"},{"trackId","a"},{"mediaType","audio"},{"status","generated"},{"mediaPath","memory.wav"},{"startMs",0},{"durationMs",9000}}};
+        model.setTimeline(requireValue(nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline));
+        auto plan=nt::audio::buildMixPlan(*model.snapshot());
+        QVERIFY(!plan.tracks.empty()); QVERIFY(!plan.tracks[0].processors.empty());
+        const auto found=std::find_if(plan.tracks[0].processors.begin(),plan.tracks[0].processors.end(),[](const auto& processor) { return processor->id=="live-gain"; });
+        QVERIFY(found!=plan.tracks[0].processors.end());
+        auto processor=*found; processor->prepare(48000);
+        const auto original=model.documentJson();
+        const int count=model.undoStack()->count();
+        std::array<float,2048> samples{}; samples.fill(1.f);
+        processor->process(samples,{48000,0,1000./48000});
+        model.setDeviceOverride("a","live-gain",{{"gainDb",-12.}});
+        samples.fill(1.f); processor->process(samples,{48000,1024*1000./48000,1000./48000});
+        QVERIFY2(std::abs(samples.back()-.25118864f)<1e-4f,qPrintable(QString::number(samples.back())));
+        float previous=1.f;
+        for (std::size_t i=0;i<samples.size();i+=2) { QVERIFY(std::abs(samples[i]-previous)<.004f); previous=samples[i]; }
+        QCOMPARE(model.documentJson(),original); QCOMPARE(model.undoStack()->count(),count);
+        model.setDeviceOverride("a","live-gain",{});
+        samples.fill(1.f); processor->process(samples,{48000,2048*1000./48000,1000./48000});
+        QVERIFY(std::abs(samples.back()-1.f)<1e-4f);
+        for (std::size_t i=0;i<samples.size();i+=2) { QVERIFY(std::abs(samples[i]-previous)<.004f); previous=samples[i]; }
+    }
+    void trackHeaderLivePreviewCommitCancel() {
+        QVERIFY(openTracks());
+        auto* slider=item("trackVolumeSlider-a"); QVERIFY(slider);
+        const auto snapshot=model.snapshot();
+        nt::audio::MixPlan plan;
+        nt::audio::TrackPlan bus; bus.trackId="a";
+        plan.tracks.push_back(std::move(bus));
+        nt::automation::refreshMixerAutomation(*snapshot,plan);
+        const auto original=model.documentJson();
+        const int count=model.undoStack()->count();
+        QVERIFY(QMetaObject::invokeMethod(slider,"editStarted"));
+        QVERIFY(QMetaObject::invokeMethod(slider,"valuePreviewed",Q_ARG(double,.5)));
+        QVERIFY(std::abs(plan.tracks[0].gainSource->valueAt(0,1)-std::pow(10.,-14./20))<1e-6);
+        QCOMPARE(model.documentJson(),original);
+        QCOMPARE(model.undoStack()->count(),count);
+        QVERIFY(QMetaObject::invokeMethod(slider,"editCanceled"));
+        QVERIFY(!model.mixerOverrideValue("a","volumeDb"));
+        QCOMPARE(model.documentJson(),original);
+        QVERIFY(QMetaObject::invokeMethod(slider,"editStarted"));
+        QVERIFY(QMetaObject::invokeMethod(slider,"valuePreviewed",Q_ARG(double,.5)));
+        QVERIFY(QMetaObject::invokeMethod(slider,"valueCommitted",Q_ARG(double,.5)));
+        QCOMPARE(model.undoStack()->count(),count+1);
+        QCOMPARE(track()["volumeDb"].toDouble(),-14.);
+        model.undoStack()->undo();
+        QCOMPARE(track()["volumeDb"].toDouble(),-6.);
     }
     void trackHeaderRecordsF3() {
         model.applyEdit("setTrackAutomationMode",{{"trackId","a"},{"mode","touch"}});
@@ -1043,7 +1506,7 @@ track: ({id:"a",type:"audio"}); lane: ({id:"gone",target:{kind:"device",deviceId
         const auto from=point(fader,12,fader->height()*.4), to=point(fader,12,fader->height()*.7);
         QTest::mousePress(window.get(),Qt::LeftButton,Qt::NoModifier,from);
         QTest::mouseMove(window.get(),to,20);
-        clock.pause();
+        clock.stop();
         const auto undo=model.undoStack()->count();
         QTest::mouseMove(window.get(),from,20);
         QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,from);
@@ -1224,7 +1687,7 @@ Component.onCompleted: { AutomationUIState.showAutomation=false; AutomationUISta
             {{"clock",QVariant::fromValue(&clock)}}));
         clock.setDurationMs(10000); clock.play();
         QVERIFY(model.snapshot()->findTrack("a")->mixerOverride);
-        clock.pause();
+        clock.stop();
         QCOMPARE(track()["automationMode"].toString(),"latch");
         QCOMPARE(track()["automation"].toArray().size(),2);
         QCOMPARE(track()["volumeDb"].toDouble(),-6.);
@@ -1256,7 +1719,7 @@ Component.onCompleted: { AutomationUIState.showAutomation=false; AutomationUISta
         QVERIFY(std::isnan(state->volumeDb.load()));
         QVERIFY((!model.mixerOverrideValue("a","volumeDb") && !model.mixerOverrideValue("a","pan")));
         QVERIFY(!track()["automation"].toArray()[0].toObject()["points"].toArray().empty());
-        clock.pause();
+        clock.stop();
     }
     void parameterDotsIgnoreEmptyLanesAndRemovedTargetFallsBack() {
         auto raw=doc(); auto tracks=raw["tracks"].toArray(); auto t=tracks[0].toObject();
@@ -1725,7 +2188,7 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QTRY_VERIFY_WITH_TIMEOUT(([&] { window->requestUpdate(); image=window->grabWindow(); return !image.isNull(); })(),2000);
         QVERIFY(image.save(QCoreApplication::applicationDirPath()+"/p2-"+type+".png"));
     }
-    void pendingWheelEditStaysWithEffect_data() {
+    void pendingWheelCanceledWhenEffectChanges_data() {
         QTest::addColumn<QString>("type");
         QTest::addColumn<QString>("handle");
         QTest::addColumn<QString>("parameter");
@@ -1733,7 +2196,7 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QTest::newRow("eq3-mid-q") << "eq3" << "mid" << "midQ" << 1.1;
         QTest::newRow("compressor-knee") << "compressor" << "threshold" << "kneeDb" << 31.;
     }
-    void pendingWheelEditStaysWithEffect() {
+    void pendingWheelCanceledWhenEffectChanges() {
         QFETCH(QString,type);
         QFETCH(QString,handle);
         QFETCH(QString,parameter);
@@ -1761,9 +2224,8 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QTest::qWait(500);
         const auto after=track()["effects"].toArray();
         QCOMPARE(after[1].toObject()[parameter],second[parameter]);
-        QCOMPARE(after[0].toObject()[parameter].toDouble(),expected);
-        QCOMPARE(model.undoStack()->count(),3);
-        model.undoStack()->undo();
+        QCOMPARE(after[0].toObject()[parameter],first[parameter]);
+        QCOMPARE(model.undoStack()->count(),2);
         QCOMPARE(track()["effects"].toArray(),effects);
     }
     void mixerOrderAndInserts() {

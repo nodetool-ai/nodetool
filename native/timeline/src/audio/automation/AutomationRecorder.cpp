@@ -6,7 +6,30 @@
 #include <cmath>
 
 namespace {
+QJsonObject targetFor(const QString& param) {
+    const auto separator=param.indexOf(QChar(0x1f));
+    if (separator<0) { return {{"kind","mixer"},{"param",param}}; }
+    return {{"kind","device"},{"deviceId",param.left(separator)},{"param",param.mid(separator+1)}};
+}
+double baseFor(TimelineModel* timeline,const QString& id,const QString& param) {
+    if (!timeline) { return 0; }
+    const auto target=targetFor(param);
+    const auto snapshot=timeline->snapshot(); const auto* track=snapshot->findTrack(id.toStdString());
+    if (!track) { return 0; }
+    if (target["kind"]=="mixer") { return track->raw[param].toDouble(); }
+    for (const auto& p:track->deviceParameters) {
+        if (p.deviceId==target["deviceId"].toString().toStdString() && p.name==target["param"].toString().toStdString()) { return p.base; }
+    }
+    return 0;
+}
+void publishOverride(TimelineModel* timeline,const QString& id,const QString& param,std::optional<double> value) {
+    if (!timeline) { return; }
+    const auto target=targetFor(param);
+    if (target["kind"]=="mixer") { timeline->setMixerOverride(id,param,value); }
+    else { timeline->setDeviceOverride(id,target["deviceId"].toString(),value ? QJsonObject{{target["param"].toString(),*value}} : QJsonObject{}); }
+}
 double clampValue(const QString& param, double value) {
+    if (param.contains(QChar(0x1f))) { return std::isfinite(value) ? value : 0.; }
     return std::clamp(std::isfinite(value) ? value : 0., param == "pan" ? -1. : -60., param == "pan" ? 1. : 6.);
 }
 }
@@ -62,24 +85,24 @@ double AutomationRecorder::value(const QString& id, const QString& param) const 
 }
 double AutomationRecorder::curveValue(const QString& id, const QString& param, double timeMs) const {
     const auto t=track(id);
-    const double base=t[param].toDouble();
+    const double base=baseFor(timeline_,id,param);
     if (t["automationMode"]=="off") { return base; }
     for (const auto& v : t["automation"].toArray()) {
         const auto l=v.toObject(), target=l["target"].toObject();
-        if (l["enabled"]!=false && target["kind"]=="mixer" && target["param"]==param) {
+        if (l["enabled"]!=false && target==targetFor(param)) {
             return nt::automation::automationValueAt(l["points"].toArray(),timeMs,base);
         }
     }
     return base;
 }
 void AutomationRecorder::start(const QString& id, const QString& param, const QString& mode, double now) {
-    if (!timeline_ || !clock_ || !clock_->playing() || (param!="volumeDb" && param!="pan")) { return; }
+    if (!timeline_ || !clock_ || !clock_->playing() || (param!="volumeDb" && param!="pan" && !param.contains(QChar(0x1f)))) { return; }
     const auto t=track(id);
     if (t.isEmpty() || t["locked"].toBool() || (t["type"]!="audio" && t["type"]!="midi")) { return; }
     for (const auto& p : passes_) { if (p.track==id && p.param==param) { return; } }
     const double v=clampValue(param,curveValue(id,param,now));
     passes_.append({id,param,mode,now,v,QJsonArray{QJsonObject{{"timeMs",now},{"value",v}}}});
-    timeline_->setMixerOverride(id,param,v);
+    publishOverride(timeline_,id,param,v);
 }
 bool AutomationRecorder::gestureStart(const QString& id, const QString& param) {
     if (!consumes(id)) { return false; }
@@ -105,7 +128,7 @@ bool AutomationRecorder::record(const QString& id, const QString& param, double 
         // Keyboard/reset changes can arrive several times in one transport tick.
         if (!p.samples.empty() && p.samples.last().toObject()["timeMs"].toDouble()==now) { p.samples[p.samples.size()-1]=sample; }
         else { p.samples.append(sample); }
-        timeline_->setMixerOverride(id,param,p.lastValue);
+        publishOverride(timeline_,id,param,p.lastValue);
         return true;
     }
     return consumes(id);
@@ -119,7 +142,7 @@ void AutomationRecorder::gestureCancel(const QString& id, const QString& param) 
         if (passes_[i].track!=id || passes_[i].param!=param) { continue; }
         if (before) {
             passes_[i]=std::move(*before);
-            if (timeline_) { timeline_->setMixerOverride(id,param,passes_[i].lastValue); }
+            if (timeline_) { publishOverride(timeline_,id,param,passes_[i].lastValue); }
         } else { finish(static_cast<int>(i),previousTime_,false); }
         break;
     }
@@ -137,13 +160,13 @@ void AutomationRecorder::finish(int index, double end, bool write) {
     gestures_.removeIf([&](const auto& g) { return g.track==p.track && g.param==p.param; });
     const auto t=track(p.track);
     if (!write || !timeline_ || t.isEmpty() || t["locked"].toBool()) {
-        if (timeline_) { timeline_->setMixerOverride(p.track,p.param,std::nullopt); }
+        if (timeline_) { publishOverride(timeline_,p.track,p.param,std::nullopt); }
         return;
     }
-    double after=t[p.param].toDouble();
+    double after=baseFor(timeline_,p.track,p.param);
     for (const auto& item:t["automation"].toArray()) {
         const auto lane=item.toObject(),target=lane["target"].toObject();
-        if (target["kind"]=="mixer" && target["param"]==p.param) {
+        if (target==targetFor(p.param)) {
             after=nt::automation::automationValueAt(lane["points"].toArray(),end+200,after);
             break;
         }
@@ -161,12 +184,12 @@ void AutomationRecorder::finish(int index, double end, bool write) {
     }
     // Publish the bridge before observers can compile the new curve. Its generation
     // distinguishes a stale plan from one that already contains the written pass.
-    if (nt::automation::automationModeOf(t)=="off") { timeline_->setMixerOverride(p.track,p.param,std::nullopt); }
+    if (nt::automation::automationModeOf(t)=="off" || p.param.contains(QChar(0x1f))) { publishOverride(timeline_,p.track,p.param,std::nullopt); }
     else { timeline_->releaseMixerOverride(p.track,p.param,end,p.lastValue,after); }
-    const bool written=timeline_->applyEdit("writeTrackAutomationPass",{{"trackId",p.track},{"param",p.param},
+    const bool written=timeline_->applyEdit("writeTrackAutomationPass",{{"trackId",p.track},{"param",p.param},{"target",targetFor(p.param)},{"base",baseFor(timeline_,p.track,p.param)},
         {"pass",QJsonObject{{"startMs",samples.first().toObject()["timeMs"]},{"endMs",samples.last().toObject()["timeMs"]},{"samples",samples}}},
         {"wasWrite",p.mode=="write"}});
-    if (!written) { timeline_->setMixerOverride(p.track,p.param,std::nullopt); }
+    if (!written) { publishOverride(timeline_,p.track,p.param,std::nullopt); }
 }
 void AutomationRecorder::finishAll(double end, bool write) {
     gestures_.clear();

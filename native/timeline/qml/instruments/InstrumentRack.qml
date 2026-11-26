@@ -21,10 +21,15 @@ Column {
     spacing: Ui.Metrics.sm
     readonly property real preferredWidth: Math.max(Ui.Metrics.panelWidth, panel.item ? panel.item.implicitWidth : 0)
 
+    AutomationController { id: live; timeline: root.timeline; trackId: root.trackId }
+
+    onVisibleChanged: if (!visible) live.cancelDevice("instrument")
+
     function openMenu() { menu.openAt(menuButton) }
 
     function choose(entry) {
         if (!timeline || trackId === "" || readOnly || !entry) return
+        live.cancelDevice("instrument")
         if (entry.kind === "vst") {
             const gain = instrument.type === "vst" && instrument.gainDb !== undefined ? instrument.gainDb : 0.0
             const plugin = entry.plugin ? { uid: entry.plugin.uid, name: entry.plugin.name, vendor: entry.plugin.vendor, path: entry.plugin.path } : ({})
@@ -107,12 +112,17 @@ Column {
             gainDb: root.instrument.gainDb !== undefined ? root.instrument.gainDb : 0.0
             showPicker: !(root.instrument.plugin && root.instrument.plugin.uid)
             disabled: root.readOnly
-            onPluginChosen: pluginRef => root.timeline.applyEdit("setTrackInstrument", {
-                trackId: root.trackId, instrument: VstHost.makeVstInstrument(pluginRef || ({}), vstControl.gainDb) })
+            onPluginChosen: pluginRef => {
+                live.cancelDevice("instrument")
+                root.timeline.applyEdit("setTrackInstrument", {
+                    trackId: root.trackId, instrument: VstHost.makeVstInstrument(pluginRef || ({}), vstControl.gainDb) })
+            }
+            onParameterPreviewed: patch => live.previewDevice("instrument", patch)
+            onEditCanceled: live.cancelDevice("instrument")
             onGainDbChangedRequested: db => {
                 const next = Object.assign({}, root.instrument)
                 next.gainDb = db
-                root.timeline.applyEdit("setTrackInstrument", { trackId: root.trackId, instrument: next })
+                live.commitDevice("instrument", {gainDb: db}, "setTrackInstrument", { trackId: root.trackId, instrument: next })
             }
         }
     }

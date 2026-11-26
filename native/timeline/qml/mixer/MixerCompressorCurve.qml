@@ -47,6 +47,7 @@ Ui.Surface {
             x:Curves.compXY(inputDb,root.width)-width/2
             y:root.height-Curves.compXY(Curves.compTransferDb(inputDb,root.display.thresholdDb,root.display.ratio,root.display.kneeDb),root.height)-height/2
             width:22;height:22;enabled:!root.disabled;activeFocusOnTab:true
+            onActiveFocusChanged: if (!activeFocus) root.cancel()
             Keys.onPressed: event => { if (event.key === Qt.Key_Escape) { root.cancel(); event.accepted=true } }
             Rectangle { anchors.fill:parent;radius:Ui.Metrics.radiusPill;color:handle.accent;opacity:.18 }
             Rectangle { anchors.centerIn:parent;width:13;height:13;radius:Ui.Metrics.radiusPill;color:Ui.Theme.surfacePanel;border.color:handle.accent;border.width:Ui.Metrics.focus }

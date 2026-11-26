@@ -9,6 +9,8 @@ Ui.Surface {
     required property int effectIndex
     required property var panel
     required property Item rackRow
+    property string previewDeviceId: ""
+    onEffectChanged: if (previewDeviceId !== "" && previewDeviceId !== effect.id) cancel()
     property var draft: ({})
     readonly property var edited: Object.assign({}, effect, draft)
     readonly property string effectLabel: effect.type === "vst"
@@ -20,17 +22,30 @@ Ui.Surface {
     objectName: "effect-" + effect.id
     width: effect.type === "vst" ? 260 : effect.type === "fable" ? panel.reference.fableWidths[effect.kind] : panel.reference.widths[effect.type]
     opacity: panel.draggingIndex === effectIndex ? 0.4 : 1
+    AutomationController { id: live; timeline: card.panel.timeline; trackId: card.panel.track.id; master: card.panel.track.id === "" }
     InspectorEdits { id: edits; model: card.panel.timeline }
     function payload(patch) { return {trackId: panel.track.id, effectId: effect.id, patch: patch} }
     function preview(patch) {
+        if (!panel.isVideo) {
+            draft = Object.assign({}, draft, patch)
+            previewDeviceId = effect.id
+            live.previewDevice(previewDeviceId, draft)
+            return
+        }
         if (Object.keys(draft).length === 0) edits.beginGesture("updateTrackEffect", payload({}))
         draft = Object.assign({}, draft, patch)
         edits.preview(payload(draft))
     }
-    function cancel() { edits.cancelGesture(); draft = ({}) }
-    Component.onDestruction: edits.cancelGesture()
+    function cancel() { live.cancelDevice(previewDeviceId || effect.id); previewDeviceId = ""; edits.cancelGesture(); draft = ({}) }
+    Component.onDestruction: cancel()
     onVisibleChanged: if (!visible && edits) cancel()
     function commit(patch) {
+        if (!panel.isVideo) {
+            const finalPatch = Object.assign({}, draft, patch)
+            draft = ({})
+            live.commitDevice(effect.id, finalPatch, live.master ? "updateMasterEffect" : "updateTrackEffect", payload(finalPatch))
+            return
+        }
         const wasPreviewing = Object.keys(draft).length > 0
         const finalPatch = Object.assign({}, draft, patch)
         draft = ({})

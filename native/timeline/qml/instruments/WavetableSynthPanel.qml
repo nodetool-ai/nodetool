@@ -98,13 +98,22 @@ Ui.Surface {
         }
     }
 
+    AutomationController { id: live; timeline: root.timeline; trackId: root.trackId }
+    function previewParam(name, value) {
+        if (readOnly) return
+        const patch = {}; patch[name] = value
+        live.previewDevice("instrument", patch)
+    }
+    function cancelPreview() { live.cancelDevice("instrument") }
+    onVisibleChanged: if (!visible) cancelPreview()
+
     function commitParam(name, value) {
         if (root.readOnly) return
         root.parameterCommitted(name, value)
         if (root.timeline && root.trackId !== "") {
             const payload = { trackId: root.trackId }
             payload[name] = value
-            root.timeline.applyEdit("wavetable.setParams", payload)
+            live.commitDevice("instrument", { [name]: value }, "wavetable.setParams", payload)
         }
     }
 
@@ -119,6 +128,7 @@ Ui.Surface {
         property real resetValue: 0.0
         property string sliderName: ""
         property bool controlEnabled: !root.readOnly
+        signal previewed(real nextValue)
         signal committed(real nextValue)
 
         Layout.fillWidth: true
@@ -144,6 +154,9 @@ Ui.Surface {
             resetValue: row.resetValue
             resetOnDoubleTap: true
             accessibleName: row.labelText
+            cancelOnFocusLoss: true
+            onValuePreviewed: v => row.previewed(v)
+            onEditCanceled: root.cancelPreview()
             onValueCommitted: v => row.committed(v)
         }
 
@@ -157,6 +170,7 @@ Ui.Surface {
     }
 
     component OscPosKnob: FxKnob {
+        cancelOnFocusLoss: true
         id: knob
         required property real boundValue
         required property string paramName
@@ -174,6 +188,7 @@ Ui.Surface {
         onChange: v => {
             draftValue = v
             hasDraft = true
+            root.previewParam(paramName, v)
         }
         onGestureEnd: {
             if (hasDraft) {
@@ -182,6 +197,7 @@ Ui.Surface {
             }
         }
         onGestureCanceled: {
+            root.cancelPreview()
             hasDraft = false
             draftValue = boundValue
         }
@@ -342,6 +358,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(root.cutoffHzValue, 20.0, 20000.0)
             resetValue: root.toLogNorm(9000.0, 20.0, 20000.0)
             readoutText: root.formatHz(root.cutoffHzValue)
+            onPreviewed: v => root.previewParam("cutoffHz", root.fromLogNorm(v, 20.0, 20000.0))
             onCommitted: v => root.commitParam("cutoffHz", root.fromLogNorm(v, 20.0, 20000.0))
         }
 
@@ -354,6 +371,7 @@ Ui.Surface {
             sliderValue: root.resonanceValue
             resetValue: 0.18
             readoutText: root.formatPct(root.resonanceValue)
+            onPreviewed: v => root.previewParam("resonance", v)
             onCommitted: v => root.commitParam("resonance", v)
         }
 
@@ -370,6 +388,7 @@ Ui.Surface {
             sliderValue: root.oscAUnisonValue
             resetValue: 1.0
             readoutText: root.oscAUnisonValue + "v"
+            onPreviewed: v => root.previewParam("oscAUnison", Math.round(v))
             onCommitted: v => root.commitParam("oscAUnison", Math.round(v))
         }
 
@@ -380,6 +399,7 @@ Ui.Surface {
             sliderValue: root.oscADetuneValue
             resetValue: 0.2
             readoutText: root.formatPct(root.oscADetuneValue)
+            onPreviewed: v => root.previewParam("oscADetune", v)
             onCommitted: v => root.commitParam("oscADetune", v)
         }
 
@@ -390,6 +410,7 @@ Ui.Surface {
             sliderValue: root.oscASpreadValue
             resetValue: 0.6
             readoutText: root.formatPct(root.oscASpreadValue)
+            onPreviewed: v => root.previewParam("oscASpread", v)
             onCommitted: v => root.commitParam("oscASpread", v)
         }
 
@@ -403,6 +424,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(root.ampAttackMsValue, 1.0, 8000.0)
             resetValue: root.toLogNorm(4.0, 1.0, 8000.0)
             readoutText: root.formatMs(root.ampAttackMsValue)
+            onPreviewed: v => root.previewParam("ampAttackMs", root.fromLogNorm(v, 1.0, 8000.0))
             onCommitted: v => root.commitParam("ampAttackMs", root.fromLogNorm(v, 1.0, 8000.0))
         }
 
@@ -412,6 +434,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(root.ampDecayMsValue, 5.0, 10000.0)
             resetValue: root.toLogNorm(250.0, 5.0, 10000.0)
             readoutText: root.formatMs(root.ampDecayMsValue)
+            onPreviewed: v => root.previewParam("ampDecayMs", root.fromLogNorm(v, 5.0, 10000.0))
             onCommitted: v => root.commitParam("ampDecayMs", root.fromLogNorm(v, 5.0, 10000.0))
         }
 
@@ -421,6 +444,7 @@ Ui.Surface {
             sliderValue: root.ampSustainValue
             resetValue: 0.8
             readoutText: root.formatPct(root.ampSustainValue)
+            onPreviewed: v => root.previewParam("ampSustain", v)
             onCommitted: v => root.commitParam("ampSustain", v)
         }
 
@@ -430,6 +454,7 @@ Ui.Surface {
             sliderValue: root.toLogNorm(root.ampReleaseMsValue, 5.0, 12000.0)
             resetValue: root.toLogNorm(300.0, 5.0, 12000.0)
             readoutText: root.formatMs(root.ampReleaseMsValue)
+            onPreviewed: v => root.previewParam("ampReleaseMs", root.fromLogNorm(v, 5.0, 12000.0))
             onCommitted: v => root.commitParam("ampReleaseMs", root.fromLogNorm(v, 5.0, 12000.0))
         }
     }

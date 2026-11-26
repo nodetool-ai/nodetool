@@ -54,13 +54,13 @@ QJsonObject editChannel(QJsonObject channel,const QString& action,const QJsonObj
     else if (action=="writeTrackAutomationPass") {
         if (channel.value("locked").toBool()) { return channel; }
         const auto param=p["param"].toString();
-        if (param!="volumeDb" && param!="pan") { return channel; }
-        const QJsonObject target{{"kind","mixer"},{"param",param}};
+        const auto target=p["target"].isObject() ? p["target"].toObject() : QJsonObject{{"kind","mixer"},{"param",param}};
+        if (target["kind"]!="device" && param!="volumeDb" && param!="pan") { return channel; }
         auto lanes=channel.value("automation").toArray();
         qsizetype index=-1;
         for (qsizetype i=0;i<lanes.size();++i) { if (automationTargetKey(lanes[i].toObject()["target"].toObject())==automationTargetKey(target)) { index=i; break; } }
         auto lane=index<0 ? QJsonObject{{"id",QUuid::createUuid().toString(QUuid::Id128)},{"target",target}} : lanes[index].toObject();
-        lane["points"]=writeAutomationPass(lane["points"].toArray(),p["pass"].toObject(),channel.value(param).toDouble(),200,(param=="pan" ? 2 : 66)*.005);
+        lane["points"]=writeAutomationPass(lane["points"].toArray(),p["pass"].toObject(),p["base"].isDouble() ? p["base"].toDouble() : channel.value(param).toDouble(),200,target["kind"]=="device" ? 0. : (param=="pan" ? 2 : 66)*.005);
         lane.remove("enabled");
         if (index<0) { lanes.append(lane); } else { lanes[index]=lane; }
         channel["automation"]=lanes;

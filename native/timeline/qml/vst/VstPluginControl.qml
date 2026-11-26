@@ -20,6 +20,8 @@ Column {
     property bool disabled: false
     // False when a device menu chose the plug-in, so the device shows no second picker.
     property bool showPicker: true
+    signal parameterPreviewed(var patch)
+    signal editCanceled()
     signal pluginChosen(var pluginRef)
     signal wetChangedRequested(real value)
     signal gainDbChangedRequested(real value)
@@ -143,6 +145,7 @@ Column {
     }
 
     InspectorSliderRow {
+        cancelOnFocusLoss: true
         objectName: "vst-wet-slider"
         width: parent.width
         visible: !root.instrumentMode
@@ -153,10 +156,13 @@ Column {
         disabled: root.disabled
         value: root.wet
         display: Math.round(root.wet * 100) + "%"
+        onPreview: v => root.parameterPreviewed({wet: Math.round(v * 100) / 100})
+        onCanceled: root.editCanceled()
         onChange: v => root.wetChangedRequested(Math.round(v * 100) / 100)
     }
 
     InspectorSliderRow {
+        cancelOnFocusLoss: true
         objectName: "vst-gain-slider"
         width: parent.width
         visible: root.instrumentMode
@@ -167,6 +173,8 @@ Column {
         disabled: root.disabled
         value: root.gainDb
         display: (root.gainDb > 0 ? "+" : "") + root.gainDb.toFixed(1) + " dB"
+        onPreview: v => root.parameterPreviewed({gainDb: Math.round(v * 2) / 2})
+        onCanceled: root.editCanceled()
         onChange: v => root.gainDbChangedRequested(Math.round(v * 2) / 2)
     }
 

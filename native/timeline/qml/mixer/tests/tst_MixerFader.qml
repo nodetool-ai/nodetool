@@ -12,11 +12,13 @@ TestCase {
     MixerFader { id: fader; width: 56; height: 200; value: 0 }
     Item { id: otherFocus; x: 100; width: 20; height: 20; activeFocusOnTab: true }
     SignalSpy { id: previews; target: fader; signalName: "preview" }
+    SignalSpy { id: cancellations; target: fader; signalName: "canceled" }
     SignalSpy { id: commits; target: fader; signalName: "commit" }
     function init() {
         fader.value = 0
         previews.clear()
         commits.clear()
+        cancellations.clear()
     }
     function input() { return findChild(fader, "mixerFaderInput") }
     function test_keyboardAndReset() {
@@ -34,14 +36,16 @@ TestCase {
         compare(commits.count, 1)
         compare(commits.signalArguments[0][0], 12)
     }
-    function test_focusLossCommitsOnce() {
+    function test_focusLossCancelsPreview() {
         input().forceActiveFocus()
         keyPress(Qt.Key_Down)
         verify(previews.count > 0)
         otherFocus.forceActiveFocus()
-        compare(commits.count, 1)
+        compare(commits.count, 0)
+        compare(cancellations.count, 1)
+        compare(fader.draft, fader.value)
         keyRelease(Qt.Key_Down)
-        compare(commits.count, 1)
+        compare(commits.count, 0)
     }
     function test_escapeCancelsPreview() {
         const control = input()

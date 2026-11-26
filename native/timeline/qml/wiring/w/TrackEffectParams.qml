@@ -141,6 +141,8 @@ Item {
             wet: root.effect && root.effect.wet !== undefined ? root.effect.wet : 1.0
             disabled: root.disabled
             onPluginChosen: pluginRef => root.commit({ plugin: pluginRef, state: null })
+            onParameterPreviewed: patch => root.preview(patch)
+            onEditCanceled: root.editCanceled()
             onWetChangedRequested: value => root.commit({ wet: value })
         }
     }

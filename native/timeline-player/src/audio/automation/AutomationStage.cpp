@@ -102,6 +102,85 @@ private:
     // RenderLease protects this continuation; the control thread copies only its owner.
     std::shared_ptr<Glide> glide_;
 };
+// Constructed on the control thread. Only the render lease holder mutates bases/active flags.
+// Shared ownership keeps the inner processor and atomic inputs alive across plan publication.
+class LiveDevice final : public audio::BlockProcessor {
+    struct Binding {
+        std::string name;
+        double base;
+        std::shared_ptr<MixerOverride> state;
+        std::uint64_t generation;
+        double live=std::numeric_limits<double>::quiet_NaN();
+        MixerReturn::Snapshot release;
+    };
+public:
+    LiveDevice(std::shared_ptr<audio::BlockProcessor> inner,const std::vector<DeviceParameter>& parameters)
+        : inner_(std::move(inner)) {
+        id=inner_->id;
+        for (const auto& p:parameters) {
+            if (p.deviceId==id || (id=="vst-instrument" && p.deviceId=="instrument")) { bindings_.push_back({p.name,p.base,p.state,p.generation,std::numeric_limits<double>::quiet_NaN(),{}}); revision_=p.revision; }
+        }
+        std::sort(bindings_.begin(),bindings_.end(),[](const auto& a,const auto& b) { return a.name<b.name; });
+    }
+    void prepare(double rate) override { inner_->prepare(rate); }
+    void prepare(double rate,int frames) override { inner_->prepare(rate,frames); }
+    void reset() noexcept override { audio::BlockProcessor::reset(); inner_->reset(); }
+    bool hasPendingOutput(int n) const noexcept override { return inner_->hasPendingOutput(n); }
+    bool keepsActiveInput() const noexcept override { return inner_->keepsActiveInput(); }
+    bool drivesDeviceAutomation() const noexcept override { return inner_->drivesDeviceAutomation(); }
+    bool setParameter(std::string_view name,double value) noexcept override {
+        const auto p=std::lower_bound(bindings_.begin(),bindings_.end(),name,[](const auto& binding,std::string_view key) { return binding.name<key; });
+        if (p!=bindings_.end() && p->name==name) {
+            p->base=value;
+            if (std::isfinite(p->live)) { return true; }
+        }
+        return inner_->setParameter(name,value);
+    }
+    int latencySamples() const noexcept override { return inner_->latencySamples(); }
+    void setBypassed(bool b) noexcept override { inner_->setBypassed(b); }
+    bool bypassed() const noexcept override { return inner_->bypassed(); }
+    void onBypassedBlock(std::span<const float> stereo,const audio::BlockContext& ctx) noexcept override { inner_->onBypassedBlock(stereo,ctx); }
+    void reprobeLatency(double rate) override { inner_->reprobeLatency(rate); }
+    void serviceControlThread() override { inner_->serviceControlThread(); }
+    void armForPlayback() override { inner_->armForPlayback(); }
+    void process(std::span<float> stereo,const audio::BlockContext& ctx) noexcept override {
+        const auto revision=revision_->load(std::memory_order_acquire);
+        if (revision!=lastRevision_) {
+            bool coherent=true;
+            for (std::size_t i=0;i<bindings_.size();++i) {
+                auto& p=bindings_[i];
+                p.state->volumeReturn.read(p.release);
+                coherent &= p.release.generation==p.state->volumeReturn.generation();
+                const bool active=std::isfinite(p.release.startMs) && (!p.release.untilPlan || p.release.generation>p.generation);
+                const double value=active ? p.release.values[0] : std::numeric_limits<double>::quiet_NaN();
+                if (std::isfinite(value) && value!=p.live) { inner_->setParameter(p.name,value); }
+                else if (!std::isfinite(value) && std::isfinite(p.live)) { inner_->setParameter(p.name,p.base); }
+                p.live=value;
+            }
+            if (coherent) { lastRevision_=revision; }
+        }
+        inner_->process(stereo,ctx);
+    }
+private:
+    std::shared_ptr<audio::BlockProcessor> inner_;
+    std::vector<Binding> bindings_;
+    // The model and plans share the release/acquire revision for this channel's inputs.
+    std::shared_ptr<std::atomic<std::uint64_t>> revision_;
+    std::uint64_t lastRevision_=std::numeric_limits<std::uint64_t>::max();
+};
+void attachLiveDevices(const nt::Timeline& tl,audio::MixPlan& plan) {
+    const auto attach=[](audio::Processors& processors,const std::vector<DeviceParameter>& parameters) {
+        for (auto& processor:processors) {
+            if (std::any_of(parameters.begin(),parameters.end(),[&](const auto& p) { return p.deviceId==processor->id || (processor->id=="vst-instrument" && p.deviceId=="instrument"); })) {
+                processor=std::make_shared<LiveDevice>(processor,parameters);
+            }
+        }
+    };
+    for (auto& bus:plan.tracks) {
+        if (const auto* track=tl.findTrack(bus.trackId)) { attach(bus.processors,track->deviceParameters); }
+    }
+    attach(plan.processors,tl.masterDeviceParameters);
+}
 struct Parameter {
     std::string name;
     Ramp ramp;
@@ -246,6 +325,9 @@ void refreshMixerAutomation(const nt::Timeline& tl,audio::MixPlan& plan) {
     }
 }
 
+audio::MixPlanStageToken registerLiveDeviceOverrides() {
+    return audio::registerMixPlanStage("liveDevices",attachLiveDevices,98);
+}
 audio::MixPlanStageToken registerMixerAutomation() {
     return audio::registerMixPlanStage("automation", attach, 100);
 }

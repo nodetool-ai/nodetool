@@ -114,6 +114,15 @@ struct MixerOverride {
     std::atomic<double> pan{std::numeric_limits<double>::quiet_NaN()};
     MixerReturn volumeReturn, panReturn;
 };
+// Immutable parameter address/base, shared atomic handoff owned by the model and plans.
+struct DeviceParameter {
+    std::string deviceId;
+    std::string name;
+    double base = 0;
+    std::shared_ptr<MixerOverride> state;
+    std::shared_ptr<std::atomic<std::uint64_t>> revision;
+    std::uint64_t generation=0;
+};
 struct Track {
     std::string id;
     std::string name;
@@ -130,6 +139,7 @@ struct Track {
     QJsonObject raw;
     // Runtime only. Model and mix plans share the atomic handoff lifetime.
     std::shared_ptr<MixerOverride> mixerOverride;
+    std::vector<DeviceParameter> deviceParameters;
 };
 
 struct TimeRemapKeyframe {
@@ -207,6 +217,7 @@ struct Timeline {
     double durationMs = 0.0;
     // Shared by the UI model and audio plans for atomic live master preview.
     std::shared_ptr<MixerOverride> masterMixerOverride;
+    std::vector<DeviceParameter> masterDeviceParameters;
     double masterVolumeDb = 0.0;  // `master.volumeDb`
     std::vector<Track> tracks;
     std::vector<Clip> clips;

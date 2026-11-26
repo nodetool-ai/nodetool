@@ -1,3 +1,4 @@
+#include "audio/ParameterSmoother.h"
 #include "audio/vst/VstAudioStages.h"
 
 #include "audio/FadeCurves.h"
@@ -740,7 +741,15 @@ public:
         prepare(sampleRate, kMixBlockFrames);
     }
 
+    bool setParameter(std::string_view name,double value) noexcept override {
+        if (name!="gainDb" || !std::isfinite(value)) { return false; }
+        m_gain=static_cast<float>(dbToGain(std::clamp(value,-60.,24.)));
+        m_gainSmooth.setTarget(m_gain);
+        return true;
+    }
     void prepare(double sampleRate, int deviceBlockFrames) override {
+        m_gainSmooth.prepare(sampleRate);
+        m_gainSmooth.snap(m_gain);
         if (!m_offline) {
             m_asyncLatencyFrames = resolveAsyncLookahead(m_lowLatency, deviceBlockFrames);
         }
@@ -886,7 +895,7 @@ public:
         }
 
         for (int f = 0; f < frames; ++f) {
-            float envGain = m_gain;
+            float envGain = static_cast<float>(m_gainSmooth.next());
             if (!m_envelopes.empty()) {
                 const double t = blockStartMs + f * ctx.msPerFrame;
                 for (const auto& env : m_envelopes) {
@@ -908,6 +917,7 @@ private:
     MidiTrackStream m_stream;
     std::vector<ClipEnvelope> m_envelopes;
     float m_gain = 1.0f;
+    ParameterSmoother m_gainSmooth;
     bool m_offline = false;
     bool m_lowLatency = false;
     int m_asyncLatencyFrames = VstLiveChannel::kPlaybackAsyncLatencyFrames;
@@ -955,7 +965,15 @@ public:
         prepare(sampleRate, kMixBlockFrames);
     }
 
+    bool setParameter(std::string_view name,double value) noexcept override {
+        if (name!="wet" || !std::isfinite(value)) { return false; }
+        m_wet=static_cast<float>(std::clamp(value,0.,1.));
+        m_wetSmooth.setTarget(m_wet);
+        return true;
+    }
     void prepare(double sampleRate, int deviceBlockFrames) override {
+        m_wetSmooth.prepare(sampleRate);
+        m_wetSmooth.snap(m_wet);
         if (!m_offline) {
             m_asyncLatencyFrames = resolveAsyncLookahead(m_lowLatency, deviceBlockFrames);
         }
@@ -1143,11 +1161,10 @@ public:
             m_tailFrames = std::max(0, m_tailFrames - frames);
         }
 
-        if (m_wet < 0.9999f) {
-            const float dryGain = 1.0f - m_wet;
-            for (std::size_t i = 0; i < samples; ++i) {
-                stereo[i] = m_dry[i] * dryGain + stereo[i] * m_wet;
-            }
+        for (std::size_t i=0;i<samples;i+=2) {
+            const float wet=static_cast<float>(m_wetSmooth.next());
+            stereo[i]=m_dry[i]*(1.f-wet)+stereo[i]*wet;
+            stereo[i+1]=m_dry[i+1]*(1.f-wet)+stereo[i+1]*wet;
         }
 
         // D8: Crossfade smoothly over 64 frames when entering or leaving dead-peer dry fallback
@@ -1185,6 +1202,7 @@ private:
     // Shared with VstLivePool (live) or uniquely owned by this offline plan processor.
     std::shared_ptr<VstLiveChannel> m_channel;
     float m_wet = 1.0f;
+    ParameterSmoother m_wetSmooth;
     bool m_offline = false;
     bool m_lowLatency = false;
     int m_asyncLatencyFrames = VstLiveChannel::kPlaybackAsyncLatencyFrames;

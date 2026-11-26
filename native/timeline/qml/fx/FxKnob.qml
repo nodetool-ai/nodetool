@@ -29,6 +29,7 @@ Item {
     readonly property string valueText: typeof def.fmt === "function" ? def.fmt(value) : value.toFixed(2)
     property real gestureNorm: norm
     property real lastY: 0
+    property bool cancelOnFocusLoss: false
     property bool dragging: false
     property bool editing: false
     implicitWidth: diameter
@@ -48,7 +49,7 @@ Item {
     }
     onEnabledChanged: if (!enabled) cancelGesture()
     function finishGesture() { editing = false; gestureEnd() }
-    onActiveFocusChanged: { if (!activeFocus) { if (dragging) cancelGesture(); else finishGesture() } }
+    onActiveFocusChanged: { if (!activeFocus) { if (dragging || cancelOnFocusLoss) cancelGesture(); else finishGesture() } }
     function nudge(delta) {
         editing = true
         gestureNorm = Math.min(1, Math.max(0, gestureNorm + delta))

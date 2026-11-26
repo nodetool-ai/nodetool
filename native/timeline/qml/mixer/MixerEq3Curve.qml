@@ -55,7 +55,7 @@ Ui.Surface {
             y: Curves.dbToY(root.display[modelData+"GainDb"],root.height)-height/2
             width:22; height:22; activeFocusOnTab:true; enabled:!root.disabled
             Accessible.role:Accessible.Slider; Accessible.name:modelData+" EQ band"
-            onActiveFocusChanged: if(!activeFocus) { if (enabled) root.finish(); else root.cancel() }
+            onActiveFocusChanged: if(!activeFocus) root.cancel()
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Escape) { root.cancel(); event.accepted=true; return }
                 var dir=[Qt.Key_Right,Qt.Key_Up].includes(event.key)?1:[Qt.Key_Left,Qt.Key_Down].includes(event.key)?-1:0

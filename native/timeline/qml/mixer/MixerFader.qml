@@ -20,6 +20,7 @@ FocusScope {
         id: fader
         objectName: "mixerFaderInput"
         focus: true
+        cancelOnFocusLoss: true
         anchors.fill: parent
         value: Taper.dbToFaderPosition(root.value)
         marks: Taper.FADER_MARKS.filter(mark => root.height > 160 || mark[0] === 0 || mark[0] === -120)

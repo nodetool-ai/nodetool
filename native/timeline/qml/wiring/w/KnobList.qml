@@ -37,6 +37,7 @@ Column {
                 elide: Text.ElideRight
             }
             FxKnob {
+                cancelOnFocusLoss: true
                 id: knob
                 objectName: "fx-knob-" + list.effect.id + "-" + row.modelData.key
                 x: label.width + Ui.Metrics.md + (parent.width - label.width - valueLabel.width - 2 * Ui.Metrics.md - width) / 2
