@@ -25,11 +25,12 @@ import {
   SPEC_ROWS,
 } from "@/data/gamedevPage";
 import PageUpdated from "@/components/PageUpdated";
+import { languageAlternates } from "@/i18n/routes";
 
 export const metadata: Metadata = {
   title: GAMEDEV_TITLE,
   description: GAMEDEV_DESCRIPTION,
-  alternates: { canonical: "/gamedev" },
+  alternates: { canonical: "/gamedev", languages: languageAlternates("/gamedev") },
   openGraph: { title: GAMEDEV_TITLE, description: GAMEDEV_DESCRIPTION, url: "https://nodetool.ai/gamedev", siteName: "NodeTool", type: "website", images: [{ url: "/games/kindle/poster.jpg", width: 1280, height: 720, alt: "Kindle, a platform adventure built in NodeTool" }] },
   twitter: { card: "summary_large_image", title: GAMEDEV_TITLE, description: GAMEDEV_DESCRIPTION, images: ["/games/kindle/poster.jpg"] }
 };

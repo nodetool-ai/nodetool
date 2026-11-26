@@ -20,13 +20,14 @@ import {
   SOURCES_CHECKED,
 } from "@/data/gameEngineComparison";
 import PageUpdated from "@/components/PageUpdated";
+import { languageAlternates } from "@/i18n/routes";
 
 const PAGE_TITLE = `${COMPARISON_TITLE} | NodeTool`;
 
 export const metadata: Metadata = {
   title: PAGE_TITLE,
   description: COMPARISON_DESCRIPTION,
-  alternates: { canonical: "/gamedev/ai-game-engines" },
+  alternates: { canonical: "/gamedev/ai-game-engines", languages: languageAlternates("/gamedev/ai-game-engines") },
   openGraph: { title: PAGE_TITLE, description: COMPARISON_DESCRIPTION, url: "https://nodetool.ai/gamedev/ai-game-engines", siteName: "NodeTool", type: "article", images: DEFAULT_OG_IMAGES },
   twitter: { card: "summary_large_image", title: PAGE_TITLE, description: COMPARISON_DESCRIPTION },
 };

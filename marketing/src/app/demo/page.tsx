@@ -8,6 +8,7 @@ import NodeEditorDemo from "../../components/NodeEditorDemo";
 import TimelineEditorDemo from "../../components/TimelineEditorDemo";
 import { breadcrumbSchema } from "@/lib/jsonld";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
+import { languageAlternates } from "@/i18n/routes";
 
 const TITLE = "Try NodeTool in your browser: timeline and node editor demos";
 const DESCRIPTION =
@@ -16,7 +17,7 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
-  alternates: { canonical: "/demo" },
+  alternates: { canonical: "/demo", languages: languageAlternates("/demo") },
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,

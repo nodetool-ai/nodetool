@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { MousePointerClick } from "lucide-react";
 import { useNearViewport } from "../lib/useNearViewport";
+import type { EditorDemoCopy } from "@/i18n/content";
 
 /**
  * The real timeline editor from the app, built read-only into
@@ -21,7 +22,18 @@ const DEMO_FILMS = [
 
 type DemoSlug = (typeof DEMO_FILMS)[number]["slug"];
 
-export default function TimelineEditorDemo() {
+const ENGLISH_COPY: EditorDemoCopy = {
+  title: "Try the timeline editor.",
+  intro:
+    "This is the editor from Studio, running in your browser with one of NodeTool's example films. Play it, drag the playhead, zoom the tracks, and select a layer. Changes don't stick here.",
+  open: "Open {film} in the editor",
+  frameTitle: "{film} open in NodeTool's timeline editor (read-only demo)",
+  note: "The editor loads about 3 MB when you open it. It plays smoothest in a browser with WebGPU.",
+  filmPicker: "Timeline to open",
+};
+
+/** Translated pages pass their own words (i18n/content.ts). */
+export default function TimelineEditorDemo({ copy = ENGLISH_COPY }: { copy?: EditorDemoCopy } = {}) {
   const [slug, setSlug] = useState<DemoSlug>("kite");
   const [opened, setOpened] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -42,15 +54,11 @@ export default function TimelineEditorDemo() {
               id="timeline-demo-title"
               className="text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
             >
-              Try the timeline editor.
+              {copy.title}
             </h2>
-            <p className="mt-5 text-lg leading-relaxed text-slate-300">
-              This is the editor from Studio, running in your browser with one of
-              NodeTool&apos;s example films. Play it, drag the playhead, zoom the tracks, and
-              select a layer. Changes don&apos;t stick here.
-            </p>
+            <p className="mt-5 text-lg leading-relaxed text-slate-300">{copy.intro}</p>
           </div>
-          <div className="flex gap-2" role="group" aria-label="Timeline to open">
+          <div className="flex gap-2" role="group" aria-label={copy.filmPicker ?? ENGLISH_COPY.filmPicker}>
             {DEMO_FILMS.map((entry) => (
               <button
                 key={entry.slug}
@@ -71,7 +79,7 @@ export default function TimelineEditorDemo() {
             <iframe
               key={film.slug}
               src={`${EMBED_SRC}?film=${film.slug}`}
-              title={`${film.name} open in NodeTool's timeline editor (read-only demo)`}
+              title={copy.frameTitle.replace("{film}", film.name)}
               className="h-full w-full"
               allow="autoplay; fullscreen"
             />
@@ -93,16 +101,13 @@ export default function TimelineEditorDemo() {
                   className="focus-ring inline-flex min-h-12 items-center gap-2 rounded-full bg-slate-100 px-6 py-3 text-sm font-semibold text-slate-950 shadow-lg hover:bg-white"
                 >
                   <MousePointerClick className="h-5 w-5" aria-hidden="true" />
-                  Open {film.name} in the editor
+                  {copy.open.replace("{film}", film.name)}
                 </button>
               </div>
             </>
           )}
         </div>
-        <p className="mt-3 text-sm text-slate-400">
-          The editor loads about 3 MB when you open it. It plays smoothest in a
-          browser with WebGPU.
-        </p>
+        <p className="mt-3 text-sm text-slate-400">{copy.note}</p>
       </div>
     </section>
   );
