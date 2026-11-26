@@ -19,7 +19,7 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "chart.js": "^4.5.1",
+    "chart.js": "4.6.1",
     "papaparse": "^5.5.3"
   },
   "devDependencies": {
