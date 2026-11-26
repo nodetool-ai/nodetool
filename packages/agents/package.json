@@ -34,6 +34,7 @@
     "@nodetool-ai/model-pricing": "*",
     "@nodetool-ai/model3d": "*",
     "@nodetool-ai/models": "*",
+    "@nodetool-ai/search-services": "*",
     "@nodetool-ai/node-catalog": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",

@@ -262,6 +262,7 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("Anthropic")).toBe("https://console.anthropic.com");
       expect(getProviderUrl("gemini")).toBe("https://ai.google.dev");
       expect(getProviderUrl("google")).toBe("https://ai.google.dev");
+      expect(getProviderUrl("google_flow")).toBe("https://flow.google.com");
       expect(getProviderUrl("replicate")).toBe("https://replicate.com");
       expect(getProviderUrl("Replicate")).toBe("https://replicate.com");
       expect(getProviderUrl("meshy")).toBe("https://www.meshy.ai");
@@ -455,6 +456,9 @@ describe("providerDisplay", () => {
       );
       expect(getModelUrl("google", "gemini-pro")).toBe(
         "https://ai.google.dev/models"
+      );
+      expect(getModelUrl("google_flow", "veo-3.1-lite")).toBe(
+        "https://flow.google.com"
       );
     });
 

@@ -26,6 +26,7 @@ import {
 } from "@nodetool-ai/protocol";
 import { setPackSnapshot } from "./pack-snapshot.js";
 import { refreshSandboxCatalog } from "./sandbox-catalog.js";
+import { installExternalMcpResolver } from "./external-mcp.js";
 import { loadBundledPackSource, type PackSource } from "./pack-source.js";
 
 const registrySources = new WeakMap<NodeRegistry, PackSource>();
@@ -244,6 +245,7 @@ export async function bootstrapNodeRegistry(
   options: BootstrapRegistryOptions = {}
 ): Promise<NodeRegistry> {
   const registry = new NodeRegistry();
+  installExternalMcpResolver();
   if (!options.packSource?.explicitSelection) {
     registry.loadPythonMetadata({
       roots: options.metadataRoots,

@@ -44,7 +44,9 @@ const TIMELINE_ASSISTANT_SERVER_TOOLS: ReadonlySet<string> = new Set([
   "list_threads",
   "get_thread",
   "get_message",
-  // Asset lookup, without decoding.
+  // Library and asset lookup, without decoding.
+  "search",
+  "search_read",
   "asset_search",
   "asset_list",
   "list_assets",

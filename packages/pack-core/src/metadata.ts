@@ -1,4 +1,4 @@
-import type { InputMode, NodeEffect, OutputCorrelation, Platform } from "@nodetool-ai/protocol";
+import type { InputMode, NodeEffect, OutputCorrelation, Platform, Property } from "@nodetool-ai/protocol";
 
 export interface TypeMetadata {
   type: string;
@@ -17,7 +17,7 @@ export interface PropertyMetadata {
   min?: number | null;
   max?: number | null;
   values?: Array<string | number> | null;
-  json_schema_extra?: Record<string, unknown> | null;
+  json_schema_extra?: Property["json_schema_extra"];
   required?: boolean;
 }
 
@@ -128,7 +128,7 @@ export interface PropOptions {
   max?: number;
   required?: boolean;
   values?: Array<string | number>;
-  json_schema_extra?: Record<string, unknown>;
+  json_schema_extra?: NonNullable<Property["json_schema_extra"]>;
 }
 
 export interface DeclaredPropertyMetadata {

@@ -436,7 +436,7 @@ While at least one connection has a project open, the server watches that
 project's folder and updates the asset index within seconds of a change made
 by another app. It stops watching when no connection has the project open. A
 folder in object storage is not watched. See
-[the asset index follows the folder](workspaces.md#the-asset-index-follows-the-folder).
+[the asset index follows the folder](developer/project-folders.md#the-asset-index-follows-the-folder).
 
 ```json
 { "command": "set_open_project", "data": { "project_id": "<project-id>" } }

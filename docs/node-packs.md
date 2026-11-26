@@ -142,7 +142,7 @@ Browse the full node library in the [Node Reference](nodes/).
 
 1. Build the pack as described in the [Custom Nodes Guide](developer/custom-nodes-guide.md).
 2. Publish it to npm or provide a Git URL.
-3. To offer a Python pack in the Package Manager, publish it to PyPI and add it to `PYTHON_NODE_PACKS` in `packages/protocol/src/python-packs.ts`. `nodetool package list --available` prints the same list.
+3. To offer a Python pack in the Package Manager, publish it to PyPI and add it to `PYTHON_NODE_PACKS` in `packages/protocol/src/python-packs.ts`. `nodetool package list --available` prints the same list. When the pack imports an engine that is not on PyPI, list the engine in the entry's `requirements` as a direct reference to a commit archive. The Package Manager installs it in the same command as the pack.
 
 
 ## Next Steps

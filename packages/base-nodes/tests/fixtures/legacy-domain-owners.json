@@ -224,6 +224,7 @@
     "nodetool.triggers.Wait",
     "nodetool.triggers.ManualTrigger",
     "nodetool.triggers.IntervalTrigger",
+    "nodetool.triggers.ScheduleTrigger",
     "nodetool.triggers.WebhookTrigger",
     "nodetool.triggers.FileWatchTrigger",
     "lib.sqlite.GetDatabasePath",
@@ -494,6 +495,7 @@
     "lib.wan2gp.Generate",
     "lib.wan2gp.ListModels",
     "messaging.discord.DiscordBotTrigger",
-    "messaging.telegram.TelegramBotTrigger"
+    "messaging.telegram.TelegramBotTrigger",
+    "lib.mcp.CallMcpTool"
   ]
 }

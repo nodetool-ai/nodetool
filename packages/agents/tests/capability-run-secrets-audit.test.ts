@@ -103,6 +103,14 @@ const OMITS_SECRET_RESOLVER: Record<string, { reason: string; sites: number }> =
       reason: "document belt validates no graph",
       sites: 1
     },
+    "packages/agents/src/workflow-external-mcp.ts": {
+      reason:
+        "the belt holds only the run owner's external MCP tools and never " +
+        "validate_workflow, so no graph is validated and no missing_secret " +
+        "warning could be reported. A server's own credentials are resolved " +
+        "by the MCP client pool, not by this run",
+      sites: 1
+    },
     "packages/websocket/src/finetune/families/capabilities.ts": {
       reason:
         "fine-tuning world seeding and reference solutions: workflow, memory " +

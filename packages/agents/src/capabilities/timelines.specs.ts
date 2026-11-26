@@ -32,7 +32,7 @@ export const LIST_TIMELINES_SCHEMA: JsonSchema = {
     query: {
       type: "string",
       description:
-        "Only timelines whose name contains this text (case-insensitive)."
+        "Only timelines matching these words in the name, tags or clip text, best match first."
     },
     limit: {
       type: "number",

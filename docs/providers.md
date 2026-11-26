@@ -441,7 +441,7 @@ When a missing provider blocks you (a model dropdown, a node warning, the gettin
 
 ![Models & Providers settings](assets/screenshots/settings-providers-test.png)
 
-NodeTool stores every key encrypted in a local database, not in a plaintext config file. See [Configuration](configuration.md#secret-storage-and-master-key) for how the encryption key is managed.
+NodeTool stores every key encrypted in a local database, not in a plaintext config file. See [Server Configuration](server-configuration.md#secret-storage-and-master-key) for how the encryption key is managed.
 
 From the command line:
 
@@ -451,7 +451,7 @@ nodetool secrets list                   # list stored keys (values are never sho
 nodetool secrets get OPENAI_API_KEY     # print a stored value
 ```
 
-You can also set the variable in `.env.development.local` or your shell. A secret stored in NodeTool wins over an environment variable of the same name, and the environment variable is the fallback when nothing is stored. `FAL_KEY` is accepted in place of `FAL_API_KEY`. See [Configuration](configuration.md) for the full load order.
+You can also set the variable in `.env.development.local` or your shell. A secret stored in NodeTool wins over an environment variable of the same name, and the environment variable is the fallback when nothing is stored. `FAL_KEY` is accepted in place of `FAL_API_KEY`. See [Environment files](server-configuration.md#environment-files) for the full load order.
 
 Local providers (Ollama, vLLM, LM Studio, llama.cpp) take a server address instead of a key. Set it under **Settings → Integrations → Local Model Servers**. In NodeTool's hosted cloud these providers are not available. Self-hosting? See [Provider details for contributors](developer/providers/index.md#provider-details-for-contributors) for the environment variables.
 

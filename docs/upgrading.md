@@ -21,7 +21,7 @@ Stop NodeTool, then copy:
 
 The data directory is `~/.local/share/nodetool/` on macOS and Linux (or `$XDG_DATA_HOME/nodetool/`) and `%APPDATA%\nodetool\` on Windows. Vaults sit under `~/.local/share/nodetool/vaults/` on macOS and Linux and `%LOCALAPPDATA%\nodetool\vaults\` on Windows. See [Where your data lives](desktop-app.md#where-your-data-lives) for the full table.
 
-Stored provider keys are in the database, encrypted with a master key. The master key is in your operating system keychain unless `SECRETS_MASTER_KEY` is set. A database restored on another machine decrypts only where the master key has the same value, so keep a copy of `SECRETS_MASTER_KEY` if you set one. See [Secret Storage and Master Key](configuration.md#secret-storage-and-master-key).
+Stored provider keys are in the database, encrypted with a master key. The master key is in your operating system keychain unless `SECRETS_MASTER_KEY` is set. A database restored on another machine decrypts only where the master key has the same value, so keep a copy of `SECRETS_MASTER_KEY` if you set one. See [Secret Storage and Master Key](server-configuration.md#secret-storage-and-master-key).
 
 Export the workflows you cannot afford to lose as a second copy. The API serves a `.nodetool` bundle at `GET /api/workflows/{id}/export-bundle`. See [API Reference](api-reference.md).
 
@@ -130,4 +130,4 @@ nodetool db migrate --direct-url "$DIRECT_URL"
 - [Changelog](changelog.md) for what changed in recent releases
 - [Desktop App](desktop-app.md) for settings and data locations
 - [Self-Hosted Deployment](self-hosted-deployment.md) for Docker setup
-- [Configuration](configuration.md) for storage and secrets variables
+- [Server Configuration](server-configuration.md) for storage and secrets variables

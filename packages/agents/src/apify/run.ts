@@ -249,8 +249,8 @@ export async function resolveApifyToken(
   }
   throw new ApifyError(
     "auth",
-    "No Apify API token is configured. Add APIFY_API_TOKEN in Settings → " +
-      "Secrets (get one at https://console.apify.com/account/integrations)."
+    "No Apify API token is configured. Add APIFY_API_TOKEN in " +
+      "Settings → Models & providers → Web search (get one at https://console.apify.com/account/integrations)."
   );
 }
 

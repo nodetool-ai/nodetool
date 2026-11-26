@@ -60,7 +60,13 @@ export {
   externalIdentities,
   userEvents,
   analyticsEvents,
-  analyticsDaily
+  analyticsDaily,
+  applications,
+  games,
+  scripts,
+  jsScripts,
+  searchItems,
+  searchChunks
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────

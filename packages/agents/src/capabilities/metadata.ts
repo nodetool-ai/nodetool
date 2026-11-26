@@ -33,6 +33,7 @@ import { nodesSpecs } from "./nodes.specs.js";
 import { packsSpecs } from "./packs.specs.js";
 import { projectsSpecs } from "./projects.specs.js";
 import { scriptsSpecs } from "./scripts.specs.js";
+import { searchSpecs } from "./search.specs.js";
 import { serpApiSpecs } from "./serpapi.specs.js";
 import { settingsSpecs } from "./settings.specs.js";
 import { sharedSpecs } from "./shared.specs.js";
@@ -55,6 +56,7 @@ export const CAPABILITY_SPECS = {
   media: mediaSpecs,
   collections: collectionsSpecs,
   costs: costsSpecs,
+  search: searchSpecs,
   workers: workersSpecs,
   nodes: nodesSpecs,
   jobs: jobsSpecs,

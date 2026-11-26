@@ -612,6 +612,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Revision history of the person's Markdown documents. Authored content, deleted on request and exported in full."
   },
   {
+    table: "nodetool_search_items",
+    schemaExport: "searchItems",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The library search index: one row per asset or document, copying its name, prompt, tags and other metadata. Deleted on request. Not exported, because it is derived from the asset and document rows the export already holds."
+  },
+  {
+    table: "nodetool_search_chunks",
+    schemaExport: "searchChunks",
+    disposition: "delete",
+    reach: { kind: "indirect", column: "item_id", parent: "nodetool_search_items" },
+    exported: false,
+    justification:
+      "Passages of text from the person's assets and documents, kept for search. Deleted with the person's index items. Not exported, because the text is a copy of content the export already holds."
+  },
+  {
     table: "image_documents",
     schemaExport: "imageDocuments",
     disposition: "delete",

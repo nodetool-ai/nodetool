@@ -78,5 +78,5 @@ summarizes both. The combined GPU image is for free, non-monetized use only. See
 
 - [Wan2GP Server](wan2gp-server.md): run Wan2GP yourself, GPU image, task mapping
 - [Supported Models](models.md): local engines and hardware
-- [Configuration](configuration.md): `WAN2GP_MCP_URL` and `WAN2GP_MCP_TOKEN`
+- [Environment Variables](environment-variables.md): `WAN2GP_MCP_URL` and `WAN2GP_MCP_TOKEN`
 - [Node reference](nodes/lib/wan2gp/): the `lib.wan2gp` nodes

@@ -42,7 +42,7 @@ Yes. Install Ollama from [ollama.com](https://ollama.com), pull a model with `ol
 ## Data and privacy
 
 ### Where are my files stored?
-On the desktop, the database, assets, and vector store live in `~/.local/share/nodetool/` on macOS and Linux and in `%APPDATA%\nodetool\` on Windows. See [Where your data lives](desktop-app.md#where-your-data-lives).
+On the desktop, each project is a folder on your disk, `~/NodeTool/<project name>` by default. Its workflows, timelines, documents, generated media and uploads are files in it. See [Project folders](workspaces.md). The database, thumbnails and vector store live in `~/.local/share/nodetool/` on macOS and Linux and in `%APPDATA%\nodetool\` on Windows. See [Where your data lives](desktop-app.md#where-your-data-lives). On NodeTool Cloud, project folders are in cloud storage.
 
 ### Does my data leave my machine?
 Only when a node calls a cloud provider you configured, when you download something, or when you turn on an optional feature such as update checks. See [Privacy and Data Handling](privacy.md).

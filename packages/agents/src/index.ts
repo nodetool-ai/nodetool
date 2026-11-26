@@ -1043,14 +1043,21 @@ export type {
   RunJobSuiteOptions
 } from "./jtbd/index.js";
 export {
+  mcpToolsMentioned,
+  workflowExternalMcp,
+  type WorkflowExternalMcp
+} from "./workflow-external-mcp.js";
+export {
   ExternalMcpTool,
   McpClientPool,
+  externalMcpBeltTools,
   getCachedExternalMcpTools,
   getExternalMcpTools,
   normalizeCallResult
 } from "./tools/external-mcp-tools.js";
 export type {
   McpCallResult,
+  McpCaller,
   McpClientPoolOptions,
   McpConnectError,
   McpRemoteTool,

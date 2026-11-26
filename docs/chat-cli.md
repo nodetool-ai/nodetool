@@ -6,7 +6,13 @@ description: "Use `nodetool chat`, the interactive terminal for conversing with 
 
 
 
-`nodetool chat` starts an interactive terminal chat that runs the agent loop with tools. `nodetool chat` forwards its flags to the `nodetool-chat` binary, so both names start the same interface.
+`nodetool chat` starts an interactive terminal chat with the NodeTool agent and its tools. `nodetool-chat` starts the same interface.
+
+Chat ships in the `cli-chat` command feature. Install it once:
+
+```bash
+nodetool packs add cli-chat --yes
+```
 
 ## Starting the Interface
 
@@ -30,12 +36,10 @@ The header shows the provider and model. The line under it shows the workspace, 
 - `--permission-mode <default|auto|plan>` — how tool calls are gated. Interactive chat defaults to `default`, piped input to `auto`.
 - `--cost-cap <usd>` — ceiling on provider spend for one turn. `0` lifts it. Default: `NODETOOL_AGENT_TURN_COST_CAP_USD`.
 - `--timeout <s>` — wall-clock bound on one turn, in seconds. Default: `NODETOOL_AGENT_TURN_DEADLINE_MS`.
-- `--no-read-only-search` — remove the read-only `run_search` fan-out tool, which is on by default.
+- `--no-read-only-search` — stop the agent from handing searches of your workspace files, memory, and assets to a read-only helper agent. On by default.
 - `--trace-file <path>`, `--trace-stdout [format]`, `--no-trace-stdout` — tracing. Fullscreen chat owns stdout, so use `--trace-file`.
 
 The full flag reference is in the [CLI reference](cli.md#nodetool-chat).
-
-> The `--agent` flag is deprecated and has no effect — the unified chat agent always runs.
 
 ## Slash Commands
 
@@ -70,8 +74,8 @@ When stdin is not a terminal, chat reads one message per line and writes the ans
 
 ## Sessions
 
-Sessions save under `~/.nodetool/chat-sessions/` after each turn and on exit. They hold the conversation context and the
-provider's continuation state. `/sessions` and `--resume` list only sessions that match the current workspace and server.
+Sessions save under `~/.nodetool/chat-sessions/` after each turn and on exit. They hold the conversation, so a resumed session
+picks up where it stopped. `/sessions` and `--resume` list only sessions that match the current workspace and server.
 
 ## Tools
 

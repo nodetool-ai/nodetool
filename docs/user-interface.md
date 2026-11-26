@@ -11,17 +11,17 @@ New here? Start with [Getting Started](getting-started.md).
 | View | What it is | Docs |
 |---|---|---|
 | **Workspace** | Where the app opens: your tabs, or the new-project surface when you have none | [Getting Started](getting-started.md) |
-| **Projects** — rail button | Documents grouped by the job they belong to, with their own agent | [Projects](projects.md) |
+| **Projects** — rail button | One folder per job, holding its documents and media, with its own agent | [Projects](projects.md) |
 | **Workflow Editor** — workspace tab | The node canvas, with panels on every edge | [Workflow Editor](workflow-editor.md) · [Panels](editor-panels.md) |
 | **Chain Editor** — Graph / Chain switch | Linear card pipeline instead of a graph | [Chain Editor](chain-editor.md) |
 | **Chat** — Chats panel | Threads open as workspace tabs; the agent edits what you have open | [Chat](global-chat.md) |
 | **Mini-Apps** — Documents panel | A form over one or more workflows | [Mini Apps](mini-apps.md) |
 | **Assets** — More panel | Every file your workflows touch | [Assets](asset-management.md) · [Sketch Editor](sketch-editor.md) |
 | **Video Editor** — workspace tab | Multi-track timeline; clips can be live workflow outputs | [Video Editor](video-editor.md) |
-| **Collections** — More panel | Searchable document collections | [Collections](collections.md) · [Indexing](indexing.md) |
+| **Collections** — More panel | Searchable document collections | [Collections](collections.md) |
 | **Examples** — workspace tab | Ready-to-run workflows, apps, storyboards, timelines, and games | [Templates Gallery](templates-gallery.md) |
 | **Model Manager** — More panel | Find, install, and manage local and cloud models | [Models Manager](models-manager.md) |
-| **Settings** — workspace tab | API keys, folders, secrets, remote | [Configuration](configuration.md) · [Providers](models-and-providers.md) |
+| **Settings** — workspace tab | API keys, folders, secrets, remote | [Settings](configuration.md) · [Providers](models-and-providers.md) |
 
 The logo at the top of the left rail opens the app menu: **Settings**, **Help**,
 and **Downloads**. Settings opens as a workspace tab.
@@ -39,14 +39,18 @@ The [mobile app](mobile-app.md) has its own Chat, Mini-Apps, and Graph Editor. T
 
 ## Projects
 
-A project is a name over the documents that belong to one job, such as a board,
-a script, a cut, or the key art. The **Project** selector at the left of the tab
-bar switches the active project, and new documents land in it.
+A project is a folder that holds the documents and media of one job, such as a
+board, a script, a cut, or the key art. In the desktop app it is a real folder on
+your disk, `~/NodeTool/<project name>` by default. On NodeTool Cloud it is a
+folder in cloud storage. The **Files** section of the left panel shows it. The
+**Project** selector at the left of the tab bar switches the active project, and
+new documents land in it as files.
 
 ![Projects list](assets/screenshots/project-list.png)
 
 See [Projects](projects.md) for the project list, starting a project, filing and
-copying documents, and archiving or deleting.
+copying documents, and archiving or deleting, and [Project folders](workspaces.md)
+for what each file in the folder is.
 
 ---
 

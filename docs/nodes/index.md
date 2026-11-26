@@ -5,7 +5,7 @@ title: "Node Reference"
 
 A node is one step in a NodeTool workflow. It takes inputs, does one job such as calling a model, resizing an image or branching on a condition, and passes the result to the next node. This reference is generated from the node registry. Each node page shows the node type, its properties with their types, descriptions and defaults, and its outputs.
 
-The reference covers 559 nodes in 85 namespaces, grouped below by what you work with.
+The reference covers 561 nodes in 86 namespaces, grouped below by what you work with.
 
 ## Text and LLMs
 
@@ -119,7 +119,7 @@ Branch, loop, trigger and reuse parts of a workflow.
 | Namespace | What it does | Nodes |
 |---|---|---|
 | [nodetool.control](nodetool/control/) | Branching, loops, filtering, fallbacks, error handling and stream operators such as zip, take and collect. | 25 |
-| [nodetool.triggers](nodetool/triggers/) | Start a workflow from a file change, interval, webhook or manual run. | 5 |
+| [nodetool.triggers](nodetool/triggers/) | Start a workflow from a file change, interval, webhook or manual run. | 6 |
 | [nodetool.workflows.app_node](nodetool/workflows/app_node/) | Embed a mini app in a workflow. | 1 |
 | [nodetool.workflows.base_node](nodetool/workflows/base_node/) | Preview a value on the canvas. | 1 |
 | [nodetool.workflows.subgraph](nodetool/workflows/subgraph/) | Group part of a workflow into a reusable subgraph. | 1 |
@@ -165,6 +165,7 @@ Namespaces not yet assigned to a group.
 
 | Namespace | What it does | Nodes |
 |---|---|---|
+| [lib.mcp](lib/mcp/) |  | 1 |
 | [nodetool.blender](nodetool/blender/) |  | 5 |
 | [nodetool.entity](nodetool/entity/) |  | 3 |
 | [nodetool.storyboard](nodetool/storyboard/) |  | 7 |

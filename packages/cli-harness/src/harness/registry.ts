@@ -211,6 +211,15 @@ const ASSET_EDITOR_TOOL_SUITES =
  * protocol's storyboard schema. It lives in the agents suite because `mobile/`
  * is not a root workspace.
  */
+/**
+ * The library search harness (docs/plans/library-search.md, D29): the index,
+ * the indexer and its extractors, and the retrieval eval, on SQLite and on
+ * PGlite with the production PostgreSQL migrations. No model and no network.
+ */
+const LIBRARY_SEARCH_SUITES =
+  "npm run test --workspace=packages/search-services && " +
+  "npm run test --workspace=packages/agents -- capabilities-search";
+
 const MOBILE_DOCUMENT_TOOL_SUITES =
   "npm run test --workspace=packages/agents -- mobile-storyboard-tool-loop";
 
@@ -843,6 +852,16 @@ export const HARNESSES: HarnessEntry[] = [
     agentTool: "ui_audio_edit",
     docs: "packages/agents/docs/evals.md § Tool-loop eval suites",
     selfcheck: { command: ASSET_EDITOR_TOOL_SUITES, cost: "cheap" }
+  },
+  {
+    id: "library-search",
+    title: "Library search (index, indexer, extractors, retrieval eval, search tools)",
+    command: LIBRARY_SEARCH_SUITES,
+    kind: "execution",
+    capabilities: ["no-db"],
+    agentTool: "search",
+    docs: "packages/search-services/README.md",
+    selfcheck: { command: LIBRARY_SEARCH_SUITES, cost: "cheap" }
   },
   {
     id: "mobile-document-tools",
@@ -1925,6 +1944,23 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-harness/src/harness/capability-table.ts",
       "packages/cli-harness/src/harness/capability-coverage.ts",
       "scripts/sync-capability-coverage.mjs"
+    ]
+  },
+  {
+    id: "library-search",
+    title: "Library search (the index, the indexer process, search and search_read)",
+    harnesses: ["library-search", "eval", "jtbd"],
+    paths: [
+      "packages/search-services/",
+      "packages/protocol/src/search-metadata.ts",
+      "packages/models/src/schema/search-index.ts",
+      "packages/models/src/schema-pg/search-index.ts",
+      "packages/websocket/src/search-indexer.ts",
+      "packages/agents/src/capabilities/search.ts",
+      "packages/agents/src/capabilities/search.specs.ts",
+      "packages/agents/src/capabilities/library-matches.ts",
+      "packages/agents/src/evals/surfaces/library.ts",
+      "packages/agents/src/evals/codeact-api-search.ts"
     ]
   },
   {

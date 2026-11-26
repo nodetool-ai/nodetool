@@ -779,6 +779,14 @@ describe("_matchesModelType", () => {
       expect(_matchesModelType(model, "hf.lora_sd")).toBe(true);
     });
 
+    it("matches an LTX LoRA by its keywords", () => {
+      const model = hfModel({
+        repo_id: "Lightricks/LTX-2.3-22b-IC-LoRA-Union-Control",
+        path: "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors"
+      });
+      expect(_matchesModelType(model, "hf.lora_ltx")).toBe(true);
+    });
+
     it("falls back to the derived pipeline tag", () => {
       const model = hfModel({
         repo_id: "org/mystery",

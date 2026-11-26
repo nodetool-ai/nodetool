@@ -25,7 +25,7 @@ The Docker host has no IPv6 route to Supabase's direct endpoint, so a direct
 `DATABASE_URL` can continue to use transaction pooling for ordinary writes.
 Allow one additional database connection per replica and apply the
 `resource_change_outbox` migration before deploying the server. See
-[configuration](configuration.md#cross-instance-resource-changes) for payload
+[configuration](server-configuration.md#cross-instance-resource-changes) for payload
 limits, retention, and reconnect behavior.
 
 After deployment, keep a browser on one replica and force an MCP client onto

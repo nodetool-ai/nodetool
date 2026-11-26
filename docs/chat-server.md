@@ -1,23 +1,27 @@
 ---
 layout: page
 title: "Serving Chat (OpenAI-Compatible API)"
-description: "Serve chat over an OpenAI-compatible HTTP API with `nodetool serve`."
+description: "Serve chat over an OpenAI-compatible HTTP API with `nodetool server serve`."
 ---
 
-
-
-There is no separate `chat-server` command. To serve chat over HTTP, run the NodeTool server with `nodetool serve`. It
-listens on `127.0.0.1:7777` by default and exposes an **OpenAI-compatible** chat API alongside the WebSocket endpoint.
+`nodetool server serve` starts the full NodeTool server, which exposes an
+**OpenAI-compatible** chat API on `127.0.0.1:7777` by default.
 
 ## Quick Start
 
 ```bash
+# Add the server feature (once)
+nodetool packs add cli-server --yes
+
 # Start the server (default 127.0.0.1:7777)
-nodetool serve
+nodetool server serve
 
 # Bind all interfaces on a custom port
-nodetool serve --host 0.0.0.0 --port 8080
+nodetool server serve --host 0.0.0.0 --port 8080
 ```
+
+The lean `nodetool serve` server has no `/v1` routes. See
+[API Server Overview](api-server.md) for the difference.
 
 The server provides:
 
@@ -92,5 +96,5 @@ Because the endpoint is OpenAI-compatible, any OpenAI client SDK works by pointi
 ## See Also
 
 - [Chat API](chat-api.md) — Full request/response schemas, streaming, and tool calls.
-- [NodeTool CLI](cli.md) — `nodetool serve` options.
+- [API Server Overview](api-server.md) — `nodetool server serve` options, environment variables, and health checks.
 - [Deployment Guide](deployment.md) — Running the server in production.

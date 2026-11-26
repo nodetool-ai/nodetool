@@ -54,7 +54,9 @@ Locations come from the app's code. Replace `~` with your home folder.
 
 | What | macOS and Linux | Windows |
 |------|-----------------|---------|
-| Database, assets, and vector store | `~/.local/share/nodetool/` (or `$XDG_DATA_HOME/nodetool/`) | `%APPDATA%\nodetool\` |
+| Project folders: workflows, timelines, documents, generated media, uploads | `~/NodeTool/<project name>/`, or where you chose. See [Project folders](workspaces.md) | `%USERPROFILE%\NodeTool\<project name>\` |
+| Personal project folder | `~/.local/share/nodetool/workspaces/` | `%APPDATA%\nodetool\workspaces\` |
+| Database, thumbnails, and vector store | `~/.local/share/nodetool/` (or `$XDG_DATA_HOME/nodetool/`) | `%APPDATA%\nodetool\` |
 | App settings (`settings.yaml`) | `~/.config/nodetool/` | `%APPDATA%\nodetool\` |
 | Log file | `~/.local/share/nodetool/logs/nodetool.log` | `%LOCALAPPDATA%\nodetool\logs\nodetool.log` |
 | Vaults | `~/.local/share/nodetool/vaults/<id>/` | `%LOCALAPPDATA%\nodetool\vaults\<id>\` |
@@ -104,7 +106,7 @@ Use **Tools → Log Viewer** to read the server log in the app, or **Open Log Fi
 
 ## Uninstalling
 
-Uninstalling removes the application files only. Your data, settings, logs, and Python environment stay on disk, and the Windows uninstaller keeps them on purpose. See [Uninstalling](installation.md#uninstalling). To remove everything, also delete the folders in [Where your data lives](#where-your-data-lives).
+Uninstalling removes the application files only. Your project folders, data, settings, logs, and Python environment stay on disk, and the Windows uninstaller keeps them on purpose. See [Uninstalling](installation.md#uninstalling). To remove everything, also delete the folders in [Where your data lives](#where-your-data-lives).
 
 ---
 
@@ -113,4 +115,4 @@ Uninstalling removes the application files only. Your data, settings, logs, and 
 - [Installation](installation.md)
 - [Desktop App Views](electron-views.md)
 - [Self-Hosted Deployment](self-hosted-deployment.md) for running the server without the desktop app
-- [Configuration](configuration.md)
+- [Settings](configuration.md)

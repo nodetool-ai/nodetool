@@ -39,10 +39,14 @@ of model ids instead.
 An aggregator often lists chat, image and video models side by side. Each
 listed model goes to the matching node pickers:
 
-- A vendor field decides first. A `type`, `model_type`, `task`, `category` or
-  `mode` naming image or video counts, as does OpenRouter-style
-  `output_modalities`. A model whose output is image and text stays a chat
-  model.
+- An exact `capability` of `text_to_image`, `image_to_image`,
+  `text_to_video` or `image_to_video` decides the picker and advertises only
+  that task. Image and video rows with a missing or different `capability`,
+  including hand-written model lists, continue to advertise both directions.
+- Other vendor fields decide the media kind next. A `type`, `model_type`,
+  `task`, `category` or `mode` naming image or video counts, as does
+  OpenRouter-style `output_modalities`. A model whose output is image and text
+  stays a chat model.
 - Otherwise the id decides. Family names such as `flux`, `dall-e`, `seedream`
   and `imagen` mean image, and `kling`, `veo`, `sora` and `seedance` mean
   video. A model classified only by its id also stays in the chat picker, so a
@@ -54,14 +58,45 @@ listed model goes to the matching node pickers:
 Image models call `POST <base_url>/images/generations` and `/images/edits`
 with the requested size passed through unchanged. Video models call the
 OpenAI video API: `POST <base_url>/videos`, then poll until the clip is done.
-No resolution or duration limits are declared, so the node's own options
-apply. **Test** reports how many chat, image and video models the endpoint
-serves, and runs on its own after each save.
+**Test** reports how many chat, image and video models the endpoint serves,
+and runs on its own after each save.
+
+A listing row may also declare the request shapes the model accepts. Every
+field is optional:
+
+| Field | Value | Applies to |
+|-------|-------|------------|
+| `sizes` | `"<width>x<height>"` strings, such as `"768x768"` | image, video |
+| `aspect_ratios` | `"<w>:<h>"` strings, such as `"16:9"` | image, video |
+| `resolutions` | preset names, such as `"1K"` or `"720p"` | image, video |
+| `durations` | clip lengths in seconds, such as `[5, 10]` | video |
+| `max_input_images` | the most source images an edit takes | image |
+
+```json
+{ "id": "example-t2i", "type": "image", "capability": "text_to_image", "sizes": ["768x768"] }
+```
+
+A declared field narrows the picker: aspect ratios come from `aspect_ratios`,
+or from the ratios of `sizes`, and video resolutions from `resolutions`, or
+from the short side of each size (`1280x720` is `720p`). NodeTool refuses a
+request outside the declared values before it calls the endpoint, and the
+error lists what the model accepts. It never sends a different size or
+duration in its place. For video, the requested aspect ratio and resolution
+must name one declared size, and that exact size and duration are sent
+instead of the snapping the OpenAI video API needs. A value the request
+leaves unset takes the first declared one.
+
+A missing or malformed field declares nothing, and the request goes out
+unchanged with the node's own options, as it does for endpoints that send no
+profile. A hand-written model list carries no profile. An id marked in the
+**Image models** or **Video models** field keeps the profile its listing row
+declares.
 
 | What | Path |
 |------|------|
 | Ids, secret names, validation | `packages/protocol/src/custom-providers.ts` |
 | Chat, image and video classification | `packages/runtime/src/providers/custom-model-kinds.ts` |
+| Media profiles: parsing and request checks | `packages/runtime/src/providers/custom-media-profile.ts` |
 | The provider | `packages/runtime/src/providers/custom-openai-provider.ts` |
 | Registration | `packages/runtime/src/providers/custom-provider-registry.ts` |
 | Storage + registry sync | `packages/websocket/src/custom-providers.ts` |
@@ -70,7 +105,7 @@ serves, and runs on its own after each save.
 
 Write a provider file instead when the endpoint needs more than the OpenAI
 routes over a base URL: its own media API, non-standard request fields,
-per-model tool support or size limits, or a curated model list that ships
+per-model tool support, size limits the listing cannot declare, or a curated model list that ships
 with NodeTool. That is the rest of this guide.
 
 ## TL;DR

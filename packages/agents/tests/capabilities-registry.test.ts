@@ -169,6 +169,8 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   get_app: "read",
   get_asset: "read",
   get_cost_summary: "read",
+  search: "read",
+  search_read: "read",
   list_deleted_documents: "read",
   list_fonts: "read",
   download_hf_model: "external",

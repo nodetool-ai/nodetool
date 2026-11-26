@@ -2058,7 +2058,7 @@ bills for it. Apify is now a **capability module**
 (`@nodetool-ai/sandbox-nodetool/apify`): the token never leaves the host, every
 actor passes an allowlist and a session budget, actor inputs are SSRF-screened,
 cancellation aborts the remote run, and files it produces become NodeTool
-assets. See [docs/apify-integration.md](apify-integration.md).
+assets. See [Integration Tools](developer/integration-tools.md#apify).
 
 **SerpAPI is a capability module** (`@nodetool-ai/sandbox-nodetool/serpapi`),
 and the engine list is discovered rather than declared. SerpAPI is one endpoint
@@ -2072,7 +2072,7 @@ the parameter bag is checked against the engine's contract before the call —
 SerpAPI *ignores* an unknown parameter, so a typo is otherwise a billed search
 that answers a different question. `web_search` stays what it is: one query
 against whichever `SERP_PROVIDER` this install configured. See
-[docs/serpapi-integration.md](serpapi-integration.md).
+[Integration Tools](developer/integration-tools.md#serpapi).
 
 **Google Workspace is a capability module too**
 (`@nodetool-ai/sandbox-nodetool/google`), and the only Drive/Gmail/Docs/Sheets/

@@ -34,6 +34,12 @@ export interface ExtensionTab {
    * browser loads it, not the page, so the page's CORS rules do not apply.
    */
   download(url: string, timeoutMs?: number, signal?: AbortSignal): Promise<Uint8Array>;
+  /**
+   * Send a trusted mouse click at viewport coordinates `(x, y)` through CDP
+   * `Input.dispatchMouseEvent`. Needed for controls that ignore synthetic
+   * `element.click()` calls (such as Flow's submit button and sliders).
+   */
+  clickAt?(x: number, y: number, signal?: AbortSignal): Promise<void>;
 }
 
 /** A tab call that did not answer in time. Its outcome is unknown. */
@@ -147,7 +153,15 @@ export function createExtensionTab(host: string): ExtensionTab {
         await current.page.goto(url, { waitUntil: "load", timeout: TAB_CALL_TIMEOUT_MS - 5_000 });
       }, signal),
     download: (url, timeoutMs = TAB_CALL_TIMEOUT_MS, signal) =>
-      withPage("a download", timeoutMs, (current) => downloadWithBrowser(current.client, url), signal)
+      withPage("a download", timeoutMs, (current) => downloadWithBrowser(current.client, url), signal),
+    clickAt: (x, y, signal) =>
+      withPage("a click", TAB_CALL_TIMEOUT_MS, async (current) => {
+        await current.client.Page.setWebLifecycleState({ state: "active" }).catch(() => undefined);
+        signal?.throwIfAborted();
+        await current.client.Input.dispatchMouseEvent({ type: "mouseMoved", x, y });
+        await current.client.Input.dispatchMouseEvent({ type: "mousePressed", x, y, button: "left", clickCount: 1 });
+        await current.client.Input.dispatchMouseEvent({ type: "mouseReleased", x, y, button: "left", clickCount: 1 });
+      }, signal)
   };
 }
 

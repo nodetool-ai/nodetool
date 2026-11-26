@@ -90,6 +90,8 @@ export const DEFAULT_SETTINGS: ChatSettings = {
     "start_background_job",
     "list_assets",
     "get_asset",
+    "search",
+    "search_read",
     "asset_search",
     "save_asset",
     "read_asset",

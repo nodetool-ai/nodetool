@@ -4,6 +4,7 @@ import { COMFY_NODES } from "./nodes/comfy.js";
 import { STABLE_DIFFUSION_CPP_NODES } from "./nodes/stable-diffusion-cpp.js";
 import { WAN2GP_NODES } from "./nodes/wan2gp.js";
 import { MESSAGING_NODES } from "./nodes/messaging.js";
+import { MCP_TOOL_NODES } from "./nodes/mcp-tool.js";
 
 export * from "./nodes/messaging.js";
 export * from "./nodes/kie-dynamic.js";
@@ -15,6 +16,7 @@ export * from "./nodes/comfy.js";
 export * from "./nodes/comfy-schema.js";
 export * from "./nodes/stable-diffusion-cpp.js";
 export * from "./nodes/wan2gp.js";
+export * from "./nodes/mcp-tool.js";
 
 export const ALL_INTEGRATION_NODES: readonly NodeClass[] = [
   ...KIE_DYNAMIC_NODES,
@@ -22,6 +24,7 @@ export const ALL_INTEGRATION_NODES: readonly NodeClass[] = [
   ...STABLE_DIFFUSION_CPP_NODES,
   ...WAN2GP_NODES,
   ...MESSAGING_NODES,
+  ...MCP_TOOL_NODES,
 ];
 
 export function registerIntegrationNodes(registry: NodeRegistry): void {

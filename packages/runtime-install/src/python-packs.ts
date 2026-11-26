@@ -450,6 +450,7 @@ async function changePythonPack(
   if (unsupported) {
     return { success: false, message: unsupported };
   }
+  const requirements = findPythonNodePack(repoId)?.requirements ?? [];
   return runExclusive(host.condaEnvPath(), async () => {
     try {
       const packageName = repoId.split("/")[1];
@@ -489,6 +490,7 @@ async function changePythonPack(
           ...buildInstallIndexArgs(torchBackend),
           "--system",
           installSpec,
+          ...requirements,
           ...coInstalled,
         ],
         backend

@@ -4,7 +4,7 @@ title: "Chat API"
 description: "NodeTool's chat endpoints — OpenAI-compatible HTTP plus WebSocket chat for local and remote clients."
 ---
 
-Chat runs over two interfaces on the server started by `nodetool serve` (port **7777** by default):
+Chat runs over two interfaces on the full server started by `nodetool server serve` (port **7777** by default, see [API Server Overview](api-server.md)):
 
 ```bash
 curl http://localhost:7777/v1/chat/completions \
