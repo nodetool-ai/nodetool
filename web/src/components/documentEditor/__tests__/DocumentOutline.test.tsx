@@ -106,6 +106,12 @@ describe("DocumentOutlinePanel", () => {
     const target = scrollIntoView.mock.contexts.at(-1) as HTMLElement;
     expect(target.tagName).toBe("H3");
     expect(target).toHaveTextContent("Beat A");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Beat A" })).toHaveAttribute(
+        "aria-current",
+        "location"
+      )
+    );
   });
 
   it("explains how to add headings when there are none", () => {

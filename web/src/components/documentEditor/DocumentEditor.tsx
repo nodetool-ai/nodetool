@@ -135,7 +135,6 @@ import { DocumentSelectionAssistPlugin } from "./DocumentSelectionAssistPlugin";
 import DocumentSidePanel from "./DocumentSidePanel";
 import {
   DocumentOutlinePlugin,
-  revealHeading,
   type DocumentOutline
 } from "./DocumentOutlinePlugin";
 import DocumentEmbedDialog from "./DocumentEmbedDialog";
@@ -701,14 +700,17 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
   // The page is hidden in the Markdown view, so a jump shows it first.
   const revealCurrentHeading = useCallback(
     (key: string) => {
-      if (view === "markdown") {
-        changeView("formatted");
-        requestAnimationFrame(() => revealHeading(editor, key));
+      if (!currentOutline) {
         return;
       }
-      revealHeading(editor, key);
+      if (view === "markdown") {
+        changeView("formatted");
+        requestAnimationFrame(() => currentOutline.reveal(key));
+        return;
+      }
+      currentOutline.reveal(key);
     },
-    [changeView, editor, view]
+    [changeView, currentOutline, view]
   );
 
   // The insert form takes focus, so remember the selection it applies to.
