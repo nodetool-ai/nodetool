@@ -215,6 +215,9 @@ export function coerceProviderBytes(
 
 /** `rate` as atempo factors, each inside the filter's own 0.5–2 range. */
 export function atempoChain(rate: number): string[] {
+  if (!Number.isFinite(rate) || rate <= 0) {
+    throw new RangeError(`atempo rate must be a positive finite number, got ${rate}`);
+  }
   const factors: string[] = [];
   let remaining = rate;
   while (remaining > 2) {
@@ -227,4 +230,21 @@ export function atempoChain(rate: number): string[] {
   }
   factors.push(String(Number(remaining.toFixed(6))));
   return factors;
+}
+
+const FFMPEG_COLOR_RE =
+  /^(?:0x[0-9a-f]{6}(?:[0-9a-f]{2})?|[a-z][a-z0-9_]{0,31})(?:@(?:0x[0-9a-f]{2}|(?:0?\.\d+|1(?:\.0+)?|0)))?$/i;
+
+/** Validate an FFmpeg color token (hex or named color with optional @alpha). */
+export function sanitizeFfmpegColor(raw: unknown, fallback: string): string {
+  const normalized = String(raw ?? "").trim().replace(/^#/, "0x");
+  return FFMPEG_COLOR_RE.test(normalized) ? normalized : fallback;
+}
+
+/** Escape a filesystem path for use inside single quotes in an FFmpeg filtergraph. */
+export function escapeFilterPath(filePathValue: string): string {
+  return filePathValue
+    .replaceAll("\\", "\\\\")
+    .replaceAll(":", "\\:")
+    .replaceAll("'", "'\\\\\\''");
 }

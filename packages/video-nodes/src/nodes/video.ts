@@ -46,11 +46,14 @@ import {
   type StreamPlan
 } from "@nodetool-ai/runtime/media";
 import {
+  atempoChain,
   videoRef,
   defaultVideoRef,
+  escapeFilterPath,
   filePath,
   folderPath,
   dateName,
+  sanitizeFfmpegColor,
   uniqueTargetPath,
   probeVideoInfo,
   withTempFile,
@@ -1620,37 +1623,22 @@ export class SetSpeedVideoNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<SetSpeedVideoNodeOutputs> {
     const bytes = await videoBytesAsync(this.video, context);
-    const speed = Math.max(0.1, Number(this.speed_factor ?? 1));
+    const rawSpeed = Number(this.speed_factor ?? 1);
+    if (!Number.isFinite(rawSpeed) || rawSpeed <= 0) {
+      throw new Error(`Invalid speed factor: ${this.speed_factor}`);
+    }
+    const speed = Math.max(0.1, rawSpeed);
 
-    // Build chained atempo filters for values outside 0.5-2.0 range
-    // Each atempo filter is limited to 0.5-2.0, so we chain them
-    const buildAtempo = (s: number): string => {
-      const parts: string[] = [];
-      let remaining = s;
-      if (remaining > 1) {
-        while (remaining > 2) {
-          parts.push("atempo=2.0");
-          remaining /= 2;
-        }
-        parts.push(`atempo=${remaining}`);
-      } else {
-        while (remaining < 0.5) {
-          parts.push("atempo=0.5");
-          remaining /= 0.5;
-        }
-        parts.push(`atempo=${remaining}`);
-      }
-      return parts.join(",");
-    };
-
-    const atempoChain = buildAtempo(speed);
+    const atempoFilter = atempoChain(speed)
+      .map((f) => `atempo=${f}`)
+      .join(",");
     // First attempt retimes audio too (fails on videos with no audio stream);
     // the video-only fallback is the terminal attempt and throws on failure.
     const setpts = `setpts=${1 / speed}*PTS`;
     const transformed =
       (await mediaTransform(
         bytes,
-        { video: { filter: setpts }, audio: { filter: atempoChain } },
+        { video: { filter: setpts }, audio: { filter: atempoFilter } },
         { allowFallback: true }
       )) ??
       (await mediaTransform(bytes, { video: { filter: setpts }, audio: null }));
@@ -2298,16 +2286,18 @@ export class AddSubtitlesVideoNode extends BaseNode {
     const chunks = Array.isArray(this.chunks) ? this.chunks : [];
     if (chunks.length === 0) return { output: videoRef(bytes) };
 
-    const fontSize = Math.max(1, Number(this.font_size ?? 24));
+    const rawFontSize = Number(this.font_size ?? 24);
+    const fontSize = Number.isFinite(rawFontSize) ? Math.max(1, rawFontSize) : 24;
     const fontColorObj = this.font_color as { value?: string } | undefined;
-    const fontColor = String(fontColorObj?.value ?? "#FFFFFF").replace("#", "0x");
+    const fontColor = sanitizeFfmpegColor(fontColorObj?.value, "0xFFFFFF");
     // `||` (not `??`): the default font ref has name "", which must also
     // fall back rather than producing drawtext's font=''. Strip filtergraph-
     // significant characters \u2014 a font family name never contains them, and
     // leaving them in would let a crafted name break the -vf argument.
-    const fontName = String(
-      (this.font as { name?: string } | undefined)?.name || "Sans"
-    ).replace(/['\\:,;[\]%]/g, "");
+    const fontName =
+      String((this.font as { name?: string } | undefined)?.name || "Sans")
+        .replace(/['\\:,;[\]%]/g, "")
+        .trim() || "Sans";
     const align = String(this.align ?? "bottom");
 
     let yExpr: string;
@@ -2333,13 +2323,15 @@ export class AddSubtitlesVideoNode extends BaseNode {
         const text = String(chunk.text ?? chunk.content ?? "").trim();
         if (!text) continue;
         const ts = Array.isArray(chunk.timestamp) ? chunk.timestamp : [];
-        const start = Number(ts[0] ?? chunk.start ?? 0);
-        const end = Number(ts[1] ?? chunk.end ?? start + 5);
+        const rawStart = Number(ts[0] ?? chunk.start ?? 0);
+        const start = Number.isFinite(rawStart) ? rawStart : 0;
+        const rawEnd = Number(ts[1] ?? chunk.end ?? start + 5);
+        const end = Number.isFinite(rawEnd) ? rawEnd : start + 5;
         const textPath = path.join(dir, `sub_${idx}.txt`);
         await fs.writeFile(textPath, text, "utf8");
         idx += 1;
         drawFilters.push(
-          `drawtext=textfile='${textPath}':expansion=none` +
+          `drawtext=textfile='${escapeFilterPath(textPath)}':expansion=none` +
             `:x=(w-text_w)/2:y=${yExpr}` +
             `:fontcolor=${fontColor}:fontsize=${fontSize}` +
             `:font='${fontName}'` +
@@ -2403,6 +2395,69 @@ type TransitionVideoNodeOutputs = {
   output: VideoRef;
 };
 
+const XFADE_TRANSITION_TYPES = [
+  "fade",
+  "wipeleft",
+  "wiperight",
+  "wipeup",
+  "wipedown",
+  "slideleft",
+  "slideright",
+  "slideup",
+  "slidedown",
+  "circlecrop",
+  "rectcrop",
+  "distance",
+  "fadeblack",
+  "fadewhite",
+  "radial",
+  "smoothleft",
+  "smoothright",
+  "smoothup",
+  "smoothdown",
+  "circleopen",
+  "circleclose",
+  "vertopen",
+  "vertclose",
+  "horzopen",
+  "horzclose",
+  "dissolve",
+  "pixelize",
+  "diagtl",
+  "diagtr",
+  "diagbl",
+  "diagbr",
+  "hlslice",
+  "hrslice",
+  "vuslice",
+  "vdslice",
+  "hblur",
+  "fadegrays",
+  "wipetl",
+  "wipetr",
+  "wipebl",
+  "wipebr",
+  "squeezeh",
+  "squeezev",
+  "zoomin",
+  "fadefast",
+  "fadeslow",
+  "hlwind",
+  "hrwind",
+  "vuwind",
+  "vdwind",
+  "coverleft",
+  "coverright",
+  "coverup",
+  "coverdown",
+  "revealleft",
+  "revealright",
+  "revealup",
+  "revealdown"
+] as const;
+
+const XFADE_TRANSITION_SET = new Set<string>(XFADE_TRANSITION_TYPES);
+
 export class TransitionVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Transition";
   static readonly title = "Transition";
@@ -2433,66 +2488,7 @@ export class TransitionVideoNode extends BaseNode {
     default: "fade",
     title: "Transition Type",
     description: "Type of transition effect",
-    values: [
-      "fade",
-      "wipeleft",
-      "wiperight",
-      "wipeup",
-      "wipedown",
-      "slideleft",
-      "slideright",
-      "slideup",
-      "slidedown",
-      "circlecrop",
-      "rectcrop",
-      "distance",
-      "fadeblack",
-      "fadewhite",
-      "radial",
-      "smoothleft",
-      "smoothright",
-      "smoothup",
-      "smoothdown",
-      "circleopen",
-      "circleclose",
-      "vertopen",
-      "vertclose",
-      "horzopen",
-      "horzclose",
-      "dissolve",
-      "pixelize",
-      "diagtl",
-      "diagtr",
-      "diagbl",
-      "diagbr",
-      "hlslice",
-      "hrslice",
-      "vuslice",
-      "vdslice",
-      "hblur",
-      "fadegrays",
-      "wipetl",
-      "wipetr",
-      "wipebl",
-      "wipebr",
-      "squeezeh",
-      "squeezev",
-      "zoomin",
-      "fadefast",
-      "fadeslow",
-      "hlwind",
-      "hrwind",
-      "vuwind",
-      "vdwind",
-      "coverleft",
-      "coverright",
-      "coverup",
-      "coverdown",
-      "revealleft",
-      "revealright",
-      "revealup",
-      "revealdown"
-    ]
+    values: [...XFADE_TRANSITION_TYPES]
   })
   declare transition_type: string;
 
@@ -2511,8 +2507,12 @@ export class TransitionVideoNode extends BaseNode {
     const b = await videoBytesAsync(this.video_b, context);
     if (b.length === 0) return { output: videoRef(a) };
     if (a.length === 0) return { output: videoRef(b) };
-    const duration = Math.max(0.1, Number(this.duration ?? 1));
+    const rawDuration = Number(this.duration ?? 1);
+    const duration = Number.isFinite(rawDuration) ? Math.max(0.1, rawDuration) : 1;
     const transitionType = String(this.transition_type ?? "fade");
+    if (!XFADE_TRANSITION_SET.has(transitionType)) {
+      throw new Error(`Invalid transition type: ${transitionType}`);
+    }
 
     // Probe video_a duration to compute offset (transition starts at end of video_a)
     const tempA = await withTempFile(".mp4", a);
@@ -2710,9 +2710,11 @@ export class ChromaKeyVideoNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<ChromaKeyVideoNodeOutputs> {
     const bytes = await videoBytesAsync(this.video, context);
     const keyColorObj = this.key_color as { value?: string } | undefined;
-    const color = String(keyColorObj?.value ?? "#00FF00").replace("#", "0x");
-    const similarity = Number(this.similarity ?? 0.3);
-    const blend = Number(this.blend ?? 0.1);
+    const color = sanitizeFfmpegColor(keyColorObj?.value, "0x00FF00");
+    const rawSimilarity = Number(this.similarity ?? 0.3);
+    const similarity = Number.isFinite(rawSimilarity) ? rawSimilarity : 0.3;
+    const rawBlend = Number(this.blend ?? 0.1);
+    const blend = Number.isFinite(rawBlend) ? rawBlend : 0.1;
     const transformed =
       (await mediaTransform(bytes, videoFilter(`colorkey=${color}:${similarity}:${blend}`)));
     return { output: videoRef(transformed) };

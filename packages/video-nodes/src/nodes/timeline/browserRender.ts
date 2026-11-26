@@ -530,6 +530,7 @@ async function renderTimelineInBrowserAdmitted(
     });
   });
   let browser: PlaywrightBrowser | null = null;
+  let launchPromise: Promise<{ browser: PlaywrightBrowser; label: string }> | null = null;
   const pageErrors: string[] = [];
   let rejectAbort: ((reason: unknown) => void) | undefined;
   const aborted = new Promise<never>((_resolve, reject) => {
@@ -551,7 +552,8 @@ async function renderTimelineInBrowserAdmitted(
       server.listen(0, "127.0.0.1", resolve);
     });
     const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-    const launched = await Promise.race([launchBrowser(), aborted]);
+    launchPromise = launchBrowser();
+    const launched = await Promise.race([launchPromise, aborted]);
     browser = launched.browser;
     if (signal?.aborted) onAbort();
     const context = await browser.newContext({ serviceWorkers: "block" });
@@ -673,7 +675,11 @@ async function renderTimelineInBrowserAdmitted(
     throw error;
   } finally {
     signal?.removeEventListener("abort", onAbort);
-    await browser?.close().catch(() => undefined);
+    if (browser) {
+      await browser.close().catch(() => undefined);
+    } else if (launchPromise) {
+      void launchPromise.then(({ browser: late }) => late.close()).catch(() => undefined);
+    }
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
