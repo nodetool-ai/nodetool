@@ -28,6 +28,7 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | P1c | Web tracks pass 5: muted Logic-like palette (current colours too saturated), thinner name band, Arp region shows no notes under the chord strip, master pan control (field done) | Opus | SQ2 (one web UI agent at a time) |
 | P2 | Native polish: piano roll, automation, mixer, tracks (offscreen) | Opus | A10, D62-D68 |
 | A17 | Native follow-up after A16 and A8 | Sol | A16 |
+| LAB1 | Port the FableSynth LAB units (`/Users/mg/dev/fablesynth/juce/source/dsp/LabFx.h`, commit d2f68d8) as five devices: Crush, Resonator, Shifter, Spray, Glitch. Migrate old `fable:lab` documents to the enabled units. Compare each unit with a LabFx.h reference render (max error 1e-5 at 44.1/48/96 kHz). Until then LAB has a UI but no DSP. Partial work: [lab1-wip.patch](lab1-wip.patch). Prompt: [lab1-prompt.md](lab1-prompt.md) | Neon | none |
 | DSP2 | Engine should-haves: 32-bit float WAV export and export rate option (F5), windowed-sinc varispeed and higher swresample quality (F7), effect parameter smoothing per block (F8) | Neon | DSP1 |
 | DSP1b | Plug-in delay compensation follows latency changes during playback and plug-in bypass (DSP1 D5): pre-sized delay lines with crossfaded read position, host latency events, offline re-probe | Neon | none |
 | NAT1 | Native set_clip_params tool schema fields (A24b F2) and stored zero fades win in native auto crossfade (A22r R1) | Sol | running |
