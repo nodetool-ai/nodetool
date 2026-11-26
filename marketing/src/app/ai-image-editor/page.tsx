@@ -18,11 +18,12 @@ import {
   LAYER_FEATURES,
 } from "@/data/imageEditorPage";
 import PageUpdated from "@/components/PageUpdated";
+import { languageAlternates } from "@/i18n/routes";
 
 export const metadata: Metadata = {
   title: IMAGE_TITLE,
   description: IMAGE_DESCRIPTION,
-  alternates: { canonical: "/ai-image-editor" },
+  alternates: { canonical: "/ai-image-editor", languages: languageAlternates("/ai-image-editor") },
   openGraph: { title: IMAGE_TITLE, description: IMAGE_DESCRIPTION, url: "https://nodetool.ai/ai-image-editor", siteName: "NodeTool", type: "website", images: [{ url: "/surface-sketch-poster.webp", alt: "The NodeTool sketch editor with a layered image" }] },
   twitter: { card: "summary_large_image", title: IMAGE_TITLE, description: IMAGE_DESCRIPTION, images: ["/surface-sketch-poster.webp"] },
 };

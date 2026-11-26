@@ -10,6 +10,7 @@ import SearchStarter from "../../components/SearchStarter";
 import { breadcrumbSchema, itemListSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import { competitors } from "../../data/competitorEntries";
+import { languageAlternates } from "@/i18n/routes";
 
 /**
  * `/node-based-ai` — the entity page for the largest non-branded query cluster
@@ -50,7 +51,7 @@ export const metadata: Metadata = {
     "node based ai video generator",
     "visual ai workflow builder",
   ],
-  alternates: { canonical: "/node-based-ai" },
+  alternates: { canonical: "/node-based-ai", languages: languageAlternates("/node-based-ai") },
   openGraph: {
     title: "Node-based AI — build AI workflows with nodes",
     description: DESCRIPTION,

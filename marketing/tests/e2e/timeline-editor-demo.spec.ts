@@ -28,3 +28,18 @@ test("the timeline editor demo loads only when asked and keeps the film unchange
   await expect(frame.getByRole("status")).toContainText("read-only");
   expect(await clip.boundingBox()).toEqual(before);
 });
+
+test("the translated demo pages open both editors with their own words", async ({ page }) => {
+  for (const { path, timeline, open, nodeEditor } of [
+    { path: "/ja/demo", timeline: "タイムラインエディターを試す。", open: "Kiteをエディターで開く", nodeEditor: "ノードエディターを開く" },
+    { path: "/zh/demo", timeline: "试用时间线编辑器。", open: "在编辑器中打开 Kite", nodeEditor: "打开节点编辑器" },
+  ]) {
+    await page.goto(path);
+    await expect(page.getByRole("button", { name: nodeEditor })).toBeVisible();
+    const section = page.getByRole("region", { name: timeline });
+    await section.scrollIntoViewIfNeeded();
+    await expect(section.locator("iframe")).toHaveCount(0);
+    await section.getByRole("button", { name: open }).click();
+    await expect(section.locator("iframe")).toHaveAttribute("src", /film=kite/);
+  }
+});

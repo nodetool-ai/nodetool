@@ -1,5 +1,6 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
+import { languageAlternates } from "@/i18n/routes";
 
 const TITLE = "NodeTool Cloud (Alpha) | The NodeTool workspace in your browser";
 const DESCRIPTION =
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/cloud",
+    languages: languageAlternates("/cloud"),
   },
   keywords: [
     "NodeTool Cloud",
