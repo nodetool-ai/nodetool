@@ -224,12 +224,53 @@ private slots:
                 QTRY_VERIFY(!popup->property("visible").toBool());
             }
         }
+        if (control == "Button" || control == "Slider" || control == "ComboBox" || control == "ListView") {
+            item->forceActiveFocus(Qt::TabFocusReason);
+            clock.seek(0);
+            QTest::keyClick(&view, Qt::Key_Right);
+            QVERIFY(clock.currentTimeMs() > 0);
+            clock.seek(0);
+        }
         const bool before = clock.playing();
         QTest::keyClick(&view, Qt::Key_Space);
         QCOMPARE(clock.playing(), !before);
         item->forceActiveFocus(Qt::TabFocusReason);
         QTest::keyClick(&view, Qt::Key_Space);
         QCOMPARE(clock.playing(), before);
+    }
+    void focusedLocalKeys_data() {
+        QTest::addColumn<QString>("handler");
+        QTest::addColumn<int>("key");
+        QTest::newRow("pressed") << QString("Keys.onPressed: event => { if (event.key === Qt.Key_Right) { hits++; event.accepted = true } }") << int(Qt::Key_Right);
+        QTest::newRow("specific") << QString("Keys.onRightPressed: hits++") << int(Qt::Key_Right);
+        QTest::newRow("override") << QString("Keys.onShortcutOverride: event => { if (event.key === Qt.Key_Right) event.accepted = true } Keys.onRightPressed: hits++") << int(Qt::Key_Right);
+        QTest::newRow("shortcut") << QString("Shortcut { sequence: \"Space\"; enabled: localItem.activeFocus; onActivated: localItem.hits++ }") << int(Qt::Key_Space);
+        QTest::newRow("afterItem") << QString("Keys.priority: Keys.AfterItem; Keys.onRightPressed: hits++") << int(Qt::Key_Right);
+        QTest::newRow("space") << QString("Keys.onSpacePressed: hits++") << int(Qt::Key_Space);
+    }
+    void focusedLocalKeys() {
+        QFETCH(QString, handler);
+        QFETCH(int, key);
+        TimelineModel model;
+        PlaybackClock clock;
+        QQuickView view;
+        loadEditor(view, model, clock);
+        QQmlComponent component(view.engine());
+        component.setData(("import QtQuick\nItem { id: localItem; width: 100; height: 100; property int hits: 0; " + handler + " }").toUtf8(), QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* item = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(item);
+        item->setParentItem(view.rootObject());
+        item->forceActiveFocus();
+        QTest::keyClick(&view, static_cast<Qt::Key>(key));
+        QCOMPARE(item->property("hits").toInt(), 1);
+        QCOMPARE(clock.currentTimeMs(), 0);
+        QVERIFY(!clock.playing());
+        QTest::keyClick(&view, key == Qt::Key_Space ? Qt::Key_Right : Qt::Key_Space);
+        if (key == Qt::Key_Space) { QVERIFY(clock.currentTimeMs() > 0); }
+        else { QVERIFY(clock.playing()); }
+        QCOMPARE(item->property("hits").toInt(), 1);
     }
     void textEditorsKeepSpace_data() {
         QTest::addColumn<QString>("control");

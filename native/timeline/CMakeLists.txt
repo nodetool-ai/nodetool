@@ -14,7 +14,7 @@ include(cmake/Sanitizers.cmake)
 
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>).
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Svg Core Gui GuiPrivate Qml Quick QuickControls2 ShaderTools Test QuickTest)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Svg Core Gui GuiPrivate Qml Quick QuickPrivate QuickControls2 ShaderTools Test QuickTest)
 # QRhi through GuiPrivate is only compatible within one Qt minor version, so
 # the build accepts the tested 6.12 only.
 if(Qt6_VERSION VERSION_GREATER_EQUAL 6.13)
@@ -323,6 +323,7 @@ qt_add_qml_module(timeline_qml
     SOURCES ${NT_qml})
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
+target_link_libraries(timeline_qml PRIVATE Qt6::QuickPrivate)
 target_link_libraries(timeline_qml PUBLIC nodetool_timeline_player timeline_core timeline_decode timeline_audio
     nodetool_model_picker nodetool_media nodetool_files nodetool_entities nodetool_storyboard nodetool_chat nodetool_account_qt Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 

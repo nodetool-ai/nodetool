@@ -20,6 +20,8 @@
 #endif
 #include <algorithm>
 #include <private/qguiapplication_p.h>
+#include <private/qshortcutmap_p.h>
+#include <private/qquickitem_p.h>
 #include <qpa/qplatformmenu.h>
 #include <qpa/qplatformtheme.h>
 
@@ -218,6 +220,17 @@ QQuickItem* blockingPopup(const QQuickWindow* window) {
     }
     return top;
 }
+bool dispatchLocalKeys(QQuickItem* focus, QKeyEvent& key) {
+    if (!focus) { return false; }
+    auto* attached = qobject_cast<QQuickKeysAttached*>(qmlAttachedPropertiesObject<QQuickKeysAttached>(focus, false));
+    if (!attached || !attached->enabled()) { return false; }
+    // Only declared Keys handlers get first refusal. Sending the press to the
+    // control itself would let its default Space/arrow handling steal app keys.
+    auto* filter = static_cast<QQuickItemKeyFilter*>(attached);
+    key.setAccepted(false);
+    filter->keyPressed(&key, attached->priority() == QQuickKeysAttached::AfterItem);
+    return key.isAccepted();
+}
 bool textOwnsKey(const QQuickItem* focus, const QKeyEvent& key) {
     if (!focus || (!focus->flags().testFlag(QQuickItem::ItemAcceptsInputMethod)
         && !focus->inherits("QQuickTextInput") && !focus->inherits("QQuickTextEdit"))) { return false; }
@@ -353,6 +366,26 @@ bool ShellMenus::eventFilter(QObject* watched, QEvent* event) {
         }
         return true;
     }
+    if (event->type() == QEvent::ShortcutOverride) {
+        m_localOverrideFocus.clear();
+        QKeyEvent local(QEvent::ShortcutOverride, key.key(), key.modifiers(), key.text(), key.isAutoRepeat());
+        local.setAccepted(false);
+        if (auto* focused = window->activeFocusItem()) { QCoreApplication::sendEvent(focused, &local); }
+        if (local.isAccepted()) {
+            m_localOverrideFocus = window->activeFocusItem();
+            m_localOverrideKey = key.keyCombination();
+            event->accept();
+            return true;
+        }
+    } else {
+        const bool localOverride = m_localOverrideFocus && m_localOverrideFocus == window->activeFocusItem()
+            && m_localOverrideKey == key.keyCombination();
+        m_localOverrideFocus.clear();
+        if (localOverride) { return false; }
+        QKeyEvent local(QEvent::KeyPress, key.key(), key.modifiers(), key.text(), key.isAutoRepeat());
+        if (dispatchLocalKeys(window->activeFocusItem(), local)
+            || QGuiApplicationPrivate::instance()->shortcutMap.tryShortcut(static_cast<QKeyEvent*>(event))) { event->accept(); return true; }
+    }
     const auto& entries = shellMenuEntries();
     const auto entry = std::find_if(entries.begin(), entries.end(), [&](const auto& candidate) { return candidate.action == action; });
     const bool registered = entry != entries.end();
@@ -363,13 +396,13 @@ bool ShellMenus::eventFilter(QObject* watched, QEvent* event) {
         event->accept();
         return true;
     }
-    // Accept the override before Controls/Keys or QML Shortcuts can claim it.
-    // Dispatch only on the press so a key cannot execute twice.
+    // Reserve app keys against control defaults, then dispatch on the press.
     if (event->type() == QEvent::ShortcutOverride) { event->accept(); return true; }
     if (gestures && gestures->trimMode()->handleKey(key.key(), int(key.modifiers()), key.isAutoRepeat())) { return true; }
     if (action == u"escape") {
         // Cancel a live control edit before running the application's Escape.
-        if (auto* focused = window->activeFocusItem()) {
+        if (auto* focused = window->activeFocusItem(); focused
+            && !qmlAttachedPropertiesObject<QQuickKeysAttached>(focused, false)) {
             QKeyEvent cancel(QEvent::KeyPress, key.key(), key.modifiers(), key.text(), key.isAutoRepeat());
             cancel.setAccepted(true);
             QCoreApplication::sendEvent(focused, &cancel);

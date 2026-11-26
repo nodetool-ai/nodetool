@@ -70,6 +70,8 @@ private:
     std::vector<RegisteredItem> m_registered;
     QPointer<Preferences> m_preferences;
     QPointer<QQuickItem> m_anchor;
+    QPointer<QQuickItem> m_localOverrideFocus;
+    QKeyCombination m_localOverrideKey;
     QString m_preset = QStringLiteral("premiere");
     QPointer<QObject> m_bar;
     QSet<QPlatformMenu*> m_openMenus;

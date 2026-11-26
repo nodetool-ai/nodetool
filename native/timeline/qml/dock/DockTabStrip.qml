@@ -171,7 +171,7 @@ Rectangle {
                         else if ((event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) && closable) root.dock.store.dispatch({type: "hide", panelId})
                         else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier)) root.groupView.openMenu(panelId, tab)
                         else if (event.key === Qt.Key_Space && event.modifiers & Qt.ShiftModifier) root.dock.toggleMaximize(root.groupView.group.id)
-                        else if (event.modifiers === Qt.NoModifier && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space)) tab.activate()
+                        else if (event.modifiers === Qt.NoModifier && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) tab.activate()
                         else return
                         event.accepted = true
                     }
