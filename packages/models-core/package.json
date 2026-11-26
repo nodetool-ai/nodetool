@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/models-core",
-  "version": "0.8.11",
+  "version": "0.8.16",
   "type": "module",
   "engines": {
     "node": ">=24.22.1"
