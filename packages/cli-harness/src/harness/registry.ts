@@ -543,12 +543,12 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "run-readers",
     title: "Run reader, debug history and CLI failure-path check",
-    command: "npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli-workflow --workspace=packages/cli-apps -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage",
+    command: "npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli-workflow --workspace=packages/cli-apps -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 app-debug-command capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage",
     kind: "execution",
     capabilities: ["json"],
     docs: "docs/harnesses.md § Run readers phase 3",
     selfcheck: {
-      command: "npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli-workflow --workspace=packages/cli-apps -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage",
+      command: "npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli-workflow --workspace=packages/cli-apps -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 app-debug-command capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage",
       cost: "cheap"
     }
   },
