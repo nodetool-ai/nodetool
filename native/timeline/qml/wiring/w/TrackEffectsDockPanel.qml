@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // nt-panel: slot=bottom id=trackEffects order=108 title="Effect Chain"
 // Dockable panel showing the active track's instrument and DSP effect chain.
 // Auto-opens when clicking the effect chain button on any track header.
@@ -12,7 +13,7 @@ Ui.Surface {
     implicitWidth: Ui.Metrics.dialogWidth
     implicitHeight: 280
 
-    property var editor: null
+    property Item editor: null
     function editorAbove() {
         let item = parent
         while (item) {

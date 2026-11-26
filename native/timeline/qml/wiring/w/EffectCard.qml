@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic as Basic
 import NodeTool.Timeline
@@ -5,13 +6,16 @@ import NodeTool.UiPrimitives as Ui
 
 Ui.Surface {
     id: card
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var effect
     required property int effectIndex
-    required property var panel
+    required property Item panel
     required property Item rackRow
     property string previewDeviceId: ""
     onEffectChanged: if (previewDeviceId !== "" && previewDeviceId !== effect.id) cancel()
+    // JSON data from the document, controller, or shared JavaScript API.
     property var draft: ({})
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var edited: Object.assign({}, effect, draft)
     readonly property string effectLabel: effect.type === "vst"
         ? ((effect.plugin && effect.plugin.name) || "VST3 Plugin")

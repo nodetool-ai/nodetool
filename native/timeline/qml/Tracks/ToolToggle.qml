@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Mirrors web/src/components/timeline/ToolToggle.tsx: the pointer tools in
 // Premiere's Tools panel order (Select, Track select forward and backward,
 // Ripple edit, Rolling edit, Rate stretch, Cut, Slip, Slide, Hand, Zoom), the
@@ -18,6 +19,7 @@ Row {
     property bool compact: false
     spacing: Ui.Metrics.micro
 
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var editTools: [
         { tool: "trackSelect", action: "trackSelectTool", label: "Track select",
           description: "Click to select every clip from there on. Shift: that track only",
@@ -35,6 +37,7 @@ Row {
           description: "Drag an edge. The clip's speed changes to fill the new length",
           icon: "toolRateStretch" }
     ]
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var afterCutTools: [
         { tool: "slip", action: "slipTool", label: "Slip",
           description: "Drag a clip to change which part of its source plays",
@@ -67,6 +70,7 @@ Row {
     Repeater {
         model: tools.editTools
         delegate: ToolButton {
+            // JSON record supplied by the delegate model.
             required property var modelData
             objectName: "tool_" + modelData.tool
             anchors.verticalCenter: parent.verticalCenter
@@ -93,6 +97,7 @@ Row {
     Repeater {
         model: tools.afterCutTools
         delegate: ToolButton {
+            // JSON record supplied by the delegate model.
             required property var modelData
             objectName: "tool_" + modelData.tool
             anchors.verticalCenter: parent.verticalCenter
@@ -131,6 +136,7 @@ Row {
                 { mode: "overlap", label: "Overlap", description: "A drop stacks and cross-fades", icon: "layers" }
             ]
             delegate: ToolButton {
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 objectName: "dropMode_" + modelData.mode
                 anchors.verticalCenter: parent.verticalCenter

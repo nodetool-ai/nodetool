@@ -15,11 +15,13 @@ Ui.Surface {
     property TimelineModel timeline: null
     property string trackId: ""
     property bool readOnly: false
+    // JSON data from the document, controller, or shared JavaScript API.
     property var instrument: ({})
 
     signal presetSelected(string presetId)
     signal parameterCommitted(string name, var value)
 
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var activeInstrument: {
         if (root.timeline && root.trackId !== "") {
             const tracks = root.timeline.tracksJson
@@ -35,6 +37,7 @@ Ui.Surface {
     }
 
     readonly property string presetValue: activeInstrument.preset ? String(activeInstrument.preset) : ""
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var presetOptions: root.presetValue === ""
         ? [{ value: "", label: qsTr("Custom"), enabled: false }].concat(BassSynthCatalog.presets)
         : BassSynthCatalog.presets

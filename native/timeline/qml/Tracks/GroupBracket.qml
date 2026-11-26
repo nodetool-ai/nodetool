@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -8,13 +9,13 @@ Item {
     property real startMs: 0
     property real durationMs: 0
     property real widthPx: 0
-    property var spanStartMs: null
-    property var spanEndMs: null
+    property real spanStartMs: NaN
+    property real spanEndMs: NaN
     function toPx(ms) {
         return Math.max(0, Math.min(widthPx, (ms - startMs) / durationMs * widthPx));
     }
-    readonly property real bracketLeft: spanStartMs === null ? 0 : toPx(spanStartMs)
-    readonly property real bracketRight: spanEndMs === null ? widthPx : toPx(spanEndMs)
+    readonly property real bracketLeft: isNaN(spanStartMs) ? 0 : toPx(spanStartMs)
+    readonly property real bracketRight: isNaN(spanEndMs) ? widthPx : toPx(spanEndMs)
     visible: durationMs > 0 && widthPx > 0
     x: bracketLeft
     y: Ui.Metrics.xl

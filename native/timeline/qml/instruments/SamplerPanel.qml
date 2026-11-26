@@ -17,10 +17,11 @@ Ui.Surface {
     property string trackId: ""
     property string projectDir: ""
     property bool readOnly: false
+    // JSON data from the document, controller, or shared JavaScript API.
     property var instrument: ({})
 
     property string selectedZoneId: ""
-    property var waveformPeaks: []
+    property list<real> waveformPeaks: []
     property bool dropActive: false
     property string pendingRequestId: ""
     property int requestCounter: 0
@@ -28,6 +29,7 @@ Ui.Surface {
     signal parameterCommitted(string name, var value)
     signal zoneActionCommitted(string action, var payload)
 
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var activeInstrument: {
         if (root.timeline && root.trackId !== "") {
             const tracks = root.timeline.tracksJson
@@ -42,6 +44,7 @@ Ui.Surface {
         return root.instrument || ({})
     }
 
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var zones: Array.isArray(activeInstrument.zones) ? activeInstrument.zones : []
     readonly property int selectedZoneIndex: {
         if (zones.length === 0) return -1
@@ -50,6 +53,7 @@ Ui.Surface {
         }
         return 0
     }
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var selectedZone: selectedZoneIndex >= 0 ? zones[selectedZoneIndex] : null
 
     readonly property bool instrumentOneShot: activeInstrument.oneShot === true
@@ -302,16 +306,6 @@ Ui.Surface {
                     ctx.lineTo(w, midY)
                     ctx.stroke()
 
-                    if (root.isLoopMode && root.selectedZone) {
-                        const x0 = waveformBox.displayLoopStart * w
-                        const x1 = waveformBox.displayLoopEnd * w
-                        ctx.save()
-                        ctx.globalAlpha = 0.14
-                        ctx.fillStyle = Ui.Theme.accentPrimary
-                        ctx.fillRect(x0, 0, Math.max(0, x1 - x0), h)
-                        ctx.restore()
-                    }
-
                     const peaks = root.waveformPeaks
                     if (peaks && peaks.length > 0) {
                         ctx.fillStyle = Ui.Theme.accentPrimary
@@ -322,42 +316,40 @@ Ui.Surface {
                             ctx.fillRect(i * barW, midY - halfBar, Math.max(1.0, barW - 0.5), halfBar * 2.0)
                         }
                     }
-
-                    if (root.isLoopMode && root.selectedZone) {
-                        const lsX = waveformBox.displayLoopStart * w
-                        const leX = waveformBox.displayLoopEnd * w
-                        ctx.lineWidth = Ui.Metrics.focus
-                        ctx.strokeStyle = Ui.Theme.statusInfo
-                        ctx.beginPath()
-                        ctx.moveTo(lsX, 0)
-                        ctx.lineTo(lsX, h)
-                        ctx.stroke()
-
-                        ctx.strokeStyle = Ui.Theme.statusWarning
-                        ctx.beginPath()
-                        ctx.moveTo(leX, 0)
-                        ctx.lineTo(leX, h)
-                        ctx.stroke()
-                    }
                 }
 
                 Connections {
                     target: root
                     function onWaveformPeaksChanged() { waveformCanvas.requestPaint() }
-                    function onIsLoopModeChanged() { waveformCanvas.requestPaint() }
-                    function onLoopStartValueChanged() { waveformCanvas.requestPaint() }
-                    function onLoopEndValueChanged() { waveformCanvas.requestPaint() }
-                    function onSelectedZoneChanged() { waveformCanvas.requestPaint() }
-                }
-                Connections {
-                    target: waveformBox
-                    function onDisplayLoopStartChanged() { waveformCanvas.requestPaint() }
-                    function onDisplayLoopEndChanged() { waveformCanvas.requestPaint() }
                 }
                 Connections {
                     target: Ui.Theme
                     function onEffectiveSchemeChanged() { waveformCanvas.requestPaint() }
                     function onUiScaleChanged() { waveformCanvas.requestPaint() }
+                }
+            }
+            Item {
+                anchors.fill: parent
+                anchors.margins: Ui.Metrics.xs
+                visible: root.isLoopMode && !!root.selectedZone
+                Rectangle {
+                    x: waveformBox.displayLoopStart * parent.width
+                    width: Math.max(0, (waveformBox.displayLoopEnd - waveformBox.displayLoopStart) * parent.width)
+                    height: parent.height
+                    color: Ui.Theme.accentPrimary
+                    opacity: 0.14
+                }
+                Rectangle {
+                    x: waveformBox.displayLoopStart * parent.width - width / 2
+                    width: Ui.Metrics.focus
+                    height: parent.height
+                    color: Ui.Theme.statusInfo
+                }
+                Rectangle {
+                    x: waveformBox.displayLoopEnd * parent.width - width / 2
+                    width: Ui.Metrics.focus
+                    height: parent.height
+                    color: Ui.Theme.statusWarning
                 }
             }
 
@@ -621,6 +613,7 @@ Ui.Surface {
 
             delegate: Ui.ListRow {
                 id: zoneRow
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 required property int index
 

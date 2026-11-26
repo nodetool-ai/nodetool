@@ -1,12 +1,15 @@
+pragma ComponentBehavior: Bound
 import QtQuick
+import NodeTool.TimelinePlayer
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 import "faderTaper.js" as Taper
 Item {
     id: root
-    property var meterClock: null
+    property PlaybackClock meterClock: null
     property bool metering: true
+    // JSON data from the document, controller, or shared JavaScript API.
     property var channel: ({})
     property string channelId: ""
     property string channelName: ""
@@ -55,6 +58,7 @@ Item {
     Ui.Surface {
         id: device; variant: Ui.Surface.Input; anchors.top: head.bottom; anchors.topMargin: Ui.Metrics.xs
         width: parent.width; height: Math.max(Ui.Metrics.small, deviceLabel.implicitHeight + Ui.Metrics.xs)
+        // JSON data from the document, controller, or shared JavaScript API.
         readonly property var inst: root.channel.instrument || ({})
         readonly property string midiDeviceText: inst.type === "vst"
             ? ((inst.plugin && inst.plugin.name) || "VST3 Instrument")

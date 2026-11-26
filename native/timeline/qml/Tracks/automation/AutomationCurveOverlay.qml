@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // nt-panel: slot=laneOverlay id=automationCurve order=100 title="Automation"
 import QtQuick
 import NodeTool.Timeline
@@ -5,11 +6,14 @@ import "automationTargets.js" as Targets
 Item {
     id: root
     property TimelineModel timeline: null
+    // JSON data from the document, controller, or shared JavaScript API.
     property var track: ({})
     property TimelineViewState viewState: null
     property ClipGestureController gestures: null
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var currentTrack: controller.channel.id ? controller.channel : track
     readonly property string shown: AutomationUIState.shownKey(currentTrack)
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var spec: Targets.automationTargetSpecs(currentTrack).find(s => s.key === shown) || null
     AutomationController { id: controller; timeline: root.timeline; trackId: root.track.id || "" }
     Loader {

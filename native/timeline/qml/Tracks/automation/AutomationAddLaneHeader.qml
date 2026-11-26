@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import "automationTargets.js" as Targets
@@ -6,11 +7,13 @@ import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: root
     property TimelineModel timeline: null
+    // JSON data from the document, controller, or shared JavaScript API.
     property var track: ({})
     property string query: ""
     property int highlighted: 0
     onHighlightedChanged: if (highlighted >= 0 && highlighted < options.length) optionList.positionViewAtIndex(highlighted,ListView.Contain)
     readonly property alias popupControl: optionsPopup
+    // JSON options consumed by the shared menu or select control.
     readonly property var options: {
         const used = new Set((track.automation || []).map(lane => Targets.key(lane.target)))
         const shown = AutomationUIState.shownKey(track)
@@ -72,6 +75,8 @@ Rectangle {
             model: root.options
             onCountChanged: if (root.highlighted >= 0 && root.highlighted < count) positionViewAtIndex(root.highlighted,ListView.Contain)
             delegate: Ui.ListRow {
+                id: addLaneEntry
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 required property int index
                 objectName: "automation-option-"+modelData.key
@@ -83,7 +88,7 @@ Rectangle {
                     width: parent.width
                     anchors.verticalCenter: parent.verticalCenter
                     verticalAlignment: Text.AlignVCenter
-                    text: modelData.group+" · "+modelData.label
+                    text: addLaneEntry.modelData.group+" · "+addLaneEntry.modelData.label
                     role: Ui.Typography.SansLabel
                     elide: Text.ElideRight
                 }

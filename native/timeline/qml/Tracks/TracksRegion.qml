@@ -296,6 +296,7 @@ Rectangle {
                 Repeater {
                     model: TrackHeaderActions.items()
                     delegate: Loader {
+                        // JSON record supplied by the delegate model.
                         required property var modelData
                         source: modelData.source
                     }
@@ -541,6 +542,7 @@ Rectangle {
                     required property bool trackVisible
                     required property bool locked
                     required property bool muted
+                    // JSON data from the document, controller, or shared JavaScript API.
                     required property var track
                     y: rowTop
                     width: lanesContent.width
@@ -655,6 +657,7 @@ Rectangle {
         Ui.Surface {
             id: toolHint
             objectName: "toolHoverFeedback"
+            // JSON data from the document, controller, or shared JavaScript API.
             readonly property var preview: clipGestures.toolPreview
             visible: !!preview.label && clipGestures.gestureKind === ""
             variant: Ui.Surface.Overlay

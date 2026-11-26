@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Mirrors web/src/components/timeline/Tracks/Playhead.tsx: a 1.5 px
 // secondary line with a timecode pill at the top, and a 16 px grab zone below
 // the ruler. Its x is the only thing that follows the clock (D30): a move

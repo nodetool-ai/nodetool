@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Shared VST3 plug-in picker and editor launcher for both MIDI track
 // instruments (`instrumentMode: true`) and audio/MIDI/master track insert
 // effects (`instrumentMode: false`).
@@ -11,9 +12,10 @@ Column {
     property string instanceId: ""
     property string editorTitle: ""
     // Current plugin ref ({uid, name, vendor, path}) or null.
+    // JSON data from the document, controller, or shared JavaScript API.
     property var plugin: null
     // Base64 state string or null/empty.
-    property var pluginState: null
+    property string pluginState: ""
     // Effect wet/dry mix in [0, 1] (effect mode) or instrument gainDb (instrument mode).
     property real wet: 1.0
     property real gainDb: 0.0
@@ -28,10 +30,12 @@ Column {
 
     spacing: Ui.Metrics.sm
 
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var pluginList: instrumentMode ? VstHost.instruments : VstHost.effects
     readonly property string selectedKey: plugin && plugin.path && plugin.uid ? (plugin.path + "\n" + plugin.uid) : ""
     readonly property bool editorOpen: instanceId !== "" && VstHost.openEditors.indexOf(instanceId) >= 0
 
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var selectOptions: {
         const opts = [{ value: "", label: instrumentMode ? qsTr("Choose VST3 instrument…") : qsTr("Choose VST3 effect…") }]
         let foundCurrent = selectedKey === ""

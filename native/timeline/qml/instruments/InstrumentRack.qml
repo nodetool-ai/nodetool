@@ -11,8 +11,10 @@ import "DeviceCatalog.js" as Catalog
 Column {
     id: root
     property TimelineModel timeline: null
+    // JSON data from the document, controller, or shared JavaScript API.
     property var track: null
     property string trackId: track && track.id ? track.id : ""
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var instrument: track && track.instrument ? track.instrument : ({})
     readonly property string type: instrument.type ? instrument.type : "subtractive"
     readonly property bool readOnly: !track || track.locked === true
@@ -108,7 +110,7 @@ Column {
             editorTitle: (root.track && root.track.name ? root.track.name + " - " : "") +
                 (root.instrument.plugin && root.instrument.plugin.name ? root.instrument.plugin.name : "VST3")
             plugin: root.instrument.plugin || null
-            pluginState: root.instrument.state || null
+            pluginState: root.instrument.state || ""
             gainDb: root.instrument.gainDb !== undefined ? root.instrument.gainDb : 0.0
             showPicker: !(root.instrument.plugin && root.instrument.plugin.uid)
             disabled: root.readOnly

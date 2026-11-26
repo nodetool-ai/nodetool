@@ -5,6 +5,7 @@ import NodeTool.Timeline
 Item {
     id: host
     required property string slot
+    // Dynamic initial-property map includes QObject references for registered panels.
     property var slotProperties: ({})
     property bool overlay: false
     property bool vertical: false
@@ -17,7 +18,9 @@ Item {
         model: PanelRegistry.forSlot(host.slot)
         delegate: Loader {
             id: panelLoader
+            // Dynamic QObject initial-property map crosses the Loader.setSource boundary.
             readonly property var panelProperties: host.slotProperties
+            // JSON record supplied by the delegate model.
             required property var modelData
             required property int index
             anchors.fill: host.overlay ? host : null

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.UiPrimitives as Ui
 import QtQuick.Controls as Controls
@@ -8,6 +9,7 @@ Item {
     id: root
     property string channelId: ""
     property string channel: ""
+    // JSON data from the document, controller, or shared JavaScript API.
     property var effects: []
     property real maxListHeight: 96
     signal add(var effect)
@@ -22,29 +24,31 @@ Item {
             Repeater {
                 model: root.effects
                 delegate: Ui.Surface {
+                    id: insertEntry
+                    // JSON record supplied by the delegate model.
                     required property var modelData
                     width: rows.width; height: Ui.Metrics.compact
                     Ui.ToolbarIconButton {
-                        objectName: "bypass-" + modelData.id
+                        objectName: "bypass-" + insertEntry.modelData.id
                         width: Ui.Metrics.compact
                         iconName: "power"
-                        accessibleName: (modelData.enabled ? "Bypass " : "Enable ") + effectName.text
+                        accessibleName: (insertEntry.modelData.enabled ? "Bypass " : "Enable ") + effectName.text
                         checkable: true
-                        checked: !!modelData.enabled
-                        onClicked: root.toggle(modelData.id, !modelData.enabled)
+                        checked: !!insertEntry.modelData.enabled
+                        onClicked: root.toggle(insertEntry.modelData.id, !insertEntry.modelData.enabled)
                     }
                     Ui.EditorButton {
-                        id: effectName; objectName: "open-effect-" + modelData.id
+                        id: effectName; objectName: "open-effect-" + insertEntry.modelData.id
                         x: Ui.Metrics.compact; width: parent.width - x
                         density: Ui.EditorButton.Compact
                         variant: Ui.EditorButton.Flat
                         contentAlignment: Qt.AlignLeft
-                        text: modelData.type === "vst"
-                            ? ((modelData.plugin && modelData.plugin.name) || "VST3 Plugin")
-                            : modelData.type === "fable" ? (TrackEffectsReference.data.strings.labels[modelData.kind] || modelData.kind)
-                            : (({gain:"Gain",eq3:"3-Band EQ",filter:"Filter",compressor:"Compressor"})[modelData.type] || modelData.type)
-                        textTone: modelData.enabled ? Ui.Text.Primary : Ui.Text.Disabled
-                        onClicked: root.open(modelData.id, effectName)
+                        text: insertEntry.modelData.type === "vst"
+                            ? ((insertEntry.modelData.plugin && insertEntry.modelData.plugin.name) || "VST3 Plugin")
+                            : insertEntry.modelData.type === "fable" ? (TrackEffectsReference.data.strings.labels[insertEntry.modelData.kind] || insertEntry.modelData.kind)
+                            : (({gain:"Gain",eq3:"3-Band EQ",filter:"Filter",compressor:"Compressor"})[insertEntry.modelData.type] || insertEntry.modelData.type)
+                        textTone: insertEntry.modelData.enabled ? Ui.Text.Primary : Ui.Text.Disabled
+                        onClicked: root.open(insertEntry.modelData.id, effectName)
                     }
                 }
             }

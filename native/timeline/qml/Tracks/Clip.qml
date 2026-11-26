@@ -43,6 +43,7 @@ Item {
     readonly property bool selected: interaction.selected
     readonly property bool underGesture: gestures !== null && gestures.activeClipId === clipId
     property int toolPreviewHandlerRuns: 0
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var toolPreview: interaction.toolPreview
     Connections {
         target: interaction
@@ -63,6 +64,7 @@ Item {
     z: underGesture ? TimelineMetrics.clipBodyLayer : Ui.Metrics.layerContent
     opacity: mutedTrack ? 0.5 : 1
 
+    // JSON data from the document, controller, or shared JavaScript API.
     property var clipData: gestures ? gestures.clipData(clipId) : ({})
     Connections {
         target: clipItem.gestures ? clipItem.gestures.timeline : null
@@ -116,6 +118,7 @@ Item {
         sourceComponent: Item {
             id: sourceGuide
             objectName: "trimSourceGuide-" + clipItem.clipId
+            // JSON data from the document, controller, or shared JavaScript API.
             readonly property var range: clipItem.gestures ? clipItem.gestures.trimSourceRange : ({})
             visible: range.clipId === clipItem.clipId
             readonly property real sourceX: ((range.startMs || 0) - clipItem.startMs) / clipItem.msPerPx

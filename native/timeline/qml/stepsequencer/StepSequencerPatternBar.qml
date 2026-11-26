@@ -4,18 +4,21 @@
 // 16 steps, and the Length select. Stateless. UI thread only.
 pragma ComponentBehavior: Bound
 import QtQuick
+import "." as Local
 import NodeTool.UiPrimitives as Ui
 import "StepSequencerModes.js" as Modes
 
 Rectangle {
     id: root
-    required property var panel
+    required property Local.StepSequencerPanel panel
     color: Ui.Theme.surfaceCanvas
     readonly property bool editable: panel.editable
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var settings: panel.settings
     readonly property string mode: panel.editMode
     // Add Row: one submenu per assignment group (web stepRowAssignments.ts).
     // Learn (SQ38) first: the next played note or controller adds or assigns a row.
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var addEntries: [
         {id: "learnAdd", label: qsTr("Learn (Add)")},
         {id: "learnAssign", label: qsTr("Learn (Assign)"), enabled: panel.selectedRowId !== ""},
@@ -25,6 +28,7 @@ Rectangle {
         submenu: g.choices.map((c, i) => ({id: "addRow:" + g.id + ":" + i, label: c.label}))
     })))
     // Length sections: 1 and 2 steps, then multiples of 4, 3, 5 and 7 up to 64 (SQ7, p. 731).
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var lengthEntries: {
         const out = [{header: qsTr("Short")}]
         for (const n of [1, 2]) out.push({id: "length:" + n, label: n === 1 ? qsTr("1 Step") : qsTr("%1 Steps").arg(n), checked: n === (settings.lengthSteps || 16)})
@@ -141,6 +145,7 @@ Rectangle {
                 Canvas {
                     id: overview
                     anchors.fill: parent
+                    // JSON data from the document, controller, or shared JavaScript API.
                     readonly property var rows: root.panel.rows
                     onRowsChanged: requestPaint()
                     onPaint: {

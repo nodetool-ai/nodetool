@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic as Basic
 import NodeTool.Timeline
@@ -9,10 +10,14 @@ import "../../instruments/DeviceCatalog.js" as Catalog
 Ui.Surface {
     id: effectsPanel
     property bool playheadPassthrough: true
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var track
     required property TimelineModel timeline
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var reference: TrackEffectsReference.data
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var strings: reference.strings
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var effects: orderedEffects()
     readonly property bool isVideo: track.type === "video"
     property int draggingIndex: -1
@@ -143,6 +148,7 @@ Ui.Surface {
                 id: cards
                 model: effectsPanel.effects
                 delegate: EffectCard {
+                    // JSON record supplied by the delegate model.
                     required property var modelData
                     required property int index
                     effect: modelData

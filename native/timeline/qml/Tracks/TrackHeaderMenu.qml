@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import NodeTool.TimelinePlayer
 import QtQuick.Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -11,8 +12,8 @@ Ui.ContextMenu {
     property string trackName: ""
     property string trackType: "video"
     // The tracks area selection and the playhead, for New Pattern Region.
-    property var gestures: null
-    property var clock: null
+    property ClipGestureController gestures: null
+    property PlaybackClock clock: null
     readonly property string typeLabel: trackType === "midi" ? "MIDI" : trackType === "chord" ? "chords"
                                        : trackType === "subtitle" ? "text" : trackType
     signal renameRequested(string trackId)
@@ -68,7 +69,7 @@ Ui.ContextMenu {
         height: visible ? implicitHeight : 0
         onTriggered: {
             const clock = menu.clock
-            const ms = clock ? (clock.timeMs !== undefined ? clock.timeMs : clock.time) : 0
+            const ms = clock ? clock.time : 0
             const result = menu.patternCreator.createPatternRegion(menu.trackId, ms)
             if (result.ok && menu.gestures) menu.gestures.selection = [result.clip.id]
         }

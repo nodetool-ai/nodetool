@@ -8,10 +8,12 @@ import NodeTool.Timeline
 Item {
     id: root
     objectName: "trimEditMarks-" + (clip.id || "")
+    // JSON data from the document, controller, or shared JavaScript API.
     property var clip: ({})
-    property var timeline: null
-    property var gestures: null
-    property var viewState: null
+    property TimelineModel timeline: null
+    property ClipGestureController gestures: null
+    property TimelineViewState viewState: null
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var edges: gestures && gestures.trimMode ? gestures.trimMode.marks[clip.id] : undefined
     enabled: false
 

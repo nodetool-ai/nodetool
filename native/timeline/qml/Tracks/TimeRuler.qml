@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Mirrors web/src/components/timeline/Tracks/TimeRuler.tsx: the tick canvas
 // above the lanes, scrolled with them. A press seeks; a drag that started
 // here scrubs. The in/out range band and the marker lines are on the canvas;
@@ -17,6 +18,7 @@ Rectangle {
     property ClipGestureController gestures: null
     property double fps: 30
     // The document's markers ({id, timeMs, label, color?, note?, durationMs?, author?}).
+    // JSON data from the document, controller, or shared JavaScript API.
     property var markers: []
     signal seekRequested(real ms)
     // A press or drag on the ruler: the transport plays a short burst of audio.
@@ -114,6 +116,7 @@ Rectangle {
             // close neighbour. Hover shows the name, timecode and note.
             delegate: Item {
                 id: flag
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 readonly property double contentPx: modelData.timeMs / ruler.viewState.msPerPx
                 readonly property string label: modelData.label ? modelData.label : "Marker"

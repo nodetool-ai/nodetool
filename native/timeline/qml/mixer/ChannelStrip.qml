@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.UiPrimitives as Ui
 import NodeTool.Timeline
@@ -10,6 +11,7 @@ Ui.Surface {
     function cancelGesture() { view.cancelGesture() }
     property bool master: false
     property bool compact: false
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var channel: controller.channel
     readonly property string channelId: master ? "master" : trackId
     readonly property string channelName: master ? "Master" : (channel.name || trackId)
@@ -17,10 +19,12 @@ Ui.Surface {
     property bool volumeConsumed: false
     property bool panConsumed: false
     // The params whose live value this strip holds in the mixer override during a drag.
+    // JSON parameter flags keyed by mixer parameter name.
     property var previewing: ({})
     property TimelineModel previewTimeline: null
     property string previewTrackId: ""
     property bool previewMaster: false
+    // JSON mixer gesture tokens keyed by parameter name.
     property var gestures: ({})
     function preview(param, value) {
         previewMaster = master

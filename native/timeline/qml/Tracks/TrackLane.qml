@@ -61,6 +61,7 @@ Rectangle {
 
     Rectangle {
         objectName: "selectedGap-" + lane.trackId
+        // JSON data from the document, controller, or shared JavaScript API.
         readonly property var gap: lane.gestures ? lane.gestures.selectedGap : ({})
         visible: gap.trackId === lane.trackId
         x: (gap.startMs ?? 0) / lane.viewState.msPerPx

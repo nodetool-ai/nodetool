@@ -14,6 +14,7 @@ import NodeTool.UiPrimitives as Ui
 
 Item {
     id: body
+    // JSON data from the document, controller, or shared JavaScript API.
     property var clipData: ({})
     property TimelineModel timeline: null
     property ClipGestureController gestures: null
@@ -63,6 +64,7 @@ Item {
     // resolveClipFades over the on-screen duration, then the ramp widths of
     // deriveClipFadeMarkers (capped to the clip, dropped under 2 px).
     readonly property double spanMs: width * msPerPx
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var resolvedFades: {
         const cap = ms => Math.min(spanMs, Math.max(0, ms))
         let fin = cap(fadeInMs)
@@ -144,9 +146,10 @@ Item {
                 startMs: body.clipData.startMs ?? 0
                 durationMs: body.durationMs
                 widthPx: body.width
+                // JSON data from the document, controller, or shared JavaScript API.
                 property var span: body.gestures ? body.gestures.groupSpan(clipId) : ({})
-                spanStartMs: span.startMs ?? null
-                spanEndMs: span.endMs ?? null
+                spanStartMs: span.startMs ?? NaN
+                spanEndMs: span.endMs ?? NaN
                 Connections {
                     target: body.timeline
                     function onClipsChanged() { groupBracket.span = body.gestures.groupSpan(groupBracket.clipId) }

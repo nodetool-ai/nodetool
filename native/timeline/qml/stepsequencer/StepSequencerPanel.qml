@@ -9,6 +9,8 @@
 // UI thread only.
 pragma ComponentBehavior: Bound
 import QtQuick
+import "." as Local
+import NodeTool.TimelinePlayer
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 import "StepSequencerModes.js" as Modes
@@ -22,8 +24,8 @@ Rectangle {
     focus: true
     activeFocusOnTab: true
 
-    property var editor: null
-    property var region: null
+    property Item editor: null
+    property QtObject region: null
     function editorAbove() {
         let item = parent
         while (item) {
@@ -52,11 +54,13 @@ Rectangle {
 
     property alias clipId: controller.clipId
     readonly property alias sequencer: controller
-    readonly property var gestures: region ? region.gestures : null
-    readonly property var clock: editor ? editor.clock : null
-    readonly property var undoStack: controller.timeline ? controller.timeline.undoStack : null
+    readonly property QtObject gestures: region ? region.gestures : null
+    readonly property PlaybackClock clock: editor ? editor.clock : null
+    readonly property QtObject undoStack: controller.timeline ? controller.timeline.undoStack : null
     readonly property bool editable: controller.editable
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var rows: controller.rows
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var settings: controller.settings
 
     StepSequencerController {
@@ -71,9 +75,12 @@ Rectangle {
     onEditModeChanged: if (editMode !== "onOff") lastValueMode = editMode === "value" ? "velocity" : editMode
     property string selectedRowId: ""
     onSelectedRowIdChanged: if (!selectedRowId && controller.learnMode === "assign") controller.learnMode = ""
+    // JSON row/step pairs passed to sequencer edit operations.
     property var selectedSteps: []          // [{row, step}]
     property int keyModifiers: Qt.NoModifier
+    // JSON step or row payload passed between sequencer edit operations.
     property var clipboard: null            // {kind: "steps"|"row", clipId, row, steps, cut}
+    // JSON row-reorder payload, null when no drag is active.
     property var rowDrag: null              // {id, from, target}
     property bool inspectorVisible: true
     property bool browserVisible: false
@@ -91,7 +98,9 @@ Rectangle {
     property bool wideSteps: true
     property real scrollX: 0
     property string inspectorTab: "pattern"
+    // JSON sequencer edit payload, null when no gesture is active.
     property var gesture: null
+    // JSON step patches keyed by row and step during an edit.
     property var previewMap: ({})
     readonly property real rowHeight: Math.round(Ui.Metrics.xxxl * 1.75 * rowZoom)
     readonly property real headerWidth: Ui.Metrics.panelWidth * 0.86
@@ -134,7 +143,7 @@ Rectangle {
         const selection = gestures ? (gestures.selection || []) : []
         const selected = selection.length > 0 ? gestures.clipData(selection[0]) : null
         const trackId = selected && selected.mediaType === "midi" ? selected.trackId : ""
-        const ms = clock ? (clock.timeMs !== undefined ? clock.timeMs : clock.time) : 0
+        const ms = clock ? clock.time : 0
         const result = controller.createPatternRegion(trackId || "", ms)
         if (result.ok && gestures) gestures.selection = [result.clip.id]
         return result
@@ -155,7 +164,7 @@ Rectangle {
     // The playhead highlight runs in C++ against cached step spans: one binary
     // search per row, and a role change only for rows whose step moved (SQ17).
     function updatePlaying() {
-        const ms = clock ? (clock.timeMs !== undefined ? clock.timeMs : clock.time) : -1
+        const ms = clock ? clock.time : -1
         controller.playheadMs = clock && clock.playing && controller.valid ? ms : -1
     }
     Connections {
@@ -192,6 +201,7 @@ Rectangle {
         selectedRowId = id
         if (inspectorTab === "step" && !selectedSteps.length) inspectorTab = "row"
     }
+    // JSON selection lookup keyed by row and step.
     readonly property var selectedStepKeys: {
         const keys = Object.create(null)
         for (const s of selectedSteps) keys[s.row + ":" + s.step] = true
@@ -571,6 +581,7 @@ Rectangle {
     // Keys (SQ34, SQ35). Names are macOS: Command is Ctrl in Qt, Control is Meta.
     // Off macOS (D106) Command is Ctrl, Option is Alt and Control is Ctrl+Alt; an
     // Option-Command chord keeps its key and the Control action is menu-only.
+    // JSON key-to-playback-mode lookup used by sequencer actions.
     readonly property var playbackKeys: ({"]": "forward", "[": "backward", "p": "pingPong", "\\": "shuffle", "y": "pendulum", "u": "wander", "j": "random"})
     function keyAction(event, cmd, alt, shift, ctl) {
         const k = event.key
@@ -682,14 +693,14 @@ Rectangle {
     }
 
     // ── Layout ──────────────────────────────────────────────────────────────
-    StepSequencerToolbar {
+    Local.StepSequencerToolbar {
         id: menuBar
         objectName: "stepSequencerMenuBar"
         panel: root
         width: parent.width
         height: Ui.Metrics.standard + Ui.Metrics.xs
     }
-    StepSequencerPatternBar {
+    Local.StepSequencerPatternBar {
         id: patternBar
         objectName: "stepSequencerPatternBar"
         panel: root
@@ -709,12 +720,12 @@ Rectangle {
             visible: root.browserVisible
             width: visible ? root.sideWidth : 0
             height: parent.height
-            sourceComponent: StepSequencerBrowser {
+            sourceComponent: Local.StepSequencerBrowser {
                 objectName: "stepSequencerBrowser"
                 panel: root
             }
         }
-        StepSequencerInspector {
+        Local.StepSequencerInspector {
             id: inspector
             objectName: "stepSequencerInspector"
             panel: root
@@ -742,7 +753,7 @@ Rectangle {
             reuseItems: true
             cacheBuffer: Math.round(root.rowHeight)
             boundsBehavior: Flickable.StopAtBounds
-            delegate: StepSequencerRow {
+            delegate: Local.StepSequencerRow {
                 panel: root
             }
             WheelHandler {

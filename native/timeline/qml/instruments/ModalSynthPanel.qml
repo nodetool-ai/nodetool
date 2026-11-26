@@ -16,11 +16,13 @@ Ui.Surface {
     property TimelineModel timeline: null
     property string trackId: ""
     property bool readOnly: false
+    // JSON data from the document, controller, or shared JavaScript API.
     property var instrument: ({})
 
     signal presetSelected(string presetId)
     signal parameterCommitted(string name, var value)
 
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var activeInstrument: {
         if (root.timeline && root.trackId !== "") {
             const tracks = root.timeline.tracksJson

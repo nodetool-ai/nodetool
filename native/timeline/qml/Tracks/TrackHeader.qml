@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Mirrors web/src/components/timeline/Tracks/TrackHeader.tsx: the left strip
 // of a track row. Top row: reorder grip, type glyph, name, index chip (V1,
 // A1). Bottom row: the visibility, lock, sync-lock, mute, solo, effects,
@@ -26,6 +27,7 @@ Rectangle {
     required property int typedIndex
     required property double rowHeight
     // The raw track (TrackListModel's `track` role).
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var track
     property TimelineModel timeline: null
     property ClipGestureController gestures: null

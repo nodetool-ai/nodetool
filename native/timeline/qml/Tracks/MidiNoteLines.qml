@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // nt-panel: slot=clipBody id=midiNoteLines order=5 title="Note lines"
 // The notes of a midi clip as short horizontal lines under the name band. One
 // MidiNoteLinesItem draws the whole clip. Its visible window moves in 256 px
@@ -7,18 +8,19 @@ import NodeTool.Timeline
 
 Item {
     id: root
+    // JSON data from the document, controller, or shared JavaScript API.
     property var clip: ({})
-    property var timeline: null
-    property var gestures: null
-    property var viewState: null
+    property TimelineModel timeline: null
+    property ClipGestureController gestures: null
+    property TimelineViewState viewState: null
     readonly property real step: 256
     readonly property real bodyX: body ? body.contentX : 0
     readonly property real scrollLeft: viewState ? viewState.scrollLeftPx : 0
     readonly property real viewportWidth: viewState ? viewState.viewportWidthPx : width
-    readonly property var body: {
+    readonly property ClipBody body: {
         let item = parent
         while (item) {
-            if (item.contentX !== undefined && item.hovered !== undefined && item.selected !== undefined) return item
+            if (item.contentX !== undefined && item.hovered !== undefined && item.selected !== undefined) return item as ClipBody
             item = item.parent
         }
         return null

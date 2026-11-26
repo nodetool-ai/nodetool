@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // nt-panel: slot=overlay id=vstStateSync order=6 title="VST state sync"
 // Keeps open VST3 plug-in editor windows synchronized with the timeline
 // document even after popovers close. Instance keys use:

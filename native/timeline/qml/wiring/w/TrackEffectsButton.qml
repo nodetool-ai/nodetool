@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
@@ -7,6 +8,7 @@ TrackIconButton {
     required property string trackId
     required property TimelineModel timeline
     readonly property bool expanded: TrackEffectsState.panelVisible && TrackEffectsState.expandedFxTrackId === trackId
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var effects: model.track.effects ?? []
     readonly property string toolTip: effects.length === 0 ? "Effects chain (empty)"
         : "Effects chain (" + effects.length + (effects.length === 1 ? " effect)" : " effects)")

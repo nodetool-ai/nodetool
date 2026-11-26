@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -5,12 +6,17 @@ import "automationTargets.js" as Targets
 Item {
     id: root
     property TimelineModel timeline: null
+    // JSON data from the document, controller, or shared JavaScript API.
     property var track: ({})
+    // JSON data from the document, controller, or shared JavaScript API.
     property var lane: null
     property bool main: true
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var specs: Targets.automationTargetSpecs(track)
     readonly property string shown: main ? AutomationUIState.shownKey(track) : lane ? Targets.key(lane.target) : ""
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var spec: specs.find(s => s.key === shown) || null
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var activeLane: main ? (track.automation || []).find(l => Targets.key(l.target) === shown) : lane
     readonly property string mode: track.automationMode || "read"
     readonly property color parameterColor: spec ? Targets.color(Ui.Theme, controller.call("automationParamColorRole",[specs.findIndex(s => s.key === shown), spec.target])) : Ui.Theme.textDisabled
@@ -191,6 +197,7 @@ Item {
                 Keys.onEnterPressed: if (currentItem && currentItem.enabled) { currentItem.click() }
                 delegate: Ui.ListRow {
                     id: parameterChoice
+                    // JSON record supplied by the delegate model.
                     required property var modelData
                     required property int index
                     readonly property bool populated: (root.track.automation || []).some(l => Targets.key(l.target)===modelData.key && l.points.length>0)

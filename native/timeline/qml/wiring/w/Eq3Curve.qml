@@ -1,4 +1,6 @@
+pragma ComponentBehavior: Bound
 import QtQuick
+import "." as Local
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 import "CurveMath.js" as MathFx
@@ -6,16 +8,17 @@ import "CurveMath.js" as MathFx
 Rectangle {
     id: graph
     objectName: "eq3-curve-" + effect.id
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var effect
     property bool disabled: false
     signal preview(var patch)
     signal commit(var patch)
     signal editCanceled()
-    // f -> dB. Replaces the three-band response, for an EQ with other bands.
-    property var response: null
-    readonly property var ranges: [[40,400], [100,8000], [2000,16000]]
-    readonly property var bands: ["low", "mid", "high"]
-    readonly property var colors: [Ui.Theme.statusInfo, Ui.Theme.statusSuccess, Ui.Theme.statusWarning]
+    // The Fable editor supplies the response for EQs with other bands.
+    property Local.FableEffectEditor responseProvider: null
+    readonly property list<point> ranges: [Qt.point(40, 400), Qt.point(100, 8000), Qt.point(2000, 16000)]
+    readonly property list<string> bands: ["low", "mid", "high"]
+    readonly property list<color> colors: [Ui.Theme.statusInfo, Ui.Theme.statusSuccess, Ui.Theme.statusWarning]
     implicitHeight: 160
     height: implicitHeight
     radius: Ui.Metrics.xs
@@ -47,7 +50,7 @@ Rectangle {
             ctx.beginPath()
             for (let i = 0; i <= 256; ++i) {
                 const f = 20 * Math.pow(1000,i / 256)
-                const db = graph.response ? graph.response(f) : MathFx.biquadMagDb("lowshelf",f,e.lowFreq,e.lowGainDb,0.7)
+                const db = graph.responseProvider ? graph.responseProvider.eqResponse(f) : MathFx.biquadMagDb("lowshelf",f,e.lowFreq,e.lowGainDb,0.7)
                     + MathFx.biquadMagDb("peaking",f,e.midFreq,e.midGainDb,e.midQ)
                     + MathFx.biquadMagDb("highshelf",f,e.highFreq,e.highGainDb,0.7)
                 const y = graph.gainY(Math.max(-18,Math.min(18,db)))
@@ -102,7 +105,7 @@ Rectangle {
                 } else if (vertical) patch[modelData + "GainDb"] = Math.max(-18,Math.min(18,graph.effect[modelData + "GainDb"] + dir * (event.modifiers & Qt.ShiftModifier ? 2 : 0.5)))
                 else {
                     const factor = event.modifiers & Qt.ShiftModifier ? 1.2 : 1.05
-                    patch[modelData + "Freq"] = Math.max(graph.ranges[index][0],Math.min(graph.ranges[index][1],graph.effect[modelData + "Freq"] * (dir > 0 ? factor : 1 / factor)))
+                    patch[modelData + "Freq"] = Math.max(graph.ranges[index].x,Math.min(graph.ranges[index].y,graph.effect[modelData + "Freq"] * (dir > 0 ? factor : 1 / factor)))
                 }
                 graph.preview(patch)
             }
@@ -121,7 +124,7 @@ Rectangle {
                     if (!pressed) return
                     const point = mapToItem(graph,event.x,event.y)
                     const patch = {}
-                    patch[handle.modelData + "Freq"] = Math.max(graph.ranges[handle.index][0],Math.min(graph.ranges[handle.index][1],20 * Math.pow(1000,Math.max(0,Math.min(graph.width,point.x)) / graph.width)))
+                    patch[handle.modelData + "Freq"] = Math.max(graph.ranges[handle.index].x,Math.min(graph.ranges[handle.index].y,20 * Math.pow(1000,Math.max(0,Math.min(graph.width,point.x)) / graph.width)))
                     patch[handle.modelData + "GainDb"] = Math.max(-18,Math.min(18,(graph.height / 2 - point.y) / (graph.height / 2) * 18))
                     graph.preview(patch)
                 }

@@ -24,6 +24,7 @@ Item {
         delegate: Item {
             id: guide
             required property int index
+            // JSON data from the document, controller, or shared JavaScript API.
             readonly property var entry: layer.monitor.guides[index] || ({vertical: true, position: 0})
             readonly property bool vertical: entry.vertical
             readonly property real line: vertical ? layer.monitor.pictureRect.x + entry.position * layer.pixelsPerCanvasX

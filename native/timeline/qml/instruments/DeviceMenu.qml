@@ -8,12 +8,14 @@ import "DeviceCatalog.js" as Catalog
 
 Ui.Popover {
     id: root
+    // JSON records consumed by the shared registry, menu, or control API.
     property var entries: []
     property string rowPrefix: ""
     property string rowSuffix: ""
     property string currentKey: ""
     property string searchLabel: qsTr("Search devices")
     readonly property bool searchable: entries.length > 8
+    // JSON records consumed by the shared registry, menu, or control API.
     property var shown: []
     signal chosen(var entry)
 
@@ -66,6 +68,7 @@ Ui.Popover {
             model: root.shown
             delegate: Item {
                 id: line
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 readonly property bool header: modelData.kind === "header"
                 width: ListView.view.width

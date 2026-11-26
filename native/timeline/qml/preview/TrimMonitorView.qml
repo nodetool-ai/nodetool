@@ -20,6 +20,7 @@ Item {
 
     readonly property TrimMode trim: gestures ? gestures.trimMode : null
     readonly property bool active: trim !== null && trim.active
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var info: trim ? trim.monitor : ({})
     readonly property int largeFrames: trim ? trim.largeFrames : 0
     readonly property color markColor: trim && trim.kind === "ripple" ? TimelineVisuals.trimRipple : TimelineVisuals.trimRoll
@@ -71,14 +72,16 @@ Item {
     component SidePicture: Rectangle {
         id: side
         required property string sideName
+        // JSON data from the document, controller, or shared JavaScript API.
         required property var sideInfo
         required property bool moves
-        required property var image
+        property alias image: frameImage.image
         required property string errorText
         required property bool loading
         readonly property bool audioOnly: sideInfo !== null && sideInfo !== undefined && (sideInfo.mediaType === "audio" || sideInfo.mediaType === "midi")
         color: Ui.Theme.surfaceCanvas
         FrameImage {
+            id: frameImage
             objectName: "trimMonitorImage-" + side.sideName
             anchors.fill: parent
             image: side.image
@@ -275,6 +278,7 @@ Item {
                     model: [{name: "BackwardMany", frames: -root.largeFrames, say: "Trim back " + root.largeFrames + " frames"},
                             {name: "Backward", frames: -1, say: "Trim back 1 frame"}]
                     delegate: Ui.EditorButton {
+                        // JSON record supplied by the delegate model.
                         required property var modelData
                         objectName: "trimMonitor" + modelData.name
                         focusPolicy: Qt.TabFocus
@@ -296,6 +300,7 @@ Item {
                     model: [{name: "Forward", frames: 1, say: "Trim forward 1 frame"},
                             {name: "ForwardMany", frames: root.largeFrames, say: "Trim forward " + root.largeFrames + " frames"}]
                     delegate: Ui.EditorButton {
+                        // JSON record supplied by the delegate model.
                         required property var modelData
                         objectName: "trimMonitor" + modelData.name
                         focusPolicy: Qt.TabFocus

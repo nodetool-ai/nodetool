@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.UiPrimitives as Ui
 import NodeTool.Timeline
@@ -5,9 +6,12 @@ import "effectCurves.js" as Curves
 Ui.Surface {
     id: root
     variant: Ui.Surface.Panel
+    // JSON data from the document, controller, or shared JavaScript API.
     property var effect: ({lowFreq:200,lowGainDb:0,midFreq:1000,midGainDb:0,midQ:1,highFreq:5000,highGainDb:0})
     property bool disabled: false
+    // JSON data from the document, controller, or shared JavaScript API.
     property var draft: ({})
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var display: Object.assign({},effect,draft)
     signal preview(var patch)
     signal commit(var patch)

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.UiPrimitives as Ui
 import QtQuick.Controls as Controls

@@ -1,15 +1,19 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 
 Row {
     id: root
+    // Parameter-definition record from the shared JavaScript control API.
     property var def: ({options:[]})
     property real value: 0
     property string accent: "n"
+    // Callable compatibility boundary used by tst_fxcontrols outside this QML scope.
     property var onSet: function(value) {}
     signal setValue(real value)
     function requestSet(value) { onSet(value); setValue(value) }
+    // JSON options consumed by the shared menu or select control.
     readonly property var options: def.options ?? []
     readonly property int count: Math.max(1, options.length)
     readonly property int index: Math.min(count - 1, Math.max(0, Math.round(value)))

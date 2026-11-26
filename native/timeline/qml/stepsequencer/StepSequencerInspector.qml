@@ -4,23 +4,28 @@
 // commit is one operation, so one undo entry. UI thread only.
 pragma ComponentBehavior: Bound
 import QtQuick
+import "." as Local
 import NodeTool.UiPrimitives as Ui
 import "StepSequencerModes.js" as Modes
 
 Rectangle {
     id: root
-    required property var panel
+    required property Local.StepSequencerPanel panel
     color: Ui.Theme.surfacePanel
     clip: true
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var settings: panel.settings
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var row: panel.rowById(panel.selectedRowId)
-    readonly property var steps: row ? panel.selectedSteps.filter(s => s.row === row.id).map(s => s.step) : []
+    readonly property list<int> steps: row ? panel.selectedSteps.filter(s => s.row === row.id).map(s => s.step) : []
     readonly property bool editable: panel.editable
     readonly property real labelWidth: width * 0.44
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var playbackOptions: Modes.PLAYBACK.map(p => ({label: p.label, value: p.value}))
-    readonly property var noteNames: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-    readonly property var scales: ["chromatic", "major", "minor", "dorian", "mixolydian", "phrygian", "lydian", "locrian", "harmMinor", "melMinor",
+    readonly property list<string> noteNames: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    readonly property list<string> scales: ["chromatic", "major", "minor", "dorian", "mixolydian", "phrygian", "lydian", "locrian", "harmMinor", "melMinor",
                                    "phrygDom", "lydDom", "locrian2", "altered", "wholeTone", "dimHW", "dimWH", "majPent", "minPent", "blues"]
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var rateOptions: Modes.STEP_RATES.map(r => ({label: r, value: r}))
 
     // The shared value of `mode` across the selected steps, or null when they differ.
@@ -38,6 +43,7 @@ Rectangle {
         if (row && steps.length) panel.op("set_steps", {row: row.id, steps: Modes.oneBased(steps), values: values})
     }
     // Condition key: "always", "first", "last" or "<iteration>:<cycles>" (p. 757).
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var conditionOptions: {
         const out = [{label: qsTr("Always"), value: "always"}, {label: qsTr("First"), value: "first"}, {label: qsTr("Last"), value: "last"}]
         for (let c = 2; c <= 8; ++c) for (let i = 1; i <= c; ++i) out.push({label: i + ":" + c, value: i + ":" + c})
@@ -47,6 +53,7 @@ Rectangle {
         if (!cond || !cond.type || cond.type === "always") return "always"
         return cond.type === "recurrence" ? cond.iteration + ":" + cond.cycles : cond.type
     }
+    // JSON condition key is null when the selected steps disagree.
     readonly property var sharedCondition: {
         if (!row || !steps.length) return null
         const first = conditionKey(row.steps[steps[0]].condition)
@@ -57,6 +64,7 @@ Rectangle {
         setSteps({condition: parts.length === 2 ? {type: "recurrence", iteration: Number(parts[0]), cycles: Number(parts[1])} : {type: key}})
     }
     // Row assignment entries: the Add Row groups, applied to the selected row.
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var assignEntries: panel.sequencer.addRowGroups.map(g => ({
         id: "group-" + g.id, label: g.label,
         submenu: g.choices.map((c, i) => ({id: g.id + ":" + i, label: c.label}))
@@ -73,6 +81,7 @@ Rectangle {
         list.push({op: "set_pattern_row", args: args})
         panel.ops(list)
     }
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var colorOptions: [{label: qsTr("Automatic"), value: ""}].concat(Modes.ROW_PALETTE.map((c, i) => ({label: qsTr("Color %1").arg(i + 1), value: c})))
     function commitStep(mode, next) {
         if (!row || !steps.length) return
@@ -272,7 +281,9 @@ Rectangle {
     component SelectField: Row {
         id: sf
         property string label: ""
+        // JSON options consumed by the shared menu or select control.
         property var options: []
+        // JSON control value may be a number, string, or undefined.
         property var value
         signal commit(var value)
         width: parent ? parent.width : 0
@@ -317,6 +328,7 @@ Rectangle {
     component StepNumber: NumberRow {
         id: sn
         property string mode: "velocity"
+        // JSON step value is null when the selection has mixed values.
         readonly property var common: root.shared(mode)
         mixed: common === null
         value: common === null ? 0 : common

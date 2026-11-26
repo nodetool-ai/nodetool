@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
@@ -7,6 +8,7 @@ Ui.ContextMenu {
     id: menu
     required property string kind
     required property ClipGestureController gestures
+    // Dynamic action context crosses the registry API and can include QObject references.
     property var context: ({})
     objectName: "registryContextMenu-" + kind
     popupType: Popup.Item

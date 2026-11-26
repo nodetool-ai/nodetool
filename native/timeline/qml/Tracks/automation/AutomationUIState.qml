@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import "automationTargets.js" as Targets
@@ -25,7 +26,8 @@ QtObject {
         onTriggered: if (AutomationMeters.hasSignal()) { ++state.meterTicks; state.meterTick() }
     }
     property bool showAutomation: false
-    property var shownAutomationTrackIds: []
+    property list<string> shownAutomationTrackIds: []
+    // JSON automation target keys indexed by track id.
     property var shownParameters: ({})
     property bool mixerOpen: false
     property TimelineModel timeline: null

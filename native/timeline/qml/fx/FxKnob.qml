@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -8,6 +9,7 @@ import "FxParams.js" as Params
 // --ac-a/b/f/n -> info/warning/secondary/primary. Fonts -> monoFamily.
 Item {
     id: root
+    // Parameter-definition record from the shared JavaScript control API.
     property var def: ({id:"", min:0, max:1, def:0})
     property real value: 0
     property string size: "sm"
@@ -16,6 +18,7 @@ Item {
     signal change(real value)
     // QML reserves `set`. Keep React's onSet callback and expose setValue
     // for QML signal consumers (onSetValue).
+    // Callable compatibility boundary used by tst_fxcontrols outside this QML scope.
     property var onSet: function(value) {}
     signal setValue(real value)
     function requestSet(value) { onSet(value); setValue(value) }

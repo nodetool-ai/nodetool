@@ -1,21 +1,24 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQml
-import QtQuick.Controls
+import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 
 Instantiator {
     id: entries
-    required property var menu
+    required property Ui.ContextMenu menu
     required property string kind
+    // Dynamic action context crosses the registry API and can include QObject references.
     required property var context
     required property ClipGestureController gestures
+    // Dynamic action context crosses the registry API and can include QObject references.
     readonly property var actionContext: Object.assign({}, context, { kind: kind, gestures: gestures })
-    readonly property Component groupSeparator: Component { MenuSeparator { contentItem: Ui.Separator {} } }
+    readonly property Component groupSeparator: Component { Controls.MenuSeparator { contentItem: Ui.Separator {} } }
     model: MenuRegistry.query(kind, actionContext)
     delegate: Ui.MenuItem {
         id: entry
+        // JSON record supplied by the delegate model.
         required property var modelData
         property Item separatorBefore: null
         objectName: "registryMenu-" + entries.kind + "-" + modelData.action

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
@@ -6,7 +7,9 @@ import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: root
     property TimelineModel timeline: null
+    // JSON data from the document, controller, or shared JavaScript API.
     property var track: ({})
+    // JSON data from the document, controller, or shared JavaScript API.
     property var lane: ({id:"",target:{},points:[]})
     property real msPerPx: 10
     property bool mainLane: false
@@ -14,12 +17,16 @@ Rectangle {
     property real viewportWidth: width
     readonly property string targetKey: Targets.key(lane.target)
     readonly property color parameterColor: spec ? Targets.color(Ui.Theme,controller.call("automationParamColorRole",[Targets.automationTargetSpecs(currentTrack).findIndex(s => s.key === targetKey),lane.target])) : Ui.Theme.textDisabled
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var currentTrack: controller.channel.id ? controller.channel : track
     readonly property bool storedLane: (controller.channel.automation || []).some(l => l.id === lane.id)
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var currentLane: (currentTrack.automation || []).find(l => l.id === lane.id) || lane
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var spec: Targets.automationTargetSpec(currentTrack, lane.target)
     readonly property bool editable: spec !== null && !currentTrack.locked
     readonly property bool on: currentLane.enabled !== false && spec !== null && currentTrack.automationMode !== "off"
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var points: dragging || pendingCreation.running ? draft : (currentLane.points || [])
     readonly property real labelValue: curveLabelValue()
     readonly property real firstPointPosition: points.length ? points[0].timeMs/msPerPx : viewportLeft
@@ -29,13 +36,14 @@ Rectangle {
     property int draftRevision: 0
     property int paintedPointCount: 0
     property int pointVisits: 0
+    // JSON data from the document, controller, or shared JavaScript API.
     property var draft: []
     property int selected: -1
     property bool dragging: false
     property bool gestureMoved: false
     property point pressPosition: Qt.point(0,0)
     property real startTimeMs: 0
-    property var gestureGeneration: 0
+    property int gestureGeneration: 0
     objectName: "automation-lane-" + lane.id
     implicitHeight: 56; height: implicitHeight
     color: mainLane ? "transparent" : Ui.Theme.surfaceCanvas; clip: true; activeFocusOnTab: true
@@ -258,6 +266,7 @@ Rectangle {
         Repeater {
             model: [{value:"linear",label:"Linear"},{value:"easeIn",label:"Ease in"},{value:"easeOut",label:"Ease out"},{value:"easeInOut",label:"Ease in/out"},{value:"hold",label:"Hold"}]
             delegate: Ui.MenuItem {
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 objectName: "automation-easing-"+modelData.value
                 text: modelData.label; checkable: true

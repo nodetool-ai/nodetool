@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Kit choice for the built-in drum sampler. The kit change is an undoable `instrument.setBuiltin` edit.
 import QtQuick
 import NodeTool.Timeline
@@ -10,9 +11,11 @@ Ui.Surface {
     property TimelineModel timeline: null
     property string trackId: ""
     property bool readOnly: false
+    // JSON data from the document, controller, or shared JavaScript API.
     property var instrument: ({})
     readonly property string kitValue: String(instrument.kit || instrument.preset || "808").toLowerCase().indexOf("uzu") >= 0 ? "uzu" : "808"
 
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var activeInstrument: live.channel.instrument || instrument
     AutomationController { id: live; timeline: root.timeline; trackId: root.trackId }
     function cancelPreview() { live.cancelDevice("instrument") }

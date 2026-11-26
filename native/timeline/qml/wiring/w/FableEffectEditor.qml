@@ -1,4 +1,6 @@
+pragma ComponentBehavior: Bound
 import QtQuick
+import "." as Local
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 import "../../fx"
@@ -12,7 +14,9 @@ EffectEditor {
     id: editor
     objectName: "fable-editor-" + (effect.id ?? "")
     readonly property string kind: effect.kind ?? ""
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var layout: Params.FABLE_FX_LAYOUT[kind] ?? ({sections: []})
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var params: effect.params ?? ({})
     readonly property real cell: 60
     spacing: Ui.Metrics.sm
@@ -35,8 +39,10 @@ EffectEditor {
     function commitParam(id, v) { commit(one(id, v)) }
 
     // The EQ curve edits LOW, MID 1 and HIGH through the three-band view.
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var eqKeys: ({lowFreq: "fx.eq.lfreq", lowGainDb: "fx.eq.low", midFreq: "fx.eq.mfreq", midGainDb: "fx.eq.mid",
                                     midQ: "fx.eq.mq", highFreq: "fx.eq.hfreq", highGainDb: "fx.eq.high"})
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var compKeys: ({thresholdDb: "fx.comp.thr", ratio: "fx.comp.ratio"})
     function curvePatch(keys, patch, clamp) {
         const changes = {}
@@ -78,12 +84,12 @@ EffectEditor {
         Loader {
             active: editor.layout.curve === "eq"
             visible: active
-            sourceComponent: Eq3Curve {
+            sourceComponent: Local.Eq3Curve {
                 width: 200; implicitHeight: device.tallest
                 effect: ({id: editor.effect.id, lowFreq: editor.value("fx.eq.lfreq"), lowGainDb: editor.value("fx.eq.low"),
                           midFreq: editor.value("fx.eq.mfreq"), midGainDb: editor.value("fx.eq.mid"), midQ: editor.value("fx.eq.mq"),
                           highFreq: editor.value("fx.eq.hfreq"), highGainDb: editor.value("fx.eq.high")})
-                response: f => editor.eqResponse(f)
+                responseProvider: editor
                 disabled: editor.disabled
                 onPreview: patch => { const p = editor.curvePatch(editor.eqKeys, patch); if (p.params) editor.preview(p) }
                 onCommit: patch => editor.commit(editor.curvePatch(editor.eqKeys, patch))
@@ -107,6 +113,7 @@ EffectEditor {
             model: editor.layout.sections
             delegate: Rectangle {
                 id: section
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 required property int index
                 readonly property real bodyHeight: body.implicitHeight
@@ -137,6 +144,7 @@ EffectEditor {
                         Ui.Toggle {
                             id: power
                             readonly property string param: section.modelData.power ?? section.modelData.toggle ?? ""
+                            // JSON data from the document, controller, or shared JavaScript API.
                             readonly property var paramDef: param ? editor.def(param) : null
                             objectName: visible ? "fable-toggle-" + editor.effect.id + "-" + param : ""
                             visible: param !== ""
@@ -157,6 +165,7 @@ EffectEditor {
                         delegate: Loader {
                             id: control
                             required property string modelData
+                            // JSON data from the document, controller, or shared JavaScript API.
                             readonly property var paramDef: editor.def(modelData)
                             readonly property int count: section.modelData.controls.length
                             width: (body.width - (count - 1) * Ui.Metrics.xs) / count

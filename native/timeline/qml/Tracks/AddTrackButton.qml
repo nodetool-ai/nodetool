@@ -27,6 +27,7 @@ TrackIconButton {
             ]
             delegate: Ui.MenuItem {
                 id: entry
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 objectName: "addTrack-" + modelData.type
                 text: modelData.label

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Mirrors `TrackHeightSlider` in TimelineZoomControls.tsx: the track height
 // (vertical zoom, 0.75 to 2) in the tracks section header.
 import QtQuick

@@ -7,18 +7,19 @@ import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
+    // JSON data from the document, controller, or shared JavaScript API.
     property var clip: ({})
-    property var timeline: null
-    property var gestures: null
-    property var viewState: null
+    property TimelineModel timeline: null
+    property ClipGestureController gestures: null
+    property TimelineViewState viewState: null
     readonly property real msPerPx: viewState ? viewState.msPerPx : 10
     ClipInteractionState { id: interaction; gestures: root.gestures; clipId: root.clip.id || "" }
     readonly property bool selected: interaction.selected
     readonly property bool locked: !!clip.locked || !!(body && body.locked)
-    readonly property var body: {
+    readonly property ClipBody body: {
         let item = parent
         while (item) {
-            if (item.hovered !== undefined && item.selected !== undefined && item.locked !== undefined) return item
+            if (item.hovered !== undefined && item.selected !== undefined && item.locked !== undefined) return item as ClipBody
             item = item.parent
         }
         return null

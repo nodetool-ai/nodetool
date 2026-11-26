@@ -577,8 +577,7 @@
     "R1": 2
   },
   "native/timeline/qml/Inspector/ReframeFocusOverlay.qml": {
-    "R1": 6,
-    "R5-canvas": 1
+    "R1": 6
   },
   "native/timeline/qml/Inspector/ReframePreview.qml": {
     "R1": 4
@@ -688,29 +687,23 @@
     "R5-canvas": 1
   },
   "native/timeline/qml/Tracks/ClipFadeGrips.qml": {
-    "R1": 5,
-    "R2": 1
-  },
-  "native/timeline/qml/Tracks/ClipFadeShapeMenu.qml": {
-    "K11": 1,
     "R1": 1,
     "R2": 1
   },
-  "native/timeline/qml/Tracks/GroupBracket.qml": {
-    "R1": 2
+  "native/timeline/qml/Tracks/ClipFadeShapeMenu.qml": {
+    "R1": 1,
+    "R2": 1
   },
   "native/timeline/qml/Tracks/MidiNoteLines.qml": {
-    "R1": 5
+    "R1": 1
   },
   "native/timeline/qml/Tracks/RubberBandOverlay.qml": {
     "R1": 1
   },
   "native/timeline/qml/Tracks/ShortcutsSheet.qml": {
-    "K11": 4,
-    "R1": 6
+    "R1": 5
   },
   "native/timeline/qml/Tracks/TimeRuler.qml": {
-    "K11": 1,
     "R1": 2,
     "R2": 1
   },
@@ -718,14 +711,10 @@
     "R1": 1
   },
   "native/timeline/qml/Tracks/ToolToggle.qml": {
-    "K11": 3,
     "R1": 5
   },
   "native/timeline/qml/Tracks/TrackHeader.qml": {
     "R1": 1
-  },
-  "native/timeline/qml/Tracks/TrackHeaderMenu.qml": {
-    "R1": 2
   },
   "native/timeline/qml/Tracks/TrackLane.qml": {
     "R1": 1
@@ -734,10 +723,9 @@
     "R1": 3
   },
   "native/timeline/qml/Tracks/TrimEditMarks.qml": {
-    "R1": 5
+    "R1": 2
   },
   "native/timeline/qml/Tracks/automation/AutomationAddLaneHeader.qml": {
-    "K11": 1,
     "R1": 3,
     "R2": 1
   },
@@ -746,7 +734,6 @@
     "R2": 2
   },
   "native/timeline/qml/Tracks/automation/AutomationHeaderRow.qml": {
-    "K11": 2,
     "R1": 6,
     "R2": 2
   },
@@ -754,23 +741,20 @@
     "R1": 3
   },
   "native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml": {
-    "K11": 1,
-    "R1": 4,
+    "R1": 2,
     "R2": 1
   },
   "native/timeline/qml/Tracks/automation/AutomationLaneView.qml": {
-    "K11": 1,
-    "R1": 9,
+    "R1": 8,
     "R2": 1,
     "R5-canvas": 1
   },
   "native/timeline/qml/Tracks/automation/AutomationLanes.qml": {
-    "K11": 1,
-    "R1": 5,
+    "R1": 3,
     "R2": 1
   },
   "native/timeline/qml/Tracks/automation/AutomationUIState.qml": {
-    "R1": 2,
+    "R1": 1,
     "R2": 3
   },
   "native/timeline/qml/activity/ActivityPanel.qml": {
@@ -964,7 +948,7 @@
     "R1": 2
   },
   "native/timeline/qml/instruments/SamplerPanel.qml": {
-    "R1": 6,
+    "R1": 5,
     "R2": 1,
     "R5-canvas": 1
   },
@@ -1009,39 +993,29 @@
     "R1": 3
   },
   "native/timeline/qml/mixer/ChannelStripView.qml": {
-    "R1": 3,
+    "R1": 2,
     "R5-canvas": 1
   },
   "native/timeline/qml/mixer/EffectDevicePopover.qml": {
-    "K11": 3,
-    "R1": 8,
+    "R1": 7,
     "R2": 1
   },
   "native/timeline/qml/mixer/InsertSlots.qml": {
-    "K11": 1,
     "R1": 2
   },
   "native/timeline/qml/mixer/InstrumentDevicePopover.qml": {
     "R1": 1
   },
   "native/timeline/qml/mixer/MixerCompressorCurve.qml": {
-    "K11": 1,
     "R1": 3,
     "R5-canvas": 1
   },
   "native/timeline/qml/mixer/MixerEq3Curve.qml": {
-    "K11": 1,
     "R1": 3,
     "R5-canvas": 1
   },
   "native/timeline/qml/mixer/MixerFader.qml": {
     "R2": 1
-  },
-  "native/timeline/qml/mixer/MixerPanel.qml": {
-    "R1": 1
-  },
-  "native/timeline/qml/mixer/MixerView.qml": {
-    "K11": 1
   },
   "native/timeline/qml/motionpanel/MotionPanel.qml": {
     "R1": 3
@@ -1085,7 +1059,7 @@
     "R1": 2
   },
   "native/timeline/qml/music/MusicTakeList.qml": {
-    "R1": 6,
+    "R1": 4,
     "R2": 4
   },
   "native/timeline/qml/music/MusicToast.qml": {
@@ -1103,7 +1077,7 @@
     "R1": 1
   },
   "native/timeline/qml/pianoroll/PianoRollPanel.qml": {
-    "R1": 33,
+    "R1": 32,
     "R2": 19,
     "R5-canvas": 6
   },
@@ -1116,7 +1090,7 @@
   },
   "native/timeline/qml/pianoroll/StepEditorPanel.qml": {
     "R1": 19,
-    "R2": 31,
+    "R2": 27,
     "R5-canvas": 2
   },
   "native/timeline/qml/pianoroll/StepEditorRow.qml": {
@@ -1130,21 +1104,15 @@
   "native/timeline/qml/preview/MonitorGuides.qml": {
     "R1": 1
   },
-  "native/timeline/qml/preview/MonitorSafeMargins.qml": {
-    "K11": 1
-  },
   "native/timeline/qml/preview/MonitorSettingsMenu.qml": {
     "R1": 3
   },
   "native/timeline/qml/preview/PreviewArea.qml": {
-    "R1": 12,
+    "R1": 10,
     "R2": 4
   },
-  "native/timeline/qml/preview/TimecodeField.qml": {
-    "R1": 1
-  },
   "native/timeline/qml/preview/TrimMonitorView.qml": {
-    "R1": 5
+    "R1": 4
   },
   "native/timeline/qml/providersettings/ProviderSettingsDialog.qml": {
     "R1": 4,
@@ -1171,28 +1139,25 @@
   "native/timeline/qml/scenedetect/SceneEditHost.qml": {
     "R1": 2
   },
-  "native/timeline/qml/stepsequencer/StepSequencerBrowser.qml": {
-    "R1": 1
-  },
   "native/timeline/qml/stepsequencer/StepSequencerInspector.qml": {
-    "R1": 15,
+    "R1": 11,
     "R2": 2
   },
   "native/timeline/qml/stepsequencer/StepSequencerPanel.qml": {
-    "R1": 14,
+    "R1": 9,
     "R2": 30
   },
   "native/timeline/qml/stepsequencer/StepSequencerPatternBar.qml": {
-    "R1": 5,
+    "R1": 4,
     "R5-canvas": 1
   },
   "native/timeline/qml/stepsequencer/StepSequencerRow.qml": {
-    "R1": 9,
+    "R1": 7,
     "R2": 3,
     "R5-canvas": 1
   },
   "native/timeline/qml/stepsequencer/StepSequencerToolbar.qml": {
-    "R1": 4,
+    "R1": 3,
     "R2": 1
   },
   "native/timeline/qml/storyworkspace/ScriptVoicePicker.qml": {
@@ -1235,7 +1200,7 @@
     "R1": 3
   },
   "native/timeline/qml/vst/VstPluginControl.qml": {
-    "R1": 4,
+    "R1": 3,
     "R2": 1
   },
   "native/timeline/qml/vst/VstStateSync.qml": {
@@ -1245,50 +1210,34 @@
     "R1": 1
   },
   "native/timeline/qml/wiring/RegistryMenuItems.qml": {
-    "R1": 4
+    "R1": 3
   },
   "native/timeline/qml/wiring/SlotItems.qml": {
     "R1": 3
   },
   "native/timeline/qml/wiring/w/CompressorCurve.qml": {
-    "K11": 2,
     "R1": 1,
     "R5-canvas": 1
   },
-  "native/timeline/qml/wiring/w/CompressorEditor.qml": {
-    "K11": 1
-  },
   "native/timeline/qml/wiring/w/EffectCard.qml": {
-    "R1": 4,
+    "R1": 3,
     "R2": 1
   },
   "native/timeline/qml/wiring/w/EffectEditor.qml": {
     "R1": 1
   },
   "native/timeline/qml/wiring/w/Eq3Curve.qml": {
-    "K11": 3,
-    "R1": 5,
+    "R1": 1,
     "R5-canvas": 1
   },
-  "native/timeline/qml/wiring/w/Eq3Editor.qml": {
-    "K11": 1
-  },
-  "native/timeline/qml/wiring/w/ExportButton.qml": {
-    "R1": 1
-  },
   "native/timeline/qml/wiring/w/FableEffectEditor.qml": {
-    "K11": 3,
     "R1": 7
   },
   "native/timeline/qml/wiring/w/FilterEditor.qml": {
     "R2": 1
   },
   "native/timeline/qml/wiring/w/KnobList.qml": {
-    "K11": 1,
     "R1": 3
-  },
-  "native/timeline/qml/wiring/w/SpeedDurationHost.qml": {
-    "R1": 1
   },
   "native/timeline/qml/wiring/w/TrackEffectParams.qml": {
     "R1": 1
@@ -1296,14 +1245,10 @@
   "native/timeline/qml/wiring/w/TrackEffectsButton.qml": {
     "R1": 1
   },
-  "native/timeline/qml/wiring/w/TrackEffectsDockPanel.qml": {
+  "native/timeline/qml/wiring/w/TrackEffectsHost.qml": {
     "R1": 1
   },
-  "native/timeline/qml/wiring/w/TrackEffectsHost.qml": {
-    "R1": 3
-  },
   "native/timeline/qml/wiring/w/TrackEffectsPanel.qml": {
-    "K11": 1,
     "R1": 5
   },
   "native/timeline/src/activity/ActivityController.h": {

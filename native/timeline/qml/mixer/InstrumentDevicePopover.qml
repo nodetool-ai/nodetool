@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -7,6 +8,7 @@ Ui.Popover {
     id: root
     property TimelineModel timeline: null
     property string trackId: ""
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var track: controller.channel
 
     width: Math.min(parent ? parent.width : Ui.Metrics.dialogCompactWidth, Ui.Metrics.dialogCompactWidth)

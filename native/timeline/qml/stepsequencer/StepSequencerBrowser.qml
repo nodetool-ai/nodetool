@@ -4,11 +4,12 @@
 // User entries are files of the user library (SQ44). UI thread only.
 pragma ComponentBehavior: Bound
 import QtQuick
+import "." as Local
 import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: root
-    required property var panel
+    required property Local.StepSequencerPanel panel
     color: Ui.Theme.surfacePanel
     clip: true
     property string query: ""

@@ -7,20 +7,24 @@
 // write. UI thread only.
 pragma ComponentBehavior: Bound
 import QtQuick
+import "." as Local
 import NodeTool.UiPrimitives as Ui
 import "StepSequencerModes.js" as Modes
 
 Item {
     id: root
-    required property var panel
+    required property Local.StepSequencerPanel panel
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var rowData
     required property int playingStep
     required property int index
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var row: rowData
     readonly property color rowColor: Modes.rowColor(row, index)
     readonly property bool selected: panel.selectedRowId === row.id
     // Expansion is document data (SQ8): `row.subrowsExpanded`.
     readonly property bool expanded: row.subrowsExpanded === true
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var subrows: expanded ? (row.subrows || []) : []
     readonly property real laneHeight: panel.rowHeight
     readonly property real subHeight: Math.round(panel.rowHeight * 0.7)
@@ -61,6 +65,7 @@ Item {
         property bool main: true
         property int subIndex: -1
         width: root.width
+        // JSON data from the document, controller, or shared JavaScript API.
         readonly property var spec: Modes.spec(mode)
         // Number modes draw the value as a bar from the cell floor (figure p0736).
         readonly property bool barMode: (spec.kind === "number" || spec.kind === "rate") && mode !== "repeat"
@@ -235,6 +240,7 @@ Item {
             Canvas {
                 id: paint
                 anchors.fill: parent
+                // JSON data from the document, controller, or shared JavaScript API.
                 readonly property var rowData: root.row
                 readonly property color rowColor: root.rowColor
                 readonly property string mode: lane.mode
@@ -242,6 +248,7 @@ Item {
                 // Stable row signatures prevent unrelated selection/preview updates
                 // from invalidating this paint surface.
                 readonly property string selectionSignature: JSON.stringify(root.panel.selectedSteps.filter(s => s.row === root.row.id).map(s => s.step))
+                // JSON data from the document, controller, or shared JavaScript API.
                 readonly property var selectedKeys: {
                     const keys = {}
                     for (const step of JSON.parse(selectionSignature)) keys[root.row.id + ":" + step] = true
@@ -254,8 +261,9 @@ Item {
                     for (const key of Object.keys(all)) if (key.indexOf(prefix) === 0) own[key] = all[key]
                     return JSON.stringify(own)
                 }
+                // JSON data from the document, controller, or shared JavaScript API.
                 readonly property var previews: JSON.parse(previewSignature)
-                readonly property var ties: Modes.tieContinuations(rowData,previews,Math.min(rowData.lengthSteps,firstStep+stepWindow))
+                readonly property list<bool> ties: Modes.tieContinuations(rowData,previews,Math.min(rowData.lengthSteps,firstStep+stepWindow))
                 readonly property bool barMode: lane.barMode
                 readonly property bool mainLane: lane.main
                 onBarModeChanged: requestPaint()
@@ -266,7 +274,6 @@ Item {
                 readonly property real cellWidth: cells.cellWidth
                 readonly property real scrollX: root.panel.scrollX
                 readonly property int stepWindow: root.panel.stepWindow
-                onTextFontChanged: requestPaint()
                 onRowDataChanged: requestPaint()
                 onRowColorChanged: requestPaint()
                 onModeChanged: requestPaint()

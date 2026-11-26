@@ -5,12 +5,13 @@
 // every value. UI thread only.
 pragma ComponentBehavior: Bound
 import QtQuick
+import "." as Local
 import NodeTool.UiPrimitives as Ui
 import "StepSequencerModes.js" as Modes
 
 Rectangle {
     id: root
-    required property var panel
+    required property Local.StepSequencerPanel panel
     color: Ui.Theme.surfacePanel
     readonly property bool mac: Qt.platform.os === "osx"
     readonly property bool editable: panel.editable
@@ -18,6 +19,7 @@ Rectangle {
     readonly property bool hasSteps: panel.selectedSteps.length > 0
     readonly property bool hasUnused: panel.rows.some(r => !r.steps.some(s => s.on))
     function key(text) { return mac ? text : text.replace("⌃", "Ctrl+Alt+").replace("⌘", "Ctrl+").replace("⌥", "Alt+").replace("⇧", "Shift+") }
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var editEntries: [
         {id: "undo", label: qsTr("Undo"), shortcut: key("⌘Z"), enabled: !!panel.undoStack && panel.undoStack.canUndo},
         {id: "redo", label: qsTr("Redo"), shortcut: key("⇧⌘Z"), enabled: !!panel.undoStack && panel.undoStack.canRedo},
@@ -45,6 +47,7 @@ Rectangle {
         {id: "clearPattern", label: qsTr("Clear Pattern"), shortcut: key("⌃⇧⌘⌫"), enabled: editable},
         {id: "clearPatternMode", label: qsTr("Clear Current Mode for All Rows"), shortcut: key("⌥⇧⌘⌫"), enabled: editable}
     ]
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var functionEntries: [
         {id: "rotatePatternLeft", label: qsTr("Rotate Pattern Left"), shortcut: key("⌃⌥⌘←"), enabled: editable},
         {id: "rotatePatternRight", label: qsTr("Rotate Pattern Right"), shortcut: key("⌃⌥⌘→"), enabled: editable},
@@ -75,6 +78,7 @@ Rectangle {
         {id: "mono", label: qsTr("Mono Mode"), shortcut: key("⌃⇧⌘M"), checked: !!panel.settings.mono, enabled: editable},
         {id: "convertToMidi", label: qsTr("Convert to MIDI Region"), enabled: editable}
     ]
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var viewEntries: [
         {id: "displayValues", label: qsTr("Display Edit Mode Values"), submenu: [
             {id: "valuesEditing", label: qsTr("Only When Editing"), checked: panel.displayValues === "editing"},
