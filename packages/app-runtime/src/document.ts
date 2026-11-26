@@ -1,10 +1,13 @@
 import type { Mutable } from "./mutable.js";
 import {
+  hasOwn,
+  isFiniteNumber,
   isInteger,
   isNonEmptyString,
   isNumber,
   isRecord,
-  isString
+  isString,
+  setOwn
 } from "./predicates.js";
 /**
  * The application document: a UI layout plus typed bindings to workflow
@@ -365,7 +368,7 @@ const parseAuthoredPlacement = (element: Record<string, unknown>): Pick<RecipeSh
       if (!isString(style[key]) || !HEX_COLOR.test(style[key])) return undefined;
       parsed[key] = style[key];
     }
-    if (style.strokeWidth !== undefined) { if (!isNumber(style.strokeWidth) || !(style.strokeWidth > 0)) return undefined; parsed.strokeWidth = style.strokeWidth; }
+    if (style.strokeWidth !== undefined) { if (!isFiniteNumber(style.strokeWidth) || !(style.strokeWidth > 0)) return undefined; parsed.strokeWidth = style.strokeWidth; }
     if (style.cornerRadius !== undefined) { if (!nonNegative(style.cornerRadius)) return undefined; parsed.cornerRadius = style.cornerRadius; }
     result.style = parsed;
   }
@@ -392,7 +395,7 @@ const parseAuthoredPlacement = (element: Record<string, unknown>): Pick<RecipeSh
   if (typography !== undefined) {
     if (!isRecord(typography)) return undefined;
     const parsed: RecipeElementTypography = {};
-    if (typography.size !== undefined) { if (!isNumber(typography.size) || !(typography.size > 0)) return undefined; parsed.size = typography.size; }
+    if (typography.size !== undefined) { if (!isFiniteNumber(typography.size) || !(typography.size > 0)) return undefined; parsed.size = typography.size; }
     if (typography.weight !== undefined) { if (!oneOf(typography.weight, [400, 500, 600, 700] as const)) return undefined; parsed.weight = typography.weight; }
     if (typography.align !== undefined) { if (!oneOf(typography.align, ["left", "center", "right"] as const)) return undefined; parsed.align = typography.align; }
     if (typography.maxLines !== undefined) { if (!isInteger(typography.maxLines) || typography.maxLines < 1) return undefined; parsed.maxLines = typography.maxLines; }
@@ -640,7 +643,7 @@ const parseMappings = <T>(
   const mappings: Record<string, T> = {};
   for (const [nodeId, entry] of Object.entries(value)) {
     const mapping = parse(entry);
-    if (mapping !== null) mappings[nodeId] = mapping;
+    if (mapping !== null) setOwn(mappings, nodeId, mapping);
   }
   return mappings;
 };
@@ -703,13 +706,13 @@ const parseOperation = (
     // until it is installed — binds to whatever workflow hosts it. A script
     // operation binds no workflow at all.
     workflowId: script ? "" : workflowId || hostWorkflowId || "",
-    workflowVersion: isNumber(value.workflowVersion)
+    workflowVersion: isFiniteNumber(value.workflowVersion)
       ? value.workflowVersion
-      : isNumber(targetVersion) ? targetVersion : undefined,
+      : isFiniteNumber(targetVersion) ? targetVersion : undefined,
     inputs: parseMappings(value.inputs, parseInputMapping),
     outputs: parseMappings(value.outputs, parseOutputMapping),
     policy: policy === "parallel" || policy === "queue" ? policy : "replace",
-    timeoutMs: isNumber(value.timeoutMs) ? value.timeoutMs : undefined
+    timeoutMs: isFiniteNumber(value.timeoutMs) ? value.timeoutMs : undefined
   };
   if (isNonEmptyString(value.agentTask)) binding.agentTask = value.agentTask;
   if (script) {
@@ -785,7 +788,7 @@ export type RecipeManifestStatus =
 /** Inspect protection metadata without downgrading invalid Recipes to ordinary Apps. */
 export const inspectRecipeManifest = (value: unknown): RecipeManifestStatus => {
   if (value === undefined) return { status: "none" };
-  if (isRecord(value) && isNumber(value.schemaVersion) && value.schemaVersion !== RECIPE_MANIFEST_SCHEMA_VERSION) {
+  if (isRecord(value) && isFiniteNumber(value.schemaVersion) && value.schemaVersion !== RECIPE_MANIFEST_SCHEMA_VERSION) {
     return { status: "unsupported", schemaVersion: value.schemaVersion };
   }
   const manifest = parseRecipeManifest(value);
@@ -835,7 +838,8 @@ export const validateRecipeBindings = (
     const binding = output.binding ?? `var:${output.id}`;
     if (binding.startsWith("var:") && variables.has(binding.slice(4))) continue;
     const match = /^op:([^/]+)\/out:(.+)$/.exec(binding);
-    if (match && operations.get(match[1])?.outputs[match[2]]) continue;
+    const op = match ? operations.get(match[1]) : undefined;
+    if (match && op && hasOwn(op.outputs, match[2])) continue;
     errors.push(`Recipe output ${output.id} has unresolved readable binding ${binding}.`);
   }
   return errors;
@@ -872,7 +876,10 @@ export const parseApplicationDocument = (
     const metadata = inspectRecipeManifest(value.recipe);
     if (metadata.status === "malformed" || metadata.status === "unsupported") return null;
     const recipe = metadata.status === "valid" ? metadata.manifest : undefined;
-    const schemaVersion = isNumber(value.schemaVersion)
+    if (isNumber(value.schemaVersion) && !Number.isFinite(value.schemaVersion)) {
+      return null;
+    }
+    const schemaVersion = isFiniteNumber(value.schemaVersion)
       ? value.schemaVersion
       : recipe
         ? APP_SCHEMA_VERSION

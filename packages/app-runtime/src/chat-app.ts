@@ -14,7 +14,7 @@
  */
 
 import type { ApplicationDocument } from "./document.js";
-import { isBoolean, isNumber, isRecord, isString } from "./predicates.js";
+import { getOwn, isBoolean, isNumber, isRecord, isString, setOwn } from "./predicates.js";
 import {
   isLiveInvocation,
   type AppInstanceState,
@@ -520,28 +520,28 @@ export const chatAppSnapshot = (
   layout: ChatAppLayout,
   state: AppInstanceState
 ): ChatAppStateSnapshot => {
-  const step = state.variables[layout.stepVariableId];
+  const step = getOwn(state.variables, layout.stepVariableId);
   const variables: Record<string, unknown> = {};
   for (const declaration of document.variables) {
     if (declaration.id === layout.stepVariableId) continue;
-    variables[declaration.id] = previewAppValue(state.variables[declaration.id]);
+    setOwn(variables, declaration.id, previewAppValue(getOwn(state.variables, declaration.id)));
   }
   const inputs: Record<string, unknown> = {};
   for (const [key, slot] of Object.entries(state.inputs)) {
-    inputs[key] = previewAppValue(slot.value);
+    setOwn(inputs, key, previewAppValue(slot.value));
   }
   const stepOf = (binding: string) =>
     layout.steps.find((step) => step.fields.some((field) => field.binding === binding))?.value;
   const missing = (document.recipe?.inputs ?? [])
-    .filter((input) => input.required && isEmptyValue(state.variables[input.id]))
+    .filter((input) => input.required && isEmptyValue(getOwn(state.variables, input.id)))
     .map((input) => {
       const step = stepOf(`var:${input.id}`);
       return `${input.id} (${input.label})${step ? ` on step ${step}` : ""}`;
     });
   const operations = document.operations.map((operation): ChatAppOperationState => {
-    const id = state.activeInvocation[operation.id];
-    const resolved = id ? (state.invocationAliases[id] ?? id) : undefined;
-    const invocation = resolved ? state.invocations[resolved] : undefined;
+    const id = getOwn(state.activeInvocation, operation.id);
+    const resolved = id ? (getOwn(state.invocationAliases, id) ?? id) : undefined;
+    const invocation = resolved ? getOwn(state.invocations, resolved) : undefined;
     const entry: ChatAppOperationState = {
       id: operation.id,
       name: operation.name,
@@ -569,11 +569,11 @@ export const settledInvocation = (
   operationId: string,
   before: string | undefined
 ): { id: string; status: InvocationStatus; error?: string } | null => {
-  const active = state.activeInvocation[operationId];
+  const active = getOwn(state.activeInvocation, operationId);
   if (!active || active === before) return null;
-  const id = state.invocationAliases[active] ?? active;
+  const id = getOwn(state.invocationAliases, active) ?? active;
   if (id === before) return null;
-  const invocation = state.invocations[id];
+  const invocation = getOwn(state.invocations, id);
   if (!invocation || isLiveInvocation(invocation)) return null;
   const settled: { id: string; status: InvocationStatus; error?: string } = {
     id,

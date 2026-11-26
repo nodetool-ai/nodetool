@@ -15,7 +15,7 @@ import type {
   ExecutionField
 } from "./bindings.js";
 import { resolveBinding, stateKey } from "./bindings.js";
-import { isBoolean, isNumber, isString } from "./predicates.js";
+import { getOwn, isBoolean, isNumber, isString } from "./predicates.js";
 import type { AppInstanceState } from "./state.js";
 import {
   isOperationRunning,
@@ -131,23 +131,25 @@ export const readRef = (
 ): unknown => {
   switch (ref.source) {
     case "variable":
-      return state.variables[ref.variableId];
+      return getOwn(state.variables, ref.variableId);
     case "input":
-      return state.inputs[
+      return getOwn(
+        state.inputs,
         stateKey({
           kind: "input",
           operationId: ref.operationId,
           nodeId: ref.inputNodeId
         })
-      ]?.value;
+      )?.value;
     case "output":
-      return state.outputs[
+      return getOwn(
+        state.outputs,
         stateKey({
           kind: "output",
           operationId: ref.operationId,
           nodeId: ref.outputNodeId
         })
-      ]?.value;
+      )?.value;
     case "execution":
       switch (ref.field) {
         case "running":
@@ -244,7 +246,10 @@ const FILTERS: Record<string, (value: unknown, arg?: string) => string> = {
     const n = isNumber(value) ? value : Number(value);
     if (Number.isNaN(n)) return "";
     const digits = arg === undefined ? undefined : Number(arg);
-    return digits === undefined || Number.isNaN(digits)
+    return digits === undefined ||
+      !Number.isFinite(digits) ||
+      digits < 0 ||
+      digits > 100
       ? String(n)
       : n.toFixed(digits);
   },
@@ -296,6 +301,6 @@ export const formatTemplate = (
     const value = readRef(state, ref);
     if (!filterPart) return value == null ? "" : String(value);
     const [name, arg] = filterPart.trim().split(":", 2);
-    const filter = FILTERS[name];
+    const filter = getOwn(FILTERS, name);
     return filter ? filter(value, arg) : "";
   });

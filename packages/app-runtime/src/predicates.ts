@@ -17,6 +17,34 @@ export const isNonEmptyString = (value: unknown): value is string =>
 export const isNumber = (value: unknown): value is number =>
   typeof value === "number";
 
+export const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+export const hasOwn = (record: object, key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(record, key);
+
+export const getOwn = <T>(
+  record: Readonly<Record<string, T>>,
+  key: string
+): T | undefined => (hasOwn(record, key) ? record[key] : undefined);
+
+export const setOwn = <T>(
+  record: Record<string, T>,
+  key: string,
+  value: T
+): void => {
+  if (key === "__proto__") {
+    Object.defineProperty(record, key, {
+      value,
+      enumerable: true,
+      writable: true,
+      configurable: true
+    });
+  } else {
+    record[key] = value;
+  }
+};
+
 export const isBoolean = (value: unknown): value is boolean =>
   typeof value === "boolean";
 
