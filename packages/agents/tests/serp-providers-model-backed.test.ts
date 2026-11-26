@@ -23,7 +23,10 @@ import {
   serpProviderConfigured,
   type SerpProviderType
 } from "../src/tools/serp-providers/index.js";
-import { citationsFromAnswer } from "../src/tools/serp-providers/openai-provider.js";
+import {
+  citationsFromAnswer,
+  readSearchResponse
+} from "../src/tools/serp-providers/openai-provider.js";
 import {
   GeminiSearchProvider,
   citationsFromGrounding
@@ -87,7 +90,7 @@ describe("the SERP provider set", () => {
 });
 
 // ---------------------------------------------------------------------------
-// OpenAI: url_citation annotations → results
+// OpenAI: Responses API output → results
 // ---------------------------------------------------------------------------
 
 describe("citationsFromAnswer", () => {
@@ -98,12 +101,10 @@ describe("citationsFromAnswer", () => {
       citationsFromAnswer(text, [
         {
           type: "url_citation",
-          url_citation: {
-            url: "https://fed.example/statement",
-            title: "Rate statement",
-            start_index: 0,
-            end_index: 31
-          }
+          url: "https://fed.example/statement",
+          title: "Rate statement",
+          start_index: 0,
+          end_index: 31
         }
       ])
     ).toEqual([
@@ -118,18 +119,9 @@ describe("citationsFromAnswer", () => {
 
   it("collapses repeat citations of one page, keeping the first", () => {
     const results = citationsFromAnswer(text, [
-      {
-        type: "url_citation",
-        url_citation: { url: "https://a.example", start_index: 0, end_index: 5 }
-      },
-      {
-        type: "url_citation",
-        url_citation: { url: "https://b.example", start_index: 6, end_index: 12 }
-      },
-      {
-        type: "url_citation",
-        url_citation: { url: "https://a.example", start_index: 32, end_index: 45 }
-      }
+      { type: "url_citation", url: "https://a.example", start_index: 0, end_index: 5 },
+      { type: "url_citation", url: "https://b.example", start_index: 6, end_index: 12 },
+      { type: "url_citation", url: "https://a.example", start_index: 32, end_index: 45 }
     ]);
     expect(results.map((r) => [r.url, r.position, r.snippet])).toEqual([
       ["https://a.example", 1, "Rates"],
@@ -140,14 +132,12 @@ describe("citationsFromAnswer", () => {
   it("keeps a citation whose span is missing or inverted, with no snippet", () => {
     expect(
       citationsFromAnswer(text, [
-        { type: "url_citation", url_citation: { url: "https://a.example" } },
+        { type: "url_citation", url: "https://a.example" },
         {
           type: "url_citation",
-          url_citation: {
-            url: "https://b.example",
-            start_index: 20,
-            end_index: 4
-          }
+          url: "https://b.example",
+          start_index: 20,
+          end_index: 4
         }
       ]).map((r) => r.snippet)
     ).toEqual(["", ""]);
@@ -156,11 +146,107 @@ describe("citationsFromAnswer", () => {
   it("ignores annotations that are not url citations or carry no url", () => {
     expect(
       citationsFromAnswer(text, [
-        { type: "file_citation", url_citation: { url: "https://a.example" } },
-        { type: "url_citation", url_citation: { url: "" } },
+        { type: "file_citation", url: "https://a.example" },
+        { type: "url_citation", url: "" },
         { type: "url_citation" }
       ])
     ).toEqual([]);
+  });
+});
+
+describe("readSearchResponse", () => {
+  it("joins output_text parts and shifts each part's citation spans", () => {
+    const { text, citations } = readSearchResponse({
+      output: [
+        {
+          type: "web_search_call",
+          status: "completed",
+          action: { type: "search", query: "rates" }
+        },
+        {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: "Rates held. ",
+              annotations: [
+                {
+                  type: "url_citation",
+                  url: "https://a.example",
+                  title: "A",
+                  start_index: 0,
+                  end_index: 11
+                }
+              ]
+            },
+            {
+              type: "output_text",
+              text: "Starts fell.",
+              annotations: [
+                {
+                  type: "url_citation",
+                  url: "https://b.example",
+                  title: "B",
+                  start_index: 0,
+                  end_index: 12
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+    expect(text).toBe("Rates held. Starts fell.");
+    expect(citations).toEqual([
+      { title: "A", url: "https://a.example", snippet: "Rates held.", position: 1 },
+      { title: "B", url: "https://b.example", snippet: "Starts fell.", position: 2 }
+    ]);
+  });
+
+  it("appends consulted sources the answer did not cite, once each", () => {
+    const { citations } = readSearchResponse({
+      output: [
+        {
+          type: "web_search_call",
+          action: {
+            type: "search",
+            sources: [
+              { type: "url", url: "https://a.example" },
+              { type: "url", url: "https://c.example" },
+              { type: "url", url: "https://c.example" },
+              { type: "url" }
+            ]
+          }
+        },
+        {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: "Answer.",
+              annotations: [
+                {
+                  type: "url_citation",
+                  url: "https://a.example",
+                  title: "A",
+                  start_index: 0,
+                  end_index: 7
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+    expect(citations.map((c) => [c.url, c.position, c.title])).toEqual([
+      ["https://a.example", 1, "A"],
+      ["https://c.example", 2, ""]
+    ]);
+  });
+
+  it("returns empty text and no results for a response with no output", () => {
+    expect(readSearchResponse({})).toEqual({ text: "", citations: [] });
+    expect(readSearchResponse(null)).toEqual({ text: "", citations: [] });
   });
 });
 
