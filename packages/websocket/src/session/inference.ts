@@ -270,9 +270,21 @@ const ESTIMATE_DEFAULT_OUTPUT_TOKENS = 4096;
 const IMAGE_ESTIMATE_CHARS = 4000;
 
 /** Characters a message contributes to the estimate, text blocks included. */
-function messageChars(content: DirectTextContent): number {
+function messageChars(
+  content:
+    | DirectTextContent
+    | ReadonlyArray<{ type: string; text?: string | null }>
+    | null
+    | undefined
+): number {
+  if (!content) {
+    return 0;
+  }
   if (typeof content === "string") {
     return content.length;
+  }
+  if (!Array.isArray(content)) {
+    return 0;
   }
   // A block's shape is only checked as `{ type: string }` + passthrough on the
   // wire, so a `{ type: "text" }` with no `text` reaches here. Reading `.length`
@@ -301,7 +313,12 @@ function messageChars(content: DirectTextContent): number {
 export function estimateDirectTextSpend(req: {
   provider: string;
   model: string;
-  messages: Array<{ content: DirectTextContent }>;
+  messages: ReadonlyArray<{
+    content?:
+      | DirectTextContent
+      | ReadonlyArray<{ type: string; text?: string | null }>
+      | null;
+  }>;
   maxTokens?: number;
 }): number {
   const delegate =
