@@ -18,7 +18,7 @@ import type {
   ProviderPredictionResult
 } from "../context.js";
 import { loadMediaRefBytes, type MediaRefValue } from "../media-ref-bytes.js";
-import type { BaseProvider } from "../providers/base-provider.js";
+import type { BaseProvider, EmbeddingImage } from "../providers/base-provider.js";
 import {
   objectTrackingRequestSchema,
   parseObjectTrackingResult
@@ -554,6 +554,13 @@ export async function dispatchCapability(
         temperature: params.temperature as number | undefined
       });
     case "generate_embedding":
+      if (Array.isArray(params.images)) {
+        return provider.generateImageEmbedding({
+          images: params.images as EmbeddingImage[],
+          model: req.model,
+          dimensions: params.dimensions as number | undefined
+        });
+      }
       return provider.generateEmbedding({
         text: (params.text as string | string[]) ?? "",
         model: req.model,

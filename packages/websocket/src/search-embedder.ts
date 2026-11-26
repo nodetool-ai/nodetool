@@ -14,7 +14,8 @@ import {
   EMBED_JOB_PREFIX,
   IN_PROCESS_EMBEDDING_PROVIDERS,
   type EmbeddingSpace,
-  type LibraryEmbedder
+  type LibraryEmbedder,
+  type LibraryImage
 } from "@nodetool-ai/search-services";
 
 let transformersRegistered = false;
@@ -35,34 +36,65 @@ function isVectorList(value: unknown): value is number[][] {
   return Array.isArray(value) && value.every((row) => Array.isArray(row));
 }
 
-/** Embed `texts` in `space` for `userId`. */
-export async function embedWithProvider(
-  texts: string[],
-  space: EmbeddingSpace,
-  userId: string
-): Promise<number[][]> {
-  const context = new ProcessingContext({
+function contextFor(userId: string): ProcessingContext {
+  return new ProcessingContext({
     jobId: `${EMBED_JOB_PREFIX}${randomUUID()}`,
     userId,
     secretResolver: getSecret
   });
-  let result: unknown;
-  if (IN_PROCESS_EMBEDDING_PROVIDERS.has(space.provider)) {
-    await ensureLocalProvider(space.provider);
-    const provider = await context.getProvider(space.provider);
-    result = await provider.generateEmbedding({ text: texts, model: space.model });
-  } else {
-    result = await context.runProviderPrediction({
-      provider: space.provider,
-      capability: "generate_embedding",
-      model: space.model,
-      params: { text: texts }
-    });
-  }
+}
+
+function vectorsOf(result: unknown, space: EmbeddingSpace): number[][] {
   if (!isVectorList(result)) {
     throw new Error(`${space.provider} returned no embeddings for ${space.model}.`);
   }
   return result;
 }
 
-export const providerLibraryEmbedder: LibraryEmbedder = { embed: embedWithProvider };
+/** Embed `texts` in `space` for `userId`. */
+export async function embedWithProvider(
+  texts: string[],
+  space: EmbeddingSpace,
+  userId: string
+): Promise<number[][]> {
+  const context = contextFor(userId);
+  if (IN_PROCESS_EMBEDDING_PROVIDERS.has(space.provider)) {
+    await ensureLocalProvider(space.provider);
+    const provider = await context.getProvider(space.provider);
+    return vectorsOf(await provider.generateEmbedding({ text: texts, model: space.model }), space);
+  }
+  const result = await context.runProviderPrediction({
+    provider: space.provider,
+    capability: "generate_embedding",
+    model: space.model,
+    params: { text: texts }
+  });
+  return vectorsOf(result, space);
+}
+
+/** Embed image files in `space` for `userId`, with a model whose text embeddings share it. */
+export async function embedImagesWithProvider(
+  images: LibraryImage[],
+  space: EmbeddingSpace,
+  userId: string
+): Promise<number[][]> {
+  const context = contextFor(userId);
+  const inputs = images.map((image) => ({ data: image.bytes, mimeType: image.contentType ?? undefined }));
+  if (IN_PROCESS_EMBEDDING_PROVIDERS.has(space.provider)) {
+    await ensureLocalProvider(space.provider);
+    const provider = await context.getProvider(space.provider);
+    return vectorsOf(await provider.generateImageEmbedding({ images: inputs, model: space.model }), space);
+  }
+  const result = await context.runProviderPrediction({
+    provider: space.provider,
+    capability: "generate_embedding",
+    model: space.model,
+    params: { images: inputs }
+  });
+  return vectorsOf(result, space);
+}
+
+export const providerLibraryEmbedder: LibraryEmbedder = {
+  embed: embedWithProvider,
+  embedImages: embedImagesWithProvider
+};

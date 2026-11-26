@@ -160,6 +160,50 @@ the lexical one. The two rankings merge by reciprocal rank fusion and
 The headless commands are `nodetool search query|read|status|setup|rebuild|indexer`
 ([CLI reference](../../docs/cli.md#nodetool-search)).
 
+## Image vectors
+
+An image model embeds the pictures themselves, so a text query finds an image
+by what it shows and `similarTo` compares images by how they look, with no
+caption. It is off until `NODETOOL_SEARCH_IMAGE_EMBEDDING_MODEL` names a model
+as `provider:model`, as a setting in the `Library Search` group, an
+[environment variable](../../docs/environment-variables.md), or
+`nodetool search setup --image-model`. The model must embed text into the same
+space, because queries are embedded with it too:
+
+| Model | Runs |
+|---|---|
+| `transformers_js:Xenova/clip-vit-base-patch32` | Locally, in the indexer process, with quantized weights |
+| `jina:jina-clip-v2` | At Jina. Image files are sent to the provider |
+| `voyage:voyage-multimodal-3` | At Voyage. Image files are sent to the provider |
+| `cohere:embed-v4.0` | At Cohere. Image files are sent to the provider |
+
+- `runImageEmbedPass()` runs after the text embed pass. It embeds each PNG,
+  JPEG, WebP or GIF image asset up to 20 MB through `embedImages` of the
+  installed embedder, which calls `generateImageEmbedding` on the provider. A
+  hosted call runs under the budget lease and counts toward the daily spend
+  limit. Projects in `NODETOOL_SEARCH_EXCLUDED_PROJECTS` are not embedded, and
+  their vectors are removed.
+- Each image item has one vector, id `<item id>_image`, in the owner's image
+  collection for that model. Image collections carry the role `image` in
+  their metadata and a name ending in `_img`, so a text model change never
+  drops them. The item records what the vector was made from in
+  `image_embedded_version` (`<source version>|<project id>|<model>`). A
+  changed file, a move to another project, or a new model embeds it again.
+  When an owner has no image left to embed, image collections of older models
+  are dropped. Until then, queries read the new model's collection only.
+- A failure is retried on later passes, three times in all, with the reason in
+  `image_embed_error`. A format no model reads is recorded once and not sent.
+- A query embeds its text in the image space beside the text space and fuses
+  the image ranking with the passage ranking. An image hit is joined to its
+  item under the caller's user id and filters. A hit that matched by its
+  picture alone has one match with field `image` and an empty snippet. The
+  similarity floor is 0.2 instead of 0.25: text and images share a space but
+  never sit close in it.
+- `similarTo` on an image reads its stored vector, so it finds images that
+  look alike. On another item, its title stands for it in the image space.
+- `libraryIndexStatus(userId).semantic.images` reports the model, the images
+  embedded and the images left.
+
 ## Reading a passage
 
 `readLibraryPassage({ userId, id, locator, before, after })` returns the

@@ -15,7 +15,7 @@ import {
 import type { SearchResourceType } from "@nodetool-ai/protocol";
 import type { ExtractedChunk } from "./extract.js";
 import { METADATA_FIELDS } from "./index-writer.js";
-import { removeChunkVectors } from "./semantic.js";
+import { imageVectorId, removeChunkVectors } from "./semantic.js";
 import { existingSourceIds } from "./sources.js";
 
 /** Chunks extraction leaves alone: the inline write's and enrichment's. */
@@ -210,13 +210,15 @@ export async function dropClaimedItem(item: ClaimedItem): Promise<boolean> {
     const removed = await db
       .delete(searchItems)
       .where(stillOurs(item))
-      .returning({ id: searchItems.id });
+      .returning({ id: searchItems.id, imageVersion: searchItems.image_embedded_version });
     if (removed.length === 0) return null;
     const chunks = await db
       .delete(searchChunks)
       .where(eq(searchChunks.item_id, item.id))
       .returning({ id: searchChunks.id });
-    return chunks.map((chunk) => chunk.id);
+    const ids = chunks.map((chunk) => chunk.id);
+    if (removed[0]!.imageVersion) ids.push(imageVectorId(item.id));
+    return ids;
   });
   if (chunkIds === null) return false;
   if (chunkIds.length > 0) await removeChunkVectors(item.userId, chunkIds);

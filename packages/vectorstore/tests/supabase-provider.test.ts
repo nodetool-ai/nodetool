@@ -643,6 +643,26 @@ describe("SupabaseProvider — record operations", () => {
     expect(sel.filters).toContainEqual(["in", "id", ["1"]]);
   });
 
+  it("get decodes stored vectors when asked for them", async () => {
+    fake.on(
+      (c) =>
+        c.table === "nodetool_vec_records" &&
+        c.op === "select" &&
+        c.filters.some(([op]) => op === "in"),
+      {
+        data: [{ id: "1", document: null, uri: null, metadata: {}, embedding: "[0.5,-0.25,1]" }],
+        error: null
+      }
+    );
+    const col = await provider.getCollection({ name: "docs" });
+    const [record] = await col.get({ ids: ["1"], includeEmbeddings: true });
+    expect(record.embedding).toEqual([0.5, -0.25, 1]);
+    const sel = fake.find(
+      (c) => c.table === "nodetool_vec_records" && c.op === "select" && c.filters.some(([op]) => op === "in")
+    );
+    expect(sel.args).toBe("id, document, uri, metadata, embedding");
+  });
+
   it("count uses a head-only select with exact count", async () => {
     fake.on(
       (c) =>

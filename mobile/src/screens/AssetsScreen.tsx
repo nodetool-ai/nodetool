@@ -123,7 +123,7 @@ const AssetCard = React.memo(function AssetCard({
             style={[styles.cardMatch, { color: colors.textSecondary }]}
             numberOfLines={2}
           >
-            {asset.match.snippet}
+            {asset.match.snippet || (asset.match.field === 'image' ? 'Matched by the picture itself' : '')}
           </Text>
         ) : null}
       </View>

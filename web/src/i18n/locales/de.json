@@ -20844,7 +20844,8 @@
       "description": "Beschreibung",
       "body": "Text",
       "caption": "Bildunterschrift",
-      "transcript": "Transkript"
+      "transcript": "Transkript",
+      "image": "Treffer im Bild selbst"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -20872,6 +20873,7 @@
       "semanticOff": "Die Suche nach Bedeutung ist aus. Die Stichwortsuche funktioniert ohne sie.",
       "vectors": "{{embedded}} von {{total}} Abschnitten eingebettet",
       "rebuildingVectors": "Das neue Modell bettet die Bibliothek ein. Bis dahin sucht das vorherige Modell.",
+      "images": "Bilder werden mit {{model}} eingebettet: {{embedded}} fertig, {{remaining}} offen.",
       "turnOff": "Suche nach Bedeutung ausschalten",
       "embedAgain": "Neu einbetten",
       "rebuild": "Index neu aufbauen",

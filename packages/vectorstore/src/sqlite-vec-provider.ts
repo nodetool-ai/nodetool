@@ -142,14 +142,19 @@ class SqliteVecCollectionAdapter implements VectorCollection {
     ids?: string[];
     limit?: number;
     offset?: number;
+    includeEmbeddings?: boolean;
   }): Promise<VectorRecord[]> {
     const r = await this.inner.get(opts);
-    return r.ids.map((id, i) => ({
-      id,
-      document: r.documents[i] ?? null,
-      uri: r.uris[i] ?? null,
-      metadata: toRecordMetadata(r.metadatas[i] ?? null)
-    }));
+    return r.ids.map((id, i) => {
+      const record: VectorRecord = {
+        id,
+        document: r.documents[i] ?? null,
+        uri: r.uris[i] ?? null,
+        metadata: toRecordMetadata(r.metadatas[i] ?? null)
+      };
+      if (r.embeddings) record.embedding = r.embeddings[i] ?? null;
+      return record;
+    });
   }
 
   async query(query: VectorQuery): Promise<VectorMatch[]> {

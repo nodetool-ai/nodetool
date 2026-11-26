@@ -396,6 +396,11 @@ s(
   "Library Search",
   "Speech-to-text model that transcribes audio and video for library search, as provider:model, such as openai:whisper-1. Empty turns transcripts off."
 );
+s(
+  "NODETOOL_SEARCH_IMAGE_EMBEDDING_MODEL",
+  "Library Search",
+  "Model that embeds the images themselves, so a text search and similar items match what a picture shows without a caption. It must embed text into the same space, as provider:model: transformers_js:Xenova/clip-vit-base-patch32 runs locally; jina:jina-clip-v2, voyage:voyage-multimodal-3 and cohere:embed-v4.0 send image files to the provider. Empty turns image vectors off."
+);
 
 // Search
 s(

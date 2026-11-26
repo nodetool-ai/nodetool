@@ -20844,7 +20844,8 @@
       "description": "Description",
       "body": "Text",
       "caption": "Caption",
-      "transcript": "Transcript"
+      "transcript": "Transcript",
+      "image": "Matched by the picture itself"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -20872,6 +20873,7 @@
       "semanticOff": "Search by meaning is off. Keyword search works without it.",
       "vectors": "{{embedded}} of {{total}} passages embedded",
       "rebuildingVectors": "The new model is embedding the library. Search uses the previous model until it finishes.",
+      "images": "Images are embedded with {{model}}: {{embedded}} done, {{remaining}} left.",
       "turnOff": "Turn search by meaning off",
       "embedAgain": "Embed again",
       "rebuild": "Rebuild index",

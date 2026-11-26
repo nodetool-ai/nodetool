@@ -24,8 +24,10 @@ import { findLibraryItem } from "./read.js";
 import {
   embedLibraryQuery,
   existingLibraryCollection,
+  imageVectorId,
   libraryCollections,
   libraryEmbeddingSpace,
+  libraryImageSpace,
   removeChunkVectors,
   similarityOf,
   type EmbeddingSpace
@@ -130,6 +132,13 @@ const FUSION_DEPTH = 200;
 const SEMANTIC_DEPTH = 100;
 /** Least cosine similarity for a vector hit to count as a match. */
 export const MIN_SEMANTIC_SIMILARITY = 0.25;
+/**
+ * Least cosine similarity for an image vector hit. Text and images sit in
+ * one space but never close together: CLIP puts a matching caption and image
+ * near 0.3 and unrelated pairs near 0.15, so the text threshold would drop
+ * most true matches.
+ */
+export const MIN_IMAGE_SIMILARITY = 0.2;
 /** The usual reciprocal rank fusion constant. */
 const RRF_K = 60;
 
@@ -318,6 +327,8 @@ interface SemanticRanking {
   ids: string[];
   /** Matching chunk ids per item, nearest first. */
   chunks: Map<string, string[]>;
+  /** Items whose image vector matched. */
+  images: Set<string>;
 }
 
 const UNAVAILABLE_NOTE = "Search by meaning is unavailable right now, so results match words only.";
@@ -333,8 +344,8 @@ async function answeringSpace(userId: string, space: EmbeddingSpace): Promise<Em
   return older?.space ?? space;
 }
 
-/** Rank items by meaning, or explain why that is not possible. Null when it is not set up. */
-async function rankByMeaning(
+/** Rank items by the meaning of their text, or explain why that is not possible. Null when it is not set up. */
+async function rankTextByMeaning(
   request: LibrarySearchRequest,
   query: string
 ): Promise<SemanticRanking | { note: string } | null> {
@@ -354,7 +365,7 @@ async function rankByMeaning(
   if (request.projectId) vectorQuery.partition = request.projectId;
   const hits = await collection.query(vectorQuery);
   const near = hits.filter((hit) => similarityOf(hit.distance) >= MIN_SEMANTIC_SIMILARITY);
-  if (near.length === 0) return { ids: [], chunks: new Map() };
+  if (near.length === 0) return { ids: [], chunks: new Map(), images: new Set() };
   const chunkIds = near.map((hit) => hit.id);
   // Joined under the caller's id and filters: a vector can never return another owner's item.
   const rows = await runRows<{ chunk_id: string; item_id: string }>(
@@ -380,7 +391,92 @@ async function rankByMeaning(
     if (!chunks.has(itemId)) ids.push(itemId);
     chunks.set(itemId, [...(chunks.get(itemId) ?? []), chunkId]);
   }
-  return { ids, chunks };
+  return { ids, chunks, images: new Set() };
+}
+
+/**
+ * What an image ranking compares against: the text of a query, embedded in
+ * the image space, or a stored image vector (for "similar items").
+ */
+type ImageProbe = { text: string } | { vector: number[] };
+
+/**
+ * Rank image items by how near their image vectors are to `probe`. Null when
+ * image vectors are off, not built yet, or the query cannot be embedded now:
+ * the text layers still answer.
+ */
+async function rankImagesByMeaning(request: LibrarySearchRequest, probe: ImageProbe): Promise<string[] | null> {
+  const space = await libraryImageSpace();
+  if (!space) return null;
+  const collection = await existingLibraryCollection(request.userId, space, "image");
+  if (!collection) return null;
+  let vector: number[] | null;
+  if ("vector" in probe) {
+    vector = probe.vector;
+  } else {
+    try {
+      vector = await embedLibraryQuery(probe.text, space, request.userId);
+    } catch {
+      vector = null;
+    }
+  }
+  if (!vector) return null;
+  const vectorQuery: VectorQuery = { embedding: vector, topK: SEMANTIC_DEPTH };
+  if (request.projectId) vectorQuery.partition = request.projectId;
+  const hits = await collection.query(vectorQuery);
+  const near = hits.filter((hit) => similarityOf(hit.distance) >= MIN_IMAGE_SIMILARITY);
+  if (near.length === 0) return [];
+  const itemOfVector = new Map<string, string>();
+  for (const hit of near) {
+    const itemId = typeof hit.metadata?.item_id === "string" ? hit.metadata.item_id : null;
+    if (itemId) itemOfVector.set(hit.id, itemId);
+  }
+  const itemIds = [...new Set(itemOfVector.values())];
+  if (itemIds.length === 0) return [];
+  // Joined under the caller's id and filters: a vector can never return another owner's item.
+  const rows = await runRows<{ id: string }>(
+    sql`SELECT i.id AS id FROM nodetool_search_items i
+        WHERE i.id IN (${sql.join(itemIds.map((id) => sql`${id}`), sql`, `)}) AND ${itemConditions(request)}`
+  );
+  const allowed = new Set(rows.map((row) => row.id));
+  if (allowed.size < itemIds.length) {
+    const present = await getPortableDb()
+      .select({ id: searchItems.id })
+      .from(searchItems)
+      .where(inArray(searchItems.id, itemIds));
+    const known = new Set(present.map((row) => row.id));
+    const gone = itemIds.filter((id) => !known.has(id)).map(imageVectorId);
+    if (gone.length > 0) await removeChunkVectors(request.userId, gone);
+  }
+  const ids: string[] = [];
+  for (const hit of near) {
+    const itemId = itemOfVector.get(hit.id);
+    if (itemId && allowed.has(itemId) && !ids.includes(itemId)) ids.push(itemId);
+  }
+  return ids;
+}
+
+/**
+ * Rank items by meaning: their text vectors and, when image vectors are on,
+ * the pictures themselves. The two rankings merge by reciprocal rank fusion.
+ * Null when neither is set up.
+ */
+async function rankByMeaning(
+  request: LibrarySearchRequest,
+  query: string,
+  imageProbe: ImageProbe = { text: query }
+): Promise<SemanticRanking | { note: string } | null> {
+  const [text, images] = await Promise.all([
+    rankTextByMeaning(request, query),
+    rankImagesByMeaning(request, imageProbe)
+  ]);
+  if (images === null) return text;
+  const textRanking = text && !("note" in text) ? text : null;
+  return {
+    ids: textRanking ? fuseRankings([textRanking.ids, images]) : images,
+    chunks: textRanking?.chunks ?? new Map(),
+    images: new Set(images)
+  };
 }
 
 interface Ranked {
@@ -389,6 +485,8 @@ interface Ranked {
   mode: LibrarySearchIndexState["mode"];
   note?: string;
   chunks: Map<string, string[]>;
+  /** Items whose image vector matched. */
+  images?: Set<string>;
 }
 
 const SIMILAR_NEEDS_MEANING_NOTE = "Finding similar items needs search by meaning, which is not set up.";
@@ -411,13 +509,31 @@ async function itemQueryText(itemId: string, title: string): Promise<string> {
   return text.slice(0, SIMILAR_TEXT_CHARS);
 }
 
+/**
+ * What stands for an item in the image space: its own image vector when it
+ * has one, else its title, which the image model embeds as text.
+ */
+async function imageProbeOf(userId: string, itemId: string, title: string): Promise<ImageProbe> {
+  const space = await libraryImageSpace();
+  const collection = space ? await existingLibraryCollection(userId, space, "image") : null;
+  if (collection) {
+    const [record] = await collection.get({ ids: [imageVectorId(itemId)], includeEmbeddings: true });
+    if (record?.embedding && record.embedding.length > 0) return { vector: record.embedding };
+  }
+  return { text: title };
+}
+
 /** Rank items by how near they are in meaning to `request.similarTo`. */
 async function rankSimilar(request: LibrarySearchRequest, limit: number, offset: number): Promise<Ranked> {
   const found = await findLibraryItem(request.userId, request.similarTo ?? "");
   if ("error" in found && found.error) throw new Error(found.error);
   const source = found.row;
   if (!source || source.state === "excluded") throw new Error(`No library item ${request.similarTo}.`);
-  const semantic = await rankByMeaning(request, await itemQueryText(source.id, source.title));
+  const semantic = await rankByMeaning(
+    request,
+    await itemQueryText(source.id, source.title),
+    await imageProbeOf(request.userId, source.id, source.title)
+  );
   if (semantic === null || "note" in semantic) {
     return {
       ids: [],
@@ -428,7 +544,13 @@ async function rankSimilar(request: LibrarySearchRequest, limit: number, offset:
     };
   }
   const ids = semantic.ids.filter((id) => id !== source.id);
-  return { ids: ids.slice(offset, offset + limit), total: ids.length, mode: "semantic", chunks: semantic.chunks };
+  return {
+    ids: ids.slice(offset, offset + limit),
+    total: ids.length,
+    mode: "semantic",
+    chunks: semantic.chunks,
+    images: semantic.images
+  };
 }
 
 /** Run the layers the request and the setup allow, and merge them. */
@@ -448,14 +570,15 @@ async function rankRequest(request: LibrarySearchRequest, limit: number, offset:
       ids: semantic.ids.slice(offset, offset + limit),
       total: semantic.ids.length,
       mode: "semantic",
-      chunks: semantic.chunks
+      chunks: semantic.chunks,
+      images: semantic.images
     };
   }
   const lexical = await rankItems(request, FUSION_DEPTH, 0);
   const fused = fuseRankings([lexical.ids, semantic.ids]);
   const page = fused.slice(offset, offset + limit);
   if (lexical.total <= lexical.ids.length) {
-    return { ids: page, total: fused.length, mode: "hybrid", chunks: semantic.chunks };
+    return { ids: page, total: fused.length, mode: "hybrid", chunks: semantic.chunks, images: semantic.images };
   }
   // Word matches ranked below the fusion window follow the fused list in word
   // order. Items the vectors already placed in it are left out, so no item
@@ -472,7 +595,8 @@ async function rankRequest(request: LibrarySearchRequest, limit: number, offset:
     ids: [...page, ...rest.ids],
     total: fused.length + rest.total - FUSION_DEPTH,
     mode: "hybrid",
-    chunks: semantic.chunks
+    chunks: semantic.chunks,
+    images: semantic.images
   };
 }
 
@@ -507,10 +631,11 @@ const FIELD_ORDER: Record<string, number> = {
 async function matchesFor(
   itemIds: readonly string[],
   terms: readonly string[],
-  nearest: ReadonlyMap<string, readonly string[]> = new Map()
+  nearest: ReadonlyMap<string, readonly string[]> = new Map(),
+  images: ReadonlySet<string> = new Set()
 ): Promise<Map<string, LibrarySearchMatch[]>> {
   const out = new Map<string, LibrarySearchMatch[]>();
-  if (itemIds.length === 0 || (terms.length === 0 && nearest.size === 0)) return out;
+  if (itemIds.length === 0 || (terms.length === 0 && nearest.size === 0 && images.size === 0)) return out;
   const chunks = await getPortableDb()
     .select({
       id: searchChunks.id,
@@ -552,6 +677,12 @@ async function matchesFor(
       });
     }
     if (list.length > 0) out.set(itemId, list);
+  }
+  // An image found by what it shows, with no passage that says so.
+  for (const itemId of itemIds) {
+    if (images.has(itemId) && (out.get(itemId)?.length ?? 0) === 0) {
+      out.set(itemId, [{ field: "image", snippet: "", locator: null }]);
+    }
   }
   return out;
 }
@@ -607,7 +738,8 @@ export async function searchLibrary(request: LibrarySearchRequest): Promise<Libr
   const matches = await matchesFor(
     pageIds.filter((id) => !gone.includes(id)),
     terms,
-    ranked.chunks
+    ranked.chunks,
+    ranked.images
   );
   const hits: LibrarySearchHit[] = [];
   for (const id of pageIds) {

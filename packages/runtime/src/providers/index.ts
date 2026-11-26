@@ -180,6 +180,7 @@ export type {
   RunProbesOptions
 } from "./contract/index.js";
 export type {
+  EmbeddingImage,
   EndpointCallRequest,
   EndpointCallResult,
   EndpointProgress,

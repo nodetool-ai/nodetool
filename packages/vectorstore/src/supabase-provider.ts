@@ -151,6 +151,18 @@ function coerceScalar(v: unknown): string | number | boolean | null {
 // pgvector encoding — pgvector's input format is the string '[1,2,3]'.
 // ---------------------------------------------------------------------------
 
+/** PostgREST returns a pgvector column as its text form, `[1,2,3]`. */
+function decodePgVector(value: unknown): number[] | null {
+  if (Array.isArray(value)) return value.map(Number);
+  if (typeof value !== "string" || !value.startsWith("[")) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(Number) : null;
+  } catch {
+    return null;
+  }
+}
+
 function encodePgVector(embedding: readonly number[]): string {
   if (embedding.length === 0) {
     throw new Error("Cannot encode empty embedding vector");
@@ -308,11 +320,12 @@ class SupabaseCollectionAdapter implements VectorCollection {
     ids?: string[];
     limit?: number;
     offset?: number;
+    includeEmbeddings?: boolean;
   }): Promise<VectorRecord[]> {
     const client = this.provider.getClient();
     let q = client
       .from(this.provider.recordsTable)
-      .select("id, document, uri, metadata")
+      .select(opts?.includeEmbeddings ? "id, document, uri, metadata, embedding" : "id, document, uri, metadata")
       .eq("collection", this.state.name)
       .order("id");
     if (opts?.ids && opts.ids.length > 0) {
@@ -327,12 +340,16 @@ class SupabaseCollectionAdapter implements VectorCollection {
     if (error) {
       throw new Error(`Supabase: ${error.message}`);
     }
-    return (data ?? []).map((r) => ({
-      id: r.id as string,
-      document: (r.document as string | null) ?? null,
-      uri: (r.uri as string | null) ?? null,
-      metadata: toRecordMetadata(r.metadata)
-    }));
+    return (data ?? []).map((r) => {
+      const record: VectorRecord = {
+        id: r.id as string,
+        document: (r.document as string | null) ?? null,
+        uri: (r.uri as string | null) ?? null,
+        metadata: toRecordMetadata(r.metadata)
+      };
+      if (opts?.includeEmbeddings) record.embedding = decodePgVector(r.embedding);
+      return record;
+    });
   }
 
   /** The metadata filter with the partition key's value added, when a partition is named. */

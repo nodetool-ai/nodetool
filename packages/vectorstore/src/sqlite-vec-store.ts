@@ -49,12 +49,21 @@ export interface GetResult {
   documents: (string | null)[];
   metadatas: (Record<string, unknown> | null)[];
   uris: (string | null)[];
+  /** Stored vectors, present only when `includeEmbeddings` was asked for. */
+  embeddings?: (number[] | null)[];
 }
 
 /** Collection metadata key naming the record metadata key that partitions the index. */
 export const PARTITION_KEY_METADATA_KEY = "partition_key";
 /** Collection metadata key recording the vector dimension once known. */
 export const DIMENSION_METADATA_KEY = "dimension";
+
+/** Read a float32 little-endian buffer written by `serializeEmbedding`. */
+function deserializeEmbedding(buffer: Buffer): number[] {
+  const out: number[] = [];
+  for (let offset = 0; offset + 4 <= buffer.length; offset += 4) out.push(buffer.readFloatLE(offset));
+  return out;
+}
 
 function parseMetadata(raw: string | null): Record<string, unknown> {
   try {
@@ -323,8 +332,10 @@ export class VecCollection {
     ids?: string[];
     limit?: number;
     offset?: number;
+    includeEmbeddings?: boolean;
   }): Promise<GetResult> {
-    let sql = `SELECT doc_id, document, uri, metadata FROM "${this.docsTable}"`;
+    const columns = opts?.includeEmbeddings ? "doc_id, document, uri, metadata, embedding" : "doc_id, document, uri, metadata";
+    let sql = `SELECT ${columns} FROM "${this.docsTable}"`;
     const params: unknown[] = [];
 
     if (opts?.ids && opts.ids.length > 0) {
@@ -348,9 +359,10 @@ export class VecCollection {
       document: string | null;
       uri: string | null;
       metadata: string;
+      embedding?: Buffer | null;
     }>;
 
-    return {
+    const result: GetResult = {
       ids: rows.map((r) => r.doc_id),
       documents: rows.map((r) => r.document),
       uris: rows.map((r) => r.uri ?? null),
@@ -362,6 +374,10 @@ export class VecCollection {
         }
       })
     };
+    if (opts?.includeEmbeddings) {
+      result.embeddings = rows.map((r) => (r.embedding ? deserializeEmbedding(r.embedding) : null));
+    }
+    return result;
   }
 
   async peek(opts?: { limit?: number }): Promise<GetResult> {

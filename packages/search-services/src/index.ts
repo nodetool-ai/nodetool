@@ -72,6 +72,9 @@ export {
 } from "./read.js";
 export {
   DEFAULT_LOCAL_EMBEDDING,
+  DEFAULT_LOCAL_IMAGE_EMBEDDING,
+  imageVectorId,
+  libraryImageSpace,
   librarySemanticChoice,
   IN_PROCESS_EMBEDDING_PROVIDERS,
   LIBRARY_SEARCH_SETTINGS,
@@ -85,11 +88,23 @@ export {
   setLibraryEmbedder,
   setLibraryQueryEmbedder,
   setLibraryVectorProvider,
+  setupLibraryImageSearch,
   setupLibrarySemanticSearch,
   type EmbeddingSpace,
+  type LibraryCollectionRole,
   type LibraryEmbedder,
+  type LibraryImage,
   type LibraryQueryEmbedder
 } from "./semantic.js";
+export {
+  embeddedImageCount,
+  IMAGE_EMBED_CONTENT_TYPES,
+  MAX_IMAGE_EMBED_ATTEMPTS,
+  MAX_IMAGE_EMBED_BYTES,
+  runImageEmbedPass,
+  unembeddedImageCount,
+  type ImageEmbedPass
+} from "./image-embed.js";
 export {
   extractProjectFile,
   parseProjectFileResourceId,

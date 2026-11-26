@@ -1120,6 +1120,13 @@ const SEARCH_ENRICHMENT_COLUMNS: ReadonlyArray<readonly [string, string]> = [
   ["enrich_error", "TEXT"]
 ];
 
+/** Image vector state on library items: what each image's vector was made from. */
+const SEARCH_IMAGE_EMBEDDING_COLUMNS: ReadonlyArray<readonly [string, string]> = [
+  ["image_embedded_version", "TEXT"],
+  ["image_embed_attempts", "INTEGER NOT NULL DEFAULT 0"],
+  ["image_embed_error", "TEXT"]
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
@@ -1170,6 +1177,9 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...SEARCH_INDEX_SQLITE_FTS_DDL,
   SEARCH_LEASES_DDL,
   ...SEARCH_ENRICHMENT_COLUMNS.map(
+    ([name, type]) => `ALTER TABLE nodetool_search_items ADD COLUMN ${name} ${type}`
+  ),
+  ...SEARCH_IMAGE_EMBEDDING_COLUMNS.map(
     ([name, type]) => `ALTER TABLE nodetool_search_items ADD COLUMN ${name} ${type}`
   )
 ];
@@ -5929,6 +5939,26 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // The columns stay: dropping them would only make every item enrich again.
+    }
+  },
+  // ── Library index image vectors ─────────────────────────────────────
+  // Images are embedded by a multimodal model in their own pass, so each
+  // item records what its image vector was made from.
+  {
+    version: "20261205_000001",
+    name: "add_library_search_image_embeddings",
+    createsTables: [],
+    modifiesTables: ["nodetool_search_items"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_search_items"))) return;
+      for (const [name, type] of SEARCH_IMAGE_EMBEDDING_COLUMNS) {
+        if (!(await db.columnExists("nodetool_search_items", name))) {
+          await db.execute(`ALTER TABLE nodetool_search_items ADD COLUMN ${name} ${type}`);
+        }
+      }
+    },
+    async down() {
+      // The columns stay: dropping them would only make every image embed again.
     }
   }
 ];

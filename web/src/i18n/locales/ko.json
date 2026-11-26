@@ -20844,7 +20844,8 @@
       "description": "설명",
       "body": "텍스트",
       "caption": "캡션",
-      "transcript": "대본"
+      "transcript": "대본",
+      "image": "이미지 자체와 일치"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -20872,6 +20873,7 @@
       "semanticOff": "의미 검색이 꺼져 있습니다. 키워드 검색은 없이도 작동합니다.",
       "vectors": "{{total}}개 중 {{embedded}}개 구절 임베딩됨",
       "rebuildingVectors": "새 모델이 라이브러리를 임베딩하고 있습니다. 끝날 때까지 검색은 이전 모델을 사용합니다.",
+      "images": "이미지는 {{model}}(으)로 임베딩됩니다: {{embedded}}개 완료, {{remaining}}개 남음.",
       "turnOff": "의미 검색 끄기",
       "embedAgain": "다시 임베딩",
       "rebuild": "색인 다시 만들기",

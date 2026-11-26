@@ -69,6 +69,15 @@ const LibrarySearchStatusPanel: React.FC = () => {
           {t("librarySearch.status.vectors", { embedded: semantic.embedded, total: status.chunks })}
         </Caption>
       )}
+      {semantic.images.space && (
+        <Caption>
+          {t("librarySearch.status.images", {
+            model: semantic.images.space,
+            embedded: semantic.images.embedded,
+            remaining: semantic.images.remaining
+          })}
+        </Caption>
+      )}
       {semantic.collections.length > 1 && (
         <Caption>{t("librarySearch.status.rebuildingVectors")}</Caption>
       )}

@@ -20844,7 +20844,8 @@
       "description": "Beskrivelse",
       "body": "Tekst",
       "caption": "Bildetekst",
-      "transcript": "Transkripsjon"
+      "transcript": "Transkripsjon",
+      "image": "Treff i selve bildet"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -20872,6 +20873,7 @@
       "semanticOff": "Søk etter betydning er av. Ordsøk fungerer uten det.",
       "vectors": "{{embedded}} av {{total}} avsnitt bygget inn",
       "rebuildingVectors": "Den nye modellen bygger inn biblioteket. Søket bruker forrige modell til den er ferdig.",
+      "images": "Bilder bygges inn med {{model}}: {{embedded}} ferdig, {{remaining}} igjen.",
       "turnOff": "Slå av søk etter betydning",
       "embedAgain": "Bygg inn på nytt",
       "rebuild": "Bygg indeksen på nytt",

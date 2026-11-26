@@ -537,10 +537,12 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                       className="global-search-result-match result-item-match"
                       data-testid="global-search-result-match"
                     >
-                      {t("librarySearch.matchedIn", {
-                        field: t(`librarySearch.field.${asset.match.field}`),
-                        snippet: asset.match.snippet
-                      })}
+                      {asset.match.snippet
+                        ? t("librarySearch.matchedIn", {
+                            field: t(`librarySearch.field.${asset.match.field}`),
+                            snippet: asset.match.snippet
+                          })
+                        : t(`librarySearch.field.${asset.match.field}`)}
                     </div>
                   )}
 

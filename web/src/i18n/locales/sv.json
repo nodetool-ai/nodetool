@@ -20844,7 +20844,8 @@
       "description": "Beskrivning",
       "body": "Text",
       "caption": "Bildtext",
-      "transcript": "Transkription"
+      "transcript": "Transkription",
+      "image": "Träff i själva bilden"
     },
     "matchedIn": "{{field}}: {{snippet}}",
     "palette": {
@@ -20872,6 +20873,7 @@
       "semanticOff": "Sökning på betydelse är av. Ordsökning fungerar utan den.",
       "vectors": "{{embedded}} av {{total}} avsnitt inbäddade",
       "rebuildingVectors": "Den nya modellen bäddar in biblioteket. Sökningen använder föregående modell tills den är klar.",
+      "images": "Bilder bäddas in med {{model}}: {{embedded}} klara, {{remaining}} kvar.",
       "turnOff": "Stäng av sökning på betydelse",
       "embedAgain": "Bädda in igen",
       "rebuild": "Bygg om indexet",

@@ -132,7 +132,13 @@ export const statusOutput = z.object({
     choice: z.enum(["on", "off", "unset"]),
     embedded: z.number(),
     remaining: z.number(),
-    collections: z.array(z.string())
+    collections: z.array(z.string()),
+    /** Image vectors: `provider:model` of the image model, or null when off. */
+    images: z.object({
+      space: z.string().nullable(),
+      embedded: z.number(),
+      remaining: z.number()
+    })
   }),
   failures: z.array(
     z.object({ item_id: z.string(), title: z.string(), error: z.string().nullable() })

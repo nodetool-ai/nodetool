@@ -222,6 +222,12 @@ export function splitToolResultImages(
  * strings consumed by client-side filters like `useImageModelProviders`,
  * `useTTSProviders`, etc.
  */
+/** One image to embed: encoded bytes (PNG, JPEG, WebP) and their MIME type. */
+export interface EmbeddingImage {
+  data: Uint8Array;
+  mimeType?: string;
+}
+
 export type ProviderCapability =
   | "generate_message"
   | "generate_messages"
@@ -2124,6 +2130,19 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support generateEmbedding`);
   }
 
+  /**
+   * Embed images with a multimodal model. The vectors share a space with
+   * `generateEmbedding` text from the same model, so a text query can rank
+   * images. Providers with a multimodal embedding model override this.
+   */
+  async generateImageEmbedding(_args: {
+    images: EmbeddingImage[];
+    model: string;
+    dimensions?: number;
+  }): Promise<number[][]> {
+    throw new Error(`${this.provider} does not support image embeddings`);
+  }
+
   /** Score each document against the query, most relevant first. */
   async rerank(_params: RerankParams): Promise<RerankResult[]> {
     throw new Error(`${this.provider} does not support rerank`);
@@ -2395,6 +2414,7 @@ const MODALITY_PROMISE_METHODS = [
   "textTo3D",
   "imageTo3D",
   "generateEmbedding",
+  "generateImageEmbedding",
   "rerank"
 ] as const;
 

@@ -102,6 +102,15 @@ describe("SqliteVecProvider", () => {
     expect(got[0].metadata.kind).toBe("greeting");
   });
 
+  it("returns stored vectors only when asked", async () => {
+    const col = await provider.createCollection({ name: "vecs" });
+    await col.upsert([{ id: "1", embedding: [0.5, -0.25, 1], metadata: {} }]);
+    const [plain] = await col.get({ ids: ["1"] });
+    expect(plain.embedding).toBeUndefined();
+    const [withVector] = await col.get({ ids: ["1"], includeEmbeddings: true });
+    expect(withVector.embedding).toEqual([0.5, -0.25, 1]);
+  });
+
   it("queries by text using the embedding function", async () => {
     const col = await provider.createCollection({
       name: "docs",

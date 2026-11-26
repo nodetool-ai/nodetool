@@ -49,7 +49,11 @@ export const searchItems = pgTable(
     /** `source_version|model` the captions or transcript were made from. */
     enriched_version: text("enriched_version"),
     enrich_attempts: integer("enrich_attempts").notNull().default(0),
-    enrich_error: text("enrich_error")
+    enrich_error: text("enrich_error"),
+    /** `source_version|project_id|space` the image vector was made from. */
+    image_embedded_version: text("image_embedded_version"),
+    image_embed_attempts: integer("image_embed_attempts").notNull().default(0),
+    image_embed_error: text("image_embed_error")
   },
   (table) => [
     uniqueIndex("idx_search_items_resource").on(
