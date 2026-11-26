@@ -1,4 +1,6 @@
 #include "audio/automation/Automation.h"
+#include "audio/effects/fable/FableColorTimeEffects.h"
+#include "audio/effects/fable/FableDynamicsEffects.h"
 #include <QStringList>
 #include "app/EditRegistry.h"
 #include <QUuid>
@@ -12,7 +14,15 @@ QJsonObject trackEffectDefaults(const QString& type) {
     else if (type=="filter") { defaults={{"mode","lowpass"},{"frequency",1000},{"q",1}}; }
     else if (type=="compressor") { defaults={{"thresholdDb",-24},{"ratio",4},{"attackMs",3},{"releaseMs",250},{"kneeDb",30}}; }
     else if (type=="vst") { defaults={{"plugin",QJsonValue::Null},{"state",QJsonValue::Null},{"wet",1.0}}; }
-    else if (type=="fable") { defaults={{"kind","eq"},{"params",QJsonObject{}}}; }
+    else if (type=="fable") { defaults={{"kind","eq"},{"params",nt::audio::effects::fable::fableDynamicsDefaults("eq")}}; }
+    else if (type.startsWith("fable:")) {
+        const auto kind = type.mid(6).toStdString();
+        if (nt::audio::effects::fable::isFableDynamicsKind(kind)) {
+            defaults={{"kind",type.mid(6)},{"params",nt::audio::effects::fable::fableDynamicsDefaults(kind)}};
+        } else if (nt::audio::effects::fable::isFableColorTimeKind(kind)) {
+            defaults={{"kind",type.mid(6)},{"params",nt::audio::effects::fable::fableColorTimeDefaults(kind)}};
+        }
+    }
     else if (type=="colorCorrection") { defaults={{"brightness",0},{"contrast",1},{"saturation",1},{"hue",0},{"temperature",0},{"tint",0},{"shadows",0},{"highlights",0}}; }
     else if (type=="videoBlur") { defaults={{"radius",4}}; }
     else if (type=="sharpen") { defaults={{"amount",.5},{"threshold",0}}; }
@@ -22,7 +32,8 @@ QJsonObject trackEffectDefaults(const QString& type) {
 }
 namespace {
 QJsonObject makeTrackEffect(const QString& type) {
-    QJsonObject effect{{"id",QUuid::createUuid().toString(QUuid::Id128)},{"type",type},{"enabled",true}};
+    const QString storedType = type.startsWith("fable:") ? QStringLiteral("fable") : type;
+    QJsonObject effect{{"id",QUuid::createUuid().toString(QUuid::Id128)},{"type",storedType},{"enabled",true}};
     const auto defaults=trackEffectDefaults(type);
     if (defaults.isEmpty()) { return {}; }
     for (auto i=defaults.begin();i!=defaults.end();++i) { effect[i.key()]=i.value(); }

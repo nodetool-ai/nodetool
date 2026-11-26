@@ -1227,16 +1227,41 @@ export interface VstMidiInstrument {
   gainDb: number;
 }
 
-/** Recorded audio mapped to MIDI key ranges. Overlapping zones layer. */
+/** Recorded audio mapped to MIDI key and velocity ranges. Overlapping zones layer. */
+export type SamplerLoopMode = "oneShot" | "sustain";
+
 export interface SamplerZone {
   id: string;
   name: string;
-  /** Persistent audio asset id. Hosts resolve it through their asset store. */
+  /** Persistent audio asset id, or empty string when using a project-relative mediaPath. */
   assetId: string;
+  /** Optional project-relative audio file path (WAV/AIFF/FLAC/MP3). */
+  mediaPath?: string;
   rootNote: number;
   lowNote: number;
   highNote: number;
+  /** Inclusive MIDI velocity range (0..127). Defaults to 0..127. */
+  lowVelocity?: number;
+  highVelocity?: number;
   gainDb: number;
+  /** Stereo pan in -1..+1. Defaults to 0. */
+  pan?: number;
+  /** Fine tuning offset in cents (-100..+100). Defaults to 0. */
+  tuneCents?: number;
+  /** Overrides instrument-level `oneShot` when present. */
+  loopMode?: SamplerLoopMode;
+  /** Normalized sustain loop start in [0, 1]. Defaults to 0. */
+  loopStart?: number;
+  /** Normalized sustain loop end in [0, 1]. Defaults to 1. */
+  loopEnd?: number;
+  /** Loop seam crossfade length in milliseconds (0..500). Defaults to 10. */
+  loopCrossfadeMs?: number;
+  /** Optional release-triggered audio asset id. */
+  releaseAssetId?: string;
+  /** Optional release-triggered project-relative audio file path. */
+  releaseMediaPath?: string;
+  /** Release sample gain trim in dB (-60..+12). Defaults to 0. */
+  releaseGainDb?: number;
 }
 
 export interface SamplerMidiInstrument {
@@ -1245,7 +1270,19 @@ export interface SamplerMidiInstrument {
   /** Percussion ignores note-off and plays the complete recording. */
   oneShot: boolean;
   attackMs: number;
+  /** Amp envelope decay in ms. Defaults to 100. */
+  decayMs?: number;
+  /** Amp envelope sustain level in 0..1. Defaults to 1. */
+  sustain?: number;
   releaseMs: number;
+  /** Velocity response curve in -1..+1 (0 linear, >0 soft, <0 hard). Defaults to 0. */
+  velocityCurve?: number;
+  /** Pitch portamento glide time in ms (0..2000). Defaults to 0. */
+  glideMs?: number;
+  /** Maximum polyphonic voices (1..64). Defaults to 32. */
+  voiceLimit?: number;
+  /** Pitch bend range in semitones (1..24). Defaults to 2. */
+  pitchBendRange?: number;
   gainDb: number;
 }
 
@@ -1262,6 +1299,104 @@ export interface SubtractiveMidiInstrument {
   /** Lowpass Q. */
   resonance: number;
   gainDb: number;
+}
+
+/** Resonator model for the physically modeled modal percussion/mallet synth (ported from RipplerX). */
+export type ModalModelName =
+  | "string"
+  | "beam"
+  | "squared"
+  | "membrane"
+  | "plate"
+  | "drumhead"
+  | "marimba"
+  | "openTube"
+  | "closedTube"
+  | "marimba2"
+  | "bell"
+  | "djembe";
+
+export type ModalCouplingMode = "parallel" | "serial";
+export type ModalNoiseFilterMode = "lp" | "bp" | "hp";
+
+/** Physically modeled percussion/mallet instrument (dual modal/waveguide resonators, mallet & noise exciters). */
+export interface ModalMidiInstrument {
+  type: "modal";
+  preset?: string;
+  malletMix?: number;
+  malletRes?: number;
+  malletStiff?: number;
+  velMalletMix?: number;
+  velMalletRes?: number;
+  velMalletStiff?: number;
+  noiseOsc?: number;
+  noiseMix?: number;
+  noiseRes?: number;
+  noiseFilterMode?: ModalNoiseFilterMode;
+  noiseFilterFreq?: number;
+  noiseFilterQ?: number;
+  noiseAttackMs?: number;
+  noiseDecayMs?: number;
+  noiseSustain?: number;
+  noiseReleaseMs?: number;
+  noiseAttackTension?: number;
+  noiseDecayTension?: number;
+  noiseReleaseTension?: number;
+  velNoiseMix?: number;
+  velNoiseRes?: number;
+  velNoiseFreq?: number;
+  velNoiseQ?: number;
+  velNoiseAttack?: number;
+  velNoiseDecay?: number;
+  velNoiseSustain?: number;
+  velNoiseRelease?: number;
+  aOn?: boolean;
+  aModel?: ModalModelName;
+  aPartials?: number;
+  aDecay?: number;
+  aDamp?: number;
+  aTone?: number;
+  aHit?: number;
+  aRelease?: number;
+  aInharm?: number;
+  aRatio?: number;
+  aCut?: number;
+  aRadius?: number;
+  aCoarse?: number;
+  aFine?: number;
+  velADecay?: number;
+  velAHit?: number;
+  velAInharm?: number;
+  velADamp?: number;
+  velATone?: number;
+  bOn?: boolean;
+  bModel?: ModalModelName;
+  bPartials?: number;
+  bDecay?: number;
+  bDamp?: number;
+  bTone?: number;
+  bHit?: number;
+  bRelease?: number;
+  bInharm?: number;
+  bRatio?: number;
+  bCut?: number;
+  bRadius?: number;
+  bCoarse?: number;
+  bFine?: number;
+  velBDecay?: number;
+  velBHit?: number;
+  velBInharm?: number;
+  velBDamp?: number;
+  velBTone?: number;
+  coupling?: ModalCouplingMode;
+  abMix?: number;
+  abSplit?: number;
+  gainDb?: number;
+  pitchBendRange?: number;
+  stereoizer?: boolean;
+  polyphony?: number;
+  reuseVoices?: boolean;
+  fadeoutRepeats?: boolean;
 }
 
 /** An ADSR envelope, in milliseconds with a 0..1 sustain level. */

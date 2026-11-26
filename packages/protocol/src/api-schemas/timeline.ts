@@ -809,24 +809,51 @@ export type DrumPad = z.infer<typeof drumPad>;
  * synth, BL-1 the acid bassline, DR-1 the drum machine. `vst` is a VST3
  * instrument the desktop app hosts.
  */
+export const samplerLoopMode = z.enum(["oneShot", "sustain"]);
+export type SamplerLoopMode = z.infer<typeof samplerLoopMode>;
+
 export const samplerZone = z.object({
   id: z.string().min(1),
   name: z.string(),
-  assetId: z.string().regex(/^[a-f0-9]{32}$/, "Use a full audio asset id"),
+  assetId: z.string().regex(/^$|^[a-f0-9]{32}$/, "Use a full audio asset id"),
+  mediaPath: z.string().min(1).optional(),
   rootNote: z.number().int().min(0).max(127),
   lowNote: z.number().int().min(0).max(127),
   highNote: z.number().int().min(0).max(127),
-  gainDb: z.number().min(-60).max(12)
+  lowVelocity: z.number().int().min(0).max(127).optional(),
+  highVelocity: z.number().int().min(0).max(127).optional(),
+  gainDb: z.number().min(-60).max(12),
+  pan: z.number().min(-1).max(1).optional(),
+  tuneCents: z.number().min(-100).max(100).optional(),
+  loopMode: samplerLoopMode.optional(),
+  loopStart: z.number().min(0).max(1).optional(),
+  loopEnd: z.number().min(0).max(1).optional(),
+  loopCrossfadeMs: z.number().min(0).max(500).optional(),
+  releaseAssetId: z.string().regex(/^$|^[a-f0-9]{32}$/, "Use a full audio asset id").optional(),
+  releaseMediaPath: z.string().min(1).optional(),
+  releaseGainDb: z.number().min(-60).max(12).optional()
 }).refine(zone => zone.lowNote <= zone.highNote, {
   message: "The lowest key must not exceed the highest key"
+}).refine(zone => (zone.lowVelocity ?? 0) <= (zone.highVelocity ?? 127), {
+  message: "The lowest velocity must not exceed the highest velocity"
+}).refine(zone => (zone.loopStart ?? 0) <= (zone.loopEnd ?? 1), {
+  message: "The loop start must not exceed the loop end"
+}).refine(zone => zone.assetId.length > 0 || Boolean(zone.mediaPath), {
+  message: "A sampler zone needs an assetId or a mediaPath"
 });
 
 export const samplerMidiInstrument = z.object({
     type: z.literal("sampler"),
-    zones: z.array(samplerZone).max(32),
+    zones: z.array(samplerZone).max(64),
     oneShot: z.boolean(),
     attackMs: z.number().min(0).max(10000),
+    decayMs: z.number().min(0).max(10000).optional(),
+    sustain: z.number().min(0).max(1).optional(),
     releaseMs: z.number().min(0).max(30000),
+    velocityCurve: z.number().min(-1).max(1).optional(),
+    glideMs: z.number().min(0).max(2000).optional(),
+    voiceLimit: z.number().int().min(1).max(64).optional(),
+    pitchBendRange: z.number().min(1).max(24).optional(),
     gainDb: z.number().min(-60).max(12)
   });
 
@@ -929,6 +956,107 @@ export const midiInstrument = z.discriminatedUnion("type", [
   })
 ]);
 export type MidiInstrument = z.infer<typeof midiInstrument>;
+
+/** Physically modeled percussion/mallet instrument schema (ported from RipplerX, MOD1). */
+export const modalModelEnum = z.enum([
+  "string", "beam", "squared", "membrane", "plate", "drumhead",
+  "marimba", "openTube", "closedTube", "marimba2", "bell", "djembe"
+]);
+export type ModalModel = z.infer<typeof modalModelEnum>;
+
+export const modalCouplingEnum = z.enum(["parallel", "serial"]);
+export type ModalCoupling = z.infer<typeof modalCouplingEnum>;
+
+export const modalNoiseFilterModeEnum = z.enum(["lp", "bp", "hp"]);
+export type ModalNoiseFilterMode = z.infer<typeof modalNoiseFilterModeEnum>;
+
+export const modalPresetIdEnum = z.enum([
+  "modal-marimba", "modal-concert-marimba", "modal-vibes", "modal-tubular-bells",
+  "modal-church-bell", "modal-kalimba", "modal-steel-drum", "modal-concert-tom",
+  "modal-djembe", "modal-plucked-harp", "modal-crystal-glass", "modal-wood-block",
+  "modal-open-tube", "modal-closed-tube"
+]);
+export type ModalPresetId = z.infer<typeof modalPresetIdEnum>;
+
+export const modalMidiInstrument = z.object({
+  type: z.literal("modal"),
+  preset: modalPresetIdEnum.optional(),
+  malletMix: z.number().min(0).max(1).optional(),
+  malletRes: z.number().min(0).max(1).optional(),
+  malletStiff: z.number().min(100).max(5000).optional(),
+  velMalletMix: z.number().min(-1).max(1).optional(),
+  velMalletRes: z.number().min(-1).max(1).optional(),
+  velMalletStiff: z.number().min(-1).max(1).optional(),
+  noiseOsc: z.number().min(0).max(1).optional(),
+  noiseMix: z.number().min(0).max(1).optional(),
+  noiseRes: z.number().min(0).max(1).optional(),
+  noiseFilterMode: modalNoiseFilterModeEnum.optional(),
+  noiseFilterFreq: z.number().min(20).max(20000).optional(),
+  noiseFilterQ: z.number().min(0.707).max(4).optional(),
+  noiseAttackMs: z.number().min(1).max(20000).optional(),
+  noiseDecayMs: z.number().min(1).max(20000).optional(),
+  noiseSustain: z.number().min(0).max(1).optional(),
+  noiseReleaseMs: z.number().min(1).max(20000).optional(),
+  noiseAttackTension: z.number().min(-1).max(1).optional(),
+  noiseDecayTension: z.number().min(-1).max(1).optional(),
+  noiseReleaseTension: z.number().min(-1).max(1).optional(),
+  velNoiseMix: z.number().min(-1).max(1).optional(),
+  velNoiseRes: z.number().min(-1).max(1).optional(),
+  velNoiseFreq: z.number().min(-1).max(1).optional(),
+  velNoiseQ: z.number().min(-1).max(1).optional(),
+  velNoiseAttack: z.number().min(-1).max(1).optional(),
+  velNoiseDecay: z.number().min(-1).max(1).optional(),
+  velNoiseSustain: z.number().min(-1).max(1).optional(),
+  velNoiseRelease: z.number().min(-1).max(1).optional(),
+  aOn: z.boolean().optional(),
+  aModel: modalModelEnum.optional(),
+  aPartials: z.number().int().min(1).max(64).optional(),
+  aDecay: z.number().min(0.01).max(100).optional(),
+  aDamp: z.number().min(-1).max(1).optional(),
+  aTone: z.number().min(-1).max(1).optional(),
+  aHit: z.number().min(0.02).max(0.5).optional(),
+  aRelease: z.number().min(0.001).max(1).optional(),
+  aInharm: z.number().min(0).max(1).optional(),
+  aRatio: z.number().min(0.1).max(10).optional(),
+  aCut: z.number().min(-1).max(1).optional(),
+  aRadius: z.number().min(0).max(1).optional(),
+  aCoarse: z.number().min(-48).max(48).optional(),
+  aFine: z.number().min(-99).max(99).optional(),
+  velADecay: z.number().min(-1).max(1).optional(),
+  velAHit: z.number().min(-1).max(1).optional(),
+  velAInharm: z.number().min(-1).max(1).optional(),
+  velADamp: z.number().min(-1).max(1).optional(),
+  velATone: z.number().min(-1).max(1).optional(),
+  bOn: z.boolean().optional(),
+  bModel: modalModelEnum.optional(),
+  bPartials: z.number().int().min(1).max(64).optional(),
+  bDecay: z.number().min(0.01).max(100).optional(),
+  bDamp: z.number().min(-1).max(1).optional(),
+  bTone: z.number().min(-1).max(1).optional(),
+  bHit: z.number().min(0.02).max(0.5).optional(),
+  bRelease: z.number().min(0.001).max(1).optional(),
+  bInharm: z.number().min(0).max(1).optional(),
+  bRatio: z.number().min(0.1).max(10).optional(),
+  bCut: z.number().min(-1).max(1).optional(),
+  bRadius: z.number().min(0).max(1).optional(),
+  bCoarse: z.number().min(-48).max(48).optional(),
+  bFine: z.number().min(-99).max(99).optional(),
+  velBDecay: z.number().min(-1).max(1).optional(),
+  velBHit: z.number().min(-1).max(1).optional(),
+  velBInharm: z.number().min(-1).max(1).optional(),
+  velBDamp: z.number().min(-1).max(1).optional(),
+  velBTone: z.number().min(-1).max(1).optional(),
+  coupling: modalCouplingEnum.optional(),
+  abMix: z.number().min(0).max(1).optional(),
+  abSplit: z.number().min(0.01).max(1).optional(),
+  gainDb: z.number().min(-24).max(24).optional(),
+  pitchBendRange: z.number().int().min(1).max(24).optional(),
+  stereoizer: z.boolean().optional(),
+  polyphony: z.number().int().min(1).max(16).optional(),
+  reuseVoices: z.boolean().optional(),
+  fadeoutRepeats: z.boolean().optional()
+});
+export type ModalMidiInstrument = z.infer<typeof modalMidiInstrument>;
 
 
 /** `ChordQuality` in `@nodetool-ai/timeline`: the FableSynth chord qualities. */

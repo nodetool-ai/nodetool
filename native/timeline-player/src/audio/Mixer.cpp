@@ -677,6 +677,8 @@ MixPlan buildMixPlan(const Timeline& document, RenderMode mode) {
     plan.renderMode = mode;
     plan.masterGain = dbToGain(tl.masterVolumeDb);
     plan.masterLimiterEnabled = masterLimiterEnabled(tl);
+    const double rawBpm = tl.raw.value("tempo").toObject().value("bpm").toDouble(120.0);
+    plan.tempoBpm = (std::isfinite(rawBpm) && rawBpm > 0.0) ? rawBpm : 120.0;
 
     const auto isSoundTrack = [](const Track& t) { return t.type == TrackType::Audio || t.type == TrackType::Midi; };
     bool soloed = false;  // `soundTrackSoloed`
@@ -1217,7 +1219,7 @@ void MixRenderLease::mix(std::span<VoicePcm> pcm, double sampleRate, double time
     for (int offset = 0; offset < frames;) {
         const int n = std::min(kMixBlockFrames - state.quantumCursor, frames - offset);
         const auto samples = static_cast<std::size_t>(n) * 2;
-        const BlockContext context{sampleRate, timelineMs0 + offset * msPerFrame, msPerFrame, false, state.quantumCursor};
+        const BlockContext context{sampleRate, timelineMs0 + offset * msPerFrame, msPerFrame, false, state.quantumCursor, plan.tempoBpm};
         auto dest = output.subspan(static_cast<std::size_t>(offset) * 2, samples);
         for (auto& track : state.tracks) { std::ranges::fill(track, 0.0f); }
         std::fill(state.trackSilent.begin(), state.trackSilent.end(), true);

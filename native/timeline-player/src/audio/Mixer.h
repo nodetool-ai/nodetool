@@ -51,6 +51,7 @@ struct BlockContext {
     // Distortion propagates this silence without draining its resampler.
     bool silent = false;
     int quantumOffset = 0;
+    double tempoBpm = 0.0;
 };
 
 // Prepared state belongs to one renderer at a time. All storage must be
@@ -163,6 +164,7 @@ struct MixPlan {
     double masterGain = 1.0;
     // Project setting `master.limiter` (defaults to true when absent).
     bool masterLimiterEnabled = true;
+    double tempoBpm = 120.0;
     std::vector<TrackPlan> tracks;
     Processors processors;
     // native-rules #1: std::shared_ptr ParameterSource, no comment on why unique ownership is impossible

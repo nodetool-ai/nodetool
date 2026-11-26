@@ -5147,6 +5147,46 @@ test_scope = "interaction"
 qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
 replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
 
+[[file]]
+path = "native/timeline/qml/instruments/BassSynthPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.PanelHeader", "Ui.Select", "Ui.SegmentedControl", "Ui.Slider", "Ui.Toggle", "Ui.Text", "Ui.Separator"]
+signals = ["presetSelected", "parameterCommitted"]
+test_host = "tst_basssynth"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives compact analog bass instrument panel"
+
+[[file]]
+path = "native/timeline/qml/instruments/SamplerPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.PanelHeader", "Ui.SegmentedControl", "Ui.Slider", "Ui.NumberField", "Ui.Text", "Ui.Icon", "Ui.Chip", "Ui.Separator", "Ui.ListRow", "Ui.CloseButton"]
+signals = ["parameterCommitted", "zoneActionCommitted"]
+test_host = "tst_multisamplesampler"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives compact multisample sampler panel"
+
+[[file]]
+path = "native/timeline/qml/instruments/WavetableSynthPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.PanelHeader", "Ui.Select", "Ui.Slider", "Ui.Toggle", "Ui.Text", "Ui.Separator", "FxKnob"]
+signals = ["presetSelected", "parameterCommitted"]
+test_host = "tst_wavetablesynth"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives compact WT-1 wavetable synth instrument panel"
+
+[[file]]
+path = "native/timeline/qml/instruments/ModalSynthPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.PanelHeader", "Ui.Select", "Ui.SegmentedControl", "Ui.Slider", "Ui.Toggle", "Ui.Text", "Ui.Separator"]
+signals = ["presetSelected", "parameterCommitted"]
+test_host = "tst_modalsynth"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives compact physically modeled modal percussion panel"
+
 [[exception]]
 path = "native/timeline/qml/stepsequencer/StepSequencerPatternBar.qml"
 object = "root/Row[1]/Repeater[0]/page/MouseArea[0]"

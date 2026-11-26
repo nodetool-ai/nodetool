@@ -2,7 +2,22 @@
 nt_sources(core src/midi/MidiNotes.h src/midi/MidiNotes.cpp
     src/midi/PatternExpand.h src/midi/PatternExpand.cpp
     src/midi/PatternOps.h src/midi/PatternOps.cpp)
-nt_sources(audio src/midi/PatternAudioStage.h src/midi/PatternAudioStage.cpp)
+nt_sources(audio src/midi/PatternAudioStage.h src/midi/PatternAudioStage.cpp
+    src/midi/DrumSamplerSamples.h src/midi/DrumSamplerSamples.cpp
+    src/midi/DrumSampler.h src/midi/DrumSampler.cpp
+    src/midi/WavetableTables.h src/midi/WavetableTables.cpp
+    src/midi/WavetableSynth.h src/midi/WavetableSynth.cpp
+    src/midi/WavetablePresets.h src/midi/WavetablePresets.cpp
+    src/midi/WavetableEdits.h src/midi/WavetableEdits.cpp
+    src/midi/BassSynth.h src/midi/BassSynth.cpp
+    src/midi/BassSynthPresets.h src/midi/BassSynthPresets.cpp
+    src/midi/BassSynthEdits.h src/midi/BassSynthEdits.cpp
+    src/midi/MultisampleSampler.h src/midi/MultisampleSampler.cpp
+    src/midi/SamplerEdits.h src/midi/SamplerEdits.cpp
+    src/midi/modal/ModalDsp.h src/midi/modal/ModalDsp.cpp
+    src/midi/modal/ModalSynth.h src/midi/modal/ModalSynth.cpp
+    src/midi/modal/ModalPresets.h src/midi/modal/ModalPresets.cpp
+    src/midi/modal/ModalEdits.h src/midi/modal/ModalEdits.cpp)
 # Every audio host gets this registrar, including headless tests and bounces.
 function(nt_step_pattern_audio_registration)
     add_library(nt_step_pattern_registrar OBJECT src/midi/PatternRegistrations.cpp)
@@ -12,6 +27,30 @@ function(nt_step_pattern_audio_registration)
     target_link_libraries(timeline_audio INTERFACE $<TARGET_OBJECTS:nt_step_pattern_registrar>)
 endfunction()
 cmake_language(DEFER CALL nt_step_pattern_audio_registration)
+function(nt_drum_sampler_registration)
+    add_library(nt_drum_sampler_registrar OBJECT src/midi/DrumSamplerRegistrations.cpp)
+    target_include_directories(nt_drum_sampler_registrar PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src")
+    target_link_libraries(nt_drum_sampler_registrar PRIVATE Qt6::Core)
+    target_link_libraries(timeline_audio INTERFACE $<TARGET_OBJECTS:nt_drum_sampler_registrar>)
+endfunction()
+cmake_language(DEFER CALL nt_drum_sampler_registration)
+function(nt_bass_synth_registration)
+    add_library(nt_bass_synth_registrar OBJECT src/midi/BassSynthRegistrations.cpp)
+    target_include_directories(nt_bass_synth_registrar PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src")
+    target_link_libraries(nt_bass_synth_registrar PRIVATE Qt6::Core)
+    target_link_libraries(timeline_audio INTERFACE $<TARGET_OBJECTS:nt_bass_synth_registrar>)
+endfunction()
+cmake_language(DEFER CALL nt_bass_synth_registration)
+function(nt_wavetable_synth_registration)
+    add_library(nt_wavetable_registrar OBJECT src/midi/WavetableRegistrations.cpp)
+    target_include_directories(nt_wavetable_registrar PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src")
+    target_link_libraries(nt_wavetable_registrar PRIVATE Qt6::Core)
+    target_link_libraries(timeline_audio INTERFACE $<TARGET_OBJECTS:nt_wavetable_registrar>)
+endfunction()
+cmake_language(DEFER CALL nt_wavetable_synth_registration)
 if(NOT MSVC)
     set_source_files_properties(src/midi/PatternExpand.cpp src/midi/RegionParams.cpp
         PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
@@ -19,10 +58,36 @@ endif()
 nt_qml_sources(src/midi/PianoRollController.h src/midi/PianoRollController.cpp)
 nt_qml_sources(src/midi/StepEditorLaneModel.h src/midi/StepEditorLaneModel.cpp)
 nt_qml_sources(src/midi/StepSequencerController.h src/midi/StepSequencerController.cpp)
+nt_qml_sources(src/midi/WavetableCatalog.h src/midi/WavetableCatalog.cpp)
+nt_qml_sources(src/midi/BassSynthCatalog.h src/midi/BassSynthCatalog.cpp)
+nt_qml_sources(src/midi/SamplerHelper.h src/midi/SamplerHelper.cpp)
+nt_qml_sources(src/midi/modal/ModalCatalog.h src/midi/modal/ModalCatalog.cpp)
+nt_qml_files(qml/instruments/SamplerPanel.qml)
+nt_qml_files(qml/instruments/WavetableSynthPanel.qml)
+nt_qml_files(qml/instruments/ModalSynthPanel.qml)
 
 function(nt_midi_tests)
     nt_qt_test(tst_midinotes SOURCES src/midi/tst_midinotes.cpp LIBS timeline_core Qt6::Test)
     nt_qt_test(tst_patternops SOURCES src/midi/tst_patternops.cpp LIBS timeline_core Qt6::Test)
+    nt_qt_test(tst_drumsampler SOURCES src/midi/tst_drumsampler.cpp
+        LIBS nodetool_timeline_playback_registrar timeline_core timeline_audio Qt6::Test)
+    set_tests_properties(tst_drumsampler PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    nt_qt_test(tst_wavetablesynth SOURCES src/midi/tst_wavetablesynth.cpp
+        LIBS nodetool_timeline_playback_registrar timeline_core timeline_audio Qt6::Test)
+    set_tests_properties(tst_wavetablesynth PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    nt_qt_test(tst_basssynth SOURCES src/midi/tst_basssynth.cpp
+        LIBS nodetool_timeline_playback_registrar timeline_core timeline_audio Qt6::Test)
+    set_tests_properties(tst_basssynth PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    nt_qt_test(tst_multisamplesampler SOURCES src/midi/tst_multisamplesampler.cpp
+        src/midi/SamplerHelper.h src/midi/SamplerHelper.cpp
+        LIBS nodetool_timeline_playback_registrar timeline_core timeline_audio Qt6::Qml Qt6::Test)
+    set_tests_properties(tst_multisamplesampler PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    nt_qt_test(tst_modalsynth SOURCES src/midi/tst_modalsynth.cpp
+        LIBS nodetool_timeline_playback_registrar timeline_core timeline_audio Qt6::Test)
+    set_tests_properties(tst_modalsynth PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    nt_qt_test(tst_instrumentdemo SOURCES src/midi/tst_instrumentdemo.cpp
+        LIBS nodetool_timeline_playback_registrar timeline_core timeline_audio Qt6::Test)
+    set_tests_properties(tst_instrumentdemo PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     nt_qt_test(tst_patternexpand SOURCES src/midi/tst_patternexpand.cpp
         LIBS nodetool_timeline_playback_registrar timeline_core timeline_audio Qt6::Test
         DEFINES NT_PATTERN_ORACLE_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/src/midi/fixtures/step-pattern-oracle.json")

@@ -886,6 +886,175 @@ for line in sys.stdin:
         QTRY_VERIFY_WITH_TIMEOUT(done.size() == 4, 60000);
         QVERIFY(done[3][1].toMap().value("frames").toList().value(0).toMap().value("height").toInt() <= 1920);
     }
+    void samplerUpdateZoneClearsLoopModeOverride() {
+        static const QString TRACK_MIDI = "33333333333300000000000000000003";
+        const auto text = QStringLiteral(R"({"id":"%1","name":"Sampler","fps":30,"width":640,"height":360,"durationMs":10000,
+          "tracks":[{"id":"%2","name":"Sampler","type":"midi","index":0,"heightPx":80,"visible":true,"locked":false,
+            "instrument":{"type":"sampler","oneShot":true,"attackMs":2,"decayMs":100,"sustain":1,"releaseMs":120,"gainDb":-6,
+              "zones":[{"id":"z1","name":"Zone 1","assetId":"","mediaPath":"samples/a.wav","rootNote":60,"lowNote":0,"highNote":127,"gainDb":0,"loopMode":"sustain"}]}}],
+          "clips":[]})")
+            .arg(TIMELINE, TRACK_MIDI);
+        auto parsed = nt::parseTimelineJson(text.toUtf8());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCoreApplication::processEvents();
+
+        const auto entry = commandEntry("sampler.updateZone");
+        QVERIFY2(!entry.isEmpty(), "sampler.updateZone missing from allowed commands");
+        const auto loopModeSchema =
+            entry.value("parameters").toMap().value("properties").toMap().value("loopMode").toMap();
+        QVERIFY2(loopModeSchema.value("enum").toStringList().contains("inherit"),
+                 qPrintable(QStringLiteral("sampler.updateZone loopMode enum missing 'inherit': %1")
+                                .arg(loopModeSchema.value("enum").toStringList().join(", "))));
+
+        // Invalid choice must still be rejected by command validation.
+        const auto bad = run("sampler.updateZone", {{"track_id", TRACK_MIDI}, {"zoneId", "z1"}, {"loopMode", "bogus"}});
+        QVERIFY(!bad.value("ok").toBool());
+
+        // Clearing via validated "inherit" choice must succeed and remove loopMode from the zone JSON.
+        const auto cleared = run("sampler.updateZone", {{"track_id", TRACK_MIDI}, {"zoneId", "z1"}, {"loopMode", "inherit"}});
+        QVERIFY2(cleared.value("ok").toBool(), qPrintable(cleared.value("error").toString()));
+        QVERIFY(cleared.value("changed").toBool());
+        auto zoneAfterClear = doc().value("tracks").toArray().at(0).toObject()
+                                  .value("instrument").toObject()
+                                  .value("zones").toArray().at(0).toObject();
+        QVERIFY2(!zoneAfterClear.contains("loopMode"), "loopMode override was not cleared by sampler.updateZone");
+
+        // Setting an explicit override and clearing it again works cleanly.
+        const auto setOneShot = run("sampler.updateZone", {{"track_id", TRACK_MIDI}, {"zoneId", "z1"}, {"loopMode", "oneShot"}});
+        QVERIFY2(setOneShot.value("ok").toBool(), qPrintable(setOneShot.value("error").toString()));
+        auto zoneAfterSet = doc().value("tracks").toArray().at(0).toObject()
+                                .value("instrument").toObject()
+                                .value("zones").toArray().at(0).toObject();
+        QCOMPARE(zoneAfterSet.value("loopMode").toString(), QStringLiteral("oneShot"));
+
+        const auto clearedAgain = run("sampler.updateZone", {{"track_id", TRACK_MIDI}, {"zoneId", "z1"}, {"loopMode", "inherit"}});
+        QVERIFY2(clearedAgain.value("ok").toBool(), qPrintable(clearedAgain.value("error").toString()));
+        auto zoneAfterClear2 = doc().value("tracks").toArray().at(0).toObject()
+                                   .value("instrument").toObject()
+                                   .value("zones").toArray().at(0).toObject();
+        QVERIFY(!zoneAfterClear2.contains("loopMode"));
+    }
+
+    // E2: wavetable.setPreset and wavetable.setParams dispatched through ui_timeline_run_command.
+    void wavetableAssistantCommands() {
+        static const QString TRACK_MIDI = "44444444444400000000000000000004";
+        const auto text = QStringLiteral(R"({"id":"%1","name":"WT1","fps":30,"width":640,"height":360,"durationMs":10000,
+          "tracks":[{"id":"%2","name":"Lead","type":"midi","index":0,"heightPx":80,"visible":true,"locked":false,
+            "instrument":{"type":"subtractive","waveform":"saw"}}],
+          "clips":[]})")
+            .arg(TIMELINE, TRACK_MIDI);
+        auto parsed = nt::parseTimelineJson(text.toUtf8());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCoreApplication::processEvents();
+
+        // Schema inspection: both commands are advertised with track_id required and valid preset choices.
+        const auto presetEntry = commandEntry("wavetable.setPreset");
+        const auto paramsEntry = commandEntry("wavetable.setParams");
+        QVERIFY2(!presetEntry.isEmpty(), "wavetable.setPreset missing from allowed commands");
+        QVERIFY2(!paramsEntry.isEmpty(), "wavetable.setParams missing from allowed commands");
+        const auto presetReq = presetEntry.value("parameters").toMap().value("required").toStringList();
+        const auto paramsReq = paramsEntry.value("parameters").toMap().value("required").toStringList();
+        QVERIFY(presetReq.contains("track_id"));
+        QVERIFY(presetReq.contains("preset"));
+        QVERIFY(paramsReq.contains("track_id"));
+        const auto presetChoices =
+            presetEntry.value("parameters").toMap().value("properties").toMap().value("preset").toMap().value("enum").toStringList();
+        QVERIFY(presetChoices.contains("wt1-init"));
+        QVERIFY(presetChoices.contains("wt1-hyper-saw"));
+
+        // Invalid preset choice is rejected by command validation with zero undo entries.
+        const auto beforePreset = doc();
+        const auto badPreset = run("wavetable.setPreset", {{"track_id", TRACK_MIDI}, {"preset", "not-a-preset"}});
+        QVERIFY(!badPreset.value("ok").toBool());
+        QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(doc(), beforePreset);
+
+        // Dispatch wavetable.setPreset through ui_timeline_run_command (with full track_id).
+        const auto setPresetRes = run("wavetable.setPreset", {{"track_id", TRACK_MIDI}, {"preset", "wt1-hyper-saw"}});
+        QVERIFY2(setPresetRes.value("ok").toBool(), qPrintable(setPresetRes.value("error").toString()));
+        QVERIFY(setPresetRes.value("changed").toBool());
+        QCOMPARE(setPresetRes.value("undo").toMap().value("added").toBool(), true);
+        QCOMPARE(model.undoStack()->count(), 1);
+        const auto instAfterPreset = doc().value("tracks").toArray().at(0).toObject().value("instrument").toObject();
+        QCOMPARE(instAfterPreset.value("type").toString(), QStringLiteral("wavetable"));
+        QCOMPARE(instAfterPreset.value("preset").toString(), QStringLiteral("wt1-hyper-saw"));
+        QCOMPARE(instAfterPreset.value("oscA").toObject().value("unison").toInt(), 7);
+        QCOMPARE(instAfterPreset.value("filterType").toString(), QStringLiteral("lp12"));
+        QVERIFY(std::abs(instAfterPreset.value("cutoffHz").toDouble() - 12000.0) < 1e-3);
+
+        // Undo restores the document byte-for-byte.
+        model.undoStack()->undo();
+        QCOMPARE(doc(), beforePreset);
+
+        // Redo before testing wavetable.setParams.
+        model.undoStack()->redo();
+        QCOMPARE(doc().value("tracks").toArray().at(0).toObject().value("instrument").toObject().value("preset").toString(),
+                 QStringLiteral("wt1-hyper-saw"));
+        const auto beforeParams = doc();
+        const int undoBeforeParams = model.undoStack()->count();
+
+        // Invalid enum choice on wavetable.setParams is rejected without mutating or pushing undo.
+        const auto badParam = run("wavetable.setParams", {{"track_id", TRACK_MIDI.left(12)}, {"filterType", "bogus"}});
+        QVERIFY(!badParam.value("ok").toBool());
+        QCOMPARE(model.undoStack()->count(), undoBeforeParams);
+        QCOMPARE(doc(), beforeParams);
+
+        // Dispatch wavetable.setParams through ui_timeline_run_command (using 12-char track_id prefix).
+        const auto setParamsRes = run("wavetable.setParams", {
+            {"track_id", TRACK_MIDI.left(12)},
+            {"oscATable", "pulse"},
+            {"oscAPosition", 0.35},
+            {"oscAUnison", 5},
+            {"oscADetune", 0.4},
+            {"filterType", "hp24"},
+            {"cutoffHz", 1250.0},
+            {"resonance", 0.55},
+            {"drive", 0.3},
+            {"ampAttackMs", 45.0},
+            {"ampReleaseMs", 600.0},
+            {"lfoShape", "tri"},
+            {"lfoToCutoff", 0.25},
+            {"mono", true},
+            {"glideMs", 120.0},
+            {"masterVolume", 0.85},
+        });
+        QVERIFY2(setParamsRes.value("ok").toBool(), qPrintable(setParamsRes.value("error").toString()));
+        QVERIFY(setParamsRes.value("changed").toBool());
+        QCOMPARE(setParamsRes.value("undo").toMap().value("added").toBool(), true);
+        QCOMPARE(model.undoStack()->count(), undoBeforeParams + 1);
+
+        const auto instAfterParams = doc().value("tracks").toArray().at(0).toObject().value("instrument").toObject();
+        const auto oscAAfter = instAfterParams.value("oscA").toObject();
+        const auto ampEnvAfter = instAfterParams.value("ampEnv").toObject();
+        const auto lfoAfter = instAfterParams.value("lfo").toObject();
+        QCOMPARE(instAfterParams.value("type").toString(), QStringLiteral("wavetable"));
+        QVERIFY(!instAfterParams.contains("preset"));
+        QCOMPARE(oscAAfter.value("table").toString(), QStringLiteral("pulse"));
+        QVERIFY(std::abs(oscAAfter.value("position").toDouble() - 0.35) < 1e-4);
+        QCOMPARE(oscAAfter.value("unison").toInt(), 5);
+        QVERIFY(std::abs(oscAAfter.value("detune").toDouble() - 0.4) < 1e-4);
+        QCOMPARE(instAfterParams.value("filterType").toString(), QStringLiteral("hp24"));
+        QCOMPARE(instAfterParams.value("filterOn").toBool(), true);
+        QVERIFY(std::abs(instAfterParams.value("cutoffHz").toDouble() - 1250.0) < 1e-3);
+        QVERIFY(std::abs(instAfterParams.value("resonance").toDouble() - 0.55) < 1e-4);
+        QVERIFY(std::abs(instAfterParams.value("drive").toDouble() - 0.3) < 1e-4);
+        QVERIFY(std::abs(ampEnvAfter.value("attackMs").toDouble() - 45.0) < 1e-3);
+        QVERIFY(std::abs(ampEnvAfter.value("releaseMs").toDouble() - 600.0) < 1e-3);
+        QCOMPARE(lfoAfter.value("shape").toString(), QStringLiteral("tri"));
+        QVERIFY(std::abs(lfoAfter.value("toCutoff").toDouble() - 0.25) < 1e-4);
+        QCOMPARE(instAfterParams.value("mono").toBool(), true);
+        QVERIFY(std::abs(instAfterParams.value("glideMs").toDouble() - 120.0) < 1e-3);
+        QVERIFY(std::abs(instAfterParams.value("masterVolume").toDouble() - 0.85) < 1e-4);
+
+        // Exact undo restoration for wavetable.setParams and wavetable.setPreset.
+        model.undoStack()->undo();
+        QCOMPARE(doc(), beforeParams);
+        model.undoStack()->undo();
+        QCOMPARE(doc(), beforePreset);
+    }
+
     // Last, because the registry has no way to remove an entry: a real registration fails the audit.
     void aRealNewRegistrationFailsTheAudit() {
         QVERIFY(nt::wiring::registerKeyAction({"test.newCommand", "New command", {}, [](ClipGestureController&, const QVariantMap&) { return true; }}));

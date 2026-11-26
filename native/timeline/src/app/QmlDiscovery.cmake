@@ -165,6 +165,7 @@ if(NOT DEFINED NT_QML_DISCOVERY_FILES)
         qml/fx/FxParams.js
         qml/fx/FxPower.qml
         qml/fx/FxStepper.qml
+        qml/instruments/BassSynthPanel.qml
         qml/interchange/PremierePanel.qml
         qml/markers/MarkerEditDialog.qml
         qml/markers/MarkerEditHost.qml

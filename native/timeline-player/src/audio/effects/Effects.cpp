@@ -1,5 +1,7 @@
 #include "audio/effects/Effects.h"
 #include "audio/effects/Oversampler.h"
+#include "audio/effects/fable/FableColorTimeEffects.h"
+#include "audio/effects/fable/FableDynamicsEffects.h"
 #include "audio/Mixer.h"
 #include "audio/ParameterSmoother.h"
 #include "nodetool/kernels.h"
@@ -557,11 +559,38 @@ public:
     }
 };
 
-void append(const QJsonArray& effects, Processors& processors, double* tailMs = nullptr) {
+void append(const QJsonArray& effects, Processors& processors, double* tailMs = nullptr, double tempoBpm = 120.0) {
     for (const auto& value : effects) {
         const auto e = value.toObject();
         if (!e.value("enabled").toBool()) { continue; }
         const auto type = e.value("type").toString();
+        if (type == "fable") {
+            if (auto fx = fable::createFableDynamicsEffect(e)) {
+                processors.push_back(std::shared_ptr<BlockProcessor>(std::move(fx)));
+                continue;
+            }
+            if (auto fx = fable::createFableColorTimeEffect(e, tempoBpm)) {
+                processors.push_back(std::shared_ptr<BlockProcessor>(std::move(fx)));
+                const auto kind = e.value("kind").toString();
+                if (tailMs && kind == "reverb") {
+                    const double size = std::clamp(e.value("params").toObject().value("fx.reverb.size").toDouble(0.5), 0.0, 1.0);
+                    const double rt60Sec = (-3.0 * 0.0312) / std::log10(0.7 + 0.28 * size);
+                    *tailMs += std::clamp(rt60Sec * 1000.0, 500.0, 20000.0);
+                }
+                if (tailMs && kind == "echo") {
+                    const auto ep = e.value("params").toObject();
+                    const auto syncVal = ep.value("fx.delay.sync");
+                    const bool synced = syncVal.isBool() ? syncVal.toBool() : (syncVal.toDouble(0.0) > 0.5);
+                    const int div = std::clamp(static_cast<int>(std::lround(ep.value("fx.delay.div").toDouble(3.0))), 0, 5);
+                    const double sec = std::clamp(synced ? 60.0 / std::max(1.0, tempoBpm) * fable::kEchoDivisions[static_cast<std::size_t>(div)]
+                                                         : ep.value("fx.delay.time").toDouble(0.36), 0.02, 1.5);
+                    const double delay = sec * 1000.0;
+                    const double fb = std::clamp(ep.value("fx.delay.fb").toDouble(0.35), 0.0, 0.92);
+                    *tailMs += fb <= 0.001 ? delay : std::min(20000.0, delay * (std::log(0.001) / std::log(fb) + 1.0));
+                }
+            }
+            continue;
+        }
         // Fable instruments and video effects are outside P1, pass through.
         if (type != "gain" && type != "eq3" && type != "filter" && type != "compressor" &&
             type != "echo" && type != "reverb" && type != "distortion") { continue; }
@@ -574,11 +603,13 @@ void append(const QJsonArray& effects, Processors& processors, double* tailMs = 
     }
 }
 void stage(const Timeline& tl, MixPlan& plan) {
+    const double rawBpm = tl.raw.value("tempo").toObject().value("bpm").toDouble(120.0);
+    const double tempoBpm = (std::isfinite(rawBpm) && rawBpm > 0.0) ? rawBpm : 120.0;
     std::unordered_map<std::string, const Clip*> clips;
     for (const auto& c : tl.clips) { clips.emplace(c.id, &c); }
     for (auto& voice : plan.voices) {
         const auto found = clips.find(voice.clipId);
-        if (found != clips.end()) { append(found->second->raw.value("audioEffects").toArray(), voice.processors, &voice.tailMs); }
+        if (found != clips.end()) { append(found->second->raw.value("audioEffects").toArray(), voice.processors, &voice.tailMs, tempoBpm); }
     }
     std::unordered_map<std::string, const Track*> tracks;
     for (const auto& track : tl.tracks) { tracks.emplace(track.id, &track); }
@@ -587,10 +618,10 @@ void stage(const Timeline& tl, MixPlan& plan) {
         const auto* track = found == tracks.end() ? nullptr : found->second;
         // AudioGraph.updateTracks never applies inserts on video tracks.
         if (track && (track->type == TrackType::Audio || track->type == TrackType::Midi)) {
-            append(track->raw.value("effects").toArray(), bus.processors);
+            append(track->raw.value("effects").toArray(), bus.processors, nullptr, tempoBpm);
         }
     }
-    append(tl.raw.value("master").toObject().value("effects").toArray(), plan.processors);
+    append(tl.raw.value("master").toObject().value("effects").toArray(), plan.processors, nullptr, tempoBpm);
 }
 } // namespace
 void ensureRegistered() {

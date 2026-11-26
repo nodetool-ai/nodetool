@@ -126,12 +126,21 @@ void AutoGain::reset() noexcept {
 }
 
 double AutoGain::next(double inL, double inR, double wetL, double wetR) noexcept {
+    if (!std::isfinite(inL)) inL = 0.0;
+    if (!std::isfinite(inR)) inR = 0.0;
+    if (!std::isfinite(wetL)) wetL = 0.0;
+    if (!std::isfinite(wetR)) wetR = 0.0;
     const double input = 0.5 * (inL * inL + inR * inR);
     const double wet = 0.5 * (wetL * wetL + wetR * wetR);
-    input_ = flushDenormal(input_ + (input - input_) * energyCoef_);
-    wet_ = flushDenormal(wet_ + (wet - wet_) * energyCoef_);
+    if (std::isfinite(input) && std::isfinite(wet)) {
+        input_ = flushDenormal(input_ + (input - input_) * energyCoef_);
+        wet_ = flushDenormal(wet_ + (wet - wet_) * energyCoef_);
+    }
     if (tick_ == 0 && input > 1.0e-12 && input_ > 1.0e-12 && wet_ > 1.0e-16) {
-        target_ = std::max(0.003981071706, std::min(15.848931925, std::sqrt(input_ / wet_)));
+        const double ratio = std::sqrt(input_ / wet_);
+        if (std::isfinite(ratio)) {
+            target_ = std::max(0.003981071706, std::min(15.848931925, ratio));
+        }
     }
     tick_ = (tick_ + 1) & 15;
     gain = flushDenormal(gain + (target_ - gain) * gainCoef_);
@@ -147,27 +156,38 @@ void PeakGuard::prepare(double sampleRate) noexcept {
 }
 
 double PeakGuard::gainFor(double l, double r) noexcept {
-    const double peak = std::max(std::abs(l), std::abs(r));
+    const double al = std::isfinite(l) ? std::abs(l) : 0.0;
+    const double ar = std::isfinite(r) ? std::abs(r) : 0.0;
+    const double peak = std::max(al, ar);
     const double required = peak > kCeiling ? kCeiling / peak : 1.0;
     gain = std::min(required, gain + (1.0 - gain) * release_);
+    if (!std::isfinite(gain) || gain < 0.0) {
+        gain = 1.0;
+    }
     if (required == 1.0 && 1.0 - gain < 1.0e-8) {
         gain = 1.0;
     }
     return gain;
 }
 
+void PeakGuard::apply(double& l, double& r) noexcept {
+    if (!std::isfinite(l) || !std::isfinite(r)) {
+        l = 0.0;
+        r = 0.0;
+        return;
+    }
+    const double g = gainFor(l, r);
+    l *= g;
+    r *= g;
+}
+
 void PeakGuard::process(float* L, float* R, int n) noexcept {
     for (int i = 0; i < n; ++i) {
-        const double l = L[i];
-        const double r = R[i];
-        if (!std::isfinite(l) || !std::isfinite(r)) {
-            L[i] = 0.0f;
-            R[i] = 0.0f;
-            continue;
-        }
-        const double g = gainFor(l, r);
-        L[i] = static_cast<float>(l * g);
-        R[i] = static_cast<float>(r * g);
+        double l = static_cast<double>(L[i]);
+        double r = static_cast<double>(R[i]);
+        apply(l, r);
+        L[i] = static_cast<float>(l);
+        R[i] = static_cast<float>(r);
     }
 }
 

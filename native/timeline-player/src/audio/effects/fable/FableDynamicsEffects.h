@@ -58,6 +58,7 @@ class FableEqProcessor final : public nt::audio::BlockProcessor {
 public:
     explicit FableEqProcessor(const QJsonObject& effect = {});
     void prepare(double sampleRate) override;
+    void armForPlayback() override { threadGuard_.unbind(); }
     void reset() noexcept override;
     bool setParameter(std::string_view key, double value) noexcept override;
     void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
@@ -68,6 +69,7 @@ private:
     ParametricEq eq_;
     std::array<float, ParametricEq::kParamCount> params_{};
     bool prepared_ = false;
+    DebugRenderThreadGuard threadGuard_;
 };
 
 // Stereo-linked FableSynth leveling compressor insert with AutoGain (kind = "comp").
@@ -77,6 +79,7 @@ class FableCompProcessor final : public nt::audio::BlockProcessor {
 public:
     explicit FableCompProcessor(const QJsonObject& effect = {});
     void prepare(double sampleRate) override;
+    void armForPlayback() override { threadGuard_.unbind(); }
     void reset() noexcept override;
     bool setParameter(std::string_view key, double value) noexcept override;
     void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
@@ -94,6 +97,7 @@ private:
     float ratio_ = 4.0f;
     float scHpHz_ = 20.0f;
     bool prepared_ = false;
+    DebugRenderThreadGuard threadGuard_;
 };
 
 // Three-band FableSynth OTT multiband dynamics insert with AutoGain (kind = "ott").
@@ -103,6 +107,7 @@ class FableOttProcessor final : public nt::audio::BlockProcessor {
 public:
     explicit FableOttProcessor(const QJsonObject& effect = {});
     void prepare(double sampleRate) override;
+    void armForPlayback() override { threadGuard_.unbind(); }
     void reset() noexcept override;
     bool setParameter(std::string_view key, double value) noexcept override;
     void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
@@ -120,6 +125,7 @@ private:
     float up_ = 1.0f;
     float down_ = 1.0f;
     bool prepared_ = false;
+    DebugRenderThreadGuard threadGuard_;
 };
 
 // Stereo-linked FableSynth lookahead true-peak limiter insert using 4x HalfBandFir (kind = "limiter").
@@ -129,6 +135,7 @@ class FableLimiterProcessor final : public nt::audio::BlockProcessor {
 public:
     explicit FableLimiterProcessor(const QJsonObject& effect = {});
     void prepare(double sampleRate) override;
+    void armForPlayback() override { threadGuard_.unbind(); }
     void reset() noexcept override;
     bool setParameter(std::string_view key, double value) noexcept override;
     void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
@@ -152,6 +159,7 @@ private:
     double ceilDb_ = -1.0;
     double releaseSec_ = 0.1;
     bool prepared_ = false;
+    DebugRenderThreadGuard threadGuard_;
 };
 
 }  // namespace nt::audio::effects::fable

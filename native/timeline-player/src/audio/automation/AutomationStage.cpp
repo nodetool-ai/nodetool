@@ -1,4 +1,6 @@
 #include "audio/automation/AutomationCurves.h"
+#include "audio/effects/fable/FableColorTimeEffects.h"
+#include "audio/effects/fable/FableDynamicsEffects.h"
 #include "preview/PlaybackHooks.h"
 #include "audio/Mixer.h"
 #include <algorithm>
@@ -121,6 +123,7 @@ public:
     void onBypassedBlock(std::span<const float> stereo,const audio::BlockContext& ctx) noexcept override { inner_->onBypassedBlock(stereo,ctx); }
     void reprobeLatency(double rate) override { inner_->reprobeLatency(rate); }
     void serviceControlThread() override { inner_->serviceControlThread(); }
+    void armForPlayback() override { inner_->armForPlayback(); }
     void process(std::span<float> stereo,const audio::BlockContext& context) noexcept override {
         if (quantum_) {
             // DynamicsCompressorNode's AudioParams are k-rate.
@@ -155,6 +158,33 @@ bool supports(const QString& type,const QString& param) {
     if (type=="filter") { return param=="frequency" || param=="q"; }
     if (type=="eq3") { return QStringList{"lowFreq","lowGainDb","midFreq","midQ","midGainDb","highFreq","highGainDb"}.contains(param); }
     if (type=="compressor") { return QStringList{"thresholdDb","ratio","attackMs","releaseMs","kneeDb"}.contains(param); }
+    if (type=="fable") {
+        const std::string key = param.toStdString();
+        for (const char* kind : {"eq", "comp", "ott", "limiter"}) {
+            for (const auto& def : audio::effects::fable::fableDynamicsParams(kind)) {
+                if (def.id == key) { return true; }
+            }
+        }
+        for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
+            for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+                if (def.id == key) { return true; }
+            }
+        }
+    }
+    return false;
+}
+bool isFableLogParam(const QString& param) {
+    const std::string key = param.toStdString();
+    for (const char* kind : {"eq", "comp", "ott", "limiter"}) {
+        for (const auto& def : audio::effects::fable::fableDynamicsParams(kind)) {
+            if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+        }
+    }
+    for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
+        for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+            if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+        }
+    }
     return false;
 }
 void attach(const nt::Timeline& tl,audio::MixPlan& plan) {
@@ -173,7 +203,8 @@ void attach(const nt::Timeline& tl,audio::MixPlan& plan) {
                 const auto points=lane["points"].toArray(); const auto param=target["param"].toString();
                 if (lane["enabled"]==false || points.empty() || target["kind"]!="device" || target["deviceId"].toString().toStdString()!=processor->id || !supports(type,param)) { continue; }
                 const bool gain=type=="gain";
-                const bool curved=gain || (type=="eq3" && param.endsWith("Freq")) || (type=="filter" && param=="frequency");
+                const bool curved=gain || (type=="eq3" && param.endsWith("Freq")) || (type=="filter" && param=="frequency")
+                                  || (type=="fable" && isFableLogParam(param));
                 parameters.push_back({param.toStdString(),Ramp(points,gain,curved),gain});
             }
             if (!parameters.empty()) { processor=std::make_shared<AutomatedInsert>(processor,std::move(parameters),type=="compressor"); }

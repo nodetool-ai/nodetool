@@ -8,6 +8,7 @@
 #include "audio/TestAllocationCounter.h"
 #include "audio/automation/AutomationCurves.h"
 #include "audio/effects/Effects.h"
+#include "audio/vst/VstAudioStages.h"
 #include "midi/PatternAudioStage.h"
 #include "midi/PatternExpand.h"
 #include "midi/PatternOps.h"
@@ -19,6 +20,7 @@
 #include <QJsonObject>
 #include <QScopeGuard>
 #include <QSet>
+#include <QTemporaryDir>
 #include <QProcess>
 #include <QCoreApplication>
 #include <QtTest>
@@ -27,6 +29,7 @@
 #include <array>
 #include <cmath>
 #include <memory>
+#include <numbers>
 #include <vector>
 
 using namespace nt::midi;
@@ -777,6 +780,117 @@ private slots:
                  qPrintable(QStringLiteral("secondHalf=%1 want=%2").arg(secondHalf).arg(wantZero)));
         QVERIFY2(std::abs(afterClip - wantStored) < 0.01f,
                  qPrintable(QStringLiteral("afterClip=%1 want=%2").arg(afterClip).arg(wantStored)));
+    }
+
+    void patternAudioStageRendersAllInstrumentTypes() {
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        const QString wavPath = tempDir.filePath(QStringLiteral("sampler_zone_c3.wav"));
+        constexpr int kRate = 48000;
+        std::vector<float> sineStereo(std::size_t{kRate / 2} * 2, 0.0f);
+        for (std::size_t f = 0; f < std::size_t{kRate / 2}; ++f) {
+            const float v = 0.6f * static_cast<float>(std::sin(2.0 * std::numbers::pi * 261.625565 * static_cast<double>(f) / kRate));
+            sineStereo[f * 2] = v;
+            sineStereo[f * 2 + 1] = v;
+        }
+        QVERIFY(nt::audio::vst::writeStereoFloatWav(wavPath, kRate, sineStereo));
+
+        struct Case {
+            QString name;
+            int pitch;
+            QJsonObject instrument;
+        };
+        const std::vector<Case> cases{
+            {QStringLiteral("subtractive"), 60, QJsonObject{{"type", "subtractive"}, {"waveform", "saw"}, {"cutoffHz", 4000}, {"gainDb", -6}}},
+            {QStringLiteral("drum"), 36, QJsonObject{{"type", "drum"}, {"kit", "808"}}},
+            {QStringLiteral("sampler-oneshot-drum"), 36, QJsonObject{{"type", "sampler"}, {"oneShot", true}, {"kit", "808"}}},
+            {QStringLiteral("bass"), 36, QJsonObject{{"type", "bass"}}},
+            {QStringLiteral("wavetable"), 60, QJsonObject{{"type", "wavetable"}}},
+            {QStringLiteral("sampler-zones"), 60, QJsonObject{
+                {"type", "sampler"},
+                {"oneShot", false},
+                {"zones", QJsonArray{QJsonObject{
+                    {"id", "z1"},
+                    {"name", "Sine"},
+                    {"mediaPath", wavPath},
+                    {"rootNote", 60},
+                    {"lowNote", 0},
+                    {"highNote", 127},
+                }}},
+            }},
+            {QStringLiteral("modal"), 60, QJsonObject{{"type", "modal"}}},
+        };
+
+        for (const auto& c : cases) {
+            const auto pattern = normalizePattern({
+                {"lengthSteps", 4},
+                {"stepRate", "1/4"},
+                {"rows", QJsonArray{QJsonObject{
+                    {"id", "r1"},
+                    {"assignment", QJsonObject{{"type", "note"}, {"pitch", c.pitch}}},
+                    {"steps", QJsonArray{
+                        QJsonObject{{"on", true}, {"velocity", 110}, {"gate", 100}},
+                        QJsonObject{},
+                        QJsonObject{{"on", true}, {"velocity", 100}, {"gate", 100}},
+                        QJsonObject{},
+                    }},
+                }}},
+            });
+            const QJsonObject raw{
+                {"id", "wire1"},
+                {"name", c.name},
+                {"fps", 30},
+                {"width", 640},
+                {"height", 360},
+                {"durationMs", 2000},
+                {"tempo", QJsonObject{{"bpm", 120}}},
+                {"tracks", QJsonArray{QJsonObject{
+                    {"id", "t1"},
+                    {"name", c.name},
+                    {"type", "midi"},
+                    {"index", 0},
+                    {"instrument", c.instrument},
+                }}},
+                {"clips", QJsonArray{QJsonObject{
+                    {"id", "c1"},
+                    {"trackId", "t1"},
+                    {"name", "Pat"},
+                    {"mediaType", "midi"},
+                    {"startMs", 0.0},
+                    {"durationMs", 2000.0},
+                    {"pattern", pattern},
+                }}},
+            };
+            const auto parsed = nt::parseTimeline(raw);
+            QVERIFY2(parsed.timeline.has_value(), qPrintable(c.name + ": " + parsed.error));
+
+            auto plan = nt::audio::buildMixPlan(requireValue(parsed.timeline));
+            QCOMPARE(plan.tracks.size(), std::size_t{1});
+            int instrumentCount = 0;
+            for (const auto& p : plan.tracks[0].processors) {
+                if (p && p->id == "instrument") { ++instrumentCount; }
+            }
+            QVERIFY2(instrumentCount == 1,
+                     qPrintable(QStringLiteral("%1: expected 1 instrument processor, got %2").arg(c.name).arg(instrumentCount)));
+
+            nt::audio::prepareMixPlan(plan, static_cast<double>(kRate));
+            constexpr int kBlock = 128;
+            constexpr int kBlocks = 64;  // ~170 ms at 48 kHz
+            std::array<float, std::size_t{kBlock} * 2> buf{};
+            nt::audio::MixStats stats{};
+            float peak = 0.0f;
+            for (int b = 0; b < kBlocks; ++b) {
+                buf.fill(0.0f);
+                const double ms = static_cast<double>(b * kBlock) * 1000.0 / static_cast<double>(kRate);
+                nt::audio::mixBlock(plan, nullptr, static_cast<double>(kRate), ms, 1000.0 / static_cast<double>(kRate),
+                                    kBlock, buf.data(), stats);
+                for (float s : buf) {
+                    QVERIFY2(std::isfinite(s), qPrintable(c.name + ": non-finite sample"));
+                    peak = std::max(peak, std::abs(s));
+                }
+            }
+            QVERIFY2(peak > 1e-4f, qPrintable(QStringLiteral("%1: silent output (peak=%2)").arg(c.name).arg(peak)));
+        }
     }
 };
 

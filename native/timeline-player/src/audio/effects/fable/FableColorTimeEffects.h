@@ -29,9 +29,9 @@ namespace nt::audio::effects::fable {
 [[nodiscard]] QJsonObject fableColorTimeDefaults(std::string_view kind);
 
 // Creates a BlockProcessor for `{ type: "fable", kind: "drive"|"chorus"|"echo"|"reverb", params: {...} }`,
-// or nullptr for unsupported kinds.
+// or nullptr for unsupported kinds. Pass tempoBpm > 0 to override JSON `effect["bpm"]` (0 = use JSON or 120).
 [[nodiscard]] std::unique_ptr<nt::audio::BlockProcessor> createFableColorTimeEffect(
-    const QJsonObject& effect, double tempoBpm = 120.0);
+    const QJsonObject& effect, double tempoBpm = 0.0);
 
 // 4x oversampled FableSynth drive insert (kind = "drive").
 // Thread affinity: constructed and prepared on control thread; process/setParameter/reset
@@ -40,6 +40,7 @@ class FableDriveProcessor final : public nt::audio::BlockProcessor {
 public:
     explicit FableDriveProcessor(const QJsonObject& effect = {});
     void prepare(double sampleRate) override;
+    void armForPlayback() override { threadGuard_.unbind(); }
     void reset() noexcept override;
     bool setParameter(std::string_view key, double value) noexcept override;
     void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
@@ -56,6 +57,7 @@ private:
     float tone_ = 0.0f;
     float type_ = 0.0f;
     bool prepared_ = false;
+    DebugRenderThreadGuard threadGuard_;
 };
 
 // Stereo modulated-tap FableSynth chorus insert (kind = "chorus").
@@ -65,6 +67,7 @@ class FableChorusProcessor final : public nt::audio::BlockProcessor {
 public:
     explicit FableChorusProcessor(const QJsonObject& effect = {});
     void prepare(double sampleRate) override;
+    void armForPlayback() override { threadGuard_.unbind(); }
     void reset() noexcept override;
     bool setParameter(std::string_view key, double value) noexcept override;
     void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
@@ -80,6 +83,7 @@ private:
     float depth_ = 0.5f;
     float mix_ = 0.5f;
     bool prepared_ = false;
+    DebugRenderThreadGuard threadGuard_;
 };
 
 // Tempo-synced FableSynth stereo tape echo insert (kind = "echo").
@@ -87,8 +91,9 @@ private:
 // touched on the single active audio render thread (serialized by MixRenderLease).
 class FableEchoProcessor final : public nt::audio::BlockProcessor {
 public:
-    explicit FableEchoProcessor(const QJsonObject& effect = {}, double tempoBpm = 120.0);
+    explicit FableEchoProcessor(const QJsonObject& effect = {}, double tempoBpm = 0.0);
     void prepare(double sampleRate) override;
+    void armForPlayback() override { threadGuard_.unbind(); }
     void reset() noexcept override;
     bool setParameter(std::string_view key, double value) noexcept override;
     void setTempoBpm(double tempoBpm) noexcept;
@@ -115,6 +120,7 @@ private:
     int div_ = 3;
     double tempoBpm_ = 120.0;
     bool prepared_ = false;
+    DebugRenderThreadGuard threadGuard_;
 };
 
 // Dual-mode (ROOM Freeverb / PLATE Dattorro) FableSynth reverb insert (kind = "reverb").
@@ -124,6 +130,7 @@ class FableReverbProcessor final : public nt::audio::BlockProcessor {
 public:
     explicit FableReverbProcessor(const QJsonObject& effect = {});
     void prepare(double sampleRate) override;
+    void armForPlayback() override { threadGuard_.unbind(); }
     void reset() noexcept override;
     bool setParameter(std::string_view key, double value) noexcept override;
     void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
@@ -140,6 +147,7 @@ private:
     int type_ = 0;
     float damp_ = 0.5f;
     bool prepared_ = false;
+    DebugRenderThreadGuard threadGuard_;
 };
 
 }  // namespace nt::audio::effects::fable

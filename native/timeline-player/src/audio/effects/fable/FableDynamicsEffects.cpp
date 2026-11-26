@@ -83,8 +83,11 @@ double readParam(const QJsonObject& effect, std::string_view key, double fallbac
     const QString qkey = QString::fromUtf8(key.data(), static_cast<qsizetype>(key.size()));
     const QJsonObject params = effect.value(u"params").toObject();
     QJsonValue v = params.value(qkey);
-    if (!v.isDouble()) {
+    if (!v.isDouble() && !v.isBool()) {
         v = effect.value(qkey);
+    }
+    if (v.isBool()) {
+        return v.toBool() ? 1.0 : 0.0;
     }
     if (!v.isDouble()) {
         return fallback;
@@ -150,7 +153,7 @@ std::unique_ptr<nt::audio::BlockProcessor> createFableDynamicsEffect(const QJson
 
 FableEqProcessor::FableEqProcessor(const QJsonObject& effect) : params_(kEqDefaultValues) {
     id = effect.value(u"id").toString().toStdString();
-    const bool enabled = effect.value(u"enabled").toBool(true);
+    const bool enabled = effect.value(u"enabled").toBool(true) && (readParam(effect, "fx.eq.on", 1.0) > 0.5);
     params_[0] = enabled ? 1.0f : 0.0f;
     for (std::size_t i = 1; i < kEqFieldOrder.size(); ++i) {
         const double raw = readParam(effect, kEqFieldOrder[i], static_cast<double>(kEqDefaultValues[i]));
@@ -159,17 +162,20 @@ FableEqProcessor::FableEqProcessor(const QJsonObject& effect) : params_(kEqDefau
 }
 
 void FableEqProcessor::prepare(double sampleRate) {
+    threadGuard_.unbind();
     eq_.prepare(sampleRate);
     eq_.setParams(params_);
     prepared_ = true;
 }
 
 void FableEqProcessor::reset() noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     BlockProcessor::reset();
     eq_.reset();
 }
 
 bool FableEqProcessor::setParameter(std::string_view key, double value) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     if (!std::isfinite(value)) {
         return false;
     }
@@ -198,6 +204,7 @@ bool FableEqProcessor::setParameter(std::string_view key, double value) noexcept
 }
 
 void FableEqProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
     ScopedDenormalGuard denormalGuard;
     const std::size_t totalFrames = stereo.size() / 2;
     std::array<float, kChunkFrames> bufL{};
@@ -226,7 +233,7 @@ bool FableEqProcessor::hasPendingOutput(int) const noexcept {
 
 FableCompProcessor::FableCompProcessor(const QJsonObject& effect) {
     id = effect.value(u"id").toString().toStdString();
-    on_ = effect.value(u"enabled").toBool(true);
+    on_ = effect.value(u"enabled").toBool(true) && (readParam(effect, "fx.comp.on", 1.0) > 0.5);
     thresholdDb_ = static_cast<float>(std::clamp(readParam(effect, "fx.comp.thr", -18.0), -40.0, 0.0));
     attackSec_ = static_cast<float>(std::clamp(readParam(effect, "fx.comp.att", 0.003), 0.0001, 0.1));
     releaseSec_ = static_cast<float>(std::clamp(readParam(effect, "fx.comp.rel", 0.25), 0.01, 2.0));
@@ -240,19 +247,23 @@ void FableCompProcessor::applyParams() noexcept {
 }
 
 void FableCompProcessor::prepare(double sampleRate) {
+    threadGuard_.unbind();
     comp_.prepare(sampleRate);
     guard_.prepare(sampleRate);
     prepared_ = true;
     applyParams();
+    comp_.reset();
 }
 
 void FableCompProcessor::reset() noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     BlockProcessor::reset();
     comp_.reset();
     guard_.reset();
 }
 
 bool FableCompProcessor::setParameter(std::string_view key, double value) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     if (!std::isfinite(value)) {
         return false;
     }
@@ -278,6 +289,7 @@ bool FableCompProcessor::setParameter(std::string_view key, double value) noexce
 }
 
 void FableCompProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
     ScopedDenormalGuard denormalGuard;
     const std::size_t totalFrames = stereo.size() / 2;
     std::array<float, kChunkFrames> bufL{};
@@ -303,7 +315,7 @@ void FableCompProcessor::process(std::span<float> stereo, const nt::audio::Block
 
 FableOttProcessor::FableOttProcessor(const QJsonObject& effect) {
     id = effect.value(u"id").toString().toStdString();
-    on_ = effect.value(u"enabled").toBool(true);
+    on_ = effect.value(u"enabled").toBool(true) && (readParam(effect, "fx.ott.on", 1.0) > 0.5);
     depth_ = static_cast<float>(std::clamp(readParam(effect, "fx.ott.depth", 0.35), 0.0, 1.0));
     time_ = static_cast<float>(std::clamp(readParam(effect, "fx.ott.time", 1.0), 0.01, 10.0));
     up_ = static_cast<float>(std::clamp(readParam(effect, "fx.ott.up", 1.0), 0.0, 2.0));
@@ -315,19 +327,23 @@ void FableOttProcessor::applyParams() noexcept {
 }
 
 void FableOttProcessor::prepare(double sampleRate) {
+    threadGuard_.unbind();
     ott_.prepare(sampleRate);
     guard_.prepare(sampleRate);
     prepared_ = true;
     applyParams();
+    ott_.reset();
 }
 
 void FableOttProcessor::reset() noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     BlockProcessor::reset();
     ott_.reset();
     guard_.reset();
 }
 
 bool FableOttProcessor::setParameter(std::string_view key, double value) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     if (!std::isfinite(value)) {
         return false;
     }
@@ -351,6 +367,7 @@ bool FableOttProcessor::setParameter(std::string_view key, double value) noexcep
 }
 
 void FableOttProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
     ScopedDenormalGuard denormalGuard;
     const std::size_t totalFrames = stereo.size() / 2;
     std::array<float, kChunkFrames> bufL{};
@@ -380,7 +397,7 @@ bool FableOttProcessor::hasPendingOutput(int) const noexcept {
 
 FableLimiterProcessor::FableLimiterProcessor(const QJsonObject& effect) {
     id = effect.value(u"id").toString().toStdString();
-    on_ = effect.value(u"enabled").toBool(true);
+    on_ = effect.value(u"enabled").toBool(true) && (readParam(effect, "fx.limit.on", 1.0) > 0.5);
     gainDb_ = std::clamp(readParam(effect, "fx.limit.gain", 0.0), 0.0, 24.0);
     ceilDb_ = std::clamp(readParam(effect, "fx.limit.ceil", -1.0), -12.0, 0.0);
     releaseSec_ = std::clamp(readParam(effect, "fx.limit.rel", 0.1), 0.01, 1.0);
@@ -401,6 +418,7 @@ void FableLimiterProcessor::applyTargets(bool snap) noexcept {
 }
 
 void FableLimiterProcessor::prepare(double sampleRate) {
+    threadGuard_.unbind();
     limiter_.prepare(sampleRate, 1.0, true, releaseSec_);
     bypassGuard_.prepare(sampleRate);
     inputGain_.setTime(0.02, sampleRate);
@@ -417,6 +435,7 @@ void FableLimiterProcessor::prepare(double sampleRate) {
 }
 
 void FableLimiterProcessor::reset() noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     BlockProcessor::reset();
     limiter_.reset();
     bypassGuard_.reset();
@@ -429,11 +448,16 @@ void FableLimiterProcessor::reset() noexcept {
 }
 
 bool FableLimiterProcessor::setParameter(std::string_view key, double value) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     if (!std::isfinite(value)) {
         return false;
     }
     if (key == "fx.limit.on") {
-        on_ = value > 0.5;
+        const bool nextOn = value > 0.5;
+        if (nextOn && !on_) {
+            bypassGuard_.reset();
+        }
+        on_ = nextOn;
     } else if (key == "fx.limit.gain") {
         gainDb_ = std::clamp(value, 0.0, 24.0);
     } else if (key == "fx.limit.ceil") {
@@ -450,9 +474,13 @@ bool FableLimiterProcessor::setParameter(std::string_view key, double value) noe
 }
 
 void FableLimiterProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
     ScopedDenormalGuard denormalGuard;
     if (rawDelayL_.empty()) {
         return;
+    }
+    if (on_ && bypassGuard_.gain != 1.0) {
+        bypassGuard_.reset();
     }
     const int delayLen = static_cast<int>(rawDelayL_.size());
     const std::size_t totalFrames = stereo.size() / 2;
@@ -465,8 +493,8 @@ void FableLimiterProcessor::process(std::span<float> stereo, const nt::audio::Bl
         const double wet = wet_.next();
         const double dry = dry_.next();
 
-        float limL = static_cast<float>(static_cast<double>(rawL) * drive);
-        float limR = static_cast<float>(static_cast<double>(rawR) * drive);
+        float limL = static_cast<float>(std::clamp(static_cast<double>(rawL) * drive, -1.0e18, 1.0e18));
+        float limR = static_cast<float>(std::clamp(static_cast<double>(rawR) * drive, -1.0e18, 1.0e18));
         (void)limiter_.process(limL, limR, ceil);
 
         const float outRawL = rawDelayL_[static_cast<std::size_t>(rawPos_)];
@@ -477,15 +505,13 @@ void FableLimiterProcessor::process(std::span<float> stereo, const nt::audio::Bl
             rawPos_ = 0;
         }
 
-        float yL = static_cast<float>(dry * static_cast<double>(outRawL) + wet * static_cast<double>(limL));
-        float yR = static_cast<float>(dry * static_cast<double>(outRawR) + wet * static_cast<double>(limR));
+        double yL = dry * static_cast<double>(outRawL) + wet * static_cast<double>(limL);
+        double yR = dry * static_cast<double>(outRawR) + wet * static_cast<double>(limR);
         if (!on_) {
-            const double g = bypassGuard_.gainFor(static_cast<double>(yL), static_cast<double>(yR));
-            yL = static_cast<float>(static_cast<double>(yL) * g);
-            yR = static_cast<float>(static_cast<double>(yR) * g);
+            bypassGuard_.apply(yL, yR);
         }
-        stereo[i * 2] = yL;
-        stereo[i * 2 + 1] = yR;
+        stereo[i * 2] = std::isfinite(yL) ? static_cast<float>(yL) : 0.0f;
+        stereo[i * 2 + 1] = std::isfinite(yR) ? static_cast<float>(yR) : 0.0f;
     }
 }
 

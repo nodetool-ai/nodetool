@@ -52,14 +52,23 @@ struct DriveOs2 {
 
     void reset() noexcept { *this = DriveOs2{}; }
 
+    void clearFilters() noexcept {
+        u0 = {};
+        u1 = {};
+        d0 = {};
+        d1 = {};
+        dprev = 0.0;
+    }
+
     [[nodiscard]] static double clampIn(double x) noexcept {
         return std::isfinite(x) ? std::clamp(x, -kDriveOsInputLimit, kDriveOsInputLimit) : 0.0;
     }
 
     // One base-rate sample in, two high-rate samples out.
     void interpolate(double x, double& y0, double& y1) noexcept {
-        y0 = u0[2].process(kDriveOsCoef[4], u0[1].process(kDriveOsCoef[2], u0[0].process(kDriveOsCoef[0], x)));
-        y1 = u1[1].process(kDriveOsCoef[3], u1[0].process(kDriveOsCoef[1], x));
+        const double safeX = clampIn(x);
+        y0 = u0[2].process(kDriveOsCoef[4], u0[1].process(kDriveOsCoef[2], u0[0].process(kDriveOsCoef[0], safeX)));
+        y1 = u1[1].process(kDriveOsCoef[3], u1[0].process(kDriveOsCoef[1], safeX));
     }
 
     // Two high-rate samples in, one base-rate sample out.
@@ -75,19 +84,24 @@ struct DriveOs2 {
     // `satOn`: saturator runs with dry/wet mix `m`. `sat(a, xpPrev)` returns shaped `a`.
     template <class Sat>
     [[nodiscard]] double run(double x, bool engage, bool satOn, double m, double wStep, Sat&& sat) noexcept {
+        const bool wasActive = w > 0.0;
         const double target = engage ? 1.0 : 0.0;
         if (w < target) {
             w = std::min(target, w + wStep);
         } else if (w > target) {
             w = std::max(target, w - wStep);
         }
+        const double safeX = clampIn(x);
         if (w <= 0.0 && !engage) {
-            xp = clampIn(x);
-            return x;
+            if (wasActive) {
+                clearFilters();
+            }
+            xp = safeX;
+            return std::isfinite(x) ? x : 0.0;
         }
         double up0 = 0.0;
         double up1 = 0.0;
-        interpolate(x, up0, up1);
+        interpolate(safeX, up0, up1);
         const double a0 = clampIn(up0);
         const double a1 = clampIn(up1);
         double o0 = a0;
@@ -98,7 +112,7 @@ struct DriveOs2 {
         }
         xp = a1;
         const double y = decimate(o0, o1);
-        return w >= 1.0 ? y : x + w * (y - x);
+        return w >= 1.0 ? y : safeX + w * (y - safeX);
     }
 };
 

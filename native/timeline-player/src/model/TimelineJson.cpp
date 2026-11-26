@@ -11,6 +11,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <cmath>
+
 namespace nt {
 namespace {
 
@@ -19,6 +21,30 @@ bool validAutomationMode(const QJsonValue& value) {
     if (!value.isString()) { return false; }
     const auto mode = value.toString();
     return mode == u"off" || mode == u"read" || mode == u"touch" || mode == u"latch" || mode == u"write";
+}
+
+bool validFableEffectKind(const QString& kind) {
+    return kind == u"eq" || kind == u"ott" || kind == u"comp" || kind == u"drive" ||
+           kind == u"lab" || kind == u"chorus" || kind == u"echo" || kind == u"reverb" ||
+           kind == u"limiter";
+}
+
+bool validFableEffects(const QJsonArray& effects) {
+    for (const QJsonValue& ev : effects) {
+        const QJsonObject e = ev.toObject();
+        if (e.value(u"type").toString() != u"fable") { continue; }
+        if (!validFableEffectKind(e.value(u"kind").toString())) { return false; }
+        const QJsonValue params = e.value(u"params");
+        if (!params.isUndefined()) {
+            if (!params.isObject()) { return false; }
+            const QJsonObject obj = params.toObject();
+            for (auto it = obj.begin(); it != obj.end(); ++it) {
+                const bool ok = it.value().isBool() || (it.value().isDouble() && std::isfinite(it.value().toDouble()));
+                if (!ok) { return false; }
+            }
+        }
+    }
+    return true;
 }
 
 std::optional<TrackType> trackTypeFrom(const QString& s) {
@@ -102,6 +128,10 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         result.error = QStringLiteral("master: invalid automationMode");
         return result;
     }
+    if (!validFableEffects(root.value(u"master").toObject().value(u"effects").toArray())) {
+        result.error = QStringLiteral("master: invalid fable effect");
+        return result;
+    }
 
     for (const QJsonValue& tv : root.value(u"tracks").toArray()) {
         const QJsonObject t = tv.toObject();
@@ -123,6 +153,10 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         track.pan = t.value(u"pan").toDouble(0.0);
         if (!validAutomationMode(t.value(u"automationMode"))) {
             result.error = QStringLiteral("track %1: invalid automationMode").arg(QString::fromStdString(track.id));
+            return result;
+        }
+        if (!validFableEffects(t.value(u"effects").toArray())) {
+            result.error = QStringLiteral("track %1: invalid fable effect").arg(QString::fromStdString(track.id));
             return result;
         }
         const auto stepTemplate = t.value(u"stepTemplate");

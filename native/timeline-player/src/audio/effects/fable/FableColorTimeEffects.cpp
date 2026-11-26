@@ -55,14 +55,26 @@ double readParam(const QJsonObject& effect, std::string_view key, double fallbac
     const QString qkey = QString::fromUtf8(key.data(), static_cast<qsizetype>(key.size()));
     const QJsonObject params = effect.value(u"params").toObject();
     QJsonValue v = params.value(qkey);
-    if (!v.isDouble()) {
+    if (!v.isDouble() && !v.isBool()) {
         v = effect.value(qkey);
+    }
+    if (v.isBool()) {
+        return v.toBool() ? 1.0 : 0.0;
     }
     if (!v.isDouble()) {
         return fallback;
     }
     const double d = v.toDouble();
     return std::isfinite(d) ? d : fallback;
+}
+
+template <typename Ctx>
+double contextTempoBpm(const Ctx& ctx) noexcept {
+    if constexpr (requires { ctx.tempoBpm; }) {
+        return static_cast<double>(ctx.tempoBpm);
+    } else {
+        return 0.0;
+    }
 }
 
 template <class Dsp>
@@ -139,7 +151,7 @@ std::unique_ptr<nt::audio::BlockProcessor> createFableColorTimeEffect(
 
 FableDriveProcessor::FableDriveProcessor(const QJsonObject& effect) {
     id = effect.value(u"id").toString().toStdString();
-    on_ = effect.value(u"enabled").toBool(true);
+    on_ = effect.value(u"enabled").toBool(true) && (readParam(effect, "fx.drive.on", 1.0) > 0.5);
     amt_ = static_cast<float>(std::clamp(readParam(effect, "fx.drive.amt", 0.3), 0.0, 1.0));
     mix_ = static_cast<float>(std::clamp(readParam(effect, "fx.drive.mix", 1.0), 0.0, 1.0));
     tone_ = static_cast<float>(std::clamp(readParam(effect, "fx.drive.tone", 0.0), -1.0, 1.0));
@@ -151,17 +163,20 @@ void FableDriveProcessor::applyParams() noexcept {
 }
 
 void FableDriveProcessor::prepare(double sampleRate) {
+    threadGuard_.unbind();
     drive_.prepare(sampleRate);
     prepared_ = true;
     applyParams();
 }
 
 void FableDriveProcessor::reset() noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     BlockProcessor::reset();
     drive_.reset();
 }
 
 bool FableDriveProcessor::setParameter(std::string_view key, double value) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     if (!std::isfinite(value)) {
         return false;
     }
@@ -185,6 +200,7 @@ bool FableDriveProcessor::setParameter(std::string_view key, double value) noexc
 }
 
 void FableDriveProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
     processStereoChunks(drive_, stereo);
 }
 
@@ -196,7 +212,7 @@ bool FableDriveProcessor::hasPendingOutput(int) const noexcept {
 
 FableChorusProcessor::FableChorusProcessor(const QJsonObject& effect) {
     id = effect.value(u"id").toString().toStdString();
-    on_ = effect.value(u"enabled").toBool(true);
+    on_ = effect.value(u"enabled").toBool(true) && (readParam(effect, "fx.chorus.on", 1.0) > 0.5);
     rate_ = static_cast<float>(std::clamp(readParam(effect, "fx.chorus.rate", 0.6), 0.05, 8.0));
     depth_ = static_cast<float>(std::clamp(readParam(effect, "fx.chorus.depth", 0.5), 0.0, 1.0));
     mix_ = static_cast<float>(std::clamp(readParam(effect, "fx.chorus.mix", 0.5), 0.0, 1.0));
@@ -207,17 +223,20 @@ void FableChorusProcessor::applyParams() noexcept {
 }
 
 void FableChorusProcessor::prepare(double sampleRate) {
+    threadGuard_.unbind();
     chorus_.prepare(sampleRate);
     prepared_ = true;
     applyParams();
 }
 
 void FableChorusProcessor::reset() noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     BlockProcessor::reset();
     chorus_.reset();
 }
 
 bool FableChorusProcessor::setParameter(std::string_view key, double value) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     if (!std::isfinite(value)) {
         return false;
     }
@@ -239,6 +258,7 @@ bool FableChorusProcessor::setParameter(std::string_view key, double value) noex
 }
 
 void FableChorusProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
     processStereoChunks(chorus_, stereo);
 }
 
@@ -250,11 +270,11 @@ bool FableChorusProcessor::hasPendingOutput(int) const noexcept {
 
 FableEchoProcessor::FableEchoProcessor(const QJsonObject& effect, double tempoBpm) {
     id = effect.value(u"id").toString().toStdString();
-    on_ = effect.value(u"enabled").toBool(true);
-    const double jsonBpm = effect.value(u"bpm").toDouble(0.0);
+    on_ = effect.value(u"enabled").toBool(true) && (readParam(effect, "fx.delay.on", 1.0) > 0.5);
+    const double jsonBpm = readParam(effect, "bpm", 0.0);
     tempoBpm_ = (std::isfinite(tempoBpm) && tempoBpm > 0.0)
-        ? tempoBpm
-        : ((std::isfinite(jsonBpm) && jsonBpm > 0.0) ? jsonBpm : 120.0);
+        ? std::max(1.0, tempoBpm)
+        : ((std::isfinite(jsonBpm) && jsonBpm > 0.0) ? std::max(1.0, jsonBpm) : 120.0);
     time_ = static_cast<float>(std::clamp(readParam(effect, "fx.delay.time", 0.36), 0.02, 1.5));
     fb_ = static_cast<float>(std::clamp(readParam(effect, "fx.delay.fb", 0.35), 0.0, 0.92));
     mix_ = static_cast<float>(std::clamp(readParam(effect, "fx.delay.mix", 0.3), 0.0, 1.0));
@@ -273,17 +293,20 @@ void FableEchoProcessor::applyParams() noexcept {
 }
 
 void FableEchoProcessor::prepare(double sampleRate) {
+    threadGuard_.unbind();
     echo_.prepare(sampleRate);
     prepared_ = true;
     applyParams();
 }
 
 void FableEchoProcessor::reset() noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     BlockProcessor::reset();
     echo_.reset();
 }
 
 void FableEchoProcessor::setTempoBpm(double tempoBpm) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     if (!std::isfinite(tempoBpm) || tempoBpm <= 0.0) {
         return;
     }
@@ -294,6 +317,7 @@ void FableEchoProcessor::setTempoBpm(double tempoBpm) noexcept {
 }
 
 bool FableEchoProcessor::setParameter(std::string_view key, double value) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     if (!std::isfinite(value)) {
         return false;
     }
@@ -321,6 +345,11 @@ bool FableEchoProcessor::setParameter(std::string_view key, double value) noexce
         sync_ = value > 0.5;
     } else if (key == "fx.delay.div") {
         div_ = std::clamp(static_cast<int>(std::lround(value)), 0, 5);
+    } else if (key == "bpm" || key == "tempo.bpm") {
+        if (value <= 0.0) {
+            return false;
+        }
+        tempoBpm_ = std::max(1.0, value);
     } else {
         return false;
     }
@@ -330,7 +359,18 @@ bool FableEchoProcessor::setParameter(std::string_view key, double value) noexce
     return true;
 }
 
-void FableEchoProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
+void FableEchoProcessor::process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
+    const double ctxBpm = contextTempoBpm(context);
+    if (std::isfinite(ctxBpm) && ctxBpm > 0.0) {
+        const double clampedBpm = std::max(1.0, ctxBpm);
+        if (clampedBpm != tempoBpm_) {
+            tempoBpm_ = clampedBpm;
+            if (prepared_) {
+                applyParams();
+            }
+        }
+    }
     processStereoChunks(echo_, stereo);
 }
 
@@ -342,7 +382,7 @@ bool FableEchoProcessor::hasPendingOutput(int) const noexcept {
 
 FableReverbProcessor::FableReverbProcessor(const QJsonObject& effect) {
     id = effect.value(u"id").toString().toStdString();
-    on_ = effect.value(u"enabled").toBool(true);
+    on_ = effect.value(u"enabled").toBool(true) && (readParam(effect, "fx.reverb.on", 1.0) > 0.5);
     size_ = static_cast<float>(std::clamp(readParam(effect, "fx.reverb.size", 0.5), 0.0, 1.0));
     mix_ = static_cast<float>(std::clamp(readParam(effect, "fx.reverb.mix", 0.3), 0.0, 1.0));
     type_ = readParam(effect, "fx.reverb.type", 0.0) > 0.5 ? 1 : 0;
@@ -354,17 +394,20 @@ void FableReverbProcessor::applyParams() noexcept {
 }
 
 void FableReverbProcessor::prepare(double sampleRate) {
+    threadGuard_.unbind();
     reverb_.prepare(sampleRate);
     prepared_ = true;
     applyParams();
 }
 
 void FableReverbProcessor::reset() noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     BlockProcessor::reset();
     reverb_.reset();
 }
 
 bool FableReverbProcessor::setParameter(std::string_view key, double value) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
     if (!std::isfinite(value)) {
         return false;
     }
@@ -388,6 +431,7 @@ bool FableReverbProcessor::setParameter(std::string_view key, double value) noex
 }
 
 void FableReverbProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
+    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
     processStereoChunks(reverb_, stereo);
 }
 

@@ -35,33 +35,53 @@ inline double webCompGainDb(double xDb, double thresholdDb, double ratio) noexce
 void WebCompressor::prepare(double sampleRate) noexcept {
     sr_ = safeRate(sampleRate);
     smooth_ = 1.0 - std::exp(-1.0 / (0.02 * sr_));
-    attack_ = 1.0 - std::exp(-1.0 / (0.003 * sr_));
-    release_ = 1.0 - std::exp(-1.0 / (0.25 * sr_));
+    attackSec_ = 0.003;
+    releaseSec_ = 0.25;
+    attack_ = 1.0 - std::exp(-1.0 / (attackSec_ * sr_));
+    release_ = 1.0 - std::exp(-1.0 / (releaseSec_ * sr_));
     autoGain.prepare(sr_);
     wetTarget = false;
     threshold_ = thresholdTarget_ = -16.0;
     ratio_ = ratioTarget_ = 4.0;
     keyed_ = false;
-    setKey(false);
+    keyHpHz_ = -1.0;
+    setKey(false, 20.0f);
     reset();
 }
 
 void WebCompressor::setParams(bool on, float thresholdDb, float attack, float release, float ratio) noexcept {
-    attack_ = 1.0 - std::exp(-1.0 / (std::clamp(static_cast<double>(attack), 0.0001, 0.1) * sr_));
-    release_ = 1.0 - std::exp(-1.0 / (std::clamp(static_cast<double>(release), 0.01, 2.0) * sr_));
+    const double clampedAtt = std::clamp(static_cast<double>(attack), 0.0001, 0.1);
+    if (clampedAtt != attackSec_) {
+        attackSec_ = clampedAtt;
+        attack_ = 1.0 - std::exp(-1.0 / (attackSec_ * sr_));
+    }
+    const double clampedRel = std::clamp(static_cast<double>(release), 0.01, 2.0);
+    if (clampedRel != releaseSec_) {
+        releaseSec_ = clampedRel;
+        release_ = 1.0 - std::exp(-1.0 / (releaseSec_ * sr_));
+    }
     ratioTarget_ = std::clamp(static_cast<double>(ratio), 1.0, 20.0);
     wetTarget = on;
     thresholdTarget_ = std::clamp(static_cast<double>(thresholdDb), -40.0, 0.0);
 }
 
 void WebCompressor::setKey(bool keyed, float hpHz) noexcept {
+    const double clampedHp = std::clamp(static_cast<double>(hpHz), 10.0, 1000.0);
+    const bool prevFilterActive = keyed_ || (keyHpHz_ > 20.0);
+    const bool nextFilterActive = keyed || (clampedHp > 20.0);
     if (keyed != keyed_) {
         keyLpL_ = 0.0;
         keyLpR_ = 0.0;
         autoGain.reset();
+    } else if (prevFilterActive != nextFilterActive) {
+        keyLpL_ = 0.0;
+        keyLpR_ = 0.0;
     }
     keyed_ = keyed;
-    keyCoef_ = 1.0 - std::exp(-2.0 * kPi * std::clamp(static_cast<double>(hpHz), 10.0, 1000.0) / sr_);
+    if (clampedHp != keyHpHz_) {
+        keyHpHz_ = clampedHp;
+        keyCoef_ = 1.0 - std::exp(-2.0 * kPi * keyHpHz_ / sr_);
+    }
 }
 
 void WebCompressor::reset() noexcept {
@@ -69,7 +89,9 @@ void WebCompressor::reset() noexcept {
     gain = 1.0;
     gainStep_ = 0.0;
     tick_ = 0;
-    wet_ = 0.0;
+    wet_ = wetTarget ? 1.0 : 0.0;
+    threshold_ = thresholdTarget_;
+    ratio_ = ratioTarget_;
     autoGain.reset();
     keyLpL_ = 0.0;
     keyLpR_ = 0.0;
@@ -94,6 +116,10 @@ void WebCompressor::processSample(double inL, double inR, double& outL, double& 
         keyLpL_ = flushDenormal(keyLpL_ + keyCoef_ * (keyL - keyLpL_));
         keyLpR_ = flushDenormal(keyLpR_ + keyCoef_ * (keyR - keyLpR_));
         peak = std::max(std::abs(keyL - keyLpL_), std::abs(keyR - keyLpR_));
+    } else if (keyHpHz_ > 20.0) {
+        keyLpL_ = flushDenormal(keyLpL_ + keyCoef_ * (inL - keyLpL_));
+        keyLpR_ = flushDenormal(keyLpR_ + keyCoef_ * (inR - keyLpR_));
+        peak = std::max(std::abs(inL - keyLpL_), std::abs(inR - keyLpR_));
     } else {
         peak = std::max(std::abs(inL), std::abs(inR));
     }
@@ -170,7 +196,7 @@ void OttCompressor::reset() noexcept {
     bandsL_.fill(0.0);
     bandsR_.fill(0.0);
     tick_ = 0;
-    depth = 0.0;
+    depth = depthTarget;
     autoGain.reset();
 }
 
@@ -237,7 +263,7 @@ void OttCompressor::process(float* L, float* R, int n) noexcept {
 
 bool OttCompressor::hasPendingOutput() const noexcept {
     for (double v : split_) {
-        if (v != 0.0) {
+        if (std::abs(v) > 1.0e-6) {
             return true;
         }
     }
@@ -265,6 +291,7 @@ void LookaheadLimiter::prepare(double sampleRate, double makeup, bool truePeak, 
         up2R_.design(kTpFir2Taps, kTpFirBeta);
     }
     atk_ = 1.0 - std::exp((truePeak_ ? -6.5 : -4.0) / static_cast<double>(la_));
+    releaseSec_ = -1.0;
     setRelease(releaseSec);
     makeup_ = makeup;
     reset();
@@ -272,7 +299,10 @@ void LookaheadLimiter::prepare(double sampleRate, double makeup, bool truePeak, 
 
 void LookaheadLimiter::setRelease(double releaseSec) noexcept {
     const double clamped = std::clamp(releaseSec, 0.01, 1.0);
-    rel_ = 1.0 - std::exp(-1.0 / (clamped * sr_));
+    if (clamped != releaseSec_) {
+        releaseSec_ = clamped;
+        rel_ = 1.0 - std::exp(-1.0 / (releaseSec_ * sr_));
+    }
 }
 
 void LookaheadLimiter::reset() noexcept {
@@ -335,8 +365,8 @@ double LookaheadLimiter::process(float& l, float& r, double ceiling) noexcept {
     }
     const double inL = std::isfinite(l) ? static_cast<double>(l) : 0.0;
     const double inR = std::isfinite(r) ? static_cast<double>(r) : 0.0;
-    const double xl = inL * makeup_;
-    const double xr = inR * makeup_;
+    const double xl = std::clamp(inL * makeup_, -1.0e18, 1.0e18);
+    const double xr = std::clamp(inR * makeup_, -1.0e18, 1.0e18);
 
     double pk = 0.0;
     double tpDelayed = 0.0;

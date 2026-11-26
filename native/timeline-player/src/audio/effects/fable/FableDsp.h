@@ -7,11 +7,77 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <thread>
 #include <vector>
 
 namespace nt::audio::effects::fable {
+
+// Debug-only render-thread affinity guard.
+// Catches concurrent audio/control calls and post-render wrong-thread calls to
+// setParameter/setTempoBpm/reset/process in debug builds; zero-cost no-op in release.
+// Thread affinity: thread-safe via atomics (used to verify single-thread render ownership).
+class DebugRenderThreadGuard {
+public:
+    class ScopedCall {
+    public:
+#ifndef NDEBUG
+        explicit ScopedCall(DebugRenderThreadGuard& guard, bool bindIfUnbound) noexcept : guard_(&guard) {
+            const bool alreadyIn = guard_->inCall_.exchange(true, std::memory_order_acq_rel);
+            assert(!alreadyIn && "Concurrent audio render / control-thread call on Fable processor");
+            const auto self = std::this_thread::get_id();
+            auto owner = guard_->owner_.load(std::memory_order_acquire);
+            if (owner == std::thread::id{}) {
+                if (bindIfUnbound) {
+                    guard_->owner_.store(self, std::memory_order_release);
+                }
+            } else {
+                assert(owner == self && "Fable processor touched from wrong thread after render started");
+            }
+        }
+        ~ScopedCall() noexcept {
+            guard_->inCall_.store(false, std::memory_order_release);
+        }
+        ScopedCall(const ScopedCall&) = delete;
+        ScopedCall& operator=(const ScopedCall&) = delete;
+
+    private:
+        DebugRenderThreadGuard* guard_;
+#else
+        explicit ScopedCall(DebugRenderThreadGuard&, bool) noexcept {}
+#endif
+    };
+
+    void unbind() noexcept {
+#ifndef NDEBUG
+        owner_.store(std::thread::id{}, std::memory_order_release);
+#endif
+    }
+
+    [[nodiscard]] ScopedCall enterRender(bool bindIfUnbound) noexcept {
+        return ScopedCall(*this, bindIfUnbound);
+    }
+
+    // Non-aborting check for unit tests to verify affinity enforcement without terminating.
+    [[nodiscard]] bool wouldViolate(std::thread::id caller) const noexcept {
+#ifndef NDEBUG
+        const auto owner = owner_.load(std::memory_order_acquire);
+        return (owner != std::thread::id{} && owner != caller) || inCall_.load(std::memory_order_acquire);
+#else
+        (void)caller;
+        return false;
+#endif
+    }
+
+private:
+#ifndef NDEBUG
+    std::atomic<std::thread::id> owner_{};
+    std::atomic<bool> inCall_{false};
+#endif
+};
 
 inline constexpr double kPi = 3.14159265358979323846;
 
@@ -132,6 +198,9 @@ struct Biquad {
     void peaking(double freq, double q, double gainDb, double sr) noexcept;
 
     double process(double x) noexcept {
+        if (!std::isfinite(x)) {
+            x = 0.0;
+        }
         const double y = b0 * x + z1;
         z1 = flushDenormal(b1 * x - a1 * y + z2);
         z2 = flushDenormal(b2 * x - a2 * y);
@@ -153,8 +222,8 @@ struct Biquad {
         z2 = 0.0;
     }
 
-    [[nodiscard]] bool hasState() const noexcept {
-        return z1 != 0.0 || z2 != 0.0;
+    [[nodiscard]] bool hasState(double threshold = 1.0e-6) const noexcept {
+        return std::abs(z1) > threshold || std::abs(z2) > threshold;
     }
 };
 
@@ -188,6 +257,7 @@ public:
     void prepare(double sampleRate) noexcept;
     void reset() noexcept { gain = 1.0; }
     double gainFor(double l, double r) noexcept;
+    void apply(double& l, double& r) noexcept;
     void process(float* L, float* R, int n) noexcept;
 
     double gain = 1.0;

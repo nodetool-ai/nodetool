@@ -2,7 +2,14 @@
 
 #include "audio/ParameterSmoother.h"
 #include "audio/automation/AutomationCurves.h"
+#include "audio/effects/fable/FableColorTimeEffects.h"
+#include "audio/effects/fable/FableDynamicsEffects.h"
+#include "midi/BassSynth.h"
+#include "midi/DrumSampler.h"
+#include "midi/MultisampleSampler.h"
 #include "midi/PatternExpand.h"
+#include "midi/WavetableSynth.h"
+#include "midi/modal/ModalSynth.h"
 #include "audio/vst/VstAudioStages.h"
 
 #include <QJsonArray>
@@ -273,11 +280,33 @@ void runSubtractiveInstrumentsStage(const Timeline& timeline, audio::MixPlan& pl
     buses.reserve(plan.tracks.size());
     for (std::size_t i = 0; i < plan.tracks.size(); ++i) { buses.emplace(plan.tracks[i].trackId, i); }
     for (const auto& track : timeline.tracks) {
-        const auto type = track.raw.value(u"instrument").toObject().value(u"type").toString();
-        if (track.type != TrackType::Midi || track.muted || (soloed && !track.solo) ||
-            (!type.isEmpty() && type != u"subtractive")) { continue; }
+        if (track.type != TrackType::Midi || track.muted || (soloed && !track.solo)) { continue; }
+        if (const auto existing = buses.find(track.id); existing != buses.end()) {
+            const auto& procs = plan.tracks[existing->second].processors;
+            if (std::any_of(procs.begin(), procs.end(),
+                            [](const auto& p) { return p && p->id == "instrument"; })) {
+                continue;
+            }
+        }
+        const auto instrument = track.raw.value(u"instrument").toObject();
+        const auto type = instrument.value(u"type").toString();
         // Mixer-only plan snapshots share prepared DSP with the active renderer.
-        auto processor = std::make_shared<SubtractiveInstrumentProcessor>(timeline, track);
+        std::shared_ptr<audio::BlockProcessor> processor;
+        if (type.isEmpty() || type == u"subtractive") {
+            processor = std::make_shared<SubtractiveInstrumentProcessor>(timeline, track);
+        } else if (DrumSamplerProcessor::handlesInstrument(instrument)) {
+            processor = std::make_shared<DrumSamplerProcessor>(timeline, track);
+        } else if (type == u"bass") {
+            processor = std::make_shared<BassSynthProcessor>(timeline, track);
+        } else if (type == u"wavetable") {
+            processor = std::make_shared<WavetableSynthProcessor>(timeline, track);
+        } else if (type == u"sampler" && !instrument.value(u"zones").toArray().isEmpty()) {
+            processor = std::make_shared<MultisampleSamplerProcessor>(timeline, track);
+        } else if (type == u"modal") {
+            processor = std::make_shared<ModalSynthProcessor>(timeline, track);
+        } else {
+            continue;
+        }
         if (!processor->hasPendingOutput(0)) { continue; }
         const auto [bus, inserted] = buses.try_emplace(track.id, plan.tracks.size());
         if (inserted) {
@@ -374,6 +403,15 @@ public:
     bool setParameter(std::string_view name, double value) noexcept override {
         return inner_->setParameter(name, value);
     }
+    int latencySamples() const noexcept override { return inner_->latencySamples(); }
+    void setBypassed(bool bypassed) noexcept override { inner_->setBypassed(bypassed); }
+    bool bypassed() const noexcept override { return inner_->bypassed(); }
+    void onBypassedBlock(std::span<const float> stereo, const audio::BlockContext& ctx) noexcept override {
+        inner_->onBypassedBlock(stereo, ctx);
+    }
+    void reprobeLatency(double rate) override { inner_->reprobeLatency(rate); }
+    void serviceControlThread() override { inner_->serviceControlThread(); }
+    void armForPlayback() override { inner_->armForPlayback(); }
 
     void process(std::span<float> stereo, const audio::BlockContext& context) noexcept override {
         if (quantum_) {
@@ -405,8 +443,53 @@ private:
     bool quantum_ = false;
 };
 
+bool isFableLogParam(const QString& param) {
+    const std::string key = param.toStdString();
+    for (const char* kind : {"eq", "comp", "ott", "limiter"}) {
+        for (const auto& def : audio::effects::fable::fableDynamicsParams(kind)) {
+            if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+        }
+    }
+    for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
+        for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+            if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+        }
+    }
+    return false;
+}
+
 bool supportsDeviceParam(const QString& type, const QString& param) {
-    if (type == u"instrument") { return param == u"cutoffHz" || param == u"filter.cutoff"; }
+    if (type == u"instrument") {
+        return param == u"cutoffHz" || param == u"filter.cutoff" ||
+               param == u"resonance" || param == u"filter.res" ||
+               param == u"drive" || param == u"filter.drive" ||
+               param == u"filterEnvAmount" || param == u"filter.env" ||
+               param == u"subLevel" || param == u"filterDecayMs" ||
+               param == u"accentAmount" || param == u"slideMs" || param == u"pulseWidth" ||
+               param == u"oscA.pos" || param == u"oscA.position" ||
+               param == u"oscB.pos" || param == u"oscB.position" ||
+               param == u"attackMs" || param == u"decayMs" ||
+               param == u"sustain" || param == u"releaseMs" ||
+               param == u"velocityCurve" || param == u"glideMs" ||
+               param == u"pitchBendRange" || param == u"gainDb" ||
+               param == u"malletStiff" || param == u"malletMix" || param == u"malletRes" ||
+               param == u"velMalletMix" || param == u"velMalletRes" || param == u"velMalletStiff" ||
+               param == u"noiseMix" || param == u"noiseRes" || param == u"noiseOsc" ||
+               param == u"noiseFilterMode" || param == u"noiseFilterFreq" || param == u"noiseFilterQ" ||
+               param == u"noiseAttackMs" || param == u"noiseDecayMs" || param == u"noiseSustain" ||
+               param == u"noiseReleaseMs" || param == u"noiseAttackTension" || param == u"noiseDecayTension" ||
+               param == u"noiseReleaseTension" || param == u"velNoiseMix" || param == u"velNoiseRes" ||
+               param == u"velNoiseFreq" || param == u"velNoiseQ" || param == u"velNoiseAttack" ||
+               param == u"velNoiseDecay" || param == u"velNoiseSustain" || param == u"velNoiseRelease" ||
+               param == u"aDecay" || param == u"aDamp" || param == u"aTone" || param == u"aHit" ||
+               param == u"aRelease" || param == u"aInharm" || param == u"aRatio" || param == u"aCut" ||
+               param == u"aRadius" || param == u"aCoarse" || param == u"aFine" ||
+               param == u"bDecay" || param == u"bDamp" || param == u"bTone" || param == u"bHit" ||
+               param == u"bRelease" || param == u"bInharm" || param == u"bRatio" || param == u"bCut" ||
+               param == u"bRadius" || param == u"bCoarse" || param == u"bFine" ||
+               param == u"abMix" || param == u"abSplit" ||
+               DrumSamplerProcessor::supportsParameter(param.toStdString());
+    }
     if (type == u"gain") return param == u"gainDb";
     if (type == u"filter") return param == u"frequency" || param == u"q";
     if (type == u"eq3") {
@@ -416,6 +499,19 @@ bool supportsDeviceParam(const QString& type, const QString& param) {
     if (type == u"compressor") {
         return param == u"thresholdDb" || param == u"ratio" || param == u"attackMs" || param == u"releaseMs" ||
                param == u"kneeDb";
+    }
+    if (type == u"fable") {
+        const std::string key = param.toStdString();
+        for (const char* kind : {"eq", "comp", "ott", "limiter"}) {
+            for (const auto& def : audio::effects::fable::fableDynamicsParams(kind)) {
+                if (def.id == key) { return true; }
+            }
+        }
+        for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
+            for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+                if (def.id == key) { return true; }
+            }
+        }
     }
     return false;
 }
@@ -479,7 +575,8 @@ void runPatternDeviceAutomationStage(const Timeline& timeline, audio::MixPlan& p
                 }
                 const bool gain = (type == u"gain");
                 const bool curved = gain || (type == u"eq3" && param.endsWith(u"Freq")) ||
-                                    (type == u"filter" && param == u"frequency");
+                                    (type == u"filter" && param == u"frequency") ||
+                                    (type == u"fable" && isFableLogParam(param));
                 params.push_back({param.toStdString(), PatternRamp(points, gain, curved, type == u"eq3" && param.endsWith(u"GainDb")), gain});
             }
             if (!params.empty()) {

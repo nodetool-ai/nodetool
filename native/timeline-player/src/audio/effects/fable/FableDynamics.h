@@ -39,6 +39,8 @@ private:
     double smooth_ = 0.0;
     double attack_ = 0.0;
     double release_ = 0.0;
+    double attackSec_ = -1.0;
+    double releaseSec_ = -1.0;
     double wet_ = 0.0;
     double threshold_ = -16.0;
     double thresholdTarget_ = -16.0;
@@ -47,6 +49,7 @@ private:
     double gainStep_ = 0.0;
     int tick_ = 0;
     bool keyed_ = false;
+    double keyHpHz_ = -1.0;
     double keyCoef_ = 0.0;
     double keyLpL_ = 0.0;
     double keyLpR_ = 0.0;
@@ -139,6 +142,7 @@ private:
     double env_ = 1.0;
     double atk_ = 0.0;
     double rel_ = 0.0;
+    double releaseSec_ = -1.0;
     double makeup_ = 1.0;
     bool truePeak_ = false;
 };

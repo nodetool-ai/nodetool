@@ -550,7 +550,7 @@ private slots:
             QVERIFY2(err <= 1e-5f, qPrintable(QStringLiteral("Reverb PLATE maxErr=%1").arg(err)));
         }
 
-        // 3. Switching ROOM -> PLATE clears the tank so no stale tail leaks across modes.
+        // 3. Switching ROOM -> PLATE crossfades cleanly (~5 ms) and clears the outgoing tank so no stale tail leaks.
         {
             auto proc = createFableColorTimeEffect(makeEffectJson("reverb", {{"fx.reverb.size", 0.9}, {"fx.reverb.mix", 1.0}, {"fx.reverb.type", 0}}));
             QVERIFY(proc != nullptr);
@@ -563,11 +563,12 @@ private slots:
             QVERIFY(proc->setParameter("fx.reverb.type", 1.0));
             std::vector<float> silence(512 * 2, 0.0f);
             proc->process(silence, {kRefRate, 2048.0 * 1000.0 / kRefRate, 1000.0 / kRefRate});
-            float peak = 0.0f;
-            for (float v : silence) {
-                peak = std::max(peak, std::abs(v));
+            float latePeak = 0.0f;
+            for (int i = 300; i < 512; ++i) {
+                latePeak = std::max(latePeak, std::abs(silence[static_cast<std::size_t>(i) * 2]));
+                latePeak = std::max(latePeak, std::abs(silence[static_cast<std::size_t>(i) * 2 + 1]));
             }
-            QCOMPARE(peak, 0.0f);
+            QCOMPARE(latePeak, 0.0f);
         }
     }
 
@@ -683,9 +684,415 @@ private slots:
 
         checkSmoothStep("drive", "fx.drive.amt", 0.0, 1.0, 0.12f);
         checkSmoothStep("drive", "fx.drive.mix", 0.0, 1.0, 0.12f);
+        checkSmoothStep("drive", "fx.drive.type", 0.0, 2.0, 0.12f);
         checkSmoothStep("chorus", "fx.chorus.mix", 0.0, 1.0, 0.10f);
         checkSmoothStep("echo", "fx.delay.mix", 0.0, 1.0, 0.10f);
+        checkSmoothStep("echo", "fx.delay.time", 0.1, 0.6, 0.12f);
         checkSmoothStep("reverb", "fx.reverb.mix", 0.0, 1.0, 0.10f);
+        checkSmoothStep("reverb", "fx.reverb.damp", 0.0, 1.0, 0.10f);
+    }
+
+    // D2: Echo must read JSON effect["bpm"] when no host BPM is passed and accept live BPM via BlockProcessor.
+    void echoTempoPropagationAndJsonBpm() {
+        // 1. Default 1-arg createFableColorTimeEffect(effect) must honor effect["bpm"].
+        QJsonObject eff = makeEffectJson("echo", {
+            {"fx.delay.sync", 1}, {"fx.delay.div", 2}, {"fx.delay.fb", 0.0},
+            {"fx.delay.mix", 1.0}, {"fx.delay.wow", 0.0}, {"fx.delay.flutter", 0.0},
+            {"fx.delay.sat", 0.0}, {"fx.delay.tone", 12000.0}, {"fx.delay.mode", 1},
+        });
+        eff.insert(u"bpm", 150.0);
+        auto proc = createFableColorTimeEffect(eff);
+        QVERIFY(proc != nullptr);
+        proc->prepare(kRefRate);
+        proc->reset();
+
+        // 1/8 note @ 150 BPM = 0.200 s = 9600 samples (not 120 BPM = 0.250 s = 12000 samples).
+        const int N = 15000;
+        std::vector<float> buf(static_cast<std::size_t>(N) * 2, 0.0f);
+        buf[0] = 0.5f;
+        buf[1] = 0.5f;
+        proc->process(buf, {kRefRate, 0.0, 1000.0 / kRefRate});
+        int peakFrame = -1;
+        float peakVal = 0.0f;
+        for (int i = 1000; i < N; ++i) {
+            const float v = std::abs(buf[static_cast<std::size_t>(i) * 2]);
+            if (v > peakVal) {
+                peakVal = v;
+                peakFrame = i;
+            }
+        }
+        QVERIFY2(std::abs(peakFrame - 9600) <= 8,
+                 qPrintable(QStringLiteral("JSON bpm=150 ignored: repeat at %1 (expected ~9600)").arg(peakFrame)));
+
+        // 2. Live tempo change through base BlockProcessor::setParameter("bpm", 180.0).
+        QVERIFY2(proc->setParameter("bpm", 180.0), "BlockProcessor::setParameter(\"bpm\", ...) rejected");
+        proc->reset();
+        // 1/8 note @ 180 BPM = 0.16667 s = 8000 samples.
+        std::ranges::fill(buf, 0.0f);
+        buf[0] = 0.5f;
+        buf[1] = 0.5f;
+        proc->process(buf, {kRefRate, 0.0, 1000.0 / kRefRate});
+        peakFrame = -1;
+        peakVal = 0.0f;
+        for (int i = 1000; i < N; ++i) {
+            const float v = std::abs(buf[static_cast<std::size_t>(i) * 2]);
+            if (v > peakVal) {
+                peakVal = v;
+                peakFrame = i;
+            }
+        }
+        QVERIFY2(std::abs(peakFrame - 8000) <= 8,
+                 qPrintable(QStringLiteral("Live bpm=180 via setParameter failed: repeat at %1 (expected ~8000)").arg(peakFrame)));
+    }
+
+    // E3: Echo's hasPendingOutput() must stay true through max positive wow/flutter excursion
+    // and filter/interpolation margin while draining a modulated impulse at 96 kHz.
+    void echoPendingOutputCoversModulatedImpulseAt96k() {
+        constexpr double kSr = 96000.0;
+        constexpr int kBlock = 32;
+        for (double toneHz : {4500.0, 400.0}) {
+            auto proc = createFableColorTimeEffect(makeEffectJson("echo", {
+                {"fx.delay.time", 1.5}, {"fx.delay.fb", 0.0}, {"fx.delay.mix", 1.0},
+                {"fx.delay.tone", toneHz}, {"fx.delay.sat", 0.0},
+                {"fx.delay.wow", 1.0}, {"fx.delay.flutter", 1.0},
+                {"fx.delay.width", 1.0}, {"fx.delay.mode", 0}, {"fx.delay.sync", 0},
+            }));
+            QVERIFY(proc != nullptr);
+            proc->prepare(kSr);
+            proc->reset();
+
+            std::vector<float> block(kBlock * 2, 0.0f);
+            block[0] = 1.0f;
+            block[1] = 1.0f;
+            proc->process(block, {kSr, 0.0, 1000.0 / kSr});
+            QVERIFY2(proc->hasPendingOutput(kBlock), "Echo reported no pending output right after impulse");
+
+            int drainedFrames = kBlock;
+            float wetPeak = 0.0f;
+            int wetPeakFrame = -1;
+            constexpr int kMaxDrainFrames = 400000;
+            while (proc->hasPendingOutput(kBlock) && drainedFrames < kMaxDrainFrames) {
+                std::ranges::fill(block, 0.0f);
+                proc->process(block, {kSr, drainedFrames * 1000.0 / kSr, 1000.0 / kSr});
+                for (int i = 0; i < kBlock; ++i) {
+                    const int frame = drainedFrames + i;
+                    const float p = std::max(std::abs(block[static_cast<std::size_t>(i) * 2]),
+                                             std::abs(block[static_cast<std::size_t>(i) * 2 + 1]));
+                    if (frame >= 1000 && p > wetPeak) {
+                        wetPeak = p;
+                        wetPeakFrame = frame;
+                    }
+                }
+                drainedFrames += kBlock;
+            }
+            const float minWetPeak = toneHz > 1000.0 ? 0.05f : 0.005f;
+            QVERIFY2(!proc->hasPendingOutput(kBlock),
+                     qPrintable(QStringLiteral("Echo pending output never drained at tone=%1 Hz (frames=%2)")
+                                    .arg(toneHz).arg(drainedFrames)));
+            QVERIFY2(wetPeak > minWetPeak && wetPeakFrame >= 144000,
+                     qPrintable(QStringLiteral("Echo dropped modulated 96 kHz wet repeat (tone=%1 Hz): "
+                                               "drained=%2 wetPeak=%3 peakFrame=%4")
+                                    .arg(toneHz).arg(drainedFrames).arg(wetPeak).arg(wetPeakFrame)));
+        }
+    }
+
+    // D3: JSON booleans (e.g. fx.delay.sync: true) and fx.<kind>.on: false in params on construction.
+    void jsonBooleansAndOnParamOnConstruction() {
+        // 1. JSON boolean true for fx.delay.sync.
+        FableEchoProcessor echo(makeEffectJson("echo", {
+            {"fx.delay.sync", true}, {"fx.delay.div", 5}, {"fx.delay.time", 0.36},
+        }), 120.0);
+        echo.prepare(kRefRate);
+        // 1/16 @ 120 BPM = 0.125 s (if sync=true was ignored, targetDelaySec stays 0.36 s).
+        QVERIFY2(std::abs(echo.targetDelaySec() - 0.125) < 1e-6,
+                 qPrintable(QStringLiteral("fx.delay.sync=true ignored: targetDelaySec=%1").arg(echo.targetDelaySec())));
+
+        // 2. params["fx.<kind>.on"] = false (even with enabled=true) constructs bypassed.
+        struct OnCase { const char* kind; const char* onKey; QJsonObject extra; };
+        const std::array<OnCase, 4> cases{{
+            {"drive", "fx.drive.on", {{"fx.drive.amt", 0.9}, {"fx.drive.mix", 1.0}}},
+            {"chorus", "fx.chorus.on", {{"fx.chorus.mix", 1.0}, {"fx.chorus.depth", 1.0}}},
+            {"echo", "fx.delay.on", {{"fx.delay.mix", 1.0}, {"fx.delay.time", 0.05}}},
+            {"reverb", "fx.reverb.on", {{"fx.reverb.mix", 1.0}, {"fx.reverb.size", 0.9}}},
+        }};
+        for (const auto& c : cases) {
+            QJsonObject p = c.extra;
+            p.insert(QString::fromLatin1(c.onKey), false);
+            auto proc = createFableColorTimeEffect(makeEffectJson(c.kind, p, true));
+            QVERIFY(proc != nullptr);
+            proc->prepare(kRefRate);
+            proc->reset();
+            std::vector<float> buf(4096 * 2);
+            for (int i = 0; i < 4096; ++i) {
+                const float s = 0.25f * std::sin(static_cast<float>(2.0 * kPi * 200.0 * i / kRefRate));
+                buf[static_cast<std::size_t>(i) * 2] = s;
+                buf[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            const auto orig = buf;
+            proc->process(buf, {kRefRate, 0.0, 1000.0 / kRefRate});
+            const int lat = proc->latencySamples();
+            float diff = 0.0f;
+            for (int i = lat + 512; i < 4096; ++i) {
+                diff = std::max(diff, std::abs(buf[static_cast<std::size_t>(i) * 2] - orig[static_cast<std::size_t>(i - lat) * 2]));
+            }
+            QVERIFY2(diff < 1e-4f, qPrintable(QStringLiteral("%1 ignored %2=false: diff=%3").arg(c.kind, c.onKey).arg(diff)));
+        }
+    }
+
+    // D4: ROOM damping SR scaling & damp control, click-free mode crossfade, smooth damp.
+    void reverbDampingScalingCrossfadeAndSmoothDamp() {
+        // Helper: excite ROOM reverb with a deterministic broadband impulse burst and compare
+        // broadband high-band (>5 kHz) vs low-band (<1 kHz) energy in the tail (80-300 ms).
+        auto roomHighToLowDb = [](double sr, double dampVal) {
+            auto proc = createFableColorTimeEffect(makeEffectJson("reverb", {
+                {"fx.reverb.size", 0.5}, {"fx.reverb.mix", 1.0}, {"fx.reverb.type", 0}, {"fx.reverb.damp", dampVal},
+            }));
+            proc->prepare(sr);
+            proc->reset();
+            const int n = static_cast<int>(sr * 0.35);
+            std::vector<float> buf(static_cast<std::size_t>(n) * 2, 0.0f);
+            // Multi-tone burst spanning low (200-900 Hz) and high (5500-11000 Hz) bands, SR-independent.
+            const int burstN = static_cast<int>(sr * 0.015);
+            static constexpr std::array<double, 4> kLowHz{{240.0, 410.0, 620.0, 860.0}};
+            static constexpr std::array<double, 4> kHighHz{{5800.0, 7300.0, 9100.0, 10800.0}};
+            for (int i = 0; i < burstN; ++i) {
+                const double t = static_cast<double>(i) / sr;
+                const double win = 0.5 - 0.5 * std::cos(2.0 * kPi * static_cast<double>(i) / static_cast<double>(burstN));
+                double s = 0.0;
+                for (double f : kLowHz) {
+                    s += 0.12 * std::sin(2.0 * kPi * f * t);
+                }
+                for (double f : kHighHz) {
+                    s += 0.12 * std::sin(2.0 * kPi * f * t);
+                }
+                const float sample = static_cast<float>(s * win);
+                buf[static_cast<std::size_t>(i) * 2] = sample;
+                buf[static_cast<std::size_t>(i) * 2 + 1] = sample;
+            }
+            proc->process(buf, {sr, 0.0, 1000.0 / sr});
+
+            Biquad lp;
+            Biquad hp;
+            lp.lowpass(1200.0, 0.707, sr);
+            hp.highpass(4500.0, 0.707, sr);
+            const int start = static_cast<int>(sr * 0.08);
+            const int end = static_cast<int>(sr * 0.30);
+            double eLo = 0.0;
+            double eHi = 0.0;
+            for (int i = 0; i < end; ++i) {
+                const double x = buf[static_cast<std::size_t>(i) * 2];
+                const double yLo = lp.process(x);
+                const double yHi = hp.process(x);
+                if (i >= start) {
+                    eLo += yLo * yLo;
+                    eHi += yHi * yHi;
+                }
+            }
+            return 10.0 * std::log10(std::max(1e-18, eHi) / std::max(1e-18, eLo));
+        };
+
+        // 1. Sample-rate invariance of ROOM damping between 44.1 kHz and 96 kHz.
+        const double ratio44 = roomHighToLowDb(44100.0, 0.5);
+        const double ratio96 = roomHighToLowDb(96000.0, 0.5);
+        QVERIFY2(std::abs(ratio96 - ratio44) < 3.0,
+                 qPrintable(QStringLiteral("ROOM damping not SR-invariant: Hi/Lo @44.1=%1 dB, @96=%2 dB")
+                                .arg(ratio44).arg(ratio96)));
+
+        // 2. fx.reverb.damp must visibly darken ROOM mode tail (damp=1.0 vs damp=0.0).
+        const double ratioBright = roomHighToLowDb(48000.0, 0.0);
+        const double ratioDark = roomHighToLowDb(48000.0, 1.0);
+        QVERIFY2(ratioBright - ratioDark > 6.0,
+                 qPrintable(QStringLiteral("fx.reverb.damp did not darken ROOM mode: bright=%1 dB dark=%2 dB")
+                                .arg(ratioBright).arg(ratioDark)));
+
+        // 3. Switching fx.reverb.type on a live tail must crossfade without a hard click.
+        auto rev = createFableColorTimeEffect(makeEffectJson("reverb", {
+            {"fx.reverb.size", 0.9}, {"fx.reverb.mix", 1.0}, {"fx.reverb.type", 0},
+        }));
+        QVERIFY(rev != nullptr);
+        rev->prepare(kRefRate);
+        rev->reset();
+        std::vector<float> warm(8192 * 2, 0.0f);
+        for (int i = 0; i < 8192; ++i) {
+            const float s = 0.6f * std::sin(static_cast<float>(2.0 * kPi * 220.0 * i / kRefRate));
+            warm[static_cast<std::size_t>(i) * 2] = s;
+            warm[static_cast<std::size_t>(i) * 2 + 1] = s;
+        }
+        rev->process(warm, {kRefRate, 0.0, 1000.0 / kRefRate});
+        // Advance 1-sample steps on silence until we hit a strong live tail sample (avoiding a sine zero-crossing).
+        float lastTail = warm[8191 * 2];
+        for (int s = 0; s < 512 && std::abs(lastTail) < 0.08f; ++s) {
+            std::array<float, 2> step{0.0f, 0.0f};
+            rev->process(step, {kRefRate, (8192 + s) * 1000.0 / kRefRate, 1000.0 / kRefRate});
+            lastTail = step[0];
+        }
+        QVERIFY2(std::abs(lastTail) >= 0.08f, qPrintable(QStringLiteral("Expected audible live tail, got %1").arg(lastTail)));
+
+        QVERIFY(rev->setParameter("fx.reverb.type", 1.0));
+        std::vector<float> after(1024 * 2, 0.0f);
+        rev->process(after, {kRefRate, 8704.0 * 1000.0 / kRefRate, 1000.0 / kRefRate});
+        const float firstJump = std::abs(after[0] - lastTail);
+        // Hard reset jumps directly from lastTail to 0.0 (firstJump == |lastTail|).
+        // Crossfade keeps first step small relative to live tail.
+        QVERIFY2(firstJump < std::abs(lastTail) * 0.5f,
+                 qPrintable(QStringLiteral("Reverb mode switch clicked: last=%1 first=%2 jump=%3")
+                                .arg(lastTail).arg(after[0]).arg(firstJump)));
+        // After crossfade completes (~5 ms = 240 smp), silence stays exact 0.0 (no stale tail leak).
+        float latePeak = 0.0f;
+        for (int i = 400; i < 1024; ++i) {
+            latePeak = std::max(latePeak, std::abs(after[static_cast<std::size_t>(i) * 2]));
+        }
+        QCOMPARE(latePeak, 0.0f);
+    }
+
+    // D5: DriveOs2 must clamp before interpolate (no NaN latch) and clear filter state on full bypass.
+    void driveOs2NanRecoveryAndBypassReset() {
+        DriveOs2 os;
+        const double wStep = 1.0 / (kDriveOsRampSec * kRefRate);
+        auto sat = [](double a, double /*xp*/) { return std::tanh(3.5 * a) / std::tanh(3.5); };
+
+        // Warm up active stage.
+        for (int i = 0; i < 300; ++i) {
+            (void)os.run(0.4 * std::sin(2.0 * kPi * 440.0 * i / kRefRate), true, true, 0.8, wStep, sat);
+        }
+        // Inject NaN and +Inf, then feed normal audio: must stay finite AND recover live signal (not latch NaN/0).
+        const double yNan = os.run(std::numeric_limits<double>::quiet_NaN(), true, true, 0.8, wStep, sat);
+        const double yInf = os.run(std::numeric_limits<double>::infinity(), true, true, 0.8, wStep, sat);
+        QVERIFY2(std::isfinite(yNan) && std::isfinite(yInf), "DriveOs2 returned non-finite on NaN/Inf");
+        double recoveryPeak = 0.0;
+        for (int i = 0; i < 128; ++i) {
+            const double y = os.run(0.35 * std::sin(2.0 * kPi * 440.0 * i / kRefRate), true, true, 0.8, wStep, sat);
+            QVERIFY2(std::isfinite(y), qPrintable(QStringLiteral("DriveOs2 latched NaN at recovery sample %1").arg(i)));
+            if (i >= 32) {
+                recoveryPeak = std::max(recoveryPeak, std::abs(y));
+            }
+        }
+        QVERIFY2(recoveryPeak > 0.15,
+                 qPrintable(QStringLiteral("DriveOs2 failed to recover live audio after NaN: peak=%1").arg(recoveryPeak)));
+
+        // Disengage until fully bypassed (w == 0) on a fresh instance: filter state must clear so re-engage on silence outputs 0.
+        DriveOs2 os2;
+        for (int i = 0; i < 400; ++i) {
+            (void)os2.run(0.6, true, true, 0.8, wStep, sat);
+        }
+        for (int i = 0; i < 400; ++i) {
+            (void)os2.run(0.6, false, true, 0.8, wStep, sat);
+        }
+        QCOMPARE(os2.w, 0.0);
+        // Re-engage on exact silence: must not discharge stale DC from previous engaged period.
+        double stalePeak = 0.0;
+        for (int i = 0; i < 32; ++i) {
+            stalePeak = std::max(stalePeak, std::abs(os2.run(0.0, true, true, 0.8, wStep, sat)));
+        }
+        QVERIFY2(stalePeak < 1e-12,
+                 qPrintable(QStringLiteral("DriveOs2 discharged stale state after bypass: peak=%1").arg(stalePeak)));
+    }
+
+    // D6: Extreme finite floats (~3e38f) must not overflow channel sums to Inf/NaN.
+    void extremeFiniteFloatOverflowSafety() {
+        struct Case { const char* kind; QJsonObject params; };
+        const std::vector<Case> cases = {
+            {"drive", {{"fx.drive.amt", 0.8}, {"fx.drive.mix", 1.0}, {"fx.drive.type", 1}}},
+            {"chorus", {{"fx.chorus.mix", 0.8}, {"fx.chorus.depth", 0.7}}},
+            {"echo", {{"fx.delay.time", 0.04}, {"fx.delay.fb", 0.7}, {"fx.delay.mix", 0.8}, {"fx.delay.sat", 0.5}}},
+            {"reverb", {{"fx.reverb.size", 0.8}, {"fx.reverb.mix", 0.8}, {"fx.reverb.type", 0}}},
+            {"reverb", {{"fx.reverb.size", 0.8}, {"fx.reverb.mix", 0.8}, {"fx.reverb.type", 1}}},
+        };
+        for (const auto& c : cases) {
+            auto proc = createFableColorTimeEffect(makeEffectJson(c.kind, c.params));
+            QVERIFY(proc != nullptr);
+            proc->prepare(kRefRate);
+            proc->reset();
+            std::vector<float> buf(1024 * 2, 0.0f);
+            buf[0] = 3.0e38f;
+            buf[1] = 3.0e38f;
+            buf[2] = -3.0e38f;
+            buf[3] = -3.0e38f;
+            for (int i = 16; i < 1024; ++i) {
+                const float s = 0.2f * std::sin(static_cast<float>(2.0 * kPi * 440.0 * i / kRefRate));
+                buf[static_cast<std::size_t>(i) * 2] = s;
+                buf[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            proc->process(buf, {kRefRate, 0.0, 1000.0 / kRefRate});
+            for (std::size_t i = 0; i < buf.size(); ++i) {
+                QVERIFY2(std::isfinite(buf[i]),
+                         qPrintable(QStringLiteral("%1 produced non-finite at sample %2 on 3e38f input").arg(c.kind).arg(i)));
+            }
+        }
+    }
+
+    // D10: Chorus LFO rate invariance (44.1 vs 96 kHz) and 4x drive aliasing rejection.
+    void chorusRateInvarianceAndDriveAliasingRejection() {
+        // 1. Chorus LFO period at 44.1 kHz vs 96 kHz must match (4 Hz LFO -> peak correlation at T=0.25 s).
+        auto measureChorusPeriodErr = [](double sr) {
+            auto proc = createFableColorTimeEffect(makeEffectJson("chorus", {
+                {"fx.chorus.rate", 4.0}, {"fx.chorus.depth", 0.9}, {"fx.chorus.mix", 1.0},
+            }));
+            proc->prepare(sr);
+            proc->reset();
+            const int n = static_cast<int>(sr * 1.0);
+            std::vector<float> buf(static_cast<std::size_t>(n) * 2);
+            for (int i = 0; i < n; ++i) {
+                const float s = 0.4f * std::sin(static_cast<float>(2.0 * kPi * 1000.0 * i / sr));
+                buf[static_cast<std::size_t>(i) * 2] = s;
+                buf[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            proc->process(buf, {sr, 0.0, 1000.0 / sr});
+            // Compare wet L channel at t=0.25 s vs t=0.50 s (1 full LFO cycle = 0.25 s, 1000 Hz also integer cycles).
+            const int start = static_cast<int>(sr * 0.25);
+            const int period = static_cast<int>(std::lround(sr * 0.25));
+            const int win = static_cast<int>(sr * 0.05);
+            double diffSq = 0.0;
+            double refSq = 0.0;
+            for (int i = 0; i < win; ++i) {
+                const double a = buf[static_cast<std::size_t>(start + i) * 2];
+                const double b = buf[static_cast<std::size_t>(start + period + i) * 2];
+                diffSq += (a - b) * (a - b);
+                refSq += a * a;
+            }
+            return std::sqrt(diffSq / std::max(1e-12, refSq));
+        };
+        const double err44 = measureChorusPeriodErr(44100.0);
+        const double err96 = measureChorusPeriodErr(96000.0);
+        QVERIFY2(err44 < 0.05 && err96 < 0.05,
+                 qPrintable(QStringLiteral("Chorus 4 Hz LFO period mismatch: err44=%1 err96=%2").arg(err44).arg(err96)));
+
+        // 2. 4x HalfBandFir drive suppresses folded aliasing from an 11 kHz sine at 48 kHz (3rd harmonic 33k -> 15k alias).
+        auto proc = createFableColorTimeEffect(makeEffectJson("drive", {
+            {"fx.drive.amt", 0.9}, {"fx.drive.mix", 1.0}, {"fx.drive.type", 0}, {"fx.drive.tone", 0.0},
+        }));
+        QVERIFY(proc != nullptr);
+        proc->prepare(kRefRate);
+        proc->reset();
+        const int n = 8192;
+        std::vector<float> buf(static_cast<std::size_t>(n) * 2);
+        std::vector<float> naive(static_cast<std::size_t>(n));
+        const double k = 1.0 + 0.9 * 12.0;
+        const double pre = 1.0 + 0.9 * 2.0;
+        const double norm = 1.0 / (pre * std::tanh(k));
+        for (int i = 0; i < n; ++i) {
+            const double x = 0.6 * std::sin(2.0 * kPi * 11000.0 * i / kRefRate);
+            buf[static_cast<std::size_t>(i) * 2] = static_cast<float>(x);
+            buf[static_cast<std::size_t>(i) * 2 + 1] = static_cast<float>(x);
+            naive[static_cast<std::size_t>(i)] = static_cast<float>(std::tanh(pre * x * k) * norm);
+        }
+        proc->process(buf, {kRefRate, 0.0, 1000.0 / kRefRate});
+        auto toneAmp = [](const auto& getSample, int start, int end, double fHz) {
+            double re = 0.0, im = 0.0;
+            const double w = 2.0 * kPi * fHz / kRefRate;
+            for (int i = start; i < end; ++i) {
+                const double v = getSample(i);
+                re += v * std::cos(w * i);
+                im += v * std::sin(w * i);
+            }
+            return std::hypot(re, im) / static_cast<double>(end - start);
+        };
+        const double aliasOs = toneAmp([&](int i) { return buf[static_cast<std::size_t>(i) * 2]; }, 1024, 7168, 15000.0);
+        const double aliasNaive = toneAmp([&](int i) { return naive[static_cast<std::size_t>(i)]; }, 1024, 7168, 15000.0);
+        const double rejectionDb = 20.0 * std::log10(std::max(1e-12, aliasNaive) / std::max(1e-12, aliasOs));
+        QVERIFY2(rejectionDb > 40.0,
+                 qPrintable(QStringLiteral("4x drive 15 kHz alias rejection too low: %1 dB (os=%2 naive=%3)")
+                                .arg(rejectionDb).arg(aliasOs).arg(aliasNaive)));
     }
 
     void sampleRatesAndDenormalSafety() {

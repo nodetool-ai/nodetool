@@ -208,12 +208,18 @@ private:
     bool toneDirty_ = true;
     int toneSamples_ = 0;
     double tapeClock_ = 0.0;
+    std::array<double, 5> oscC_{{1.0, 1.0, 1.0, 1.0, 1.0}};
+    std::array<double, 5> oscS_{{0.0, 0.0, 0.0, 0.0, 0.0}};
+    std::array<double, 5> oscDc_{{1.0, 1.0, 1.0, 1.0, 1.0}};
+    std::array<double, 5> oscDs_{{0.0, 0.0, 0.0, 0.0, 0.0}};
     double driftL_ = 0.0;
     double driftR_ = 0.0;
     bool initialized_ = false;
     bool off_ = false;
     bool gated_ = false;
     int tailRemaining_ = 0;
+
+    void resetDriftOscillators() noexcept;
 };
 
 // Dual-algorithm stereo reverb: ROOM (Freeverb 8-comb/4-allpass) and PLATE (Dattorro PlateReverb).
@@ -228,8 +234,12 @@ public:
     [[nodiscard]] bool hasPendingOutput() const noexcept { return !gated_ && tailRemaining_ > 0; }
 
 private:
+    void resetRoomTank() noexcept;
+    void resetPlateTank() noexcept;
     void resetTanks() noexcept;
     void advanceCoefs(bool force) noexcept;
+    void processRoomSample(double inL, double inR, double& outL, double& outR) noexcept;
+    void processPlateSample(double inL, double inR, double& outL, double& outR) noexcept;
 
     double sr_ = 48000.0;
     std::array<FvComb, 8> combL_{};
@@ -238,12 +248,14 @@ private:
     std::array<FvAllpass, 4> apR_{};
     PlateReverb plate_{};
     ChunkRamp sizeRamp_{};
+    ChunkRamp dampRamp_{};
     int coefSamples_ = 0;
     bool primed_ = false;
     bool forceCoefs_ = true;
-    bool plateDirty_ = true;
     int type_ = 0;
-    float damp_ = 0.5f;
+    int prevType_ = 0;
+    int typeXfLeft_ = 0;
+    int typeFadeSamples_ = 240;
     Smooth wet_{};
     Smooth dry_{};
     PeakGuard guard_{};

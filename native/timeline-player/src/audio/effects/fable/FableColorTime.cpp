@@ -133,6 +133,9 @@ void DriveColor::reset() noexcept {
 }
 
 double DriveColor::shape(double x, double k, double norm) noexcept {
+    if (!std::isfinite(x)) {
+        x = 0.0;
+    }
     tape_ = flushDenormal(tape_ + (tapeTarget_ - tape_) * fade_);
     hard_ = flushDenormal(hard_ + (hardTarget_ - hard_) * fade_);
     const double z = x * k;
@@ -143,6 +146,9 @@ double DriveColor::shape(double x, double k, double norm) noexcept {
 }
 
 double DriveColor::processTone(double x) noexcept {
+    if (!std::isfinite(x)) {
+        x = 0.0;
+    }
     tone_ = flushDenormal(tone_ + (toneTarget_ - tone_) * smooth_);
     low_ = flushDenormal(low_ + pole_ * (x - low_));
     return x + tone_ * (tone_ < 0.0 ? 0.5 : 1.0) * (x - low_);
@@ -166,9 +172,10 @@ float FvComb::process(float in) noexcept {
     if (buf.empty()) {
         return 0.0f;
     }
+    const float safeIn = std::isfinite(in) ? std::clamp(in, -1.0e6f, 1.0e6f) : 0.0f;
     const float out = buf[static_cast<std::size_t>(idx)];
     filt = flushDenormalF(out * damp2 + filt * damp1);
-    buf[static_cast<std::size_t>(idx)] = flushDenormalF(in + filt * feedback);
+    buf[static_cast<std::size_t>(idx)] = flushDenormalF(std::clamp(safeIn + filt * feedback, -1.0e6f, 1.0e6f));
     if (++idx >= static_cast<int>(buf.size())) {
         idx = 0;
     }
@@ -189,9 +196,10 @@ float FvAllpass::process(float in) noexcept {
     if (buf.empty()) {
         return 0.0f;
     }
+    const float safeIn = std::isfinite(in) ? std::clamp(in, -1.0e6f, 1.0e6f) : 0.0f;
     const float bufout = buf[static_cast<std::size_t>(idx)];
-    const float out = -in + bufout;
-    buf[static_cast<std::size_t>(idx)] = flushDenormalF(in + bufout * feedback);
+    const float out = -safeIn + bufout;
+    buf[static_cast<std::size_t>(idx)] = flushDenormalF(std::clamp(safeIn + bufout * feedback, -1.0e6f, 1.0e6f));
     if (++idx >= static_cast<int>(buf.size())) {
         idx = 0;
     }
@@ -277,23 +285,25 @@ void FableDriveDsp::advanceCoefs(bool force) noexcept {
 
 float FableDriveDsp::driveChannel(HalfBandFir& u1, HalfBandFir& u2, HalfBandFir& d2,
                                   HalfBandFir& d1, double x, DriveColor& color) noexcept {
-    const auto shape = [&](float v) noexcept {
-        return static_cast<float>(color.shape(static_cast<double>(v), static_cast<double>(k_), static_cast<double>(norm_)));
+    const auto shape = [&](double v) noexcept {
+        const double clamped = std::isfinite(v) ? std::clamp(v, -1.0e6, 1.0e6) : 0.0;
+        return static_cast<float>(color.shape(static_cast<double>(static_cast<float>(clamped)), static_cast<double>(k_), static_cast<double>(norm_)));
     };
+    const double safeX = std::isfinite(x) ? std::clamp(x, -1.0e6, 1.0e6) : 0.0;
     double a0 = 0.0;
     double a1 = 0.0;
-    u1.interpolate(x, a0, a1);
+    u1.interpolate(safeX, a0, a1);
     double b00 = 0.0;
     double b01 = 0.0;
     double b10 = 0.0;
     double b11 = 0.0;
     u2.interpolate(a0, b00, b01);
     u2.interpolate(a1, b10, b11);
-    const double s0a = static_cast<double>(shape(static_cast<float>(b00)));
-    const double s0b = static_cast<double>(shape(static_cast<float>(b01)));
+    const double s0a = static_cast<double>(shape(b00));
+    const double s0b = static_cast<double>(shape(b01));
     const double c0 = d2.decimate(s0a, s0b);
-    const double s1a = static_cast<double>(shape(static_cast<float>(b10)));
-    const double s1b = static_cast<double>(shape(static_cast<float>(b11)));
+    const double s1a = static_cast<double>(shape(b10));
+    const double s1b = static_cast<double>(shape(b11));
     const double c1 = d2.decimate(s1a, s1b);
     return static_cast<float>(d1.decimate(c0, c1));
 }
@@ -332,26 +342,25 @@ void FableDriveDsp::process(float* L, float* R, int n) noexcept {
         }
         const int end = std::min(off + coefSamples_, n);
         for (int i = off; i < end; ++i) {
-            float l = sanitize(L[i]);
-            float r = sanitize(R[i]);
-            dryL_.write(l);
-            dryR_.write(r);
-            const float dlyL = dryL_.read(static_cast<double>(kDriveLatency + 1));
-            const float dlyR = dryR_.read(static_cast<double>(kDriveLatency + 1));
+            const float lIn = sanitize(L[i]);
+            const float rIn = sanitize(R[i]);
+            dryL_.write(lIn);
+            dryR_.write(rIn);
+            const double dlyL = static_cast<double>(dryL_.read(static_cast<double>(kDriveLatency + 1)));
+            const double dlyR = static_cast<double>(dryR_.read(static_cast<double>(kDriveLatency + 1)));
+            double outL = dlyL;
+            double outR = dlyR;
             if (!silent_) {
-                const float wet = wet_.next();
-                const float dry = dry_.next();
-                const float dl = driveChannel(up1L_, up2L_, dn2L_, dn1L_, static_cast<double>(pre_) * l, colorL_);
-                const float dr = driveChannel(up1R_, up2R_, dn2R_, dn1R_, static_cast<double>(pre_) * r, colorR_);
-                l = dry * dlyL + wet * static_cast<float>(colorL_.processTone(dl));
-                r = dry * dlyR + wet * static_cast<float>(colorR_.processTone(dr));
-            } else {
-                l = dlyL;
-                r = dlyR;
+                const double wet = static_cast<double>(wet_.next());
+                const double dry = static_cast<double>(dry_.next());
+                const float dl = driveChannel(up1L_, up2L_, dn2L_, dn1L_, static_cast<double>(pre_) * static_cast<double>(lIn), colorL_);
+                const float dr = driveChannel(up1R_, up2R_, dn2R_, dn1R_, static_cast<double>(pre_) * static_cast<double>(rIn), colorR_);
+                outL = dry * dlyL + wet * colorL_.processTone(static_cast<double>(dl));
+                outR = dry * dlyR + wet * colorR_.processTone(static_cast<double>(dr));
             }
-            const double g = guard_.gainFor(static_cast<double>(l), static_cast<double>(r));
-            L[i] = static_cast<float>(static_cast<double>(l) * g);
-            R[i] = static_cast<float>(static_cast<double>(r) * g);
+            guard_.apply(outL, outR);
+            L[i] = static_cast<float>(outL);
+            R[i] = static_cast<float>(outR);
         }
         coefSamples_ -= end - off;
         off = end;
@@ -455,10 +464,12 @@ void FableChorusDsp::process(float* L, float* R, int n) noexcept {
         }
         const int end = std::min(off + coefSamples_, n);
         for (int i = off; i < end; ++i) {
-            float l = sanitize(L[i]);
-            float r = sanitize(R[i]);
+            const double inL = static_cast<double>(sanitize(L[i]));
+            const double inR = static_cast<double>(sanitize(R[i]));
+            double outL = inL;
+            double outR = inR;
             if (!gated_) {
-                if (l != 0.0f || r != 0.0f) {
+                if (inL != 0.0 || inR != 0.0) {
                     tailRemaining_ = tailSamples;
                 } else if (tailRemaining_ > 0) {
                     --tailRemaining_;
@@ -469,19 +480,19 @@ void FableChorusDsp::process(float* L, float* R, int n) noexcept {
                 }
                 const double lfo = std::sin(2.0 * kPi * phase_);
                 const double depth = 0.0008 + static_cast<double>(depth_) * 0.0045;
-                const float mono = 0.5f * (l + r);
+                const float mono = static_cast<float>(std::clamp(0.5 * (inL + inR), -1.0e6, 1.0e6));
                 dl1_.write(mono);
                 dl2_.write(mono);
-                const float c1 = dl1_.readHermite((0.012 + depth * lfo) * sr_);
-                const float c2 = dl2_.readHermite((0.017 - depth * 0.8 * lfo) * sr_);
-                const float wet = wet_.next();
-                const float dry = dry_.next();
-                l = dry * l + wet * c1;
-                r = dry * r + wet * c2;
+                const double c1 = static_cast<double>(dl1_.readHermite((0.012 + depth * lfo) * sr_));
+                const double c2 = static_cast<double>(dl2_.readHermite((0.017 - depth * 0.8 * lfo) * sr_));
+                const double wet = static_cast<double>(wet_.next());
+                const double dry = static_cast<double>(dry_.next());
+                outL = dry * inL + wet * c1;
+                outR = dry * inR + wet * c2;
             }
-            const double g = guard_.gainFor(static_cast<double>(l), static_cast<double>(r));
-            L[i] = static_cast<float>(static_cast<double>(l) * g);
-            R[i] = static_cast<float>(static_cast<double>(r) * g);
+            guard_.apply(outL, outR);
+            L[i] = static_cast<float>(outL);
+            R[i] = static_cast<float>(outR);
         }
         coefSamples_ -= end - off;
         off = end;
@@ -489,6 +500,14 @@ void FableChorusDsp::process(float* L, float* R, int n) noexcept {
 }
 
 // ---------------- FableEchoDsp ----------------
+
+void FableEchoDsp::resetDriftOscillators() noexcept {
+    static constexpr std::array<double, 5> kInitPhase{{0.0, 0.0, 0.0, 0.7, 1.1}};
+    for (std::size_t k = 0; k < 5; ++k) {
+        oscC_[k] = std::cos(kInitPhase[k]);
+        oscS_[k] = std::sin(kInitPhase[k]);
+    }
+}
 
 void FableEchoDsp::prepare(double sampleRate) {
     sr_ = safeRate(sampleRate);
@@ -522,6 +541,12 @@ void FableEchoDsp::prepare(double sampleRate) {
     hpR_.highpass(45.0, 0.707, sr_);
     feedbackGuard_.prepare(sr_);
     guard_.prepare(sr_);
+    static constexpr std::array<double, 5> kOscHz{{0.23, 0.37, 6.7, 0.41, 8.3}};
+    for (std::size_t k = 0; k < 5; ++k) {
+        const double w = 2.0 * kPi * kOscHz[k] / sr_;
+        oscDc_[k] = std::cos(w);
+        oscDs_[k] = std::sin(w);
+    }
     initialized_ = false;
     off_ = false;
     gated_ = false;
@@ -551,6 +576,7 @@ void FableEchoDsp::reset() noexcept {
     toneDirty_ = true;
     toneSamples_ = 0;
     tapeClock_ = 0.0;
+    resetDriftOscillators();
     driftL_ = 0.0;
     driftR_ = 0.0;
     gated_ = false;
@@ -603,14 +629,21 @@ void FableEchoDsp::process(float* L, float* R, int n) noexcept {
         hpR_.reset();
         feedbackGuard_.reset();
         tapeClock_ = 0.0;
+        resetDriftOscillators();
         driftL_ = 0.0;
         driftR_ = 0.0;
         tailRemaining_ = 0;
     }
     gated_ = gateNow;
 
+    static constexpr double kCos1_8 = -0.2272020946930871;
+    static constexpr double kSin1_8 = 0.9738476308781951;
+    static constexpr double kMaxModSec = 0.0025 + 0.00022;
+    static constexpr double kFilterMarginSec = 0.005;  // 400 Hz LPF / 45 Hz HPF group delay + Hermite margin
     const double toneCoef = 1.0 - std::exp(-static_cast<double>(kColorTimeCoefChunk) / (0.03 * sr_));
-    const int tailHorizon = static_cast<int>(std::ceil(static_cast<double>(std::max(dlTime_.cur, dlTime_.target)) * sr_)) + 64;
+    const double maxDelaySec = static_cast<double>(std::max(dlTime_.cur, dlTime_.target))
+        + kMaxModSec + kFilterMarginSec;
+    const int tailHorizon = static_cast<int>(std::ceil(maxDelaySec * sr_)) + 64;
 
     int off = 0;
     while (off < n) {
@@ -624,56 +657,72 @@ void FableEchoDsp::process(float* L, float* R, int n) noexcept {
                 dampR_.lowpass(static_cast<double>(tone_), 0.707, sr_);
                 toneDirty_ = (tone_ != toneTarget_);
             }
+            for (std::size_t k = 0; k < 5; ++k) {
+                const double invR = 0.5 * (3.0 - (oscC_[k] * oscC_[k] + oscS_[k] * oscS_[k]));
+                oscC_[k] *= invR;
+                oscS_[k] *= invR;
+            }
             toneSamples_ = kColorTimeCoefChunk;
         }
         const int end = gated_ ? n : std::min(off + toneSamples_, n);
         for (int i = off; i < end; ++i) {
-            float l = sanitize(L[i]);
-            float r = sanitize(R[i]);
+            const double inL = static_cast<double>(sanitize(L[i]));
+            const double inR = static_cast<double>(sanitize(R[i]));
+            double outL = inL;
+            double outR = inR;
             if (!gated_) {
                 const double dt = static_cast<double>(dlTime_.next());
-                const float fb = dlFb_.next();
-                const float wow = dlWow_.next() * 0.0025f;
-                const float flutter = dlFlutter_.next() * 0.00022f;
-                const double t = tapeClock_ / sr_;
-                driftL_ = static_cast<double>(wow) * (0.72 * std::sin(2.0 * kPi * 0.23 * t) + 0.28 * std::sin(2.0 * kPi * 0.37 * t))
-                        + static_cast<double>(flutter) * std::sin(2.0 * kPi * 6.7 * t);
-                driftR_ = static_cast<double>(wow) * (0.72 * std::sin(2.0 * kPi * 0.23 * t + 1.8) + 0.28 * std::sin(2.0 * kPi * 0.41 * t + 0.7))
-                        + static_cast<double>(flutter) * std::sin(2.0 * kPi * 8.3 * t + 1.1);
+                const double fb = static_cast<double>(dlFb_.next());
+                const double wow = static_cast<double>(dlWow_.next()) * 0.0025;
+                const double flutter = static_cast<double>(dlFlutter_.next()) * 0.00022;
+                const double s0 = oscS_[0];
+                const double c0 = oscC_[0];
+                driftL_ = wow * (0.72 * s0 + 0.28 * oscS_[1]) + flutter * oscS_[2];
+                driftR_ = wow * (0.72 * (s0 * kCos1_8 + c0 * kSin1_8) + 0.28 * oscS_[3]) + flutter * oscS_[4];
+                for (std::size_t k = 0; k < 5; ++k) {
+                    const double nc = oscC_[k] * oscDc_[k] - oscS_[k] * oscDs_[k];
+                    const double ns = oscS_[k] * oscDc_[k] + oscC_[k] * oscDs_[k];
+                    oscC_[k] = nc;
+                    oscS_[k] = ns;
+                }
                 tapeClock_ += 1.0;
 
-                const float dL = dlL_.readHermite(std::max(0.005, dt + driftL_) * sr_);
-                const float dR = dlR_.readHermite(std::max(0.005, dt + driftR_) * sr_);
-                if (l != 0.0f || r != 0.0f || std::max(std::abs(dL), std::abs(dR)) > 1.0e-6f) {
+                const double dL = static_cast<double>(dlL_.readHermite(std::max(0.005, dt + driftL_) * sr_));
+                const double dR = static_cast<double>(dlR_.readHermite(std::max(0.005, dt + driftR_) * sr_));
+                if (inL != 0.0 || inR != 0.0 || std::max(std::abs(dL), std::abs(dR)) > 1.0e-6) {
                     tailRemaining_ = tailHorizon;
                 } else if (tailRemaining_ > 0) {
                     --tailRemaining_;
                 }
 
-                const float mono = 0.5f * (l + r);
-                const float mode = dlMode_.next();
-                const float sat = dlSat_.next();
-                const float k = 1.0f + sat * 4.0f;
-                float recL = mono + mode * (l - mono) + fb * (dR + mode * (dL - dR));
-                float recR = mode * r + fb * (dL + mode * (dR - dL));
-                recL += sat * (static_cast<float>(std::tanh(static_cast<double>(k * recL))) / k - recL);
-                recR += sat * (static_cast<float>(std::tanh(static_cast<double>(k * recR))) / k - recR);
-                const float fL = static_cast<float>(dampL_.process(hpL_.process(static_cast<double>(recL))));
-                const float fR = static_cast<float>(dampR_.process(hpR_.process(static_cast<double>(recR))));
-                const double gFb = feedbackGuard_.gainFor(static_cast<double>(fL), static_cast<double>(fR));
-                dlL_.write(fL * static_cast<float>(gFb));
-                dlR_.write(fR * static_cast<float>(gFb));
+                const double mono = 0.5 * (inL + inR);
+                const double mode = static_cast<double>(dlMode_.next());
+                const double sat = static_cast<double>(dlSat_.next());
+                double recL = mono + mode * (inL - mono) + fb * (dR + mode * (dL - dR));
+                double recR = mode * inR + fb * (dL + mode * (dR - dL));
+                if (sat > 0.0) {
+                    const double k = 1.0 + sat * 4.0;
+                    recL += sat * (std::tanh(k * recL) / k - recL);
+                    recR += sat * (std::tanh(k * recR) / k - recR);
+                }
+                recL = std::isfinite(recL) ? std::clamp(recL, -1.0e4, 1.0e4) : 0.0;
+                recR = std::isfinite(recR) ? std::clamp(recR, -1.0e4, 1.0e4) : 0.0;
+                double fL = dampL_.process(hpL_.process(recL));
+                double fR = dampR_.process(hpR_.process(recR));
+                feedbackGuard_.apply(fL, fR);
+                dlL_.write(static_cast<float>(fL));
+                dlR_.write(static_cast<float>(fR));
 
-                const float wet = dlWet_.next();
-                const float dry = dlDry_.next();
-                const float mid = 0.5f * (dL + dR);
-                const float side = 0.5f * (dL - dR) * dlWidth_.next();
-                l = dry * l + wet * (mid + side);
-                r = dry * r + wet * (mid - side);
+                const double wet = static_cast<double>(dlWet_.next());
+                const double dry = static_cast<double>(dlDry_.next());
+                const double mid = 0.5 * (dL + dR);
+                const double side = 0.5 * (dL - dR) * static_cast<double>(dlWidth_.next());
+                outL = dry * inL + wet * (mid + side);
+                outR = dry * inR + wet * (mid - side);
             }
-            const double g = guard_.gainFor(static_cast<double>(l), static_cast<double>(r));
-            L[i] = static_cast<float>(static_cast<double>(l) * g);
-            R[i] = static_cast<float>(static_cast<double>(r) * g);
+            guard_.apply(outL, outR);
+            L[i] = static_cast<float>(outL);
+            R[i] = static_cast<float>(outR);
         }
         if (!gated_) {
             toneSamples_ -= end - off;
@@ -705,20 +754,23 @@ void FableReverbDsp::prepare(double sampleRate) {
     const int steps = std::max(1, static_cast<int>(std::lround(0.015 * sr_ / static_cast<double>(kColorTimeCoefChunk))));
     sizeRamp_.setSteps(steps);
     sizeRamp_.snap(0.5f);
+    dampRamp_.setSteps(steps);
+    dampRamp_.snap(0.5f);
+    typeFadeSamples_ = std::max(1, static_cast<int>(std::lround(0.005 * sr_)));
     guard_.prepare(sr_);
     primed_ = false;
     forceCoefs_ = true;
-    plateDirty_ = true;
     coefSamples_ = 0;
     type_ = 0;
-    damp_ = 0.5f;
+    prevType_ = 0;
+    typeXfLeft_ = 0;
     off_ = false;
     gated_ = false;
     tailRemaining_ = 0;
     reset();
 }
 
-void FableReverbDsp::resetTanks() noexcept {
+void FableReverbDsp::resetRoomTank() noexcept {
     for (auto& c : combL_) {
         c.reset();
     }
@@ -731,7 +783,15 @@ void FableReverbDsp::resetTanks() noexcept {
     for (auto& a : apR_) {
         a.reset();
     }
+}
+
+void FableReverbDsp::resetPlateTank() noexcept {
     plate_.reset();
+}
+
+void FableReverbDsp::resetTanks() noexcept {
+    resetRoomTank();
+    resetPlateTank();
     tailRemaining_ = 0;
 }
 
@@ -741,23 +801,36 @@ void FableReverbDsp::reset() noexcept {
     wet_.snap(wet_.target);
     dry_.snap(dry_.target);
     sizeRamp_.snapToTarget();
+    dampRamp_.snapToTarget();
+    prevType_ = type_;
+    typeXfLeft_ = 0;
     gated_ = false;
     forceCoefs_ = true;
-    plateDirty_ = true;
     coefSamples_ = 0;
 }
 
 void FableReverbDsp::setParams(bool on, float size, float mix, int type, float damp) noexcept {
     sizeRamp_.setTarget(std::clamp(size, 0.0f, 1.0f));
+    dampRamp_.setTarget(std::clamp(damp, 0.0f, 1.0f));
     const int nextType = type > 0 ? 1 : 0;
-    if (nextType != type_) {
+    if (!primed_) {
         type_ = nextType;
-        resetTanks();
-    }
-    const float clampedDamp = std::clamp(damp, 0.0f, 1.0f);
-    if (clampedDamp != damp_) {
-        damp_ = clampedDamp;
-        plateDirty_ = true;
+        prevType_ = nextType;
+        typeXfLeft_ = 0;
+    } else if (nextType != type_) {
+        if (typeXfLeft_ > 0 && nextType == prevType_) {
+            std::swap(prevType_, type_);
+            typeXfLeft_ = typeFadeSamples_ - typeXfLeft_;
+        } else {
+            if (nextType == 1) {
+                resetPlateTank();
+            } else {
+                resetRoomTank();
+            }
+            prevType_ = type_;
+            type_ = nextType;
+            typeXfLeft_ = typeFadeSamples_;
+        }
     }
     off_ = !on;
     const float clampedMix = std::clamp(mix, 0.0f, 1.0f);
@@ -766,15 +839,26 @@ void FableReverbDsp::setParams(bool on, float size, float mix, int type, float d
     if (!primed_) {
         primed_ = true;
         sizeRamp_.snapToTarget();
+        dampRamp_.snapToTarget();
         forceCoefs_ = true;
     }
 }
 
 void FableReverbDsp::advanceCoefs(bool force) noexcept {
-    if (sizeRamp_.next() || force || plateDirty_) {
+    const bool sizeMoved = sizeRamp_.next();
+    const bool dampMoved = dampRamp_.next();
+    if (sizeMoved || dampMoved || force) {
         const float size = sizeRamp_.cur;
+        const float damp = dampRamp_.cur;
         const float roomSize = 0.7f + size * 0.28f;
-        const float fvDamp = 0.4f - size * 0.2f;
+        const double baseDamp = 0.4 - static_cast<double>(size) * 0.2;
+        const double fvDamp48 = damp <= 0.5f
+            ? baseDamp * (static_cast<double>(damp) * 2.0)
+            : baseDamp + (0.85 - baseDamp) * ((static_cast<double>(damp) - 0.5) * 2.0);
+        const double scaledDamp = (fvDamp48 > 0.0)
+            ? (std::abs(sr_ - 48000.0) < 1.0e-6 ? fvDamp48 : std::pow(fvDamp48, 48000.0 / sr_))
+            : 0.0;
+        const float fvDamp = static_cast<float>(std::clamp(scaledDamp, 0.0, 0.995));
         for (std::size_t i = 0; i < 8; ++i) {
             combL_[i].feedback = roomSize;
             combR_[i].feedback = roomSize;
@@ -783,9 +867,31 @@ void FableReverbDsp::advanceCoefs(bool force) noexcept {
             combL_[i].damp2 = 1.0f - fvDamp;
             combR_[i].damp2 = 1.0f - fvDamp;
         }
-        plate_.setParams(static_cast<double>(size), static_cast<double>(damp_));
-        plateDirty_ = false;
+        plate_.setParams(static_cast<double>(size), static_cast<double>(damp));
     }
+}
+
+void FableReverbDsp::processRoomSample(double inL, double inR, double& outL, double& outR) noexcept {
+    const float input = static_cast<float>(std::clamp((inL + inR) * 0.015, -1.0e4, 1.0e4));
+    float rL = 0.0f;
+    float rR = 0.0f;
+    for (std::size_t c = 0; c < 8; ++c) {
+        rL += combL_[c].process(input);
+        rR += combR_[c].process(input);
+    }
+    for (std::size_t a = 0; a < 4; ++a) {
+        rL = apL_[a].process(rL);
+        rR = apR_[a].process(rR);
+    }
+    outL = static_cast<double>(rL);
+    outR = static_cast<double>(rR);
+}
+
+void FableReverbDsp::processPlateSample(double inL, double inR, double& outL, double& outR) noexcept {
+    const double mono = std::clamp((inL + inR) * 0.5, -1.0e4, 1.0e4);
+    plate_.process(mono);
+    outL = static_cast<double>(static_cast<float>(plate_.outL) * kPlateGain);
+    outR = static_cast<double>(static_cast<float>(plate_.outR) * kPlateGain);
 }
 
 void FableReverbDsp::process(float* L, float* R, int n) noexcept {
@@ -797,6 +903,8 @@ void FableReverbDsp::process(float* L, float* R, int n) noexcept {
         wet_.snap(0.0f);
         dry_.snap(1.0f);
         resetTanks();
+        typeXfLeft_ = 0;
+        prevType_ = type_;
     }
     gated_ = gateNow;
 
@@ -814,39 +922,54 @@ void FableReverbDsp::process(float* L, float* R, int n) noexcept {
         }
         const int end = std::min(off + coefSamples_, n);
         for (int i = off; i < end; ++i) {
-            float l = sanitize(L[i]);
-            float r = sanitize(R[i]);
+            const double inL = static_cast<double>(sanitize(L[i]));
+            const double inR = static_cast<double>(sanitize(R[i]));
+            double outL = inL;
+            double outR = inR;
             if (!gated_) {
-                float outL = 0.0f;
-                float outR = 0.0f;
-                if (type_ == 1) {
-                    plate_.process((static_cast<double>(l) + static_cast<double>(r)) * 0.5);
-                    outL = static_cast<float>(plate_.outL) * kPlateGain;
-                    outR = static_cast<float>(plate_.outR) * kPlateGain;
+                double wetL = 0.0;
+                double wetR = 0.0;
+                if (typeXfLeft_ > 0) {
+                    double prevL = 0.0;
+                    double prevR = 0.0;
+                    double nextL = 0.0;
+                    double nextR = 0.0;
+                    if (prevType_ == 1) {
+                        processPlateSample(inL, inR, prevL, prevR);
+                        processRoomSample(inL, inR, nextL, nextR);
+                    } else {
+                        processRoomSample(inL, inR, prevL, prevR);
+                        processPlateSample(inL, inR, nextL, nextR);
+                    }
+                    const double alpha = 1.0 - static_cast<double>(typeXfLeft_) / static_cast<double>(typeFadeSamples_);
+                    wetL = prevL + alpha * (nextL - prevL);
+                    wetR = prevR + alpha * (nextR - prevR);
+                    if (--typeXfLeft_ == 0) {
+                        if (prevType_ == 1) {
+                            resetPlateTank();
+                        } else {
+                            resetRoomTank();
+                        }
+                        prevType_ = type_;
+                    }
+                } else if (type_ == 1) {
+                    processPlateSample(inL, inR, wetL, wetR);
                 } else {
-                    const float input = (l + r) * 0.015f;
-                    for (std::size_t c = 0; c < 8; ++c) {
-                        outL += combL_[c].process(input);
-                        outR += combR_[c].process(input);
-                    }
-                    for (std::size_t a = 0; a < 4; ++a) {
-                        outL = apL_[a].process(outL);
-                        outR = apR_[a].process(outR);
-                    }
+                    processRoomSample(inL, inR, wetL, wetR);
                 }
-                if (l != 0.0f || r != 0.0f || std::max(std::abs(outL), std::abs(outR)) > 1.0e-6f) {
+                if (inL != 0.0 || inR != 0.0 || std::max(std::abs(wetL), std::abs(wetR)) > 1.0e-6) {
                     tailRemaining_ = tailWindow;
                 } else if (tailRemaining_ > 0) {
                     --tailRemaining_;
                 }
-                const float wet = wet_.next();
-                const float dry = dry_.next();
-                l = dry * l + wet * outL;
-                r = dry * r + wet * outR;
+                const double wet = static_cast<double>(wet_.next());
+                const double dry = static_cast<double>(dry_.next());
+                outL = dry * inL + wet * wetL;
+                outR = dry * inR + wet * wetR;
             }
-            const double g = guard_.gainFor(static_cast<double>(l), static_cast<double>(r));
-            L[i] = static_cast<float>(static_cast<double>(l) * g);
-            R[i] = static_cast<float>(static_cast<double>(r) * g);
+            guard_.apply(outL, outR);
+            L[i] = static_cast<float>(outL);
+            R[i] = static_cast<float>(outR);
         }
         coefSamples_ -= end - off;
         off = end;

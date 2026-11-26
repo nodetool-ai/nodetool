@@ -63,7 +63,7 @@ void ParametricEq::setParams(const std::array<float, kParamCount>& p) noexcept {
             ? std::clamp(p[static_cast<std::size_t>(k[1])], -15.0f, 15.0f)
             : 0.0f;
         const float q = std::clamp(p[static_cast<std::size_t>(k[2])], 0.2f, 12.0f);
-        const int type = std::clamp(static_cast<int>(p[static_cast<std::size_t>(k[3])]), 0, 2);
+        const int type = std::clamp(static_cast<int>(std::lround(p[static_cast<std::size_t>(k[3])])), 0, 2);
         if (!primed_) {
             b.freq.snap(f);
             b.gain.snap(g);
@@ -97,13 +97,14 @@ void ParametricEq::process(float* L, float* R, int n) noexcept {
                 bool changed = b.freq.next();
                 changed |= b.gain.next();
                 changed |= b.q.next();
-                if (!(changed || b.dirty)) {
+                const bool wantTypeSwitch = (b.type != b.pendingType) && (b.xfLeft == 0);
+                if (!(changed || b.dirty || wantTypeSwitch)) {
                     continue;
                 }
                 const double f = std::exp2(static_cast<double>(b.freq.cur));
                 const double q = static_cast<double>(b.q.cur);
                 const double g = static_cast<double>(b.gain.cur);
-                if (b.type != b.pendingType) {
+                if (wantTypeSwitch) {
                     b.oldL.copyFrom(b.l);
                     b.oldR.copyFrom(b.r);
                     b.type = b.pendingType;
@@ -118,7 +119,8 @@ void ParametricEq::process(float* L, float* R, int n) noexcept {
                         filter->peaking(f, q, g, sr_);
                     }
                 }
-                b.dirty = false;
+                // Remain dirty if a rapid type switch is waiting for the active crossfade to finish.
+                b.dirty = (b.type != b.pendingType);
             }
         }
         const float wet = wet_.next();
@@ -135,8 +137,10 @@ void ParametricEq::process(float* L, float* R, int n) noexcept {
             }
             continue;
         }
-        double l = static_cast<double>(L[i]);
-        double r = static_cast<double>(R[i]);
+        const double dryL = static_cast<double>(L[i]);
+        const double dryR = static_cast<double>(R[i]);
+        double l = dryL;
+        double r = dryR;
         for (auto& b : bands_) {
             const double inL = l;
             const double inR = r;
@@ -154,15 +158,18 @@ void ParametricEq::process(float* L, float* R, int n) noexcept {
                 r = newR;
             }
         }
-        L[i] += wet * (static_cast<float>(l) - L[i]);
-        R[i] += wet * (static_cast<float>(r) - R[i]);
-        guard_.process(L + i, R + i, 1);
+        double outL = dryL + static_cast<double>(wet) * (l - dryL);
+        double outR = dryR + static_cast<double>(wet) * (r - dryR);
+        guard_.apply(outL, outR);
+        L[i] = static_cast<float>(outL);
+        R[i] = static_cast<float>(outR);
     }
 }
 
 bool ParametricEq::hasPendingOutput() const noexcept {
+    constexpr double kTailFloor = 1.0e-6;
     for (const auto& b : bands_) {
-        if (b.l.hasState() || b.r.hasState() || b.xfLeft > 0) {
+        if (b.l.hasState(kTailFloor) || b.r.hasState(kTailFloor) || b.xfLeft > 0) {
             return true;
         }
     }

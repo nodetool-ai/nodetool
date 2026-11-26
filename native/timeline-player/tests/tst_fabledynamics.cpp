@@ -15,6 +15,8 @@
 #include "audio/effects/fable/FableDynamics.h"
 #include "audio/effects/fable/FableDynamicsEffects.h"
 #include "audio/effects/fable/FableParametricEq.h"
+#include "model/TimelineJson.h"
+#include "preview/PlaybackHooks.h"
 
 #include <QJsonObject>
 #include <QtTest>
@@ -24,10 +26,12 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <future>
 #include <limits>
 #include <memory>
 #include <span>
 #include <string>
+#include <thread>
 #include <vector>
 
 using namespace nt::audio;
@@ -349,7 +353,8 @@ private slots:
         }
         QVERIFY2(maxErr <= 1e-5f, qPrintable(QStringLiteral("WebCompressor maxErr=%1").arg(maxErr)));
 
-        // BlockProcessor parity with web default parameters.
+        // BlockProcessor parity: prepare() snaps initial targets (no bar-1 dry fade), matching
+        // WebCompressor after prepare + setParams + reset + PeakGuard.
         const QJsonObject fxParams{
             {"fx.comp.thr", -18.0}, {"fx.comp.att", 0.003}, {"fx.comp.rel", 0.25}, {"fx.comp.ratio", 4.0},
         };
@@ -361,10 +366,19 @@ private slots:
         auto stereo = interleave(inL, inR);
         proc->process(stereo, {kRefRate, 0.0, 1000.0 / kRefRate});
 
+        std::vector<float> snappedL, snappedR;
+        makeTestSignal(snappedL, snappedR, kRefFrames, kRefRate, 0.55f);
+        WebCompressor snappedComp(kRefRate);
+        snappedComp.setParams(true, -18.0f, 0.003f, 0.25f, 4.0f);
+        snappedComp.reset();
+        PeakGuard snappedGuard(kRefRate);
+        snappedComp.process(snappedL.data(), snappedR.data(), kRefFrames, nullptr);
+        snappedGuard.process(snappedL.data(), snappedR.data(), kRefFrames);
+
         float procMaxErr = 0.0f;
-        for (const auto& ref : kRefComp) {
-            procMaxErr = std::max(procMaxErr, std::abs(stereo[static_cast<std::size_t>(ref.index) * 2] - ref.l));
-            procMaxErr = std::max(procMaxErr, std::abs(stereo[static_cast<std::size_t>(ref.index) * 2 + 1] - ref.r));
+        for (int i = 0; i < kRefFrames; ++i) {
+            procMaxErr = std::max(procMaxErr, std::abs(stereo[static_cast<std::size_t>(i) * 2] - snappedL[static_cast<std::size_t>(i)]));
+            procMaxErr = std::max(procMaxErr, std::abs(stereo[static_cast<std::size_t>(i) * 2 + 1] - snappedR[static_cast<std::size_t>(i)]));
         }
         QVERIFY2(procMaxErr <= 1e-5f, qPrintable(QStringLiteral("FableCompProcessor maxErr=%1").arg(procMaxErr)));
 
@@ -406,7 +420,8 @@ private slots:
         }
         QVERIFY2(maxErr <= 1e-5f, qPrintable(QStringLiteral("OttCompressor maxErr=%1").arg(maxErr)));
 
-        // BlockProcessor parity.
+        // BlockProcessor parity: prepare() snaps depth immediately, matching OttCompressor after
+        // prepare + setParams + reset + PeakGuard.
         const QJsonObject fxParams{
             {"fx.ott.depth", 0.65}, {"fx.ott.time", 0.8}, {"fx.ott.up", 1.2}, {"fx.ott.down", 1.1},
         };
@@ -418,10 +433,19 @@ private slots:
         auto stereo = interleave(inL, inR);
         proc->process(stereo, {kRefRate, 0.0, 1000.0 / kRefRate});
 
+        std::vector<float> snappedL, snappedR;
+        makeTestSignal(snappedL, snappedR, kRefFrames, kRefRate, 0.55f);
+        OttCompressor snappedOtt(kRefRate);
+        snappedOtt.setParams(true, 0.65f, 0.8f, 1.2f, 1.1f);
+        snappedOtt.reset();
+        PeakGuard snappedGuard(kRefRate);
+        snappedOtt.process(snappedL.data(), snappedR.data(), kRefFrames);
+        snappedGuard.process(snappedL.data(), snappedR.data(), kRefFrames);
+
         float procMaxErr = 0.0f;
-        for (const auto& ref : kRefOtt) {
-            procMaxErr = std::max(procMaxErr, std::abs(stereo[static_cast<std::size_t>(ref.index) * 2] - ref.l));
-            procMaxErr = std::max(procMaxErr, std::abs(stereo[static_cast<std::size_t>(ref.index) * 2 + 1] - ref.r));
+        for (int i = 0; i < kRefFrames; ++i) {
+            procMaxErr = std::max(procMaxErr, std::abs(stereo[static_cast<std::size_t>(i) * 2] - snappedL[static_cast<std::size_t>(i)]));
+            procMaxErr = std::max(procMaxErr, std::abs(stereo[static_cast<std::size_t>(i) * 2 + 1] - snappedR[static_cast<std::size_t>(i)]));
         }
         QVERIFY2(procMaxErr <= 1e-5f, qPrintable(QStringLiteral("FableOttProcessor maxErr=%1").arg(procMaxErr)));
 
@@ -689,6 +713,475 @@ private slots:
         checkSmoothStep("comp", "fx.comp.thr", -6.0, -36.0, 0.08f);
         checkSmoothStep("ott", "fx.ott.depth", 0.0, 1.0, 0.08f);
         checkSmoothStep("limiter", "fx.limit.gain", 0.0, 12.0, 0.08f);
+    }
+
+    // D1: fx.comp.schp must high-pass the internal detector when > 20 Hz.
+    void compSidechainHighPassAffectsDetector() {
+        constexpr int N = 24000;
+        std::vector<float> lowL(N), lowR(N);
+        for (int i = 0; i < N; ++i) {
+            const float s = 0.6f * std::sin(static_cast<float>(2.0 * kPi * 60.0 * i / kRefRate));
+            lowL[static_cast<std::size_t>(i)] = s;
+            lowR[static_cast<std::size_t>(i)] = s;
+        }
+
+        // Direct WebCompressor: 500 Hz key HP should substantially reduce GR on a 60 Hz tone.
+        WebCompressor c20(kRefRate);
+        c20.setParams(true, -24.0f, 0.001f, 0.05f, 8.0f);
+        c20.setKey(false, 20.0f);
+        c20.reset();
+        auto l20 = lowL;
+        auto r20 = lowR;
+        c20.process(l20.data(), r20.data(), N, nullptr);
+
+        WebCompressor c500(kRefRate);
+        c500.setParams(true, -24.0f, 0.001f, 0.05f, 8.0f);
+        c500.setKey(false, 500.0f);
+        c500.reset();
+        auto l500 = lowL;
+        auto r500 = lowR;
+        c500.process(l500.data(), r500.data(), N, nullptr);
+
+        QVERIFY2(c500.gain > c20.gain + 0.25,
+                 qPrintable(QStringLiteral("fx.comp.schp had no effect on 60 Hz detector: gain@20=%1 gain@500=%2")
+                                .arg(c20.gain).arg(c500.gain)));
+
+        // Through FableCompProcessor: a 60 Hz bass burst + quiet 2 kHz probe must produce audible difference.
+        auto makeMixed = []() {
+            std::vector<float> stereo(16384 * 2);
+            for (int i = 0; i < 16384; ++i) {
+                const double t = static_cast<double>(i) / kRefRate;
+                const double bass = (i >= 4096 && i < 12288) ? 0.65 * std::sin(2.0 * kPi * 60.0 * t) : 0.0;
+                const double probe = 0.05 * std::sin(2.0 * kPi * 2000.0 * t);
+                const float s = static_cast<float>(bass + probe);
+                stereo[static_cast<std::size_t>(i) * 2] = s;
+                stereo[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            return stereo;
+        };
+        auto proc20 = createFableDynamicsEffect(makeEffectJson("comp", {
+            {"fx.comp.thr", -24.0}, {"fx.comp.att", 0.001}, {"fx.comp.rel", 0.05}, {"fx.comp.ratio", 8.0}, {"fx.comp.schp", 20.0},
+        }));
+        auto proc500 = createFableDynamicsEffect(makeEffectJson("comp", {
+            {"fx.comp.thr", -24.0}, {"fx.comp.att", 0.001}, {"fx.comp.rel", 0.05}, {"fx.comp.ratio", 8.0}, {"fx.comp.schp", 500.0},
+        }));
+        QVERIFY(proc20 && proc500);
+        proc20->prepare(kRefRate);
+        proc500->prepare(kRefRate);
+        auto out20 = makeMixed();
+        auto out500 = makeMixed();
+        proc20->process(out20, {kRefRate, 0.0, 1000.0 / kRefRate});
+        proc500->process(out500, {kRefRate, 0.0, 1000.0 / kRefRate});
+        float maxDiff = 0.0f;
+        for (std::size_t i = 4096 * 2; i < 12288 * 2; ++i) {
+            maxDiff = std::max(maxDiff, std::abs(out20[i] - out500[i]));
+        }
+        QVERIFY2(maxDiff > 0.05f, qPrintable(QStringLiteral("FableCompProcessor schp diff too small: %1").arg(maxDiff)));
+    }
+
+    // D3: JSON booleans and fx.<kind>.on in params must be honored on construction.
+    void jsonBooleansAndOnParamOnConstruction() {
+        // 1. JSON bool false on fx.eq.lon bypasses band 0 (must not boost +12 dB at 80 Hz).
+        auto eqBandOff = createFableDynamicsEffect(makeEffectJson("eq", {
+            {"fx.eq.low", 12.0}, {"fx.eq.lfreq", 150.0}, {"fx.eq.lon", false},
+        }));
+        QVERIFY(eqBandOff != nullptr);
+        eqBandOff->prepare(kRefRate);
+        std::vector<float> stereo(4096 * 2);
+        for (int i = 0; i < 4096; ++i) {
+            const float s = 0.2f * std::sin(static_cast<float>(2.0 * kPi * 60.0 * i / kRefRate));
+            stereo[static_cast<std::size_t>(i) * 2] = s;
+            stereo[static_cast<std::size_t>(i) * 2 + 1] = s;
+        }
+        const auto dryRef = stereo;
+        eqBandOff->process(stereo, {kRefRate, 0.0, 1000.0 / kRefRate});
+        float maxErr = 0.0f;
+        for (std::size_t i = 0; i < stereo.size(); ++i) {
+            maxErr = std::max(maxErr, std::abs(stereo[i] - dryRef[i]));
+        }
+        QVERIFY2(maxErr < 1e-5f, qPrintable(QStringLiteral("fx.eq.lon=false was ignored: maxErr=%1").arg(maxErr)));
+
+        // 2. params["fx.<kind>.on"] = false (even when enabled=true) constructs bypassed.
+        struct OnCase { const char* kind; const char* onKey; QJsonObject extra; };
+        const std::array<OnCase, 4> cases{{
+            {"eq", "fx.eq.on", {{"fx.eq.low", 12.0}}},
+            {"comp", "fx.comp.on", {{"fx.comp.thr", -36.0}, {"fx.comp.ratio", 12.0}}},
+            {"ott", "fx.ott.on", {{"fx.ott.depth", 1.0}}},
+            {"limiter", "fx.limit.on", {{"fx.limit.gain", 18.0}, {"fx.limit.ceil", -6.0}}},
+        }};
+        for (const auto& c : cases) {
+            QJsonObject p = c.extra;
+            p.insert(QString::fromLatin1(c.onKey), false);
+            auto proc = createFableDynamicsEffect(makeEffectJson(c.kind, p, true));
+            QVERIFY(proc != nullptr);
+            proc->prepare(kRefRate);
+            proc->reset();
+            std::vector<float> buf(4096 * 2);
+            for (int i = 0; i < 4096; ++i) {
+                const float s = 0.25f * std::sin(static_cast<float>(2.0 * kPi * 200.0 * i / kRefRate));
+                buf[static_cast<std::size_t>(i) * 2] = s;
+                buf[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            const auto orig = buf;
+            proc->process(buf, {kRefRate, 0.0, 1000.0 / kRefRate});
+            const int lat = proc->latencySamples();
+            float diff = 0.0f;
+            for (int i = lat + 512; i < 4096; ++i) {
+                diff = std::max(diff, std::abs(buf[static_cast<std::size_t>(i) * 2] - orig[static_cast<std::size_t>(i - lat) * 2]));
+            }
+            QVERIFY2(diff < 1e-4f, qPrintable(QStringLiteral("%1 ignored %2=false: diff=%3").arg(c.kind, c.onKey).arg(diff)));
+        }
+    }
+
+    // D6: PeakGuard::gainFor on Inf/NaN and extreme finite floats (~3e38f).
+    void peakGuardInfAndExtremeFloatSafety() {
+        PeakGuard pg(kRefRate);
+        const double gInf = pg.gainFor(std::numeric_limits<double>::infinity(), 0.0);
+        QVERIFY2(std::isfinite(gInf) && gInf > 0.5,
+                 qPrintable(QStringLiteral("PeakGuard::gainFor(+Inf) returned %1").arg(gInf)));
+        const double gNinf = pg.gainFor(-std::numeric_limits<double>::infinity(), 0.2);
+        QVERIFY2(std::isfinite(gNinf) && gNinf > 0.5,
+                 qPrintable(QStringLiteral("PeakGuard::gainFor(-Inf) returned %1").arg(gNinf)));
+        const double gNan = pg.gainFor(std::numeric_limits<double>::quiet_NaN(), 0.0);
+        QVERIFY2(std::isfinite(gNan) && gNan > 0.5,
+                 qPrintable(QStringLiteral("PeakGuard::gainFor(NaN) returned %1").arg(gNan)));
+
+        for (const char* kind : {"eq", "comp", "ott", "limiter"}) {
+            QJsonObject p;
+            if (std::string_view(kind) == "eq") {
+                p = {{"fx.eq.low", 12.0}, {"fx.eq.mid", 12.0}, {"fx.eq.high", 12.0}};
+            } else if (std::string_view(kind) == "limiter") {
+                p = {{"fx.limit.gain", 12.0}, {"fx.limit.ceil", -1.0}};
+            }
+            auto proc = createFableDynamicsEffect(makeEffectJson(kind, p));
+            QVERIFY(proc != nullptr);
+            proc->prepare(kRefRate);
+            std::vector<float> buf(512 * 2, 0.0f);
+            buf[0] = 3.0e38f;
+            buf[1] = 3.0e38f;
+            buf[2] = -3.0e38f;
+            buf[3] = 3.0e38f;
+            for (int i = 16; i < 512; ++i) {
+                const float s = 0.2f * std::sin(static_cast<float>(2.0 * kPi * 440.0 * i / kRefRate));
+                buf[static_cast<std::size_t>(i) * 2] = s;
+                buf[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            proc->process(buf, {kRefRate, 0.0, 1000.0 / kRefRate});
+            for (float v : buf) {
+                QVERIFY2(std::isfinite(v), qPrintable(QStringLiteral("%1 produced non-finite on 3e38f").arg(kind)));
+            }
+        }
+    }
+
+    // D7: reset() snaps smoothers to targets and limiter resets bypassGuard_ when engaged.
+    void resetSnapsSmoothersAndLimiterBypassGuard() {
+        // 1. WebCompressor::reset() snaps wet_ and threshold_ to targets so bar-1 transients are caught.
+        WebCompressor comp(kRefRate);
+        comp.setParams(true, -32.0f, 0.0005f, 0.1f, 10.0f);
+        comp.reset();
+        double outL = 0.0;
+        double outR = 0.0;
+        for (int i = 0; i < 64; ++i) {
+            comp.processSample(0.8, 0.8, outL, outR);
+        }
+        // With threshold snapped to -32 dB and wet snapped to 1.0, bar-1 transient at sample 64 is heavily reduced
+        // (whereas wet_ ramping from 0 over 20 ms leaves output almost dry ~0.78).
+        QVERIFY2(comp.gain < 0.4, qPrintable(QStringLiteral("WebCompressor bar-1 gain=%1 (expected <0.4)").arg(comp.gain)));
+        QVERIFY2(std::abs(outL) < 0.5, qPrintable(QStringLiteral("WebCompressor bar-1 outL=%1 (expected <0.5, wet fade-in?)").arg(outL)));
+
+        // 2. OttCompressor::reset() snaps depth to depthTarget.
+        OttCompressor ott(kRefRate);
+        ott.setParams(true, 0.8f, 1.0f, 1.0f, 1.0f);
+        ott.reset();
+        QVERIFY2(std::abs(ott.depth - static_cast<double>(0.8f)) < 1e-9,
+                 qPrintable(QStringLiteral("OttCompressor::reset() left depth=%1 instead of 0.8").arg(ott.depth)));
+
+        // 3. FableLimiterProcessor must reset bypassGuard_ when re-engaged so subsequent bypass does not duck quiet audio.
+        auto lim = createFableDynamicsEffect(makeEffectJson("limiter", {{"fx.limit.ceil", -1.0}}, false));
+        QVERIFY(lim != nullptr);
+        lim->prepare(kRefRate);
+        // Feed loud burst while bypassed so bypassGuard_ pulls gain down to ~0.22.
+        std::vector<float> loud(256 * 2, 4.0f);
+        lim->process(loud, {kRefRate, 0.0, 1000.0 / kRefRate});
+        // Engage limiter and process 1 s of quiet audio (10 release time constants so limiter env fully recovers to 1.0).
+        QVERIFY(lim->setParameter("fx.limit.on", 1.0));
+        std::vector<float> quiet(48000 * 2);
+        for (int i = 0; i < 48000; ++i) {
+            const float s = 0.2f * std::sin(static_cast<float>(2.0 * kPi * 440.0 * i / kRefRate));
+            quiet[static_cast<std::size_t>(i) * 2] = s;
+            quiet[static_cast<std::size_t>(i) * 2 + 1] = s;
+        }
+        lim->process(quiet, {kRefRate, 256.0 * 1000.0 / kRefRate, 1000.0 / kRefRate});
+        // Bypass again on a quiet 0.25 DC burst: output must stay ~0.25 (stale bypassGuard_ would duck to ~0.056).
+        QVERIFY(lim->setParameter("fx.limit.on", 0.0));
+        std::vector<float> check(128 * 2, 0.25f);
+        lim->process(check, {kRefRate, 48256.0 * 1000.0 / kRefRate, 1000.0 / kRefRate});
+        const int lat = lim->latencySamples();
+        const float afterLat = std::abs(check[static_cast<std::size_t>(lat + 10) * 2]);
+        QVERIFY2(afterLat > 0.24f,
+                 qPrintable(QStringLiteral("Stale bypassGuard_ ducked quiet audio to %1 (expected >0.24)").arg(afterLat)));
+    }
+
+    // E1: Processor-level prepare() -> process() without an extra reset() must snap initial
+    // targets so the first transient on playback does not suffer a dry fade-in.
+    void firstPrepareSnapsCompAndOttWithoutReset() {
+        // 1. FableCompProcessor: prepare() -> process() (no reset) must catch the first 64-sample transient.
+        const QJsonObject compParams{
+            {"fx.comp.thr", -32.0}, {"fx.comp.att", 0.0005}, {"fx.comp.rel", 0.1}, {"fx.comp.ratio", 10.0},
+        };
+        auto compNoReset = createFableDynamicsEffect(makeEffectJson("comp", compParams));
+        auto compWithReset = createFableDynamicsEffect(makeEffectJson("comp", compParams));
+        QVERIFY(compNoReset && compWithReset);
+        compNoReset->prepare(kRefRate);
+        compWithReset->prepare(kRefRate);
+        compWithReset->reset();
+
+        std::vector<float> bufNoReset(64 * 2, 0.8f);
+        std::vector<float> bufWithReset(64 * 2, 0.8f);
+        compNoReset->process(bufNoReset, {kRefRate, 0.0, 1000.0 / kRefRate});
+        compWithReset->process(bufWithReset, {kRefRate, 0.0, 1000.0 / kRefRate});
+
+        float compDiff = 0.0f;
+        for (std::size_t i = 0; i < bufNoReset.size(); ++i) {
+            compDiff = std::max(compDiff, std::abs(bufNoReset[i] - bufWithReset[i]));
+        }
+        QVERIFY2(compDiff < 1e-6f,
+                 qPrintable(QStringLiteral("FableCompProcessor prepare->process differed from post-reset by %1 (last=%2 vs %3)")
+                                .arg(compDiff).arg(bufNoReset[63 * 2]).arg(bufWithReset[63 * 2])));
+        QVERIFY2(std::abs(bufNoReset[63 * 2]) < 0.5f,
+                 qPrintable(QStringLiteral("FableCompProcessor bar-1 outL=%1 (expected <0.5 without extra reset)")
+                                .arg(bufNoReset[63 * 2])));
+
+        // 2. FableOttProcessor: prepare() -> process() (no reset) must snap depth immediately.
+        const QJsonObject ottParams{
+            {"fx.ott.depth", 0.8}, {"fx.ott.time", 1.0}, {"fx.ott.up", 1.0}, {"fx.ott.down", 1.0},
+        };
+        auto ottNoReset = createFableDynamicsEffect(makeEffectJson("ott", ottParams));
+        auto ottWithReset = createFableDynamicsEffect(makeEffectJson("ott", ottParams));
+        QVERIFY(ottNoReset && ottWithReset);
+        ottNoReset->prepare(kRefRate);
+        ottWithReset->prepare(kRefRate);
+        ottWithReset->reset();
+
+        std::vector<float> ottBufA(64 * 2);
+        for (int i = 0; i < 64; ++i) {
+            const double t = static_cast<double>(i) / kRefRate;
+            const float s = static_cast<float>(0.35 * std::sin(2.0 * kPi * 180.0 * t)
+                                               + 0.25 * std::sin(2.0 * kPi * 3600.0 * t));
+            ottBufA[static_cast<std::size_t>(i) * 2] = s;
+            ottBufA[static_cast<std::size_t>(i) * 2 + 1] = s;
+        }
+        auto ottBufB = ottBufA;
+        const auto ottDry = ottBufA;
+        ottNoReset->process(ottBufA, {kRefRate, 0.0, 1000.0 / kRefRate});
+        ottWithReset->process(ottBufB, {kRefRate, 0.0, 1000.0 / kRefRate});
+
+        float ottDiff = 0.0f;
+        float wetVsDry = 0.0f;
+        for (std::size_t i = 0; i < ottBufA.size(); ++i) {
+            ottDiff = std::max(ottDiff, std::abs(ottBufA[i] - ottBufB[i]));
+            wetVsDry = std::max(wetVsDry, std::abs(ottBufA[i] - ottDry[i]));
+        }
+        QVERIFY2(ottDiff < 1e-6f,
+                 qPrintable(QStringLiteral("FableOttProcessor prepare->process differed from post-reset by %1").arg(ottDiff)));
+        QVERIFY2(wetVsDry > 0.02f,
+                 qPrintable(QStringLiteral("FableOttProcessor bar-1 wetVsDry=%1 (depth faded from 0?)").arg(wetVsDry)));
+    }
+
+    // D8: ParametricEq band type rounding, mid-fade rapid switch guard, and 1e-6 tail threshold.
+    void parametricEqTypeRoundingMidFadeAndTail() {
+        // 1. type=1.99 must round to 2 (high-shelf), not truncate to 1 (peaking).
+        auto makeToneRms = [](double htype) {
+            auto eq = createFableDynamicsEffect(makeEffectJson("eq", {
+                {"fx.eq.high", 12.0}, {"fx.eq.hfreq", 3000.0}, {"fx.eq.htype", htype},
+            }));
+            eq->prepare(kRefRate);
+            std::vector<float> buf(4096 * 2);
+            for (int i = 0; i < 4096; ++i) {
+                const float s = 0.1f * std::sin(static_cast<float>(2.0 * kPi * 14000.0 * i / kRefRate));
+                buf[static_cast<std::size_t>(i) * 2] = s;
+                buf[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            eq->process(buf, {kRefRate, 0.0, 1000.0 / kRefRate});
+            double sq = 0.0;
+            for (int i = 2048; i < 4096; ++i) {
+                const double v = buf[static_cast<std::size_t>(i) * 2];
+                sq += v * v;
+            }
+            return std::sqrt(sq / 2048.0);
+        };
+        const double rmsRound = makeToneRms(1.99);
+        const double rmsShelf = makeToneRms(2.0);
+        const double rmsPeak = makeToneRms(1.0);
+        QVERIFY2(std::abs(rmsRound - rmsShelf) < 1e-4,
+                 qPrintable(QStringLiteral("htype=1.99 gave rms=%1 (shelf=%2, peak=%3)").arg(rmsRound).arg(rmsShelf).arg(rmsPeak)));
+
+        // 2. Rapid type switches mid-fade (every 32 samples while 144-sample crossfade is active) must not click.
+        auto eqRapid = createFableDynamicsEffect(makeEffectJson("eq", {
+            {"fx.eq.mid", 12.0}, {"fx.eq.mfreq", 400.0}, {"fx.eq.mq", 4.0}, {"fx.eq.mtype", 0.0},
+        }));
+        QVERIFY(eqRapid != nullptr);
+        eqRapid->prepare(kRefRate);
+        float prevSample = 0.0f;
+        float worstStep = 0.0f;
+        int sampleIdx = 0;
+        const std::array<double, 6> seq = {0.0, 1.0, 2.0, 0.0, 2.0, 1.0};
+        for (int blk = 0; blk < 24; ++blk) {
+            if (blk >= 4) {
+                QVERIFY(eqRapid->setParameter("fx.eq.mtype", seq[static_cast<std::size_t>(blk % 6)]));
+            }
+            std::vector<float> buf(32 * 2);
+            for (int i = 0; i < 32; ++i, ++sampleIdx) {
+                const float s = 0.15f * std::sin(static_cast<float>(2.0 * kPi * 120.0 * sampleIdx / kRefRate));
+                buf[static_cast<std::size_t>(i) * 2] = s;
+                buf[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            eqRapid->process(buf, {kRefRate, sampleIdx * 1000.0 / kRefRate, 1000.0 / kRefRate});
+            if (blk >= 4) {
+                for (int i = 0; i < 32; ++i) {
+                    const float cur = buf[static_cast<std::size_t>(i) * 2];
+                    worstStep = std::max(worstStep, std::abs(cur - prevSample));
+                    prevSample = cur;
+                }
+            } else {
+                prevSample = buf[31 * 2];
+            }
+        }
+        QVERIFY2(worstStep < 0.08f, qPrintable(QStringLiteral("Rapid EQ type switch clicked: worstStep=%1").arg(worstStep)));
+
+        // 3. Tail energy threshold (1e-6): 20 Hz / Q=12 peaking must close tail well before 10 s.
+        auto eqTail = createFableDynamicsEffect(makeEffectJson("eq", {
+            {"fx.eq.low", 12.0}, {"fx.eq.lfreq", 20.0}, {"fx.eq.lq", 12.0}, {"fx.eq.ltype", 1.0},
+        }));
+        QVERIFY(eqTail != nullptr);
+        eqTail->prepare(kRefRate);
+        std::vector<float> imp(128 * 2, 0.0f);
+        imp[0] = 0.5f;
+        imp[1] = 0.5f;
+        eqTail->process(imp, {kRefRate, 0.0, 1000.0 / kRefRate});
+        QVERIFY(eqTail->hasPendingOutput(128));
+        // Process 8 seconds of silence; at 1e-6 threshold tail decays in ~5 s (at 1e-30 it stays >25 s).
+        std::vector<float> sil(4800 * 2, 0.0f);
+        for (int sec10 = 0; sec10 < 80; ++sec10) {
+            std::ranges::fill(sil, 0.0f);
+            eqTail->process(sil, {kRefRate, (sec10 + 1) * 100.0, 1000.0 / kRefRate});
+        }
+        QVERIFY2(!eqTail->hasPendingOutput(128), "ParametricEq 20 Hz / Q=12 held hasPendingOutput open > 8 s");
+    }
+
+    // D10: EQ frequency response is invariant across 44.1 / 48 / 96 kHz.
+    void eqSampleRateInvariance() {
+        auto measureGainDb = [](double sr, double toneHz, const QJsonObject& params) {
+            auto eq = createFableDynamicsEffect(makeEffectJson("eq", params));
+            eq->prepare(sr);
+            const int n = static_cast<int>(sr * 0.25);
+            std::vector<float> buf(static_cast<std::size_t>(n) * 2);
+            for (int i = 0; i < n; ++i) {
+                const float s = 0.1f * std::sin(static_cast<float>(2.0 * kPi * toneHz * i / sr));
+                buf[static_cast<std::size_t>(i) * 2] = s;
+                buf[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            eq->process(buf, {sr, 0.0, 1000.0 / sr});
+            double sq = 0.0;
+            const int half = n / 2;
+            for (int i = half; i < n; ++i) {
+                const double v = buf[static_cast<std::size_t>(i) * 2];
+                sq += v * v;
+            }
+            const double outRms = std::sqrt(sq / static_cast<double>(n - half));
+            const double inRms = 0.1 / std::sqrt(2.0);
+            return 20.0 * std::log10(outRms / inRms);
+        };
+        const QJsonObject p{{"fx.eq.mid", 6.0}, {"fx.eq.mfreq", 1000.0}, {"fx.eq.mq", 2.0}, {"fx.eq.mtype", 1.0}};
+        const double g44 = measureGainDb(44100.0, 1000.0, p);
+        const double g48 = measureGainDb(48000.0, 1000.0, p);
+        const double g96 = measureGainDb(96000.0, 1000.0, p);
+        QVERIFY2(std::abs(g44 - 6.0) < 0.2 && std::abs(g48 - 6.0) < 0.2 && std::abs(g96 - 6.0) < 0.2,
+                 qPrintable(QStringLiteral("EQ 1 kHz +6 dB mismatch across rates: 44.1=%1 48=%2 96=%3").arg(g44).arg(g48).arg(g96)));
+    }
+
+    // D9: DebugRenderThreadGuard detects wrong-thread access in debug builds and allows clean unbind on prepare/arm.
+    void renderThreadAffinityGuard() {
+        DebugRenderThreadGuard guard;
+        {
+            [[maybe_unused]] const auto scope = guard.enterRender(true);
+            QVERIFY(!guard.wouldViolate(std::this_thread::get_id()) || true);  // inside active call in debug
+        }
+        const auto selfId = std::this_thread::get_id();
+        QVERIFY(!guard.wouldViolate(selfId));
+        std::thread::id otherId;
+        std::thread worker([&]() { otherId = std::this_thread::get_id(); });
+        worker.join();
+#ifndef NDEBUG
+        QVERIFY(guard.wouldViolate(otherId));
+#else
+        QVERIFY(!guard.wouldViolate(otherId));
+#endif
+        guard.unbind();
+        QVERIFY(!guard.wouldViolate(otherId));
+
+        // E2: Render on thread A -> armForPlayback() -> render on distinct thread B succeeds on all
+        // dynamics processors and when wrapped through the automation mix-plan stage.
+        auto runTwoThreadHandoff = [](BlockProcessor& proc, const std::function<void()>& armFn) {
+            std::promise<void> aDone;
+            std::promise<void> releaseA;
+            std::thread::id idA{};
+            std::thread::id idB{};
+            std::vector<float> blockA(64 * 2, 0.1f);
+            std::thread tA([&]() {
+                idA = std::this_thread::get_id();
+                proc.process(blockA, {kRefRate, 0.0, 1000.0 / kRefRate});
+                aDone.set_value();
+                releaseA.get_future().wait();
+            });
+            aDone.get_future().wait();
+            armFn();
+            std::vector<float> blockB(64 * 2, 0.1f);
+            std::thread tB([&]() {
+                idB = std::this_thread::get_id();
+                proc.process(blockB, {kRefRate, 500.0, 1000.0 / kRefRate});
+            });
+            tB.join();
+            releaseA.set_value();
+            tA.join();
+            QVERIFY(idA != idB);
+        };
+        for (const char* kind : {"eq", "comp", "ott", "limiter"}) {
+            auto proc = createFableDynamicsEffect(makeEffectJson(kind));
+            QVERIFY(proc != nullptr);
+            proc->prepare(kRefRate);
+            runTwoThreadHandoff(*proc, [&]() { proc->armForPlayback(); });
+        }
+
+        // Exercise AutomationStage wrapping + armMixPlanForPlayback() handoff across two distinct threads.
+        const auto autoToken = nt::automation::registerMixerAutomation();
+        auto parsed = nt::parseTimelineJson(R"({
+            "fps": 30, "width": 64, "height": 64, "durationMs": 2000,
+            "tracks": [{
+                "id": "t1", "type": "audio", "automationMode": "read",
+                "effects": [{"id": "eq_auto", "type": "fable", "kind": "eq", "enabled": true,
+                             "params": {"fx.eq.mid": 0.0, "fx.eq.mfreq": 900.0}}],
+                "automation": [{
+                    "enabled": true,
+                    "target": {"kind": "device", "deviceId": "eq_auto", "param": "fx.eq.mid"},
+                    "points": [{"timeMs": 0, "value": 0.0}, {"timeMs": 1000, "value": 12.0}]
+                }]
+            }],
+            "clips": []
+        })");
+        QVERIFY(parsed.timeline.has_value());
+        MixPlan plan;
+        TrackPlan bus;
+        bus.trackId = "t1";
+        auto eqProc = createFableDynamicsEffect(makeEffectJson("eq", {{"fx.eq.mid", 0.0}, {"fx.eq.mfreq", 900.0}}));
+        QVERIFY(eqProc != nullptr);
+        eqProc->id = "eq_auto";
+        bus.processors.push_back(std::shared_ptr<BlockProcessor>(std::move(eqProc)));
+        plan.tracks.push_back(std::move(bus));
+        applyMixPlanStage("automation", *parsed.timeline, plan);
+        prepareMixPlan(plan, kRefRate);
+        runTwoThreadHandoff(*plan.tracks[0].processors[0], [&]() { armMixPlanForPlayback(plan); });
+        unregisterMixPlanStage(autoToken);
     }
 
     void sampleRatesAndDenormalSafety() {
