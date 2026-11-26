@@ -868,20 +868,25 @@ export class KieAINode extends BaseNode {
     // values assign() puts on a node for an undeclared doc parameter are not
     // among them — routing through it drops every such parameter.
     const self = this as Record<string, unknown>;
-    const readParam = (key: string): unknown => {
-      if (!isSafeParamKey(key)) return undefined;
-      const dyn = this.getDynamic(key);
-      if (dyn !== undefined) return dyn;
-      if (Object.prototype.hasOwnProperty.call(self, key)) {
-        const own = self[key];
-        if (typeof own !== "function") return own;
-      }
-      return undefined;
-    };
     for (const p of bundle.params) {
       if (!isSafeParamKey(p.name)) continue;
       const fieldName = fieldNameForParam(p);
-      const val = readParam(fieldName) ?? readParam(p.name);
+      let val: unknown;
+      for (const key of [fieldName, p.name]) {
+        if (!isSafeParamKey(key)) continue;
+        const dyn = this.getDynamic(key);
+        if (dyn !== undefined) {
+          val = dyn;
+          break;
+        }
+        if (Object.prototype.hasOwnProperty.call(self, key)) {
+          const own = self[key];
+          if (typeof own !== "function") {
+            val = own;
+            break;
+          }
+        }
+      }
       if (val === undefined || val === null) {
         if (p.required) throw new Error(`Missing required input: ${fieldName}`);
         continue;
