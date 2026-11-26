@@ -350,10 +350,27 @@ export class BoundedHandle implements SupervisorHandle {
       this._bounds.decisionTimeoutMs
     );
 
+    let onTimeoutAbort: (() => void) | undefined;
+    const abortDecision = new Promise<DecisionOutcome>((resolve) => {
+      onTimeoutAbort = () =>
+        resolve({ verdict: { action: "fail" }, decidedBy: "bounds" });
+      if (timeout.signal.aborted) {
+        onTimeoutAbort();
+      } else {
+        timeout.signal.addEventListener("abort", onTimeoutAbort, { once: true });
+      }
+    });
+
     let decision: DecisionOutcome;
     try {
       this._decisions++;
-      decision = await this._inner.decide(e, timeout.signal);
+      const innerPromise = Promise.resolve().then(() =>
+        this._inner.decide(e, timeout.signal)
+      );
+      // Prevent an unhandled rejection if the inner handle rejects after
+      // timeout/abort has already won the race.
+      innerPromise.catch(() => undefined);
+      decision = await Promise.race([innerPromise, abortDecision]);
       if (timeout.signal.aborted) {
         // A handle that resolves after its signal fired decided against a run
         // that is already over. Design §5.5.
@@ -365,6 +382,9 @@ export class BoundedHandle implements SupervisorHandle {
     } finally {
       clearTimeout(timer);
       runSignal.removeEventListener("abort", onRunAbort);
+      if (onTimeoutAbort) {
+        timeout.signal.removeEventListener("abort", onTimeoutAbort);
+      }
     }
 
     decision = this._applyRetryBudget(e, decision);
