@@ -825,7 +825,11 @@ export class NodeActor {
     // deliberate batch-of-batches properties (e.g. "list[list[int]]"); per-edge
     // list values stay nested as one entry each in that case.
     const isNestedListHandle = (h: string): boolean => {
-      const typeStr = this.node.propertyTypes?.[h];
+      const propertyTypes = this.node.propertyTypes;
+      const typeStr =
+        propertyTypes && Object.hasOwn(propertyTypes, h)
+          ? propertyTypes[h]
+          : undefined;
       if (!typeStr) return false;
       const meta = TypeMetadata.fromString(typeStr);
       return meta.isListType() && meta.args.length > 0 && meta.args[0].isListType();
@@ -1248,7 +1252,7 @@ export class NodeActor {
       : "";
 
     for (const handle of emittedHandles) {
-      const corr = declared[handle];
+      const corr = Object.hasOwn(declared, handle) ? declared[handle] : undefined;
       if (!corr) {
         perSlot[handle] = invocationLineage;
         continue;
@@ -1824,7 +1828,7 @@ export class NodeActor {
     // Collect groups whose handles appear in the frame.
     const groupHandles = new Map<string, string[]>(); // group root → handles
     for (const handle of Object.keys(frame)) {
-      const corr = declared[handle];
+      const corr = Object.hasOwn(declared, handle) ? declared[handle] : undefined;
       if (!corr || corr.kind !== "iteration") continue;
       const root = iterationRootId(this.node.id, handle, corr.group);
       let arr = groupHandles.get(root);
@@ -1886,7 +1890,7 @@ export class NodeActor {
     const groupTokens = new Map<string, number>(); // root -> minted index
     const perSlotLineage: Record<string, CorrelationLineage> = {};
     for (const slot of Object.keys(values)) {
-      const corr = declared[slot];
+      const corr = Object.hasOwn(declared, slot) ? declared[slot] : undefined;
       if (corr?.kind === "iteration") {
         const root = iterationRootId(this.node.id, slot, corr.group);
         let index = groupTokens.get(root);
@@ -1917,7 +1921,11 @@ export class NodeActor {
     slot: string,
     hints: OutputRoutingHints
   ): CorrelationLineage | undefined {
-    const corr = this.node.output_correlation?.[slot];
+    const outputCorr = this.node.output_correlation;
+    const corr =
+      outputCorr && Object.hasOwn(outputCorr, slot)
+        ? outputCorr[slot]
+        : undefined;
     if (!corr || corr.kind !== "aggregate") return undefined;
     if (corr.collapse !== "innermost") return undefined;
     if (!this._correlation) return undefined;
@@ -1946,7 +1954,11 @@ export class NodeActor {
     slot: string,
     hints: OutputRoutingHints
   ): CorrelationLineage | undefined {
-    const corr = this.node.output_correlation?.[slot];
+    const outputCorr = this.node.output_correlation;
+    const corr =
+      outputCorr && Object.hasOwn(outputCorr, slot)
+        ? outputCorr[slot]
+        : undefined;
     if (!corr || corr.kind !== "iteration") return undefined;
     const root = iterationRootId(this.node.id, slot, corr.group);
     const parentLineage = hints.invocationLineage ?? EMPTY_LINEAGE;

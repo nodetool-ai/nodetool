@@ -596,9 +596,7 @@ export class WorkflowRunner {
               edge.targetHandle
             )
         );
-        const targetInbox = this._inboxes.get(edge.target);
-        if (!targetInbox) continue;
-        targetInbox.markSourceDone(edge.targetHandle);
+        this._markEdgeSourceDoneOnce(edge);
       }
     }
   }
@@ -742,23 +740,29 @@ export class WorkflowRunner {
       // Initialize all nodes (Python parity: initialize_graph)
       await this._initializeGraph();
 
-      // Dispatch input parameters
-      await this._dispatchInputs(request.params ?? {});
+      try {
+        // Dispatch input parameters
+        await this._dispatchInputs(request.params ?? {});
 
-      // Bind sendControlEvent to processing context so agent nodes can dispatch
-      // control events to controlled nodes and await their results.
-      if (
-        this._options.executionContext &&
-        isCallable(this._options.executionContext.setSendControlEvent)
-      ) {
-        this._options.executionContext.setSendControlEvent(
-          (targetNodeId: string, properties: Record<string, unknown>) =>
-            this.sendControlEvent(targetNodeId, properties)
-        );
+        // Bind sendControlEvent to processing context so agent nodes can dispatch
+        // control events to controlled nodes and await their results.
+        if (
+          this._options.executionContext &&
+          isCallable(this._options.executionContext.setSendControlEvent)
+        ) {
+          this._options.executionContext.setSendControlEvent(
+            (targetNodeId: string, properties: Record<string, unknown>) =>
+              this.sendControlEvent(targetNodeId, properties)
+          );
+        }
+
+        // Register Set Variable writers so variable channels know when to close.
+        this._registerVariableChannels();
+      } catch (err) {
+        // _processGraph() will not run to finalize executors initialized above.
+        await this._finalizeExecutors([...this._executors.values()]);
+        throw err;
       }
-
-      // Register Set Variable writers so variable channels know when to close.
-      this._registerVariableChannels();
 
       // Process graph (spawn actors)
       await this._processGraph();
@@ -1321,7 +1325,7 @@ export class WorkflowRunner {
 
         // Validate that the handle's type is a list type
         const propertyTypes = node.propertyTypes;
-        if (propertyTypes) {
+        if (propertyTypes && Object.hasOwn(propertyTypes, handle)) {
           const typeStr = propertyTypes[handle];
           if (typeStr) {
             const meta = TypeMetadata.fromString(typeStr);
@@ -1497,10 +1501,7 @@ export class WorkflowRunner {
       // is_streaming_input.)
       if (!node.is_streaming_output) {
         for (const edge of outgoing) {
-          const targetInbox = this._inboxes.get(edge.target);
-          if (targetInbox) {
-            targetInbox.markSourceDone(edge.targetHandle);
-          }
+          this._markEdgeSourceDoneOnce(edge);
         }
       }
     }
@@ -1885,7 +1886,9 @@ export class WorkflowRunner {
         // Route control events from controller nodes to controlled nodes.
         // Try __control__ first, then fall back to __control_output__
         // (already handled above, skip duplicate routing).
-        const value = outputs[edge.sourceHandle];
+        const value = Object.hasOwn(outputs, edge.sourceHandle)
+          ? outputs[edge.sourceHandle]
+          : undefined;
         if (value === undefined) continue;
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
@@ -1932,7 +1935,11 @@ export class WorkflowRunner {
       if (routingHints.lineageDoneSlots?.has(edge.sourceHandle)) {
         const targetInboxDrop = this._inboxes.get(edge.target);
         if (!targetInboxDrop) continue;
-        const lineage = routingHints.perSlotLineage?.[edge.sourceHandle] ?? {};
+        const lineage =
+          routingHints.perSlotLineage &&
+          Object.hasOwn(routingHints.perSlotLineage, edge.sourceHandle)
+            ? routingHints.perSlotLineage[edge.sourceHandle]
+            : {};
         const edgeId =
           edge.id ??
           syntheticEdgeId(
@@ -1960,7 +1967,9 @@ export class WorkflowRunner {
         continue;
       }
 
-      const value = outputs[edge.sourceHandle];
+      const value = Object.hasOwn(outputs, edge.sourceHandle)
+        ? outputs[edge.sourceHandle]
+        : undefined;
       if (value === undefined) {
         // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.debug("_sendMessages skip edge (no matching output)", {
@@ -1996,8 +2005,10 @@ export class WorkflowRunner {
           edge.targetHandle
         );
       const lineage =
-        routingHints.perSlotLineage?.[edge.sourceHandle] ??
-        routingHints.invocationLineage;
+        (routingHints.perSlotLineage &&
+        Object.hasOwn(routingHints.perSlotLineage, edge.sourceHandle)
+          ? routingHints.perSlotLineage[edge.sourceHandle]
+          : undefined) ?? routingHints.invocationLineage;
       await targetInbox.put(edge.targetHandle, value, {
         source_edge_id: edgeId,
         correlation_lineage: lineage
@@ -2044,7 +2055,9 @@ export class WorkflowRunner {
           node_name: sourceNode.name ?? sourceNodeId,
           output_name: outputName,
           value,
-          output_type: declaredOutputs[handle] ?? "any",
+          output_type: Object.hasOwn(declaredOutputs, handle)
+            ? declaredOutputs[handle]
+            : "any",
           metadata: {},
           // RFC §6: live display feed defaults to "append" (chunk-concatenate),
           // matching today's hardcoded consumer behavior. Artifacts travel on
@@ -2689,7 +2702,12 @@ export class WorkflowRunner {
 
         for (const [propName, propValue] of Object.entries(props)) {
           if (propName.startsWith("_")) continue; // skip private
-          const meta = targetNode.propertyMeta?.[propName] as
+          const meta = (
+            targetNode.propertyMeta &&
+            Object.hasOwn(targetNode.propertyMeta, propName)
+              ? targetNode.propertyMeta[propName]
+              : undefined
+          ) as
             | { description?: string; min?: number; max?: number }
             | undefined;
           type DescribedFields = {
@@ -2702,8 +2720,9 @@ export class WorkflowRunner {
           const described: DescribedFields = {
             value: propValue,
             type:
-              (propTypes as Record<string, string>)[propName] ??
-              typeof propValue
+              (Object.hasOwn(propTypes, propName)
+                ? (propTypes as Record<string, string>)[propName]
+                : undefined) ?? typeof propValue
           };
           if (meta?.description) {
             described.description = meta.description;
@@ -2764,8 +2783,10 @@ export class WorkflowRunner {
     for (const name of names) {
       if (name.startsWith("_")) continue;
 
-      const declaredType = propTypes[name];
-      const value = props[name];
+      const declaredType = Object.hasOwn(propTypes, name)
+        ? propTypes[name]
+        : undefined;
+      const value = Object.hasOwn(props, name) ? props[name] : undefined;
       let jsonType = "string";
       if (declaredType) {
         const lower = declaredType.toLowerCase();
@@ -2782,8 +2803,14 @@ export class WorkflowRunner {
         jsonType = "boolean";
       }
 
-      const slot = node.dynamic_inputs?.[name];
-      const meta = (node.propertyMeta?.[name] ?? slot) as
+      const slot =
+        node.dynamic_inputs && Object.hasOwn(node.dynamic_inputs, name)
+          ? node.dynamic_inputs[name]
+          : undefined;
+      const meta = ((node.propertyMeta &&
+      Object.hasOwn(node.propertyMeta, name)
+        ? node.propertyMeta[name]
+        : undefined) ?? slot) as
         | { description?: string; min?: number; max?: number }
         | undefined;
       type SchemaFields = {
