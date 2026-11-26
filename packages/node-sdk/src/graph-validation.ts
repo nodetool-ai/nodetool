@@ -260,6 +260,10 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value;
 }
 
+function ownProp<T>(record: Record<string, T>, key: string): T | undefined {
+  return Object.hasOwn(record, key) ? record[key] : undefined;
+}
+
 /**
  * `nodes` / `edges` as the arrays their types promise. The graph is parsed from
  * untrusted JSON on every entry point — a file, a stored row, an LLM's inline
@@ -273,7 +277,24 @@ function graphMembers<T>(
   issues: GraphValidationIssue[]
 ): T[] {
   if (value == null) return [];
-  if (Array.isArray(value)) return value as T[];
+  if (Array.isArray(value)) {
+    const valid: T[] = [];
+    for (let index = 0; index < value.length; index++) {
+      const item: unknown = value[index];
+      if (isRecord(item)) {
+        valid.push(item as T);
+      } else {
+        issues.push({
+          severity: "error",
+          code: "invalid_graph",
+          message: `graph.${field}[${index}] must be an object, not ${
+            item === null ? "null" : Array.isArray(item) ? "an array" : `a ${typeof item}`
+          }`
+        });
+      }
+    }
+    return valid;
+  }
   issues.push({
     severity: "error",
     code: "invalid_graph",
@@ -554,7 +575,7 @@ function resolveSourceHandleType(
     return "";
   }
   return typeMetaToString(
-    dynamicOutputs[edge.sourceHandle] as TypeMetaLike | undefined
+    ownProp(dynamicOutputs, edge.sourceHandle) as TypeMetaLike | undefined
   );
 }
 
@@ -606,7 +627,7 @@ function resolveTargetHandleType(
   }
 
   const slotType = slotTypeToString(
-    readDynamicInputs(targetNode)[edge.targetHandle]
+    ownProp(readDynamicInputs(targetNode), edge.targetHandle)
   );
   if (slotType) {
     return { type: slotType, typedDynamicSlot: true };
@@ -788,7 +809,8 @@ export function collectModelSelectionIssues(
   if (!knownProviders) return [];
 
   const issues: GraphValidationIssue[] = [];
-  for (const node of graph.nodes ?? []) {
+  for (const node of Array.isArray(graph.nodes) ? graph.nodes : []) {
+    if (!isRecord(node)) continue;
     const nodeId = String(node.id ?? "");
     const nodeType = String(node.type ?? "");
     for (const { path, ref } of collectNodeModelRefs(node)) {
@@ -953,7 +975,8 @@ export function collectSecretRequirementSites(
 ): SecretRequirementSite[] {
   const sites: SecretRequirementSite[] = [];
   const seen = new Set<string>();
-  for (const node of graph.nodes ?? []) {
+  for (const node of Array.isArray(graph.nodes) ? graph.nodes : []) {
+    if (!isRecord(node)) continue;
     const nodeId = String(node.id ?? "");
     const nodeType = String(node.type ?? "");
     if (!nodeType || !isStaticallyKnownNode(registry, nodeType)) continue;
@@ -1027,12 +1050,14 @@ export function collectMissingSecretIssues(
 export function collectModelProviders(graph: GraphValidationInput): string[] {
   const providers = new Set<string>();
   const connectedInputs = new Set(
-    (graph.edges ?? [])
+    (Array.isArray(graph.edges) ? graph.edges : [])
+      .filter((edge): edge is GraphValidationEdge => isRecord(edge))
       .map(normalizeEdge)
       .filter((edge) => !edge.isControl && edge.target && edge.targetHandle)
       .map((edge) => `${edge.target}\u0000${edge.targetHandle}`)
   );
-  for (const node of graph.nodes ?? []) {
+  for (const node of Array.isArray(graph.nodes) ? graph.nodes : []) {
+    if (!isRecord(node)) continue;
     const nodeId = String(node.id ?? "");
     for (const { propertyName, ref } of collectNodeModelRefs(node)) {
       if (connectedInputs.has(`${nodeId}\u0000${propertyName}`)) continue;
@@ -1080,7 +1105,8 @@ export function collectJsScriptLinks(
   graph: GraphValidationInput
 ): JsScriptLink[] {
   const seen = new Map<string, JsScriptLink>();
-  for (const node of graph.nodes ?? []) {
+  for (const node of Array.isArray(graph.nodes) ? graph.nodes : []) {
+    if (!isRecord(node)) continue;
     if (!isJsCodeNodeType(String(node.type ?? ""))) continue;
     const link = readJsScriptLink(readProperties(node));
     if (!link) continue;
@@ -1143,7 +1169,7 @@ function collectUnknownPropertyIssues(
     (name) =>
       !declaredNames.has(name) &&
       !isReservedHandle(name) &&
-      dynamic[name] === undefined
+      ownProp(dynamic, name) === undefined
   );
   if (unknown.length === 0) return [];
 
@@ -1183,7 +1209,7 @@ function collectInvalidChoiceIssues(
     const allowed = prop.values ?? prop.type?.values;
     if (!allowed || allowed.length === 0) continue;
     if (prop.type?.type === "float" || connected.has(prop.name)) continue;
-    const value = properties[prop.name];
+    const value = ownProp(properties, prop.name);
     if (!isString(value) && !isNumber(value)) continue;
     if (allowed.some((choice) => String(choice) === String(value))) continue;
     issues.push({
@@ -1575,7 +1601,9 @@ export function validateGraph(
     // `list[...]` is a legal fan-in target — resolve it the same way here.
     const typeStr =
       typeMetaToString(propType) ||
-      slotTypeToString(node ? readDynamicInputs(node)[handle] : undefined);
+      slotTypeToString(
+        node ? ownProp(readDynamicInputs(node), handle) : undefined
+      );
     if (!(typeStr === "list" || typeStr.startsWith("list["))) {
       issues.push({
         severity: "error",
@@ -1679,13 +1707,14 @@ export function validateGraph(
     for (const name of slotNames) {
       if (connected?.has(name)) continue;
       const typeStr = slotTypeToString(slots[name]);
-      if (valueIncompatibleWithType(values[name], typeStr)) {
+      const value = ownProp(values, name);
+      if (valueIncompatibleWithType(value, typeStr)) {
         issues.push({
           severity: "warning",
           code: "dynamic_type_mismatch",
           nodeId: id,
           nodeType: String(node.type ?? ""),
-          message: `Dynamic input "${name}" on node "${id}" is declared as ${typeStr} but holds a ${typeof values[name]}`
+          message: `Dynamic input "${name}" on node "${id}" is declared as ${typeStr} but holds a ${typeof value}`
         });
       }
     }
