@@ -266,7 +266,6 @@ Item {
                 readonly property real cellWidth: cells.cellWidth
                 readonly property real scrollX: root.panel.scrollX
                 readonly property int stepWindow: root.panel.stepWindow
-                readonly property string textFont: Ui.Typography.pixelSize(Ui.Typography.MonoCaption) + "px \"" + Ui.Typography.family(Ui.Typography.MonoCaption) + "\""
                 onTextFontChanged: requestPaint()
                 onRowDataChanged: requestPaint()
                 onPlayingStepChanged: requestPaint()
@@ -315,7 +314,7 @@ Item {
                     const range = Modes.range(row, mode)
                     const selected = selectedKeys
                     const preview = previews
-                    ctx.font = textFont
+                    ctx.font = Ui.Typography.canvasFont(Ui.Typography.MonoCaption)
                     ctx.textBaseline = "bottom"
                     // A single forward pass carries tie state, including a tie
                     // starting before the visible page. No backwards scan per cell.
