@@ -132,9 +132,11 @@ function outputType(
 ): TypeMeta | undefined {
   const declared = metadata.outputs.find((output) => output.name === handle);
   if (declared) return declared.type;
-  const dynamic = isRecord(node.dynamic_outputs)
-    ? node.dynamic_outputs[handle]
-    : undefined;
+  const dynamic =
+    isRecord(node.dynamic_outputs) &&
+    Object.hasOwn(node.dynamic_outputs, handle)
+      ? node.dynamic_outputs[handle]
+      : undefined;
   if (isRecord(dynamic)) return dynamic;
   if (
     isJsCodeNodeType(String(node.type ?? "")) &&
@@ -160,8 +162,12 @@ function inputType(
   const dynamicProperties = isRecord(node.dynamic_properties)
     ? node.dynamic_properties
     : {};
-  if (handle in dynamicInputs || handle in dynamicProperties) {
-    const dynamic = dynamicInputs[handle] ?? dynamicProperties[handle];
+  const hasDynamicInput = Object.hasOwn(dynamicInputs, handle);
+  const hasDynamicProp = Object.hasOwn(dynamicProperties, handle);
+  if (hasDynamicInput || hasDynamicProp) {
+    const dynamic = hasDynamicInput
+      ? dynamicInputs[handle]
+      : dynamicProperties[handle];
     if (isRecord(dynamic) && isRecord(dynamic.type)) return dynamic.type;
     if (isRecord(dynamic) && isString(dynamic.type)) return dynamic;
     return ANY_TYPE;
@@ -195,7 +201,7 @@ function canDeclareDynamicInput(
     handle.trim() !== "" &&
     !isJsCodeNodeType(type) &&
     !isDynamicSchemaNodeType(type) &&
-    !(handle in dynamicOutputs)
+    !Object.hasOwn(dynamicOutputs, handle)
   );
 }
 
@@ -230,10 +236,24 @@ function applyInferredCodeHandles(node: GraphNode): void {
     ? { ...node.dynamic_outputs }
     : {};
   for (const name of inferredCodeInputNames(code)) {
-    if (!(name in dynProps)) dynProps[name] = "";
+    if (!Object.hasOwn(dynProps, name)) {
+      Object.defineProperty(dynProps, name, {
+        value: "",
+        enumerable: true,
+        writable: true,
+        configurable: true
+      });
+    }
   }
   for (const name of inferredCodeOutputNames(code)) {
-    if (!(name in dynOuts)) dynOuts[name] = { type: "any" };
+    if (!Object.hasOwn(dynOuts, name)) {
+      Object.defineProperty(dynOuts, name, {
+        value: { type: "any" },
+        enumerable: true,
+        writable: true,
+        configurable: true
+      });
+    }
   }
   node.dynamic_properties = dynProps;
   node.dynamic_outputs = dynOuts;
@@ -313,7 +333,7 @@ export function applyWorkflowDocumentTool(
     const properties: Record<string, unknown> = { ...provided };
     const warnings: string[] = [];
     for (const property of metadata.properties) {
-      if (!(property.name in properties)) {
+      if (!Object.hasOwn(properties, property.name)) {
         properties[property.name] = property.default;
       } else if (
         valueIncompatibleWithType(
@@ -328,7 +348,7 @@ export function applyWorkflowDocumentTool(
       const value = properties[property.name];
       if (
         property.required &&
-        !(property.name in provided) &&
+        !Object.hasOwn(provided, property.name) &&
         (value === null || value === undefined || value === "")
       ) {
         warnings.push(

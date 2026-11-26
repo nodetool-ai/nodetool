@@ -572,10 +572,12 @@ export abstract class BaseNode {
     if (dynamicSlots && !dynamicValues) {
       // No explicit value bag — dynamic values ride along in `properties`.
       const declaredNames = new Set(declared.map((p) => p.name));
-      const collected: Record<string, unknown> = {};
+      const collected = Object.create(null) as Record<string, unknown>;
       for (const key of Object.keys(dynamicSlots)) {
         if (declaredNames.has(key)) continue;
-        collected[key] = properties[key];
+        if (Object.hasOwn(properties, key)) {
+          collected[key] = properties[key];
+        }
       }
       dynamicValues = collected;
     }
@@ -766,7 +768,7 @@ export abstract class BaseNode {
     for (const [key, value] of Object.entries(
       payload as Record<string, unknown>
     )) {
-      if (key in declared) {
+      if (Object.hasOwn(declared, key)) {
         await outputs.emit(key, value);
       }
     }

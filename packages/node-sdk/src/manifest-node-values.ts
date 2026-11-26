@@ -234,6 +234,12 @@ export function manifestEnumIsNumeric(
  * `list[...]` / `dict[...]` values pass through untouched — they are the user's
  * own structure, not a scalar to reshape.
  */
+function toFiniteNumber(value: NodeValue): number | null {
+  if (typeof value === "string" && value.trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function coerceManifestScalar(
   value: NodeValue,
   propType: string,
@@ -245,13 +251,11 @@ export function coerceManifestScalar(
   if (type.startsWith("list[") || type.startsWith("dict[")) return value;
   switch (type) {
     case "int": {
-      const n = Number(value);
-      return Number.isFinite(n) ? Math.trunc(n) : null;
+      const n = toFiniteNumber(value);
+      return n === null ? null : Math.trunc(n);
     }
-    case "float": {
-      const n = Number(value);
-      return Number.isFinite(n) ? n : null;
-    }
+    case "float":
+      return toFiniteNumber(value);
     case "bool": {
       // The UI serializes a checkbox as the string "false" as readily as the
       // boolean; `Boolean("false")` is true, which is how fal/kie/topaz sent
@@ -262,7 +266,7 @@ export function coerceManifestScalar(
     }
     default:
       return manifestEnumIsNumeric(enumValues, enumPolicy)
-        ? Number(value)
+        ? toFiniteNumber(value)
         : String(value);
   }
 }
