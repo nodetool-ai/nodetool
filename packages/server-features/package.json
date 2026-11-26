@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/server-features",
-  "version": "0.8.16",
+  "version": "0.8.17",
   "description": "Explicit server feature composition contracts",
   "type": "module",
   "engines": {

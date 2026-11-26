@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/realtime-compiler",
-  "version": "0.8.16",
+  "version": "0.8.17",
   "description": "Pure descriptor-driven compilation of workflow graphs to realtime plan IR",
   "type": "module",
   "engines": {

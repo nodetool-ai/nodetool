@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/search-services",
-  "version": "0.8.16",
+  "version": "0.8.17",
   "description": "Library search index and query for NodeTool hosts",
   "type": "module",
   "engines": {

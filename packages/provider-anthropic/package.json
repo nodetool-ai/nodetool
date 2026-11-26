@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/provider-anthropic",
-  "version": "0.8.16",
+  "version": "0.8.17",
   "description": "Optional Anthropic text provider and execution feature",
   "type": "module",
   "engines": {

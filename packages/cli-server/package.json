@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli-server",
-  "version": "0.8.16",
+  "version": "0.8.17",
   "description": "Independent NodeTool server command module",
   "type": "module",
   "engines": {

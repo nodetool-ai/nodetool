@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-ics",
-  "version": "0.8.16",
+  "version": "0.8.17",
   "description": "Build iCalendar (.ics) files inside the NodeTool sandbox",
   "license": "MIT",
   "nodetool": {

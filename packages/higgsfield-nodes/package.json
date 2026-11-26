@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/higgsfield-nodes",
-  "version": "0.8.16",
+  "version": "0.8.17",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
