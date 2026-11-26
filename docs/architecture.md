@@ -165,7 +165,7 @@ Each task's result goes to `context.memory` under `task:<id>`. There is no synth
 
 ### Tools
 
-Tools are grouped into capability modules under `packages/agents/src/capabilities/`. Examples: `web`, `browser`, `files`, `assets`, `workflows`, `jobs`, `models`, `collections`, `documents`, `email`, `google`, `memory`, `shared`, `apps`, and `timelines`. The model calls them as imports from `@nodetool-ai/sandbox-nodetool/<namespace>`. External MCP servers add more through the same belt.
+Tools are grouped into capability modules under `packages/agents/src/capabilities/`. Examples: `web`, `browser`, `files`, `assets`, `workflows`, `jobs`, `models`, `collections`, `documents`, `google`, `memory`, `shared`, `apps`, and `timelines`. The model calls them as imports from `@nodetool-ai/sandbox-nodetool/<namespace>`. External MCP servers add more through the same belt.
 
 
 ## Providers
