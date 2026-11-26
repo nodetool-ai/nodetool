@@ -519,6 +519,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     for (const clip of outgoing) clip.animations = [...(clip.animations ?? []), { id: `${clip.id}:cut-out`, role: "out", preset: "fade", durationMs: 300 }];
     for (const clip of incoming) clip.animations = [...(clip.animations ?? []), { id: `${clip.id}:cut-in`, role: "in", preset: "fade", durationMs: 300 }];
   }
+  const continuityTransformed = new Set<TimelineClip>();
   for (const continuity of input.motionDesign?.continuities ?? []) {
     const matching = continuity.shot_ids.map((shotId) => clips.find((clip) => clip.storyboardBoardId === input.boardId && clip.storyboardShotId === shotId && clip.storyboardElementId === continuity.id));
     if (matching.some((clip) => !clip)) {
@@ -535,7 +536,10 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         const owned = parseBaseline(previous?.storyboardMaterializationBaseline);
         if (previous && owned && !same(previous.transform, owned.transform) && !same(previous.transform, first.transform)) {
           conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: continuity.id, message: `Manual placement on continuity ${continuity.id} conflicts with shared placement.` });
-        } else clip.transform = first.transform ? structuredClone(first.transform) : undefined;
+        } else {
+          clip.transform = first.transform ? structuredClone(first.transform) : undefined;
+          continuityTransformed.add(clip);
+        }
         clip.animations = (clip.animations ?? []).filter((animation) => animation.role !== "in");
       }
       if (index < matching.length - 1) clip.animations = (clip.animations ?? []).filter((animation) => animation.role !== "out");
@@ -546,6 +550,10 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     const owned = parseBaseline(clip.storyboardMaterializationBaseline);
     if (!owned) continue;
     owned.animations = clip.animations;
+    if (continuityTransformed.has(clip)) {
+      if (clip.transform === undefined) delete owned.transform;
+      else owned.transform = clip.transform;
+    }
     clip.storyboardMaterializationBaseline = serialize(owned);
   }
   const document: FinishedStoryboardDocument = { ...current, tracks, clips, markers: current.markers ?? [], storyboardMaterializations: [...(current.storyboardMaterializations ?? []).filter((entry) => entry.boardId !== input.boardId), { boardId: input.boardId, elementKeys: clips.filter((clip) => clip.storyboardBoardId === input.boardId).flatMap((clip) => clip.storyboardShotId && clip.storyboardElementId ? [identity(clip.storyboardShotId, clip.storyboardElementId)] : []) }] };

@@ -57,6 +57,10 @@ export function trimClip(
   // and retimes every frame, including the ones the trim did not touch (D13).
   assertNotTimeRemapped(clip, "trimClip");
 
+  if (!Number.isFinite(deltaMs)) {
+    throw new Error("trimClip requires a finite deltaMs");
+  }
+
   const rate = sourceRate(clip);
   const inPointMs = clip.inPointMs ?? 0;
   const outPointMs = clip.outPointMs ?? inPointMs + clip.durationMs * rate;
