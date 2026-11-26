@@ -18,6 +18,8 @@ Column {
     property real wet: 1.0
     property real gainDb: 0.0
     property bool disabled: false
+    // False when a device menu chose the plug-in, so the device shows no second picker.
+    property bool showPicker: true
     signal pluginChosen(var pluginRef)
     signal wetChangedRequested(real value)
     signal gainDbChangedRequested(real value)
@@ -67,7 +69,8 @@ Column {
         Ui.Select {
             id: pluginSelect
             objectName: "vst-plugin-select"
-            width: Math.max(80, parent.width - rescanBtn.width - Ui.Metrics.xs)
+            visible: root.showPicker
+            width: visible ? Math.max(80, parent.width - rescanBtn.width - Ui.Metrics.xs) : 0
             density: Ui.EditorButton.Compact
             accessibleName: root.instrumentMode ? qsTr("VST3 instrument") : qsTr("VST3 effect plug-in")
             enabled: !root.disabled && !VstHost.scanning

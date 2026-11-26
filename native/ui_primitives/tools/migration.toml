@@ -1835,7 +1835,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.ScrollBar, Ui.Text, Ui.Tool
 [[file]]
 path = "native/timeline/qml/mixer/InstrumentDevicePopover.qml"
 category = "chrome"
-controls = ["Ui.Popover", "Column", "Row", "Ui.Text", "Ui.ToolbarIconButton", "Connections", "AutomationController", "VstPluginControl"]
+controls = ["Ui.Popover", "Column", "Row", "Ui.Text", "Ui.ToolbarIconButton", "Connections", "AutomationController", "InstrumentRack"]
 signals = []
 test_host = "tst_mixerui"
 test_scope = "build/import"
@@ -2237,7 +2237,7 @@ controls = ["Column", "Row", "Ui.Text", "Ui.Select", "Ui.Status", "Ui.EditorButt
 signals = ["pluginChosen", "wetChangedRequested", "gainDbChangedRequested"]
 test_host = "tst_mixerui"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/qml/mixer/InstrumentDevicePopover.qml", "native/timeline/qml/wiring/w/TrackEffectParams.qml", "native/timeline/qml/wiring/w/TrackEffectsPanel.qml"]
+qml_callers = ["native/timeline/qml/instruments/InstrumentRack.qml", "native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/qml/wiring/w/TrackEffectParams.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Select, Ui.Status, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
@@ -5146,6 +5146,36 @@ test_host = "tst_stepsequencerui"
 test_scope = "interaction"
 qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
 replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/instruments/DeviceMenu.qml"
+category = "chrome"
+controls = ["Ui.Popover", "Column", "Ui.TextField", "ListView", "Item", "Ui.Text", "Ui.ListRow"]
+signals = ["chosen"]
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/instruments/InstrumentRack.qml", "native/timeline/qml/mixer/InsertSlots.qml", "native/timeline/qml/wiring/w/TrackEffectsPanel.qml"]
+replacement = "NodeTool.UiPrimitives grouped device menu with search"
+
+[[file]]
+path = "native/timeline/qml/instruments/DrumKitPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Column", "Ui.Text", "Ui.Select"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/instruments/InstrumentRack.qml"]
+replacement = "NodeTool.UiPrimitives drum kit panel"
+
+[[file]]
+path = "native/timeline/qml/instruments/InstrumentRack.qml"
+category = "chrome"
+controls = ["Column", "Ui.EditorButton", "DeviceMenu", "Loader", "Component", "BassSynthPanel", "WavetableSynthPanel", "SamplerPanel", "ModalSynthPanel", "DrumKitPanel", "Ui.Text", "VstPluginControl"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/mixer/InstrumentDevicePopover.qml", "native/timeline/qml/wiring/w/TrackEffectsPanel.qml"]
+replacement = "NodeTool.UiPrimitives instrument device with one instrument menu"
 
 [[file]]
 path = "native/timeline/qml/instruments/BassSynthPanel.qml"

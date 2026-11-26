@@ -3,6 +3,8 @@ import QtQuick.Controls.Basic as Basic
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 import "../../vst"
+import "../../instruments"
+import "../../instruments/DeviceCatalog.js" as Catalog
 
 Ui.Surface {
     id: effectsPanel
@@ -68,35 +70,23 @@ Ui.Surface {
             iconName: "add"
             density: Ui.EditorButton.Compact
             variant: Ui.EditorButton.Primary
+            menuButton: true
+            menuExpanded: addMenu.visible
             onClicked: addMenu.openAt(add)
-            Ui.ContextMenu {
+            DeviceMenu {
                 id: addMenu
-                width: 180
-                Instantiator {
-                    model: effectsPanel.isVideo ? effectsPanel.reference.videoTypes : effectsPanel.reference.audioTypes.concat(effectsPanel.reference.fableKinds)
-                    delegate: Ui.MenuItem {
-                        id: entry
-                        required property string modelData
-                        objectName: "fx-add-type-" + effectsPanel.track.id + "-" + modelData
-                        text: effectsPanel.strings.labels[modelData]
-                        onTriggered: {
-                            const effect = effectsPanel.reference.fableKinds.includes(modelData) ? TrackEffectsReference.makeFableEffect(modelData) : modelData
-                            effectsPanel.timeline.applyEdit("addTrackEffect", {trackId: effectsPanel.track.id, effect: effect})
-                        }
-                    }
-                    onObjectAdded: (index, object) => addMenu.insertItem(index, object)
-                    onObjectRemoved: (index, object) => addMenu.removeItem(object)
-                }
-                Basic.MenuSeparator { visible: !effectsPanel.isVideo; height: visible ? implicitHeight : 0; contentItem: Ui.Separator {} }
-                Ui.MenuItem {
-                    objectName: "fx-add-type-" + effectsPanel.track.id + "-vst"
-                    visible: !effectsPanel.isVideo
-                    height: visible ? implicitHeight : 0
-                    text: qsTr("VST3 Plugin")
-                    onTriggered: effectsPanel.timeline.applyEdit("addTrackEffect", {
-                        trackId: effectsPanel.track.id,
-                        effect: VstHost.makeVstEffect()
-                    })
+                rowPrefix: "fx-add-type-" + effectsPanel.track.id + "-"
+                searchLabel: qsTr("Search effects")
+                entries: effectsPanel.isVideo
+                    ? Catalog.effectEntries(effectsPanel.reference.videoTypes, effectsPanel.strings.labels, [], null)
+                    : Catalog.effectEntries(effectsPanel.reference.audioTypes.concat(effectsPanel.reference.fableKinds),
+                                            effectsPanel.strings.labels, effectsPanel.reference.fableKinds, VstHost.effects)
+                onChosen: entry => {
+                    const effect = entry.kind === "fable" ? TrackEffectsReference.makeFableEffect(entry.type)
+                        : entry.kind === "vst" ? VstHost.makeVstEffect(entry.plugin
+                            ? { uid: entry.plugin.uid, name: entry.plugin.name, vendor: entry.plugin.vendor, path: entry.plugin.path } : ({}))
+                        : entry.type
+                    effectsPanel.timeline.applyEdit("addTrackEffect", {trackId: effectsPanel.track.id, effect: effect})
                 }
             }
         }
@@ -130,45 +120,22 @@ Ui.Surface {
                 id: instrumentCard
                 objectName: "midi-instrument-card-" + effectsPanel.track.id
                 visible: effectsPanel.track.type === "midi"
-                width: visible ? 260 : 0
+                width: visible ? instrumentRack.preferredWidth + 2 * Ui.Metrics.md : 0
                 height: rack.height
-                readonly property var instrument: effectsPanel.track.instrument || null
-                readonly property bool isVst: instrument !== null && instrument.type === "vst"
-                Column {
+                Flickable {
                     x: Ui.Metrics.md
                     y: Ui.Metrics.md
                     width: parent.width - 2 * Ui.Metrics.md
-                    spacing: Ui.Metrics.sm
-                    Ui.Text {
+                    height: parent.height - 2 * Ui.Metrics.md
+                    clip: true
+                    contentHeight: instrumentRack.implicitHeight
+                    boundsBehavior: Flickable.StopAtBounds
+                    Basic.ScrollBar.vertical: Ui.ScrollBar { }
+                    InstrumentRack {
+                        id: instrumentRack
                         width: parent.width
-                        elide: Text.ElideRight
-                        role: Ui.Typography.SansLabel
-                        tone: Ui.Text.Primary
-                        text: instrumentCard.isVst && instrumentCard.instrument.plugin && instrumentCard.instrument.plugin.name
-                            ? instrumentCard.instrument.plugin.name
-                            : qsTr("VST3 Instrument")
-                    }
-                    VstPluginControl {
-                        id: rackVstInstrument
-                        width: parent.width
-                        instrumentMode: true
-                        instanceId: "inst:" + effectsPanel.track.id
-                        editorTitle: effectsPanel.track.name + " - " +
-                            (instrumentCard.isVst && instrumentCard.instrument.plugin && instrumentCard.instrument.plugin.name
-                                ? instrumentCard.instrument.plugin.name : "VST3")
-                        plugin: instrumentCard.isVst ? (instrumentCard.instrument.plugin || null) : null
-                        pluginState: instrumentCard.isVst ? (instrumentCard.instrument.state || null) : null
-                        gainDb: instrumentCard.isVst && instrumentCard.instrument.gainDb !== undefined ? instrumentCard.instrument.gainDb : 0.0
-                        disabled: effectsPanel.track.locked === true
-                        onPluginChosen: pluginRef => {
-                            const next = VstHost.makeVstInstrument(pluginRef || ({}), rackVstInstrument.gainDb)
-                            effectsPanel.timeline.applyEdit("setTrackInstrument", { trackId: effectsPanel.track.id, instrument: next })
-                        }
-                        onGainDbChangedRequested: db => {
-                            const base = instrumentCard.isVst ? Object.assign({}, instrumentCard.instrument) : VstHost.makeVstInstrument(({}), db)
-                            base.gainDb = db
-                            effectsPanel.timeline.applyEdit("setTrackInstrument", { trackId: effectsPanel.track.id, instrument: base })
-                        }
+                        timeline: effectsPanel.timeline
+                        track: effectsPanel.track
                     }
                 }
             }
