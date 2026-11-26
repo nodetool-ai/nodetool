@@ -152,9 +152,11 @@ const COMBINING_MARKS = /\p{M}/gu;
  */
 export function foldText(text: string): string {
   let out = "";
-  for (const char of text.toLowerCase()) {
-    const folded = char.normalize("NFD").replace(COMBINING_MARKS, "");
-    out += folded.length === char.length ? folded : char;
+  for (const char of text) {
+    const lower = char.toLowerCase();
+    const folded = lower.normalize("NFD").replace(COMBINING_MARKS, "");
+    if (folded.length === char.length) out += folded;
+    else out += lower.length === char.length ? lower : char;
   }
   return out;
 }
