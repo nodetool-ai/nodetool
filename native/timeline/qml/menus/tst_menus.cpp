@@ -548,7 +548,11 @@ private slots:
         menu->setProperty("trackType", type);
         QCOMPARE(entries(menu), QStringList({"trackMenu-rename:Rename", "trackMenu-duplicate:Duplicate track",
             "trackMenu-insertAbove:Insert " + label + " track above", "trackMenu-insertBelow:Insert " + label + " track below",
+            "trackMenu-newPatternRegion:New Pattern Region",
             "trackMenu-deleteDivider:", "trackMenu-remove:Delete track"}));
+        auto* pattern = menu->findChild<QQuickItem*>("trackMenu-newPatternRegion"); QVERIFY(pattern);
+        QCOMPARE(pattern->isVisible(), type == "midi");
+        if (type != "midi") { QCOMPARE(pattern->height(), 0.0); }
     }
     QStringList rulerList() {
         QStringList expected;
