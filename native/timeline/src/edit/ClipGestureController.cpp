@@ -1692,21 +1692,18 @@ bool ClipGestureController::trimEditPoint(double edgeTargetMs, bool merge) {
 }
 
 QString ClipGestureController::resolveKeyAction(int key, const QString& text, int modifiers) const {
+    if (Qt::KeyboardModifiers(modifiers).testFlag(Qt::MetaModifier)) { return {}; }
     return resolveTimelineAction(domKey(key, text, modifiers), keymap());
 }
 
 bool ClipGestureController::handleKey(int key, const QString& text, int modifiers, bool autoRepeat) {
-    if (!m_timeline) { return false; }
+    if (!m_timeline || Qt::KeyboardModifiers(modifiers).testFlag(Qt::MetaModifier)) { return false; }
     if (m_gesture.kind.isEmpty() && m_trimMode->handleKey(key, modifiers, autoRepeat)) { return true; }
     const QVariantMap context{{"autoRepeat", autoRepeat}};
     const QString action = resolveTimelineAction(domKey(key, text, modifiers), keymap());
     // A preset's key means that action alone, even when the action refuses.
     if (!action.isEmpty()) { return runAction(action, context); }
     auto mods = Qt::KeyboardModifiers(modifiers) & (Qt::ControlModifier | Qt::MetaModifier | Qt::ShiftModifier | Qt::AltModifier);
-    if (mods.testFlag(Qt::MetaModifier)) {
-        mods &= ~Qt::MetaModifier;
-        mods |= Qt::ControlModifier;
-    }
     const QKeySequence sequence(QKeyCombination(mods, static_cast<Qt::Key>(unshiftedKey(key))));
     for (const auto& extension : nt::wiring::keyActions()) {
         if (extension.defaultKeys.contains(sequence) && !presetBindsAction(keymap(), extension.name)) {
