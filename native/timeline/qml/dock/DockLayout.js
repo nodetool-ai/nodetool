@@ -47,13 +47,13 @@ function applyNativePreset(layout, name) {
     layout.sizes = {left: 320, right: 400, bottom: 280};
     layout.hidden = leftPanels.concat(["source"]);
 }
-// Music (UI-4): the tracks fill the work area, the music panel is on the right and the mixer
-// below. The program monitor sits above the music panel; the editor leaves it out while the
-// sequence has no video track (DockCanvas.suppressedIds), since a layout must place it.
+// Music (UI-4): the tracks fill the work area, the music panel is on the right, the mixer
+// below and the Files panel on the left. The program monitor sits above the music panel. The
+// editor leaves it out while the sequence has no video track (DockCanvas.suppressedIds), since a layout must place it.
 function applyMusicPreset(layout) {
     var leftPanels = ["transcript", "storyboard", "script", "entities", "markers", "files", "assets", "effects"];
     layout.regions.left[0].panels = leftPanels;
-    layout.regions.left[0].activePanelId = leftPanels[0];
+    layout.regions.left[0].activePanelId = "files";
     layout.regions.right = [
         {id: "right-program", panels: ["program"], activePanelId: "program", weight: 0.8},
         {id: "right-main", panels: ["music"].concat(sidePanels), activePanelId: "music", weight: 1.6}
@@ -61,7 +61,9 @@ function applyMusicPreset(layout) {
     layout.regions.viewport = [{id: "viewport-tracks", panels: ["tracks", "source"], activePanelId: "tracks"}];
     layout.regions.bottom = [{id: "bottom-main", panels: ["mixer"], activePanelId: "mixer"}];
     layout.sizes = {left: 320, right: 400, bottom: 260};
-    layout.hidden = leftPanels.concat(["source"]);
+    // The left dock opens on the project's files, as in the node editor. The panels for picture
+    // work stay in the group, hidden, so the layout menu can show them.
+    layout.hidden = ["transcript", "storyboard", "script", "entities", "source"];
 }
 // What a native preset hides is its own choice. Leaving it would hide those
 // panels in the next workspace too, the first time that one opens.

@@ -47,12 +47,16 @@ Item {
     // File > New Music Project (docs/MUSIC-MODE.md section 15) opens this.
     function openNewMusicProject() {
         musicDialog.returnFocusTo = root.Window.window ? root.Window.window.activeFocusItem : null
+        // Loads the projects and selects the open timeline's project, the dialog's default.
+        actions.prepareList()
         musicDialog.open()
         return true
     }
     NewMusicProjectDialog {
         id: musicDialog
         busy: actions.controller.busy
+        projects: actions.controller.projects
+        currentProjectId: actions.controller.projectId
         onCreateRequested: settings => actions.createMusicAndOpen(settings)
     }
     function showList(refresh = true) {

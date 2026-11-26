@@ -32,6 +32,8 @@ Rectangle {
     NewMusicProjectDialog {
         id: dialog
         busy: root.controller ? root.controller.busy : false
+        projects: root.controller ? root.controller.projects : []
+        currentProjectId: root.controller ? root.controller.projectId : ""
         onCreateRequested: settings => root.create(settings)
         onCancelled: root.dismissed()
     }

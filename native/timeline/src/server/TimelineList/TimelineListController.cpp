@@ -216,12 +216,44 @@ QVariantMap TimelineListController::createMusicTimeline(const QVariantMap& value
         finish(refusal);
         return {};
     }
-    if (m_projectId.isEmpty() || !begin()) {
+    // The project the timeline is created in: a new project folder, a chosen
+    // project, or the selected one. The server writes the timeline's file into
+    // that project's folder.
+    const auto newProjectName = values.value("newProjectName").toString().trimmed();
+    const auto newProjectLocation = values.value("newProjectLocation").toString().trimmed();
+    QString target = values.value("projectId").toString();
+    if (newProjectName.isEmpty() && !target.isEmpty() &&
+        std::none_of(m_projects.cbegin(), m_projects.cend(),
+            [&target](const QVariant& project) { return project.toMap().value("id").toString() == target; })) {
+        finish(QStringLiteral("The chosen project is not in the project list. Choose another project."));
         return {};
+    }
+    if (target.isEmpty()) {
+        target = m_projectId;
+    }
+    if ((newProjectName.isEmpty() && target.isEmpty()) || !begin()) {
+        return {};
+    }
+    if (!newProjectName.isEmpty()) {
+        QJsonObject input{{"name", newProjectName}};
+        if (!newProjectLocation.isEmpty()) {
+            input.insert("location", newProjectLocation);
+        }
+        const auto project = m_client->mutate(QStringLiteral("projects.create"), input);
+        if (!project.ok()) {
+            finish(QStringLiteral("Could not create the project folder: %1").arg(project.describe()));
+            return {};
+        }
+        target = project.data.toObject().value("id").toString();
+        if (target.isEmpty()) {
+            finish(QStringLiteral("Could not create the project folder: invalid server response."));
+            return {};
+        }
+        m_projects.push_back(project.data.toObject().toVariantMap());
     }
     const auto id = QUuid::createUuid().toString(QUuid::Id128);
     const auto created = m_client->mutate(QStringLiteral("timeline.create"),
-        {{"id", id}, {"name", "Untitled music"}, {"projectId", m_projectId}});
+        {{"id", id}, {"name", "Untitled music"}, {"projectId", target}});
     if (!created.ok()) {
         finish(created.describe());
         return {};
@@ -234,9 +266,12 @@ QVariantMap TimelineListController::createMusicTimeline(const QVariantMap& value
         finish(updated.describe());
         return {};
     }
+    // The list follows the timeline into its project, so openTimeline finds it.
+    m_projectId = target;
     reloadDocuments();
     finish(m_error);
     auto row = created.data.toObject().toVariantMap();
+    row.insert("projectId", target);
     row.insert("updatedAt", updated.data.toObject().value("updatedAt").toVariant());
     return row;
 }

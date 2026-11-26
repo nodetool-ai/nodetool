@@ -36,7 +36,11 @@ public:
     Q_INVOKABLE QVariantMap createTimeline();
     // New music project (docs/MUSIC-MODE.md section 15): a sequence named
     // "Untitled music" with the music object, the tempo and key, and four role
-    // tracks. `settings` is {bpm, beatsPerBar, beatUnit, keyTonic, keyMode}.
+    // tracks. `settings` is {bpm, beatsPerBar, beatUnit, keyTonic, keyMode},
+    // plus the project: `projectId` (one of `projects`, default the selected
+    // project), or `newProjectName` and an optional `newProjectLocation` for a
+    // new project folder through projects.create. The list then selects that
+    // project, and the returned row names it as `projectId`.
     // Empty on a refusal or a server error, which `error` then names.
     Q_INVOKABLE QVariantMap createMusicTimeline(const QVariantMap& settings);
     Q_INVOKABLE bool renameTimeline(const QString& id, const QString& name);

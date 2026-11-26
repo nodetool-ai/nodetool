@@ -286,6 +286,8 @@ Rectangle {
     NewMusicProjectDialog {
         id: musicDialog
         busy: root.controller ? root.controller.busy : false
+        projects: root.controller ? root.controller.projects : []
+        currentProjectId: root.controller ? root.controller.projectId : ""
         onCreateRequested: settings => {
             if (!root.controller) return
             const created = root.controller.createMusicTimeline(settings)

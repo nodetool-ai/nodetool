@@ -1227,6 +1227,21 @@ private slots:
         QVERIFY(visiblePanels().contains("tracks"));
         QVERIFY(visiblePanels().contains("mixer"));
         QVERIFY2(!visiblePanels().contains("program"), qPrintable(visiblePanels().join(",")));
+        // The left dock opens on the project's files (PF1).
+        QTRY_VERIFY2(visiblePanels().contains("files"), qPrintable(visiblePanels().join(",")));
+        QVERIFY(item("projectFilesDock") && item("projectFilesDock")->isVisible());
+        if (const auto dir = qEnvironmentVariable("NT_PF1_SHOTS"); !dir.isEmpty()) {
+            QTest::qWait(300);
+            view->grabWindow().save(dir + "/music-layout-after.png");
+            // The layout before PF1 hid the whole left dock.
+            for (const char* id : {"files", "markers", "assets", "effects"}) {
+                dockStore()->dispatch({{"type", "hide"}, {"panelId", id}});
+            }
+            QTest::qWait(300);
+            view->grabWindow().save(dir + "/music-layout-before.png");
+            dockStore()->resetWorkspace();
+            QTRY_VERIFY(visiblePanels().contains("files"));
+        }
         // The role chips, one per track, named after the role.
         const QStringList labels{"Drums", "Bass", "Keyboard", "Guitar"};
         const auto tracks = raw.value("tracks").toArray();
@@ -1531,6 +1546,118 @@ private slots:
         QCOMPARE(document.value("tempo").toObject().value("key").toObject(), (QJsonObject{{"tonic", "Eb"}, {"mode", "major"}}));
         QCOMPARE(document.value("tracks").toArray().size(), 4);
         QTRY_VERIFY(!dialog->property("opened").toBool());
+    }
+
+    // The dialog's project choice (PF1): it defaults to the selected project and names the file,
+    // and the timeline is created in a chosen project or in a new project folder.
+    void musicProjectGoesIntoTheChosenProject() {
+        TestHttpServer server;
+        QJsonObject stored;
+        QJsonObject projectCreate;
+        const QJsonArray projects{
+            QJsonObject{{"id", "personal:1"}, {"name", "Personal"}, {"isPersonal", true}, {"folder", QJsonObject{{"path", "/data/workspaces/personal"}}}},
+            QJsonObject{{"id", "band"}, {"name", "Band"}, {"isPersonal", false}, {"folder", QJsonObject{{"path", "/music/Band"}}}}};
+        server.setJson([&](const QByteArray& path, const QUrl&) {
+            if (path == "/trpc/projects.list") { return answer(projects); }
+            if (path == "/trpc/timeline.list") { return answer(stored.isEmpty() ? QJsonArray{} : QJsonArray{stored}); }
+            return answer(stored);
+        });
+        server.setPost([&](const QByteArray& path, const QByteArray& body) {
+            const auto input = QJsonDocument::fromJson(body).object();
+            if (path == "/trpc/projects.create") {
+                projectCreate = input;
+                return answer(QJsonObject{{"id", "song"}, {"name", input.value("name")}, {"isPersonal", false}});
+            }
+            if (path == "/trpc/timeline.create") {
+                stored = input;
+                stored.insert("updatedAt", "2026-11-12T10:00:00.000Z");
+                return answer(stored);
+            }
+            return answer(QJsonObject{{"updatedAt", "2026-11-12T10:00:01.000Z"}});
+        });
+        nt::server::TimelineListController controller(server.base(), "token", "");
+        controller.setPreferredProjectId("band");
+        QQmlEngine engine;
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineListPanel.qml"));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> panel(component.createWithInitialProperties({{"controller", QVariant::fromValue(&controller)}}));
+        QVERIFY(panel);
+        QQuickWindow window;
+        auto* root = qobject_cast<QQuickItem*>(panel.get());
+        root->setParentItem(window.contentItem());
+        root->setSize({480, 720});
+        window.resize(480, 720);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTRY_COMPARE(controller.projectId(), QStringLiteral("band"));
+        auto* button = named(window.contentItem(), "createMusicProject");
+        QTRY_VERIFY(button && button->isEnabled());
+        QVERIFY(QMetaObject::invokeMethod(button, "click"));
+        auto* dialog = named(window.contentItem(), "newMusicProjectDialog");
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        // The default is the selected project, and the dialog names the file the server writes.
+        QCOMPARE(dialog->property("projectChoice").toString(), QStringLiteral("band"));
+        auto* destination = named(window.contentItem(), "musicProjectDestination");
+        QVERIFY(destination);
+        QCOMPARE(destination->property("text").toString(), QStringLiteral("Saved as /music/Band/Timelines/Untitled music.timeline.json"));
+        QCOMPARE(dialog->property("projectOptions").toList().size(), 3);
+        auto* create = named(window.contentItem(), "applySettings");
+        QVERIFY(create);
+        if (const auto dir = qEnvironmentVariable("NT_PF1_SHOTS"); !dir.isEmpty()) {
+            QTest::qWait(100);
+            window.grabWindow().save(dir + "/music-dialog-project.png");
+        }
+        // Another existing project.
+        dialog->setProperty("projectChoice", "personal:1");
+        QCOMPARE(destination->property("text").toString(), QStringLiteral("Saved as /data/workspaces/personal/Timelines/Untitled music.timeline.json"));
+        QVERIFY(QMetaObject::invokeMethod(create, "click"));
+        QTRY_COMPARE(stored.value("projectId").toString(), QStringLiteral("personal:1"));
+        QTRY_VERIFY(!dialog->property("opened").toBool());
+        QCOMPARE(controller.projectId(), QStringLiteral("personal:1"));
+        // A new project folder needs a name, goes through projects.create, and holds the timeline.
+        stored = {};
+        QVERIFY(QMetaObject::invokeMethod(button, "click"));
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        dialog->setProperty("projectChoice", dialog->property("newProjectValue"));
+        auto* name = named(window.contentItem(), "musicNewProjectName");
+        auto* location = named(window.contentItem(), "musicNewProjectLocation");
+        QVERIFY(name && location);
+        QTRY_VERIFY(name->isVisible());
+        QVERIFY(!dialog->property("refusal").toString().isEmpty());
+        QVERIFY(!create->isEnabled());
+        name->setProperty("text", "Song");
+        location->setProperty("text", "/music");
+        QTRY_VERIFY(create->isEnabled());
+        QVERIFY(destination->property("text").toString().contains("/music"));
+        if (const auto dir = qEnvironmentVariable("NT_PF1_SHOTS"); !dir.isEmpty()) {
+            QTest::qWait(100);
+            window.grabWindow().save(dir + "/music-dialog-new-folder.png");
+        }
+        QVERIFY(QMetaObject::invokeMethod(create, "click"));
+        QTRY_COMPARE(stored.value("projectId").toString(), QStringLiteral("song"));
+        QCOMPARE(projectCreate.value("name").toString(), QStringLiteral("Song"));
+        QCOMPARE(projectCreate.value("location").toString(), QStringLiteral("/music"));
+        QCOMPARE(controller.projectId(), QStringLiteral("song"));
+    }
+
+    // A project id that is not in the list is refused before anything is created.
+    void musicProjectRefusesAnUnknownProject() {
+        TestHttpServer server;
+        bool created = false;
+        server.setJson([&](const QByteArray& path, const QUrl&) {
+            if (path == "/trpc/projects.list") {
+                return answer(QJsonArray{QJsonObject{{"id", "personal:1"}, {"name", "Personal"}, {"isPersonal", true}}});
+            }
+            return answer(QJsonArray{});
+        });
+        server.setPost([&](const QByteArray&, const QByteArray&) { created = true; return answer(QJsonObject{}); });
+        nt::server::TimelineListController controller(server.base(), "token", "");
+        controller.refresh();
+        QCOMPARE(controller.projectId(), QStringLiteral("personal:1"));
+        const auto row = controller.createMusicTimeline({{"bpm", 120}, {"beatsPerBar", 4}, {"beatUnit", 4}, {"projectId", "elsewhere"}});
+        QVERIFY(row.isEmpty());
+        QVERIFY(!created);
+        QVERIFY(controller.error().contains("project"));
     }
 
     // File > New Music Project opens the dialog of the editor's document actions (UI-1).

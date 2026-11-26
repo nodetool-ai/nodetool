@@ -104,7 +104,18 @@ private slots:
         QCOMPARE(groups("right").size(), 2);
         QCOMPARE(groups("right").at(0).toMap().value("panels").toStringList(), QStringList{"program"});
         QCOMPARE(groups("right").at(1).toMap().value("activePanelId").toString(), QString("music"));
+        // The left dock opens on the project's files, and keeps its other panels.
+        const auto left = groups("left").first().toMap();
+        QCOMPARE(left.value("activePanelId").toString(), QString("files"));
+        QVERIFY(left.value("panels").toStringList().contains("markers"));
+        QVERIFY(left.value("panels").toStringList().contains("transcript"));
+        QVERIFY(!hidden().contains("files"));
+        QVERIFY(!hidden().contains("markers"));
+        QVERIFY(!hidden().contains("assets"));
+        QVERIFY(hidden().contains("transcript"));
         store.resetWorkspace();
+        QCOMPARE(groups("left").first().toMap().value("activePanelId").toString(), QString("files"));
+        QVERIFY(!hidden().contains("files"));
         QVERIFY(!hidden().contains("music"));
         store.switchWorkspace(store.workspaces().indexOf("Editing"));
         QVERIFY(hidden().contains("music"));
