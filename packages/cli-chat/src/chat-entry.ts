@@ -27,7 +27,7 @@ import {
 import type { PermissionMode } from "@nodetool-ai/agents";
 import {
   buildConfiguredProviders,
-  DEFAULT_MODELS,
+  defaultModelFor,
   KNOWN_PROVIDERS
 } from "@nodetool-ai/cli-providers";
 import { initDb, migrateSqliteDb } from "@nodetool-ai/models";
@@ -217,7 +217,7 @@ const provider = opts.provider ?? settings.provider;
 const model =
   opts.model ??
   (opts.provider
-    ? (DEFAULT_MODELS[opts.provider] ?? settings.model)
+    ? (defaultModelFor(opts.provider) ?? settings.model)
     : settings.model);
 
 // `--agent` and the persisted `agentMode` setting are deprecated no-ops —

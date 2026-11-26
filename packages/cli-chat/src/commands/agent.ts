@@ -26,7 +26,7 @@ import { processChat } from "@nodetool-ai/chat";
 import { initMigratedDb } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { type ProcessingMessage } from "@nodetool-ai/protocol";
-import { createProvider, buildConfiguredProviders, DEFAULT_MODELS } from "@nodetool-ai/cli-providers";
+import { createProvider, buildConfiguredProviders, defaultModelFor } from "@nodetool-ai/cli-providers";
 import { buildFullRegistry } from "@nodetool-ai/cli-execution/node-registry";
 import { buildCliToolbelt } from "../agent-toolbelt.js";
 import {
@@ -218,7 +218,7 @@ export function runPreferences(providerId: string, modelId: string, workspaceDir
 
 /** The requested model, else the provider's default model. */
 export function resolveAgentModel(providerId: string, model: string | undefined): string {
-  const modelId = model ?? DEFAULT_MODELS[providerId];
+  const modelId = model ?? defaultModelFor(providerId);
   if (!modelId) {
     throw new Error(
       `No model specified and ${providerId} has no default model. Use --model <id>. ` +
