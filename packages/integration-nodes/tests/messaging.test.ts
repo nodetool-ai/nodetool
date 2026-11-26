@@ -181,6 +181,44 @@ describe("TelegramBotTrigger", () => {
     node.assign({ token: "bad" });
     await expect(node.process()).rejects.toThrow(/getMe failed/i);
   });
+
+  it.each([
+    "123:abc/deleteWebhook#",
+    "123:abc/sendMessage?chat_id=1&text=hi#",
+    "123:abc/../other",
+    "123:abc?foo=bar",
+    "123:abc\r\nX-Injected: 1"
+  ])("rejects Telegram token with URL/path injection characters: %j", async (badToken) => {
+    const node = new TelegramBotTrigger();
+    node.assign({ token: badToken });
+    const err = await node.process().catch((e: unknown) => e as Error);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toMatch(/invalid telegram bot token/i);
+    // Must not echo the raw token into error messages or logs.
+    expect(err.message).not.toContain(badToken);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("disables HTTP redirects on token validation requests", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true, result: { id: 1, username: "B" } })
+    });
+    const tg = new TelegramBotTrigger();
+    tg.assign({ token: "123456:ABC-def_789" });
+    await tg.process();
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ redirect: "error" });
+
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "1", username: "D" })
+    });
+    const dc = new DiscordBotTrigger();
+    dc.assign({ token: "discord-tok" });
+    await dc.process();
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ redirect: "error" });
+  });
 });
 
 

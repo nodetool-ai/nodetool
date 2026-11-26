@@ -1300,6 +1300,16 @@ describe("lib.mail.EmailTrigger", () => {
     expect(seen).toEqual(["Subject 2", "Subject 3"]);
   });
 
+  it("yields nothing without calling fetch when the folder has no matching mail", async () => {
+    imap.messages = [];
+    const seen: unknown[] = [];
+    for await (const item of triggerNode().genProcess()) {
+      seen.push(item);
+    }
+    expect(seen).toEqual([]);
+    expect(callsNamed("fetch")).toHaveLength(0);
+  });
+
   it("keeps interval_seconds as the property name the schedule adapter reads", () => {
     const props = EmailTriggerLibNode.getDeclaredProperties().map((p) => p.name);
     expect(props).toContain("interval_seconds");

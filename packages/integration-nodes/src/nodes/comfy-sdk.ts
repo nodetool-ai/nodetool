@@ -151,6 +151,8 @@ export interface ComfyTransport {
     filename: string,
     contentType: string
   ): ComfyAssetHandle;
+  /** Release any open connection if the transport is discarded before submit. */
+  close?(): void;
 }
 
 // Pin the SDK surface: these fail to compile if @comfyorg/sdk changes the

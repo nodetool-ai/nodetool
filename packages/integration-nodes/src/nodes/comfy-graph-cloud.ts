@@ -498,7 +498,12 @@ export class ComfyCloudGraphNode extends BaseNode {
         : target.kind === "worker"
           ? await this.openWorkerTransport(target.url, target.token, timeoutSeconds)
           : this.createTransport(target.apiKey);
-    await applyComfyInputs(prompt, this.dynamicProps, transport, context);
+    try {
+      await applyComfyInputs(prompt, this.dynamicProps, transport, context);
+    } catch (err) {
+      transport.close?.();
+      throw err;
+    }
 
     for (const node of graph.nodes) nodeUpdate(node.id, "queued");
     log(`Submitting Comfy workflow to ${where} (${graph.nodes.length} nodes)`);
@@ -567,6 +572,7 @@ export class ComfyCloudGraphNode extends BaseNode {
     try {
       job = await transport.submit(prompt, { signal, apiKey });
     } catch (err) {
+      transport.close?.();
       const error = describeComfyError(err);
       for (const node of graph.nodes) nodeUpdate(node.id, "error", { error: error.message });
       throw error;
@@ -615,6 +621,7 @@ export class ComfyCloudGraphNode extends BaseNode {
       return { ...frame, [`${output.nodeId}:output`]: Object.values(frame)[0] };
     };
 
+    let completed = false;
     try {
       for await (const event of job.events(signal)) {
         switch (event.kind) {
@@ -677,8 +684,10 @@ export class ComfyCloudGraphNode extends BaseNode {
             break;
         }
       }
+      await job.refresh(signal);
+      completed = true;
     } catch (err) {
-      signal.removeEventListener("abort", onAbort);
+      completed = true;
       if (signal.aborted) {
         if (timeoutSignal.aborted && !context?.signal?.aborted) {
           throw new Error(`Comfy job did not finish within ${timeoutSeconds}s`);
@@ -686,10 +695,15 @@ export class ComfyCloudGraphNode extends BaseNode {
         throw abortError(`Comfy job ${job.id} was canceled`);
       }
       throw describeComfyError(err);
+    } finally {
+      signal.removeEventListener("abort", onAbort);
+      if (!completed && !terminal) {
+        void job.cancel().catch(() => {
+          // Best-effort cancellation when the consumer exits early.
+        });
+      }
     }
-    signal.removeEventListener("abort", onAbort);
 
-    await job.refresh(signal);
     const status = TERMINAL.has(job.status) ? job.status : (terminal ?? job.status);
     if (status === "canceled" || status === "canceling") {
       throw abortError(`Comfy job ${job.id} was canceled`);
