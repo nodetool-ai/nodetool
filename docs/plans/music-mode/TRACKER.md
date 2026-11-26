@@ -29,12 +29,14 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | P2 | Native polish: piano roll, automation, mixer, tracks (offscreen) | Opus | A10, D62-D68 |
 | A17 | Native follow-up after A16 and A8 | Sol | A16 |
 | LAB1 | Port the FableSynth LAB units (`/Users/mg/dev/fablesynth/juce/source/dsp/LabFx.h`, commit d2f68d8) as five devices: Crush, Resonator, Shifter, Spray, Glitch. Migrate old `fable:lab` documents to the enabled units. Compare each unit with a LabFx.h reference render (max error 1e-5 at 44.1/48/96 kHz). Until then LAB has a UI but no DSP. Partial work: [lab1-wip.patch](lab1-wip.patch). Prompt: [lab1-prompt.md](lab1-prompt.md) | Neon | none |
-| DSP2 | Engine should-haves: 32-bit float WAV export and export rate option (F5), windowed-sinc varispeed and higher swresample quality (F7), effect parameter smoothing per block (F8) | Neon | DSP1 |
-| DSP1b | Plug-in delay compensation follows latency changes during playback and plug-in bypass (DSP1 D5): pre-sized delay lines with crossfaded read position, host latency events, offline re-probe | Neon | none |
-| NAT1 | Native set_clip_params tool schema fields (A24b F2) and stored zero fades win in native auto crossfade (A22r R1) | Sol | running |
 | DSP1w | Web parity for DSP1: master.limiter field and tool, clip indicator, 16-bit dither in web export (D21) | Neon | DSP1 |
 | DSP3 | Pan law project setting 0/-3/-4.5 dB and stereo balance (F9) | Neon | DSP2 |
 | SQ3c | Step Sequencer: hardware MIDI input for Learn and Step Input (S1), step-record CC values, live pattern recording (SQ39), MIDI Out audition, Step Input cursor stops at the last row | Sol, then Opus | native MIDI input |
+| MOD2 | Modal synth: one shared table worker pool instead of one thread per modal track (WIRE1 F1) | Neon | none |
+| MIX1 | tst_mixerhooks::expandsAndSilencesSegments fails: default master limiter gives 0.7356, test expects 1.0 unity DC | Sol | none |
+| CHK2 | tst_tracksui: saveBannersFollowTheRealController fails; filmstripTexturesSurviveASceneGraphInvalidation needs a window label | Sol | none |
+| SHOT1 | Opus screenshot pass of the DSP2 export dialog (bit depth, sample rate) | Opus | none |
+| UI3 | Wide effect cards (EQ 1040 px) scroll sideways in the default dock: compact layout | Opus | none |
 | CHK | Rerun lost native checks: A2, A2b, A5, A7 | Sol | none |
 | CRV | Lost Codex second reviews: A14, A2b | Sol | none |
 
