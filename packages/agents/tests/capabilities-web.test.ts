@@ -234,28 +234,30 @@ describe("behaviour through toolFromCapability", () => {
 
   it("appends the pages the openai backend cited", async () => {
     const create = vi.fn().mockResolvedValue({
-      choices: [
+      output: [
         {
-          message: {
-            content: "Otters are mustelids.",
-            annotations: [
-              {
-                type: "url_citation",
-                url_citation: {
+          type: "message",
+          content: [
+            {
+              type: "output_text",
+              text: "Otters are mustelids.",
+              annotations: [
+                {
+                  type: "url_citation",
                   url: "https://good.example/otters",
                   title: "Otters",
                   start_index: 0,
                   end_index: 21
                 }
-              }
-            ]
-          }
+              ]
+            }
+          ]
         }
       ]
     });
     vi.doMock("openai", () => ({
       OpenAI: function () {
-        return { chat: { completions: { create } } };
+        return { responses: { create } };
       }
     }));
 

@@ -3,12 +3,21 @@ import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
 vi.mock("openai", () => ({
   OpenAI: class {
-    chat = {
-      completions: {
-        create: async () => ({
-          choices: [{ message: { content: "openai backend answer" } }]
-        })
-      }
+    responses = {
+      create: async () => ({
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: "openai backend answer",
+                annotations: []
+              }
+            ]
+          }
+        ]
+      })
     };
   }
 }));
