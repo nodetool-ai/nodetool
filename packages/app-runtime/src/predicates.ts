@@ -20,8 +20,10 @@ export const isNumber = (value: unknown): value is number =>
 export const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
-export const hasOwn = (record: object, key: string): boolean =>
-  Object.prototype.hasOwnProperty.call(record, key);
+export const hasOwn = <T>(
+  record: Readonly<Record<string, T>>,
+  key: string
+): boolean => Object.prototype.hasOwnProperty.call(record, key);
 
 export const getOwn = <T>(
   record: Readonly<Record<string, T>>,
