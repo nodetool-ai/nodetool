@@ -35,7 +35,8 @@ export type MediaCall =
       audioCodec: string;
     }
   | { fn: "openFilterComplex"; inputs: FilterComplexInput[]; graph: string }
-  | { fn: "muxAudioWithVideoCopy"; videoPath: string; outPath: string; codec: string }
+  | { fn: "muxAudioWithVideoCopy"; videoPath: string; outPath: string; codec: string; sampleRate?: number }
+  | { fn: "encodeAudioToFile"; outPath: string; codec: string; sampleRate: number; durationSec?: number }
   | { fn: "decodeAudioToPcm"; filePath: string; filter?: string; sampleRate: number }
   | { fn: "probeMedia"; filePath: string }
   | { fn: "transformMedia"; args: string }
@@ -95,6 +96,8 @@ export function mediaArgString(): string {
           return call.graph;
         case "muxAudioWithVideoCopy":
           return `-c:a ${call.codec}`;
+        case "encodeAudioToFile":
+          return `-c:a ${call.codec} -ar ${call.sampleRate}`;
         case "decodeAudioToPcm":
           return call.filter ?? "";
         case "probeMedia":
@@ -264,15 +267,35 @@ export function fakeMediaModule(
       videoPath: string;
       outPath: string;
       codec: string;
+      sampleRate?: number;
       audio: AsyncIterable<unknown>;
     }) => {
       mediaCalls.push({
         fn: "muxAudioWithVideoCopy",
         videoPath: opts.videoPath,
         outPath: opts.outPath,
-        codec: opts.codec
+        codec: opts.codec,
+        sampleRate: opts.sampleRate
       });
       // Drain the fake mix.
+      const mix = opts.audio[Symbol.asyncIterator]();
+      while (!(await mix.next()).done);
+      fs.writeFileSync(opts.outPath, `fake:${opts.outPath}`);
+    },
+    encodeAudioToFile: async (opts: {
+      outPath: string;
+      codec: string;
+      sampleRate: number;
+      durationSec?: number;
+      audio: AsyncIterable<unknown>;
+    }) => {
+      mediaCalls.push({
+        fn: "encodeAudioToFile",
+        outPath: opts.outPath,
+        codec: opts.codec,
+        sampleRate: opts.sampleRate,
+        durationSec: opts.durationSec
+      });
       const mix = opts.audio[Symbol.asyncIterator]();
       while (!(await mix.next()).done);
       fs.writeFileSync(opts.outPath, `fake:${opts.outPath}`);

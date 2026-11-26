@@ -36,6 +36,8 @@ Item {
     property bool autoBitrate: true
     property int bitrateKbps: 8000
     property string scaleMode: "fit"
+    property int audioBitDepth: 16
+    property int audioSampleRate: 48000
     property string notice: ""
     property string saveError: ""
     // Set while a preset is applied, so the field handlers do not look the preset up again.
@@ -102,6 +104,27 @@ Item {
         { value: "fit", label: "Fit, with black bars" },
         { value: "fill", label: "Fill, cropping the edges" }
     ]
+    readonly property var bitDepthOptions: [
+        { value: "16", label: "16-bit PCM (TPDF dither)" },
+        { value: "24", label: "24-bit PCM" },
+        { value: "32", label: "32-bit float (IEEE 754)" }
+    ]
+    readonly property var allSampleRateOptions: [
+        { value: "44100", label: "44.1 kHz" },
+        { value: "48000", label: "48 kHz" },
+        { value: "88200", label: "88.2 kHz" },
+        { value: "96000", label: "96 kHz" },
+        { value: "192000", label: "192 kHz" }
+    ]
+    function sampleRatesForFormat(fmt) {
+        if (fmt === "wav") return [44100, 48000, 88200, 96000, 192000]
+        if (fmt === "mp4") return [44100, 48000, 88200, 96000]
+        if (fmt === "mp3") return [44100, 48000]
+        return [48000]
+    }
+    readonly property var supportedSampleRates: sampleRatesForFormat(format)
+    readonly property var sampleRateOptions: allSampleRateOptions.filter(
+        option => supportedSampleRates.indexOf(Number(option.value)) >= 0)
     signal exportRequested(var options)
     property var pendingOptions: ({format: "mp4", alpha: false})
 
@@ -125,6 +148,8 @@ Item {
         autoBitrate = !(settings.videoBitrateKbps > 0)
         if (!autoBitrate) bitrateKbps = settings.videoBitrateKbps
         scaleMode = settings.scaleMode === "fill" ? "fill" : "fit"
+        audioBitDepth = (settings.audioBitDepth === 24 || settings.audioBitDepth === 32) ? settings.audioBitDepth : 16
+        audioSampleRate = sampleRatesForFormat(format).indexOf(settings.audioSampleRate) >= 0 ? settings.audioSampleRate : 48000
         applying = false
     }
     function applyPreset(id) {
@@ -135,7 +160,9 @@ Item {
     }
     function currentSettings() {
         const settings = { format: format, alpha: alpha, startMs: 0, endMs: -1, width: 0, height: 0, fps: 0,
-            videoBitrateKbps: 0, scaleMode: audioOnly || matchSize ? "fit" : scaleMode }
+            videoBitrateKbps: 0, scaleMode: audioOnly || matchSize ? "fit" : scaleMode,
+            audioBitDepth: format === "wav" ? audioBitDepth : 16,
+            audioSampleRate: format !== "png_sequence" && sampleRatesForFormat(format).indexOf(audioSampleRate) >= 0 ? audioSampleRate : 48000 }
         if (!audioOnly) {
             if (!matchSize) { settings.width = outWidth; settings.height = outHeight }
             if (!matchRate) settings.fps = outFps
@@ -175,6 +202,7 @@ Item {
     onFormatChanged: {
         if (format === "mp4" && !mp4Supported) format = "webm"
         if (!alphaEnabled) alpha = false
+        if (sampleRatesForFormat(format).indexOf(audioSampleRate) < 0) audioSampleRate = 48000
         syncPreset()
     }
     onMp4SupportedChanged: { if (!mp4Supported && format === "mp4") format = "webm" }
@@ -188,6 +216,8 @@ Item {
     onAutoBitrateChanged: syncPreset()
     onBitrateKbpsChanged: syncPreset()
     onScaleModeChanged: syncPreset()
+    onAudioBitDepthChanged: syncPreset()
+    onAudioSampleRateChanged: syncPreset()
     onExportRequested: options => {
         pendingOptions = options
         if (!timelineModel) return
@@ -301,6 +331,26 @@ Item {
                     wrapMode: Text.WordWrap
                     role: Ui.Typography.SansCaption
                     tone: Ui.Text.Secondary
+                }
+                Ui.Text { visible: root.format === "wav"; text: "Bit depth"; role: Ui.Typography.SansLabel }
+                InspectorSelect {
+                    objectName: "audioBitDepthSelect"
+                    Layout.fillWidth: true
+                    visible: root.format === "wav"
+                    label: "Bit depth"
+                    value: String(root.audioBitDepth)
+                    options: root.bitDepthOptions
+                    onChange: value => root.audioBitDepth = Number(value)
+                }
+                Ui.Text { visible: root.format !== "png_sequence"; text: "Sample rate"; role: Ui.Typography.SansLabel }
+                InspectorSelect {
+                    objectName: "audioSampleRateSelect"
+                    Layout.fillWidth: true
+                    visible: root.format !== "png_sequence"
+                    label: "Sample rate"
+                    value: String(root.audioSampleRate)
+                    options: root.sampleRateOptions
+                    onChange: value => root.audioSampleRate = Number(value)
                 }
                 Ui.Text { text: "Range"; role: Ui.Typography.SansLabel }
                 InspectorSelect {

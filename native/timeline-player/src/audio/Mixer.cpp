@@ -1,5 +1,6 @@
 #include "audio/Mixer.h"
 #include "audio/DenormalGuard.h"
+#include "audio/SincResampler.h"
 #include "audio/effects/Effects.h"
 #include "scene/Animation.h"
 #include "scene/ClipScene.h"
@@ -1023,8 +1024,42 @@ void mixVoice(const VoicePlan& v, VoicePcm& src, double masterGain, bool dry,
         }
         const double staticGain = dry ? 1.0 : v.trackGain * masterGain;
         const double durationFrames = std::round(v.durationMs * sampleRate / 1000.0 * 1e6) / 1e6;
+        const double effectiveRate = v.sourceRate * msPerFrame * sampleRate / 1000.0;
+        const double absEffectiveRate = std::abs(effectiveRate);
+        const bool needVarispeed = std::abs(absEffectiveRate - 1.0) > 1e-9;
+        bool usedSinc = needVarispeed;
         bool underrun = false;
         double lastSource = -1.0;
+        const auto fetchCore = [&](std::int64_t f, float& l, float& r) {
+            if (src.ring) {
+                PcmRing& ring = *src.ring;
+                if (f < 0 || f >= ring.endFrame()) return;
+                if (f < ring.readFloor() || f >= ring.readableEnd()) {
+                    underrun = true;
+                    return;
+                }
+                ring.get(f, l, r);
+            } else if (src.linear && f >= src.linearFirst && f < src.linearFirst + src.linearCount) {
+                const std::size_t at = static_cast<std::size_t>(f - src.linearFirst) * 2;
+                l = src.linear[at];
+                r = src.linear[at + 1];
+            }
+        };
+        const auto fetchTap = [&](std::int64_t f, float& l, float& r) noexcept -> bool {
+            if (src.ring) {
+                PcmRing& ring = *src.ring;
+                if (f < 0 || f >= ring.endFrame()) return false;
+                if (f < ring.readFloor() || f >= ring.readableEnd()) return false;
+                ring.get(f, l, r);
+                return true;
+            } else if (src.linear && f >= src.linearFirst && f < src.linearFirst + src.linearCount) {
+                const std::size_t at = static_cast<std::size_t>(f - src.linearFirst) * 2;
+                l = src.linear[at];
+                r = src.linear[at + 1];
+                return true;
+            }
+            return false;
+        };
         for (int i = 0; i < frames; ++i) {
             const double t = timelineMs0 + msPerFrame * i;
             // Positions in frames, snapped when within 1e-6 of a whole frame:
@@ -1043,28 +1078,41 @@ void mixVoice(const VoicePlan& v, VoicePcm& src, double masterGain, bool dry,
             if (s < 0.0) continue;
             const auto f0 = static_cast<std::int64_t>(std::floor(s));
             const double frac = s - static_cast<double>(f0);
-            float l0 = 0.0f, r0 = 0.0f, l1 = 0.0f, r1 = 0.0f;
-            const auto fetch = [&](std::int64_t f, float& l, float& r) {
+            double inL = 0.0, inR = 0.0;
+            if (!needVarispeed && frac == 0.0) {
+                float l0 = 0.0f, r0 = 0.0f;
+                fetchCore(f0, l0, r0);
+                inL = l0;
+                inR = r0;
+            } else {
+                usedSinc = true;
+                const SincSupport support = sincSupportForSample(s, absEffectiveRate);
                 if (src.ring) {
                     PcmRing& ring = *src.ring;
-                    if (f < ring.readFloor()) return;
-                    if (f >= ring.readableEnd()) {
-                        if (f < ring.endFrame()) underrun = true;
-                        return;
+                    const std::int64_t srcEnd = ring.endFrame();
+                    const std::int64_t ringFloor = ring.readFloor();
+                    const std::int64_t ringEnd = ring.readableEnd();
+                    // Physical source frames lie in [0, srcEnd). Temporary ring limits
+                    // [ringFloor, ringEnd) that clip in-range kernel taps are underruns.
+                    const std::int64_t needFirst = std::max<std::int64_t>(0, support.first);
+                    const std::int64_t needLast =
+                        (srcEnd == std::numeric_limits<std::int64_t>::max())
+                            ? support.last
+                            : std::min<std::int64_t>(support.last, srcEnd - 1);
+                    if (needFirst <= needLast) {
+                        if (needFirst < ringFloor || needLast >= ringEnd) {
+                            underrun = true;
+                        } else {
+                            sampleSinc(s, absEffectiveRate, fetchTap, inL, inR);
+                        }
                     }
-                    ring.get(f, l, r);
-                } else if (src.linear && f >= src.linearFirst && f < src.linearFirst + src.linearCount) {
-                    const std::size_t at = static_cast<std::size_t>(f - src.linearFirst) * 2;
-                    l = src.linear[at];
-                    r = src.linear[at + 1];
+                } else if (src.linear && src.linearCount > 0) {
+                    const std::int64_t linFirst = src.linearFirst;
+                    const std::int64_t linEnd = src.linearFirst + src.linearCount;
+                    if (support.last >= linFirst && support.first < linEnd) {
+                        sampleSinc(s, absEffectiveRate, fetchTap, inL, inR);
+                    }
                 }
-            };
-            fetch(f0, l0, r0);
-            double inL = l0, inR = r0;
-            if (frac > 0.0) {
-                fetch(f0 + 1, l1, r1);
-                inL = l0 + (l1 - l0) * frac;
-                inR = r0 + (r1 - r0) * frac;
             }
             const double clipGain = v.gainSource ? v.gainSource->valueAt(t, v.clipGain) : v.clipGain;
             const double fade = v.fadeDurationMs > 0
@@ -1076,9 +1124,14 @@ void mixVoice(const VoicePlan& v, VoicePcm& src, double masterGain, bool dry,
             out[2 * i] += static_cast<float>(outL * g);
             out[2 * i + 1] += static_cast<float>(outR * g);
         }
-        if (src.ring && lastSource >= 0.0) {
-            // Keep one frame below the next position for the interpolation.
-            src.ring->release(static_cast<std::int64_t>(std::floor(lastSource)) - 1);
+        if (src.ring && lastSource >= 0.0 && effectiveRate >= 0.0) {
+            // Keep enough history below the next position for interpolation / sinc wings.
+            // Live AudioEngine rings retain kSincMaxRadius + 1 frames so a forward transport-rate
+            // jump mid-session (e.g. 1x -> 2x/4x with keepPitch=false) keeps full left-wing support.
+            const std::int64_t keepMargin = src.live
+                ? static_cast<std::int64_t>(kSincMaxRadius) + 1
+                : (usedSinc ? static_cast<std::int64_t>(sincRadiusForRate(absEffectiveRate)) + 1 : 1);
+            src.ring->release(static_cast<std::int64_t>(std::floor(lastSource)) - keepMargin);
         }
         if (underrun) ++stats.underruns;
 }

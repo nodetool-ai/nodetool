@@ -2,7 +2,9 @@
 #include "model/TimelineTypes.h"
 #include "preview/WorkingFormat.h"
 #include <QImage>
+#include <QJsonObject>
 #include <QString>
+#include <QStringList>
 #include <QSize>
 #include <functional>
 #include <stop_token>
@@ -33,7 +35,8 @@ struct Options {
     std::function<void(const QByteArray&)> videoFrameForTest = {}; // packed YUV420P, before encoding
     std::function<void(const QImage&)> floatCanvasForTest = {}; // straight FP32, before resize
     nt::WorkingFormat workingFormat = nt::WorkingFormat::Rgba8; // internal test selection only
-    int audioBitDepth = 16;  // WAV only: 16 (TPDF dither) or 24 (rounded and clamped, no dither)
+    int audioBitDepth = 16;  // WAV only: 16 (TPDF dither), 24 (rounded/clamped, no dither), or 32 (IEEE float, no dither)
+    int audioSampleRate = 48000;  // Output audio sample rate in Hz (44100, 48000, 88200, 96000, or 192000)
 };
 struct Progress {
     QString phase;
@@ -53,11 +56,22 @@ struct Result {
     int height = 0;
     double startMs = 0;
     double endMs = 0;
+    int audioSampleRate = 48000;
     bool ok() const { return error.isEmpty() && !cancelled; }
 };
 using ProgressCallback = std::function<void(const Progress&)>;
 using CancelProbe = std::function<bool()>;
 bool mp4Available();
+struct CliParseResult {
+    bool ok = false;
+    QString error;
+    QString timelineSource;
+    Options options;
+    qint64 cancelAt = -1;
+    QString cancelFile;
+};
+CliParseResult parseExportCliArguments(const QStringList& arguments);
+QJsonObject exportResultJson(const Options& options, const Result& result);
 // Runs on the owning Qt GUI/QRhi thread. The editor controller launches a
 // separate process so neither mixing nor encoder work blocks the editor.
 Result exportTimeline(const Timeline& timeline, const Options& options, const server::AssetCacheRoot& cache,

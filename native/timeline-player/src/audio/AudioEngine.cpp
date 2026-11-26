@@ -6,6 +6,7 @@
 #include "audio/loudness/LiveLoudness.h"
 
 #include "audio/AudioSource.h"
+#include "audio/SincResampler.h"
 #include "audio/ShuttleStretch.h"
 #include "audio/hooks/OutputDevice.h"
 
@@ -921,8 +922,10 @@ struct AudioEngine::Impl {
                 if (s->rings[i]) { ringsRetained.fetch_add(1, std::memory_order_relaxed); }
                 s->live[i].store(previous->live[j].load(std::memory_order_acquire));
                 s->failed[i].store(previous->failed[j].load(std::memory_order_relaxed));
+                // Reserve full max sinc wing so mid-session transport-rate jumps stay covered.
+                const std::int64_t margin = static_cast<std::int64_t>(kSincMaxRadius) + 2;
                 s->endFrame[i] = static_cast<std::int64_t>(
-                    std::ceil(v.sourceFrameAt(v.startMs + v.durationMs, sampleRate))) + 2;
+                    std::ceil(v.sourceFrameAt(v.startMs + v.durationMs, sampleRate))) + margin;
             }
             s->consumed.store(previous->consumed.load(std::memory_order_acquire));
             s->pass = previous->pass;
@@ -958,19 +961,25 @@ struct AudioEngine::Impl {
                 s.failed[i].store(true, std::memory_order_relaxed);
                 continue;
             }
+            const double transportRate = std::max(1.0, std::abs(feed.command.load().rate));
+            const double effectiveSpeed = std::max(1.0, std::abs(v.sourceRate) * transportRate);
+            // Reserve full max sinc wing so mid-session transport-rate jumps stay covered.
+            const std::int64_t margin = static_cast<std::int64_t>(kSincMaxRadius) + 2;
             if (!s.rings[i]) {
                 const double fromMs = std::max(v.startMs, s.startMs);
                 const auto first = std::max<std::int64_t>(
-                    0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(fromMs, sampleRate))) - 1);
-                const auto cap = static_cast<std::int64_t>(kRingSeconds * sampleRate * std::max(1.0, v.sourceRate)) + 1024;
+                    0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(fromMs, sampleRate))) - margin);
+                const auto cap = static_cast<std::int64_t>(kRingSeconds * sampleRate * effectiveSpeed) + 1024;
                 s.rings[i] = std::make_shared<PcmRing>(cap, first);
-                s.endFrame[i] = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(endMs, sampleRate))) + 2;
+                s.endFrame[i] = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(endMs, sampleRate))) + margin;
             }
             PcmRing& ring = *s.rings[i];
-            const auto primeFrames = static_cast<std::int64_t>(kPrimeMs * sampleRate / 1000.0 * v.sourceRate) + 1024;
+            const double minPrimeSpan = std::max(
+                kPrimeMs * sampleRate / 1000.0 * std::abs(v.sourceRate) * transportRate,
+                static_cast<double>(2 * margin));
+            const auto primeFrames = static_cast<std::int64_t>(std::ceil(minPrimeSpan)) + 1024;
             const std::int64_t limit = playing ? s.endFrame[i] : std::min(s.endFrame[i], ring.firstFrame() + primeFrames);
-            const double needFrames = std::min(kPrimeMs * sampleRate / 1000.0 * v.sourceRate,
-                                              static_cast<double>(s.endFrame[i] - ring.firstFrame()));
+            const double needFrames = std::min(minPrimeSpan, static_cast<double>(s.endFrame[i] - ring.firstFrame()));
             if (ring.writeEnd() < limit && src->position() != ring.writeEnd()) src->seek(ring.writeEnd());
             while (ring.writeEnd() < limit && ring.endFrame() == INT64_MAX) {
                 const std::int64_t want = std::min({ring.freeFrames(), kChunkFrames, limit - ring.writeEnd()});
@@ -1668,8 +1677,9 @@ std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, doubl
             if (report) report->push_back(v.clipId + ": " + error);
             continue;
         }
-        const auto first = std::max<std::int64_t>(0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(from, sr))) - 1);
-        const auto last = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(to, sr))) + 2;
+        const std::int64_t margin = static_cast<std::int64_t>(sincRadiusForRate(v.sourceRate)) + 2;
+        const auto first = std::max<std::int64_t>(0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(from, sr))) - margin);
+        const auto last = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(to, sr))) + margin;
         spans[i].resize(static_cast<std::size_t>(std::max<std::int64_t>(0, last - first)) * 2);
         src->seek(first);
         const std::int64_t got = src->read(spans[i].data(), last - first);

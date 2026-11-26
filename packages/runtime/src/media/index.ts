@@ -46,6 +46,7 @@ export {
 } from "./rgba.js";
 export {
   copyContainerFor,
+  encodeAudioToFile,
   muxAudioWithVideoCopy,
   muxStreamCopy,
   streamCodecs,

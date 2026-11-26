@@ -28,7 +28,7 @@
 
 import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
+import type { AudioRef, DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
@@ -85,6 +85,7 @@ import { atempoChain, videoRef } from "./video-helpers.js";
 import {
   concatSegments,
   decodeAudioToPcm,
+  encodeAudioToFile,
   muxAudioWithVideoCopy,
   openFilterComplex,
   probeDurationSec,
@@ -103,6 +104,7 @@ import {
 } from "./timeline/browserRender.js";
 import {
   ALPHA_OUTPUT_FORMATS,
+  DEFAULT_WAV_BIT_DEPTH,
   MissingEncoderError,
   resolveTimelineOutput,
   TIMELINE_OUTPUT_FORMATS,
@@ -874,6 +876,7 @@ async function renderRoughCut(opts: {
   width: number;
   height: number;
   fps: number;
+  audioSampleRate?: number;
 }): Promise<string> {
   const { seq, clips, audioClips, assets, workDir, width, height, fps } = opts;
   const suppressedLinkIds = extractedAudioLinkIds(seq);
@@ -938,7 +941,8 @@ async function renderRoughCut(opts: {
     segments,
     videoFilter: segmentVideoFilter(width, height),
     video: { codec: "libx264", pixelFormat: "yuv420p", options: { preset: "veryfast" } },
-    audioCodec: "aac"
+    audioCodec: "aac",
+    audioSampleRate: opts.audioSampleRate
   });
   return basePath;
 }
@@ -952,36 +956,26 @@ async function renderRoughCut(opts: {
  * was encoded into and the audio codec has to be legal inside it — AAC is not a
  * WebM track, which is why `audioCodec` is passed rather than assumed.
  */
-async function mixAudioInto(opts: {
-  basePath: string;
-  clips: TimelineClip[];
-  /** The sequence's tracks, whose effect chains run over their clips' sum. */
-  tracks: TimelineTrack[];
-  /** The master channel, run over the whole mix. */
-  master?: TimelineMasterChannel;
+/**
+ * Build the libav filter_complex inputs and graph string for mixing `clips`,
+ * track effect chains, and master channel into `[aout]`. Returns `null` when
+ * none of `clips` resolved to an audible stream.
+ */
+async function buildAudioMixGraph(opts: {
+  basePath?: string;
   baseHasAudio: boolean;
+  clips: TimelineClip[];
+  tracks: TimelineTrack[];
+  master?: TimelineMasterChannel;
   assets: { path(assetId: string): Promise<string | null> };
   midi: MidiFiles;
-  workDir: string;
-  extension: string;
-  audioCodec: string;
-}): Promise<string> {
-  const {
-    basePath,
-    clips,
-    tracks,
-    master,
-    baseHasAudio,
-    assets,
-    midi,
-    workDir,
-    extension,
-    audioCodec
-  } = opts;
-  // Input 0 is the base, as it was on the CLI, so the labels keep their numbers.
-  const inputs: FilterComplexInput[] = baseHasAudio
-    ? [{ filePath: basePath, kind: "audio", label: "0:a" }]
-    : [];
+}): Promise<{ inputs: FilterComplexInput[]; graph: string } | null> {
+  const { basePath, baseHasAudio, clips, tracks, master, assets, midi } = opts;
+  // Input 0 is the base when present, so labels keep their numbers.
+  const inputs: FilterComplexInput[] =
+    baseHasAudio && basePath
+      ? [{ filePath: basePath, kind: "audio", label: "0:a" }]
+      : [];
   const filters: string[] = [];
   const labels: string[] = [];
   // Each clip's stream(s), grouped by track so a track's effect chain runs
@@ -1077,7 +1071,7 @@ async function mixAudioInto(opts: {
     filters.push(`${streams.join("")}${[...head, ...steps].join(",")}[${label}]`);
     labels.push(`[${label}]`);
   }
-  if (labels.length === 0) return basePath;
+  if (labels.length === 0) return null;
 
   const sources = baseHasAudio ? [`[0:a]`, ...labels] : labels;
   const mixSteps = [
@@ -1088,15 +1082,57 @@ async function mixAudioInto(opts: {
     "apad"
   ];
   const mix = `${sources.join("")}${mixSteps.join(",")}[aout]`;
+  return { inputs, graph: [...filters, mix].join(";") };
+}
+
+async function mixAudioInto(opts: {
+  basePath: string;
+  clips: TimelineClip[];
+  /** The sequence's tracks, whose effect chains run over their clips' sum. */
+  tracks: TimelineTrack[];
+  /** The master channel, run over the whole mix. */
+  master?: TimelineMasterChannel;
+  baseHasAudio: boolean;
+  assets: { path(assetId: string): Promise<string | null> };
+  midi: MidiFiles;
+  workDir: string;
+  extension: string;
+  audioCodec: string;
+  audioSampleRate?: number;
+}): Promise<string> {
+  const {
+    basePath,
+    clips,
+    tracks,
+    master,
+    baseHasAudio,
+    assets,
+    midi,
+    workDir,
+    extension,
+    audioCodec,
+    audioSampleRate = 48000
+  } = opts;
+  const built = await buildAudioMixGraph({
+    basePath,
+    baseHasAudio,
+    clips,
+    tracks,
+    master,
+    assets,
+    midi
+  });
+  if (!built) return basePath;
+
   const outPath = path.join(workDir, `mixed.${extension}`);
   const mixed = await openFilterComplex({
-    inputs,
-    graph: [...filters, mix].join(";"),
+    inputs: built.inputs,
+    graph: built.graph,
     output: "aout",
     outputKind: "audio"
   });
   try {
-    // The picture is copied; the mix is encoded beside it at 48 kHz stereo.
+    // The picture is copied; the mix is encoded beside it at `audioSampleRate` stereo.
     // `apad` runs the mix past the picture, and the mux stops it at the
     // picture's end, so the render is exactly as long as the video.
     await muxAudioWithVideoCopy({
@@ -1104,7 +1140,55 @@ async function mixAudioInto(opts: {
       audio: mixed.frames(),
       outPath,
       codec: audioCodec,
-      sampleRate: 48000
+      sampleRate: audioSampleRate
+    });
+  } finally {
+    await mixed.close();
+  }
+  return outPath;
+}
+
+/** Mix audible timeline clips into an audio-only file (e.g. WAV PCM 16/24/32f). */
+async function renderAudioOnly(opts: {
+  clips: TimelineClip[];
+  tracks: TimelineTrack[];
+  master?: TimelineMasterChannel;
+  assets: { path(assetId: string): Promise<string | null> };
+  midi: MidiFiles;
+  workDir: string;
+  extension: string;
+  audioCodec: string;
+  audioSampleRate: number;
+  durationSec: number;
+  signal?: AbortSignal;
+}): Promise<string> {
+  const built = await buildAudioMixGraph({
+    baseHasAudio: false,
+    clips: opts.clips,
+    tracks: opts.tracks,
+    master: opts.master,
+    assets: opts.assets,
+    midi: opts.midi
+  });
+  if (!built) {
+    throw new Error("Timeline has no readable audio streams to export.");
+  }
+  const outPath = path.join(opts.workDir, `rendered.${opts.extension}`);
+  const mixed = await openFilterComplex({
+    inputs: built.inputs,
+    graph: built.graph,
+    output: "aout",
+    outputKind: "audio",
+    signal: opts.signal
+  });
+  try {
+    await encodeAudioToFile({
+      audio: mixed.frames(),
+      outPath,
+      codec: opts.audioCodec,
+      sampleRate: opts.audioSampleRate,
+      durationSec: opts.durationSec,
+      signal: opts.signal
     });
   } finally {
     await mixed.close();
@@ -1139,7 +1223,8 @@ export async function mixCompositedTimelineAudio(opts: {
     midi: new MidiFiles(workDir, { ...sequence, tracks: effectiveTracks }, resolveAssetPath),
     workDir,
     extension: output.extension,
-    audioCodec: output.audioCodec ?? "aac"
+    audioCodec: output.audioCodec ?? "aac",
+    audioSampleRate: output.audioSampleRate
   });
 }
 
@@ -1190,6 +1275,7 @@ function evenScaled(edge: number, scale: number): number {
 type RenderTimelineNodeOutputs = {
   output: VideoRef;
   frames: TimelineFramesRef;
+  audio: AudioRef;
 };
 
 /** An unset ref on the handle this render did not fill. */
@@ -1199,6 +1285,10 @@ function emptyVideoRef(): VideoRef {
 
 function emptyFramesRef(): TimelineFramesRef {
   return { type: "document", uri: "", asset_id: null, data: null };
+}
+
+function emptyAudioRef(): AudioRef {
+  return { type: "audio", uri: "", asset_id: null, data: null };
 }
 
 /**
@@ -1243,7 +1333,8 @@ export class RenderTimelineNode extends BaseNode {
     "Render a timeline sequence to a video, composited exactly as the timeline editor previews it (tracks, transforms, transitions, effects, captions and text), with audio mixed in at each clip's offset. Writes MP4, WebM, MOV or a zipped PNG sequence, with an optional transparent background.\n    timeline, render, video, export, cut, alpha\n\n    Use cases:\n    - Turn an edit assembled in the timeline editor into a shareable video\n    - Export a title or lower third over transparency to composite elsewhere\n    - Feed a rough cut into captioning, review, or upload nodes\n    - Automate exports of timelines built by other workflow nodes";
   static readonly metadataOutputTypes = {
     output: "video",
-    frames: "document"
+    frames: "document",
+    audio: "audio"
   };
   static readonly inlineFields = ["timeline"];
   static readonly inputFields = [];
@@ -1269,7 +1360,7 @@ export class RenderTimelineNode extends BaseNode {
     default: "mp4",
     title: "Format",
     description:
-      "Output container. mp4 is H.264. webm is VP9, mov is ProRes, and png_sequence is a zip of PNGs with a manifest.json — those three carry alpha.",
+      "Output container. mp4 is H.264, webm is VP9, mov is ProRes, png_sequence is a zip of PNGs with a manifest.json (those three carry alpha), and wav writes uncompressed PCM audio.",
     values: [...TIMELINE_OUTPUT_FORMATS]
   })
   declare format: string;
@@ -1338,6 +1429,24 @@ export class RenderTimelineNode extends BaseNode {
   })
   declare preview_scale: number;
 
+  @prop({
+    type: "int",
+    default: 48000,
+    title: "Audio sample rate",
+    description:
+      "Output audio sample rate in Hz. wav accepts 44100, 48000, 88200, 96000, or 192000; mp4 and mov accept 44100, 48000, 88200, or 96000; webm accepts 48000 only; ignored for png_sequence."
+  })
+  declare audio_sample_rate: number;
+
+  @prop({
+    type: "int",
+    default: DEFAULT_WAV_BIT_DEPTH,
+    title: "Audio bit depth",
+    description:
+      "PCM bit depth for WAV exports: 16, 24, or 32 (32-bit IEEE 754 float). Ignored for video and PNG sequence formats."
+  })
+  declare audio_bit_depth: number;
+
   async process(
     context?: ProcessingContext
   ): Promise<RenderTimelineNodeOutputs> {
@@ -1351,27 +1460,31 @@ export class RenderTimelineNode extends BaseNode {
 
     const includeAudio = this.include_audio !== false;
     const audioClips = includeAudio ? mixableAudioClips(seq) : [];
-    if (!hasRenderableVisual(seq) && audioClips.length === 0) {
-      throw new Error(
-        `Timeline "${seq.name}" has no renderable clips with media — generate or import clip media first`
-      );
-    }
     const durationMs = totalDurationMs(seq);
-    if (durationMs <= 0) {
-      throw new Error(`Timeline "${seq.name}" has zero duration`);
-    }
 
-    // Resolved before anything is decoded: an impossible format/alpha pair, or
-    // a libav build with no encoder for it, must fail in a second rather than after
-    // a thousand composited frames.
+    // Resolved before anything is decoded: an impossible format/alpha/rate/bit-depth
+    // combination, or a libav build with no encoder for it, must fail immediately.
     const output = resolveTimelineOutput({
       format: this.format,
       alpha: this.alpha === true,
       videoCodec: this.video_codec,
       bitrate: this.bitrate,
       motionBlurSamples: this.motion_blur_samples,
-      shutterAngle: this.shutter_angle
+      shutterAngle: this.shutter_angle,
+      audioSampleRate: this.audio_sample_rate,
+      audioBitDepth: this.audio_bit_depth
     });
+    if (output.format === "wav" && !includeAudio) {
+      throw new Error("WAV export requires include_audio to be enabled.");
+    }
+    if (output.format !== "wav" && !hasRenderableVisual(seq) && audioClips.length === 0) {
+      throw new Error(
+        `Timeline "${seq.name}" has no renderable clips with media — generate or import clip media first`
+      );
+    }
+    if (durationMs <= 0) {
+      throw new Error(`Timeline "${seq.name}" has zero duration`);
+    }
     await this.assertEncoderAvailable(output);
 
     const workDir = await fs.mkdtemp(
@@ -1386,6 +1499,54 @@ export class RenderTimelineNode extends BaseNode {
         (id) => assets.path(id),
         ctx.signal
       );
+
+      if (output.format === "wav") {
+        const audioToMix = [...embeddedAudioClips(seq), ...audioClips];
+        if (audioToMix.length === 0) {
+          throw new Error(
+            `Timeline "${seq.name}" has no audible clips to export as WAV.`
+          );
+        }
+        const wavPath = await renderAudioOnly({
+          clips: audioToMix,
+          tracks: effectiveTracks,
+          master: seq.master,
+          assets,
+          midi,
+          workDir,
+          extension: output.extension,
+          audioCodec: output.audioCodec ?? "pcm_s16le",
+          audioSampleRate: output.audioSampleRate,
+          durationSec: durationMs / 1000,
+          signal: ctx.signal
+        });
+        const duration = (await probeDurationSec(wavPath)) ?? durationMs / 1000;
+        const stored = await storeRenderArtifact({
+          context: ctx,
+          filePath: wavPath,
+          name: `${seq.name || "timeline"}.${output.extension}`,
+          contentType: output.mimeType
+        });
+        return {
+          output: emptyVideoRef(),
+          frames: emptyFramesRef(),
+          audio: {
+            type: "audio",
+            asset_id: stored.asset_id,
+            uri: stored.uri,
+            data: stored.data,
+            duration: duration > 0 ? duration : null,
+            metadata: {
+              render_mode: "audio",
+              format: output.format,
+              audio_bit_depth: output.audioBitDepth,
+              audio_sample_rate: output.audioSampleRate,
+              audio_codec: output.audioCodec,
+              content_type: output.mimeType
+            }
+          }
+        };
+      }
       let basePath: string;
       let baseHasAudio: boolean;
       let audioToMix: TimelineClip[];
@@ -1507,7 +1668,8 @@ export class RenderTimelineNode extends BaseNode {
           workDir,
           width,
           height,
-          fps
+          fps,
+          audioSampleRate: output.audioSampleRate
         });
         renderMode = "rough_cut";
         baseHasAudio = true;
@@ -1544,7 +1706,8 @@ export class RenderTimelineNode extends BaseNode {
               alpha: output.alpha,
               content_type: output.mimeType
             }
-          }
+          },
+          audio: emptyAudioRef()
         };
       }
 
@@ -1560,7 +1723,8 @@ export class RenderTimelineNode extends BaseNode {
               midi,
               workDir,
               extension: output.extension,
-              audioCodec: output.audioCodec ?? "aac"
+              audioCodec: output.audioCodec ?? "aac",
+              audioSampleRate: output.audioSampleRate
             })
           : basePath;
 
@@ -1588,7 +1752,8 @@ export class RenderTimelineNode extends BaseNode {
             alpha: output.alpha
           }
         },
-        frames: emptyFramesRef()
+        frames: emptyFramesRef(),
+        audio: emptyAudioRef()
       };
     } finally {
       await fs.rm(workDir, { recursive: true, force: true });

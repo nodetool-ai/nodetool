@@ -29,6 +29,7 @@ extern "C" {
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QQuickItem>
+#include <QQuickWindow>
 #include <functional>
 #include <QJSValue>
 #include <QQmlComponent>
@@ -755,6 +756,365 @@ private slots:
         QCOMPARE(nt::exporting::settingsFromVariant({{"format", "wav"}, {"audioBitDepth", 20}}).audioBitDepth, 16);
         QVERIFY(!nt::exporting::cliArguments(nt::exporting::settingsFromVariant({{"format", "wav"}})).join(' ').contains("bit-depth"));
         QVERIFY(!nt::exporting::cliArguments(nt::exporting::settingsFromVariant({{"format", "mp3"}, {"audioBitDepth", 24}})).join(' ').contains("bit-depth"));
+    }
+    // DSP2 F5: 32-bit float WAV export (exact round-trip, preserves >0 dBFS headroom, no dither)
+    // and export sample-rate selection (44100 / 96000 Hz) in engine and ExportSettings.
+    void dsp2_f5_wav32FloatAndSampleRateRoundTrip() {
+        // Settings model round-trip and CLI argument propagation.
+        const auto s32 = nt::exporting::settingsFromVariant({{"format", "wav"}, {"audioBitDepth", 32}, {"audioSampleRate", 96000}});
+        QCOMPARE(s32.audioBitDepth, 32);
+        QCOMPARE(s32.audioSampleRate, 96000);
+        const auto map32 = nt::exporting::toVariant(s32);
+        QCOMPARE(map32.value("audioBitDepth").toInt(), 32);
+        QCOMPARE(map32.value("audioSampleRate").toInt(), 96000);
+        const auto cli32 = nt::exporting::cliArguments(s32).join(' ');
+        QVERIFY2(cli32.contains("--audio-bit-depth 32"), qPrintable(cli32));
+        QVERIFY2(cli32.contains("--audio-sample-rate 96000"), qPrintable(cli32));
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "wav"}, {"audioSampleRate", 12345}}).audioSampleRate, 48000);
+        QVERIFY(!nt::exporting::cliArguments(nt::exporting::settingsFromVariant({{"format", "wav"}})).join(' ').contains("sample-rate"));
+
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        constexpr int frames48 = 12000;  // 250 ms at 48 kHz
+        std::vector<float> signal(std::size_t{frames48} * 2);
+        for (int i = 0; i < frames48; ++i) {
+            const double t = i / 48000.0;
+            signal[std::size_t{2} * i] = static_cast<float>(0.6 * std::sin(2.0 * M_PI * 440.0 * t));
+            signal[std::size_t{2} * i + 1] = static_cast<float>(0.4 * std::sin(2.0 * M_PI * 1000.0 * t));
+        }
+        // Hot values above 0 dBFS must survive 32-bit float WAV when master limiter is disabled.
+        signal[100] = 1.75f;
+        signal[101] = -2.25f;
+        const QString source = dir.filePath("src48.wav");
+        QVERIFY(nt::assets::writeStereoFloatWav(source, signal));
+        const QJsonObject raw{{"width", 64}, {"height", 48}, {"fps", 30}, {"durationMs", 250.0},
+            {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}, {"index", 0}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"},
+                {"startMs", 0}, {"durationMs", 250.0}, {"status", "generated"}, {"mediaPath", source}}}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+
+        // 1. 32-bit IEEE float WAV at 48 kHz round-trips exact float samples (including >1.0) with no dither.
+        nt::exporting::Options opt32;
+        opt32.format = "wav";
+        opt32.audioBitDepth = 32;
+        opt32.audioSampleRate = 48000;
+        opt32.output = dir.filePath("mix32_48k.wav");
+        const auto res32 = nt::exporting::exportTimeline(requireValue(parsed.timeline), opt32, m_testCache.root());
+        QVERIFY2(res32.ok(), qPrintable(res32.error));
+        QCOMPARE(res32.audioEncoder, QString("pcm_f32le"));
+        QCOMPARE(res32.samples, qint64(frames48));
+
+        auto parseWav = [](const QString& path, quint16& fmtTag, quint16& subFmt, quint32& rate, quint16& bits, QByteArray& pcmBytes) {
+            QFile f(path);
+            if (!f.open(QIODevice::ReadOnly)) return false;
+            const QByteArray bytes = f.readAll();
+            if (!bytes.startsWith("RIFF") || bytes.mid(8, 4) != "WAVE") return false;
+            auto u16 = [&](qsizetype o) { return quint16(quint8(bytes[o]) | (quint8(bytes[o + 1]) << 8)); };
+            auto u32 = [&](qsizetype o) { return quint32(u16(o)) | (quint32(u16(o + 2)) << 16); };
+            qsizetype fmt = -1, data = -1;
+            quint32 dataSize = 0;
+            for (qsizetype o = 12; o + 8 <= bytes.size();) {
+                const auto id = bytes.mid(o, 4);
+                const auto sz = qsizetype(u32(o + 4));
+                if (id == "fmt ") { fmt = o + 8; }
+                if (id == "data") { data = o + 8; dataSize = u32(o + 4); break; }
+                o += 8 + sz + (sz & 1);
+            }
+            if (fmt < 0 || data < 0) return false;
+            fmtTag = u16(fmt);
+            rate = u32(fmt + 4);
+            bits = u16(fmt + 14);
+            subFmt = (fmtTag == 0xFFFE) ? u16(fmt + 24) : fmtTag;
+            pcmBytes = bytes.mid(data, qsizetype(dataSize));
+            return true;
+        };
+
+        quint16 fmtTag = 0, subFmt = 0, bits = 0;
+        quint32 rate = 0;
+        QByteArray data32;
+        QVERIFY(parseWav(opt32.output, fmtTag, subFmt, rate, bits, data32));
+        QCOMPARE(subFmt, quint16(3));  // WAVE_FORMAT_IEEE_FLOAT
+        QCOMPARE(rate, quint32(48000));
+        QCOMPARE(bits, quint16(32));
+        QCOMPARE(data32.size(), qsizetype(frames48 * 8));
+        const auto* outFloats = reinterpret_cast<const float*>(data32.constData());
+        float maxDiff = 0.0f;
+        for (std::size_t i = 0; i < signal.size(); ++i) {
+            maxDiff = std::max(maxDiff, std::abs(outFloats[i] - signal[i]));
+        }
+        QVERIFY2(maxDiff == 0.0f, qPrintable(QStringLiteral("32-bit float round-trip diff=%1").arg(maxDiff)));
+        QCOMPARE(outFloats[100], 1.75f);
+        QCOMPARE(outFloats[101], -2.25f);
+
+        // 2. Sample-rate export at 44100 Hz and 96000 Hz writes exact header rate, frame count, and tone frequency.
+        for (const int targetRate : {44100, 96000}) {
+            nt::exporting::Options optRate;
+            optRate.format = "wav";
+            optRate.audioBitDepth = 32;
+            optRate.audioSampleRate = targetRate;
+            optRate.output = dir.filePath(QStringLiteral("mix32_%1.wav").arg(targetRate));
+            const auto resRate = nt::exporting::exportTimeline(requireValue(parsed.timeline), optRate, m_testCache.root());
+            QVERIFY2(resRate.ok(), qPrintable(resRate.error));
+            const qint64 expectedFrames = std::llround(0.250 * targetRate);
+            QCOMPARE(resRate.samples, expectedFrames);
+            QByteArray pcmBytes;
+            QVERIFY(parseWav(optRate.output, fmtTag, subFmt, rate, bits, pcmBytes));
+            QCOMPARE(rate, quint32(targetRate));
+            QCOMPARE(bits, quint16(32));
+            QCOMPARE(pcmBytes.size(), qsizetype(expectedFrames * 8));
+            // Verify 440 Hz tone on left channel over interior frames.
+            const auto* s = reinterpret_cast<const float*>(pcmBytes.constData());
+            double sinAcc = 0.0, cosAcc = 0.0;
+            const int start = targetRate / 50;
+            const int end = int(expectedFrames) - start;
+            for (int i = start; i < end; ++i) {
+                const double ph = 2.0 * M_PI * 440.0 * i / targetRate;
+                sinAcc += s[2 * i] * std::sin(ph);
+                cosAcc += s[2 * i] * std::cos(ph);
+            }
+            const double amp = 2.0 * std::hypot(sinAcc, cosAcc) / (end - start);
+            QVERIFY2(std::abs(amp - 0.6) < 0.01, qPrintable(QStringLiteral("rate=%1 amp=%2").arg(targetRate).arg(amp)));
+        }
+    }
+
+    // DSP2 fix1 D10 + D12: 32-bit float WAV NaN/Inf sanitization, 16-bit TPDF dither at
+    // non-48 kHz rates, per-format sample-rate validation in settings/engine/QML UI.
+    void dsp2_fix1_d10_d12_exportEdgeCasesAndUi() {
+        // 1. ExportSettings per-format sample-rate validation and CLI arg filtering.
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "wav"}, {"audioSampleRate", 192000}}).audioSampleRate, 192000);
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "mp4"}, {"audioSampleRate", 44100}}).audioSampleRate, 44100);
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "mp4"}, {"audioSampleRate", 96000}}).audioSampleRate, 96000);
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "mp4"}, {"audioSampleRate", 192000}}).audioSampleRate, 48000);
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "mp3"}, {"audioSampleRate", 44100}}).audioSampleRate, 44100);
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "mp3"}, {"audioSampleRate", 96000}}).audioSampleRate, 48000);
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "webm"}, {"audioSampleRate", 44100}}).audioSampleRate, 48000);
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "webm"}, {"audioSampleRate", 96000}}).audioSampleRate, 48000);
+
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        constexpr int frames48 = 12000;  // 250 ms at 48 kHz
+        std::vector<float> dirtySignal(std::size_t{frames48} * 2, 0.0f);
+        dirtySignal[10] = 1.5f;
+        dirtySignal[11] = -1.75f;
+        dirtySignal[20] = std::numeric_limits<float>::quiet_NaN();
+        dirtySignal[21] = std::numeric_limits<float>::infinity();
+        dirtySignal[22] = -std::numeric_limits<float>::infinity();
+        dirtySignal[23] = 0.25f;
+        const QString dirtyPath = dir.filePath("dirty48.wav");
+        QVERIFY(nt::assets::writeStereoFloatWav(dirtyPath, dirtySignal));
+
+        const QJsonObject raw{{"width", 64}, {"height", 48}, {"fps", 30}, {"durationMs", 250.0},
+            {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}, {"index", 0}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"},
+                {"startMs", 0}, {"durationMs", 250.0}, {"status", "generated"}, {"mediaPath", dirtyPath}}}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+
+        auto parseWav = [](const QString& path, quint32& rate, quint16& bits, QByteArray& pcmBytes) {
+            QFile f(path);
+            if (!f.open(QIODevice::ReadOnly)) return false;
+            const QByteArray bytes = f.readAll();
+            if (!bytes.startsWith("RIFF") || bytes.mid(8, 4) != "WAVE") return false;
+            auto u16 = [&](qsizetype o) { return quint16(quint8(bytes[o]) | (quint8(bytes[o + 1]) << 8)); };
+            auto u32 = [&](qsizetype o) { return quint32(u16(o)) | (quint32(u16(o + 2)) << 16); };
+            qsizetype fmt = -1, data = -1;
+            quint32 dataSize = 0;
+            for (qsizetype o = 12; o + 8 <= bytes.size();) {
+                const auto id = bytes.mid(o, 4);
+                const auto sz = qsizetype(u32(o + 4));
+                if (id == "fmt ") { fmt = o + 8; }
+                if (id == "data") { data = o + 8; dataSize = u32(o + 4); break; }
+                o += 8 + sz + (sz & 1);
+            }
+            if (fmt < 0 || data < 0) return false;
+            rate = u32(fmt + 4);
+            bits = u16(fmt + 14);
+            pcmBytes = bytes.mid(data, qsizetype(dataSize));
+            return true;
+        };
+
+        // 2. 32-bit float WAV sanitizes NaN / +-Inf to 0.0f while preserving finite samples (>0 dBFS).
+        {
+            nt::exporting::Options opt;
+            opt.format = "wav";
+            opt.audioBitDepth = 32;
+            opt.audioSampleRate = 48000;
+            opt.output = dir.filePath("sanitized32.wav");
+            const auto res = nt::exporting::exportTimeline(requireValue(parsed.timeline), opt, m_testCache.root());
+            QVERIFY2(res.ok(), qPrintable(res.error));
+            quint32 rate = 0; quint16 bits = 0; QByteArray pcm;
+            QVERIFY(parseWav(opt.output, rate, bits, pcm));
+            QCOMPARE(rate, quint32(48000));
+            QCOMPARE(bits, quint16(32));
+            const auto* s = reinterpret_cast<const float*>(pcm.constData());
+            for (int i = 0; i < frames48 * 2; ++i) {
+                QVERIFY2(std::isfinite(s[i]), qPrintable(QStringLiteral("Non-finite float at %1").arg(i)));
+            }
+            QCOMPARE(s[10], 1.5f);
+            QCOMPARE(s[11], -1.75f);
+            QCOMPARE(s[20], 0.0f);
+            QCOMPARE(s[21], 0.0f);
+            QCOMPARE(s[22], 0.0f);
+            QCOMPARE(s[23], 0.25f);
+        }
+
+        // 3. 16-bit TPDF dither at non-48 kHz rates (44100 Hz and 96000 Hz).
+        {
+            nt::Timeline silentTl;
+            silentTl.width = 64; silentTl.height = 48; silentTl.fps = 30; silentTl.durationMs = 250.0;
+            for (const int targetRate : {44100, 96000}) {
+                nt::exporting::Options opt;
+                opt.format = "wav";
+                opt.audioBitDepth = 16;
+                opt.audioSampleRate = targetRate;
+                opt.output = dir.filePath(QStringLiteral("dither16_%1.wav").arg(targetRate));
+                const auto res = nt::exporting::exportTimeline(silentTl, opt, m_testCache.root());
+                QVERIFY2(res.ok(), qPrintable(res.error));
+                quint32 rate = 0; quint16 bits = 0; QByteArray pcm;
+                QVERIFY(parseWav(opt.output, rate, bits, pcm));
+                QCOMPARE(rate, quint32(targetRate));
+                QCOMPARE(bits, quint16(16));
+                const auto* s = reinterpret_cast<const int16_t*>(pcm.constData());
+                const int count = int(pcm.size() / 2);
+                int nonZero = 0;
+                int maxAbs = 0;
+                for (int i = 0; i < count; ++i) {
+                    if (s[i] != 0) ++nonZero;
+                    maxAbs = std::max(maxAbs, std::abs(int(s[i])));
+                }
+                QVERIFY2(nonZero > count / 10, qPrintable(QStringLiteral("Expected TPDF dither at %1 Hz, nonZero=%2").arg(targetRate).arg(nonZero)));
+                QVERIFY2(maxAbs <= 1, qPrintable(QStringLiteral("TPDF dither on silence exceeded 1 LSB: %1").arg(maxAbs)));
+            }
+        }
+
+        // 4. Non-WAV format/rate compatibility in ExportEngine: MP3 at 44.1 kHz succeeds;
+        // MP3 at 96 kHz, WebM at 44.1 kHz, and MP4 at 192 kHz fail cleanly before render.
+        {
+            nt::exporting::Options mp3Ok;
+            mp3Ok.format = "mp3";
+            mp3Ok.audioSampleRate = 44100;
+            mp3Ok.output = dir.filePath("ok_44k.mp3");
+            const auto resOk = nt::exporting::exportTimeline(requireValue(parsed.timeline), mp3Ok, m_testCache.root());
+            QVERIFY2(resOk.ok(), qPrintable(resOk.error));
+            QCOMPARE(resOk.audioSampleRate, 44100);
+
+            for (const auto& [fmt, badRate] : std::array<std::pair<const char*, int>, 3>{
+                     {{"mp3", 96000}, {"webm", 44100}, {"mp4", 192000}}}) {
+                nt::exporting::Options bad;
+                bad.format = QString::fromLatin1(fmt);
+                bad.audioSampleRate = badRate;
+                bad.output = dir.filePath(QStringLiteral("bad_%1_%2.out").arg(fmt).arg(badRate));
+                const auto resBad = nt::exporting::exportTimeline(requireValue(parsed.timeline), bad, m_testCache.root());
+                QVERIFY2(!resBad.ok(), qPrintable(QStringLiteral("Expected failure for %1 at %2 Hz").arg(fmt).arg(badRate)));
+            }
+        }
+
+        // 5. QML ExportVideoDialog UI selectors: visibility, per-format rate filtering, and coercion.
+        {
+            QQmlEngine engine;
+            m_testCache.install(engine);
+            QQmlComponent component(&engine);
+            component.loadFromModule("NodeTool.Timeline", "ExportVideoDialog");
+            std::unique_ptr<QObject> root(component.create());
+            QVERIFY2(root, qPrintable(component.errorString()));
+            root->setProperty("mp4Supported", true);
+
+            QQuickWindow window;
+            window.resize(800, 600);
+            auto* rootItem = qobject_cast<QQuickItem*>(root.get());
+            QVERIFY(rootItem != nullptr);
+            rootItem->setParentItem(window.contentItem());
+            rootItem->setSize(QSizeF(800, 600));
+            auto* dialog = root->findChild<QObject*>("exportVideoDialog");
+            auto* depthSelect = root->findChild<QObject*>("audioBitDepthSelect");
+            auto* rateSelect = root->findChild<QObject*>("audioSampleRateSelect");
+            QVERIFY(dialog != nullptr);
+            QVERIFY(depthSelect != nullptr);
+            QVERIFY(rateSelect != nullptr);
+            QVERIFY(QMetaObject::invokeMethod(dialog, "open"));
+            QCoreApplication::processEvents();
+
+            // WAV: bit depth visible, all 5 rates available.
+            root->setProperty("format", "wav");
+            QCOMPARE(depthSelect->property("visible").toBool(), true);
+            QCOMPARE(rateSelect->property("visible").toBool(), true);
+            QCOMPARE(root->property("sampleRateOptions").value<QJSValue>().toVariant().toList().size(), 5);
+
+            // Select 32-bit float and 192 kHz on WAV, verify confirmExport emits both.
+            root->setProperty("audioBitDepth", 32);
+            root->setProperty("audioSampleRate", 192000);
+            QSignalSpy exported(root.get(), SIGNAL(exportRequested(QVariant)));
+            QVERIFY(QMetaObject::invokeMethod(root.get(), "confirmExport"));
+            QCOMPARE(exported.last().first().toMap().value("audioBitDepth").toInt(), 32);
+            QCOMPARE(exported.last().first().toMap().value("audioSampleRate").toInt(), 192000);
+
+            // Switch WAV (192 kHz) -> MP4: bit depth hidden, 4 rates, rate coerced to 48000.
+            root->setProperty("format", "mp4");
+            QCOMPARE(depthSelect->property("visible").toBool(), false);
+            QCOMPARE(root->property("sampleRateOptions").value<QJSValue>().toVariant().toList().size(), 4);
+            QCOMPARE(root->property("audioSampleRate").toInt(), 48000);
+
+            // Select 96 kHz on MP4, switch -> MP3: 2 rates, coerced to 48000.
+            root->setProperty("audioSampleRate", 96000);
+            root->setProperty("format", "mp3");
+            QCOMPARE(root->property("sampleRateOptions").value<QJSValue>().toVariant().toList().size(), 2);
+            QCOMPARE(root->property("audioSampleRate").toInt(), 48000);
+
+            // Select 44.1 kHz on MP3, switch -> WebM: 1 rate (48 kHz), coerced to 48000.
+            root->setProperty("audioSampleRate", 44100);
+            root->setProperty("format", "webm");
+            QCOMPARE(root->property("sampleRateOptions").value<QJSValue>().toVariant().toList().size(), 1);
+            QCOMPARE(root->property("audioSampleRate").toInt(), 48000);
+
+            // PNG sequence: sample rate selector hidden.
+            root->setProperty("format", "png_sequence");
+            QCOMPARE(rateSelect->property("visible").toBool(), false);
+        }
+
+        // 6. ExportCli flag parsing, per-format rejection, and JSON output payload.
+        {
+            const auto wavCli = nt::exporting::parseExportCliArguments({
+                "nodetool-timeline", "cut.json", "--export", "/tmp/out.wav",
+                "--format", "wav", "--audio-bit-depth", "32", "--audio-sample-rate", "96000", "--json"
+            });
+            QVERIFY2(wavCli.ok, qPrintable(wavCli.error));
+            QCOMPARE(wavCli.options.format, QString("wav"));
+            QCOMPARE(wavCli.options.audioBitDepth, 32);
+            QCOMPARE(wavCli.options.audioSampleRate, 96000);
+            nt::exporting::Result fakeRes;
+            fakeRes.samples = 24000;
+            fakeRes.audioEncoder = "pcm_f32le";
+            fakeRes.audioSampleRate = 96000;
+            const auto json = nt::exporting::exportResultJson(wavCli.options, fakeRes);
+            QCOMPARE(json.value("audioSampleRate").toInt(), 96000);
+            QCOMPARE(json.value("audioBitDepth").toInt(), 32);
+            QCOMPARE(json.value("audioEncoder").toString(), QString("pcm_f32le"));
+
+            const auto badWebm = nt::exporting::parseExportCliArguments({
+                "nodetool-timeline", "cut.json", "--export", "/tmp/out.webm",
+                "--format", "webm", "--audio-sample-rate", "44100"
+            });
+            QVERIFY(!badWebm.ok);
+            const auto badMp3 = nt::exporting::parseExportCliArguments({
+                "nodetool-timeline", "cut.json", "--export", "/tmp/out.mp3",
+                "--format", "mp3", "--audio-sample-rate", "96000"
+            });
+            QVERIFY(!badMp3.ok);
+            const auto badMp4 = nt::exporting::parseExportCliArguments({
+                "nodetool-timeline", "cut.json", "--export", "/tmp/out.mp4",
+                "--format", "mp4", "--audio-sample-rate", "192000"
+            });
+            QVERIFY(!badMp4.ok);
+            const auto okMp4 = nt::exporting::parseExportCliArguments({
+                "nodetool-timeline", "cut.json", "--export", "/tmp/out.mp4",
+                "--format", "mp4", "--audio-sample-rate", "44100"
+            });
+            QVERIFY2(okMp4.ok, qPrintable(okMp4.error));
+            QCOMPARE(okMp4.options.audioSampleRate, 44100);
+        }
     }
 
     void cancelOfflineMix() {

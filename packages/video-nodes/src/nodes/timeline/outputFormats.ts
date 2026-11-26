@@ -19,7 +19,8 @@ export const TIMELINE_OUTPUT_FORMATS = [
   "mp4",
   "webm",
   "mov",
-  "png_sequence"
+  "png_sequence",
+  "wav"
 ] as const;
 
 export type TimelineOutputFormat = (typeof TIMELINE_OUTPUT_FORMATS)[number];
@@ -60,6 +61,35 @@ export class MissingEncoderError extends Error {
   }
 }
 
+/** Default audio sample rate for timeline renders (Hz). */
+export const DEFAULT_AUDIO_SAMPLE_RATE = 48000;
+
+/** Default PCM bit depth for WAV timeline exports. */
+export const DEFAULT_WAV_BIT_DEPTH = 16;
+
+/** Supported PCM bit depths for WAV exports (32 is 32-bit IEEE 754 float). */
+export const WAV_BIT_DEPTHS = [16, 24, 32] as const;
+
+export type WavBitDepth = (typeof WAV_BIT_DEPTHS)[number];
+
+const WAV_CODEC_BY_BIT_DEPTH: Record<WavBitDepth, string> = {
+  16: "pcm_s16le",
+  24: "pcm_s24le",
+  32: "pcm_f32le"
+};
+
+/** Audio sample rates (Hz) supported by each render format's audio encoder. */
+export const AUDIO_SAMPLE_RATES_BY_FORMAT: Record<
+  TimelineOutputFormat,
+  readonly number[]
+> = {
+  mp4: [44100, 48000, 88200, 96000],
+  mov: [44100, 48000, 88200, 96000],
+  webm: [48000],
+  png_sequence: [],
+  wav: [44100, 48000, 88200, 96000, 192000]
+};
+
 /** Everything downstream of the format choice, resolved once. */
 export interface ResolvedTimelineOutput {
   /**
@@ -72,17 +102,21 @@ export interface ResolvedTimelineOutput {
   alpha: boolean;
   /** File extension of the rendered artifact, without the dot. */
   extension: string;
-  /** What `videoRef`/`documentRef` reports as the artifact's format. */
+  /** What `videoRef`/`documentRef`/`audioRef` reports as the artifact's format. */
   mimeType: string;
   /**
    * ffmpeg output arguments for the frame encoder — codec, profile and pixel
-   * format. Empty for `png_sequence`, which never reaches ffmpeg.
+   * format. Empty for `png_sequence` and `wav`, which never encode video frames.
    */
   encoderArgs: string[];
   /** The ffmpeg encoder that must exist, probed before the render starts. */
   requiredEncoder: string | null;
-  /** Audio codec for the mux pass; null when the format carries no audio. */
+  /** Audio codec for the mux or audio-only pass; null when the format carries no audio. */
   audioCodec: string | null;
+  /** Output audio sample rate in Hz (validated against the format's audio codec). */
+  audioSampleRate: number;
+  /** PCM bit depth for WAV exports (16, 24, or 32 float); null for non-WAV formats. */
+  audioBitDepth: WavBitDepth | null;
 }
 
 export interface TimelineOutputRequest {
@@ -99,6 +133,44 @@ export interface TimelineOutputRequest {
   videoCodec?: string | null;
   /** Target video bitrate in bits per second; 0 or absent leaves it to ffmpeg. */
   bitrate?: number | null;
+  /** Output audio sample rate in Hz; absent or 0 defaults to 48000. */
+  audioSampleRate?: number | null;
+  /** WAV PCM bit depth (16, 24, 32 / "32f"); absent or 0 defaults to 16. */
+  audioBitDepth?: number | string | null;
+}
+
+function resolveAudioSampleRate(
+  format: TimelineOutputFormat,
+  raw: number | null | undefined
+): number {
+  if (format === "png_sequence") return DEFAULT_AUDIO_SAMPLE_RATE;
+  const rate = raw === undefined || raw === null || raw === 0 ? DEFAULT_AUDIO_SAMPLE_RATE : raw;
+  const allowed = AUDIO_SAMPLE_RATES_BY_FORMAT[format];
+  if (!Number.isInteger(rate) || !allowed.includes(rate)) {
+    throw new Error(
+      `Unsupported audio sample rate ${String(rate)} Hz for "${format}". ` +
+        `Choose one of: ${allowed.join(", ")}.`
+    );
+  }
+  return rate;
+}
+
+function resolveWavBitDepth(raw: number | string | null | undefined): WavBitDepth {
+  if (raw === undefined || raw === null || raw === 0 || raw === "") {
+    return DEFAULT_WAV_BIT_DEPTH;
+  }
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === "16") return 16;
+    if (normalized === "24") return 24;
+    if (normalized === "32" || normalized === "32f") return 32;
+  } else if (typeof raw === "number" && Number.isInteger(raw)) {
+    if (raw === 16 || raw === 24 || raw === 32) return raw;
+  }
+  throw new Error(
+    `Unsupported WAV audio bit depth "${String(raw)}". ` +
+      `Choose one of: ${WAV_BIT_DEPTHS.join(", ")} (32 is 32-bit IEEE float).`
+  );
 }
 
 /** Narrow a caller's string to a format, or say what the choices are. */
@@ -157,12 +229,30 @@ export function resolveTimelineOutput(
   if (alpha && !ALPHA_OUTPUT_FORMATS.includes(format)) {
     throw new AlphaFormatError(format);
   }
+  const audioSampleRate = resolveAudioSampleRate(format, request.audioSampleRate);
 
   const bitrateArgs =
     typeof request.bitrate === "number" && request.bitrate > 0
       ? ["-b:v", String(Math.round(request.bitrate))]
       : [];
   const override = request.videoCodec?.trim();
+
+  if (format === "wav") {
+    const audioBitDepth = resolveWavBitDepth(request.audioBitDepth);
+    const wavCodec = WAV_CODEC_BY_BIT_DEPTH[audioBitDepth];
+    return {
+      format,
+      alpha: false,
+      motionBlur,
+      extension: "wav",
+      mimeType: "audio/wav",
+      encoderArgs: [],
+      requiredEncoder: wavCodec,
+      audioCodec: wavCodec,
+      audioSampleRate,
+      audioBitDepth
+    };
+  }
 
   if (format === "png_sequence") {
     return {
@@ -173,7 +263,9 @@ export function resolveTimelineOutput(
       mimeType: "application/zip",
       encoderArgs: [],
       requiredEncoder: null,
-      audioCodec: null
+      audioCodec: null,
+      audioSampleRate,
+      audioBitDepth: null
     };
   }
 
@@ -194,7 +286,9 @@ export function resolveTimelineOutput(
       ],
       requiredEncoder: "libvpx-vp9",
       // WebM carries Opus and Vorbis; AAC is not a legal Matroska/WebM track.
-      audioCodec: "libopus"
+      audioCodec: "libopus",
+      audioSampleRate,
+      audioBitDepth: null
     };
   }
 
@@ -216,7 +310,9 @@ export function resolveTimelineOutput(
         ...bitrateArgs
       ],
       requiredEncoder: "prores_ks",
-      audioCodec: "aac"
+      audioCodec: "aac",
+      audioSampleRate,
+      audioBitDepth: null
     };
   }
 
@@ -237,6 +333,8 @@ export function resolveTimelineOutput(
       ...bitrateArgs
     ],
     requiredEncoder: codec,
-    audioCodec: "aac"
+    audioCodec: "aac",
+    audioSampleRate,
+    audioBitDepth: null
   };
 }

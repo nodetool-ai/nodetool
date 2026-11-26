@@ -12,6 +12,7 @@ extern "C" {
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <string_view>
 
 namespace nt::audio {
 
@@ -46,8 +47,37 @@ struct AudioSource::Impl {
         swr_free(&swr);
         AVChannelLayout outLayout;
         av_channel_layout_default(&outLayout, outChannels);
-        const int rc = swr_alloc_set_opts2(&swr, &outLayout, AV_SAMPLE_FMT_FLT, sampleRate, &dec->ch_layout,
-                                           dec->sample_fmt, dec->sample_rate, 0, nullptr);
+        const auto allocBase = [&]() {
+            swr_free(&swr);
+            return swr_alloc_set_opts2(&swr, &outLayout, AV_SAMPLE_FMT_FLT, sampleRate, &dec->ch_layout,
+                                       dec->sample_fmt, dec->sample_rate, 0, nullptr);
+        };
+        int rc = allocBase();
+        if (rc >= 0 && dec->sample_rate != sampleRate) {
+            // Prefer SoXR VHQ when FFmpeg is built with libsoxr; otherwise use the
+            // native SWR engine at its highest Kaiser-windowed polyphase quality.
+            const char* cfg = swresample_configuration();
+            const bool hasSoxr = cfg && std::string_view(cfg).find("libsoxr") != std::string_view::npos;
+            if (hasSoxr &&
+                av_opt_set_int(swr, "resampler", SWR_ENGINE_SOXR, 0) >= 0 &&
+                av_opt_set_double(swr, "precision", 33.0, 0) >= 0 &&
+                av_opt_set_int(swr, "cheby", 0, 0) >= 0 &&
+                swr_init(swr) >= 0) {
+                av_channel_layout_uninit(&outLayout);
+                return true;
+            }
+            if (hasSoxr) { rc = allocBase(); }
+            if (rc >= 0) {
+                (void)av_opt_set_int(swr, "resampler", SWR_ENGINE_SWR, 0);
+                (void)av_opt_set_int(swr, "filter_type", SWR_FILTER_TYPE_KAISER, 0);
+                (void)av_opt_set_int(swr, "kaiser_beta", 14, 0);
+                (void)av_opt_set_int(swr, "filter_size", 256, 0);
+                (void)av_opt_set_int(swr, "phase_shift", 12, 0);
+                (void)av_opt_set_double(swr, "cutoff", 0.94, 0);
+                (void)av_opt_set_int(swr, "linear_interp", 1, 0);
+                (void)av_opt_set_int(swr, "exact_rational", 1, 0);
+            }
+        }
         av_channel_layout_uninit(&outLayout);
         return rc >= 0 && swr_init(swr) >= 0;
     }
@@ -157,8 +187,8 @@ bool AudioSource::decodeMore() {
         }
         if (rc == AVERROR_EOF) {
             if (!d.swrFlushed) {
-                d.swrFlushed = true;
                 if (convert(nullptr) > 0) return true;
+                d.swrFlushed = true;
             }
             return false;
         }

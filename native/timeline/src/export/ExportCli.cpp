@@ -31,47 +31,16 @@ int exportCli(int argc, char** argv) {
     qputenv("QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM", "1");
     qputenv("QT_MAC_SET_RAISE_PROCESS", "0");
     QGuiApplication app(argc, argv);
-    QCommandLineParser parser;
-    parser.addPositionalArgument(QStringLiteral("timeline"), QStringLiteral("Timeline source"));
-    QCommandLineOption stagingDirectory(QStringLiteral("staging-directory"),
-        "Editor-owned temporary output directory", "PATH");
-    stagingDirectory.setFlags(QCommandLineOption::HiddenFromHelp);
-    parser.addOption(stagingDirectory);
-    parser.addOptions({
-        {QStringLiteral("export"), "Export output path", "OUT"},
-        {QStringLiteral("format"), "mp4, webm, png_sequence, wav, mp3", "FORMAT", "mp4"},
-        {QStringLiteral("start-ms"), "First timeline time to export", "MS"},
-        {QStringLiteral("end-ms"), "Exclusive end time (default: timeline end)", "MS"},
-        {QStringLiteral("width"), "Output picture width (0: timeline width)", "PX"},
-        {QStringLiteral("height"), "Output picture height (0: timeline height)", "PX"},
-        {QStringLiteral("fps"), "Output frame rate (0: timeline rate)", "FPS"},
-        {QStringLiteral("video-bitrate"), "Target video bit rate (0: fixed quality)", "KBPS"},
-        {QStringLiteral("audio-bit-depth"), "WAV sample depth", "16|24", "16"},
-        {QStringLiteral("scale-mode"), "fit (letterbox) or fill (centre crop)", "fit|fill", "fit"},
-        {QStringLiteral("alpha"), "Keep transparency (unavailable in this build)"},
-        {QStringLiteral("cancel-after-frames"), "Cancel after N completed frames", "N"},
-        {QStringLiteral("cancel-file"), "Cancel when this file exists", "PATH"},
-        {QStringLiteral("video-encoder"), "Override video encoder for diagnostics", "NAME"},
-        {QStringLiteral("audio-encoder"), "Override audio encoder for diagnostics", "NAME"},
-        {QStringLiteral("replace"), "Replace an existing file at OUT once the export succeeds"},
-        {QStringLiteral("json"), "Print the JSON result"}
-    });
-    parser.process(app);
+    const auto parsed = parseExportCliArguments(app.arguments());
+    if (!parsed.ok) {
+        std::fprintf(stderr, "%s\n", qPrintable(parsed.error));
+        return 2;
+    }
     nt::setDecodeMode(nt::DecodeMode::Software);
     nt::hw::selectGraphicsApi(false);
-    if (parser.positionalArguments().size() != 1) {
-        std::fprintf(stderr, "usage: nodetool-timeline <timeline.json> --export OUT [--format mp4|webm|png_sequence|wav|mp3] [--start-ms MS] [--end-ms MS] [--width PX] [--height PX] [--fps FPS] [--video-bitrate KBPS] [--scale-mode fit|fill] [--replace]\n");
-        return 2;
-    }
-    bool valid = true;
-    const qint64 cancelAt = parser.isSet("cancel-after-frames") ? parser.value("cancel-after-frames").toLongLong(&valid) : -1;
-    if (!valid || (parser.isSet("cancel-after-frames") && cancelAt < 0)) {
-        std::fprintf(stderr, "error: cancel-after-frames must be nonnegative\n");
-        return 2;
-    }
-    Options options{parser.value("export"), parser.value("format"), parser.isSet("alpha"),
-        parser.value("video-encoder"), parser.value("audio-encoder"), parser.value("staging-directory")};
-    options.replace = parser.isSet("replace");
+    const qint64 cancelAt = parsed.cancelAt;
+    const QString cancelFile = parsed.cancelFile;
+    Options options = parsed.options;
     if (qEnvironmentVariable("NT_TEST_EXPORT_FP16") == u"1") {
         options.workingFormat = nt::WorkingFormat::Rgba16F;
     }
@@ -99,30 +68,8 @@ int exportCli(int argc, char** argv) {
             }
         };
     }
-    const auto number = [&](const char* name, auto& target) {
-        if (!parser.isSet(name)) return true;
-        using Value = std::remove_reference_t<decltype(target)>;
-        bool ok = false;
-        const double value = parser.value(name).toDouble(&ok);
-        if (!ok || !std::isfinite(value) || value < 0 || value > std::numeric_limits<Value>::max() ||
-            (std::is_integral_v<Value> && value != std::floor(value))) {
-            std::fprintf(stderr, "error: %s must be a nonnegative number\n", name);
-            return false;
-        }
-        target = static_cast<Value>(value);
-        return true;
-    };
-    if (!number("start-ms", options.startMs) || !number("end-ms", options.endMs) ||
-        !number("width", options.width) || !number("height", options.height) ||
-        !number("fps", options.fps) || !number("video-bitrate", options.videoBitrateKbps)) return 2;
-    options.scaleMode = parser.value("scale-mode");
-    options.audioBitDepth = parser.value("audio-bit-depth").toInt();
-    if (options.audioBitDepth != 16 && options.audioBitDepth != 24) {
-        std::fprintf(stderr, "error: audio-bit-depth must be 16 or 24\n");
-        return 2;
-    }
     const server::AssetCacheRoot cache(server::timelineCacheDirectory());
-    const auto loaded = server::loadTimelineSource(parser.positionalArguments().first(), cache);
+    const auto loaded = server::loadTimelineSource(parsed.timelineSource, cache);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -146,7 +93,6 @@ int exportCli(int argc, char** argv) {
         std::fflush(stderr);
         if (cancelAt >= 0 && p.frame >= cancelAt) stop.request_stop();
     };
-    const QString cancelFile = parser.value("cancel-file");
     std::mutex watchdogMutex;
     std::condition_variable_any watchdogWake;
     std::jthread watchdog;
@@ -178,10 +124,7 @@ int exportCli(int argc, char** argv) {
     }
     if (result.cancelled) { std::fprintf(stderr, "Export cancelled\n"); return 3; }
     if (!result.ok()) { std::fprintf(stderr, "Export failed: %s\n", qPrintable(result.error)); return 1; }
-    const QJsonObject json{{"output", options.output}, {"format", options.format}, {"alpha", false},
-        {"frames", result.frames}, {"samples", result.samples}, {"fps", result.fps},
-        {"width", result.width}, {"height", result.height}, {"startMs", result.startMs}, {"endMs", result.endMs},
-        {"videoEncoder", result.videoEncoder}, {"audioEncoder", result.audioEncoder}};
+    const QJsonObject json = exportResultJson(options, result);
     std::printf("%s\n", QJsonDocument(json).toJson(QJsonDocument::Compact).constData());
     return 0;
 }

@@ -3,8 +3,10 @@
 #include "assets/AssetMedia.h"
 #include "export/OffscreenFrames.h"
 #include "export/ExportCapabilities.h"
+#include "export/ExportSettings.h"
 #include "export/PngZip.h"
 #include <QBuffer>
+#include <QCommandLineParser>
 #include <array>
 #include "audio/AudioEngine.h"
 #include "model/TimelineModel.h"
@@ -101,12 +103,12 @@ public:
         check(avcodec_parameters_from_context(stream->codecpar, &codec), "Copy export codec parameters");
         return stream;
     }
-    void header(bool mp4) {
+    void header(bool mp4, int sampleRate) {
         if (mp4) {
             check(av_opt_set(m_format->priv_data, "movflags", "+faststart", 0), "Set MP4 faststart");
             check(av_opt_set(m_format->priv_data, "use_editlist", "1", 0), "Set MP4 edit list");
             // Millisecond edit durations truncate fractional AAC tails.
-            check(av_opt_set_int(m_format->priv_data, "movie_timescale", 48000, 0), "Set MP4 sample-accurate edit timescale");
+            check(av_opt_set_int(m_format->priv_data, "movie_timescale", sampleRate, 0), "Set MP4 sample-accurate edit timescale");
         }
         check(avformat_write_header(m_format.get(), nullptr), "Write export header");
     }
@@ -164,11 +166,20 @@ Codec videoCodec(const AVCodec* encoder, const Result& output, const Options& op
     }
     return c;
 }
-Codec audioCodec(const AVCodec* encoder) {
+Codec audioCodec(const AVCodec* encoder, int sampleRate) {
     Codec c(avcodec_alloc_context3(encoder));
     if (!c) throw std::bad_alloc();
-    c->sample_rate = 48000;
-    c->time_base = {1, 48000};
+    const void* rawRates = nullptr;
+    int rateCount = 0;
+    if (avcodec_get_supported_config(c.get(), encoder, AV_CODEC_CONFIG_SAMPLE_RATE, 0, &rawRates, &rateCount) >= 0 &&
+        rawRates && rateCount > 0) {
+        const auto* rates = static_cast<const int*>(rawRates);
+        if (std::find(rates, rates + rateCount, sampleRate) == rates + rateCount) {
+            throw std::runtime_error("Requested audio sample rate is not supported by the export encoder");
+        }
+    }
+    c->sample_rate = sampleRate;
+    c->time_base = {1, sampleRate};
     av_channel_layout_default(&c->ch_layout, 2);
     const void* rawFormats = nullptr;
     int count = 0;
@@ -184,8 +195,8 @@ public:
     explicit AudioFrames(AVCodecContext& c) : m_codec(c) {
         SwrContext* raw = nullptr;
         AVChannelLayout stereo = AV_CHANNEL_LAYOUT_STEREO;
-        const int status = swr_alloc_set_opts2(&raw, &c.ch_layout, c.sample_fmt, 48000,
-              &stereo, AV_SAMPLE_FMT_FLT, 48000, 0, nullptr);
+        const int status = swr_alloc_set_opts2(&raw, &c.ch_layout, c.sample_fmt, c.sample_rate,
+              &stereo, AV_SAMPLE_FMT_FLT, c.sample_rate, 0, nullptr);
         m_resample.reset(raw);
         check(status, "Create audio conversion");
         if (!m_resample) throw std::bad_alloc();
@@ -196,7 +207,7 @@ public:
     Frame next(std::span<const float> pcm, qint64 offset) {
         auto f = frame();
         f->format = m_codec.sample_fmt;
-        f->sample_rate = 48000;
+        f->sample_rate = m_codec.sample_rate;
         check(av_channel_layout_copy(&f->ch_layout, &m_codec.ch_layout), "Set audio frame channels");
         const int block = m_codec.frame_size > 0 ? m_codec.frame_size : 4096;
         f->nb_samples = static_cast<int>(std::min<qint64>(block, static_cast<qint64>(pcm.size() / 2) - offset));
@@ -227,6 +238,16 @@ public:
                 const double sample = std::isfinite(in[i]) ? static_cast<double>(in[i]) : 0.0;
                 const double scaled = std::clamp(sample * 8388608.0, -8388608.0, 8388607.0);
                 out[i] = static_cast<int32_t>(std::llround(scaled)) * 256;
+            }
+            return f;
+        }
+        if (m_codec.codec_id == AV_CODEC_ID_PCM_F32LE) {
+            // 32-bit IEEE float WAV: preserve full float32 headroom without clamping or dither,
+            // sanitizing only non-finite values.
+            const auto* in = reinterpret_cast<const float*>(bytes.data());
+            auto* out = reinterpret_cast<float*>(f->data[0]);
+            for (int i = 0; i < f->nb_samples * 2; ++i) {
+                out[i] = std::isfinite(in[i]) ? in[i] : 0.0f;
             }
             return f;
         }
@@ -310,7 +331,19 @@ Result exportTimeline(const Timeline& timeline, const Options& options, const se
             }
         }
         const auto mediaLeases = nt::assets::MediaProtection::leasePaths(cache, mediaPaths);
-        result.samples = std::max<qint64>(1, std::llround((audioOnly ? rangeMs / 1000 : result.frames / result.fps) * 48000));
+        const int sampleRate = options.audioSampleRate == 0 ? 48000 : options.audioSampleRate;
+        if (!png && !isSupportedAudioSampleRate(options.format, sampleRate)) {
+            throw std::runtime_error(
+                QStringLiteral("Audio sample rate %1 Hz is not supported for %2 (supported: %3)")
+                    .arg(sampleRate)
+                    .arg(options.format, supportedAudioSampleRatesLabel(options.format))
+                    .toStdString());
+        }
+        if (options.format == u"wav" && options.audioBitDepth != 16 && options.audioBitDepth != 24 && options.audioBitDepth != 32) {
+            throw std::runtime_error("Unsupported WAV audio bit depth");
+        }
+        result.audioSampleRate = sampleRate;
+        result.samples = std::max<qint64>(1, std::llround((audioOnly ? rangeMs / 1000.0 : result.frames / result.fps) * sampleRate));
         if (png && static_cast<quint64>(result.frames) >= PngZip::MaxEntries) {
             throw std::runtime_error("PNG sequence exceeds classic ZIP limit of 65535 entries including the manifest");
         }
@@ -352,20 +385,23 @@ Result exportTimeline(const Timeline& timeline, const Options& options, const se
                 videoStream = muxer->add(*video);
                 videoStream->avg_frame_rate = video->framerate;
             }
+            const auto wavCodecId = options.audioBitDepth == 32 ? AV_CODEC_ID_PCM_F32LE
+                : options.audioBitDepth == 24 ? AV_CODEC_ID_PCM_S24LE : AV_CODEC_ID_PCM_S16LE;
             const auto* encoder = chosen(options.audioEncoder, options.format == u"mp4" ? avcodec_find_encoder(AV_CODEC_ID_AAC)
                 : options.format == u"webm" ? avcodec_find_encoder_by_name("libopus")
-                : options.format == u"wav" ? avcodec_find_encoder(options.audioBitDepth == 24 ? AV_CODEC_ID_PCM_S24LE : AV_CODEC_ID_PCM_S16LE)
+                : options.format == u"wav" ? avcodec_find_encoder(wavCodecId)
                 : avcodec_find_encoder_by_name("libmp3lame"));
-            audio = audioCodec(encoder);
+            audio = audioCodec(encoder, sampleRate);
             result.audioEncoder = QString::fromUtf8(encoder->name);
             audioStream = muxer->add(*audio);
-            muxer->header(options.format == u"mp4");
+            muxer->header(options.format == u"mp4", sampleRate);
         }
         std::vector<float> pcm;
         if (!png) {
             report(QStringLiteral("audio"));
             std::vector<std::string> problems;
-            pcm = audio::renderOffline(timeline, 48000, result.startMs, static_cast<double>(result.samples) / 48, &problems, cancelled);
+            pcm = audio::renderOffline(timeline, sampleRate, result.startMs,
+                static_cast<double>(result.samples) * 1000.0 / sampleRate, &problems, cancelled);
             if (cancelled()) { result.cancelled = true; return result; }
             for (const auto& problem : problems) {
                 // A silent video source is valid. Missing or corrupt media is
@@ -467,7 +503,7 @@ Result exportTimeline(const Timeline& timeline, const Options& options, const se
                     output->pts = i;
                     output->duration = 1;
                     muxer->encode(*video, *videoStream, output.get());
-                    soundUntil(std::llround((i + 1) * 48000 / result.fps));
+                    soundUntil(std::llround((i + 1) * static_cast<double>(sampleRate) / result.fps));
                 }
                 report(QStringLiteral("encoding"), i + 1);
             }
@@ -506,5 +542,100 @@ Result exportTimeline(const Timeline& timeline, const Options& options, const se
         result.error = QString::fromUtf8(error.what());
     }
     return result;
+}
+CliParseResult parseExportCliArguments(const QStringList& arguments) {
+    CliParseResult parsed;
+    QCommandLineParser parser;
+    parser.addPositionalArgument(QStringLiteral("timeline"), QStringLiteral("Timeline source"));
+    QCommandLineOption stagingDirectory(QStringLiteral("staging-directory"),
+        "Editor-owned temporary output directory", "PATH");
+    stagingDirectory.setFlags(QCommandLineOption::HiddenFromHelp);
+    parser.addOption(stagingDirectory);
+    parser.addOptions({
+        {QStringLiteral("export"), "Export output path", "OUT"},
+        {QStringLiteral("format"), "mp4, webm, png_sequence, wav, mp3", "FORMAT", "mp4"},
+        {QStringLiteral("start-ms"), "First timeline time to export", "MS"},
+        {QStringLiteral("end-ms"), "Exclusive end time (default: timeline end)", "MS"},
+        {QStringLiteral("width"), "Output picture width (0: timeline width)", "PX"},
+        {QStringLiteral("height"), "Output picture height (0: timeline height)", "PX"},
+        {QStringLiteral("fps"), "Output frame rate (0: timeline rate)", "FPS"},
+        {QStringLiteral("video-bitrate"), "Target video bit rate (0: fixed quality)", "KBPS"},
+        {QStringLiteral("audio-bit-depth"), "WAV sample depth", "16|24|32", "16"},
+        {QStringLiteral("audio-sample-rate"), "Output audio sample rate in Hz (wav: 44100|48000|88200|96000|192000; mp4: 44100|48000|88200|96000; mp3: 44100|48000; webm: 48000)", "HZ", "48000"},
+        {QStringLiteral("scale-mode"), "fit (letterbox) or fill (centre crop)", "fit|fill", "fit"},
+        {QStringLiteral("alpha"), "Keep transparency (unavailable in this build)"},
+        {QStringLiteral("cancel-after-frames"), "Cancel after N completed frames", "N"},
+        {QStringLiteral("cancel-file"), "Cancel when this file exists", "PATH"},
+        {QStringLiteral("video-encoder"), "Override video encoder for diagnostics", "NAME"},
+        {QStringLiteral("audio-encoder"), "Override audio encoder for diagnostics", "NAME"},
+        {QStringLiteral("replace"), "Replace an existing file at OUT once the export succeeds"},
+        {QStringLiteral("json"), "Print the JSON result"}
+    });
+    if (!parser.parse(arguments)) {
+        parsed.error = parser.errorText();
+        return parsed;
+    }
+    if (parser.positionalArguments().size() != 1) {
+        parsed.error = QStringLiteral("usage: nodetool-timeline <timeline.json> --export OUT [--format mp4|webm|png_sequence|wav|mp3] [--start-ms MS] [--end-ms MS] [--width PX] [--height PX] [--fps FPS] [--video-bitrate KBPS] [--audio-bit-depth 16|24|32] [--audio-sample-rate HZ] [--scale-mode fit|fill] [--replace]");
+        return parsed;
+    }
+    bool valid = true;
+    const qint64 cancelAt = parser.isSet("cancel-after-frames") ? parser.value("cancel-after-frames").toLongLong(&valid) : -1;
+    if (!valid || (parser.isSet("cancel-after-frames") && cancelAt < 0)) {
+        parsed.error = QStringLiteral("error: cancel-after-frames must be nonnegative");
+        return parsed;
+    }
+    parsed.timelineSource = parser.positionalArguments().first();
+    parsed.cancelAt = cancelAt;
+    parsed.cancelFile = parser.value("cancel-file");
+    Options& options = parsed.options;
+    options = Options{parser.value("export"), parser.value("format"), parser.isSet("alpha"),
+        parser.value("video-encoder"), parser.value("audio-encoder"), parser.value("staging-directory")};
+    options.replace = parser.isSet("replace");
+    const auto number = [&](const char* name, auto& target) {
+        if (!parser.isSet(name)) return true;
+        using Value = std::remove_reference_t<decltype(target)>;
+        bool ok = false;
+        const double value = parser.value(name).toDouble(&ok);
+        if (!ok || !std::isfinite(value) || value < 0 || value > std::numeric_limits<Value>::max() ||
+            (std::is_integral_v<Value> && value != std::floor(value))) {
+            parsed.error = QStringLiteral("error: %1 must be a nonnegative number").arg(QString::fromLatin1(name));
+            return false;
+        }
+        target = static_cast<Value>(value);
+        return true;
+    };
+    if (!number("start-ms", options.startMs) || !number("end-ms", options.endMs) ||
+        !number("width", options.width) || !number("height", options.height) ||
+        !number("fps", options.fps) || !number("video-bitrate", options.videoBitrateKbps)) {
+        return parsed;
+    }
+    options.scaleMode = parser.value("scale-mode");
+    bool depthOk = false;
+    options.audioBitDepth = parser.value("audio-bit-depth").toInt(&depthOk);
+    if (!depthOk || (options.audioBitDepth != 16 && options.audioBitDepth != 24 && options.audioBitDepth != 32)) {
+        parsed.error = QStringLiteral("error: audio-bit-depth must be 16, 24, or 32");
+        return parsed;
+    }
+    bool rateOk = false;
+    options.audioSampleRate = parser.value("audio-sample-rate").toInt(&rateOk);
+    if (!rateOk || (options.format != u"png_sequence" && !isSupportedAudioSampleRate(options.format, options.audioSampleRate))) {
+        parsed.error = QStringLiteral("error: audio-sample-rate for %1 must be %2")
+                           .arg(options.format, supportedAudioSampleRatesLabel(options.format));
+        return parsed;
+    }
+    parsed.ok = true;
+    return parsed;
+}
+QJsonObject exportResultJson(const Options& options, const Result& result) {
+    QJsonObject json{{"output", options.output}, {"format", options.format}, {"alpha", false},
+        {"frames", result.frames}, {"samples", result.samples}, {"fps", result.fps},
+        {"width", result.width}, {"height", result.height}, {"startMs", result.startMs}, {"endMs", result.endMs},
+        {"videoEncoder", result.videoEncoder}, {"audioEncoder", result.audioEncoder},
+        {"audioSampleRate", result.audioSampleRate}};
+    if (options.format == u"wav") {
+        json.insert(QStringLiteral("audioBitDepth"), options.audioBitDepth);
+    }
+    return json;
 }
 }

@@ -65,9 +65,11 @@ export async function concatSegments(opts: {
   videoFilter: string;
   video: VideoEncoderSpec;
   audioCodec: string;
+  audioSampleRate?: number;
   signal?: AbortSignal;
 }): Promise<void> {
   const { signal, fps } = opts;
+  const audioRate = opts.audioSampleRate ?? AUDIO_RATE;
   throwIfAborted(signal);
   quietLibav();
   const codec = findEncoder(opts.video.codec);
@@ -85,7 +87,7 @@ export async function concatSegments(opts: {
     });
     const videoIndex = output.muxer.addStream(videoEncoder);
     audioEncoder = await AudioEncoder.create(opts.audioCodec, {
-      sampleRate: AUDIO_RATE,
+      sampleRate: audioRate,
       channels: AUDIO_CHANNELS,
       signal
     });
@@ -120,15 +122,15 @@ export async function concatSegments(opts: {
 
     /** Encode silence until the audio reaches the video. */
     const padAudio = async (): Promise<void> => {
-      const target = Math.round((frameIndex * AUDIO_RATE * rate.den) / rate.num);
+      const target = Math.round((frameIndex * audioRate * rate.den) / rate.num);
       while (sampleIndex < target) {
         const count = Math.min(4096, target - sampleIndex);
         const silence = Frame.fromAudioBuffer(Buffer.alloc(count * AUDIO_CHANNELS * 4), {
           nbSamples: count,
           format: AV_SAMPLE_FMT_FLT,
-          sampleRate: AUDIO_RATE,
+          sampleRate: audioRate,
           channelLayout: avChannelLayoutDefault(AUDIO_CHANNELS),
-          timeBase: { num: 1, den: AUDIO_RATE },
+          timeBase: { num: 1, den: audioRate },
           pts: BigInt(sampleIndex)
         });
         try {
@@ -194,7 +196,7 @@ export async function concatSegments(opts: {
                   ? `atrim=end=${segment.outSec - inSec}`
                   : null,
                 `atrim=end=${pictureSec}`,
-                `aresample=${AUDIO_RATE}`,
+                `aresample=${audioRate}`,
                 `aformat=sample_fmts=flt:channel_layouts=stereo`
               ]
                 .filter((step): step is string => step !== null)
@@ -208,7 +210,7 @@ export async function concatSegments(opts: {
             for await (const frame of audio.frames()) {
               try {
                 frame.pts = BigInt(sampleIndex);
-                frame.timeBase = new Rational(1, AUDIO_RATE);
+                frame.timeBase = new Rational(1, audioRate);
                 sampleIndex += frame.nbSamples;
                 await writeAudioPackets(await activeAudio.encode(frame));
               } finally {

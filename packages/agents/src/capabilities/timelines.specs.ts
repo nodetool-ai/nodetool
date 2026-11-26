@@ -901,9 +901,9 @@ export const RENDER_TIMELINE_SCHEMA: JsonSchema = {
     format: {
       type: "string",
       description:
-        "Container to write: 'mp4' (default), 'webm', 'mov', or " +
-        "'png_sequence' (frames zipped with a manifest). Only webm, mov and " +
-        "png_sequence carry alpha."
+        "Container to write: 'mp4' (default), 'webm', 'mov', 'png_sequence' " +
+        "(frames zipped with a manifest), or 'wav' (uncompressed PCM audio-only " +
+        "export). Only webm, mov and png_sequence carry alpha."
     },
     alpha: {
       type: "boolean",
@@ -945,6 +945,22 @@ export const RENDER_TIMELINE_SCHEMA: JsonSchema = {
     include_audio: {
       type: "boolean",
       description: "Mix audio-track clips into the render. Default true."
+    },
+    audio_sample_rate: {
+      type: "number",
+      enum: [44100, 48000, 88200, 96000, 192000],
+      description:
+        "Output audio sample rate in Hz. wav accepts 44100, 48000, 88200, " +
+        "96000, or 192000; mp4 and mov accept 44100, 48000, 88200, or 96000; " +
+        "webm (Opus) accepts 48000 only; ignored for png_sequence. Defaults " +
+        "to 48000."
+    },
+    audio_bit_depth: {
+      type: "number",
+      enum: [16, 24, 32],
+      description:
+        "PCM bit depth for WAV exports: 16, 24, or 32 (32-bit IEEE 754 float). " +
+        "Only used when format is 'wav'. Defaults to 16."
     },
     wait: {
       type: "boolean",

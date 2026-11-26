@@ -12,6 +12,7 @@
 #include "audio/MasterLimiter.h"
 #include "audio/Mixer.h"
 #include "audio/PcmRing.h"
+#include "audio/SincResampler.h"
 #include "audio/TestAllocationCounter.h"
 #include "audio/loudness/LiveLoudness.h"
 #include "audio/loudness/Loudness.h"
@@ -2545,6 +2546,1085 @@ private slots:
         serviceMixPlanControl(plan);
         mixBlock(plan, vp, kRate, frameMs(kTotal + 128), 1000.0 / kRate, 128, scratch.data(), st);
         serviceMixPlanControl(plan);
+    }
+
+    // DSP2 F7: windowed-sinc varispeed suppresses aliasing at >1x speed and bounds THD+N at fractional rates,
+    // with zero audio-thread heap allocations.
+    void dsp2_f7_sincVarispeedAliasingAndThdBound() {
+        constexpr int kSrcFrames = 96000;
+        constexpr int kOutFrames = 8192;
+        constexpr int kTrim = 256;
+
+        // 1. Aliasing suppression: 15 kHz sine played at 2.0x maps to 30 kHz (> 24 kHz Nyquist).
+        // 2-point linear interpolation aliases this to 18 kHz at full amplitude (~0 dB);
+        // band-limited windowed-sinc must attenuate it by > 75 dB.
+        std::vector<float> aliasSrc(std::size_t{kSrcFrames} * 2);
+        for (int i = 0; i < kSrcFrames; ++i) {
+            const float s = static_cast<float>(0.8 * std::sin(2.0 * std::numbers::pi * 15000.0 * i / kRate));
+            aliasSrc[std::size_t{2} * i] = s;
+            aliasSrc[std::size_t{2} * i + 1] = s;
+        }
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        Clip c = clip("c", "a", MediaType::Audio, 0.0, 2000.0);
+        c.inPointMs = 100.0;
+        c.speedMultiplier = 2.0;
+        tl.clips = {c};
+        const MixPlan plan2x = buildMixPlan(tl);
+
+        VoicePcm vp{};
+        vp.linear = aliasSrc.data();
+        vp.linearCount = kSrcFrames;
+        std::vector<float> out2x(std::size_t{kOutFrames} * 2, 0.0f);
+        MixStats stats;
+        nt::testing::allocations = 0;
+        nt::testing::countAllocations = true;
+        for (int off = 0; off < kOutFrames; off += 128) {
+            mixBlock(plan2x, &vp, kRate, frameMs(off), 1000.0 / kRate, 128,
+                     out2x.data() + static_cast<std::size_t>(off) * 2, stats);
+        }
+        nt::testing::countAllocations = false;
+        const std::size_t allocs2x = nt::testing::allocations;
+        QCOMPARE(allocs2x, std::size_t{0});
+
+        double aliasSq = 0.0;
+        const int nEval = kOutFrames - 2 * kTrim;
+        for (int i = kTrim; i < kOutFrames - kTrim; ++i) {
+            const double x = out2x[std::size_t{2} * i];
+            aliasSq += x * x;
+        }
+        const double aliasRms = std::sqrt(aliasSq / nEval);
+        const double refRms = 0.8 / std::sqrt(2.0);
+        const double aliasDb = 20.0 * std::log10(std::max(aliasRms / refRms, 1e-12));
+        QVERIFY2(aliasDb < -75.0,
+                 qPrintable(QStringLiteral("2x varispeed 15kHz alias=%1 dB (expected < -75 dB)").arg(aliasDb)));
+
+        // 2. Fractional varispeed THD+N: 5 kHz sine played at 1.37x (6.85 kHz) and 0.73x (3.65 kHz).
+        // Linear interpolation yields ~-30 dB THD+N; windowed-sinc must stay < -75 dB.
+        std::vector<float> toneSrc(std::size_t{kSrcFrames} * 2);
+        for (int i = 0; i < kSrcFrames; ++i) {
+            const float s = static_cast<float>(0.8 * std::sin(2.0 * std::numbers::pi * 5000.0 * i / kRate));
+            toneSrc[std::size_t{2} * i] = s;
+            toneSrc[std::size_t{2} * i + 1] = -s;
+        }
+        for (const double speedMul : {1.37, 0.73}) {
+            tl.clips[0].speedMultiplier = speedMul;
+            const MixPlan planFrac = buildMixPlan(tl);
+            vp.linear = toneSrc.data();
+            vp.linearCount = kSrcFrames;
+            std::vector<float> outFrac(std::size_t{kOutFrames} * 2, 0.0f);
+            nt::testing::allocations = 0;
+            nt::testing::countAllocations = true;
+            for (int off = 0; off < kOutFrames; off += 128) {
+                mixBlock(planFrac, &vp, kRate, frameMs(off), 1000.0 / kRate, 128,
+                         outFrac.data() + static_cast<std::size_t>(off) * 2, stats);
+            }
+            nt::testing::countAllocations = false;
+            const std::size_t allocsFrac = nt::testing::allocations;
+            QCOMPARE(allocsFrac, std::size_t{0});
+
+            // Least-squares fit of fundamental A*cos(w*n) + B*sin(w*n) over interior window.
+            const double w = 2.0 * std::numbers::pi * (5000.0 * speedMul) / kRate;
+            double cc = 0.0, ss = 0.0, cs = 0.0, xc = 0.0, xs = 0.0;
+            for (int i = kTrim; i < kOutFrames - kTrim; ++i) {
+                const double cVal = std::cos(w * i);
+                const double sVal = std::sin(w * i);
+                const double x = outFrac[std::size_t{2} * i];
+                cc += cVal * cVal; ss += sVal * sVal; cs += cVal * sVal;
+                xc += x * cVal; xs += x * sVal;
+            }
+            const double det = cc * ss - cs * cs;
+            const double aFit = (ss * xc - cs * xs) / det;
+            const double bFit = (cc * xs - cs * xc) / det;
+            const double fundAmp = std::hypot(aFit, bFit);
+            QVERIFY2(std::abs(fundAmp - 0.8) < 0.005,
+                     qPrintable(QStringLiteral("speed=%1 fundAmp=%2").arg(speedMul).arg(fundAmp)));
+            double errSq = 0.0, sigSq = 0.0;
+            for (int i = kTrim; i < kOutFrames - kTrim; ++i) {
+                const double fit = aFit * std::cos(w * i) + bFit * std::sin(w * i);
+                const double err = outFrac[std::size_t{2} * i] - fit;
+                errSq += err * err;
+                sigSq += fit * fit;
+            }
+            const double thdnDb = 10.0 * std::log10(std::max(errSq / sigSq, 1e-16));
+            QVERIFY2(thdnDb < -75.0,
+                     qPrintable(QStringLiteral("speed=%1 THD+N=%2 dB (expected < -75 dB)").arg(speedMul).arg(thdnDb)));
+        }
+    }
+
+    // DSP2 F7: AudioSource decodes/resamples with highest swresample quality (steep anti-aliasing near Nyquist).
+    void dsp2_f7_audioSourceSwresampleHighQuality() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        // Write a 96 kHz stereo float32 WAV with a 1 kHz passband tone (0.5) + 25.5 kHz out-of-band tone (0.5).
+        // When resampled to 48 kHz (Nyquist 24 kHz), 25.5 kHz lies right past Nyquist and aliases to 22.5 kHz
+        // unless the resampler uses a high-order Kaiser/SoXR filter.
+        constexpr int kInRate = 96000;
+        constexpr int kInFrames = 48000;  // 0.5 s
+        const QString wavPath = dir.filePath("src96k.wav");
+        {
+            QFile f(wavPath);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            const quint32 dataBytes = quint32(kInFrames * 2 * sizeof(float));
+            const quint32 riffSize = 36 + dataBytes;
+            const auto w16 = [&](quint16 v) { char b[2]{char(v & 0xff), char(v >> 8)}; f.write(b, 2); };
+            const auto w32 = [&](quint32 v) { char b[4]{char(v & 0xff), char((v >> 8) & 0xff), char((v >> 16) & 0xff), char(v >> 24)}; f.write(b, 4); };
+            f.write("RIFF", 4); w32(riffSize); f.write("WAVE", 4);
+            f.write("fmt ", 4); w32(16); w16(3); w16(2); w32(kInRate); w32(kInRate * 8); w16(8); w16(32);
+            f.write("data", 4); w32(dataBytes);
+            std::vector<float> buf(std::size_t{kInFrames} * 2);
+            for (int i = 0; i < kInFrames; ++i) {
+                const double t = static_cast<double>(i) / kInRate;
+                const float s = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * 1000.0 * t) +
+                                                   0.5 * std::sin(2.0 * std::numbers::pi * 25500.0 * t));
+                buf[std::size_t{2} * i] = s;
+                buf[std::size_t{2} * i + 1] = s;
+            }
+            f.write(reinterpret_cast<const char*>(buf.data()), qsizetype(dataBytes));
+        }
+
+        std::string error;
+        auto src = AudioSource::open(wavPath.toStdString(), 48000, &error);
+        QVERIFY2(src != nullptr, error.c_str());
+        const auto pcm = src->readAll();
+        const int outFrames = static_cast<int>(pcm.size() / 2);
+        QCOMPARE(outFrames, 24000);
+
+        // Use an exact common multiple of 1 kHz (48 samples/cycle) and 22.5 kHz (32/15 samples/cycle)
+        // so the DFT has zero rectangular-window spectral leakage between the two tones.
+        const int start = 2048;
+        const int len = 19200;  // 0.4 s = 400 cycles of 1 kHz, 9000 cycles of 22.5 kHz
+        QVERIFY(start + len <= outFrames - 1024);
+        const int end = start + len;
+        double passSin = 0.0, passCos = 0.0, aliasSin = 0.0, aliasCos = 0.0;
+        for (int i = start; i < end; ++i) {
+            const double x = pcm[std::size_t{2} * i];
+            const double ph1 = 2.0 * std::numbers::pi * 1000.0 * i / 48000.0;
+            const double phA = 2.0 * std::numbers::pi * 22500.0 * i / 48000.0;
+            passSin += x * std::sin(ph1); passCos += x * std::cos(ph1);
+            aliasSin += x * std::sin(phA); aliasCos += x * std::cos(phA);
+        }
+        const double passAmp = 2.0 * std::hypot(passSin, passCos) / len;
+        const double aliasAmp = 2.0 * std::hypot(aliasSin, aliasCos) / len;
+        const double aliasDb = 20.0 * std::log10(std::max(aliasAmp / std::max(passAmp, 1e-12), 1e-12));
+        QVERIFY2(std::abs(passAmp - 0.5) < 0.005, qPrintable(QStringLiteral("passAmp=%1").arg(passAmp)));
+        QVERIFY2(aliasDb < -90.0,
+                 qPrintable(QStringLiteral("96k->48k 25.5kHz alias=%1 dB (expected < -90 dB)").arg(aliasDb)));
+    }
+
+    // DSP2 F8: per-block parameter smoothing bounds sample-to-sample zipper/click steps on effect
+    // parameter jumps (gain, filter cutoff, eq3, compressor, echo, reverb, distortion) with zero allocations.
+    void dsp2_f8_effectParameterSmoothingZipperStepBound() {
+        const auto makeProcessor = [](const QJsonObject& fx) -> std::shared_ptr<BlockProcessor> {
+            const QJsonObject raw{
+                {"fps", 30}, {"durationMs", 1000},
+                {"tracks", QJsonArray{QJsonObject{
+                    {"id", "a"}, {"type", "audio"}, {"index", 0},
+                    {"effects", QJsonArray{fx}}}}},
+                {"clips", QJsonArray{QJsonObject{
+                    {"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"},
+                    {"status", "generated"}, {"mediaPath", "unused.wav"},
+                    {"startMs", 0}, {"durationMs", 1000}}}}};
+            auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+            if (!parsed.timeline) return nullptr;
+            const auto plan = buildMixPlan(*parsed.timeline);
+            if (plan.tracks.empty()) return nullptr;
+            const auto targetId = fx.value("id").toString().toStdString();
+            for (const auto& p : plan.tracks[0].processors) {
+                if (p && p->id == targetId) return p;
+            }
+            return nullptr;
+        };
+
+        auto runStep = [](BlockProcessor& proc, std::string_view param, double newVal,
+                          const std::vector<float>& input, int stepAtBlock,
+                          float& maxStepAcrossBoundary, std::size_t& allocs, bool& setOk) {
+            proc.prepare(kRate);
+            const int totalFrames = static_cast<int>(input.size() / 2);
+            std::vector<float> out = input;
+            allocs = 0;
+            maxStepAcrossBoundary = 0.0f;
+            setOk = true;
+            for (int blk = 0; blk * 128 < totalFrames; ++blk) {
+                const int off = blk * 128;
+                const int n = std::min(128, totalFrames - off);
+                auto span = std::span<float>(out.data() + static_cast<std::size_t>(off) * 2, static_cast<std::size_t>(n) * 2);
+                const BlockContext ctx{kRate, frameMs(off), 1000.0 / kRate, false, 0};
+                nt::testing::allocations = 0;
+                nt::testing::countAllocations = true;
+                if (blk == stepAtBlock) {
+                    setOk = proc.setParameter(param, newVal);
+                }
+                proc.process(span, ctx);
+                nt::testing::countAllocations = false;
+                allocs += nt::testing::allocations;
+            }
+            // Measure max sample-to-sample step from the step boundary through settling.
+            const int start = stepAtBlock * 128;
+            const int end = std::min(totalFrames, start + 512);
+            for (int i = std::max(1, start); i < end; ++i) {
+                const float dL = std::abs(out[std::size_t{2} * i] - out[std::size_t{2} * (i - 1)]);
+                const float dR = std::abs(out[std::size_t{2} * i + 1] - out[std::size_t{2} * (i - 1) + 1]);
+                maxStepAcrossBoundary = std::max({maxStepAcrossBoundary, dL, dR});
+            }
+            return out;
+        };
+
+        constexpr int kFrames = 2048;
+        // DC input isolates pure gain/makeup jumps with zero carrier slope.
+        std::vector<float> dc(std::size_t{kFrames} * 2, 0.8f);
+        // 440 Hz sine (max natural per-sample delta = 0.5 * 2*pi*440/48000 = 0.0288).
+        std::vector<float> sine440(std::size_t{kFrames} * 2);
+        for (int i = 0; i < kFrames; ++i) {
+            const float s = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * 440.0 * i / kRate));
+            sine440[std::size_t{2} * i] = s;
+            sine440[std::size_t{2} * i + 1] = s;
+        }
+
+        // 1. Gain effect: 0 dB -> -24 dB jump on 0.8 DC (unsmoothed jump = 0.75).
+        {
+            auto proc = makeProcessor({{"id", "g1"}, {"type", "gain"}, {"enabled", true}, {"gainDb", 0.0}});
+            QVERIFY(proc != nullptr);
+            float maxStep = 0.0f; std::size_t allocs = 0; bool setOk = false;
+            const auto out = runStep(*proc, "gainDb", -24.0, dc, 4, maxStep, allocs, setOk);
+            QVERIFY(setOk);
+            QCOMPARE(allocs, std::size_t{0});
+            QVERIFY2(maxStep < 0.01f, qPrintable(QStringLiteral("gain zipper maxStep=%1").arg(maxStep)));
+            const float expectedFinal = static_cast<float>(0.8 * std::pow(10.0, -24.0 / 20.0));
+            QVERIFY2(std::abs(out.back() - expectedFinal) < 1e-4f,
+                     qPrintable(QStringLiteral("gain final=%1 expected=%2").arg(out.back()).arg(expectedFinal)));
+        }
+
+        // 2. Filter cutoff: 200 Hz -> 8000 Hz jump on 440 Hz sine (unsmoothed click > 0.25).
+        {
+            auto proc = makeProcessor({{"id", "f1"}, {"type", "filter"}, {"enabled", true},
+                                       {"mode", "lowpass"}, {"frequency", 200.0}, {"q", 2.0}});
+            QVERIFY(proc != nullptr);
+            float maxStep = 0.0f; std::size_t allocs = 0; bool setOk = false;
+            runStep(*proc, "frequency", 8000.0, sine440, 4, maxStep, allocs, setOk);
+            QVERIFY(setOk);
+            QCOMPARE(allocs, std::size_t{0});
+            QVERIFY2(maxStep < 0.06f, qPrintable(QStringLiteral("filter cutoff zipper maxStep=%1").arg(maxStep)));
+        }
+
+        // 3. EQ3: midGainDb -12 dB -> +12 dB jump on 440 Hz sine.
+        {
+            auto proc = makeProcessor({{"id", "e1"}, {"type", "eq3"}, {"enabled", true},
+                                       {"lowFreq", 200.0}, {"lowGainDb", 0.0},
+                                       {"midFreq", 440.0}, {"midQ", 1.5}, {"midGainDb", -12.0},
+                                       {"highFreq", 5000.0}, {"highGainDb", 0.0}});
+            QVERIFY(proc != nullptr);
+            float maxStep = 0.0f; std::size_t allocs = 0; bool setOk = false;
+            runStep(*proc, "midGainDb", 12.0, sine440, 4, maxStep, allocs, setOk);
+            QVERIFY(setOk);
+            QCOMPARE(allocs, std::size_t{0});
+            // At +12 dB boost, 440 Hz sine amplitude is ~2.0 -> natural slope ~0.115/sample; unsmoothed step > 0.6.
+            QVERIFY2(maxStep < 0.16f, qPrintable(QStringLiteral("eq3 midGainDb zipper maxStep=%1").arg(maxStep)));
+        }
+
+        // 4. Compressor: thresholdDb 0 dB -> -40 dB jump on 0.2 DC (makeup gain jumps instantly without smoothing).
+        {
+            std::vector<float> dcQuiet(std::size_t{kFrames} * 2, 0.2f);
+            auto proc = makeProcessor({{"id", "c1"}, {"type", "compressor"}, {"enabled", true},
+                                       {"thresholdDb", 0.0}, {"ratio", 12.0},
+                                       {"attackMs", 3.0}, {"releaseMs", 250.0}, {"kneeDb", 0.0}});
+            QVERIFY(proc != nullptr);
+            float maxStep = 0.0f; std::size_t allocs = 0; bool setOk = false;
+            runStep(*proc, "thresholdDb", -40.0, dcQuiet, 8, maxStep, allocs, setOk);
+            QVERIFY(setOk);
+            QCOMPARE(allocs, std::size_t{0});
+            QVERIFY2(maxStep < 0.02f, qPrintable(QStringLiteral("compressor thresholdDb zipper maxStep=%1").arg(maxStep)));
+        }
+
+        // 5. Echo mix: 0.0 -> 1.0 jump on 0.8 DC (50 ms = 2400-sample delay stays 0 during the 2048-frame test).
+        {
+            auto proc = makeProcessor({{"id", "ec1"}, {"type", "echo"}, {"enabled", true},
+                                       {"delayMs", 50.0}, {"feedback", 0.0}, {"mix", 0.0}});
+            QVERIFY(proc != nullptr);
+            float maxStep = 0.0f; std::size_t allocs = 0; bool setOk = false;
+            runStep(*proc, "mix", 1.0, dc, 4, maxStep, allocs, setOk);
+            QVERIFY(setOk);
+            QCOMPARE(allocs, std::size_t{0});
+            QVERIFY2(maxStep < 0.01f, qPrintable(QStringLiteral("echo mix zipper maxStep=%1").arg(maxStep)));
+        }
+
+        // 6. Reverb mix: 0.0 -> 1.0 jump on 0.8 DC.
+        {
+            auto proc = makeProcessor({{"id", "rv1"}, {"type", "reverb"}, {"enabled", true},
+                                       {"decaySec", 0.2}, {"mix", 0.0}});
+            QVERIFY(proc != nullptr);
+            float maxStep = 0.0f; std::size_t allocs = 0; bool setOk = false;
+            runStep(*proc, "mix", 1.0, dc, 4, maxStep, allocs, setOk);
+            QVERIFY(setOk);
+            QCOMPARE(allocs, std::size_t{0});
+            QVERIFY2(maxStep < 0.05f, qPrintable(QStringLiteral("reverb mix zipper maxStep=%1").arg(maxStep)));
+        }
+
+        // 7. Distortion outputDb: 0 dB -> -24 dB jump on 0.8 DC.
+        {
+            auto proc = makeProcessor({{"id", "d1"}, {"type", "distortion"}, {"enabled", true},
+                                       {"driveDb", 6.0}, {"outputDb", 0.0}});
+            QVERIFY(proc != nullptr);
+            float maxStep = 0.0f; std::size_t allocs = 0; bool setOk = false;
+            runStep(*proc, "outputDb", -24.0, dc, 4, maxStep, allocs, setOk);
+            QVERIFY(setOk);
+            QCOMPARE(allocs, std::size_t{0});
+            QVERIFY2(maxStep < 0.015f, qPrintable(QStringLiteral("distortion outputDb zipper maxStep=%1").arg(maxStep)));
+        }
+    }
+
+    // DSP2 fix1 D1: sampleSinc signed-kernel normalization at buffer edges and short buffers.
+    void dsp2_fix1_d1_sincEdgeNormalization() {
+        // Non-DC alternating / high-frequency signal exposes weightSum cancellation when
+        // out-of-bounds taps are omitted from the denominator (blows up 20x-150x).
+        std::vector<float> sigLong(256 * 2);
+        for (int i = 0; i < 256; ++i) {
+            const float v = (i % 2 == 0) ? 1.0f : -1.0f;
+            sigLong[std::size_t{2} * i] = v;
+            sigLong[std::size_t{2} * i + 1] = -v;
+        }
+        const auto fetchLong = [&](std::int64_t f, float& l, float& r) noexcept -> bool {
+            if (f < 0 || f >= 256) { return false; }
+            l = sigLong[static_cast<std::size_t>(f) * 2];
+            r = sigLong[static_cast<std::size_t>(f) * 2 + 1];
+            return true;
+        };
+        for (const double s : {0.0, 0.01, 255.0, 255.99}) {
+            double l = 0.0, r = 0.0;
+            sampleSinc(s, 1.0, fetchLong, l, r);
+            QVERIFY2(std::isfinite(l) && std::isfinite(r) && std::abs(l) <= 1.25 && std::abs(r) <= 1.25,
+                     qPrintable(QStringLiteral("D1 long edge s=%1 gave (%2, %3)").arg(s).arg(l).arg(r)));
+        }
+        // Very short buffer (4 frames) at s = 3.99 (simulates edge/underrun where f0+1 is missing).
+        const std::vector<float> sigShort{1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, -1.0f, 1.0f};
+        const auto fetchShort = [&](std::int64_t f, float& l, float& r) noexcept -> bool {
+            if (f < 0 || f >= 4) { return false; }
+            l = sigShort[static_cast<std::size_t>(f) * 2];
+            r = sigShort[static_cast<std::size_t>(f) * 2 + 1];
+            return true;
+        };
+        double l = 0.0, r = 0.0;
+        sampleSinc(3.99, 1.0, fetchShort, l, r);
+        QVERIFY2(std::isfinite(l) && std::abs(l) <= 1.25,
+                 qPrintable(QStringLiteral("D1 short edge s=3.99 gave %1").arg(l)));
+    }
+
+    // DSP2 fix1 D2: live PcmRing multi-block mix at sourceRate == 1.0 with fractional offset and varispeed.
+    void dsp2_fix1_d2_ringFractionalOffsetMargin() {
+        constexpr int kSrcFrames = 16384;
+        constexpr int kBlocks = 10;
+        constexpr int kBlockFrames = 128;
+        constexpr int kTotalOut = kBlocks * kBlockFrames;
+        std::vector<float> sine(std::size_t{kSrcFrames} * 2);
+        for (int i = 0; i < kSrcFrames; ++i) {
+            const float s = static_cast<float>(0.8 * std::sin(2.0 * std::numbers::pi * 1000.0 * i / kRate));
+            sine[std::size_t{2} * i] = s;
+            sine[std::size_t{2} * i + 1] = -s;
+        }
+        for (const double speedMul : {1.0, 1.37}) {
+            Timeline tl;
+            tl.tracks = {track("a", TrackType::Audio)};
+            Clip c = clip("c", "a", MediaType::Audio, 0.0, 1000.0);
+            c.inPointMs = 200.5 * 1000.0 / kRate;
+            c.speedMultiplier = speedMul;
+            tl.clips = {c};
+            const MixPlan planLin = buildMixPlan(tl);
+            const MixPlan planRing = buildMixPlan(tl);
+
+            VoicePcm linPcm{};
+            linPcm.linear = sine.data();
+            linPcm.linearCount = kSrcFrames;
+            std::vector<float> outLin(std::size_t{kTotalOut} * 2, 0.0f);
+            MixStats stLin;
+            for (int b = 0; b < kBlocks; ++b) {
+                const int off = b * kBlockFrames;
+                mixBlock(planLin, &linPcm, kRate, frameMs(off), 1000.0 / kRate, kBlockFrames,
+                         outLin.data() + static_cast<std::size_t>(off) * 2, stLin);
+            }
+
+            PcmRing ring(kSrcFrames, 0);
+            QCOMPARE(ring.write(sine.data(), kSrcFrames), std::int64_t{kSrcFrames});
+            ring.markEnd(kSrcFrames);
+            VoicePcm ringPcm{};
+            ringPcm.ring = &ring;
+            ringPcm.live = true;
+            std::vector<float> outRing(std::size_t{kTotalOut} * 2, 0.0f);
+            MixStats stRing;
+            for (int b = 0; b < kBlocks; ++b) {
+                const int off = b * kBlockFrames;
+                mixBlock(planRing, &ringPcm, kRate, frameMs(off), 1000.0 / kRate, kBlockFrames,
+                         outRing.data() + static_cast<std::size_t>(off) * 2, stRing);
+            }
+            QCOMPARE(stRing.underruns, std::int64_t{0});
+            float maxDiff = 0.0f;
+            for (std::size_t i = 0; i < outLin.size(); ++i) {
+                maxDiff = std::max(maxDiff, std::abs(outRing[i] - outLin[i]));
+            }
+            QVERIFY2(maxDiff < 1e-6f,
+                     qPrintable(QStringLiteral("D2 ring vs linear speed=%1 maxDiff=%2").arg(speedMul).arg(maxDiff)));
+        }
+    }
+
+    // DSP2 fix1 D3: varispeed > 4.8x (8.0x) must hold cutoff below output Nyquist.
+    void dsp2_fix1_d3_highSpeedAntiAliasing() {
+        constexpr int kSrcFrames = 96000;
+        constexpr int kOutFrames = 4096;
+        constexpr int kTrim = 256;
+        std::vector<float> src8x(std::size_t{kSrcFrames} * 2);
+        for (int i = 0; i < kSrcFrames; ++i) {
+            const float s = static_cast<float>(0.8 * std::sin(2.0 * std::numbers::pi * 3750.0 * i / kRate));
+            src8x[std::size_t{2} * i] = s;
+            src8x[std::size_t{2} * i + 1] = s;
+        }
+        Timeline tl;
+        tl.tracks = {track("a", TrackType::Audio)};
+        Clip c = clip("c", "a", MediaType::Audio, 0.0, 2000.0);
+        c.inPointMs = 100.0;
+        c.speedMultiplier = 8.0;
+        tl.clips = {c};
+        const MixPlan plan8x = buildMixPlan(tl);
+        VoicePcm vp{};
+        vp.linear = src8x.data();
+        vp.linearCount = kSrcFrames;
+        std::vector<float> out8x(std::size_t{kOutFrames} * 2, 0.0f);
+        MixStats stats;
+        nt::testing::allocations = 0;
+        nt::testing::countAllocations = true;
+        for (int off = 0; off < kOutFrames; off += 128) {
+            mixBlock(plan8x, &vp, kRate, frameMs(off), 1000.0 / kRate, 128,
+                     out8x.data() + static_cast<std::size_t>(off) * 2, stats);
+        }
+        nt::testing::countAllocations = false;
+        const std::size_t allocs8x = nt::testing::allocations;
+        QCOMPARE(allocs8x, std::size_t{0});
+        double aliasSq = 0.0;
+        for (int i = kTrim; i < kOutFrames - kTrim; ++i) {
+            const double x = out8x[std::size_t{2} * i];
+            aliasSq += x * x;
+        }
+        const double aliasRms = std::sqrt(aliasSq / (kOutFrames - 2 * kTrim));
+        const double refRms = 0.8 / std::sqrt(2.0);
+        const double aliasDb = 20.0 * std::log10(std::max(aliasRms / refRms, 1e-12));
+        QVERIFY2(aliasDb < -65.0,
+                 qPrintable(QStringLiteral("D3 8x varispeed 3.75kHz alias=%1 dB (expected < -65 dB)").arg(aliasDb)));
+    }
+
+    // DSP2 fix1 D4: AudioSource resampling compensates linear-phase group delay (exact frame count + alignment).
+    void dsp2_fix1_d4_audioSourceDelayAlignment() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        struct Case { int inRate; int outRate; int inFrames; int impulseIn; };
+        const std::array<Case, 4> cases{{
+            {96000, 48000, 48000, 10000},
+            {48000, 96000, 24000, 5000},
+            {44100, 48000, 22050, 4410},
+            {48000, 44100, 24000, 4800}
+        }};
+        for (const auto& c : cases) {
+            const int expectedOutFrames = static_cast<int>(std::llround(
+                static_cast<double>(c.inFrames) * c.outRate / c.inRate));
+            const int expectedPeak = static_cast<int>(std::llround(
+                static_cast<double>(c.impulseIn) * c.outRate / c.inRate));
+            const QString wavPath = dir.filePath(QStringLiteral("imp_%1_%2.wav").arg(c.inRate).arg(c.outRate));
+            {
+                QFile f(wavPath);
+                QVERIFY(f.open(QIODevice::WriteOnly));
+                const quint32 dataBytes = quint32(c.inFrames * 2 * sizeof(float));
+                const quint32 riffSize = 36 + dataBytes;
+                const auto w16 = [&](quint16 v) { char b[2]{char(v & 0xff), char(v >> 8)}; f.write(b, 2); };
+                const auto w32 = [&](quint32 v) { char b[4]{char(v & 0xff), char((v >> 8) & 0xff), char((v >> 16) & 0xff), char(v >> 24)}; f.write(b, 4); };
+                f.write("RIFF", 4); w32(riffSize); f.write("WAVE", 4);
+                f.write("fmt ", 4); w32(16); w16(3); w16(2); w32(quint32(c.inRate)); w32(quint32(c.inRate * 8)); w16(8); w16(32);
+                f.write("data", 4); w32(dataBytes);
+                std::vector<float> buf(std::size_t{static_cast<std::size_t>(c.inFrames)} * 2, 0.0f);
+                buf[std::size_t{2} * c.impulseIn] = 1.0f;
+                buf[std::size_t{2} * c.impulseIn + 1] = 1.0f;
+                f.write(reinterpret_cast<const char*>(buf.data()), qsizetype(dataBytes));
+            }
+            std::string error;
+            auto src = AudioSource::open(wavPath.toStdString(), c.outRate, &error);
+            QVERIFY2(src != nullptr, error.c_str());
+            const auto pcm = src->readAll();
+            const int outFrames = static_cast<int>(pcm.size() / 2);
+            int peakIdx = 0;
+            float peakVal = 0.0f;
+            for (int i = 0; i < outFrames; ++i) {
+                const float v = std::abs(pcm[std::size_t{2} * i]);
+                if (v > peakVal) { peakVal = v; peakIdx = i; }
+            }
+            QVERIFY2(std::abs(peakIdx - expectedPeak) <= 1,
+                     qPrintable(QStringLiteral("D4 %1->%2 readAll peakIdx=%3 (expected %4, outFrames=%5)")
+                                    .arg(c.inRate).arg(c.outRate).arg(peakIdx).arg(expectedPeak).arg(outFrames)));
+            QVERIFY2(std::abs(outFrames - expectedOutFrames) <= 1,
+                     qPrintable(QStringLiteral("D4 %1->%2 readAll outFrames=%3 (expected %4)")
+                                    .arg(c.inRate).arg(c.outRate).arg(outFrames).arg(expectedOutFrames)));
+
+            const int seekStart = expectedPeak - 20;
+            QVERIFY(src->seek(seekStart));
+            std::vector<float> seg(40 * 2, 0.0f);
+            QCOMPARE(src->read(seg.data(), 40), std::int64_t{40});
+            int seekPeak = 0;
+            float seekVal = 0.0f;
+            for (int i = 0; i < 40; ++i) {
+                const float v = std::abs(seg[std::size_t{2} * i]);
+                if (v > seekVal) { seekVal = v; seekPeak = i; }
+            }
+            QVERIFY2(std::abs(seekPeak - 20) <= 1,
+                     qPrintable(QStringLiteral("D4 %1->%2 seek(%3) peak=%4 (expected 20)")
+                                    .arg(c.inRate).arg(c.outRate).arg(seekStart).arg(seekPeak)));
+        }
+    }
+
+    // DSP2 fix1 D5: Effect and PatternAudioStage first-block / seek / re-prepare snap and cutoffHz smoothing.
+    void dsp2_fix1_d5_snapAndPatternAudioStageSmoothing() {
+        const auto makeProcessor = [](const QJsonObject& fx) -> std::shared_ptr<BlockProcessor> {
+            const QJsonObject raw{
+                {"fps", 30}, {"durationMs", 2000},
+                {"tracks", QJsonArray{QJsonObject{
+                    {"id", "a"}, {"type", "audio"}, {"index", 0},
+                    {"effects", QJsonArray{fx}}}}},
+                {"clips", QJsonArray{QJsonObject{
+                    {"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"},
+                    {"status", "generated"}, {"mediaPath", "unused.wav"},
+                    {"startMs", 0}, {"durationMs", 2000}}}}};
+            auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+            if (!parsed.timeline) return nullptr;
+            const auto plan = buildMixPlan(*parsed.timeline);
+            if (plan.tracks.empty()) return nullptr;
+            const auto targetId = fx.value("id").toString().toStdString();
+            for (const auto& p : plan.tracks[0].processors) {
+                if (p && p->id == targetId) return p;
+            }
+            return nullptr;
+        };
+
+        // Effect first-block snap and post-seek snap.
+        {
+            auto proc = makeProcessor({{"id", "g1"}, {"type", "gain"}, {"enabled", true}, {"gainDb", 0.0}});
+            QVERIFY(proc != nullptr);
+            proc->prepare(kRate);
+            QVERIFY(proc->setParameter("gainDb", -12.0));
+            std::vector<float> blk(128 * 2, 1.0f);
+            proc->process(blk, {kRate, 0.0, 1000.0 / kRate, false, 0});
+            const float g12 = static_cast<float>(std::pow(10.0, -12.0 / 20.0));
+            QVERIFY2(std::abs(blk[0] - g12) < 1e-5f,
+                     qPrintable(QStringLiteral("Effect first-block snap sample0=%1 expected=%2").arg(blk[0]).arg(g12)));
+            QVERIFY(proc->setParameter("gainDb", -6.0));
+            std::ranges::fill(blk, 1.0f);
+            proc->process(blk, {kRate, 500.0, 1000.0 / kRate, false, 0});
+            const float g6 = static_cast<float>(std::pow(10.0, -6.0 / 20.0));
+            QVERIFY2(std::abs(blk[0] - g6) < 1e-5f,
+                     qPrintable(QStringLiteral("Effect seek snap sample0=%1 expected=%2").arg(blk[0]).arg(g6)));
+        }
+
+        // PatternAudioStage (SubtractiveInstrumentProcessor) cutoffHz smoothing and snap.
+        {
+            const auto makeSynth = [](double cutoffHz) -> std::shared_ptr<BlockProcessor> {
+                const QJsonObject raw{
+                    {"fps", 30}, {"durationMs", 2000},
+                    {"tempo", QJsonObject{{"bpm", 120}}},
+                    {"tracks", QJsonArray{QJsonObject{
+                        {"id", "m"}, {"type", "midi"}, {"index", 0},
+                        {"instrument", QJsonObject{
+                            {"type", "subtractive"}, {"waveform", "saw"},
+                            {"attackMs", 0}, {"decayMs", 0}, {"sustain", 1.0}, {"releaseMs", 0},
+                            {"cutoffHz", cutoffHz}, {"resonance", 1.0}, {"gainDb", 0.0}}}}}},
+                    {"clips", QJsonArray{QJsonObject{
+                        {"id", "mc"}, {"trackId", "m"}, {"mediaType", "midi"},
+                        {"status", "generated"}, {"startMs", 0}, {"durationMs", 2000},
+                        {"notes", QJsonArray{QJsonObject{
+                            {"id", "n1"}, {"pitch", 48}, {"velocity", 127},
+                            {"startTick", 0}, {"durationTick", 1920}}}}}}}};
+                auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+                if (!parsed.timeline) return nullptr;
+                const auto plan = buildMixPlan(*parsed.timeline);
+                if (plan.tracks.empty()) return nullptr;
+                for (const auto& p : plan.tracks[0].processors) {
+                    if (p && p->id == "instrument") return p;
+                }
+                return nullptr;
+            };
+
+            auto synthRef300 = makeSynth(300.0);
+            auto synthTest = makeSynth(8000.0);
+            QVERIFY(synthRef300 != nullptr && synthTest != nullptr);
+            synthRef300->prepare(kRate);
+            synthTest->prepare(kRate);
+
+            // First-block snap after prepare() + setParameter().
+            QVERIFY(synthTest->setParameter("cutoffHz", 300.0));
+            std::vector<float> refBlk(128 * 2, 0.0f), testBlk(128 * 2, 0.0f);
+            synthRef300->process(refBlk, {kRate, 0.0, 1000.0 / kRate, false, 0});
+            synthTest->process(testBlk, {kRate, 0.0, 1000.0 / kRate, false, 0});
+            for (std::size_t i = 0; i < refBlk.size(); ++i) {
+                QVERIFY2(std::abs(testBlk[i] - refBlk[i]) < 1e-6f,
+                         qPrintable(QStringLiteral("D5 synth first-block snap diff at %1: %2 vs %3").arg(i).arg(testBlk[i]).arg(refBlk[i])));
+            }
+
+            // Re-prepare() followed by setParameter() to a NEW cutoff and process() at continuous timelineMs must snap.
+            auto synthRef1200 = makeSynth(1200.0);
+            QVERIFY(synthRef1200 != nullptr);
+            synthRef1200->prepare(kRate);
+            synthTest->prepare(kRate);
+            QVERIFY(synthTest->setParameter("cutoffHz", 1200.0));
+            std::ranges::fill(refBlk, 0.0f);
+            std::ranges::fill(testBlk, 0.0f);
+            const double nextMs = frameMs(128);
+            synthRef1200->process(refBlk, {kRate, nextMs, 1000.0 / kRate, false, 0});
+            synthTest->process(testBlk, {kRate, nextMs, 1000.0 / kRate, false, 0});
+            for (std::size_t i = 0; i < refBlk.size(); ++i) {
+                QVERIFY2(std::abs(testBlk[i] - refBlk[i]) < 1e-6f,
+                         qPrintable(QStringLiteral("D5 synth re-prepare snap diff at %1: %2 vs %3").arg(i).arg(testBlk[i]).arg(refBlk[i])));
+            }
+
+            // Continuous playback cutoffHz jump 300 -> 8000 must smooth smoothly (not snap) with zero allocs.
+            auto synthSmooth = makeSynth(300.0);
+            QVERIFY(synthSmooth != nullptr);
+            synthSmooth->prepare(kRate);
+            constexpr int kTotal = 1024;
+            std::vector<float> out(std::size_t{kTotal} * 2, 0.0f);
+            std::size_t allocs = 0;
+            for (int blk = 0; blk * 128 < kTotal; ++blk) {
+                const int off = blk * 128;
+                auto span = std::span<float>(out.data() + static_cast<std::size_t>(off) * 2, 128 * 2);
+                nt::testing::allocations = 0;
+                nt::testing::countAllocations = true;
+                if (blk == 2) { QVERIFY(synthSmooth->setParameter("cutoffHz", 8000.0)); }
+                synthSmooth->process(span, {kRate, frameMs(off), 1000.0 / kRate, false, 0});
+                nt::testing::countAllocations = false;
+                allocs += nt::testing::allocations;
+            }
+            QCOMPARE(allocs, std::size_t{0});
+            const float jumpStep = std::abs(out[std::size_t{2} * 256] - out[std::size_t{2} * 255]);
+            QVERIFY2(jumpStep < 0.15f, qPrintable(QStringLiteral("D5 synth cutoffHz boundary step=%1").arg(jumpStep)));
+
+            // Post-seek snap: seek to 500 ms with cutoffHz = 300 must match reference immediately.
+            QVERIFY(synthSmooth->setParameter("cutoffHz", 300.0));
+            std::ranges::fill(refBlk, 0.0f);
+            std::ranges::fill(testBlk, 0.0f);
+            synthRef300->process(refBlk, {kRate, 500.0, 1000.0 / kRate, false, 0});
+            synthSmooth->process(testBlk, {kRate, 500.0, 1000.0 / kRate, false, 0});
+            for (std::size_t i = 0; i < refBlk.size(); ++i) {
+                QVERIFY2(std::abs(testBlk[i] - refBlk[i]) < 1e-6f,
+                         qPrintable(QStringLiteral("D5 synth seek snap diff at %1: %2 vs %3").arg(i).arg(testBlk[i]).arg(refBlk[i])));
+            }
+        }
+    }
+
+    // DSP2 fix1 D6-D9: echo upward delayMs + feedback, distortion change during silence,
+    // slow block-rate ramp smoothing, and non-finite guards.
+    void dsp2_fix1_d6_echoUpwardDelayAndFeedback() {
+        const QJsonObject raw{
+            {"fps", 30}, {"durationMs", 2000},
+            {"tracks", QJsonArray{QJsonObject{
+                {"id", "a"}, {"type", "audio"}, {"index", 0},
+                {"effects", QJsonArray{QJsonObject{
+                    {"id", "ec1"}, {"type", "echo"}, {"enabled", true},
+                    {"delayMs", 50.0}, {"feedback", 0.2}, {"mix", 1.0}}}}}}},
+            {"clips", QJsonArray{QJsonObject{
+                {"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"},
+                {"status", "generated"}, {"mediaPath", "unused.wav"},
+                {"startMs", 0}, {"durationMs", 2000}}}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        const auto plan = buildMixPlan(*parsed.timeline);
+        std::shared_ptr<BlockProcessor> proc;
+        for (const auto& p : plan.tracks[0].processors) {
+            if (p && p->id == "ec1") { proc = p; break; }
+        }
+        QVERIFY(proc != nullptr);
+        proc->prepare(kRate);
+        constexpr int kTotal = 24000;  // 500 ms
+        std::vector<float> buf(std::size_t{kTotal} * 2, 0.0f);
+        buf[std::size_t{2} * 1024] = 1.0f;
+        buf[std::size_t{2} * 1024 + 1] = 1.0f;
+        std::size_t allocs = 0;
+        for (int blk = 0; blk * 128 < kTotal; ++blk) {
+            const int off = blk * 128;
+            const int n = std::min(128, kTotal - off);
+            auto span = std::span<float>(buf.data() + static_cast<std::size_t>(off) * 2, static_cast<std::size_t>(n) * 2);
+            nt::testing::allocations = 0;
+            nt::testing::countAllocations = true;
+            if (blk == 1) {
+                QVERIFY(proc->setParameter("delayMs", 200.0));
+                QVERIFY(proc->setParameter("feedback", 0.7));
+            }
+            proc->process(span, {kRate, frameMs(off), 1000.0 / kRate, false, 0});
+            nt::testing::countAllocations = false;
+            allocs += nt::testing::allocations;
+        }
+        QCOMPARE(allocs, std::size_t{0});
+        QVERIFY2(std::abs(buf[std::size_t{2} * (1024 + 2400)]) < 1e-4f,
+                 qPrintable(QStringLiteral("D6 echo clamped to old 50ms delay: val=%1").arg(buf[std::size_t{2} * (1024 + 2400)])));
+        QVERIFY2(std::abs(buf[std::size_t{2} * (1024 + 9600)] - 1.0f) < 1e-3f,
+                 qPrintable(QStringLiteral("D6 echo 1st repeat at 200ms=%1 (expected 1.0)").arg(buf[std::size_t{2} * (1024 + 9600)])));
+        QVERIFY2(std::abs(buf[std::size_t{2} * (1024 + 19200)] - 0.7f) < 1e-3f,
+                 qPrintable(QStringLiteral("D6 echo 2nd repeat at 400ms=%1 (expected 0.7)").arg(buf[std::size_t{2} * (1024 + 19200)])));
+    }
+
+    void dsp2_fix1_d7_d8_d9_distortionSilenceSlowRampAndNonFinite() {
+        const auto makeProcessor = [](const QJsonObject& fx) -> std::shared_ptr<BlockProcessor> {
+            const QJsonObject raw{
+                {"fps", 30}, {"durationMs", 2000},
+                {"tracks", QJsonArray{QJsonObject{
+                    {"id", "a"}, {"type", "audio"}, {"index", 0},
+                    {"effects", QJsonArray{fx}}}}},
+                {"clips", QJsonArray{QJsonObject{
+                    {"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"},
+                    {"status", "generated"}, {"mediaPath", "unused.wav"},
+                    {"startMs", 0}, {"durationMs", 2000}}}}};
+            auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+            if (!parsed.timeline) return nullptr;
+            const auto plan = buildMixPlan(*parsed.timeline);
+            if (plan.tracks.empty()) return nullptr;
+            const auto targetId = fx.value("id").toString().toStdString();
+            for (const auto& p : plan.tracks[0].processors) {
+                if (p && p->id == targetId) return p;
+            }
+            return nullptr;
+        };
+
+        // D7: distortion outputDb change during a silent block must apply immediately when audio resumes.
+        {
+            auto proc = makeProcessor({{"id", "d1"}, {"type", "distortion"}, {"enabled", true},
+                                       {"driveDb", 6.0}, {"outputDb", 0.0}});
+            QVERIFY(proc != nullptr);
+            proc->prepare(kRate);
+            // Warm up the 256-tap oversampler FIR to steady state over 4 blocks (512 frames).
+            std::vector<float> blk(128 * 2, 0.5f);
+            for (int b = 0; b < 4; ++b) {
+                std::ranges::fill(blk, 0.5f);
+                proc->process(blk, {kRate, frameMs(b * 128), 1000.0 / kRate, false, 0});
+            }
+            const float loudSample = blk.back();
+            // Silent block while outputDb changes to -24 dB.
+            QVERIFY(proc->setParameter("outputDb", -24.0));
+            std::ranges::fill(blk, 0.0f);
+            proc->process(blk, {kRate, frameMs(512), 1000.0 / kRate, true, 0});
+            // Audio resumes continuously at frame 640: sample 0 must already be at -24 dB (not ramping from 0 dB).
+            std::ranges::fill(blk, 0.5f);
+            proc->process(blk, {kRate, frameMs(640), 1000.0 / kRate, false, 0});
+            const float expected = loudSample * static_cast<float>(std::pow(10.0, -24.0 / 20.0));
+            QVERIFY2(std::abs(blk[std::size_t{2} * 16] - expected) < 1e-3f,
+                     qPrintable(QStringLiteral("D7 distortion resumed at %1 (expected %2, loud=%3)")
+                                    .arg(blk[std::size_t{2} * 16]).arg(expected).arg(loudSample)));
+        }
+
+        // D8: slow block-rate automation ramp (delta <= old directThreshold_ = 0.001) must still smooth per sample.
+        {
+            auto proc = makeProcessor({{"id", "g2"}, {"type", "gain"}, {"enabled", true}, {"gainDb", 0.0}});
+            QVERIFY(proc != nullptr);
+            proc->prepare(kRate);
+            std::vector<float> out(512 * 2, 1.0f);
+            proc->process(std::span<float>(out.data(), 128 * 2), {kRate, frameMs(0), 1000.0 / kRate, false, 0});
+            const double targetDb = 20.0 * std::log10(0.9995);
+            QVERIFY(proc->setParameter("gainDb", targetDb));
+            proc->process(std::span<float>(out.data() + 128 * 2, 128 * 2), {kRate, frameMs(128), 1000.0 / kRate, false, 0});
+            const float boundaryStep = std::abs(out[std::size_t{2} * 128] - out[std::size_t{2} * 127]);
+            QVERIFY2(boundaryStep < 0.00005f,
+                     qPrintable(QStringLiteral("D8 slow block-rate ramp snapped at boundary: step=%1").arg(boundaryStep)));
+        }
+
+        // D9: Effect::setParameter rejects NaN / +-Inf without corrupting state (including across seek).
+        {
+            auto proc = makeProcessor({{"id", "f1"}, {"type", "filter"}, {"enabled", true},
+                                       {"mode", "lowpass"}, {"frequency", 4000.0}, {"q", 1.0}});
+            auto procRef = makeProcessor({{"id", "f1"}, {"type", "filter"}, {"enabled", true},
+                                          {"mode", "lowpass"}, {"frequency", 4000.0}, {"q", 1.0}});
+            QVERIFY(proc != nullptr && procRef != nullptr);
+            proc->prepare(kRate);
+            procRef->prepare(kRate);
+            std::vector<float> blk(128 * 2, 0.5f), blkRef(128 * 2, 0.5f);
+            proc->process(blk, {kRate, 0.0, 1000.0 / kRate, false, 0});
+            procRef->process(blkRef, {kRate, 0.0, 1000.0 / kRate, false, 0});
+            QVERIFY(!proc->setParameter("frequency", std::numeric_limits<double>::quiet_NaN()));
+            QVERIFY(!proc->setParameter("frequency", std::numeric_limits<double>::infinity()));
+            QVERIFY(!proc->setParameter("frequency", -std::numeric_limits<double>::infinity()));
+            // Seek triggers snapAllSmoothers(); output must remain identical to untouched reference.
+            std::vector<float> after(128 * 2, 0.5f), afterRef(128 * 2, 0.5f);
+            proc->process(after, {kRate, 500.0, 1000.0 / kRate, false, 0});
+            procRef->process(afterRef, {kRate, 500.0, 1000.0 / kRate, false, 0});
+            for (std::size_t i = 0; i < after.size(); ++i) {
+                QVERIFY(std::isfinite(after[i]));
+                QVERIFY(std::abs(after[i] - afterRef[i]) < 1e-6f);
+            }
+        }
+    }
+
+    // DSP2 fix2 C1: effective source increment includes transport rate (msPerFrame * sampleRate / 1000)
+    // for direct bypass, sinc cutoff, and retained ring history across live rate jumps.
+    void dsp2_fix2_c1_transportRateAndCombinedRatios() {
+        constexpr int kSrcFrames = 96000;
+        constexpr int kOutFrames = 2048;
+        constexpr int kTrim = 192;
+        std::vector<float> tone15k(std::size_t{kSrcFrames} * 2);
+        for (int i = 0; i < kSrcFrames; ++i) {
+            const float s = static_cast<float>(0.8 * std::sin(2.0 * std::numbers::pi * 15000.0 * i / kRate));
+            tone15k[std::size_t{2} * i] = s;
+            tone15k[std::size_t{2} * i + 1] = s;
+        }
+        const double refRms = 0.8 / std::sqrt(2.0);
+
+        // 1. 1x clip at 2x transport (keepPitch=false): effective rate is 2.0, so 15 kHz must be
+        // attenuated > 75 dB rather than aliasing through the 1:1 bypass.
+        {
+            Timeline tl;
+            tl.tracks = {track("a", TrackType::Audio)};
+            Clip c = clip("c", "a", MediaType::Audio, 0.0, 2000.0);
+            c.inPointMs = 100.0;
+            c.speedMultiplier = 1.0;
+            tl.clips = {c};
+            const MixPlan plan = buildMixPlan(tl);
+            VoicePcm vp{};
+            vp.linear = tone15k.data();
+            vp.linearCount = kSrcFrames;
+            std::vector<float> out(std::size_t{kOutFrames} * 2, 0.0f);
+            MixStats stats;
+            const double step2x = (1000.0 / kRate) * 2.0;
+            nt::testing::allocations = 0;
+            nt::testing::countAllocations = true;
+            for (int off = 0; off < kOutFrames; off += 128) {
+                mixBlock(plan, &vp, kRate, off * step2x, step2x, 128,
+                         out.data() + static_cast<std::size_t>(off) * 2, stats);
+            }
+            nt::testing::countAllocations = false;
+            const std::size_t allocs = nt::testing::allocations;
+            QCOMPARE(allocs, std::size_t{0});
+            double sq = 0.0;
+            for (int i = kTrim; i < kOutFrames - kTrim; ++i) {
+                const double x = out[std::size_t{2} * i];
+                sq += x * x;
+            }
+            const double aliasDb = 20.0 * std::log10(std::max(std::sqrt(sq / (kOutFrames - 2 * kTrim)) / refRms, 1e-12));
+            QVERIFY2(aliasDb < -75.0,
+                     qPrintable(QStringLiteral("C1 1x clip @ 2x transport 15kHz alias=%1 dB (expected < -75 dB)").arg(aliasDb)));
+        }
+
+        // 2. 2x clip at 0.5x transport: effective rate is 1.0, so 15 kHz must pass unattenuated
+        // (both integer-aligned bypass and fractional offset sinc at effectiveRate=1.0).
+        for (const double offsetFrames : {4800.0, 4800.5}) {
+            Timeline tl;
+            tl.tracks = {track("a", TrackType::Audio)};
+            Clip c = clip("c", "a", MediaType::Audio, 0.0, 2000.0);
+            c.inPointMs = offsetFrames * 1000.0 / kRate;
+            c.speedMultiplier = 2.0;
+            tl.clips = {c};
+            const MixPlan plan = buildMixPlan(tl);
+            VoicePcm vp{};
+            vp.linear = tone15k.data();
+            vp.linearCount = kSrcFrames;
+            std::vector<float> out(std::size_t{kOutFrames} * 2, 0.0f);
+            MixStats stats;
+            const double stepHalf = (1000.0 / kRate) * 0.5;
+            for (int off = 0; off < kOutFrames; off += 128) {
+                mixBlock(plan, &vp, kRate, off * stepHalf, stepHalf, 128,
+                         out.data() + static_cast<std::size_t>(off) * 2, stats);
+            }
+            double sq = 0.0;
+            for (int i = kTrim; i < kOutFrames - kTrim; ++i) {
+                const double x = out[std::size_t{2} * i];
+                sq += x * x;
+            }
+            const double passDb = 20.0 * std::log10(std::max(std::sqrt(sq / (kOutFrames - 2 * kTrim)) / refRms, 1e-12));
+            QVERIFY2(passDb > -0.1,
+                     qPrintable(QStringLiteral("C1 2x clip @ 0.5x transport (off=%1) 15kHz level=%2 dB (expected > -0.1 dB)")
+                                    .arg(offsetFrames).arg(passDb)));
+            if (offsetFrames == 4800.0) {
+                QCOMPARE(out[std::size_t{2} * 100], tone15k[std::size_t{2} * (4800 + 100)]);
+            }
+        }
+
+        // 3. Live ring transport-rate jump (1x -> 2x -> 4x) without seek: zero underruns,
+        // matches offline linear output, and suppresses 15 kHz alias after jumping to 2x/4x.
+        {
+            Timeline tl;
+            tl.tracks = {track("a", TrackType::Audio)};
+            Clip c = clip("c", "a", MediaType::Audio, 0.0, 2000.0);
+            c.inPointMs = 200.0 * 1000.0 / kRate;
+            c.speedMultiplier = 1.0;
+            tl.clips = {c};
+            const MixPlan planRing = buildMixPlan(tl);
+            const MixPlan planLin = buildMixPlan(tl);
+            PcmRing ring(kSrcFrames, 0);
+            QCOMPARE(ring.write(tone15k.data(), kSrcFrames), std::int64_t{kSrcFrames});
+            ring.markEnd(kSrcFrames);
+            VoicePcm ringPcm{.ring = &ring, .live = true};
+            VoicePcm linPcm{.linear = tone15k.data(), .linearCount = kSrcFrames};
+
+            constexpr int kBlock = 128;
+            const std::array<double, 12> blockRates{1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 4.0, 4.0, 4.0, 4.0};
+            std::vector<float> outRing(blockRates.size() * kBlock * 2, 0.0f);
+            std::vector<float> outLin(blockRates.size() * kBlock * 2, 0.0f);
+            MixStats stRing, stLin;
+            double tMs = 0.0;
+            for (std::size_t b = 0; b < blockRates.size(); ++b) {
+                const double step = (1000.0 / kRate) * blockRates[b];
+                mixBlock(planRing, &ringPcm, kRate, tMs, step, kBlock, outRing.data() + b * kBlock * 2, stRing);
+                mixBlock(planLin, &linPcm, kRate, tMs, step, kBlock, outLin.data() + b * kBlock * 2, stLin);
+                tMs += kBlock * step;
+            }
+            QCOMPARE(stRing.underruns, std::int64_t{0});
+            float maxDiff = 0.0f;
+            for (std::size_t i = 0; i < outRing.size(); ++i) {
+                maxDiff = std::max(maxDiff, std::abs(outRing[i] - outLin[i]));
+            }
+            QVERIFY2(maxDiff < 1e-6f, qPrintable(QStringLiteral("C1 live rate-jump ring vs linear maxDiff=%1").arg(maxDiff)));
+        }
+
+        // 4. Reverse 2x transport (msPerFrame < 0): effectiveRate magnitude is 2.0, so 15 kHz
+        // is attenuated > 75 dB and ring history is not released upward during reverse reads.
+        {
+            Timeline tl;
+            tl.tracks = {track("a", TrackType::Audio)};
+            Clip c = clip("c", "a", MediaType::Audio, 0.0, 2000.0);
+            c.inPointMs = 100.0;
+            c.speedMultiplier = 1.0;
+            tl.clips = {c};
+            const MixPlan plan = buildMixPlan(tl);
+            PcmRing ring(kSrcFrames, 0);
+            QCOMPARE(ring.write(tone15k.data(), kSrcFrames), std::int64_t{kSrcFrames});
+            ring.markEnd(kSrcFrames);
+            VoicePcm rp{.ring = &ring, .live = true};
+            std::vector<float> out(std::size_t{kOutFrames} * 2, 0.0f);
+            MixStats stats;
+            const double stepRev2x = -(1000.0 / kRate) * 2.0;
+            double tMs = 1500.0;
+            for (int off = 0; off < kOutFrames; off += 128) {
+                mixBlock(plan, &rp, kRate, tMs, stepRev2x, 128,
+                         out.data() + static_cast<std::size_t>(off) * 2, stats);
+                tMs += 128 * stepRev2x;
+            }
+            QCOMPARE(stats.underruns, std::int64_t{0});
+            QCOMPARE(ring.readFloor(), std::int64_t{0});
+            double sq = 0.0;
+            for (int i = kTrim; i < kOutFrames - kTrim; ++i) {
+                const double x = out[std::size_t{2} * i];
+                sq += x * x;
+            }
+            const double aliasDb = 20.0 * std::log10(std::max(std::sqrt(sq / (kOutFrames - 2 * kTrim)) / refRms, 1e-12));
+            QVERIFY2(aliasDb < -75.0,
+                     qPrintable(QStringLiteral("C1 1x clip @ -2x reverse transport 15kHz alias=%1 dB (expected < -75 dB)").arg(aliasDb)));
+        }
+    }
+
+    // DSP2 fix2 C2: incomplete producer lookahead/history counts as an underrun instead of edge-clamping,
+    // while physical source boundaries match offline rendering bit-for-bit on a progressively filled ring.
+    void dsp2_fix2_c2_incompleteSincLookaheadAndProgressiveRing() {
+        // 1. Exact review scenario: s=100.5, readableEnd=102 (EOF not reached), frame 101=0.5, frame 102=1.0.
+        // Missing right sinc wing must report an underrun and emit silence rather than clamping frame 101.
+        {
+            std::vector<float> src(256 * 2, 0.0f);
+            src[std::size_t{2} * 101] = 0.5f;
+            src[std::size_t{2} * 101 + 1] = 0.5f;
+            src[std::size_t{2} * 102] = 1.0f;
+            src[std::size_t{2} * 102 + 1] = 1.0f;
+
+            Timeline tl;
+            tl.tracks = {track("a", TrackType::Audio)};
+            Clip c = clip("c", "a", MediaType::Audio, 0.0, 100.0);
+            c.inPointMs = 100.5 * 1000.0 / kRate;
+            tl.clips = {c};
+            const MixPlan plan = buildMixPlan(tl);
+
+            PcmRing ring(512, 0);
+            QCOMPARE(ring.write(src.data(), 102), std::int64_t{102});
+            VoicePcm rp{.ring = &ring, .live = true};
+            std::array<float, 2> out{9.0f, 9.0f};
+            MixStats stIncomplete;
+            mixBlock(plan, &rp, kRate, 0.0, 1000.0 / kRate, 1, out.data(), stIncomplete);
+            QCOMPARE(stIncomplete.underruns, std::int64_t{1});
+            QCOMPARE(out[0], 0.0f);
+            QCOMPARE(out[1], 0.0f);
+
+            // Once physical EOF is marked at 102, the same read has full in-range support (no underrun)
+            // and matches offline linear rendering identically.
+            ring.markEnd(102);
+            MixStats stEof;
+            mixBlock(plan, &rp, kRate, 0.0, 1000.0 / kRate, 1, out.data(), stEof);
+            QCOMPARE(stEof.underruns, std::int64_t{0});
+
+            VoicePcm lp{.linear = src.data(), .linearCount = 102};
+            std::array<float, 2> outLin{0.0f, 0.0f};
+            MixStats stLin;
+            mixBlock(plan, &lp, kRate, 0.0, 1000.0 / kRate, 1, outLin.data(), stLin);
+            QVERIFY2(std::abs(out[0] - outLin[0]) < 1e-6f,
+                     qPrintable(QStringLiteral("C2 physical EOF ring=%1 vs linear=%2").arg(out[0]).arg(outLin[0])));
+
+            // Missing left wing (readFloor > needFirst >= 0) also counts as an underrun.
+            PcmRing ringTrimmed(512, 0);
+            QCOMPARE(ringTrimmed.write(src.data(), 256), std::int64_t{256});
+            ringTrimmed.markEnd(256);
+            ringTrimmed.release(90);
+            VoicePcm rpTrimmed{.ring = &ringTrimmed, .live = false};
+            MixStats stLeft;
+            mixBlock(plan, &rpTrimmed, kRate, 0.0, 1000.0 / kRate, 1, out.data(), stLeft);
+            QCOMPARE(stLeft.underruns, std::int64_t{1});
+            QCOMPARE(out[0], 0.0f);
+        }
+
+        // 2. Progressively filled small wrapping ring vs offline linear across start, interior, and physical EOF.
+        constexpr int kSrcFrames = 4096;
+        std::vector<float> src(std::size_t{kSrcFrames} * 2, 0.0f);
+        for (int i = 0; i < kSrcFrames; ++i) {
+            const float v = static_cast<float>(
+                0.4 * std::sin(2.0 * std::numbers::pi * 900.0 * i / kRate) +
+                0.2 * std::sin(2.0 * std::numbers::pi * 3100.0 * i / kRate));
+            src[std::size_t{2} * i] = v;
+            src[std::size_t{2} * i + 1] = -v;
+        }
+        src[std::size_t{2} * 102] = 0.95f;
+        src[std::size_t{2} * 4090] = -0.95f;
+
+        struct Case { double inFrame; double speedMul; int outFrames; };
+        for (const Case tc : std::array<Case, 2>{{{0.5, 1.0, 4224}, {0.0, 1.37, 3200}}}) {
+            Timeline tl;
+            tl.tracks = {track("a", TrackType::Audio)};
+            Clip c = clip("c", "a", MediaType::Audio, 0.0, 200.0);
+            c.inPointMs = tc.inFrame * 1000.0 / kRate;
+            c.speedMultiplier = tc.speedMul;
+            tl.clips = {c};
+            const MixPlan planLin = buildMixPlan(tl);
+            const MixPlan planRing = buildMixPlan(tl);
+
+            VoicePcm lp{.linear = src.data(), .linearCount = kSrcFrames};
+            std::vector<float> outLin(static_cast<std::size_t>(tc.outFrames) * 2, 0.0f);
+            MixStats stLin;
+            constexpr int kBlock = 128;
+            for (int off = 0; off < tc.outFrames; off += kBlock) {
+                mixBlock(planLin, &lp, kRate, frameMs(off), 1000.0 / kRate, kBlock,
+                         outLin.data() + static_cast<std::size_t>(off) * 2, stLin);
+            }
+
+            // Ring capacity 1024 < 4096 forces multiple wrap-arounds as producer fills progressively.
+            PcmRing ring(1024, 0);
+            std::int64_t produced = 0;
+            const std::int64_t lookahead = static_cast<std::int64_t>(sincRadiusForRate(tc.speedMul)) + 4;
+            VoicePcm rp{.ring = &ring, .live = true};
+            std::vector<float> outRing(static_cast<std::size_t>(tc.outFrames) * 2, 0.0f);
+            MixStats stRing;
+            for (int off = 0; off < tc.outFrames; off += kBlock) {
+                const auto maxNeeded = static_cast<std::int64_t>(
+                    std::ceil(tc.inFrame + (off + kBlock) * tc.speedMul)) + lookahead;
+                const std::int64_t target = std::min<std::int64_t>(kSrcFrames, maxNeeded);
+                while (produced < target) {
+                    const std::int64_t chunk = std::min<std::int64_t>(target - produced, ring.freeFrames());
+                    QVERIFY2(chunk > 0, "Progressive ring deadlocked (no free frames for producer)");
+                    produced += ring.write(src.data() + static_cast<std::size_t>(produced) * 2, chunk);
+                }
+                if (produced == kSrcFrames && ring.endFrame() != kSrcFrames) {
+                    ring.markEnd(kSrcFrames);
+                }
+                mixBlock(planRing, &rp, kRate, frameMs(off), 1000.0 / kRate, kBlock,
+                         outRing.data() + static_cast<std::size_t>(off) * 2, stRing);
+            }
+            QCOMPARE(stRing.underruns, std::int64_t{0});
+            float maxDiff = 0.0f;
+            for (std::size_t i = 0; i < outLin.size(); ++i) {
+                maxDiff = std::max(maxDiff, std::abs(outRing[i] - outLin[i]));
+            }
+            QVERIFY2(maxDiff < 1e-6f,
+                     qPrintable(QStringLiteral("C2 progressive ring vs offline speed=%1 maxDiff=%2").arg(tc.speedMul).arg(maxDiff)));
+        }
     }
 };
 

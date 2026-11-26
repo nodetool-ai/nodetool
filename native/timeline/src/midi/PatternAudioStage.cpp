@@ -1,5 +1,6 @@
 #include "midi/PatternAudioStage.h"
 
+#include "audio/ParameterSmoother.h"
 #include "audio/automation/AutomationCurves.h"
 #include "midi/PatternExpand.h"
 #include "audio/vst/VstAudioStages.h"
@@ -92,13 +93,24 @@ public:
     }
     void prepare(double rate) override {
         if (std::isfinite(rate) && rate > 0) { rate_ = rate; }
+        cutoffSmooth_.prepare(rate_, audio::ParameterSmoother::kDefaultTimeMs, 0.0);
+        cutoffSmooth_.snap(std::log2(std::max(1.0, cutoff_)));
+        expectedMs_ = std::numeric_limits<double>::quiet_NaN();
+        prepared_ = true;
         configureFilter();
     }
     bool setParameter(std::string_view name, double value) noexcept override {
         if (!std::isfinite(value)) { return false; }
         if (name == "cutoffHz" || name == "filter.cutoff") {
             const double cutoff = std::clamp(value, 20.0, std::max(20.0, rate_ / 2 - 1));
-            if (cutoff != cutoff_) { cutoff_ = cutoff; configureFilter(); }
+            if (!prepared_) {
+                if (cutoff != cutoff_) { cutoff_ = cutoff; configureFilter(); }
+                return true;
+            }
+            if (cutoffSmooth_.setTarget(std::log2(cutoff))) {
+                cutoff_ = std::exp2(cutoffSmooth_.current());
+                configureFilter();
+            }
             return true;
         }
         return false;
@@ -109,6 +121,11 @@ public:
         for (std::size_t i = 0; i < freeSlots_.size(); ++i) { freeSlots_[i] = i; }
         freeCount_ = freeSlots_.size(); next_ = 0;
         expectedMs_ = std::numeric_limits<double>::quiet_NaN();
+        if (prepared_) {
+            cutoffSmooth_.snapToTarget();
+            cutoff_ = std::exp2(cutoffSmooth_.current());
+            configureFilter();
+        }
     }
     bool hasPendingOutput(int) const noexcept override {
         return next_ < notes_.size() || std::any_of(voices_.begin(), voices_.end(), [](const Voice& voice) { return voice.note != nullptr; });
@@ -124,6 +141,10 @@ public:
             }
         }
         for (std::size_t sample = 0; sample + 1 < stereo.size(); sample += 2) {
+            if (cutoffSmooth_.smoothing()) {
+                cutoff_ = std::exp2(cutoffSmooth_.next());
+                configureFilter();
+            }
             const std::size_t frame = sample / 2;
             const double time = context.timelineMs + static_cast<double>(frame) * context.msPerFrame;
             for (std::size_t i = 0; i < voices_.size(); ++i) {
@@ -240,6 +261,8 @@ private:
     double cutoff_ = 4000, resonance_ = 0.7, gain_ = 0.5, rate_ = 48000;
     double b0_ = 1, b1_ = 0, a1_ = 0, a2_ = 0;
     double expectedMs_ = std::numeric_limits<double>::quiet_NaN();
+    audio::ParameterSmoother cutoffSmooth_;
+    bool prepared_ = false;
 };
 
 void runSubtractiveInstrumentsStage(const Timeline& timeline, audio::MixPlan& plan) {

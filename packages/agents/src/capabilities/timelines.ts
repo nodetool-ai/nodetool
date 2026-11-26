@@ -1738,6 +1738,10 @@ const RENDER_OUTPUT_NAME = "video";
 const RENDER_FRAMES_OUTPUT_NODE_ID = "frames_output";
 /** The handle a png_sequence's zip comes back under. */
 const RENDER_FRAMES_OUTPUT_NAME = "frames";
+/** The Output node a wav audio export goes through. */
+const RENDER_AUDIO_OUTPUT_NODE_ID = "audio_output";
+/** The handle a wav audio export comes back under. */
+const RENDER_AUDIO_OUTPUT_NAME = "audio";
 
 /**
  * Bits per second from a `bitrate` argument, or undefined when there is none
@@ -1776,7 +1780,9 @@ const RENDER_NODE_PROPS: readonly string[] = [
   "motion_blur_samples",
   "shutter_angle",
   "preview_scale",
-  "include_audio"
+  "include_audio",
+  "audio_sample_rate",
+  "audio_bit_depth"
 ];
 
 /**
@@ -1829,7 +1835,11 @@ export function buildRenderTimelineGraph(
   // A png_sequence leaves the zip on the node's `frames` handle and an empty
   // ref on `output`, so a graph wired to `output` alone comes back with
   // nothing to open.
-  if (params["format"] === "png_sequence") {
+  const normalizedFormat =
+    typeof params["format"] === "string"
+      ? params["format"].trim().toLowerCase()
+      : "";
+  if (normalizedFormat === "png_sequence") {
     nodes.push({
       id: RENDER_FRAMES_OUTPUT_NODE_ID,
       type: "nodetool.output.Output",
@@ -1842,15 +1852,28 @@ export function buildRenderTimelineGraph(
       target: RENDER_FRAMES_OUTPUT_NODE_ID,
       targetHandle: "value"
     });
+  } else if (normalizedFormat === "wav") {
+    nodes.push({
+      id: RENDER_AUDIO_OUTPUT_NODE_ID,
+      type: "nodetool.output.Output",
+      data: { name: RENDER_AUDIO_OUTPUT_NAME }
+    });
+    edges.push({
+      id: "render-to-audio-output",
+      source: RENDER_NODE_ID,
+      sourceHandle: "audio",
+      target: RENDER_AUDIO_OUTPUT_NODE_ID,
+      targetHandle: "value"
+    });
   }
   return { nodes, edges };
 }
 
 /**
  * The ref a finished render left on the job row, wherever it sits — a video,
- * or the zipped document a png_sequence renders to. A png_sequence leaves an
- * empty ref on the video handle beside the zip, so a ref carrying an asset id
- * wins over one that carries none.
+ * the zipped document a png_sequence renders to, or the audio file a wav
+ * export renders to. Non-video formats leave an empty ref on the video handle,
+ * so a ref carrying an asset id wins over one that carries none.
  */
 export function findRenderedVideo(
   outputs: unknown
@@ -1862,7 +1885,11 @@ export function findRenderedVideo(
       return;
     }
     if (!isRecord(value)) return;
-    if (value["type"] === "video" || value["type"] === "document") {
+    if (
+      value["type"] === "video" ||
+      value["type"] === "document" ||
+      value["type"] === "audio"
+    ) {
       found.push(value);
       return;
     }
