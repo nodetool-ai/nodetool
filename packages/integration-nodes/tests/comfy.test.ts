@@ -24,9 +24,13 @@ import type {
 const comfyExecutor = vi.hoisted(() => ({
   cancelCalls: 0,
   runCalls: 0,
+  emitInitialOutput: false,
+  loadMediaError: null as Error | null,
   reset(): void {
     comfyExecutor.cancelCalls = 0;
     comfyExecutor.runCalls = 0;
+    comfyExecutor.emitInitialOutput = false;
+    comfyExecutor.loadMediaError = null;
   }
 }));
 
@@ -34,8 +38,29 @@ vi.mock("@nodetool-ai/runtime", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
-    executeComfy: () => {
+    loadMediaRefBytes: async (...args: unknown[]) => {
+      if (comfyExecutor.loadMediaError) {
+        throw comfyExecutor.loadMediaError;
+      }
+      return (actual.loadMediaRefBytes as (...a: unknown[]) => Promise<unknown>)(
+        ...args
+      );
+    },
+    executeComfy: (
+      _prompt: unknown,
+      _endpoint: unknown,
+      _onProgress: unknown,
+      _timeoutMs: unknown,
+      onNodeOutput?: (nodeId: string, outs: Record<string, unknown>) => void
+    ) => {
       comfyExecutor.runCalls += 1;
+      if (comfyExecutor.emitInitialOutput) {
+        onNodeOutput?.("9", {
+          images: [
+            { filename: "out.png", data: "iVBORw0KGgo=", mimeType: "image/png" }
+          ]
+        });
+      }
       return {
         result: new Promise(() => {
           // Never settles: the only way out of this run is cancellation.
@@ -221,6 +246,20 @@ describe("ComfyWorkflowNode", () => {
     expect(comfyExecutor.cancelCalls).toBe(1);
     await expect(pending).rejects.toThrow(/canceled/i);
   });
+
+  it("cancels the ComfyUI execution when the consumer exits the generator early", async () => {
+    comfyExecutor.reset();
+    comfyExecutor.emitInitialOutput = true;
+    const node = makeNode();
+    const gen = node.genProcess();
+    const first = await gen.next();
+    expect(first.done).toBe(false);
+    expect(comfyExecutor.runCalls).toBe(1);
+
+    // Consumer stops iterating early (e.g. break from for-await).
+    await gen.return(undefined);
+    expect(comfyExecutor.cancelCalls).toBe(1);
+  });
 });
 
 /**
@@ -373,6 +412,59 @@ describe("ComfyWorkerWorkflowNode", () => {
       job_id: "job-7",
       status: "succeeded"
     });
+  });
+
+  it("cancels bridge execution and closes the bridge when context.signal aborts", async () => {
+    const cancelCalls: string[] = [];
+    const bridge = makeFakeBridge({
+      comfyExecute: (_prompt, _options, _onEvent, requestId) =>
+        new Promise(() => {
+          // Never resolves unless canceled.
+          void requestId;
+        }),
+      cancelComfyExecute: (requestId: string) => {
+        cancelCalls.push(requestId);
+      }
+    });
+    const controller = new AbortController();
+    const context = {
+      signal: controller.signal,
+      postMessage: () => {}
+    } as unknown as ProcessingContext;
+
+    const node = new TestWorkerNode(bridge);
+    (node as unknown as { assign: (p: Record<string, unknown>) => void }).assign({
+      worker_url: "ws://host:7777/ws",
+      workflow: JSON.stringify(samplePrompt),
+      timeout: 600
+    });
+
+    const pending = node.process(context);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    controller.abort();
+
+    await expect(pending).rejects.toThrow(/canceled/i);
+    expect(cancelCalls).toHaveLength(1);
+    expect(bridge.closed).toBe(true);
+  });
+
+  it("closes the bridge when loading a dynamic media input fails before execution", async () => {
+    comfyExecutor.reset();
+    comfyExecutor.loadMediaError = new Error("asset storage unavailable");
+    const bridge = makeFakeBridge();
+    const node = new TestWorkerNode(bridge);
+    (node as unknown as { assign: (p: Record<string, unknown>) => void }).assign({
+      worker_url: "ws://host:7777/ws",
+      workflow: JSON.stringify(samplePrompt)
+    });
+    (node as unknown as { setDynamic: (k: string, v: unknown) => void }).setDynamic(
+      "3:image",
+      { type: "image", asset_id: "a".repeat(32) }
+    );
+
+    await expect(node.process()).rejects.toThrow(/asset storage unavailable/i);
+    expect(bridge.closed).toBe(true);
+    comfyExecutor.reset();
   });
 });
 

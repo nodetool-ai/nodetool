@@ -157,6 +157,7 @@ export function bridgeTransport(
   timeoutSeconds: number
 ): ComfyTransport {
   const uploads = new WeakMap<object, Uint8Array>();
+  let submitted = false;
   return {
     async submit(graph) {
       const blobs: Record<string, Uint8Array> = {};
@@ -171,12 +172,16 @@ export function bridgeTransport(
           }
         }
       }
+      submitted = true;
       return new ComfyBridgeJob(bridge, graph, blobs, timeoutSeconds);
     },
     assetFromBytes(bytes) {
       const handle = {};
       uploads.set(handle, bytes);
       return handle;
+    },
+    close() {
+      if (!submitted) bridge.close();
     }
   };
 }

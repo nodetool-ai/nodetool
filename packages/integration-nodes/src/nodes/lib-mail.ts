@@ -1025,6 +1025,7 @@ export class EmailTriggerLibNode extends BaseNode {
       return inMailbox(client, folder, async () => {
         const uids = (await client.search(this._filters(), { uid: true })) || [];
         const newest = [...uids].sort((a, b) => b - a).slice(0, this._limit());
+        if (newest.length === 0) return [];
         const fetched = new Map<number, Record<string, unknown>>();
         for await (const msg of client.fetch(
           newest.join(","),

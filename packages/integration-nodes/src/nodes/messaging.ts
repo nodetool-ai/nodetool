@@ -71,7 +71,8 @@ export class DiscordBotTrigger extends BaseNode {
 
     // Validate the bot token by fetching the bot user info
     const resp = await fetch("https://discord.com/api/v10/users/@me", {
-      headers: { Authorization: `Bot ${token}` }
+      headers: { Authorization: `Bot ${token}` },
+      redirect: "error"
     });
 
     if (!resp.ok) {
@@ -185,9 +186,16 @@ export class TelegramBotTrigger extends BaseNode {
     if (!token) {
       throw new Error("Telegram bot token is required");
     }
+    if (!/^[A-Za-z0-9:_-]+$/.test(token)) {
+      throw new Error(
+        "Invalid Telegram bot token: token must contain only letters, digits, ':', '_' or '-'."
+      );
+    }
 
     // Validate the bot token by calling getMe
-    const resp = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+    const resp = await fetch(`https://api.telegram.org/bot${token}/getMe`, {
+      redirect: "error"
+    });
 
     if (!resp.ok) {
       const body = await resp.text();

@@ -125,6 +125,16 @@ export interface ResolvedKieDynamicSchema {
 }
 
 const HIDDEN_PARAMS = new Set(["upload_method", "callBackUrl", "callback_url"]);
+const DISALLOWED_PARAM_KEYS = new Set([
+  "__proto__",
+  "constructor",
+  "prototype",
+  "model_info"
+]);
+
+function isSafeParamKey(key: string): boolean {
+  return Boolean(key) && !key.startsWith("_") && !DISALLOWED_PARAM_KEYS.has(key);
+}
 
 function asRecord(value: unknown): JsonRecord | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -778,6 +788,9 @@ export function resolveKieDynamicSchema(
 
   for (const param of bundle.params) {
     const fieldName = fieldNameForParam(param);
+    if (!isSafeParamKey(param.name) || !isSafeParamKey(fieldName)) {
+      continue;
+    }
     dynamic_properties[fieldName] = defaultDynamicValue(param);
     const slot: ResolvedKieDynamicSchema["dynamic_inputs"][string] = {
       ...mapParamType(param),
@@ -856,12 +869,24 @@ export class KieAINode extends BaseNode {
     // among them — routing through it drops every such parameter.
     const self = this as Record<string, unknown>;
     for (const p of bundle.params) {
+      if (!isSafeParamKey(p.name)) continue;
       const fieldName = fieldNameForParam(p);
-      const val =
-        this.getDynamic(fieldName) ??
-        self[fieldName] ??
-        this.getDynamic(p.name) ??
-        self[p.name];
+      let val: unknown;
+      for (const key of [fieldName, p.name]) {
+        if (!isSafeParamKey(key)) continue;
+        const dyn = this.getDynamic(key);
+        if (dyn !== undefined) {
+          val = dyn;
+          break;
+        }
+        if (Object.prototype.hasOwnProperty.call(self, key)) {
+          const own = self[key];
+          if (typeof own !== "function") {
+            val = own;
+            break;
+          }
+        }
+      }
       if (val === undefined || val === null) {
         if (p.required) throw new Error(`Missing required input: ${fieldName}`);
         continue;

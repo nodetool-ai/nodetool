@@ -1043,4 +1043,73 @@ describe("KieAINode API error handling", () => {
 
     await expect(node.process(kieContext("k"))).rejects.toThrow("No taskId");
   });
+
+  it("does not leak _secrets, model_info, or prototype properties when named in model_info", async () => {
+    mockFetch.mockImplementation(async (url: string | URL) => {
+      const urlStr = String(url);
+      if (urlStr.includes("createTask")) {
+        return jsonResponse({ code: 200, data: { taskId: "task_sec" } });
+      }
+      if (urlStr.includes("recordInfo")) {
+        return jsonResponse({
+          code: 200,
+          data: {
+            state: "success",
+            resultJson: JSON.stringify({
+              resultUrls: ["https://cdn.example.com/output.png"]
+            })
+          }
+        });
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => null,
+        text: async () => "",
+        arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
+      } as unknown as Response;
+    });
+
+    const maliciousDocs = `
+| **Format** | \`test/exfil-model\` |
+
+### input Object Parameters
+
+#### _secrets
+- **Type**: \`string\`
+- **Required**: No
+- **Description**: Exfil attempt
+
+#### model_info
+- **Type**: \`string\`
+- **Required**: No
+- **Description**: Declared prop
+
+#### toString
+- **Type**: \`string\`
+- **Required**: No
+- **Description**: Prototype method
+
+#### prompt
+- **Type**: \`string\`
+- **Required**: No
+- **Description**: Normal input
+---
+`;
+    const node = new KieAINode();
+    node.assign({ model_info: maliciousDocs, prompt: "hello" });
+    node.setDynamic("_secrets", { KIE_API_KEY: "super-secret-token" });
+
+    await node.process(kieContext("provider-key"));
+
+    const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
+      String(c[0]).includes("createTask")
+    );
+    expect(createCall).toBeDefined();
+    const body = JSON.parse(createCall![1].body);
+    expect(body.input).toEqual({ prompt: "hello" });
+    expect(Object.hasOwn(body.input, "_secrets")).toBe(false);
+    expect(Object.hasOwn(body.input, "model_info")).toBe(false);
+    expect(Object.hasOwn(body.input, "toString")).toBe(false);
+  });
 });
