@@ -325,8 +325,12 @@ QList<Command> buildAllowed() {
     edit("music.selectTake", "Make one of a music clip's takes the one it plays",
          {clip, P{"take_id", ParamKind::Text, true, "The take's id from the clip's versions.", {}, "takeId"}});
     // Effects by name, with their default values.
-    const P effect{"effect", ParamKind::Text, true, "The effect's name (gain, filter, eq3, compressor, or fable:eq, fable:comp, fable:ott, fable:limiter, fable:drive, fable:chorus, fable:echo, fable:reverb)."};
+    const P effect{"effect", ParamKind::Text, true, "The effect's name (gain, filter, eq3, compressor, or fable:eq, fable:comp, fable:ott, fable:limiter, fable:drive, fable:chorus, fable:echo, fable:reverb, fable:lab)."};
     const P effectId{"effect_id", ParamKind::EffectId, true, "The effect's id from the document.", {}, "effectId"};
+    edit("effect.setParams", "Set Fable effect parameters", {
+        P{"trackId", ParamKind::TrackId, true, "The track id."},
+        P{"effectId", ParamKind::EffectId, true, "The Fable effect id."},
+        P{"params", ParamKind::Object, true, "Partial fx.<unit>.<param> numeric values. Numeric ranges clamp. Enum indices and bool values (0 or 1) must be valid."}});
     edit("addTrackEffect", "Add a track effect", {track, effect});
     edit("removeTrackEffect", "Remove a track effect", {track, effectId});
     edit("addMasterEffect", "Add a master effect", {effect});

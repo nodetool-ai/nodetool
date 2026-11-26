@@ -141,6 +141,8 @@ for line in sys.stdin:
         QVERIFY2(audit.stale.isEmpty(), qPrintable("Not registered: " + audit.stale.join(", ")));
         QVERIFY2(audit.conflicting.isEmpty(), qPrintable("Allowed and denied: " + audit.conflicting.join(", ")));
         QVERIFY2(audit.unrunnable.isEmpty(), qPrintable("Allowed with no runner: " + audit.unrunnable.join(", ")));
+        QVERIFY(nt::aiassist::registeredCommandIds().contains("effect.setParams"));
+        QVERIFY(!commandEntry("effect.setParams").isEmpty());
         // The audit looked at something: the registries really hold these.
         QVERIFY(nt::aiassist::registeredCommandIds().size() > 300);
         QVERIFY(audit.allowed > 100);
@@ -458,6 +460,57 @@ for line in sys.stdin:
         const auto masterId = added.value("state").toMap().value("master").toMap().value("effects").toList().value(0).toMap().value("id").toString();
         QVERIFY(!masterId.isEmpty());
         QVERIFY(run("removeMasterEffect", {{"effect_id", masterId.left(12)}}).value("ok").toBool());
+    }
+    void fableParams() {
+        const QList<QStringList> cases{
+            {"eq", "fx.eq.low"}, {"comp", "fx.comp.thr"}, {"ott", "fx.ott.depth"},
+            {"limiter", "fx.limit.gain"}, {"drive", "fx.drive.amt"}, {"chorus", "fx.chorus.rate"},
+            {"echo", "fx.delay.fb"}, {"reverb", "fx.reverb.size"}, {"lab", "fx.crush.bits"}};
+        const QList<double> maxima{15, 0, 1, 24, 1, 8, 0.92, 1, 16};
+        const QList<double> minima{-15, -40, 0, 0, 0, 0.05, 0, 0, 1};
+        int caseIndex = 0;
+        for (const auto& row : cases) {
+            QVERIFY(run("addTrackEffect", {{"track_id", TRACK_A}, {"effect", "fable:" + row[0]}}).value("ok").toBool());
+            const auto effect = track(TRACK_A).value("effects").toArray().last().toObject();
+            const auto id = effect.value("id").toString();
+            const auto before = doc();
+            const auto index = model.undoStack()->index();
+            auto result = run("effect.setParams", {{"trackId", TRACK_A.left(12)}, {"effectId", id.left(12)},
+                {"params", QVariantMap{{row[1], 1e100}}}});
+            QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+            QCOMPARE(model.undoStack()->index(), index + 1);
+            const auto changed = track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject();
+            QCOMPARE(changed.value(row[1]).toDouble(), maxima[caseIndex]);
+            QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+                {"params", QVariantMap{{row[1], -1e100}}}}).value("ok").toBool());
+            QCOMPARE(track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject().value(row[1]).toDouble(), minima[caseIndex]);
+            model.undoStack()->undo();
+            ++caseIndex;
+            model.undoStack()->undo();
+            QCOMPARE(doc(), before);
+            for (const auto& bad : QList<QVariantMap>{{{"unknown", 1}}, {{row[1], "bad"}}, {{row[1], QVariant()}}, {}}) {
+                QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id}, {"params", bad}}).value("ok").toBool());
+                QCOMPARE(doc(), before);
+            }
+        }
+        const auto id = track(TRACK_A).value("effects").toArray().last().toObject().value("id").toString();
+        QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+            {"params", QVariantMap{{"fx.crush.bits", 8}, {"fx.reso.note", 49.7}, {"fx.reso.chord", 5}, {"fx.reso.on", 1}}}}).value("ok").toBool());
+        const auto params = track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject();
+        QCOMPARE(params.value("fx.reso.note").toDouble(), 50.0);
+        QCOMPARE(params.value("fx.reso.chord").toDouble(), 5.0);
+        QCOMPARE(params.value("fx.reso.on").toDouble(), 1.0);
+        QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+            {"params", QVariantMap{{"fx.crush.bits", 10}}}}).value("ok").toBool());
+        QCOMPARE(track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject().value("fx.reso.chord").toDouble(), 5.0);
+        const auto before = doc();
+        for (const auto value : {-1.0, 6.0, 1.5}) {
+            QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+                {"params", QVariantMap{{"fx.reso.chord", value}, {"fx.crush.bits", 8}}}}).value("ok").toBool());
+            QCOMPARE(doc(), before);
+        }
+        QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", "missing"},
+            {"params", QVariantMap{{"fx.crush.bits", 8}}}}).value("ok").toBool());
     }
     // Unbounded numbers can allocate without limit in the audio plan, so these stay out.
     void effectValuesAreNotExposed() {
