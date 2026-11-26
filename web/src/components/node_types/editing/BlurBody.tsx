@@ -22,6 +22,7 @@ import { SPACING,
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImagePreview from "./ImagePreview";
+import { controlGridStyles } from "./bodyControlStyles";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -73,29 +74,7 @@ const styles = (theme: Theme) =>
         objectFit: "contain"
       }
     },
-    ".controls": {
-      flex: "0 0 auto",
-      display: "grid",
-      gridTemplateColumns: "minmax(0, auto) minmax(40px, 1fr) auto",
-      columnGap: theme.spacing(SPACING.xs),
-      rowGap: theme.spacing(SPACING.xs),
-      alignItems: "center",
-      padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)}`
-    },
-    ".ctrl-label": {
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.text.secondary,
-      letterSpacing: "normal",
-      lineHeight: 1
-    },
-    ".ctrl-value": {
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.text.primary,
-      minWidth: 24,
-      textAlign: "right",
-      lineHeight: 1
-    },
+    ...controlGridStyles(theme, "xs", 24),
     ".type-select": {
       gridColumn: "2 / span 2",
       width: "100%"
