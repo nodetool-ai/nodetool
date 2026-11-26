@@ -1994,8 +1994,19 @@ Agents reach the same record through `list_generations`, `get_generation`,
 ### `nodetool secrets`
 
 Manage encrypted secrets. With a token (`--token` or `NODETOOL_API_TOKEN`) the
-commands call the server. Without one they use the local store in
-`NODETOOL_DATA_DIR`, which needs `SECRETS_MASTER_KEY` to write.
+commands call the server. Without one they use the local store, which needs
+`SECRETS_MASTER_KEY` to write. The local store is the database every run reads
+(`nodetool node run`, chat, the desktop app): `DB_PATH`, a SQLite
+`DATABASE_URL`, or `nodetool.sqlite3` in the NodeTool data directory
+(`~/.local/share/nodetool` on macOS and Linux, `%APPDATA%\nodetool` on
+Windows). `nodetool info` prints its path.
+
+Earlier releases kept local secrets in `nodetool.db` under
+`NODETOOL_DATA_DIR` (default `./nodetool-data`), which runs never read. The
+first local secret command copies those secrets into the shared store and
+prints what it copied. It checks `NODETOOL_DATA_DIR`, or `./nodetool-data` and
+`~/nodetool-data` when that is unset. A key the shared store already holds
+keeps its value, and the old database is left in place.
 
 **Subcommands:** `list`, `set` (alias `store`). `get` requires the `cli-workflow` feature.
 
