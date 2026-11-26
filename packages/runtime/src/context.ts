@@ -2287,6 +2287,31 @@ export class ProcessingContext implements RuntimeNodeContext {
     return null;
   }
 
+  private isOwnProjectStorageRoute(uri: string): boolean {
+    const stripped = uri.replace(/^\/?api\/storage\//i, "");
+    if (stripped === uri) {
+      return false;
+    }
+    const clean = stripped.split(/[?#]/, 1)[0] ?? "";
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(clean);
+    } catch {
+      return false;
+    }
+    const projectId = this.projectId?.trim() || "default";
+    const expectedPrefix = `projects/${projectId}/`;
+    if (!decoded.startsWith(expectedPrefix)) {
+      return false;
+    }
+    const rest = decoded.slice(expectedPrefix.length);
+    return (
+      rest.length > 0 &&
+      !rest.includes("\\") &&
+      !rest.split("/").some((segment) => segment === "..")
+    );
+  }
+
   /**
    * Resolve an `asset://<id>[.ext]` reference (or bare id / storage URI) to its
    * raw bytes.
@@ -2461,7 +2486,7 @@ export class ProcessingContext implements RuntimeNodeContext {
       if (asset) {
         assetRowFound = true;
         idCandidates = assetFileNameCandidates(asset.id, asset.content_type);
-      } else if (options?.requireOwnedAsset) {
+      } else if (options?.requireOwnedAsset && !this.isOwnProjectStorageRoute(trimmed)) {
         attempts.push(`asset unavailable or not owned: ${trimmed}`);
         return { bytes: null, attempts };
       }

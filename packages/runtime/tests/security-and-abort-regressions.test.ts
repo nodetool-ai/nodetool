@@ -174,6 +174,30 @@ describe("P0/P1 runtime security and abort regressions", () => {
       }
     });
 
+    it("allows the run's own project storage route (e.g. view_image) but refuses another project's route", async () => {
+      const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+      const storage = new InMemoryStorageAdapter();
+      await storage.store("projects/proj-a/assets/view-1.png", pngBytes, "image/png");
+      await storage.store("projects/proj-b/assets/view-2.png", pngBytes, "image/png");
+      const ctx = new ProcessingContext({
+        userId: "alice",
+        projectId: "proj-a",
+        storage,
+        assetStorage: storage
+      });
+      ctx.setModelInterfaces({ getAssetInfo: async () => null });
+
+      const own = await ctx.resolveAssetBytes("/api/storage/projects/proj-a/assets/view-1.png", {
+        requireOwnedAsset: true
+      });
+      expect(own.bytes).toEqual(pngBytes);
+
+      const foreign = await ctx.resolveAssetBytes("/api/storage/projects/proj-b/assets/view-2.png", {
+        requireOwnedAsset: true
+      });
+      expect(foreign.bytes).toBeNull();
+    });
+
     it("refuses another tenant's asset in assetToSandbox", async () => {
       const { ctx, root } = await createMultiTenantContext();
       try {
