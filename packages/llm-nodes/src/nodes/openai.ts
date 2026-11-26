@@ -109,11 +109,11 @@ export class EmbeddingNode extends BaseNode {
 // 2. WebSearch
 // ---------------------------------------------------------------------------
 /**
- * The model that runs OpenAI's hosted `web_search` tool. A GPT-5 family
- * reasoning model at its default effort: web search needs effort above
- * `minimal`.
+ * The reasoning model that runs OpenAI's hosted `web_search` tool, at its
+ * default effort. It rejects reasoning effort `none`, so the request leaves
+ * effort unset.
  */
-const OPENAI_WEB_SEARCH_MODEL = "gpt-5.6-sol";
+const OPENAI_WEB_SEARCH_MODEL = "gpt-6.2-sol";
 
 /** Output handles WebSearchNode.process() emits. */
 type WebSearchNodeOutputs = {
