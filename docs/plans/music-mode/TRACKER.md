@@ -25,20 +25,20 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 
 | ID | Task | Model | Depends on |
 |---|---|---|---|
-| P1c | Web tracks pass 5: muted Logic-like palette (current colours too saturated), thinner name band, Arp region shows no notes under the chord strip, master pan control (field done) | Opus | SQ2 (one web UI agent at a time) |
-| P2 | Native polish: piano roll, automation, mixer, tracks (offscreen) | Opus | A10, D62-D68 |
-| A17 | Native follow-up after A16 and A8 | Sol | A16 |
-| LAB1 | Port the FableSynth LAB units (`/Users/mg/dev/fablesynth/juce/source/dsp/LabFx.h`, commit d2f68d8) as five devices: Crush, Resonator, Shifter, Spray, Glitch. Migrate old `fable:lab` documents to the enabled units. Compare each unit with a LabFx.h reference render (max error 1e-5 at 44.1/48/96 kHz). Until then LAB has a UI but no DSP. Partial work: [lab1-wip.patch](lab1-wip.patch). Prompt: [lab1-prompt.md](lab1-prompt.md) | Neon | none |
-| DSP1w | Web parity for DSP1: master.limiter field and tool, clip indicator, 16-bit dither in web export (D21) | Neon | DSP1 |
-| DSP3 | Pan law project setting 0/-3/-4.5 dB and stereo balance (F9) | Neon | DSP2 |
-| SQ3c | Step Sequencer: hardware MIDI input for Learn and Step Input (S1), step-record CC values, live pattern recording (SQ39), MIDI Out audition, Step Input cursor stops at the last row | Sol, then Opus | native MIDI input |
-| MOD2 | Modal synth: one shared table worker pool instead of one thread per modal track (WIRE1 F1) | Neon | none |
-| MIX1 | tst_mixerhooks::expandsAndSilencesSegments fails: default master limiter gives 0.7356, test expects 1.0 unity DC | Sol | none |
-| CHK2 | tst_tracksui: saveBannersFollowTheRealController fails; filmstripTexturesSurviveASceneGraphInvalidation needs a window label | Sol | none |
-| SHOT1 | Opus screenshot pass of the DSP2 export dialog (bit depth, sample rate) | Opus | none |
-| UI3 | Wide effect cards (EQ 1040 px) scroll sideways in the default dock: compact layout | Opus | none |
-| CHK | Rerun lost native checks: A2, A2b, A5, A7 | Sol | none |
-| CRV | Lost Codex second reviews: A14, A2b | Sol | none |
+| P1c ([#7937](https://github.com/nodetool-ai/nodetool/issues/7937)) | Web tracks pass 5: muted Logic-like palette (current colours too saturated), thinner name band, Arp region shows no notes under the chord strip, master pan control (field done) | Opus | SQ2 (one web UI agent at a time) |
+| P2 ([#7936](https://github.com/nodetool-ai/nodetool/issues/7936)) | Native polish: piano roll, automation, mixer, tracks (offscreen) | Opus | A10, D62-D68 |
+| A17 ([#7941](https://github.com/nodetool-ai/nodetool/issues/7941)) | Native follow-up after A16 and A8 | Sol | A16 |
+| LAB1 ([#7935](https://github.com/nodetool-ai/nodetool/issues/7935)) | Port the FableSynth LAB units (`/Users/mg/dev/fablesynth/juce/source/dsp/LabFx.h`, commit d2f68d8) as five devices: Crush, Resonator, Shifter, Spray, Glitch. Migrate old `fable:lab` documents to the enabled units. Compare each unit with a LabFx.h reference render (max error 1e-5 at 44.1/48/96 kHz). Until then LAB has a UI but no DSP. Partial work: [lab1-wip.patch](lab1-wip.patch). Prompt: [lab1-prompt.md](lab1-prompt.md) | Neon | none |
+| DSP1w ([#7938](https://github.com/nodetool-ai/nodetool/issues/7938)) | Web parity for DSP1: master.limiter field and tool, clip indicator, 16-bit dither in web export (D21) | Neon | DSP1 |
+| DSP3 ([#7939](https://github.com/nodetool-ai/nodetool/issues/7939)) | Pan law project setting 0/-3/-4.5 dB and stereo balance (F9) | Neon | DSP2 |
+| SQ3c ([#7940](https://github.com/nodetool-ai/nodetool/issues/7940)) | Step Sequencer: hardware MIDI input for Learn and Step Input (S1), step-record CC values, live pattern recording (SQ39), MIDI Out audition, Step Input cursor stops at the last row | Sol, then Opus | native MIDI input |
+| MOD2 ([#7930](https://github.com/nodetool-ai/nodetool/issues/7930)) | Modal synth: one shared table worker pool instead of one thread per modal track (WIRE1 F1) | Neon | none |
+| MIX1 ([#7931](https://github.com/nodetool-ai/nodetool/issues/7931)) | tst_mixerhooks::expandsAndSilencesSegments fails: default master limiter gives 0.7356, test expects 1.0 unity DC | Sol | none |
+| CHK2 ([#7932](https://github.com/nodetool-ai/nodetool/issues/7932)) | tst_tracksui: saveBannersFollowTheRealController fails; filmstripTexturesSurviveASceneGraphInvalidation needs a window label | Sol | none |
+| SHOT1 ([#7934](https://github.com/nodetool-ai/nodetool/issues/7934)) | Opus screenshot pass of the DSP2 export dialog (bit depth, sample rate) | Opus | none |
+| UI3 ([#7933](https://github.com/nodetool-ai/nodetool/issues/7933)) | Wide effect cards (EQ 1040 px) scroll sideways in the default dock: compact layout | Opus | none |
+| CHK ([#7942](https://github.com/nodetool-ai/nodetool/issues/7942)) | Rerun lost native checks: A2, A2b, A5, A7 | Sol | none |
+| CRV ([#7943](https://github.com/nodetool-ai/nodetool/issues/7943)) | Lost Codex second reviews: A14, A2b | Sol | none |
 
 ## Done
 
