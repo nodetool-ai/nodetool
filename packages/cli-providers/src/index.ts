@@ -33,12 +33,13 @@ import { readCachedHfModels } from "@nodetool-ai/huggingface";
 import {
   CUSTOM_PROVIDERS_SETTING_KEY,
   parseCustomProviderCatalog,
+  type ToolCall,
   type UnifiedModel
 } from "@nodetool-ai/protocol";
 import { getSecret, Setting } from "@nodetool-ai/models";
 export type InferenceEvent =
   | { readonly type: "chunk"; readonly content: string }
-  | { readonly type: "tool_call"; readonly id: string; readonly name: string; readonly args: Record<string, unknown> }
+  | { readonly type: "tool_call"; readonly id: string; readonly name: string; readonly args: ToolCall["args"] }
   | { readonly type: "error"; readonly message: string }
   | { readonly type: "done" };
 
@@ -146,7 +147,7 @@ function isAppleSilicon(): boolean {
 }
 
 /** Default model shown when switching to a provider in interactive mode. */
-export const DEFAULT_MODELS: Record<string, string> = {
+export const DEFAULT_MODELS = {
   anthropic: "claude-sonnet-4-6",
   claude_agent_sdk: "sonnet",
   antigravity: "gemini-3.1-pro-high",
@@ -183,7 +184,16 @@ export const DEFAULT_MODELS: Record<string, string> = {
   lmstudio: "qwen/qwen3.5-9b",
   mlx: "mlx-community/Qwen3.5-0.8B-OptiQ-4bit",
   node_llama_cpp: "qwen2.5-3b-instruct-q4_k_m.gguf"
-};
+} as const satisfies Record<KnownProvider, string>;
+
+function isKnownProvider(providerId: string): providerId is KnownProvider {
+  return Object.hasOwn(DEFAULT_MODELS, providerId);
+}
+
+/** The default model for a provider id, or undefined when the provider has none. */
+export function defaultModelFor(providerId: string): string | undefined {
+  return isKnownProvider(providerId) ? DEFAULT_MODELS[providerId] : undefined;
+}
 
 /** Resolve a secret from the encrypted DB (user "1"); env fallback handled by the registry. */
 const resolveForUser1: GetSecret = (key) => getSecret(key, "1");
@@ -209,6 +219,10 @@ async function ensurePythonProvidersRegistered(): Promise<void> {
         // Don't shadow a TS-native provider that owns the same id (e.g. the
         // hosted HuggingFace provider vs. the Python local one).
         if (listRegisteredProviderIds().includes(info.id)) continue;
+        // SAFETY: PythonProvider's constructor has an overload taking the
+        // registry's kwargs object (`_id`, `_bridge`, `_capabilities`), but the
+        // overloaded signature does not satisfy the registry's single-argument
+        // constructor type.
         registerProvider(info.id, PythonProvider as never, {
           _bridge: bridge,
           _id: info.id,
