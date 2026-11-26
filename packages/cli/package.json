@@ -34,6 +34,7 @@
     "@types/node": "^22.0.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1",
+    "@nodetool-ai/models": "*",
     "@nodetool-ai/runtime": "*"
   },
   "exports": {

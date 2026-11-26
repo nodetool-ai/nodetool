@@ -132,6 +132,7 @@ export {
 
 export {
   getNodetoolDataDir,
+  type PathEnv,
   getNodetoolCacheDir,
   getDefaultDbPath,
   getPostgresDatabaseUrl,
