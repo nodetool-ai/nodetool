@@ -33,6 +33,9 @@
       "path": "../runtime"
     },
     {
+      "path": "../models"
+    },
+    {
       "path": "../database-sqlite"
     },
     {
