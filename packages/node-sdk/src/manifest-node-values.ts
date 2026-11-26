@@ -5,7 +5,7 @@
  */
 
 import type { BaseNode } from "./base-node.js";
-import { isNonBlankString } from "@nodetool-ai/protocol";
+import { isNonBlankString, isString } from "@nodetool-ai/protocol";
 import {
   mapPromptAssetsToInputs,
   type PromptAssetInputField,
@@ -235,7 +235,7 @@ export function manifestEnumIsNumeric(
  * own structure, not a scalar to reshape.
  */
 function toFiniteNumber(value: NodeValue): number | null {
-  if (typeof value === "string" && value.trim() === "") return null;
+  if (isString(value) && !isNonBlankString(value)) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
