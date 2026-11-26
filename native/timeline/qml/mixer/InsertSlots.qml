@@ -41,6 +41,7 @@ Item {
                         contentAlignment: Qt.AlignLeft
                         text: modelData.type === "vst"
                             ? ((modelData.plugin && modelData.plugin.name) || "VST3 Plugin")
+                            : modelData.type === "fable" ? (TrackEffectsReference.data.strings.labels[modelData.kind] || modelData.kind)
                             : (({gain:"Gain",eq3:"3-Band EQ",filter:"Filter",compressor:"Compressor"})[modelData.type] || modelData.type)
                         textTone: modelData.enabled ? Ui.Text.Primary : Ui.Text.Disabled
                         onClicked: root.open(modelData.id, effectName)

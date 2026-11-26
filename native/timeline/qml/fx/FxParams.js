@@ -37,6 +37,8 @@ var DRIVE_TYPES = ["SOFT", "TAPE", "HARD"]
 var ECHO_MODES = ["PING PONG", "STEREO"]
 var ECHO_DIVS = ["1/4", "1/4.", "1/8", "1/8.", "1/8T", "1/16"]
 var REVERB_TYPES = ["ROOM", "PLATE"]
+var RESO_CHORDS = ["OCTAVES", "FIFTHS", "MINOR 7", "MAJOR 9", "SUS 4", "TRITONE"]
+var GLITCH_DIVS = ["1/4", "1/8", "1/16", "1/32", "1/64"]
 
 var FABLE_FX_PARAMS = {
     eq: [
@@ -49,16 +51,16 @@ var FABLE_FX_PARAMS = {
         { id: "fx.eq.hfreq", label: "FREQ", min: 20, max: 20000, def: 6000, curve: "log", fmt: fmtHz },
         { id: "fx.eq.mid2", label: "GAIN", min: -15, max: 15, def: 0, curve: "lin", fmt: fmtDb },
         { id: "fx.eq.lq", label: "Q", min: 0.2, max: 12, def: Math.SQRT1_2, curve: "log", fmt: fmtQ },
-        { id: "fx.eq.ltype", type: "enum", options: EQ_TYPES, def: 0 },
+        { id: "fx.eq.ltype", label: "TYPE", type: "enum", options: EQ_TYPES, def: 0 },
         { id: "fx.eq.lon", type: "bool", def: 1 },
         { id: "fx.eq.mq", label: "Q", min: 0.2, max: 12, def: 0.9, curve: "log", fmt: fmtQ },
-        { id: "fx.eq.mtype", type: "enum", options: EQ_TYPES, def: 1 },
+        { id: "fx.eq.mtype", label: "TYPE", type: "enum", options: EQ_TYPES, def: 1 },
         { id: "fx.eq.mon", type: "bool", def: 1 },
         { id: "fx.eq.m2q", label: "Q", min: 0.2, max: 12, def: 0.9, curve: "log", fmt: fmtQ },
-        { id: "fx.eq.m2type", type: "enum", options: EQ_TYPES, def: 1 },
+        { id: "fx.eq.m2type", label: "TYPE", type: "enum", options: EQ_TYPES, def: 1 },
         { id: "fx.eq.m2on", type: "bool", def: 1 },
         { id: "fx.eq.hq", label: "Q", min: 0.2, max: 12, def: Math.SQRT1_2, curve: "log", fmt: fmtQ },
-        { id: "fx.eq.htype", type: "enum", options: EQ_TYPES, def: 2 },
+        { id: "fx.eq.htype", label: "TYPE", type: "enum", options: EQ_TYPES, def: 2 },
         { id: "fx.eq.hon", type: "bool", def: 1 }
     ],
     comp: [
@@ -83,7 +85,7 @@ var FABLE_FX_PARAMS = {
         { id: "fx.drive.amt", label: "AMOUNT", min: 0, max: 1, def: 0.3, curve: "lin", fmt: fmtPct },
         { id: "fx.drive.mix", label: "MIX", min: 0, max: 1, def: 1, curve: "lin", fmt: fmtPct },
         { id: "fx.drive.tone", label: "TONE", min: -1, max: 1, def: 0, curve: "lin", fmt: fmtDriveTone },
-        { id: "fx.drive.type", type: "enum", options: DRIVE_TYPES, def: 0 }
+        { id: "fx.drive.type", label: "TYPE", type: "enum", options: DRIVE_TYPES, def: 0 }
     ],
     chorus: [
         { id: "fx.chorus.rate", label: "RATE", min: 0.05, max: 8, def: 0.6, curve: "log", fmt: fmtRateHz },
@@ -99,14 +101,76 @@ var FABLE_FX_PARAMS = {
         { id: "fx.delay.wow", label: "WOW", min: 0, max: 1, def: 0.18, curve: "lin", fmt: fmtPct },
         { id: "fx.delay.flutter", label: "FLUTTER", min: 0, max: 1, def: 0.12, curve: "lin", fmt: fmtPct },
         { id: "fx.delay.width", label: "WIDTH", min: 0, max: 1, def: 1, curve: "lin", fmt: fmtPct },
-        { id: "fx.delay.mode", type: "enum", options: ECHO_MODES, def: 0 },
-        { id: "fx.delay.sync", type: "bool", def: 0 },
-        { id: "fx.delay.div", type: "enum", options: ECHO_DIVS, def: 3 }
+        { id: "fx.delay.mode", label: "MODE", type: "enum", options: ECHO_MODES, def: 0 },
+        { id: "fx.delay.sync", label: "SYNC", type: "bool", def: 0 },
+        { id: "fx.delay.div", label: "DIVISION", type: "enum", options: ECHO_DIVS, def: 3 }
+    ],
+    lab: [
+        { id: "fx.crush.on", type: "bool", def: 1 },
+        { id: "fx.crush.bits", label: "BITS", min: 1, max: 16, def: 6, curve: "lin", fmt: function(v) { return v.toFixed(1) } },
+        { id: "fx.crush.rate", label: "RATE", min: 200, max: 48000, def: 6000, curve: "log", fmt: fmtHz },
+        { id: "fx.crush.chaos", label: "CHAOS", min: 0, max: 1, def: 0.2, curve: "lin", fmt: fmtPct },
+        { id: "fx.crush.mix", label: "MIX", min: 0, max: 1, def: 1, curve: "lin", fmt: fmtPct },
+        { id: "fx.reso.on", type: "bool", def: 0 },
+        { id: "fx.reso.note", label: "NOTE", min: 24, max: 84, def: 48, curve: "int", fmt: fmtNote },
+        { id: "fx.reso.chord", label: "CHORD", type: "enum", options: RESO_CHORDS, def: 2 },
+        { id: "fx.reso.decay", label: "DECAY", min: 0, max: 1, def: 0.7, curve: "lin", fmt: fmtPct },
+        { id: "fx.reso.mix", label: "MIX", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct },
+        { id: "fx.shift.on", type: "bool", def: 0 },
+        { id: "fx.shift.hz", label: "SHIFT", min: -1000, max: 1000, def: 60, curve: "lin", fmt: function(v) { return fmtSigned(v) + " Hz" } },
+        { id: "fx.shift.fb", label: "SPIRAL", min: 0, max: 0.9, def: 0.5, curve: "lin", fmt: fmtPct },
+        { id: "fx.shift.spread", label: "SPREAD", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct },
+        { id: "fx.shift.mix", label: "MIX", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct },
+        { id: "fx.spray.on", type: "bool", def: 0 },
+        { id: "fx.spray.pitch", label: "PITCH", min: -24, max: 24, def: 12, curve: "int", fmt: function(v) { return fmtSigned(v) + " st" } },
+        { id: "fx.spray.density", label: "DENSITY", min: 1, max: 40, def: 12, curve: "log", fmt: function(v) { return v.toFixed(1) + "/s" } },
+        { id: "fx.spray.scatter", label: "SCATTER", min: 0, max: 1, def: 0.4, curve: "lin", fmt: fmtPct },
+        { id: "fx.spray.mix", label: "MIX", min: 0, max: 1, def: 0.45, curve: "lin", fmt: fmtPct },
+        { id: "fx.glitch.on", type: "bool", def: 0 },
+        { id: "fx.glitch.div", label: "DIVISION", type: "enum", options: GLITCH_DIVS, def: 2 },
+        { id: "fx.glitch.chance", label: "CHANCE", min: 0, max: 1, def: 0.35, curve: "lin", fmt: fmtPct },
+        { id: "fx.glitch.drift", label: "DRIFT", min: -1, max: 1, def: 0, curve: "lin", fmt: fmtBi },
+        { id: "fx.glitch.mix", label: "MIX", min: 0, max: 1, def: 1, curve: "lin", fmt: fmtPct }
     ],
     reverb: [
         { id: "fx.reverb.size", label: "SIZE", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct },
         { id: "fx.reverb.mix", label: "MIX", min: 0, max: 1, def: 0.3, curve: "lin", fmt: fmtPct },
-        { id: "fx.reverb.type", type: "enum", options: REVERB_TYPES, def: 0 },
+        { id: "fx.reverb.type", label: "TYPE", type: "enum", options: REVERB_TYPES, def: 0 },
         { id: "fx.reverb.damp", label: "DAMP", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct }
     ]
+}
+
+// The device layout of each Fable effect: sections left to right, as in the
+// FableSynth panels. `power` is the section's on switch, `toggle` another
+// header switch, `controls` its choices in one row, `knobs` its knob row and
+// `active` the switch (or `!switch`) that enables a control. `curve` names a
+// reused curve view.
+var FABLE_FX_LAYOUT = {
+    eq: { curve: "eq", sections: [
+        { title: "LOW", power: "fx.eq.lon", controls: ["fx.eq.ltype"], knobs: ["fx.eq.lfreq", "fx.eq.low", "fx.eq.lq"] },
+        { title: "MID 1", power: "fx.eq.mon", controls: ["fx.eq.mtype"], knobs: ["fx.eq.mfreq", "fx.eq.mid", "fx.eq.mq"] },
+        { title: "MID 2", power: "fx.eq.m2on", controls: ["fx.eq.m2type"], knobs: ["fx.eq.m2freq", "fx.eq.mid2", "fx.eq.m2q"] },
+        { title: "HIGH", power: "fx.eq.hon", controls: ["fx.eq.htype"], knobs: ["fx.eq.hfreq", "fx.eq.high", "fx.eq.hq"] }] },
+    comp: { curve: "comp", sections: [
+        { title: "DYNAMICS", knobs: ["fx.comp.thr", "fx.comp.ratio", "fx.comp.att", "fx.comp.rel", "fx.comp.schp"] }] },
+    ott: { sections: [{ title: "MULTIBAND", knobs: ["fx.ott.depth", "fx.ott.time", "fx.ott.up", "fx.ott.down"] }] },
+    limiter: { sections: [{ title: "LIMITER", knobs: ["fx.limit.gain", "fx.limit.ceil", "fx.limit.rel"] }] },
+    drive: { sections: [{ title: "DRIVE", controls: ["fx.drive.type"], knobs: ["fx.drive.amt", "fx.drive.tone", "fx.drive.mix"] }] },
+    chorus: { sections: [{ title: "CHORUS", knobs: ["fx.chorus.rate", "fx.chorus.depth", "fx.chorus.mix"] }] },
+    echo: { sections: [
+        { title: "DELAY", toggle: "fx.delay.sync", controls: ["fx.delay.mode", "fx.delay.div"], knobs: ["fx.delay.time", "fx.delay.fb", "fx.delay.mix", "fx.delay.tone"],
+          active: { "fx.delay.div": "fx.delay.sync", "fx.delay.time": "!fx.delay.sync" } },
+        { title: "TAPE", knobs: ["fx.delay.sat", "fx.delay.wow", "fx.delay.flutter", "fx.delay.width"] }] },
+    reverb: { sections: [{ title: "REVERB", controls: ["fx.reverb.type"], knobs: ["fx.reverb.size", "fx.reverb.damp", "fx.reverb.mix"] }] },
+    lab: { sections: [
+        { title: "CRUSH", power: "fx.crush.on", knobs: ["fx.crush.bits", "fx.crush.rate", "fx.crush.chaos", "fx.crush.mix"] },
+        { title: "RESONATOR", power: "fx.reso.on", controls: ["fx.reso.chord"], knobs: ["fx.reso.note", "fx.reso.decay", "fx.reso.mix"] },
+        { title: "SHIFTER", power: "fx.shift.on", knobs: ["fx.shift.hz", "fx.shift.fb", "fx.shift.spread", "fx.shift.mix"] },
+        { title: "SPRAY", power: "fx.spray.on", knobs: ["fx.spray.pitch", "fx.spray.density", "fx.spray.scatter", "fx.spray.mix"] },
+        { title: "GLITCH", power: "fx.glitch.on", controls: ["fx.glitch.div"], knobs: ["fx.glitch.chance", "fx.glitch.drift", "fx.glitch.mix"] }] }
+}
+function fableParamDef(kind, id) {
+    var defs = FABLE_FX_PARAMS[kind] || []
+    for (var i = 0; i < defs.length; ++i) if (defs[i].id === id) return defs[i]
+    return null
 }

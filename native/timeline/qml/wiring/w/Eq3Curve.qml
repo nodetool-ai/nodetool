@@ -11,6 +11,8 @@ Rectangle {
     signal preview(var patch)
     signal commit(var patch)
     signal editCanceled()
+    // f -> dB. Replaces the three-band response, for an EQ with other bands.
+    property var response: null
     readonly property var ranges: [[40,400], [100,8000], [2000,16000]]
     readonly property var bands: ["low", "mid", "high"]
     readonly property var colors: [Ui.Theme.statusInfo, Ui.Theme.statusSuccess, Ui.Theme.statusWarning]
@@ -45,7 +47,7 @@ Rectangle {
             ctx.beginPath()
             for (let i = 0; i <= 256; ++i) {
                 const f = 20 * Math.pow(1000,i / 256)
-                const db = MathFx.biquadMagDb("lowshelf",f,e.lowFreq,e.lowGainDb,0.7)
+                const db = graph.response ? graph.response(f) : MathFx.biquadMagDb("lowshelf",f,e.lowFreq,e.lowGainDb,0.7)
                     + MathFx.biquadMagDb("peaking",f,e.midFreq,e.midGainDb,e.midQ)
                     + MathFx.biquadMagDb("highshelf",f,e.highFreq,e.highGainDb,0.7)
                 const y = graph.gainY(Math.max(-18,Math.min(18,db)))
@@ -61,7 +63,7 @@ Rectangle {
         }
     }
     Repeater {
-        model: [50,100,200,500,1000,2000,5000,10000]
+        model: graph.width < 300 ? [100,1000,10000] : [50,100,200,500,1000,2000,5000,10000]
         delegate: Ui.Text { required property int modelData; x: graph.frequencyX(modelData) + Ui.Metrics.micro; y: graph.height - height; text: modelData >= 1000 ? modelData / 1000 + "k" : String(modelData); role: Ui.Typography.MonoCaption; tone: Ui.Text.Disabled }
     }
     Repeater {

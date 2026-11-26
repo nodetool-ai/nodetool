@@ -19,7 +19,7 @@ Ui.Popover {
         filter:[{param:"frequency",label:"Frequency",min:20,max:20000,step:10,unit:"Hz"},{param:"q",label:"Q",min:.1,max:20,step:.1,digits:1}],
         compressor:[{param:"attackMs",label:"Attack",min:0,max:500,step:1,unit:"ms"},{param:"releaseMs",label:"Release",min:0,max:2000,step:1,unit:"ms"},{param:"kneeDb",label:"Knee",min:0,max:40,step:.5,digits:1,unit:"dB"}]
     })[effect.type] || [] : []
-    width: Math.min(parent?parent.width:420,effect ? ({gain:200,eq3:420,filter:240,compressor:380,vst:300})[effect.type] || 320 : 320)
+    width: Math.min(parent?parent.width:420,effect ? (effect.type==="fable" ? TrackEffectsReference.data.fableWidths[effect.kind] : ({gain:200,eq3:420,filter:240,compressor:380,vst:300})[effect.type]) || 320 : 320)
     height: Math.min(implicitHeight,parent?parent.height*.9:implicitHeight)
     onAboutToHide:root.finishGestures()
     AutomationController { id:controller; timeline:root.timeline; trackId:root.trackId; master:root.trackId==="" }
@@ -46,7 +46,7 @@ Ui.Popover {
             id:params; width:parent.width; spacing:Ui.Metrics.md
             Row {
                 width:parent.width
-                Ui.Text { role: Ui.Typography.SansLabel; width:parent.width-24; elide: Text.ElideRight; text:root.effect?(root.effect.type==="vst"?((root.effect.plugin && root.effect.plugin.name) || "VST3 Plugin"):(Targets.EFFECT_LABELS[root.effect.type] || root.effect.type)+" device"):"";}
+                Ui.Text { role: Ui.Typography.SansLabel; width:parent.width-24; elide: Text.ElideRight; text:root.effect?(root.effect.type==="vst"?((root.effect.plugin && root.effect.plugin.name) || "VST3 Plugin"):(root.effect.type==="fable"?TrackEffectsReference.data.strings.labels[root.effect.kind]:(Targets.EFFECT_LABELS[root.effect.type] || root.effect.type))+" device"):"";}
                 Ui.ToolbarIconButton { objectName:"close-effect-popover"; iconName:"close"; accessibleName:qsTr("Close effect"); onClicked:root.close() }
             }
             Loader {
@@ -104,6 +104,15 @@ Ui.Popover {
                             }
                         }
                     }
+                }
+            }
+            Loader {
+                width:parent.width; active:root.effect!==null && root.effect.type==="fable"
+                sourceComponent: FableEffectEditor {
+                    effect:root.displayed; disabled:root.effect===null || root.effect.enabled===false
+                    onPreview:p=>root.preview(p)
+                    onCommit:p=>{const all=Object.assign({},root.previews,p); if(Object.keys(all).length) root.patch(all); else root.previews={}}
+                    onEditCanceled:root.previews={}
                 }
             }
             Column {

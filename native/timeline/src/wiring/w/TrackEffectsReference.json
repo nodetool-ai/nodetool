@@ -334,15 +334,15 @@
     "vst": 320
   },
   "fableWidths": {
-    "eq": 440,
-    "ott": 440,
-    "comp": 440,
-    "drive": 320,
-    "lab": 1080,
-    "chorus": 320,
-    "echo": 320,
-    "reverb": 320,
-    "limiter": 320
+    "eq": 1040,
+    "ott": 290,
+    "comp": 490,
+    "drive": 250,
+    "lab": 1230,
+    "chorus": 230,
+    "echo": 560,
+    "reverb": 250,
+    "limiter": 230
   },
   "knobs": {
     "gain": [

@@ -2347,7 +2347,7 @@ controls = []
 signals = ["preview", "commit", "editCanceled"]
 test_host = "tst_wiringw"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/wiring/w/ChromaKeyEditor.qml", "native/timeline/qml/wiring/w/ColorCorrectionEditor.qml", "native/timeline/qml/wiring/w/CompressorEditor.qml", "native/timeline/qml/wiring/w/Eq3Editor.qml", "native/timeline/qml/wiring/w/FilterEditor.qml", "native/timeline/qml/wiring/w/GainEditor.qml", "native/timeline/qml/wiring/w/SharpenEditor.qml", "native/timeline/qml/wiring/w/VideoBlurEditor.qml", "native/timeline/qml/wiring/w/VignetteEditor.qml"]
+qml_callers = ["native/timeline/qml/wiring/w/ChromaKeyEditor.qml", "native/timeline/qml/wiring/w/ColorCorrectionEditor.qml", "native/timeline/qml/wiring/w/CompressorEditor.qml", "native/timeline/qml/wiring/w/Eq3Editor.qml", "native/timeline/qml/wiring/w/FableEffectEditor.qml", "native/timeline/qml/wiring/w/FilterEditor.qml", "native/timeline/qml/wiring/w/GainEditor.qml", "native/timeline/qml/wiring/w/SharpenEditor.qml", "native/timeline/qml/wiring/w/VideoBlurEditor.qml", "native/timeline/qml/wiring/w/VignetteEditor.qml"]
 replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
@@ -2357,8 +2357,18 @@ controls = ["Rectangle", "Canvas", "Ui.Text", "MouseArea"]
 signals = ["preview", "commit", "editCanceled"]
 test_host = "tst_wiringw"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/wiring/w/Eq3Editor.qml"]
+qml_callers = ["native/timeline/qml/wiring/w/Eq3Editor.qml", "native/timeline/qml/wiring/w/FableEffectEditor.qml"]
 replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/FableEffectEditor.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text", "Ui.Toggle", "Ui.SegmentedControl", "Ui.Select", "FxKnob", "Eq3Curve", "CompressorCurve"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Toggle, Ui.SegmentedControl, Ui.Select"
 
 [[file]]
 path = "native/timeline/qml/wiring/w/Eq3Editor.qml"

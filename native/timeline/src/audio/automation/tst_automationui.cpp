@@ -1662,6 +1662,37 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QCOMPARE(model.undoStack()->count(), undoCount);
         QCOMPARE(track()["effects"].toArray(), before);
     }
+    void mixerInsertOpensFableEditor() {
+        QVERIFY(open(R"(MixerView { width:800; height:360; required timeline })"));
+        model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect",QJsonObject{{"id","r"},{"type","fable"},{"kind","reverb"},{"enabled",true},
+            {"params",QJsonObject{{"fx.reverb.size",.5},{"fx.reverb.mix",.3},{"fx.reverb.type",0},{"fx.reverb.damp",.5}}}}}});
+        QTRY_COMPARE(track()["effects"].toArray().size(),1);
+        const auto id=track()["effects"].toArray()[0].toObject()["id"].toString();
+        QTRY_VERIFY(item("open-effect-"+id));
+        QCOMPARE(item("open-effect-"+id)->property("text").toString(),QString("Reverb"));
+        auto* opener=item("open-effect-"+id);
+        QTRY_VERIFY(opener->width()>0 && opener->height()>0);
+        // The strip settles its layout after the edit. A click before that misses.
+        QTest::qWait(200);
+        click("open-effect-"+id);
+        QTRY_VERIFY(item("fable-editor-"+id));
+        auto* dial=item("fable-knob-"+id+"-fx.reverb.size"); QVERIFY(dial);
+        const auto before=track()["effects"].toArray()[0].toObject()["params"].toObject();
+        const int undoCount=model.undoStack()->count();
+        const auto from=point(dial,dial->width()/2,20), to=from-QPoint(0,30);
+        QTest::mousePress(window.get(),Qt::LeftButton,Qt::NoModifier,from);
+        QTest::mouseMove(window.get(),from-QPoint(0,15),20); QTest::mouseMove(window.get(),to,20);
+        QCOMPARE(model.undoStack()->count(),undoCount);
+        QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,to);
+        QTRY_COMPARE(model.undoStack()->count(),undoCount+1);
+        const auto after=track()["effects"].toArray()[0].toObject()["params"].toObject();
+        QVERIFY(after["fx.reverb.size"].toDouble()>before["fx.reverb.size"].toDouble());
+        QCOMPARE(after["fx.reverb.mix"],before["fx.reverb.mix"]);
+        click("fable-enum-"+id+"-fx.reverb.type-1");
+        QTRY_COMPARE(track()["effects"].toArray()[0].toObject()["params"].toObject()["fx.reverb.type"].toDouble(),1.);
+        QCOMPARE(model.undoStack()->count(),undoCount+2);
+        if (const auto dir=qEnvironmentVariable("NT_SHOT_DIR"); !dir.isEmpty()) { QVERIFY(window->grabWindow().save(dir+"/mixer-fable-reverb.png")); }
+    }
     void effectCurveEditors_data() {
         QTest::addColumn<QString>("type"); QTest::addColumn<QString>("handle"); QTest::addColumn<QString>("parameter");
         QTest::newRow("eq3") << "eq3" << "mid" << "midGainDb";

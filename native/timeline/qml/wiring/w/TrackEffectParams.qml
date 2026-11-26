@@ -24,6 +24,7 @@ Item {
             case "sharpen": return editor6
             case "vignette": return editor7
             case "chromaKey": return editor8
+            case "fable": return editorFable
             case "vst": return editorVst
             default: return null
             }
@@ -112,6 +113,16 @@ Item {
     Component {
         id: editor8
         ChromaKeyEditor {
+            effect: root.effect
+            disabled: root.disabled
+            onPreview: patch => root.preview(patch)
+            onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
+        }
+    }
+    Component {
+        id: editorFable
+        FableEffectEditor {
             effect: root.effect
             disabled: root.disabled
             onPreview: patch => root.preview(patch)

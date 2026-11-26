@@ -278,6 +278,7 @@ if(NOT DEFINED NT_QML_DISCOVERY_FILES)
         qml/wiring/w/Eq3Curve.qml
         qml/wiring/w/Eq3Editor.qml
         qml/wiring/w/ExportButton.qml
+        qml/wiring/w/FableEffectEditor.qml
         qml/wiring/w/FilterEditor.qml
         qml/wiring/w/GainEditor.qml
         qml/wiring/w/KnobList.qml

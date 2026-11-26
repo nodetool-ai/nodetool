@@ -564,6 +564,96 @@ private slots:
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QCOMPARE(model.undoStack()->count(), before + 1);
     }
+    QString addFable(const QString& kind) {
+        const auto count = effects().size();
+        add(kind);
+        if (effects().size() != count + 1) { return {}; }
+        return effects().last().toObject().value("id").toString();
+    }
+    QJsonObject fableParams() const { return effects()[0].toObject().value("params").toObject(); }
+    void fableEditors_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<QString>("knob");
+        for (const auto& [kind, knob] : std::initializer_list<std::pair<const char*, const char*>>{
+                 {"eq", "fx.eq.mid"}, {"ott", "fx.ott.depth"}, {"comp", "fx.comp.thr"}, {"drive", "fx.drive.amt"}, {"lab", "fx.crush.bits"},
+                 {"chorus", "fx.chorus.rate"}, {"echo", "fx.delay.fb"}, {"reverb", "fx.reverb.size"}, {"limiter", "fx.limit.ceil"}}) {
+            QTest::newRow(kind) << QString(kind) << QString(knob);
+        }
+    }
+    void fableEditors() {
+        QFETCH(QString, kind); QFETCH(QString, knob);
+        click("track-fx-a");
+        const auto id = addFable(kind);
+        QVERIFY(!id.isEmpty());
+        QTRY_VERIFY(item("fable-editor-" + id));
+        // Every parameter has a knob, a choice or a switch.
+        const auto params = fableParams();
+        QVERIFY(!params.isEmpty());
+        for (auto it = params.begin(); it != params.end(); ++it) {
+            const auto suffix = id + "-" + it.key();
+            QVERIFY2(item("fable-knob-" + suffix) || item("fable-enum-" + suffix) || item("fable-toggle-" + suffix), qPrintable(suffix));
+        }
+        saveShot("fable-" + kind);
+        // One drag is one undo step that changes only that parameter.
+        const auto before = params;
+        const int undoCount = model.undoStack()->count();
+        auto* dial = item("fable-knob-" + id + "-" + knob);
+        QVERIFY(dial); QVERIFY(dial->isEnabled());
+        const auto from = dial->mapToScene({dial->width() / 2, 20}).toPoint();
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), from - QPoint(0, 15), 20);
+        QTest::mouseMove(view.get(), from - QPoint(0, 30), 20);
+        QCOMPARE(model.undoStack()->count(), undoCount);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 30));
+        QTRY_COMPARE(model.undoStack()->count(), undoCount + 1);
+        const auto after = fableParams();
+        QVERIFY(after.value(knob).toDouble() != before.value(knob).toDouble());
+        for (auto it = before.begin(); it != before.end(); ++it) {
+            if (it.key() != knob) { QCOMPARE(after.value(it.key()), it.value()); }
+        }
+        model.undoStack()->undo();
+        QCOMPARE(fableParams(), before);
+    }
+    void fableChoicesAndSwitches() {
+        click("track-fx-a");
+        const auto id = addFable("echo");
+        QVERIFY(!id.isEmpty());
+        QTRY_VERIFY(item("fable-enum-" + id + "-fx.delay.mode"));
+        const int undoCount = model.undoStack()->count();
+        // A long choice is a select. Its commit is one undo step.
+        QVERIFY(QMetaObject::invokeMethod(item("fable-enum-" + id + "-fx.delay.mode"), "valueCommitted", Q_ARG(QVariant, 1)));
+        QTRY_COMPARE(fableParams().value("fx.delay.mode").toDouble(), 1.0);
+        QCOMPARE(model.undoStack()->count(), undoCount + 1);
+        // SYNC enables the division and disables the free time knob.
+        QVERIFY(item("fable-knob-" + id + "-fx.delay.time")->isEnabled());
+        click("fable-toggle-" + id + "-fx.delay.sync");
+        QTRY_COMPARE(fableParams().value("fx.delay.sync").toDouble(), 1.0);
+        QCOMPARE(model.undoStack()->count(), undoCount + 2);
+        QTRY_VERIFY(!item("fable-knob-" + id + "-fx.delay.time")->isEnabled());
+        model.undoStack()->undo();
+        QCOMPARE(fableParams().value("fx.delay.sync").toDouble(), 0.0);
+        // A section switch turns its knobs off.
+        QVERIFY(model.applyEdit("removeTrackEffect", {{"trackId", "a"}, {"effectId", id}}));
+        QTRY_COMPARE(effects().size(), 0);
+        const auto labId = addFable("lab");
+        QTRY_VERIFY(item("fable-toggle-" + labId + "-fx.reso.on"));
+        QVERIFY(!item("fable-knob-" + labId + "-fx.reso.decay")->isEnabled());
+        // The rack may keep a scroll offset from earlier cases, so toggle without a pointer.
+        auto* reso = item("fable-toggle-" + labId + "-fx.reso.on");
+        QVERIFY(QMetaObject::invokeMethod(reso, "toggle"));
+        QVERIFY(QMetaObject::invokeMethod(reso, "toggled"));
+        QTRY_VERIFY(item("fable-knob-" + labId + "-fx.reso.decay")->isEnabled());
+        QCOMPARE(effects()[0].toObject().value("params").toObject().value("fx.reso.on").toDouble(), 1.0);
+        // A short choice is a segmented control.
+        QVERIFY(model.applyEdit("removeTrackEffect", {{"trackId", "a"}, {"effectId", labId}}));
+        QTRY_COMPARE(effects().size(), 0);
+        const auto reverbId = addFable("reverb");
+        QTRY_VERIFY(item("fable-enum-" + reverbId + "-fx.reverb.type-1"));
+        const int beforeType = model.undoStack()->count();
+        click("fable-enum-" + reverbId + "-fx.reverb.type-1");
+        QTRY_COMPARE(fableParams().value("fx.reverb.type").toDouble(), 1.0);
+        QCOMPARE(model.undoStack()->count(), beforeType + 1);
+    }
     void speedDuration() {
         click("timeRuler"); QTest::keyClick(view.get(), Qt::Key_R, Qt::ControlModifier);
         checkpoint("Ctrl+R without selection");
