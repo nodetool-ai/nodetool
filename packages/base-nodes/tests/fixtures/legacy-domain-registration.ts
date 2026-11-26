@@ -28021,19 +28021,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
             'mp4',
             'webm',
             'mov',
-            'png_sequence'
+            'png_sequence',
+            'wav'
           ]
         },
         required: false,
         title: 'Format',
-        description: 'Output container. mp4 is H.264. webm is VP9, mov is ProRes, and png_sequence is a zip of PNGs with a manifest.json — those three carry alpha.',
+        description: 'Output container. mp4 is H.264, webm is VP9, mov is ProRes, png_sequence is a zip of PNGs with a manifest.json (those three carry alpha), and wav writes uncompressed PCM audio.',
         min: undefined,
         max: undefined,
         values: [
           'mp4',
           'webm',
           'mov',
-          'png_sequence'
+          'png_sequence',
+          'wav'
         ],
         json_schema_extra: undefined,
         default: 'mp4'
@@ -28127,6 +28129,36 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 1
+      },
+      {
+        name: 'audio_sample_rate',
+        type: {
+          type: 'int',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio sample rate',
+        description: 'Output audio sample rate in Hz. wav accepts 44100, 48000, 88200, 96000, or 192000; mp4 and mov accept 44100, 48000, 88200, or 96000; webm accepts 48000 only; ignored for png_sequence.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 48000
+      },
+      {
+        name: 'audio_bit_depth',
+        type: {
+          type: 'int',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio bit depth',
+        description: 'PCM bit depth for WAV exports: 16, 24, or 32 (32-bit IEEE 754 float). Ignored for video and PNG sequence formats.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 16
       }
     ],
     outputs: [
@@ -28141,6 +28173,13 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         name: 'frames',
         type: {
           type: 'document',
+          type_args: []
+        }
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
           type_args: []
         }
       }
