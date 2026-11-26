@@ -28,7 +28,14 @@ export interface DocumentOutline {
 /** A heading counts as current once its top is this close to the viewport top. */
 const ACTIVE_OFFSET_PX = 24;
 
-export function readOutline(editor: LexicalEditor): DocumentOutlineItem[] {
+/**
+ * After a jump, scroll events this soon come from the jump itself. The
+ * clicked heading stays current even when the page end stops it short of
+ * the top.
+ */
+const JUMP_SETTLE_MS = 150;
+
+function readOutline(editor: LexicalEditor): DocumentOutlineItem[] {
   return editor.getEditorState().read(() =>
     $getRoot()
       .getChildren()
@@ -62,7 +69,7 @@ function sameOutline(
   );
 }
 
-export function revealHeading(editor: LexicalEditor, key: string): void {
+function revealHeading(editor: LexicalEditor, key: string): void {
   const element = editor.getElementByKey(key);
   // "instant" overrides any CSS smooth scrolling on the page container.
   element?.scrollIntoView({ block: "start", behavior: "instant" });
@@ -107,13 +114,24 @@ export function DocumentOutlinePlugin({
     let activeKey: string | null = null;
     let container: HTMLElement | null = null;
     let frame = 0;
-    const reveal = (key: string): void => revealHeading(editor, key);
+    let jumpedAt = -Infinity;
 
     const emit = (): void => {
       onChangeRef.current({ items, activeKey, reveal });
     };
+    const reveal = (key: string): void => {
+      revealHeading(editor, key);
+      jumpedAt = performance.now();
+      if (activeKey !== key) {
+        activeKey = key;
+        emit();
+      }
+    };
     const updateActive = (): void => {
       frame = 0;
+      if (performance.now() - jumpedAt < JUMP_SETTLE_MS) {
+        return;
+      }
       const next = container ? findActiveKey(editor, items, container) : null;
       if (next !== activeKey) {
         activeKey = next;
