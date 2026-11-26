@@ -7,6 +7,8 @@
  * types, so apps using them failed validation with "unknown widget type".
  */
 
+import { getOwn, hasOwn } from "./predicates.js";
+
 /** How a widget participates in the reactive layer. */
 export type WidgetBindingMode = "read" | "write" | "action" | "layout";
 
@@ -777,9 +779,10 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
 };
 
 export const widgetMode = (type: string): WidgetBindingMode | "unknown" =>
-  WIDGET_CATALOG[type]?.mode ?? "unknown";
+  getOwn(WIDGET_CATALOG, type)?.mode ?? "unknown";
 
-export const isKnownWidget = (type: string): boolean => type in WIDGET_CATALOG;
+export const isKnownWidget = (type: string): boolean =>
+  hasOwn(WIDGET_CATALOG, type);
 
 /**
  * Every field a widget's inspector shows: its own, plus the logic props each
@@ -793,7 +796,7 @@ export const isKnownWidget = (type: string): boolean => type in WIDGET_CATALOG;
 export const widgetFields = (
   type: string
 ): Readonly<Record<string, WidgetFieldKind>> => {
-  const descriptor = WIDGET_CATALOG[type];
+  const descriptor = getOwn(WIDGET_CATALOG, type);
   if (!descriptor) return {};
   if (descriptor.mode === "layout") return descriptor.fields;
   const fields = {
@@ -811,11 +814,11 @@ export const widgetFields = (
 export const widgetBindingProps = (
   type: string
 ): ReadonlyArray<{ prop: string; mode: "read" | "write" }> =>
-  WIDGET_CATALOG[type]?.bindingProps ?? [];
+  getOwn(WIDGET_CATALOG, type)?.bindingProps ?? [];
 
 /** Slot field names of a widget — the props children nest into. */
 export const widgetSlots = (type: string): ReadonlyArray<string> =>
-  WIDGET_CATALOG[type]?.slots ?? [];
+  getOwn(WIDGET_CATALOG, type)?.slots ?? [];
 
 /** Props every widget accepts on top of its own fields. */
 export interface CommonWidgetProps {

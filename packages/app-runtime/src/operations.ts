@@ -12,6 +12,7 @@ import type {
 } from "./document.js";
 import { DEFAULT_OPERATION_ID } from "./document.js";
 import { stateKey } from "./bindings.js";
+import { getOwn, setOwn } from "./predicates.js";
 import type { AppInstanceState } from "./state.js";
 
 export interface ResolveParamsContext {
@@ -39,12 +40,13 @@ export const resolveOperationParams = (
   for (const nodeId of ctx.inputNodeIds) {
     const name = ctx.inputName(nodeId);
     if (!name) continue;
-    const mapping = operation.inputs[nodeId] ?? { from: "widget" as const };
+    const mapping =
+      getOwn(operation.inputs, nodeId) ?? { from: "widget" as const };
 
     let value: unknown;
     switch (mapping.from) {
       case "variable":
-        value = state.variables[mapping.variableId];
+        value = getOwn(state.variables, mapping.variableId);
         break;
       case "constant":
         value = mapping.value;
@@ -54,16 +56,16 @@ export const resolveOperationParams = (
         break;
       case "widget":
       default:
-        value =
-          state.inputs[
-            stateKey({
-              kind: "input",
-              operationId: operation.id,
-              nodeId
-            })
-          ]?.value;
+        value = getOwn(
+          state.inputs,
+          stateKey({
+            kind: "input",
+            operationId: operation.id,
+            nodeId
+          })
+        )?.value;
     }
-    if (value !== undefined) params[name] = value;
+    if (value !== undefined) setOwn(params, name, value);
   }
 
   return params;
@@ -96,7 +98,7 @@ export const initialVariableValues = (
   const values: Record<string, unknown> = {};
   for (const variable of variables) {
     if (variable.default === undefined) continue;
-    values[variable.id] = variable.default;
+    setOwn(values, variable.id, variable.default);
   }
   return values;
 };
