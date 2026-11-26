@@ -158,14 +158,20 @@ Item {
                 tight: true
             }
             // Hover: add and delete subrow (SQ29, figure p0736).
-            Row {
-                visible: lane.main && headerArea.containsMouse && root.panel.editable
+            Loader {
+                property bool loadedOnce: false
+                readonly property bool showing: lane.main && headerArea.containsMouse && root.panel.editable
+                onShowingChanged: if (showing) loadedOnce = true
+                active: showing || loadedOnce
+                visible: showing
                 anchors.right: parent.right
                 anchors.rightMargin: Ui.Metrics.sm
                 y: Ui.Metrics.xs + (Ui.Metrics.small - height) / 2
-                spacing: Ui.Metrics.micro
-                Tool { objectName: "stepRowAddSubrow-" + root.row.id; glyph: "add"; tip: qsTr("Add Subrow"); onClicked: root.panel.addSubrow(root.row.id) }
-                Tool { objectName: "stepRowDeleteSubrow-" + root.row.id; glyph: "remove"; tip: qsTr("Delete Subrow"); enabled: root.panel.editable && (root.row.subrows || []).length > 0; onClicked: root.panel.deleteSubrow(root.row.id) }
+                sourceComponent: Row {
+                    spacing: Ui.Metrics.micro
+                    Tool { objectName: "stepRowAddSubrow-" + root.row.id; glyph: "add"; tip: qsTr("Add Subrow"); onClicked: root.panel.addSubrow(root.row.id) }
+                    Tool { objectName: "stepRowDeleteSubrow-" + root.row.id; glyph: "remove"; tip: qsTr("Delete Subrow"); enabled: root.panel.editable && (root.row.subrows || []).length > 0; onClicked: root.panel.deleteSubrow(root.row.id) }
+                }
             }
             // Bottom line: M S, playback, rotate, decrement/increment, randomize, clear.
             Row {
@@ -192,23 +198,25 @@ Item {
                 RowTools { rowId: root.row.id; mode: lane.mode }
             }
             // A subrow header: its mode select and the same tools for that mode only.
-            Row {
-                visible: !lane.main
+            Loader {
+                active: !lane.main
                 x: Ui.Metrics.lg
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: Ui.Metrics.micro
-                Ui.Select {
-                    objectName: "stepSubrowMode-" + root.row.id + "-" + lane.subIndex
-                    // Fits "Velocity" and "Chance" with the chevron.
-                    width: Ui.Metrics.xxxl * 3.2
-                    density: Ui.EditorButton.Compact
-                    accessibleName: qsTr("Subrow Mode")
-                    options: Modes.MODES.filter(m => m.value !== "onOff" && Modes.supportsMode(root.row, Modes.effectiveMode(root.row, m.value)))
-                                        .map(m => ({label: m.value === "velocity" ? qsTr("Velocity") : m.label, value: m.value}))
-                    value: lane.mode === "value" ? "velocity" : lane.mode
-                    onValueCommitted: next => root.panel.setSubrowMode(root.row.id, lane.subIndex, next)
+                sourceComponent: Row {
+                    spacing: Ui.Metrics.micro
+                    Ui.Select {
+                        objectName: "stepSubrowMode-" + root.row.id + "-" + lane.subIndex
+                        // Fits "Velocity" and "Chance" with the chevron.
+                        width: Ui.Metrics.xxxl * 3.2
+                        density: Ui.EditorButton.Compact
+                        accessibleName: qsTr("Subrow Mode")
+                        options: Modes.MODES.filter(m => m.value !== "onOff" && Modes.supportsMode(root.row, Modes.effectiveMode(root.row, m.value)))
+                                            .map(m => ({label: m.value === "velocity" ? qsTr("Velocity") : m.label, value: m.value}))
+                        value: lane.mode === "value" ? "velocity" : lane.mode
+                        onValueCommitted: next => root.panel.setSubrowMode(root.row.id, lane.subIndex, next)
+                    }
+                    RowTools { rowId: root.row.id; mode: lane.mode; compact: true }
                 }
-                RowTools { rowId: root.row.id; mode: lane.mode; compact: true }
             }
         }
 
@@ -222,102 +230,163 @@ Item {
             readonly property real cellWidth: root.panel.cellWidth
             readonly property real gap: Ui.Metrics.micro
             readonly property int first: Math.min(root.panel.firstStep, root.row.lengthSteps)
-            Repeater {
-                model: Math.max(0, Math.min(root.row.lengthSteps - cells.first, root.panel.stepWindow))
-                delegate: Rectangle {
-                    id: cell
-                    required property int index
-                    readonly property int step: cells.first + index
-                    readonly property var stepData: root.row.steps[step] || ({})
-                    readonly property var preview: root.panel.previewFor(root.row.id, step)
-                    readonly property bool on: preview && preview.on !== undefined ? preview.on : !!stepData.on
-                    readonly property bool continues: Modes.continuesTie(root.row, step)
-                    readonly property bool inLoop: step >= root.row.loopStart && step < root.row.loopEnd
-                    readonly property bool selectedStep: root.panel.isStepSelected(root.row.id, step)
-                    readonly property bool playing: root.playingStep === step
-                    // A tie joins across the beat gap too (SQ30).
-                    readonly property real join: continues ? cells.gap + Ui.Metrics.border + (step % 4 === 0 ? Ui.Metrics.xs : 0) : 0
-                    x: root.panel.stepX(step) - root.panel.scrollX - join
-                    y: Ui.Metrics.micro
-                    width: cells.cellWidth - cells.gap + join
-                    height: lane.height - Ui.Metrics.micro * 2
-                    visible: x + width > 0 && x < cells.width
-                    radius: Ui.Metrics.micro
-                    color: lane.mode === "loop"
-                        ? (inLoop ? Qt.alpha(root.rowColor, 0.55) : Qt.alpha(root.rowColor, 0.12))
-                        : lane.barMode ? Qt.alpha(root.rowColor, on ? 0.2 : 0.08)
-                        : on ? (root.row.mute ? Qt.alpha(root.rowColor, 0.45) : root.rowColor)
-                             : Qt.alpha(root.rowColor, lane.main ? 0.16 : 0.1)
-                    border.width: playing || selectedStep ? Ui.Metrics.focus : Ui.Metrics.border
-                    border.color: playing ? Ui.Theme.textPrimary : selectedStep ? Ui.Theme.borderFocus : Qt.alpha(root.rowColor, on ? 0.9 : 0.28)
-                    // Value modes: a bar filled up to the value height (p. 736).
-                    Rectangle {
-                        id: valueBar
-                        visible: lane.barMode
-                        readonly property var r: Modes.range(root.row, lane.mode)
-                        readonly property real f: cell.preview && cell.preview.value !== undefined
-                            ? (cell.preview.value - r.min) / Math.max(1e-9, r.max - r.min)
-                            : Modes.fraction(root.row, cell.step, lane.mode)
-                        readonly property real clamped: Math.max(0, Math.min(1, f))
-                        x: Ui.Metrics.border
-                        width: parent.width - Ui.Metrics.border * 2
-                        height: Math.max(Ui.Metrics.micro, (parent.height - Ui.Metrics.border * 2) * clamped)
-                        y: parent.height - Ui.Metrics.border - height
-                        radius: Ui.Metrics.micro
-                        color: !cell.on ? Qt.alpha(root.rowColor, 0.3) : root.row.mute ? Qt.alpha(root.rowColor, 0.45) : root.rowColor
+            // One paint surface per lane keeps the view virtualized at row level.
+            // Selection and previews are keyed once by the panel, not searched per cell.
+            Canvas {
+                id: paint
+                anchors.fill: parent
+                readonly property var rowData: root.row
+                readonly property int playingStep: root.playingStep
+                readonly property color rowColor: root.rowColor
+                readonly property string mode: lane.mode
+                readonly property bool showValues: lane.showValues
+                // Stable row signatures prevent unrelated selection/preview updates
+                // from invalidating this paint surface.
+                readonly property string selectionSignature: JSON.stringify(root.panel.selectedSteps.filter(s => s.row === root.row.id).map(s => s.step))
+                readonly property var selectedKeys: {
+                    const keys = {}
+                    for (const step of JSON.parse(selectionSignature)) keys[root.row.id + ":" + step] = true
+                    return keys
+                }
+                readonly property string previewSignature: {
+                    const own = {}
+                    const prefix = root.row.id + ":"
+                    const all = root.panel.previewMap
+                    for (const key of Object.keys(all)) if (key.indexOf(prefix) === 0) own[key] = all[key]
+                    return JSON.stringify(own)
+                }
+                readonly property var previews: JSON.parse(previewSignature)
+                readonly property bool barMode: lane.barMode
+                readonly property bool mainLane: lane.main
+                onBarModeChanged: requestPaint()
+                onMainLaneChanged: requestPaint()
+                onVisibleChanged: if (visible) requestPaint()
+                onAvailableChanged: if (available) requestPaint()
+                readonly property int firstStep: cells.first
+                readonly property real cellWidth: cells.cellWidth
+                readonly property real scrollX: root.panel.scrollX
+                readonly property int stepWindow: root.panel.stepWindow
+                readonly property string textFont: Ui.Typography.pixelSize(Ui.Typography.MonoCaption) + "px \"" + Ui.Typography.family(Ui.Typography.MonoCaption) + "\""
+                onTextFontChanged: requestPaint()
+                onRowDataChanged: requestPaint()
+                onPlayingStepChanged: requestPaint()
+                onRowColorChanged: requestPaint()
+                onModeChanged: requestPaint()
+                onShowValuesChanged: requestPaint()
+                onSelectedKeysChanged: requestPaint()
+                onPreviewsChanged: requestPaint()
+                onFirstStepChanged: requestPaint()
+                onCellWidthChanged: requestPaint()
+                onScrollXChanged: requestPaint()
+                onStepWindowChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
+                Connections {
+                    target: Ui.Theme
+                    function onTextPrimaryChanged() { paint.requestPaint() }
+                    function onTextSecondaryChanged() { paint.requestPaint() }
+                    function onSurfaceCanvasChanged() { paint.requestPaint() }
+                    function onBorderFocusChanged() { paint.requestPaint() }
+                }
+                function box(ctx, x, y, w, h, radius, fill, border, stroke) {
+                    ctx.beginPath()
+                    ctx.roundedRect(x, y, Math.max(0, w), Math.max(0, h), radius, radius)
+                    ctx.fillStyle = fill
+                    ctx.fill()
+                    if (border > 0) {
+                        ctx.lineWidth = border
+                        ctx.strokeStyle = stroke
+                        ctx.stroke()
                     }
-                    // Repeat: one thin bar per repeat, up to 16.
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: Ui.Metrics.border
-                        Repeater {
-                            model: lane.mode === "repeat" && cell.on ? Math.min(16, cell.stepData.repeat || 1) : 0
-                            delegate: Rectangle { width: Ui.Metrics.border * 2; height: cell.height * 0.4; color: Ui.Theme.surfaceCanvas; opacity: 0.6 }
+                }
+                onPaint: {
+                    const ctx = getContext("2d")
+                    const row = rowData
+                    if (!ctx || !row || !row.steps || width <= 0 || height <= 0) return
+                    ctx.reset()
+                    const steps = row.steps
+                    const first = firstStep
+                    const end = Math.min(row.lengthSteps, first + stepWindow)
+                    const gap = cells.gap
+                    const y = Ui.Metrics.micro
+                    const h = height - y * 2
+                    const color = rowColor
+                    const bars = barMode
+                    const range = Modes.range(row, mode)
+                    const selected = selectedKeys
+                    const preview = previews
+                    ctx.font = textFont
+                    ctx.textBaseline = "bottom"
+                    // A single forward pass carries tie state, including a tie
+                    // starting before the visible page. No backwards scan per cell.
+                    const ties = Modes.tieContinuations(row, preview, end)
+                    for (let i = 0; i < end; ++i) {
+                        const data = steps[i] || ({})
+                        const continues = ties[i]
+                        if (i < first) continue
+                        const key = row.id + ":" + i
+                        const p = preview[key]
+                        const on = p && p.on !== undefined ? p.on : !!data.on
+                        const inLoop = i >= row.loopStart && i < row.loopEnd
+                        const join = continues ? gap + Ui.Metrics.border + (i % 4 === 0 ? Ui.Metrics.xs : 0) : 0
+                        const x = root.panel.stepX(i) - scrollX - join
+                        const w = cellWidth - gap + join
+                        if (x + w <= 0 || x >= width) continue
+                        const playing = playingStep === i
+                        const isSelected = selected[key] === true
+                        const fill = mode === "loop" ? Qt.alpha(color, inLoop ? 0.55 : 0.12)
+                            : bars ? Qt.alpha(color, on ? 0.2 : 0.08)
+                            : on ? (row.mute ? Qt.alpha(color, 0.45) : color)
+                            : Qt.alpha(color, mainLane ? 0.16 : 0.1)
+                        const border = playing || isSelected ? Ui.Metrics.focus : Ui.Metrics.border
+                        // Rectangle borders lie inside their bounds.
+                        box(ctx, x + border / 2, y + border / 2, w - border, h - border, Ui.Metrics.micro,
+                            fill, border, playing ? Ui.Theme.textPrimary : isSelected ? Ui.Theme.borderFocus : Qt.alpha(color, on ? 0.9 : 0.28))
+                        const f = p && p.value !== undefined ? (p.value - range.min) / Math.max(1e-9, range.max - range.min) : Modes.fraction(row, i, mode)
+                        const clamped = Math.max(0, Math.min(1, f))
+                        if (bars) {
+                            const bh = Math.max(Ui.Metrics.micro, (h - Ui.Metrics.border * 2) * clamped)
+                            box(ctx, x + Ui.Metrics.border, y + h - Ui.Metrics.border - bh, w - Ui.Metrics.border * 2, bh,
+                                Ui.Metrics.micro, !on ? Qt.alpha(color, 0.3) : row.mute ? Qt.alpha(color, 0.45) : color, 0, color)
                         }
-                    }
-                    // Chance: a dot texture, one dot per 12.5 % (SQ30).
-                    Grid {
-                        anchors.centerIn: parent
-                        columns: 4
-                        spacing: Ui.Metrics.micro
-                        Repeater {
-                            model: lane.mode === "chance" && cell.on && !lane.barMode ? Math.round((cell.stepData.chance !== undefined ? cell.stepData.chance : 100) / 12.5) : 0
-                            delegate: Rectangle { width: Ui.Metrics.micro; height: Ui.Metrics.micro; radius: Ui.Metrics.micro; color: Ui.Theme.surfaceCanvas; opacity: 0.8 }
+                        if (mode === "repeat" && on) {
+                            const n = Math.min(16, data.repeat || 1)
+                            const bw = Ui.Metrics.border * 2
+                            const total = n * bw + (n - 1) * Ui.Metrics.border
+                            ctx.fillStyle = Qt.alpha(Ui.Theme.surfaceCanvas, 0.6)
+                            for (let r = 0; r < n; ++r) ctx.fillRect(x + (w - total) / 2 + r * (bw + Ui.Metrics.border), y + h * 0.3, bw, h * 0.4)
                         }
-                    }
-                    Ui.Text {
-                        // A number shows only when it fits the cell; the bar carries the value otherwise.
-                        readonly property bool wanted: lane.showValues || (cell.preview && cell.preview.value !== undefined)
-                        visible: wanted && implicitWidth <= width
-                        x: Ui.Metrics.xs
-                        anchors.bottom: parent.bottom
-                        anchors.bottomMargin: Ui.Metrics.micro
-                        width: parent.width - Ui.Metrics.xs
-                        text: !wanted ? "" : cell.preview && cell.preview.value !== undefined
-                            ? Modes.textFor(root.row, lane.mode, cell.preview.value, cell.stepData)
-                            : Modes.text(root.row, cell.step, lane.mode)
-                        role: Ui.Typography.MonoCaption
-                        domainColor: !cell.on ? Ui.Theme.textSecondary
-                            : !lane.barMode || valueBar.clamped > 0.4 ? Ui.Theme.surfaceCanvas : Ui.Theme.textPrimary
-                        tight: true
-                    }
-                    // A tie join: a diamond on the left edge (SQ30).
-                    Rectangle {
-                        visible: cell.continues
-                        width: Ui.Metrics.sm
-                        height: Ui.Metrics.sm
-                        rotation: 45
-                        x: cell.join - width / 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: Ui.Theme.surfaceCanvas
-                    }
-                    Rectangle {
-                        visible: lane.mode === "skip" && !!cell.stepData.skip
-                        anchors.centerIn: parent
-                        width: parent.width * 0.6
-                        height: Ui.Metrics.micro
-                        rotation: -35
-                        color: Ui.Theme.textPrimary
+                        if (mode === "chance" && on && !bars) {
+                            const n = Math.round((data.chance !== undefined ? data.chance : 100) / 12.5)
+                            const size = Ui.Metrics.micro
+                            const columns = Math.min(4, n)
+                            const rows = Math.ceil(n / 4)
+                            for (let r = 0; r < n; ++r) box(ctx, x + (w - (columns * 2 - 1) * size) / 2 + (r % 4) * size * 2,
+                                y + (h - (rows * 2 - 1) * size) / 2 + Math.floor(r / 4) * size * 2, size, size, size, Qt.alpha(Ui.Theme.surfaceCanvas, 0.8), 0, color)
+                        }
+                        if (showValues || (p && p.value !== undefined)) {
+                            const text = p && p.value !== undefined ? Modes.textFor(row, mode, p.value, data) : Modes.text(row, i, mode)
+                            if (ctx.measureText(text).width <= w - Ui.Metrics.xs) {
+                                ctx.fillStyle = !on ? Ui.Theme.textSecondary : !bars || clamped > 0.4 ? Ui.Theme.surfaceCanvas : Ui.Theme.textPrimary
+                                ctx.fillText(text, x + Ui.Metrics.xs, y + h - Ui.Metrics.micro)
+                            }
+                        }
+                        if (continues) {
+                            ctx.save()
+                            ctx.translate(x + join, y + h / 2)
+                            ctx.rotate(Math.PI / 4)
+                            ctx.fillStyle = Ui.Theme.surfaceCanvas
+                            ctx.fillRect(-Ui.Metrics.sm / 2, -Ui.Metrics.sm / 2, Ui.Metrics.sm, Ui.Metrics.sm)
+                            ctx.restore()
+                        }
+                        if (mode === "skip" && data.skip) {
+                            ctx.save()
+                            ctx.translate(x + w / 2, y + h / 2)
+                            ctx.rotate(-35 * Math.PI / 180)
+                            ctx.fillStyle = Ui.Theme.textPrimary
+                            ctx.fillRect(-w * 0.3, -Ui.Metrics.micro / 2, w * 0.6, Ui.Metrics.micro)
+                            ctx.restore()
+                        }
                     }
                 }
             }

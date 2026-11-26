@@ -194,6 +194,21 @@ function continuesTie(row, index) {
     return span.start < index
 }
 
+// Match continuesTie in one forward pass, including previewed anchors before
+// the visible page. A tied step carries the original anchor's on/off state.
+function tieContinuations(row, previews, end) {
+    var out = []
+    var anchorOn = false
+    for (var i = 0; i < Math.min(row.lengthSteps, end); ++i) {
+        var step = row.steps[i] || {}
+        var preview = previews[row.id + ":" + i]
+        var on = preview && preview.on !== undefined ? !!preview.on : !!step.on
+        out.push(i > 0 && !!step.tie && anchorOn)
+        if (i === 0 || !step.tie) anchorOn = on
+    }
+    return out
+}
+
 // 1-based step spec for the agent operations ("1,5,9").
 function oneBased(indices) {
     return indices.map(function (i) { return i + 1 }).join(",")

@@ -10,12 +10,16 @@
 
 #include <QDir>
 #include <QElapsedTimer>
+#include <QFile>
 #include <QFileInfo>
+#include <QJSEngine>
+#include <QSet>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
+#include <QPointer>
 #include <QQuickWindow>
 #include <QRegularExpression>
 #include <QSignalSpy>
@@ -23,7 +27,29 @@
 #include <QUndoStack>
 #include <QtTest>
 
+#include <atomic>
 #include <memory>
+
+// UI thread only. The fixture's track button reports its selection through this
+// probe, so timing includes input dispatch and synchronous panel loading.
+class StepSequencerSelectionProbe : public QObject {
+    Q_OBJECT
+public:
+    Q_INVOKABLE void selectTrack() { emit selected(); }
+    std::atomic<bool> cellsPainted{false};
+    QSet<QObject*> paintedCanvases;
+    QSet<QObject*> expectedCanvases;
+public slots:
+    void markCellsPainted() {
+        if (sender()) paintedCanvases.insert(sender());
+        if (paintedCanvases.size() == expectedCanvases.size() && !cellsPainted.exchange(true)) {
+            emit cellsReady();
+        }
+    }
+signals:
+    void cellsReady();
+    void selected();
+};
 
 // The Step Sequencer panel and its operations (SQ27 to SQ37, SQ46, SQ50 to SQ55).
 // UI thread only. Each test owns its engine, root and offscreen window.
@@ -57,6 +83,18 @@ class TestStepSequencerUi : public QObject {
             return nullptr;
         };
         return find(find, window->contentItem());
+    }
+    QQuickItem* cellCanvas(const QString& cellsName) const {
+        auto* cells = item(cellsName);
+        if (!cells) {
+            return nullptr;
+        }
+        for (auto* child : cells->childItems()) {
+            if (child->metaObject()->indexOfSignal("painted()") >= 0) {
+                return child;
+            }
+        }
+        return nullptr;
     }
     QQuickItem* panel() const { return item("panel"); }
     // The scene point of step `step` in the lane `lane`, at `fy` of its height.
@@ -109,6 +147,9 @@ class TestStepSequencerUi : public QObject {
   private slots:
     void init() {
         QTest::failOnWarning(QRegularExpression(QStringLiteral(".*(TypeError|ReferenceError|Binding loop).*")));
+        if (QByteArray(QTest::currentTestFunction()) == "perf1SelectionToFirstFrame") {
+            return;
+        }
         const auto pat = nt::midi::normalizePattern(QJsonObject{
             {"name", "Crazy Beat"},
             {"lengthSteps", 16},
@@ -133,11 +174,13 @@ import NodeTool.Timeline
 import "." as Local
 Item {
     width: 1300; height: 520
+    property bool showInspector: true
     required property var timeline
     required property var clock
-    Local.StepSequencerPanel { objectName: "panel"; anchors.fill: parent; clipId: "c" }
+    Local.StepSequencerPanel { objectName: "panel"; anchors.fill: parent; clipId: "c"; inspectorVisible: parent.showInspector }
 })", QUrl::fromLocalFile(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath(QStringLiteral("../../qml/stepsequencer/TestFixture.qml"))));
-        root.reset(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}}));
+        root.reset(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)},
+            {"showInspector", QByteArray(QTest::currentTestFunction()) != "hiddenInspectorLoadsOnFirstUse"}}));
         QVERIFY2(root, qPrintable(component.errorString()));
         window = std::make_unique<QQuickWindow>();
         window->resize(1300, 520);
@@ -152,6 +195,461 @@ Item {
         root.reset();
         window.reset();
         engine.reset();
+    }
+
+    // PERF1: cold panel creation after a track selection, including its first frame.
+    // Run this slot alone in a fresh process with QT_QPA_PLATFORM=offscreen and
+    // QT_QUICK_BACKEND=software for cold QML/factory measurements.
+    // Publication includes synchronous delegate creation triggered by the reset.
+    void perf1SelectionToFirstFrame() {
+        QJsonArray rows;
+        for (int i = 0; i < 16; ++i) {
+            rows.append(row(QString::number(i), QStringLiteral("Row %1").arg(i), 36 + i,
+                            QStringLiteral("x...").repeated(16)));
+        }
+        const auto pat = nt::midi::normalizePattern({{"lengthSteps", 64}, {"rows", rows}});
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(QJsonObject{
+            {"id", "perf1"}, {"fps", 30}, {"width", 1920}, {"height", 1080}, {"durationMs", 8000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "m"}, {"name", "Drums"}, {"type", "midi"}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "m"}, {"mediaType", "midi"},
+                {"startMs", 0}, {"durationMs", 8000}, {"inPointMs", 0}, {"outPointMs", 8000}, {"pattern", pat}}}}}).toJson());
+        QVERIFY2(parsed.timeline, qPrintable(parsed.error));
+        model.setTimeline(requireValue(parsed.timeline));
+        engine = std::make_unique<QQmlEngine>();
+        m_testCache.install(*engine);
+        window = std::make_unique<QQuickWindow>();
+        window->resize(1300, 520);
+        window->show(); // QT_QPA_PLATFORM=offscreen: no native visible window.
+        QVERIFY(QTest::qWaitForWindowExposed(window.get()));
+        const auto fixtureUrl = QUrl::fromLocalFile(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath())
+            .filePath(QStringLiteral("../../qml/stepsequencer/PerfFixture.qml")));
+        QQmlComponent host(engine.get());
+        StepSequencerSelectionProbe probe;
+        host.setData(R"(import QtQuick
+import NodeTool.UiPrimitives as Ui
+Item {
+    id: host
+    width: 1300; height: 520
+    required property var timeline
+    required property var clock
+    required property var probe
+    property var gestures: QtObject {
+        property var selection: []
+        function clipData(id) { return {mediaType: "midi", trackId: "m"} }
+    }
+    property var viewState: null
+    Ui.EditorButton {
+        objectName: "perfTrack"
+        text: "Step Sequencer Track"
+        onClicked: { host.gestures.selection = ["c"]; host.probe.selectTrack() }
+    }
+    function exerciseLookups(panel) {
+        let selected = 0
+        for (let r = 0; r < 16; ++r) for (let step = 0; step < 64; ++step) {
+            if (panel.isStepSelected(String(r), step)) ++selected
+            panel.previewFor(String(r), step)
+        }
+        return selected
+    }
+})", fixtureUrl);
+        root.reset(host.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)},
+                                                    {"probe", QVariant::fromValue(&probe)}}));
+        QVERIFY2(root, qPrintable(host.errorString()));
+        qobject_cast<QQuickItem*>(root.get())->setParentItem(window->contentItem());
+        QVERIFY(!window->grabWindow().isNull()); // Paint the shell before the click.
+        QElapsedTimer elapsed;
+        elapsed.start();
+        double compileMs = 0;
+        double createMs = 0;
+        std::atomic<qint64> firstFrameNs{0};
+        std::atomic<qint64> beforeRenderNs{0};
+        std::unique_ptr<QObject> loaded;
+        QObject timingScope;
+        connect(&probe, &StepSequencerSelectionProbe::cellsReady, window.get(), &QQuickWindow::update);
+        connect(window.get(), &QQuickWindow::beforeRendering, &timingScope, [&] {
+            qint64 unset = 0;
+            if (probe.cellsPainted.load()) {
+                beforeRenderNs.compare_exchange_strong(unset, elapsed.nsecsElapsed());
+            }
+        }, Qt::DirectConnection);
+        connect(window.get(), &QQuickWindow::frameSwapped, &timingScope, [&] {
+            qint64 unset = 0;
+            if (beforeRenderNs.load() > 0) {
+                firstFrameNs.compare_exchange_strong(unset, elapsed.nsecsElapsed());
+            }
+        }, Qt::DirectConnection);
+        connect(&probe, &StepSequencerSelectionProbe::selected, &timingScope,
+                [self = QPointer<TestStepSequencerUi>(this), &probe, &elapsed, &loaded, &compileMs, &createMs, &timingScope] {
+            if (!self) {
+                return;
+            }
+            const auto directory = qEnvironmentVariable("NT_PERF1_QML_ROOT");
+            const auto url = directory.isEmpty() ? QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/stepsequencer/StepSequencerPanel.qml")
+                : QUrl::fromLocalFile(QDir(directory).filePath("StepSequencerPanel.qml"));
+            QQmlComponent component(self->engine.get(), url);
+            QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+            compileMs = elapsed.nsecsElapsed() / 1e6;
+            loaded.reset(component.createWithInitialProperties({{"editor", QVariant::fromValue(self->root.get())},
+                {"parent", QVariant::fromValue(qobject_cast<QQuickItem*>(self->root.get()))}, {"width", 1300}, {"height", 520}}));
+            QVERIFY2(loaded, qPrintable(component.errorString()));
+            createMs = elapsed.nsecsElapsed() / 1e6 - compileMs;
+            auto* controller = qobject_cast<StepSequencerController*>(loaded->property("sequencer").value<QObject*>());
+            QVERIFY(controller);
+            const auto observeCells = [self, &probe] {
+                if (!self) return;
+                const auto viewport = self->window->contentItem()->boundingRect();
+                for (int i = 0; i < 16; ++i) {
+                    auto* canvas = self->cellCanvas("stepCells-" + QString::number(i));
+                    if (!canvas || !canvas->isVisible() ||
+                        !canvas->mapRectToScene(canvas->boundingRect()).intersects(viewport)) continue;
+                    if (probe.expectedCanvases.contains(canvas)) continue;
+                    probe.expectedCanvases.insert(canvas);
+                    QVERIFY(connect(canvas, SIGNAL(painted()), &probe, SLOT(markCellsPainted()), Qt::UniqueConnection));
+                    QVERIFY(QMetaObject::invokeMethod(canvas, "requestPaint"));
+                }
+            };
+            connect(controller, &StepSequencerController::patternChanged, &timingScope, observeCells);
+            observeCells();
+        });
+        auto* trackButton = item("perfTrack");
+        QVERIFY(trackButton);
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier,
+            trackButton->mapToScene({trackButton->width() / 2, trackButton->height() / 2}).toPoint());
+        QVERIFY(loaded);
+        window->update();
+        QTRY_VERIFY_WITH_TIMEOUT(firstFrameNs.load() > 0, 10000);
+        int visibleCanvases = 0;
+        for (int i = 0; i < 16; ++i) {
+            auto* canvas = cellCanvas("stepCells-" + QString::number(i));
+            if (canvas && canvas->isVisible() &&
+                canvas->mapRectToScene(canvas->boundingRect()).intersects(window->contentItem()->boundingRect())) {
+                ++visibleCanvases;
+            }
+        }
+        QVERIFY(visibleCanvases > 1);
+        QCOMPARE(probe.expectedCanvases.size(), visibleCanvases);
+        QCOMPARE(probe.paintedCanvases.size(), probe.expectedCanvases.size());
+        const double totalMs = firstFrameNs.load() / 1e6;
+        const double renderStartMs = beforeRenderNs.load() / 1e6;
+        auto* panelItem = qobject_cast<QQuickItem*>(loaded.get());
+        QVERIFY(panelItem);
+        auto* controller = qobject_cast<StepSequencerController*>(loaded->property("sequencer").value<QObject*>());
+        QVERIFY(controller);
+        QVERIFY(controller->valid());
+        QCOMPARE(controller->rowModel()->rowCount(), 16);
+        QCOMPARE(controller->rows().first().toMap()["steps"].toList().size(), 64);
+        QVERIFY(!window->grabWindow().isNull());
+        QElapsedTimer lookups;
+        lookups.start();
+        QVariant selected;
+        QVERIFY(QMetaObject::invokeMethod(root.get(), "exerciseLookups", Q_RETURN_ARG(QVariant, selected),
+            Q_ARG(QVariant, QVariant::fromValue(loaded.get()))));
+        const double lookupMs = lookups.nsecsElapsed() / 1e6;
+        QCOMPARE(selected.toInt(), 0);
+        QVERIFY(QMetaObject::invokeMethod(loaded.get(), "selectStep", Q_ARG(QVariant, "3"),
+            Q_ARG(QVariant, 7), Q_ARG(QVariant, false)));
+        QVERIFY(QMetaObject::invokeMethod(root.get(), "exerciseLookups", Q_RETURN_ARG(QVariant, selected),
+            Q_ARG(QVariant, QVariant::fromValue(loaded.get()))));
+        QCOMPARE(selected.toInt(), 1);
+        qInfo().nospace() << "Step Sequencer compile/load=" << compileMs << " ms, create=" << createMs
+            << " ms, polish/delegates=" << renderStartMs - compileMs - createMs
+            << " ms, render/frame=" << totalMs - renderStartMs
+            << " ms, selection-to-frame=" << totalMs << " ms, visual-items=" << descendants(panelItem)
+            << ", 1024 previewFor+isStepSelected pairs=" << lookupMs << " ms (separate sample)";
+#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
+        constexpr bool sanitized = true;
+#elif defined(__has_feature)
+        constexpr bool sanitized = __has_feature(address_sanitizer) || __has_feature(thread_sanitizer)
+            || __has_feature(undefined_behavior_sanitizer);
+#else
+        constexpr bool sanitized = false;
+#endif
+        if (!sanitized) {
+            QVERIFY2(totalMs < 150, qPrintable(QStringLiteral("Panel first frame took %1 ms").arg(totalMs)));
+        }
+
+    }
+
+    void lazyMenusOpenWithMouseAndKeyboard() {
+        auto* add = item("stepSequencerAddRow");
+        QVERIFY(add);
+        QVERIFY(!add->property("menu").value<QObject*>());
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier,
+            add->mapToScene({add->width() / 2, add->height() / 2}).toPoint());
+        auto* menu = add->property("menu").value<QObject*>();
+        QVERIFY(menu);
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QVERIFY(menu->property("count").toInt() > 3);
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        // Open another still-uncreated menu through keyboard activation.
+        auto* edit = item("stepSequencerEditMenu");
+        QVERIFY(edit);
+        QVERIFY(!edit->property("menu").value<QObject*>());
+        edit->forceActiveFocus();
+        QTest::keyClick(window.get(), Qt::Key_Space);
+        auto* editMenu = edit->property("menu").value<QObject*>();
+        QVERIFY(editMenu);
+        QTRY_VERIFY(editMenu->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(editMenu, "close"));
+    }
+
+    void unopenedMenusSupportReturnDownAndClick() {
+        const QStringList names{"stepSequencerEditMenu", "stepSequencerFunctionsMenu",
+            "stepSequencerViewMenu", "stepSequencerAddRow", "stepSequencerLength"};
+        for (int i = 0; i < names.size(); ++i) {
+            auto* button = item(names[i]);
+            QVERIFY(button);
+            button->forceActiveFocus();
+            if (i % 3 == 0) QTest::keyClick(window.get(), Qt::Key_Return);
+            else if (i % 3 == 1) QTest::keyClick(window.get(), Qt::Key_Down);
+            else QVERIFY(QMetaObject::invokeMethod(button, "click"));
+            auto* menu = button->property("menu").value<QObject*>();
+            QVERIFY2(menu, qPrintable(names[i]));
+            QTRY_VERIFY(menu->property("visible").toBool());
+            QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        }
+    }
+
+    void hiddenInspectorLoadsOnFirstUse() {
+        QVERIFY(!item("stepInspectorLength"));
+        panel()->setProperty("inspectorVisible", true);
+        QTRY_VERIFY(item("stepInspectorLength"));
+        QPointer<QQuickItem> length = item("stepInspectorLength");
+        panel()->setProperty("inspectorVisible", false);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QVERIFY(length);
+        panel()->setProperty("inspectorVisible", true);
+        QCOMPARE(item("stepInspectorLength"), length.data());
+    }
+
+    void inspectorControlsSurviveTabAndSelectionChanges() {
+        QVERIFY(QMetaObject::invokeMethod(panel(), "selectStep", Q_ARG(QVariant, "k"), Q_ARG(QVariant, 0), Q_ARG(QVariant, false)));
+        QPointer<QQuickItem> velocity = item("stepInspectorVelocity");
+        QVERIFY(velocity);
+        panel()->setProperty("inspectorTab", "row");
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QVERIFY(velocity);
+        panel()->setProperty("selectedSteps", QVariantList{});
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QVERIFY(velocity);
+        panel()->setProperty("inspectorTab", "step");
+        QVERIFY(QMetaObject::invokeMethod(panel(), "selectStep", Q_ARG(QVariant, "k"), Q_ARG(QVariant, 0), Q_ARG(QVariant, false)));
+        QCOMPARE(item("stepInspectorVelocity"), velocity.data());
+        auto* assignment = item("stepInspectorAssignment");
+        QVERIFY(assignment);
+        panel()->setProperty("inspectorTab", "row");
+        QVERIFY(QMetaObject::invokeMethod(assignment, "click"));
+        auto* menu = assignment->property("menu").value<QObject*>();
+        QVERIFY(menu);
+        QTRY_VERIFY(menu->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+    }
+
+    void hoverControlsSurvivePointerExit() {
+        auto* lane = item("stepLane-k");
+        QVERIFY(lane);
+        QTest::mouseMove(window.get(), lane->mapToScene({30, 10}).toPoint());
+        QTRY_VERIFY(item("stepRowAddSubrow-k"));
+        QPointer<QQuickItem> add = item("stepRowAddSubrow-k");
+        QTest::mouseMove(window.get(), {1290, 510});
+        QCoreApplication::processEvents();
+        QVERIFY(add);
+        QCOMPARE(item("stepRowAddSubrow-k"), add.data());
+    }
+
+    void libraryLoadsOnlyWhenRequested() {
+        auto* library = sequencer()->property("libraryModel").value<QAbstractItemModel*>();
+        QVERIFY(library);
+        QCOMPARE(library->rowCount(), 0);
+        panel()->setProperty("browserVisible", true);
+        QTRY_VERIFY(library->rowCount() > 0);
+    }
+
+    void selectionAndPreviewRepaintOnlyTheirRow() {
+        auto* kick = cellCanvas("stepCells-k");
+        auto* snare = cellCanvas("stepCells-s");
+        QVERIFY(kick && snare);
+        QTest::qWait(60);
+        QSignalSpy kickPaint(kick, SIGNAL(painted()));
+        QSignalSpy snarePaint(snare, SIGNAL(painted()));
+        QVERIFY(QMetaObject::invokeMethod(panel(), "selectStep", Q_ARG(QVariant, "k"), Q_ARG(QVariant, 0), Q_ARG(QVariant, false)));
+        QTRY_VERIFY(!kickPaint.isEmpty());
+        QTest::qWait(40);
+        QCOMPARE(snarePaint.size(), 0);
+        kickPaint.clear();
+        panel()->setProperty("previewMap", QVariantMap{{"k:3", QVariantMap{{"on", true}}}});
+        QTRY_VERIFY(!kickPaint.isEmpty());
+        QTest::qWait(40);
+        QCOMPARE(snarePaint.size(), 0);
+    }
+
+    void canvasRepaintsWhenLaneRoleChanges() {
+        auto* canvas = cellCanvas("stepCells-k");
+        auto* lane = item("stepLane-k");
+        QVERIFY(canvas && lane);
+        QTest::qWait(60);
+        QSignalSpy painted(canvas, SIGNAL(painted()));
+        lane->setProperty("main", false);
+        QTRY_VERIFY(!painted.isEmpty());
+    }
+
+    void tiePreviewBeforeVisiblePageChangesContinuation() {
+        op("set_steps", {{"row", "k"}, {"steps", "1-8"}, {"values", QVariantMap{{"on", true}, {"tie", true}}}});
+        panel()->setProperty("scrollX", 150);
+        QVERIFY(panel()->property("firstStep").toInt() > 0);
+        QTest::qWait(60);
+        auto* canvas = cellCanvas("stepCells-k");
+        QVERIFY(canvas);
+        const auto bounds = canvas->mapRectToScene(canvas->boundingRect()).toAlignedRect();
+        const auto before = window->grabWindow().copy(bounds);
+        QSignalSpy painted(canvas, SIGNAL(painted()));
+        panel()->setProperty("previewMap", QVariantMap{{"k:0", QVariantMap{{"on", false}}}});
+        QTRY_VERIFY(!painted.isEmpty());
+        const auto after = window->grabWindow().copy(bounds);
+        QVERIFY(before != after);
+    }
+
+    void contextMenusOpenAndSelectTheirTarget() {
+        auto* cells = item("stepGesture-k");
+        QVERIFY(cells);
+        QVERIFY(QMetaObject::invokeMethod(panel(), "openRowMenu",
+            Q_ARG(QVariant, "k"), Q_ARG(QVariant, QVariant::fromValue(cells)),
+            Q_ARG(QVariant, 10), Q_ARG(QVariant, 10)));
+        QCOMPARE(panel()->property("selectedRowId").toString(), QStringLiteral("k"));
+        auto* rowMenu = panel()->findChild<QObject*>("stepSequencerRowContextMenu");
+        QVERIFY(rowMenu);
+        QTRY_VERIFY(rowMenu->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(rowMenu, "close"));
+        QVERIFY(QMetaObject::invokeMethod(panel(), "openStepMenu",
+            Q_ARG(QVariant, "s"), Q_ARG(QVariant, 2),
+            Q_ARG(QVariant, QVariant::fromValue(cells)), Q_ARG(QVariant, 10), Q_ARG(QVariant, 10)));
+        QVERIFY(call("isStepSelected", "s", 2).toBool());
+        auto* stepMenu = panel()->findChild<QObject*>("stepSequencerStepContextMenu");
+        QVERIFY(stepMenu);
+        QTRY_VERIFY(stepMenu->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(stepMenu, "close"));
+    }
+
+    void canvasDrawsModesPlaybackSelectionAndPreview() {
+        auto* canvas = cellCanvas("stepCells-k");
+        QVERIFY(canvas);
+        const auto picture = [&] {
+            QSignalSpy painted(canvas, SIGNAL(painted()));
+            QMetaObject::invokeMethod(canvas, "requestPaint");
+            for (int tries = 0; painted.isEmpty() && tries < 100; ++tries) QTest::qWait(5);
+            const auto image = window->grabWindow();
+            return image.copy(canvas->mapRectToScene(canvas->boundingRect()).toAlignedRect());
+        };
+        const auto plain = picture();
+        QVERIFY(QMetaObject::invokeMethod(panel(), "selectStep", Q_ARG(QVariant, "k"),
+            Q_ARG(QVariant, 0), Q_ARG(QVariant, false)));
+        QVERIFY(plain != picture());
+        panel()->setProperty("selectedSteps", QVariantList{});
+        sequencer()->setProperty("playheadMs", 10.0);
+        QVERIFY(plain != picture());
+        sequencer()->setProperty("playheadMs", -1.0);
+        panel()->setProperty("previewMap", QVariantMap{{"k:3", QVariantMap{{"on", true}}}});
+        QVERIFY(plain != picture());
+        panel()->setProperty("previewMap", QVariantMap{});
+        for (const QString mode : {"repeat", "chance", "loop", "skip", "velocity"}) {
+            panel()->setProperty("editMode", mode);
+            const auto before = picture();
+            if (mode == "loop") {
+                op("set_pattern_row", {{"row", "k"}, {"loopStart", 2}, {"loopEnd", 8}});
+            } else {
+                const QVariantMap values = mode == "repeat" ? QVariantMap{{"repeat", 4}}
+                    : mode == "chance" ? QVariantMap{{"chance", 25}}
+                    : mode == "skip" ? QVariantMap{{"skip", true}} : QVariantMap{{"velocity", 30}};
+                op("set_steps", {{"row", "k"}, {"steps", "1"}, {"values", values}});
+            }
+            QVERIFY2(before != picture(), qPrintable(mode));
+        }
+        panel()->setProperty("displayValues", "all");
+        const auto values = picture();
+        panel()->setProperty("displayValues", "editing");
+        QVERIFY(values != picture());
+    }
+
+    void recycledRowsPaintAfterScrolling() {
+        for (int i = 0; i < 24; ++i) call("runAction", "addRow:notes:60");
+        auto* grid = item("stepSequencerGrid");
+        QVERIFY(grid);
+        QVERIFY(pattern()["rows"].toArray().size() > 16);
+        QVERIFY(grid->property("contentHeight").toDouble() > grid->height());
+        grid->setProperty("contentY", grid->property("contentHeight").toDouble() - grid->height());
+        QTest::qWait(60);
+        grid->setProperty("contentY", 0);
+        QTRY_VERIFY(cellCanvas("stepCells-k"));
+        auto* canvas = cellCanvas("stepCells-k");
+        QSignalSpy painted(canvas, SIGNAL(painted()));
+        op("set_steps", {{"row", "k"}, {"steps", "4"}, {"values", QVariantMap{{"on", true}}}});
+        QTRY_VERIFY(!painted.isEmpty());
+        QVERIFY(!window->grabWindow().isNull());
+    }
+
+    void tiePassMatchesExistingContract() {
+        QFile source(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath())
+            .filePath("../../qml/stepsequencer/StepSequencerModes.js"));
+        QVERIFY(source.open(QIODevice::ReadOnly));
+        QJSEngine js;
+        auto code = QString::fromUtf8(source.readAll());
+        code.remove(".pragma library");
+        QVERIFY(!js.evaluate(code).isError());
+        // Enumerate every on/tie combination in four steps. continuesTie is
+        // the existing contract, independent of the new forward pass.
+        const auto result = js.evaluate(R"(
+            (function() {
+                for (let mask = 0; mask < 256; ++mask) {
+                    const row = {id: "r", lengthSteps: 4, steps: []}
+                    for (let i = 0; i < 4; ++i) row.steps.push({on: !!(mask & (1 << i)), tie: !!(mask & (16 << i))})
+                    const actual = tieContinuations(row, {}, 4)
+                    for (let i = 0; i < 4; ++i) if (actual[i] !== continuesTie(row, i)) return mask + ":" + i
+                }
+                const row = {id: "r", lengthSteps: 3, steps: [{on: true}, {on: false, tie: true}, {on: true, tie: true}]}
+                if (JSON.stringify(tieContinuations(row, {}, 3)) !== "[false,true,true]") return "off tied step"
+                if (JSON.stringify(tieContinuations(row, {"r:0": {on: false}}, 3)) !== "[false,false,false]") return "preview anchor"
+                return "ok"
+            })()
+        )");
+        QCOMPARE(result.toString(), QStringLiteral("ok"));
+    }
+
+    void browserSearchSurvivesHiding() {
+        panel()->setProperty("browserVisible", true);
+        auto* browser = item("stepSequencerBrowser");
+        QVERIFY(browser);
+        browser->setProperty("query", "boom");
+        auto* library = sequencer()->property("libraryModel").value<QAbstractItemModel*>();
+        QVERIFY(library);
+        const int filteredCount = library->rowCount();
+        QVERIFY(filteredCount > 1);
+        panel()->setProperty("browserVisible", false);
+        panel()->setProperty("browserVisible", true);
+        browser = item("stepSequencerBrowser");
+        QVERIFY(browser);
+        QCOMPARE(browser->property("query").toString(), QStringLiteral("boom"));
+        QCOMPARE(library->rowCount(), filteredCount);
+    }
+
+    void paintedCellsFollowEditsAndUndo() {
+        const auto point = stepPoint("stepGesture-k", 3);
+        auto colorAtStep = [&] {
+            const auto image = window->grabWindow();
+            return image.pixelColor(point * image.devicePixelRatio());
+        };
+        auto* canvas = cellCanvas("stepCells-k");
+        QVERIFY(canvas);
+        QSignalSpy painted(canvas, SIGNAL(painted()));
+        QVERIFY(QMetaObject::invokeMethod(canvas, "requestPaint"));
+        QTRY_VERIFY(!painted.isEmpty());
+        const auto off = colorAtStep();
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier, point);
+        QTRY_VERIFY(step(0, 3)["on"].toBool());
+        QTRY_VERIFY(colorAtStep() != off);
+        model.undoStack()->undo();
+        QTRY_VERIFY(!step(0, 3)["on"].toBool());
+        QTRY_COMPARE(colorAtStep(), off);
     }
 
     // SQ3d: the empty state creates a 1-bar pattern region at the playhead and edits it.
@@ -268,6 +766,7 @@ QtObject {
         QCOMPARE(changes.count(), 0);
     }
     void sq3bS13ExternalSaveRefreshes() {
+        panel()->setProperty("browserVisible", true);
         QTemporaryDir dir;
         nt::midi::setUserStepPatternLibraryRoot(dir.path());
         QSignalSpy changes(sequencer(), SIGNAL(libraryChanged()));
@@ -277,6 +776,7 @@ QtObject {
         nt::midi::setUserStepPatternLibraryRoot({});
     }
     void sq3bS13MixedBatchRefreshes() {
+        panel()->setProperty("browserVisible", true);
         QTemporaryDir dir;
         nt::midi::setUserStepPatternLibraryRoot(dir.path());
         auto* controller = qobject_cast<StepSequencerController*>(sequencer());
@@ -318,15 +818,15 @@ QtObject {
         call("runAction", "learnAssign");
         QVERIFY(sequencer()->property("learnMode").toString().isEmpty());
     }
-    void sq3bS17ConstructorLoadsOnce() {
-        QFile source(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("StepSequencerController.cpp"));
-        QVERIFY(source.open(QIODevice::ReadOnly));
-        const auto text = QString::fromUtf8(source.readAll());
-        const auto ctor = text.section("StepSequencerController::StepSequencerController(QObject* parent)", 1)
-                              .section("bool StepSequencerController::eventFilter", 0, 0)
-                              .section("QVariantList StepSequencerController::addRowGroups", 0, 0);
-        QVERIFY(!ctor.isEmpty());
-        QCOMPARE(ctor.count(QRegularExpression(QStringLiteral("\\b(?:loadLibrary|reloadLibrary)\\("))), 1);
+    void sq3bS17LibraryLoadsOnceOnRequest() {
+        StepSequencerController controller;
+        QCOMPARE(controller.libraryModel()->rowCount(), 0);
+        QSignalSpy changes(&controller, &StepSequencerController::libraryChanged);
+        controller.ensureLibraryLoaded();
+        QVERIFY(controller.libraryModel()->rowCount() > 0);
+        QCOMPARE(changes.size(), 1);
+        controller.ensureLibraryLoaded();
+        QCOMPARE(changes.size(), 1);
     }
 
     void sq3bS16FilteredResetNeverShowsUnfiltered() {
@@ -632,6 +1132,7 @@ QtObject {
 
     // F19: a browser search updates rows in place, without a model reset.
     void browserSearchKeepsTheModel() {
+        panel()->setProperty("browserVisible", true);
         auto* library = sequencer()->property("libraryModel").value<QAbstractItemModel*>();
         QVERIFY(library);
         const int all = library->rowCount();
@@ -733,6 +1234,7 @@ QtObject {
 
     // SQ43: Save Pattern adds a user entry to the browser, and it loads back.
     void browserSavesUserPattern() {
+        panel()->setProperty("browserVisible", true);
         QTemporaryDir dir;
         nt::midi::setUserStepPatternLibraryRoot(dir.path());
         auto* library = sequencer()->property("libraryModel").value<QAbstractItemModel*>();

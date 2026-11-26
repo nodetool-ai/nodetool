@@ -145,7 +145,8 @@ class StepSequencerController : public QObject {
     QVariantList library() const;
     QAbstractItemModel* libraryModel() const { return m_libraryModel; }
     QVariantList addRowGroups() const;
-    Q_INVOKABLE void setLibraryQuery(const QString& query) { m_libraryModel->setQuery(query); }
+    Q_INVOKABLE void setLibraryQuery(const QString& query) { ensureLibraryLoaded(); m_libraryModel->setQuery(query); }
+    Q_INVOKABLE void ensureLibraryLoaded();
     double playheadMs() const { return m_playheadMs; }
     void setPlayheadMs(double ms);
 
@@ -240,6 +241,7 @@ class StepSequencerController : public QObject {
     QSet<int> m_heldNotes;
     QMap<int, int> m_chordNotes;
     QVariantList m_library;
+    bool m_libraryLoaded = false;
     int m_reloadCount = 0;
     QString m_firstMidiTrackId;
 };

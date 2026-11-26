@@ -149,14 +149,13 @@ StepSequencerController::StepSequencerController(QObject* parent)
     : QObject(parent), m_rowModel(new StepSequencerRowModel(this)),
       // NOLINT(cppcoreguidelines-owning-memory): parented to this controller
       m_libraryModel(new StepSequencerLibraryModel({}, this)) {
-    reloadLibrary();
     if (auto* app = QCoreApplication::instance()) app->installEventFilter(this);
 }
 
 bool StepSequencerController::eventFilter(QObject* watched, QEvent* event) {
     if (watched == QCoreApplication::instance() && event->type() == QEvent::DynamicPropertyChange) {
         const auto name = static_cast<QDynamicPropertyChangeEvent*>(event)->propertyName();
-        if (name == "ntStepPatternLibraryRevision" || name == "ntStepPatternLibraryRoot") reloadLibrary();
+        if (m_libraryLoaded && (name == "ntStepPatternLibraryRevision" || name == "ntStepPatternLibraryRoot")) reloadLibrary();
     }
     return QObject::eventFilter(watched, event);
 }
@@ -549,7 +548,12 @@ int StepSequencerController::playingStep(const QString& rowId, double ms) { retu
 
 QString StepSequencerController::noteName(int pitch) const { return nt::midi::stepNoteName(pitch); }
 
+void StepSequencerController::ensureLibraryLoaded() {
+    if (!m_libraryLoaded) reloadLibrary();
+}
+
 void StepSequencerController::reloadLibrary() {
+    m_libraryLoaded = true;
     const auto next = loadLibrary();
     if (next == m_library) return;
     m_library = next;

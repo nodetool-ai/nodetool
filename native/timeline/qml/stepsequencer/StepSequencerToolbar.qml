@@ -108,12 +108,9 @@ Rectangle {
         height: parent.height
         spacing: Ui.Metrics.xs
         leftPadding: Ui.Metrics.md
-        Trigger { text: qsTr("Edit"); objectName: "stepSequencerEditMenu"; menu: editMenu
-            Ui.ContextMenu { id: editMenu; entries: root.editEntries; onEntryTriggered: id => root.panel.runAction(id) } }
-        Trigger { text: qsTr("Functions"); objectName: "stepSequencerFunctionsMenu"; menu: functionsMenu
-            Ui.ContextMenu { id: functionsMenu; entries: root.functionEntries; onEntryTriggered: id => root.panel.runAction(id) } }
-        Trigger { text: qsTr("View"); objectName: "stepSequencerViewMenu"; menu: viewMenu
-            Ui.ContextMenu { id: viewMenu; entries: root.viewEntries; onEntryTriggered: id => root.panel.runAction(id) } }
+        Trigger { text: qsTr("Edit"); objectName: "stepSequencerEditMenu"; menuComponent: Component { Ui.ContextMenu { entries: root.editEntries; onEntryTriggered: id => root.panel.runAction(id) } } }
+        Trigger { text: qsTr("Functions"); objectName: "stepSequencerFunctionsMenu"; menuComponent: Component { Ui.ContextMenu { entries: root.functionEntries; onEntryTriggered: id => root.panel.runAction(id) } } }
+        Trigger { text: qsTr("View"); objectName: "stepSequencerViewMenu"; menuComponent: Component { Ui.ContextMenu { entries: root.viewEntries; onEntryTriggered: id => root.panel.runAction(id) } } }
         Divider {}
         Icon { objectName: "stepSequencerBrowserToggle"; iconName: "queueMusic"; tip: qsTr("Pattern Browser"); active: root.panel.browserVisible; onClicked: root.panel.runAction("browser") }
         Icon { objectName: "stepSequencerInspectorToggle"; iconName: "tune"; tip: qsTr("Inspector"); active: root.panel.inspectorVisible; onClicked: root.panel.runAction("inspector") }

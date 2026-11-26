@@ -77,6 +77,13 @@ Rectangle {
     property var rowDrag: null              // {id, from, target}
     property bool inspectorVisible: true
     property bool browserVisible: false
+    property bool browserLoaded: false
+    onBrowserVisibleChanged: {
+        if (browserVisible) {
+            controller.ensureLibraryLoaded()
+            browserLoaded = true
+        }
+    }
     property bool linkOn: true
     property bool rowColors: true
     property string displayValues: "selected"   // "editing" | "selected" | "all" (D100)
@@ -160,7 +167,10 @@ Rectangle {
     function pruneSelection() {
         if (selectedRowId && !rows.some(r => r.id === selectedRowId)) selectedRowId = rows.length ? rows[0].id : ""
         if (!selectedRowId && rows.length) selectedRowId = rows[0].id
-        selectedSteps = selectedSteps.filter(s => rows.some(r => r.id === s.row && s.step < r.lengthSteps))
+        const remaining = selectedSteps.filter(s => rows.some(r => r.id === s.row && s.step < r.lengthSteps))
+        if (remaining.length !== selectedSteps.length) {
+            selectedSteps = remaining
+        }
     }
 
     // ── Writes ──────────────────────────────────────────────────────────────
@@ -182,7 +192,12 @@ Rectangle {
         selectedRowId = id
         if (inspectorTab === "step" && !selectedSteps.length) inspectorTab = "row"
     }
-    function isStepSelected(rowId, step) { return selectedSteps.some(s => s.row === rowId && s.step === step) }
+    readonly property var selectedStepKeys: {
+        const keys = Object.create(null)
+        for (const s of selectedSteps) keys[s.row + ":" + s.step] = true
+        return keys
+    }
+    function isStepSelected(rowId, step) { return selectedStepKeys[rowId + ":" + step] === true }
     function selectStep(rowId, step, additive) {
         const exists = isStepSelected(rowId, step)
         if (!additive) selectedSteps = [{row: rowId, step: step}]
@@ -687,13 +702,17 @@ Rectangle {
         y: patternBar.y + patternBar.height
         width: parent.width
         height: parent.height - y
-        StepSequencerBrowser {
+        Loader {
             id: browser
-            objectName: "stepSequencerBrowser"
-            panel: root
+            // Keep search and scroll state after its first use.
+            active: root.browserVisible || root.browserLoaded
             visible: root.browserVisible
             width: visible ? root.sideWidth : 0
             height: parent.height
+            sourceComponent: StepSequencerBrowser {
+                objectName: "stepSequencerBrowser"
+                panel: root
+            }
         }
         StepSequencerInspector {
             id: inspector
@@ -721,7 +740,7 @@ Rectangle {
             visible: controller.valid
             model: controller.rowModel
             reuseItems: true
-            cacheBuffer: Math.round(root.rowHeight * 2)
+            cacheBuffer: Math.round(root.rowHeight)
             boundsBehavior: Flickable.StopAtBounds
             delegate: StepSequencerRow {
                 panel: root
@@ -771,36 +790,48 @@ Rectangle {
         message: controller.lastError
     }
 
-    Ui.ContextMenu {
+    Loader {
         id: rowMenu
-        property string rowId: ""
-        entries: [
-            {id: "renameRow", label: qsTr("Rename Row"), shortcut: "⇧↩"},
-            {id: "muteRow", label: qsTr("Mute Row")},
-            {id: "soloRow", label: qsTr("Solo Row")},
-            {separator: true},
-            {id: "addSubrow", label: qsTr("Add Subrow")},
-            {id: "deleteSubrow", label: qsTr("Delete Subrow")},
-            {separator: true},
-            {id: "clearRow", label: qsTr("Clear Row")},
-            {id: "clearRowMode", label: qsTr("Clear Current Mode for Row")},
-            {id: "deleteRow", label: qsTr("Delete Row")}
-        ]
-        onEntryTriggered: id => root.runAction(id)
+        active: false
+        sourceComponent: Ui.ContextMenu {
+            objectName: "stepSequencerRowContextMenu"
+            entries: [
+                {id: "renameRow", label: qsTr("Rename Row"), shortcut: "⇧↩"},
+                {id: "muteRow", label: qsTr("Mute Row")},
+                {id: "soloRow", label: qsTr("Solo Row")},
+                {separator: true},
+                {id: "addSubrow", label: qsTr("Add Subrow")},
+                {id: "deleteSubrow", label: qsTr("Delete Subrow")},
+                {separator: true},
+                {id: "clearRow", label: qsTr("Clear Row")},
+                {id: "clearRowMode", label: qsTr("Clear Current Mode for Row")},
+                {id: "deleteRow", label: qsTr("Delete Row")}
+            ]
+            onEntryTriggered: id => root.runAction(id)
+        }
     }
-    function openRowMenu(rowId, item, x, y) { selectedRowId = rowId; rowMenu.popupAt(item, x, y) }
-    Ui.ContextMenu {
+    function openRowMenu(rowId, item, x, y) {
+        selectedRowId = rowId
+        rowMenu.active = true
+        if (rowMenu.item) rowMenu.item.popupAt(item, x, y)
+    }
+    Loader {
         id: stepMenu
-        entries: [
-            {id: "toggleStep", label: qsTr("Toggle Step")},
-            {id: "clearStep", label: qsTr("Clear Step")},
-            {id: "randomizeSteps", label: qsTr("Randomize Selected Steps")}
-        ]
-        onEntryTriggered: id => root.runAction(id)
+        active: false
+        sourceComponent: Ui.ContextMenu {
+            objectName: "stepSequencerStepContextMenu"
+            entries: [
+                {id: "toggleStep", label: qsTr("Toggle Step")},
+                {id: "clearStep", label: qsTr("Clear Step")},
+                {id: "randomizeSteps", label: qsTr("Randomize Selected Steps")}
+            ]
+            onEntryTriggered: id => root.runAction(id)
+        }
     }
     function openStepMenu(rowId, step, item, x, y) {
         if (!isStepSelected(rowId, step)) selectStep(rowId, step, false)
-        stepMenu.popupAt(item, x, y)
+        stepMenu.active = true
+        if (stepMenu.item) stepMenu.item.popupAt(item, x, y)
     }
     Ui.Dialog {
         id: saveDialog

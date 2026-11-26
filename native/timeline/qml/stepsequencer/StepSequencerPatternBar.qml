@@ -62,8 +62,7 @@ Rectangle {
             iconName: "add"
             accessibleName: qsTr("Add Row")
             enabled: root.editable
-            menu: addMenu
-            Ui.ContextMenu { id: addMenu; entries: root.addEntries; onEntryTriggered: id => root.panel.runAction(id) }
+            menuComponent: Component { Ui.ContextMenu { entries: root.addEntries; onEntryTriggered: id => root.panel.runAction(id) } }
         }
         Ui.Select {
             objectName: "stepSequencerRate"
@@ -177,8 +176,7 @@ Rectangle {
         text: (root.settings.lengthSteps || 16) === 1 ? qsTr("1 Step") : qsTr("%1 Steps").arg(root.settings.lengthSteps || 16)
         accessibleName: qsTr("Pattern Length")
         enabled: root.editable
-        menu: lengthMenu
-        Ui.ContextMenu { id: lengthMenu; entries: root.lengthEntries; onEntryTriggered: id => root.panel.runAction(id) }
+        menuComponent: Component { Ui.ContextMenu { entries: root.lengthEntries; onEntryTriggered: id => root.panel.runAction(id) } }
     }
     Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.border; color: Ui.Theme.borderSubtle }
 
