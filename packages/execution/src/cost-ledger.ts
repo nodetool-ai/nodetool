@@ -440,7 +440,7 @@ export function attachRunCostLedger(
 ): RunCostLedgerHandle {
   const state = createTrackerState();
   const pending = new Set<Promise<void>>();
-  let chain: Promise<void> = Promise.resolve();
+  const generationWrites = new Map<string, Promise<void>>();
   const detach = context.addMessageListener((msg) => {
     const isCostMessage =
       msg.type === "prediction" ||
@@ -448,13 +448,34 @@ export function attachRunCostLedger(
         msg.status === "completed" &&
         Boolean(msg.provider_cost));
     if (!isCostMessage) return;
-    const write = chain
-      .then(() => recordFromMessage(msg, options, state))
+
+    const generationId = msg.type === "prediction" ? msg.id : null;
+    let operation: Promise<void>;
+    if (generationId) {
+      const previous = generationWrites.get(generationId);
+      operation = previous
+        ? previous.then(() => recordFromMessage(msg, options, state))
+        : recordFromMessage(msg, options, state);
+    } else if (pending.size > 0) {
+      const priorWrites = [...pending];
+      operation = Promise.all(priorWrites).then(() =>
+        recordFromMessage(msg, options, state)
+      );
+    } else {
+      operation = recordFromMessage(msg, options, state);
+    }
+
+    const write = operation
       .catch(() => undefined)
       .finally(() => {
         pending.delete(write);
+        if (generationId && generationWrites.get(generationId) === write) {
+          generationWrites.delete(generationId);
+        }
       });
-    chain = write;
+    if (generationId) {
+      generationWrites.set(generationId, write);
+    }
     pending.add(write);
   });
   return Object.assign(detach, {
