@@ -20819,6 +20819,22 @@
       "scriptMissing": "Manuset hittades inte: {{name}}",
       "scriptEmpty": "Det här manuset har inga repliker än.",
       "openScript": "Öppna manus"
+    },
+    "sidePanel": {
+      "tabs": "Sidopanel",
+      "chat": "AI-chatt",
+      "structure": "Struktur"
+    },
+    "outline": {
+      "source": "Struktur för",
+      "current": "Aktuell",
+      "snapshot": "Ögonblicksbild",
+      "label": "Dokumentstruktur",
+      "snapshotLabel": "Struktur för ögonblicksbild",
+      "emptyTitle": "Inga rubriker",
+      "emptyBody": "Börja en rad med #, ## eller ### för att lägga till en rubrik. Rubriker visas här så att du kan hoppa direkt till dem.",
+      "snapshotEmptyBody": "Den här ögonblicksbilden har inga rubriker.",
+      "noSnapshotBody": "Välj en ögonblicksbild för att se dess struktur."
     }
   },
   "librarySearch": {

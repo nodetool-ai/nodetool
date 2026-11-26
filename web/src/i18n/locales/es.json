@@ -21138,6 +21138,22 @@
       "scriptMissing": "Guion no encontrado: {{name}}",
       "scriptEmpty": "Este guion aún no tiene líneas.",
       "openScript": "Abrir guion"
+    },
+    "sidePanel": {
+      "tabs": "Panel lateral",
+      "chat": "Chat de IA",
+      "structure": "Estructura"
+    },
+    "outline": {
+      "source": "Estructura de",
+      "current": "Actual",
+      "snapshot": "Instantánea",
+      "label": "Estructura del documento",
+      "snapshotLabel": "Estructura de la instantánea",
+      "emptyTitle": "Sin encabezados",
+      "emptyBody": "Empieza una línea con #, ## o ### para añadir un encabezado. Los encabezados aparecen aquí para que puedas saltar a ellos.",
+      "snapshotEmptyBody": "Esta instantánea no tiene encabezados.",
+      "noSnapshotBody": "Selecciona una instantánea para ver su estructura."
     }
   },
   "librarySearch": {

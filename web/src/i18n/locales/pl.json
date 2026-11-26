@@ -21457,6 +21457,22 @@
       "scriptMissing": "Nie znaleziono skryptu: {{name}}",
       "scriptEmpty": "Ten skrypt nie ma jeszcze kwestii.",
       "openScript": "Otwórz skrypt"
+    },
+    "sidePanel": {
+      "tabs": "Panel boczny",
+      "chat": "Czat AI",
+      "structure": "Struktura"
+    },
+    "outline": {
+      "source": "Struktura dla",
+      "current": "Bieżąca",
+      "snapshot": "Migawka",
+      "label": "Struktura dokumentu",
+      "snapshotLabel": "Struktura migawki",
+      "emptyTitle": "Brak nagłówków",
+      "emptyBody": "Zacznij wiersz od #, ## lub ###, aby dodać nagłówek. Nagłówki pojawiają się tutaj, aby można było od razu do nich przejść.",
+      "snapshotEmptyBody": "Ta migawka nie ma nagłówków.",
+      "noSnapshotBody": "Wybierz migawkę, aby zobaczyć jej strukturę."
     }
   },
   "librarySearch": {

@@ -20819,6 +20819,22 @@
       "scriptMissing": "Käsikirjoitusta ei löytynyt: {{name}}",
       "scriptEmpty": "Tässä käsikirjoituksessa ei ole vielä repliikkejä.",
       "openScript": "Avaa käsikirjoitus"
+    },
+    "sidePanel": {
+      "tabs": "Sivupaneeli",
+      "chat": "Tekoälychat",
+      "structure": "Rakenne"
+    },
+    "outline": {
+      "source": "Rakenne:",
+      "current": "Nykyinen",
+      "snapshot": "Tilannekuva",
+      "label": "Asiakirjan rakenne",
+      "snapshotLabel": "Tilannekuvan rakenne",
+      "emptyTitle": "Ei otsikoita",
+      "emptyBody": "Aloita rivi merkeillä #, ## tai ### lisätäksesi otsikon. Otsikot näkyvät täällä, ja voit siirtyä niihin suoraan.",
+      "snapshotEmptyBody": "Tässä tilannekuvassa ei ole otsikoita.",
+      "noSnapshotBody": "Valitse tilannekuva nähdäksesi sen rakenteen."
     }
   },
   "librarySearch": {
