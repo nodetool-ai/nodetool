@@ -18296,7 +18296,7 @@
                       "const": "sampler"
                     },
                     "zones": {
-                      "maxItems": 32,
+                      "maxItems": 64,
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -18310,7 +18310,11 @@
                           },
                           "assetId": {
                             "type": "string",
-                            "pattern": "^[a-f0-9]{32}$"
+                            "pattern": "^$|^[a-f0-9]{32}$"
+                          },
+                          "mediaPath": {
+                            "type": "string",
+                            "minLength": 1
                           },
                           "rootNote": {
                             "type": "integer",
@@ -18327,7 +18331,62 @@
                             "minimum": 0,
                             "maximum": 127
                           },
+                          "lowVelocity": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 127
+                          },
+                          "highVelocity": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 127
+                          },
                           "gainDb": {
+                            "type": "number",
+                            "minimum": -60,
+                            "maximum": 12
+                          },
+                          "pan": {
+                            "type": "number",
+                            "minimum": -1,
+                            "maximum": 1
+                          },
+                          "tuneCents": {
+                            "type": "number",
+                            "minimum": -100,
+                            "maximum": 100
+                          },
+                          "loopMode": {
+                            "type": "string",
+                            "enum": [
+                              "oneShot",
+                              "sustain"
+                            ]
+                          },
+                          "loopStart": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "loopEnd": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "loopCrossfadeMs": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 500
+                          },
+                          "releaseAssetId": {
+                            "type": "string",
+                            "pattern": "^$|^[a-f0-9]{32}$"
+                          },
+                          "releaseMediaPath": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "releaseGainDb": {
                             "type": "number",
                             "minimum": -60,
                             "maximum": 12
@@ -18352,10 +18411,40 @@
                       "minimum": 0,
                       "maximum": 10000
                     },
+                    "decayMs": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 10000
+                    },
+                    "sustain": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
                     "releaseMs": {
                       "type": "number",
                       "minimum": 0,
                       "maximum": 30000
+                    },
+                    "velocityCurve": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    },
+                    "glideMs": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2000
+                    },
+                    "voiceLimit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 64
+                    },
+                    "pitchBendRange": {
+                      "type": "number",
+                      "minimum": 1,
+                      "maximum": 24
                     },
                     "gainDb": {
                       "type": "number",
@@ -19128,6 +19217,10 @@
                         "type": "string",
                         "pattern": "^(?:[a-f0-9]{12}|[a-f0-9]{32})$"
                       },
+                      "mediaPath": {
+                        "type": "string",
+                        "minLength": 1
+                      },
                       "rootNote": {
                         "type": "integer",
                         "minimum": 0,
@@ -19143,7 +19236,62 @@
                         "minimum": 0,
                         "maximum": 127
                       },
+                      "lowVelocity": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 127
+                      },
+                      "highVelocity": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 127
+                      },
                       "gainDb": {
+                        "type": "number",
+                        "minimum": -60,
+                        "maximum": 12
+                      },
+                      "pan": {
+                        "type": "number",
+                        "minimum": -1,
+                        "maximum": 1
+                      },
+                      "tuneCents": {
+                        "type": "number",
+                        "minimum": -100,
+                        "maximum": 100
+                      },
+                      "loopMode": {
+                        "type": "string",
+                        "enum": [
+                          "oneShot",
+                          "sustain"
+                        ]
+                      },
+                      "loopStart": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "loopEnd": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "loopCrossfadeMs": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 500
+                      },
+                      "releaseAssetId": {
+                        "type": "string",
+                        "pattern": "^$|^[a-f0-9]{32}$"
+                      },
+                      "releaseMediaPath": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "releaseGainDb": {
                         "type": "number",
                         "minimum": -60,
                         "maximum": 12
@@ -19168,10 +19316,40 @@
                   "minimum": 0,
                   "maximum": 10000
                 },
+                "decayMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 10000
+                },
+                "sustain": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
                 "releaseMs": {
                   "type": "number",
                   "minimum": 0,
                   "maximum": 30000
+                },
+                "velocityCurve": {
+                  "type": "number",
+                  "minimum": -1,
+                  "maximum": 1
+                },
+                "glideMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2000
+                },
+                "voiceLimit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "pitchBendRange": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 24
                 },
                 "gainDb": {
                   "type": "number",
