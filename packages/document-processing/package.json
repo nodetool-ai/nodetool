@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/document-processing",
-  "version": "0.8.17",
+  "version": "0.8.18",
   "description": "PDF processing for explicitly installed document features",
   "type": "module",
   "engines": {

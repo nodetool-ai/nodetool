@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/data-nodes",
-  "version": "0.8.17",
+  "version": "0.8.18",
   "description": "NodeTool data nodes — dataframes (CSV), RSS feeds, charts",
   "type": "module",
   "engines": {
