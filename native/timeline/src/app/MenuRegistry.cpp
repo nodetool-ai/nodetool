@@ -43,6 +43,10 @@ bool nt::app::registerMenuItem(MenuItem item) {
 const std::vector<nt::app::MenuItem>& nt::app::menuItems() {
     return items();
 }
+QString nt::app::shellEntryLabel(const ShellMenuEntry& entry, const QVariantMap& context) {
+    const QString label = entry.labelFor ? entry.labelFor(context) : QString();
+    return label.isEmpty() ? entry.label : label;
+}
 const QStringList& nt::app::shellMenuNames() {
     static const QStringList names{"File", "Edit", "Clip", "Sequence", "Markers", "View", "Playback", "Window", "Help"};
     return names;

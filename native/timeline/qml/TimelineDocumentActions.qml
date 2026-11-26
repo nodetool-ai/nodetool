@@ -114,13 +114,14 @@ Item {
                 }
             }
             // The account's Cloud and Shared with me timelines below the ones
-            // on this computer, at most half the list's height.
+            // on this computer, at most half the list's height, only after the
+            // person signed in from the File menu.
             Loader {
                 id: cloudList
                 objectName: "timelineListCloud"
                 width: parent.width
                 height: item ? Math.min(item.contentHeight, listPopup.height / 2) : 0
-                active: listPopup.visible && actions.cloudBrowser !== null
+                active: listPopup.visible && actions.cloudBrowser !== null && actions.cloudBrowser.signedIn
                 visible: active
                 enabled: !actions.switching
                 sourceComponent: Flickable {

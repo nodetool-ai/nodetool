@@ -159,9 +159,10 @@ endif()
 if(BUILD_TESTING)
     # AccountControl.qml and its slot in StatusBar.qml against a real
     # AccountController and the account library's fake token server.
-    qt_add_executable(node_editor_account_control_component_tests tests/ui/AccountControlComponentTest.cpp)
-    target_link_libraries(node_editor_account_control_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
-    target_include_directories(node_editor_account_control_component_tests PRIVATE ../account/tests)
+    # It also drives the File menu's account entries (src/ui/AccountMenu.cpp).
+    qt_add_executable(node_editor_account_control_component_tests tests/ui/AccountControlComponentTest.cpp src/ui/AccountMenu.cpp)
+    target_link_libraries(node_editor_account_control_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Widgets Qt6::Test)
+    target_include_directories(node_editor_account_control_component_tests PRIVATE ../account/tests src/ui)
     nodetool_use_ui_primitives(node_editor_account_control_component_tests)
     add_test(NAME node_editor_account_control_component COMMAND node_editor_account_control_component_tests)
     set_tests_properties(node_editor_account_control_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
@@ -238,7 +239,7 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/CommandScore.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/AccountMenu.cpp src/ui/AccountMenu.h src/ui/EditorWindow.h src/ui/CommandScore.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
  src/ui/CanvasCapture.cpp src/ui/CanvasCapture.h
  src/ui/CanvasOverlay.h src/ui/CanvasSurface.h
  src/ui/QuickCanvas.cpp src/ui/QuickCanvas.h)

@@ -12,17 +12,35 @@ import NodeTool.UiPrimitives as Ui
 // to, switches between them, and offers Sign in to another server…, which
 // asks for the address before the browser opens.
 //
-// One file, compiled into the QML module of each app: NodeTool.NodeEditor
-// shows it in the status bar, NodeTool.Timeline in the document bar. Each
-// module registers AccountController and AccountServers.
+// One file, compiled into the QML module of each app. Each module registers
+// AccountController and AccountServers. The apps keep cloud sign-in out of
+// their bars: the timeline's document bar holds this control with
+// `showInline` false, so its server menu and server dialog serve the File
+// menu's account entries.
 RowLayout {
     id: root
     required property AccountController account
     property AccountServers servers: null
+    // False hides every inline control. The server menu and the server
+    // dialog still open from openServerMenu() and openServerDialog().
+    property bool showInline: true
     readonly property int state: root.account.state
     readonly property bool signedIn: state === AccountController.SignedIn
     readonly property bool signingIn: state === AccountController.SigningIn
     spacing: Ui.Metrics.sm
+
+    function openServerDialog() {
+        if (!root.servers) return false
+        serverAddress.text = ""
+        serverError.text = ""
+        serverDialog.open()
+        return true
+    }
+    function openServerMenu() {
+        if (!root.servers) return false
+        serverMenu.popup(root, 0, root.height)
+        return true
+    }
 
     // The name a server shows in the menu: NodeTool Cloud for the default,
     // otherwise its host.
@@ -36,7 +54,7 @@ RowLayout {
         objectName: "account-status"
         // Signed in, the button carries the name. Otherwise the sentence says
         // what is pending or why cloud features are off.
-        visible: !root.signedIn && text !== "" && text !== "Not signed in"
+        visible: root.showInline && !root.signedIn && text !== "" && text !== "Not signed in"
         text: root.account.statusText
         role: Ui.Typography.SansCaption
         tone: Ui.Text.Disabled
@@ -44,7 +62,7 @@ RowLayout {
     }
     Ui.Text {
         objectName: "account-message"
-        visible: text !== "" && !root.signingIn
+        visible: root.showInline && text !== "" && !root.signingIn
         text: root.account.message
         role: Ui.Typography.SansCaption
         tone: Ui.Text.Error
@@ -55,7 +73,7 @@ RowLayout {
     Ui.MenuButton {
         id: serverButton
         objectName: "account-server-button"
-        visible: root.servers !== null && !root.signingIn
+        visible: root.showInline && root.servers !== null && !root.signingIn
         text: root.servers ? root.serverLabel(root.servers.currentServer) : ""
         variant: Ui.EditorButton.Flat
         density: Ui.EditorButton.Compact
@@ -90,17 +108,13 @@ RowLayout {
             Ui.MenuItem {
                 objectName: "account-add-server"
                 text: "Sign in to another server…"
-                onTriggered: {
-                    serverAddress.text = ""
-                    serverError.text = ""
-                    serverDialog.open()
-                }
+                onTriggered: root.openServerDialog()
             }
         }
     }
     Ui.EditorButton {
         objectName: "account-sign-in"
-        visible: root.servers === null && !root.signedIn && !root.signingIn
+        visible: root.showInline && root.servers === null && !root.signedIn && !root.signingIn
         enabled: root.account.cloudAvailable
         text: "Sign in"
         iconName: "personOutline"
@@ -111,7 +125,7 @@ RowLayout {
     }
     Ui.EditorButton {
         objectName: "account-cancel"
-        visible: root.signingIn
+        visible: root.showInline && root.signingIn
         text: "Cancel sign-in"
         variant: Ui.EditorButton.Flat
         density: Ui.EditorButton.Compact
@@ -120,7 +134,7 @@ RowLayout {
     Ui.MenuButton {
         id: accountButton
         objectName: "account-menu-button"
-        visible: root.signedIn
+        visible: root.showInline && root.signedIn
         text: root.account.displayName
         iconName: "personOutline"
         variant: Ui.EditorButton.Flat

@@ -45,7 +45,12 @@ struct ShellMenuEntry {
     MenuPredicate run = {};
     QString disabledReason = {};  // why the item is off while `enabled` is false
     bool repeatable = false;
+    // set: the menu shows this label instead of `label`, read again each time
+    // the menu opens. An empty result keeps `label`.
+    std::function<QString(const QVariantMap&)> labelFor = {};
 };
+// The label `entry` shows in `context`.
+QString shellEntryLabel(const ShellMenuEntry& entry, const QVariantMap& context);
 const QStringList& shellMenuNames();
 bool registerShellMenuItem(ShellMenuEntry entry);
 bool unregisterShellMenuItem(const QString& action);

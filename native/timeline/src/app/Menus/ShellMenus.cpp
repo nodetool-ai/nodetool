@@ -116,7 +116,7 @@ void insertEntries(std::vector<ShellMenuItem>& items, size_t at, const std::vect
     QString group;  // Built-in items have no group.
     QHash<QString, QString> submenuGroups;
     for (const auto& entry : entries) {
-        ShellMenuItem item{entry.label, entry.action, {}, {}, entryEnabled(entry, context), {}};
+        ShellMenuItem item{shellEntryLabel(entry, context), entry.action, {}, {}, entryEnabled(entry, context), {}};
         item.disabledReason = item.enabled ? QString() : entry.disabledReason;
         item.checkable = bool(entry.checked);
         item.checked = entry.checked && entry.checked(context);
@@ -483,6 +483,7 @@ void ShellMenus::refreshRegisteredItems() {
         }
         for (const auto& entry : shellMenuEntries()) {
             if (entry.action == registered.action) {
+                item->setText(shellEntryLabel(entry, context));
                 item->setEnabled(entryEnabled(entry, context));
                 item->setCheckable(bool(entry.checked));
                 item->setChecked(entry.checked && entry.checked(context));

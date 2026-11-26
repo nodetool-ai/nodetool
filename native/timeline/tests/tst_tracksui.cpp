@@ -17,6 +17,7 @@
 #include <QThreadPool>
 #include "edit/ClipGestureController.h"
 #include "app/EditRegistry.h"
+#include "app/MenuRegistry.h"
 #include <QScopeGuard>
 #include "edit/EditActions.h"
 #include "playback/PlaybackClock.h"
@@ -52,6 +53,7 @@
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickView>
+#include <QQuickItemGrabResult>
 #include <QRandomGenerator>
 #include <QSignalSpy>
 #include <QScopeGuard>
@@ -2814,7 +2816,10 @@ private slots:
         // Next and previous marker.
         key(Qt::Key_M, Qt::ShiftModifier, "M");
         QCOMPARE(clock->time(), 6000.0);
+        // Qt Meta is physical Ctrl on macOS, which KEY1 deliberately ignores.
         key(Qt::Key_M, Qt::ShiftModifier | Qt::MetaModifier, "M");
+        QCOMPARE(clock->time(), 6000.0);
+        key(Qt::Key_M, Qt::ShiftModifier | Qt::ControlModifier, "M");
         QCOMPARE(clock->time(), 2500.0);
         // Delete through the ruler, then undo it and the adds.
         auto* rulerItem = region->findChild<QQuickItem*>(QStringLiteral("timeRuler"));
@@ -2889,6 +2894,8 @@ private slots:
         QCOMPARE(vs->rangeInMs(), -1.0);
         QCOMPARE(vs->rangeOutMs(), 2000.0);
         key(Qt::Key_X, Qt::ShiftModifier | Qt::MetaModifier, "X");
+        QCOMPARE(vs->rangeOutMs(), 2000.0);
+        key(Qt::Key_X, Qt::ShiftModifier | Qt::ControlModifier, "X");
         QCOMPARE(vs->rangeOutMs(), -1.0);
         QCOMPARE(model->undoStack()->count(), 0);  // the range is view state
     }
@@ -3236,7 +3243,11 @@ private slots:
     // account servers. The account here has a temporary data folder, a
     // keychain in memory and cloud features turned off, so it reaches no
     // server.
-    void documentBarHostsTheAccountControl() {
+    // Cloud sign-in is opt-in (ACC1). The document bar shows no account
+    // control, a fresh account is signed out, so the timeline works on this
+    // computer, and File holds the account entries, which drive the bar's
+    // hidden account host.
+    void documentBarKeepsCloudSignInInTheFileMenu() {
         load({2, 2});
         QTemporaryDir data;
         nodetool::account::qt::AccountServers servers(
@@ -3246,7 +3257,6 @@ private slots:
                 services.serverOrigin = origin;
                 services.app = "timeline";
                 services.store = std::make_unique<nodetool::account::MemorySecretStore>();
-                services.policy = [] { return nodetool::account::parsePolicyJson("{\"CloudEnabled\": false}"); };
                 return services;
             });
         QQmlComponent harness(view->engine());
@@ -3263,14 +3273,94 @@ private slots:
             collect(rootItem, [&](QQuickItem* it) { if (!found && it->objectName() == name) found = it; });
             return found;
         };
-        QVERIFY(!find("documentAccount")->property("active").toBool());
+        const auto visibleAccountControls = [&] {
+            QStringList names;
+            collect(rootItem, [&](QQuickItem* it) {
+                if (it->objectName().startsWith(QStringLiteral("account-")) && it->isVisible() && it->width() > 0)
+                    names << it->objectName();
+            });
+            return names;
+        };
+        auto* host = find("documentAccount");
+        QVERIFY(host);
+        QVERIFY(!host->property("available").toBool());
+        QVERIFY(visibleAccountControls().isEmpty());
+
         root->setProperty("servers", QVariant::fromValue(&servers));
-        QTRY_VERIFY(find("account-server-button") && find("account-server-button")->isVisible());
-        QVERIFY(!find("account-sign-in") || !find("account-sign-in")->isVisible());
-        QTRY_COMPARE(find("account-status")->property("text").toString(),
-                     QStringLiteral("Cloud features are turned off on this computer"));
+        QTRY_VERIFY(host->property("available").toBool());
+        // A fresh state is local: signed out, with no cloud control in the bar.
+        QVERIFY(!host->property("signedIn").toBool());
+        QVERIFY(!host->property("signingIn").toBool());
+        QCOMPARE(host->width(), 0.0);
+        QTRY_VERIFY(find("account-server-button") != nullptr);
+        QVERIFY2(visibleAccountControls().isEmpty(), qPrintable(visibleAccountControls().join(", ")));
+        QVERIFY(!find("shareButton")->isVisible());
+        QVERIFY(!find("documentCloudStatus")->isVisible());
+
+        // File holds the entries, and they reach the host.
+        QStringList actions;
+        for (const auto& entry : nt::app::shellMenuEntries(QStringLiteral("File")))
+            if (entry.group == QStringLiteral("account")) actions << entry.action;
+        QCOMPARE(actions, (QStringList{"accountSignIn", "accountOtherServer", "accountSwitchServer", "shareTimeline"}));
+        const QVariantMap context{{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(controller())}};
+        const auto entry = [](const QString& action) {
+            for (const auto& e : nt::app::shellMenuEntries())
+                if (e.action == action) return e;
+            return nt::app::ShellMenuEntry{};
+        };
+        QCOMPARE(nt::app::shellEntryLabel(entry("accountSignIn"), context), QStringLiteral("Sign In to NodeTool Cloud…"));
+        QVERIFY(entry("accountOtherServer").enabled(context));
+        QVERIFY(!entry("accountSwitchServer").enabled(context));
+        QVERIFY(!entry("shareTimeline").enabled(context));
+        QVERIFY(entry("accountOtherServer").run(context));
+        auto* dialog = root->findChild<QObject*>(QStringLiteral("account-server-dialog"));
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("visible").toBool());
     }
 
+    void acc1Shots() {
+        const QString dir = qEnvironmentVariable("ACC1_SHOTS");
+        if (dir.isEmpty()) QSKIP("ACC1_SHOTS unset");
+        load({2, 2});
+        QTemporaryDir data;
+        nodetool::account::qt::AccountServers servers(
+            data.path().toStdString(), "https://nt.example", [&data](const std::string& origin) {
+                nodetool::account::qt::AccountServices services;
+                services.dataDir = data.path().toStdString();
+                services.serverOrigin = origin;
+                services.app = "timeline";
+                services.store = std::make_unique<nodetool::account::MemorySecretStore>();
+                return services;
+            });
+        const auto grab = [&](const QString& barUrl, const QString& file) {
+            QQmlComponent harness(view->engine());
+            harness.setData(("import QtQuick\nimport NodeTool.Timeline\nimport \"" + barUrl + "\" as B\n"
+                             "Rectangle { width: 1200; height: 40; color: \"black\"; property TimelineModel model; property AccountServers servers: null;"
+                             " B.Bar { width: 1200; timeline: parent.model; accountServers: parent.servers } }").toUtf8(),
+                            QUrl());
+            std::unique_ptr<QObject> root(harness.createWithInitialProperties(
+                {{"model", QVariant::fromValue(model)}, {"servers", QVariant::fromValue(&servers)}}));
+            QVERIFY2(root, qPrintable(harness.errorString()));
+            auto* item = qobject_cast<QQuickItem*>(root.get());
+            item->setParentItem(view->contentItem());
+            item->setZ(1000);
+            QTest::qWait(400);
+            const auto result = item->grabToImage();
+            QVERIFY(result);
+            QSignalSpy ready(result.data(), &QQuickItemGrabResult::ready);
+            QVERIFY(ready.wait(5000));
+            QVERIFY(result->image().save(dir + "/" + file));
+        };
+        grab(QUrl::fromLocalFile(dir + "/../acc1-before").toString(), "documentbar-before.png");
+        grab(QUrl::fromLocalFile(dir + "/../acc1-after").toString(), "documentbar-after.png");
+        // The File menu, as the shell lists it while signed out.
+        QFile listing(dir + "/timeline-file-menu-account-entries.txt");
+        QVERIFY(listing.open(QIODevice::WriteOnly));
+        const QVariantMap context{{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(controller())}};
+        for (const auto& entry : nt::app::shellMenuEntries(QStringLiteral("File")))
+            listing.write((entry.group + "  " + nt::app::shellEntryLabel(entry, context)
+                           + ((entry.enabled && !entry.enabled(context)) ? "  (disabled)" : "") + "\n").toUtf8());
+    }
 
     // A cloud timeline shows its synchronization status in place of the
     // server save status.
@@ -3825,6 +3915,9 @@ private slots:
     // runs in a child process on the platform QRhi through
     // QQuickRenderControl (Metal on macOS): no window is created.
     void filmstripTexturesSurviveASceneGraphInvalidation() {
+        if (qEnvironmentVariableIsSet("NT_TRACKSUI_OFFSCREEN_SUITE")) {
+            QSKIP("Platform QRhi coverage runs separately as tst_tracksui_scenegraph (window label)");
+        }
         if (!qEnvironmentVariableIsSet("NT_TRACKSUI_RHI")) {
             QProcess child;
             QProcessEnvironment env = QProcessEnvironment::systemEnvironment();

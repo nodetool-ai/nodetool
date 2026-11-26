@@ -1,4 +1,5 @@
-// AccountControl.qml and its place in StatusBar.qml, against a real
+// AccountControl.qml, the File menu's account entries (AccountMenu.cpp) and
+// the status bar without an account control, against a real
 // AccountController on a temporary data folder, an in-memory keychain and the
 // account library's fake token server, and CloudDocumentsPanel.qml against a
 // fake cloud transport. No EditorWindow, graph runner, QtNodes or cloud
@@ -13,6 +14,10 @@
 #include "nodetool/account/qt/ShareController.h"
 #include "nodetool/account/qt/TransferController.h"
 #include "test_support.h"
+#include "AccountMenu.h"
+
+#include <QAction>
+#include <QMenu>
 
 #include <QGuiApplication>
 #include <QQuickItem>
@@ -292,33 +297,138 @@ private slots:
         QVERIFY(!named(root, "account-sign-in")->property("enabled").toBool());
     }
 
-    // The status bar shows the control only when the host gives it the
-    // account servers.
-    void statusBarHostsTheControl() {
+    // Cloud sign-in is opt-in (ACC1): the status bar holds no account
+    // control, whatever the host gives it.
+    void statusBarHasNoAccountControl() {
         StatusModel status;
         PanelLayout panels;
-        {
-            QQuickView view;
-            view.setInitialProperties({{"status", QVariant::fromValue(&status)}, {"panels", QVariant::fromValue(&panels)}});
-            view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/StatusBar.qml"));
-            QCOMPARE(view.status(), QQuickView::Ready);
-            QVERIFY(!named(view.rootObject(), "status-account")->property("active").toBool());
-        }
-        Computer computer;
-        AccountServers servers(computer.data.path(), "https://nt.example",
-                               [&](const std::string &origin) { return computer.services(origin); });
         QQuickView view;
-        view.setInitialProperties({{"status", QVariant::fromValue(&status)},
-                                   {"panels", QVariant::fromValue(&panels)},
-                                   {"accountServers", QVariant::fromValue(&servers)}});
+        view.setInitialProperties({{"status", QVariant::fromValue(&status)}, {"panels", QVariant::fromValue(&panels)}});
         view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/StatusBar.qml"));
         QCOMPARE(view.status(), QQuickView::Ready);
         view.resize(1200, 28);
         view.show();
-        QVERIFY(named(view.rootObject(), "status-account")->property("active").toBool());
-        QVERIFY(!shown(view.rootObject(), "account-sign-in"));
-        QTRY_VERIFY(shown(view.rootObject(), "account-server-button"));
-        QCOMPARE(named(view.rootObject(), "account-server-button")->property("text").toString(), QString("NodeTool Cloud"));
+        QVERIFY(!named(view.rootObject(), "status-account"));
+        QVERIFY(!named(view.rootObject(), "account-sign-in"));
+        QVERIFY(!named(view.rootObject(), "account-server-button"));
+        QVERIFY(view.rootObject()->property("accountServers").isNull());
+    }
+
+    // File holds the account entries. A fresh state is local: signed out,
+    // with only Sign In to NodeTool Cloud… and the server submenu. The
+    // entries sign in, show the name, sign out and add a server.
+    void fileMenuSignsInAndOut() {
+        Computer computer;
+        computer.server.addCode("code-m", "u1", "Ada Lovelace");
+        AccountServers servers(computer.data.path(), "https://nt.example",
+                               [&](const std::string &origin) { return computer.services(origin); });
+        QMenu file;
+        QString asked = "team.example";
+        nodetool::node_editor::addAccountEntries(&file, &servers, nullptr, [&] { return asked; });
+        const auto action = [&](const char *name) { return file.findChild<QAction *>(QLatin1String(name)); };
+        const auto sync = [&] { nodetool::node_editor::syncAccountEntries(&file, &servers); };
+        QVERIFY(action("account-menu-sign-in"));
+        QCOMPARE(servers.current()->state(), AccountController::State::SignedOut);
+        QVERIFY(action("account-menu-sign-in")->isVisible());
+        QCOMPARE(action("account-menu-sign-in")->text(), QString("Sign In to NodeTool Cloud…"));
+        QVERIFY(!action("account-menu-cancel")->isVisible());
+        QVERIFY(!action("account-menu-name")->isVisible());
+        QVERIFY(!action("account-menu-sign-out")->isVisible());
+        QVERIFY(action("account-menu-servers-action")->isVisible());
+
+        QUrl authorize;
+        connect(&servers, &AccountServers::browserRequested, this, [&](const QUrl &url) { authorize = url; });
+        action("account-menu-sign-in")->trigger();
+        QTRY_COMPARE(servers.current()->state(), AccountController::State::SigningIn);
+        sync();
+        QVERIFY(action("account-menu-cancel")->isVisible());
+        QVERIFY(!action("account-menu-sign-in")->isVisible());
+        QTRY_VERIFY(authorize.isValid());
+        completeInBrowser(authorize, "code-m");
+        QTRY_COMPARE(servers.current()->state(), AccountController::State::SignedIn);
+        sync();
+        QVERIFY(action("account-menu-name")->isVisible());
+        QCOMPARE(action("account-menu-name")->text(), QString("Signed in as Ada Lovelace"));
+        QVERIFY(!action("account-menu-name")->isEnabled());
+        QVERIFY(action("account-menu-sign-out")->isVisible());
+        action("account-menu-sign-out")->trigger();
+        QTRY_COMPARE(servers.current()->state(), AccountController::State::SignedOut);
+
+        // Sign In to Another Server… switches and opens that server's sign-in.
+        authorize = QUrl();
+        action("account-menu-add-server")->trigger();
+        QTRY_COMPARE(servers.currentServer(), QString("https://team.example"));
+        QTRY_VERIFY(authorize.isValid());
+        servers.current()->cancelSignIn();
+        QTRY_COMPARE(servers.current()->state(), AccountController::State::SignedOut);
+        sync();
+        auto *submenu = file.findChild<QMenu *>(QStringLiteral("account-menu-servers"));
+        QVERIFY(submenu->findChild<QAction *>(QStringLiteral("account-menu-server-https://nt.example")));
+        auto *team = submenu->findChild<QAction *>(QStringLiteral("account-menu-server-https://team.example"));
+        QVERIFY(team && team->isChecked());
+        QCOMPARE(action("account-menu-sign-in")->text(), QString("Sign In to team.example…"));
+        submenu->findChild<QAction *>(QStringLiteral("account-menu-server-https://nt.example"))->trigger();
+        QCOMPARE(servers.currentServer(), QString("https://nt.example"));
+    }
+
+    void acc1Shots() {
+        const QString dir = qEnvironmentVariable("ACC1_SHOTS");
+        if (dir.isEmpty()) { QSKIP("ACC1_SHOTS unset"); }
+        Computer computer;
+        computer.server.addCode("code-s", "u1", "Ada Lovelace");
+        AccountServers servers(computer.data.path(), "https://nt.example",
+                               [&](const std::string &origin) { return computer.services(origin); });
+        StatusModel status;
+        status.setStatus({.connected = true});
+        PanelLayout panels;
+        const auto grabBar = [&](const QUrl &url, const QString &file, bool withServers) {
+            QQuickView view;
+            QVariantMap props{{"status", QVariant::fromValue(&status)}, {"panels", QVariant::fromValue(&panels)}};
+            if (withServers) { props.insert("accountServers", QVariant::fromValue(&servers)); }
+            view.setInitialProperties(props);
+            view.setResizeMode(QQuickView::SizeRootObjectToView);
+            view.setSource(url);
+            QCOMPARE(view.status(), QQuickView::Ready);
+            view.resize(1200, 28);
+            view.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&view));
+            QTest::qWait(300);
+            QVERIFY(view.grabWindow().save(dir + "/" + file));
+        };
+        grabBar(QUrl::fromLocalFile(dir + "/../StatusBarBefore.qml"), "statusbar-before.png", true);
+        grabBar(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/StatusBar.qml"), "statusbar-after.png", false);
+        QMenu file;
+        file.addAction("Save");
+        file.addAction("Save As…");
+        file.addSeparator();
+        file.addAction("Publish to Cloud…");
+        file.addAction("Synchronize…");
+        file.addSeparator();
+        nodetool::node_editor::addAccountEntries(&file, &servers, nullptr, [] { return QString(); });
+        file.addSeparator();
+        file.addAction("Settings…");
+        file.adjustSize();
+        QVERIFY(file.grab().save(dir + "/node-editor-file-menu-signed-out.png"));
+        QUrl authorize;
+        connect(&servers, &AccountServers::browserRequested, this, [&](const QUrl &url) { authorize = url; });
+        servers.current()->signIn();
+        QTRY_VERIFY(authorize.isValid());
+        completeInBrowser(authorize, "code-s");
+        QTRY_COMPARE(servers.current()->state(), AccountController::State::SignedIn);
+        nodetool::node_editor::syncAccountEntries(&file, &servers);
+        file.adjustSize();
+        QVERIFY(file.grab().save(dir + "/node-editor-file-menu-signed-in.png"));
+        auto *submenu = file.findChild<QMenu *>(QStringLiteral("account-menu-servers"));
+        emit submenu->aboutToShow();
+        submenu->adjustSize();
+        QVERIFY(submenu->grab().save(dir + "/node-editor-cloud-server-submenu.png"));
+    }
+
+    // Without a host, the File menu gets no account entries.
+    void fileMenuWithoutServersAddsNothing() {
+        QMenu file;
+        nodetool::node_editor::addAccountEntries(&file, nullptr, nullptr);
+        QVERIFY(file.actions().isEmpty());
     }
 
     // Sign in to another server… asks for the address first, refuses one
@@ -521,6 +631,23 @@ private slots:
     // CloudBrowser.
     void workflowBrowserHostsTheCloudGroups() {
         Computer computer;
+        {
+            // Signed out, the browser shows no cloud group.
+            auto signedOut = computer.app();
+            CloudBrowser idle("workflow", std::make_unique<ListTransport>());
+            idle.setAccount(signedOut.get());
+            WorkflowBrowser browser;
+            PanelLayout panels;
+            StatusModel status;
+            QQuickView view;
+            view.setInitialProperties({{"browser", QVariant::fromValue(&browser)},
+                                       {"panels", QVariant::fromValue(&panels)},
+                                       {"status", QVariant::fromValue(&status)},
+                                       {"cloudBrowser", QVariant::fromValue(&idle)}});
+            view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/WorkflowBrowser.qml"));
+            QCOMPARE(view.status(), QQuickView::Ready);
+            QVERIFY(!named(view.rootObject(), "workflow-browser-cloud")->property("active").toBool());
+        }
         computer.server.addCode("code-w", "u1", "Ada");
         auto account = computer.app();
         connect(account.get(), &AccountController::browserRequested, this,

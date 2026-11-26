@@ -387,12 +387,13 @@ Rectangle {
                     }
                 }
                 Ui.EditorButton { objectName: "load-more-workflows"; text: "Load more workflows"; Layout.fillWidth: true; visible: root.browser.hasNext; enabled: !root.pending; onClicked: root.browser.loadNext() }
-                // The account's cloud workflows below the ones on this computer.
+                // The account's cloud workflows below the ones on this computer,
+                // only after the person signed in from the File menu.
                 Loader {
                     objectName: "workflow-browser-cloud"
                     Layout.fillWidth: true
                     Layout.topMargin: Ui.Metrics.lg
-                    active: root.cloudBrowser !== null
+                    active: root.cloudBrowser !== null && root.cloudBrowser.signedIn
                     visible: active
                     sourceComponent: CloudDocumentsPanel {
                         browser: root.cloudBrowser
