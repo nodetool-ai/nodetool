@@ -117,11 +117,20 @@ describe("WebSearchNode (OpenAI)", () => {
     await expect(node.process()).rejects.toThrow(/query cannot be empty/i);
   });
 
-  it("calls chat/completions with web_search_options", async () => {
+  it("calls the Responses API with the web_search tool", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        choices: [{ message: { content: "Search result text" } }]
+        output: [
+          { type: "web_search_call", status: "completed" },
+          {
+            type: "message",
+            content: [
+              { type: "output_text", text: "Search ", annotations: [] },
+              { type: "output_text", text: "result text", annotations: [] }
+            ]
+          }
+        ]
       })
     });
 
@@ -132,9 +141,11 @@ describe("WebSearchNode (OpenAI)", () => {
     node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
     const result = await node.process();
 
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/responses$/);
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.model).toBe("gpt-4o-search-preview");
-    expect(body.web_search_options).toBeDefined();
+    expect(body.model).toBe("gpt-5.4-mini");
+    expect(body.tools).toEqual([{ type: "web_search" }]);
+    expect(body.input).toBe("latest news");
     expect(result.output).toBe("Search result text");
   });
 });
