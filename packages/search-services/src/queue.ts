@@ -18,6 +18,9 @@ import { METADATA_FIELDS } from "./index-writer.js";
 import { removeChunkVectors } from "./semantic.js";
 import { existingSourceIds } from "./sources.js";
 
+/** Chunks extraction leaves alone: the inline write's and enrichment's. */
+const KEPT_FIELDS = [...METADATA_FIELDS, "caption", "transcript"] as const;
+
 /** How long one claim holds an item. */
 export const LEASE_MS = 10 * 60 * 1000;
 /** Attempts before an item stays `failed`. */
@@ -136,13 +139,13 @@ export async function completeItem(
       .where(stillOurs(item))
       .returning({ id: searchItems.id });
     if (updated.length === 0) return false;
-    // Body passages are every chunk the inline write does not own.
+    // Body passages are every chunk neither the inline write nor enrichment owns.
     const owned = await db
       .select({ id: searchChunks.id, field: searchChunks.field })
       .from(searchChunks)
       .where(eq(searchChunks.item_id, item.id));
     const stale = owned
-      .filter((chunk) => !(METADATA_FIELDS as readonly string[]).includes(chunk.field))
+      .filter((chunk) => !(KEPT_FIELDS as readonly string[]).includes(chunk.field))
       .map((chunk) => chunk.id);
     for (let start = 0; start < stale.length; start += 500) {
       await db.delete(searchChunks).where(inArray(searchChunks.id, stale.slice(start, start + 500)));

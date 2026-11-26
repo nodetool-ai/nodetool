@@ -45,7 +45,14 @@ export const searchRouter = router({
       if (input.kinds) request.kinds = input.kinds;
       if (input.project_id !== undefined) request.projectId = input.project_id;
       if (input.filter) request.filter = input.filter;
-      const result = await searchLibrary(request);
+      if (input.similar_to) request.similarTo = input.similar_to;
+      let result: Awaited<ReturnType<typeof searchLibrary>>;
+      try {
+        result = await searchLibrary(request);
+      } catch (error) {
+        if (!input.similar_to) throw error;
+        throwApiError(ApiErrorCode.NOT_FOUND, error instanceof Error ? error.message : String(error));
+      }
       return {
         hits: result.hits.map((hit) => ({
           item_id: hit.itemId,

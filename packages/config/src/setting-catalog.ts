@@ -384,7 +384,17 @@ s(
 s(
   "NODETOOL_SEARCH_DAILY_SPEND_LIMIT",
   "Library Search",
-  "Most US dollars hosted embedding for library search may cost in one day. Empty means no limit."
+  "Most US dollars hosted models for library search may cost in one day: embeddings, captions and transcripts together. Empty means no limit."
+);
+s(
+  "NODETOOL_SEARCH_CAPTION_MODEL",
+  "Library Search",
+  "Model that describes images without a prompt so library search finds them by what they show, as provider:model, such as openai:gpt-4o-mini. Empty turns captions off."
+);
+s(
+  "NODETOOL_SEARCH_TRANSCRIPT_MODEL",
+  "Library Search",
+  "Speech-to-text model that transcribes audio and video for library search, as provider:model, such as openai:whisper-1. Empty turns transcripts off."
 );
 
 // Search

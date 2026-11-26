@@ -32,7 +32,9 @@ export const LIBRARY_SEARCH_SETTINGS = {
   provider: "NODETOOL_SEARCH_EMBEDDING_PROVIDER",
   model: "NODETOOL_SEARCH_EMBEDDING_MODEL",
   excludedProjects: "NODETOOL_SEARCH_EXCLUDED_PROJECTS",
-  dailySpendLimit: "NODETOOL_SEARCH_DAILY_SPEND_LIMIT"
+  dailySpendLimit: "NODETOOL_SEARCH_DAILY_SPEND_LIMIT",
+  captionModel: "NODETOOL_SEARCH_CAPTION_MODEL",
+  transcriptModel: "NODETOOL_SEARCH_TRANSCRIPT_MODEL"
 } as const;
 
 /**
@@ -145,7 +147,7 @@ async function readSettings<K extends string>(keys: readonly K[]): Promise<Recor
   return out;
 }
 
-async function readSetting(key: string): Promise<string | null> {
+export async function readSetting(key: string): Promise<string | null> {
   return (await readSettings([key]))[key];
 }
 

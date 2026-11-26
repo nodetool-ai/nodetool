@@ -106,14 +106,15 @@ export function registerSearchCommands(program: Command): void {
     .description("Search the library index, and inspect or set it up");
 
   search
-    .command("query <text...>")
+    .command("query [text...]")
     .description("Search assets and documents by words and, when set up, by meaning")
+    .option("--similar-to <id>", "Find items near this item in meaning instead of matching text")
     .option("--kinds <list>", "Comma-separated kinds, such as image,document")
     .option("--project <id>", "Search one project")
     .option("--mode <mode>", "auto, keyword or semantic", "auto")
     .option("--limit <n>", "Most hits", "20")
     .option("--json", "Output as JSON")
-    .action(async (text: string[], opts: { kinds?: string; project?: string; mode: string; limit: string; json?: boolean }) => {
+    .action(async (text: string[], opts: { kinds?: string; project?: string; mode: string; limit: string; similarTo?: string; json?: boolean }) => {
       try {
         await openIndex();
         if (!["auto", "keyword", "semantic"].includes(opts.mode)) throw new Error(`Unknown mode ${opts.mode}.`);
@@ -123,7 +124,8 @@ export function registerSearchCommands(program: Command): void {
           kinds: parseKinds(opts.kinds),
           projectId: opts.project,
           mode: opts.mode as LibrarySearchMode,
-          limit: Number.parseInt(opts.limit, 10) || 20
+          limit: Number.parseInt(opts.limit, 10) || 20,
+          similarTo: opts.similarTo
         });
         if (opts.json) {
           asJson(result);

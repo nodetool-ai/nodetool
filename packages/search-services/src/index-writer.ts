@@ -100,11 +100,14 @@ export async function writeIndexedItem(
           }
         : {};
     const settled = state === "ready" && !extracted.hasContent ? { indexed_at: now, error: null } : {};
+    // A new source may enrich again even after earlier attempts failed.
+    const sourceMoved = existing !== undefined && existing.source_version !== extracted.sourceVersion;
+    const enrichReset = sourceMoved ? { enrich_attempts: 0, enrich_error: null } : {};
     const chunks = extracted.chunks.filter((chunk) => chunk.text.trim());
     if (existing) {
       await db
         .update(searchItems)
-        .set({ ...row, ...queued, ...settled })
+        .set({ ...row, ...queued, ...settled, ...enrichReset })
         .where(eq(searchItems.id, itemId));
       if (existing.project_id !== extracted.projectId) {
         // A vector records the project it was written under, and the query

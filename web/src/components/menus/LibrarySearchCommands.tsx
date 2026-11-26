@@ -12,6 +12,7 @@ import type { ResourceKind, SearchKind } from "@nodetool-ai/protocol";
 import type { SearchHit } from "@nodetool-ai/protocol/api-schemas/search.js";
 
 import { runCommandAndClose } from "../../stores/CommandMenuStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useProjects } from "../../hooks/useProjects";
 import {
   LIBRARY_QUERY_MIN_CHARS,
@@ -55,8 +56,8 @@ const KIND_GLYPH: Record<SearchKind, string> = {
   file: TYPE_GLYPH.document
 };
 
-/** The resource each index table opens as. */
-const RESOURCE_KIND: Record<SearchHit["resource_type"], ResourceKind> = {
+/** The resource each index table opens as. Project folder files open as file tabs instead. */
+const RESOURCE_KIND: Record<Exclude<SearchHit["resource_type"], "project_file">, ResourceKind> = {
   asset: "asset",
   workflow: "workflow",
   application: "app",
@@ -107,9 +108,14 @@ const LibrarySearchCommands: React.FC<LibrarySearchCommandsProps> = ({ search })
   const { status } = useLibrarySearchStatus(true);
   const { setUp } = useLibrarySearchSetup();
   const { data: projects } = useProjects();
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
 
   const projectNames = useMemo(
     () => new Map((projects ?? []).map((project) => [project.id, project.name])),
+    [projects]
+  );
+  const folderIds = useMemo(
+    () => new Map((projects ?? []).map((project) => [project.id, project.folder?.workspace_id])),
     [projects]
   );
   const locationOf = useCallback(
@@ -118,9 +124,31 @@ const LibrarySearchCommands: React.FC<LibrarySearchCommandsProps> = ({ search })
     [projectNames]
   );
 
-  const open = useCallback((hit: SearchHit) => {
-    runCommandAndClose(() => openResource({ kind: RESOURCE_KIND[hit.resource_type], id: hit.resource_id }));
-  }, []);
+  const open = useCallback(
+    (hit: SearchHit) => {
+      if (hit.resource_type !== "project_file") {
+        const kind = RESOURCE_KIND[hit.resource_type];
+        runCommandAndClose(() => openResource({ kind, id: hit.resource_id }));
+        return;
+      }
+      // The resource id is `<project id>:<path>`; the tab names the folder's workspace.
+      const path = hit.resource_id.slice(hit.project_id.length + 1);
+      const workspaceId = folderIds.get(hit.project_id);
+      if (!workspaceId) {
+        return;
+      }
+      runCommandAndClose(() =>
+        openTab({
+          type: "workspace-file",
+          ref: `${workspaceId}::${path}`,
+          mode: "view",
+          title: hit.title,
+          projectId: hit.project_id
+        })
+      );
+    },
+    [folderIds, openTab]
+  );
   const chooseLocalModel = useCallback(() => {
     if (status) {
       void setUp({ provider: status.local_model.provider, model: status.local_model.model });

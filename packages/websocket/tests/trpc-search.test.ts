@@ -100,6 +100,17 @@ describe("search router", () => {
     expect((await caller.search.status()).can_set_up).toBe(false);
   });
 
+  it("answers similar_to with a note while search by meaning is off, and not found for an unknown item", async () => {
+    const asset = await seed();
+    const caller = createCaller(makeCtx());
+    const result = await caller.search.query({ query: "", similar_to: asset.id });
+    expect(result.hits).toEqual([]);
+    expect(result.index.note).toMatch(/search by meaning/);
+    await expect(caller.search.query({ query: "", similar_to: "missing" })).rejects.toMatchObject({
+      code: "NOT_FOUND"
+    });
+  });
+
   it("answers not found for an unknown item", async () => {
     await expect(createCaller(makeCtx()).search.read({ id: "missing" })).rejects.toThrow(/No library item/);
   });

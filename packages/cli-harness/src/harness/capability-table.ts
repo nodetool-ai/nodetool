@@ -770,7 +770,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "search",
     module: "search",
     impl: "packages/agents/src/capabilities/search.ts",
-    contract: "2d7a68ac9f7e",
+    contract: "b839a82d539f",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-search.test.ts",

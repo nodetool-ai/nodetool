@@ -25,12 +25,16 @@ import {
   IN_PROCESS_EMBEDDING_PROVIDERS,
   runLibraryIndexer,
   setLibraryEmbedder,
+  setLibraryEnricher,
   setLibraryIndexerWake,
   setLibraryQueryEmbedder,
+  setProjectFileSource,
   wakeLibraryIndexer,
   type EmbeddingSpace
 } from "@nodetool-ai/search-services";
 import { embedWithProvider, providerLibraryEmbedder } from "./search-embedder.js";
+import { providerLibraryEnricher } from "./search-enricher.js";
+import { localProjectFileSource } from "./search-project-files.js";
 
 const log = createLogger("nodetool.search.indexer");
 
@@ -248,6 +252,8 @@ export async function runSearchIndexerProcess(): Promise<never> {
 
   // Local models load here, never in the server (D13).
   setLibraryEmbedder(providerLibraryEmbedder);
+  setLibraryEnricher(providerLibraryEnricher);
+  setProjectFileSource(localProjectFileSource);
   const running = runLibraryIndexer({ signal: controller.signal });
   process.on("message", (message: unknown) => {
     if (isEmbedQuery(message)) {

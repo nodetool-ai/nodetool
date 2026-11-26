@@ -42,6 +42,7 @@ export {
 export { chunkLines, chunkMarkdown, chunkPlainText, PASSAGE_CHARS } from "./chunking.js";
 export {
   extractContent,
+  MAX_CONTENT_BYTES,
   setAssetBytesReader,
   type AssetBytesReader,
   type ContentResult
@@ -63,6 +64,7 @@ export {
   type LibraryIndexerOptions
 } from "./indexer.js";
 export {
+  findLibraryItem,
   readLibraryPassage,
   type LibraryPassage,
   type LibraryReadRequest,
@@ -88,6 +90,30 @@ export {
   type LibraryEmbedder,
   type LibraryQueryEmbedder
 } from "./semantic.js";
+export {
+  extractProjectFile,
+  parseProjectFileResourceId,
+  projectFileContentType,
+  projectFileResourceId,
+  projectFileSource,
+  setProjectFileSource,
+  type ProjectFile,
+  type ProjectFileSource
+} from "./project-files.js";
+export {
+  enrichmentModels,
+  libraryEnricher,
+  MAX_ENRICH_ATTEMPTS,
+  MAX_TRANSCRIBE_SECONDS,
+  runEnrichPass,
+  setLibraryEnricher,
+  transcriptChunks,
+  type EnrichInput,
+  type EnrichModel,
+  type EnrichPass,
+  type LibraryEnricher,
+  type TranscriptSegment
+} from "./enrich.js";
 export {
   EMBED_BUDGET_LEASE,
   EMBED_JOB_PREFIX,

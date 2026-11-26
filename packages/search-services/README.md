@@ -3,8 +3,9 @@
 The library index and its query, shared by the HTTP server, the agent tools
 and the CLI. The design is in
 [Library search for documents and assets](../../docs/plans/library-search.md).
-This package implements delivery steps A1 and A2: the lexical layer and the
-indexer that extracts file and document content.
+This package implements delivery steps A1 to A6: the lexical layer, the
+indexer that extracts file and document content, search by meaning,
+captions and transcripts, and files in project folders.
 
 ## What is indexed
 
@@ -17,6 +18,9 @@ row holds:
   and description, `metadata.description`, and the tags in `metadata.tags`.
 - Workflows, apps, sketches, scripts, storyboards, timelines, JS scripts and
   games: the name, and the description and tags where the table has them.
+- Text, Markdown, PDF and Word files in a project folder that no asset or
+  document names: the file name and its folder. The resource type is
+  `project_file` and the resource id is `<project id>:<path>`.
 
 The indexer then extracts the content into body passages, each with a
 locator:
@@ -40,6 +44,40 @@ in the library are `excluded` and never appear in results.
 The lexical index is an FTS5 table on SQLite and a generated `tsvector`
 column on PostgreSQL, both created by the `create_library_search_index`
 migration in `packages/models`.
+
+## Files in project folders
+
+The host installs a `ProjectFileSource` with `setProjectFileSource()`. The
+server's indexer process installs one that lists each local project folder by
+the rule a cloud send uses (`listWorkspaceFiles`), so the files assets and
+documents name are not indexed twice. The reconcile adds, re-reads and removes
+these items. A folder it cannot read keeps its items, and a process without a
+source leaves them alone, so the server never removes them. A folder on object
+storage is not read. A new file is found at the next reconcile, within 15
+minutes.
+
+## Captions and transcripts
+
+Enrichment is off until a model is set: `NODETOOL_SEARCH_CAPTION_MODEL` for
+images and `NODETOOL_SEARCH_TRANSCRIPT_MODEL` for audio and video, each
+`provider:model`, as settings in the `Library Search` group or as
+[environment variables](../../docs/environment-variables.md).
+
+- `runEnrichPass()` runs after the embed pass. It captions images without a
+  prompt and transcribes audio and video, writing `caption` and `transcript`
+  chunks that every other step treats like extracted text. A transcript
+  passage's locator is its time range in seconds, `{ start, end }`.
+- An item records what it was enriched from in `enriched_version`
+  (`<source version>|<model>`). A rename keeps the chunks without another
+  model call. A changed file or a changed model enriches again.
+- A failure is retried on later passes, three times in all, and the reason is
+  kept in `enrich_error`. A new version of the file resets the count.
+- Projects in `NODETOOL_SEARCH_EXCLUDED_PROJECTS` are not enriched. The daily
+  spend limit counts captions and transcripts with embedding.
+- The host installs the model calls with `setLibraryEnricher()`. The server's
+  indexer process runs a caption through `generate_message` with the image
+  and a transcript through `automatic_speech_recognition` on 16 kHz mono
+  audio, both with a `library-search-` job id so their cost is recorded.
 
 ## Keeping the index current
 
@@ -113,6 +151,9 @@ the lexical one. The two rankings merge by reciprocal rank fusion and
 - Each chunk records the space its vector is in. Changing the model embeds the
   chunks again into a new collection while the old one keeps answering. When
   none is left, the old collection is dropped.
+- `similarTo` (`similar_to` over tRPC, `search`, and `--similar-to` in the
+  CLI) ranks items by nearness in meaning to one item, without that item. It
+  needs search by meaning, and otherwise returns no hits and a note.
 - `libraryIndexStatus(userId)` reports items by state and vector coverage.
   `rebuildLibraryIndex(userId, "vectors" | "all")` queues a rebuild.
 

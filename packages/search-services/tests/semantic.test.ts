@@ -236,6 +236,31 @@ describe.each(dialects)("library search by meaning on %s", (_name, init) => {
     expect(after.hits.map((hit) => hit.resourceId)).toEqual([dog.id]);
   });
 
+  it("finds items near another one by meaning, without the item itself", async () => {
+    await init();
+    setLibraryEmbedder(fakeEmbedder([]));
+    files.set("kennel.txt", "The hound slept by the fire.");
+    const { dog } = await seed();
+    const kennel = await Asset.create({ user_id: USER, name: "kennel.txt", content_type: "text/plain" });
+    await reconcileLibraryIndex();
+    await runIndexerPass();
+    await runEmbedPass();
+    const result = await searchLibrary({ userId: USER, query: "", similarTo: dog.id });
+    expect(result.index.mode).toBe("semantic");
+    expect(result.hits.map((hit) => hit.resourceId)).toEqual([kennel.id]);
+    expect(result.hits[0]!.matches[0]!.snippet).toContain("hound");
+    await expect(searchLibrary({ userId: USER, query: "", similarTo: "missing" })).rejects.toThrow(/No library item/);
+  });
+
+  it("says that finding similar items needs search by meaning", async () => {
+    await init();
+    delete process.env.NODETOOL_SEARCH_EMBEDDING_PROVIDER;
+    const { dog } = await seed();
+    const result = await searchLibrary({ userId: USER, query: "", similarTo: dog.id });
+    expect(result.hits).toEqual([]);
+    expect(result.index.note).toMatch(/needs search by meaning/);
+  });
+
   it("pages a hybrid result past the fusion window without gaps or repeats", async () => {
     await init();
     setLibraryEmbedder(fakeEmbedder([]));

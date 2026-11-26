@@ -33,7 +33,9 @@ export const queryInput = z.object({
   filter: searchFilter.optional(),
   mode: searchMode.default("auto"),
   limit: z.number().int().min(1).max(200).default(20),
-  cursor: z.string().nullable().optional()
+  cursor: z.string().nullable().optional(),
+  /** An item or resource id: rank by nearness in meaning to it. `query` is not used then. */
+  similar_to: z.string().optional()
 });
 export type QueryInput = z.infer<typeof queryInput>;
 
