@@ -18,9 +18,9 @@ import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
 
 /**
  * The model that runs the `web_search` tool. A GPT-5 family reasoning model at
- * its default effort: web search needs reasoning effort above `minimal`.
+ * its default (`medium`) effort: web search needs effort above `minimal`.
  */
-export const OPENAI_SEARCH_MODEL = "gpt-5.4-mini";
+export const OPENAI_SEARCH_MODEL = "gpt-5.6-sol";
 
 /** How much of the cited span is kept as a snippet. */
 const MAX_SNIPPET_CHARS = 400;

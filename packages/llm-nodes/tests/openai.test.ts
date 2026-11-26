@@ -143,7 +143,7 @@ describe("WebSearchNode (OpenAI)", () => {
 
     expect(mockFetch.mock.calls[0][0]).toMatch(/\/responses$/);
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.model).toBe("gpt-5.4-mini");
+    expect(body.model).toBe("gpt-5.6-sol");
     expect(body.tools).toEqual([{ type: "web_search" }]);
     expect(body.input).toBe("latest news");
     expect(result.output).toBe("Search result text");
