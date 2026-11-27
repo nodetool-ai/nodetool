@@ -169,7 +169,7 @@ jobs:
           [[ "$DEFER_TO_QUEUE" == true ]] && DEFER="--defer-to-queue"
           if ! node scripts/ci-plan.mjs plan ${BASE:+--base "$BASE"} $DEFER; then
             echo "::warning::ci-plan failed; running every leg."
-            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_cli":true,"packages_engine":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true,"node_catalog":true}' >> "$GITHUB_OUTPUT"
+            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_cli":true,"packages_engine":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true,"node_catalog":true,"typecheck":true,"harness_gate":true}' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Detect non-documentation changes

@@ -15,6 +15,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 /** Schemes whose URI names a key in a storage bucket. */
 const STORAGE_SCHEME = /^(?:memory|s3|supabase):\/\//i;
 const STORAGE_ROUTE = "/api/storage/";
+const RELATIVE_STORAGE_ROUTE = "api/storage/";
 
 /** Keys `storeOrInline` writes when a run has no asset store: unguessable. */
 const SANDBOX_KEY = /^sandbox\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[A-Za-z0-9]{1,8}$/;
@@ -41,6 +42,7 @@ export function storageRoutePathOfUrl(value: string): string | null {
 export function isStorageReference(value: string): boolean {
   return (
     value.startsWith(STORAGE_ROUTE) ||
+    value.startsWith(RELATIVE_STORAGE_ROUTE) ||
     STORAGE_SCHEME.test(value) ||
     storageRoutePathOfUrl(value) !== null
   );
@@ -48,6 +50,9 @@ export function isStorageReference(value: string): boolean {
 
 /** The storage key a reference names, without query or fragment. */
 function storageKeyOf(value: string): string {
+  if (value.startsWith(RELATIVE_STORAGE_ROUTE)) {
+    return value.slice(RELATIVE_STORAGE_ROUTE.length).split(/[?#]/)[0] ?? "";
+  }
   const routePath = value.startsWith(STORAGE_ROUTE)
     ? value
     : storageRoutePathOfUrl(value);

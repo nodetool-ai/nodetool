@@ -237,6 +237,29 @@ describe("tokenizeStoryboardLine", () => {
     expect(tokens.find((t) => t.kind === "label")?.text).toBe("Continuity");
   });
 
+  const A = "a".repeat(32);
+  const runs = (line: string) => tokenizeStoryboardLine(line).map((t) => [t.kind, t.text]);
+
+  it("splits a heading around its id and drops no text after it", () => {
+    expect(runs(`### 3. Shot {#${A}} tail`)).toEqual([["syntax", "### 3. "], ["text", "Shot"], ["id", ` {#${A}}`], ["text", " tail"]]);
+    expect(runs("# Title")).toEqual([["syntax", "# "], ["text", "Title"]]);
+  });
+
+  it("splits a field value around its id", () => {
+    expect(runs(`- **Motion:** slow *pan* {#${A}} end`)).toEqual([
+      ["syntax", "- **"], ["label", "Motion"], ["syntax", ":**"], ["text", " slow "],
+      ["syntax", "*"], ["italic", "pan"], ["syntax", "*"], ["id", ` {#${A}}`], ["text", " end"]
+    ]);
+    expect(runs("Motion: slow")).toEqual([["label", "Motion"], ["syntax", ":"], ["text", " slow"]]);
+  });
+
+  it("draws an image line as syntax, a bullet marker as syntax and other lines as inline text", () => {
+    expect(runs("![Clip](asset://a.mp4)")).toEqual([["syntax", "![Clip](asset://a.mp4)"]]);
+    expect(runs("* item **b**")).toEqual([["syntax", "* "], ["text", "item "], ["syntax", "**"], ["bold", "b"], ["syntax", "**"]]);
+    expect(runs("plain")).toEqual([["text", "plain"]]);
+    expect(runs("")).toEqual([]);
+  });
+
   it("marks a mention of an entity outside the library as missing", () => {
     expect(tokenizeStoryboardLine("[Ghost](entity://abc)").find((t) => t.kind === "entity")?.entityKind).toBe("missing");
   });

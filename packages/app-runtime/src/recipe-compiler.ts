@@ -12,7 +12,7 @@ import {
   type ResourceKind,
   type VariableDeclaration
 } from "./document.js";
-import { isString, isBoolean, isNumber, isInteger, isObjectLike, isRecord } from "./predicates.js";
+import { getOwn, hasOwn, isString, isBoolean, isNumber, isInteger, isObjectLike, isRecord } from "./predicates.js";
 import { isKnownWidget } from "./widgets.js";
 
 export interface RecipeOperationPort {
@@ -124,25 +124,26 @@ export const compileRecipeApplication = (
       if (!contract.preservation.includes(rule.policy)) {error(path, `Operation ${spec.intent} cannot guarantee ${rule.policy} for ${rule.inputId}.`);}
     }
     for (const [port, metadata] of Object.entries(contract.inputs)) {
-      const mapping = binding.inputs[port];
+      const mapping = getOwn(binding.inputs, port);
       if (!mapping && metadata.required) {error(`${path}.inputs.${port}`, "Required operation input is unbound.");}
       if (mapping?.from === "widget") {error(`${path}.inputs.${port}`, "Compiled operations require explicit variable, constant or resource mappings.");}
       if (mapping?.from === "resource") {error(`${path}.inputs.${port}`, "A resource mapping requires an explicitly supplied resource binding; use a typed Recipe input variable.");}
       if (mapping?.from === "constant" && !constantMatches(mapping.value, metadata.type)) {error(`${path}.inputs.${port}`, `Constant must have operation input type ${metadata.type}.`);}
       if (mapping?.from === "variable") {declare(mapping.variableId, metadata.type, `${path}.inputs.${port}`);}
-      if (mapping?.from === "variable" && metadata.required && !sourceVariables.has(mapping.variableId) && !outputVariables.has(mapping.variableId) && recipe.defaults?.[mapping.variableId] === undefined) {error(`${path}.inputs.${port}`, `Required variable ${mapping.variableId} has no Recipe input, default or operation output producer.`);}
+      const hasDefault = recipe.defaults ? getOwn(recipe.defaults, mapping?.from === "variable" ? mapping.variableId : "") !== undefined : false;
+      if (mapping?.from === "variable" && metadata.required && !sourceVariables.has(mapping.variableId) && !outputVariables.has(mapping.variableId) && !hasDefault) {error(`${path}.inputs.${port}`, `Required variable ${mapping.variableId} has no Recipe input, default or operation output producer.`);}
     }
-    for (const port of Object.keys(binding.inputs)) {if (!contract.inputs[port]) {error(`${path}.inputs.${port}`, "Mapped input is absent from the operation contract.");}}
+    for (const port of Object.keys(binding.inputs)) {if (!hasOwn(contract.inputs, port)) {error(`${path}.inputs.${port}`, "Mapped input is absent from the operation contract.");}}
     for (const [port, mapping] of Object.entries(binding.outputs)) {
-      const metadata = contract.outputs[port];
+      const metadata = getOwn(contract.outputs, port);
       if (!metadata) {error(`${path}.outputs.${port}`, "Mapped output is absent from the operation contract.");}
       else if (mapping.to === "variable") {declare(mapping.variableId, metadata.type, `${path}.outputs.${port}`);}
     }
-    for (const [port, metadata] of Object.entries(contract.outputs)) {if (metadata.required && !binding.outputs[port]) {error(`${path}.outputs.${port}`, "Required operation output is unbound.");}}
+    for (const [port, metadata] of Object.entries(contract.outputs)) {if (metadata.required && !hasOwn(binding.outputs, port)) {error(`${path}.outputs.${port}`, "Required operation output is unbound.");}}
     if (contract.spend !== "none" && !contract.approvalInput) {error(path, "Spend operations require a separately bound approval input.");}
     if (contract.approvalInput) {
-      const approval = binding.inputs[contract.approvalInput];
-      if (!approval || approval.from !== "variable" || contract.inputs[contract.approvalInput]?.type !== "str") {error(path, "Approval must be a string input bound to an Application variable.");}
+      const approval = getOwn(binding.inputs, contract.approvalInput);
+      if (!approval || approval.from !== "variable" || getOwn(contract.inputs, contract.approvalInput)?.type !== "str") {error(path, "Approval must be a string input bound to an Application variable.");}
       if (contract.staleness === "none") {error(path, "Approval operations must reject stale production inputs or resource revisions.");}
     }
     selected.push(implementation);
@@ -172,7 +173,8 @@ export const compileRecipeApplication = (
   for (const [index, output] of recipe.outputs.entries()) {
     const binding = output.binding ?? `var:${output.id}`;
     const operationPort = /^op:([^/]+)\/out:(.+)$/.exec(binding);
-    const type = binding.startsWith("var:") ? variables.get(binding.slice(4))?.type?.type : operationPort ? selected.find(({binding: operation}) => operation.id === operationPort[1])?.contract.outputs[operationPort[2]]?.type : undefined;
+    const matchedOp = operationPort ? selected.find(({binding: operation}) => operation.id === operationPort[1]) : undefined;
+    const type = binding.startsWith("var:") ? variables.get(binding.slice(4))?.type?.type : matchedOp && operationPort ? getOwn(matchedOp.contract.outputs, operationPort[2])?.type : undefined;
     if (type && output.kind === "timeline" && type !== "timeline") {error(`recipe.outputs[${index}]`, `Timeline output requires a timeline reference, received ${type}.`);}
     if (type && output.kind === "storyboard" && type !== "storyboard" && type !== "str") {error(`recipe.outputs[${index}]`, `Storyboard output requires a storyboard reference or ID, received ${type}.`);}
     if (type && output.kind === "asset" && !["asset", "image", "video", "audio", "document", "str"].includes(type)) {error(`recipe.outputs[${index}]`, `Asset output requires a media reference or URI, received ${type}.`);}
@@ -206,7 +208,8 @@ export const compileRecipeApplication = (
     if (displayedOutputs.has(output.id)) {return;}
     const readable = output.binding ?? `var:${output.id}`;
     const port = /^op:([^/]+)\/out:(.+)$/.exec(readable);
-    const outputType = readable.startsWith("var:") ? variables.get(readable.slice(4))?.type?.type : port ? selected.find(({binding}) => binding.id === port[1])?.contract.outputs[port[2]]?.type : undefined;
+    const matchedOp = port ? selected.find(({binding}) => binding.id === port[1]) : undefined;
+    const outputType = readable.startsWith("var:") ? variables.get(readable.slice(4))?.type?.type : matchedOp && port ? getOwn(matchedOp.contract.outputs, port[2])?.type : undefined;
     const mediaWidget = outputType === "image" ? "Image" : outputType === "video" ? "Video" : outputType === "audio" ? "Audio" : "Download";
     const type = output.kind === "timeline" ? "Timeline" : output.kind === "storyboard" ? "Storyboard" : output.kind === "asset" ? mediaWidget : "Json";
     content.push(widget(type, `output-${output.id}`, {binding: readable, label: output.label ?? output.id}));

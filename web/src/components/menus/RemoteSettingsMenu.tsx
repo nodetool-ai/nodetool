@@ -29,6 +29,7 @@ import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { formatSettingLabel } from "./settingsLabel";
 import ExternalLink from "../common/ExternalLink";
 import SearchProviderSection from "./SearchProviderSection";
+import LibrarySearchStatusPanel from "../search/LibrarySearchStatusPanel";
 import { ComfyServerStatusLine } from "../comfy/LocalComfyConnect";
 import { matchesSearch } from "./settingsSearch";
 
@@ -80,6 +81,11 @@ const META_SECTION_GROUPS: ReadonlyArray<{
       "PythonNodes",
       "Wan2GP"
     ]
+  },
+  {
+    key: "library-search",
+    label: "Library search",
+    groups: ["Library Search"]
   },
   {
     key: "provider-options",
@@ -207,6 +213,7 @@ const SETTING_LINKS: Record<string, string> = {
   OPENAI_API_KEY: "https://platform.openai.com/api-keys",
   ANTHROPIC_API_KEY: "https://console.anthropic.com/",
   GEMINI_API_KEY: "https://aistudio.google.com/app/apikey",
+  GOOGLE_APP_PASSWORD: "https://myaccount.google.com/apppasswords",
   OPENROUTER_API_KEY: "https://openrouter.ai/keys",
   REQUESTY_API_KEY: "https://app.requesty.ai/api-keys",
   OPPER_API_KEY: "https://platform.opper.ai",
@@ -235,6 +242,7 @@ const SETTING_CREDENTIAL_KEYS: Record<string, string> = {
   OPENAI_API_KEY: "OPENAI_API_KEY",
   ANTHROPIC_API_KEY: "ANTHROPIC_API_KEY",
   GEMINI_API_KEY: "GEMINI_API_KEY",
+  GOOGLE_APP_PASSWORD: "GOOGLE_APP_PASSWORD",
   OPENROUTER_API_KEY: "OPENROUTER_API_KEY",
   REQUESTY_API_KEY: "REQUESTY_API_KEY",
   OPPER_API_KEY: "OPPER_API_KEY",
@@ -605,6 +613,9 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                           )}
                         </Fragment>
                       ))}
+                      {section.key === "library-search" && (
+                        <LibrarySearchStatusPanel />
+                      )}
                     </div>
                   )}
                   {section.key === "local-model-servers" && data && (

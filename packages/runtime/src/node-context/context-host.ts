@@ -32,7 +32,10 @@ export interface MediaStore {
 export interface MediaHost extends EntityRefResolver {
   readonly assetStorage: MediaStore | null;
   readonly storage: MediaStore | null;
-  resolveAssetBytes(assetId: string): Promise<{ bytes: Uint8Array | null }>;
+  resolveAssetBytes(
+    assetId: string,
+    options?: { requireOwnedAsset?: boolean }
+  ): Promise<{ bytes: Uint8Array | null }>;
 }
 
 /** Resolves a provider by id, through whatever grants the host has. */

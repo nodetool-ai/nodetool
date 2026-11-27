@@ -71,7 +71,9 @@ To look at other objects, call `world.get(id)` or `world.query({tag, source, nea
 
 Return commands to change the game. They cover movement, spawning and despawning, scene changes, animation, HUD updates, properties, events, and saving. Spatial commands differ between 2D and 3D. See the [native game field reference](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game-reference/SKILL.md) for every command shape. For saving and loading player progress, see [Saving player progress](/game-engine/saves-replay).
 
-`log` writes a message to the editor **Console** without changing the game.
+`log` writes a message to the editor **Console** without changing the game. Give it a `tag` and JSON `data`, such as `{ kind: "log", tag: "SPAWNS", message: "chain", data: { offspring: 0.8 } }`, and `nodetool game simulate --json` reports the line, so a test can read the numbers.
+
+`assert` checks a promise of the game in a test run, such as `{ kind: "assert", ok: offspring < 1, message: "a chain dies out" }`. In `nodetool game simulate` a false `ok` stops the run and reports the message and tick. In play, `assert` does nothing. `input.test` is `true` in a test run and absent in play. Neither command counts toward `maxCommands`. See [Game Testing and Replay](/developer/game-testing#test-mode-scripts).
 
 ## Timers and events
 

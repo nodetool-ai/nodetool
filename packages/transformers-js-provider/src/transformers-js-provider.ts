@@ -3,6 +3,7 @@ import { loadTransformers } from "@nodetool-ai/transformers-js-nodes";
 import type {
   ASRModel,
   ASRResult,
+  EmbeddingImage,
   EmbeddingModel,
   EncodedAudioResult,
   EstimateDepthParams,
@@ -26,6 +27,7 @@ import { textToSpeechEncoded } from "./tts.js";
 import { textToMusic } from "./music.js";
 import { automaticSpeechRecognition } from "./asr.js";
 import { generateEmbedding } from "./embeddings.js";
+import { clipImageEmbedding, clipTextEmbedding, isClipModel } from "./clip-embeddings.js";
 import {
   estimateDepth,
   removeBackground,
@@ -172,7 +174,23 @@ export class TransformersJsProvider extends BaseProvider {
     model: string;
     dimensions?: number;
   }): Promise<number[][]> {
+    if (isClipModel(args.model)) {
+      const texts = Array.isArray(args.text) ? args.text : [args.text];
+      return clipTextEmbedding(texts, args.model);
+    }
     return generateEmbedding(args);
+  }
+
+  /** Embed images with a CLIP model, in the space of its text embeddings. */
+  override async generateImageEmbedding(args: {
+    images: EmbeddingImage[];
+    model: string;
+    dimensions?: number;
+  }): Promise<number[][]> {
+    if (!isClipModel(args.model)) {
+      throw new Error(`${args.model} does not embed images. Use a CLIP model such as Xenova/clip-vit-base-patch32.`);
+    }
+    return clipImageEmbedding(args.images, args.model);
   }
 
   // ── Image ─────────────────────────────────────────────────────────

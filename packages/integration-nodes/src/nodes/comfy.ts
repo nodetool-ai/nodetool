@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { comfyDynamicSlots } from "./comfy-schema.js";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -447,6 +448,9 @@ export class ComfyWorkflowNode extends BaseNode {
       }
     } finally {
       signal?.removeEventListener("abort", onAbort);
+      if (settledResult === null) {
+        cancel();
+      }
     }
 
     if (settledResult === null) {
@@ -671,33 +675,6 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
     url: string,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    // Deep clone so injected inputs never mutate the stored workflow prop.
-    const prompt = JSON.parse(JSON.stringify(source)) as ComfyPrompt;
-
-    // Inject dynamic inputs. Media refs are sent as bridge blobs referenced
-    // from the workflow via "blob:<key>" placeholders; scalars go in directly.
-    const blobs: Record<string, Uint8Array> = {};
-    for (const [handle, value] of this.dynamicProps) {
-      if (value === undefined || value === null) continue;
-      const sep = handle.indexOf(":");
-      if (sep <= 0) continue;
-      const nodeId = handle.slice(0, sep);
-      const field = handle.slice(sep + 1);
-      const node = prompt[nodeId];
-      if (!node || typeof node.inputs !== "object" || node.inputs === null) {
-        continue;
-      }
-      if (isMediaRef(value)) {
-        const bytes = await loadMediaRefBytes(value, context);
-        if (!bytes) continue;
-        const key = `${nodeId}_${field}`;
-        blobs[key] = bytes;
-        node.inputs[field] = `blob:${key}`;
-      } else {
-        node.inputs[field] = value;
-      }
-    }
-
     const nodeId = this.__node_id;
     const nodeName = this.__node_name ?? "Run ComfyUI Workflow (Worker)";
     const logLine = (
@@ -713,43 +690,85 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       });
     };
 
-    const onEvent = (event: ComfyEvent): void => {
-      switch (event.event) {
-        case "started":
-          logLine("Execution started");
-          break;
-        case "cached":
-          if (event.nodes?.length) {
-            logLine(`Reused cache for ${event.nodes.length} node(s)`);
-          }
-          break;
-        case "executing":
-          if (event.node) {
-            const cls = prompt[event.node]?.class_type ?? event.node;
-            logLine(`Executing ${cls} (#${event.node})`);
-          }
-          break;
-        case "progress":
-          if (
-            typeof event.value === "number" &&
-            typeof event.max === "number" &&
-            event.max > 0
-          ) {
-            context?.postMessage({
-              type: "node_progress",
-              node_id: nodeId,
-              progress: event.value,
-              total: event.max
-            });
-          }
-          break;
-        default:
-          break;
-      }
+    const signal = context?.signal;
+    const canceledError = (): Error => {
+      const err = new Error("ComfyUI worker execution was canceled");
+      err.name = "AbortError";
+      return err;
     };
 
     let result: ComfyExecuteResult;
     try {
+      if (signal?.aborted) {
+        throw canceledError();
+      }
+
+      // Deep clone so injected inputs never mutate the stored workflow prop.
+      const prompt = JSON.parse(JSON.stringify(source)) as ComfyPrompt;
+
+      // Inject dynamic inputs. Media refs are sent as bridge blobs referenced
+      // from the workflow via "blob:<key>" placeholders; scalars go in directly.
+      const blobs: Record<string, Uint8Array> = {};
+      for (const [handle, value] of this.dynamicProps) {
+        if (value === undefined || value === null) continue;
+        const sep = handle.indexOf(":");
+        if (sep <= 0) continue;
+        const targetNodeId = handle.slice(0, sep);
+        const field = handle.slice(sep + 1);
+        const node = prompt[targetNodeId];
+        if (!node || typeof node.inputs !== "object" || node.inputs === null) {
+          continue;
+        }
+        if (isMediaRef(value)) {
+          const bytes = await loadMediaRefBytes(value, context);
+          if (!bytes) continue;
+          const key = `${targetNodeId}_${field}`;
+          blobs[key] = bytes;
+          node.inputs[field] = `blob:${key}`;
+        } else {
+          node.inputs[field] = value;
+        }
+      }
+
+      if (signal?.aborted) {
+        throw canceledError();
+      }
+
+      const onEvent = (event: ComfyEvent): void => {
+        switch (event.event) {
+          case "started":
+            logLine("Execution started");
+            break;
+          case "cached":
+            if (event.nodes?.length) {
+              logLine(`Reused cache for ${event.nodes.length} node(s)`);
+            }
+            break;
+          case "executing":
+            if (event.node) {
+              const cls = prompt[event.node]?.class_type ?? event.node;
+              logLine(`Executing ${cls} (#${event.node})`);
+            }
+            break;
+          case "progress":
+            if (
+              typeof event.value === "number" &&
+              typeof event.max === "number" &&
+              event.max > 0
+            ) {
+              context?.postMessage({
+                type: "node_progress",
+                node_id: nodeId,
+                progress: event.value,
+                total: event.max
+              });
+            }
+            break;
+          default:
+            break;
+        }
+      };
+
       if (!bridge.supportsComfy()) {
         throw new Error(
           "The connected worker does not front a ComfyUI server " +
@@ -759,15 +778,41 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
       }
       const nodeCount = Object.keys(prompt).length;
       logLine(`Running ComfyUI workflow (${nodeCount} nodes) on ${url}`);
-      result = await bridge.comfyExecute(
+      const requestId = randomUUID();
+      const execPromise = bridge.comfyExecute(
         prompt,
         {
           blobs: Object.keys(blobs).length > 0 ? blobs : undefined,
           previews: this.previews,
           timeout: Math.max(1, this.timeout)
         },
-        onEvent
+        onEvent,
+        requestId
       );
+      if (signal) {
+        let onAbort: (() => void) | undefined;
+        try {
+          result = await new Promise<ComfyExecuteResult>((resolve, reject) => {
+            onAbort = () => {
+              bridge.cancelComfyExecute?.(requestId);
+              reject(canceledError());
+            };
+            if (signal.aborted) {
+              onAbort();
+              return;
+            }
+            signal.addEventListener("abort", onAbort, { once: true });
+            execPromise.then(resolve, reject);
+          });
+        } finally {
+          if (onAbort) signal.removeEventListener("abort", onAbort);
+          execPromise.catch(() => {
+            // Suppress late rejection after cancellation.
+          });
+        }
+      } else {
+        result = await execPromise;
+      }
     } finally {
       bridge.close();
     }

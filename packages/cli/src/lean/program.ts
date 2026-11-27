@@ -3,9 +3,9 @@ import { refusePackInstallsInProcess } from "@nodetool-ai/pack-manager/packs/ins
 import { configureCliPackHost, registerPackCommands, loadInstalledCommandFeature, loadCliPackSnapshot, CliFeatureNotInstalledError } from "@nodetool-ai/pack-manager";
 import { z } from "zod";
 import { Command } from "commander";
-import { existsSync, readFileSync } from "node:fs";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { resolve, join, extname, basename } from "node:path";
+import { readFileSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
+import { resolve, extname, basename } from "node:path";
 import { createMinimalServer, OPTIONAL_FEATURE_CATALOG } from "@nodetool-ai/server-minimal";
 import { createCoreExecutionHost } from "@nodetool-ai/nodes-core";
 import { OpenAITextProvider } from "@nodetool-ai/runtime-core";
@@ -15,6 +15,7 @@ import { COMMAND_FEATURES } from "./commandFeatures.js";
 import { featureRecovery } from "@nodetool-ai/server-features";
 import { cliFailureSchema } from "./errors.js";
 import { providerStates, type ProviderState } from "./providerStatus.js";
+import { localSecretStorePath, withLocalSecretStore, type SecretMigration } from "./localSecrets.js";
 
 const WORKFLOW_SUBCOMMANDS = new Set(["examples", "export-script", "export-dsl", "export-example", "export-bundle", "import-bundle"]);
 
@@ -44,9 +45,11 @@ chat-capable providers in \`nodetool providers list\`, for example anthropic, cl
 \`nodetool generate <provider> <model> <prompt> --kind image|speech|video\` (cli-workflow feature) makes media.
 
 Environment: OPENAI_API_KEY, OPENAI_BASE_URL (any OpenAI-compatible endpoint),
-NODETOOL_TEXT_MODEL, NODETOOL_DATA_DIR (default ./nodetool-data), NODETOOL_USER_ID
-(default "${DEFAULT_LOCAL_USER_ID}"), SECRETS_MASTER_KEY (only for the encrypted secret store
-and serve), NODETOOL_API_URL and NODETOOL_API_TOKEN (only for server commands).
+NODETOOL_TEXT_MODEL, NODETOOL_USER_ID (default "${DEFAULT_LOCAL_USER_ID}"), SECRETS_MASTER_KEY
+(only for the encrypted secret store and serve), NODETOOL_DATA_DIR (serve's data, default
+./nodetool-data), NODETOOL_API_URL and NODETOOL_API_TOKEN (only for server commands).
+Local secrets live in the database every run reads (DB_PATH, or nodetool.sqlite3 in the
+NodeTool data directory). \`nodetool info\` prints its path.
 Commands marked "Requires ... feature" need \`nodetool packs add <feature> --yes\`.
 `;
 /** A two-node-input workflow that runs on the built-in nodes with only OPENAI_API_KEY. */
@@ -154,20 +157,37 @@ export function createProgram(options: CliOptions = {}): Command {
     }
     return masterKey;
   }
-  async function withLocalRepository<T>(operate: (repository: ReturnType<typeof createSqliteRepository>) => Promise<T>): Promise<T> {
-    await mkdir(directory(), { recursive: true });
-    const repository = createSqliteRepository(join(directory(), "nodetool.db"));
-    try { return await operate(repository); } finally { await repository.close(); }
+  const reportMigration = (migration: SecretMigration, target: string): void => {
+    process.stderr.write(`Copied ${migration.copied.length} secret(s) (${migration.copied.join(", ")}) from ${migration.from} to ${target}, the store every run reads.\n`);
+  };
+  /**
+   * The local secret store, shared with every run (`node run`, chat, the desktop
+   * app). Secrets from the store older releases used are copied in once.
+   */
+  function withSecretStore<T>(operate: (repository: ReturnType<typeof createSqliteRepository>) => Promise<T>): Promise<T>;
+  function withSecretStore<T>(operate: (repository: ReturnType<typeof createSqliteRepository>) => Promise<T>, create: false): Promise<T | null>;
+  function withSecretStore<T>(operate: (repository: ReturnType<typeof createSqliteRepository>) => Promise<T>, create = true): Promise<T | null> {
+    const options = { env, userId: owner(), onMigrated: reportMigration };
+    return create ? withLocalSecretStore({ ...options, create: true }, operate) : withLocalSecretStore({ ...options, create: false }, operate);
+  }
+  /** The local user's secrets that decrypt with SECRETS_MASTER_KEY, by key. */
+  async function decryptedSecrets(): Promise<Map<string, string>> {
+    const masterKey = env.SECRETS_MASTER_KEY;
+    if (!masterKey) return new Map();
+    const userId = owner();
+    const values = await withSecretStore(async repository => {
+      const found = new Map<string, string>();
+      for (const row of await repository.list("secrets", userId)) {
+        try { found.set(String(row.key), decrypt(masterKey, userId, z.string().parse(row.encrypted_value))); }
+        catch { /* Stored under another master key: no run can read it with this one. */ }
+      }
+      return found;
+    }, false);
+    return values ?? new Map();
   }
   /** Read a secret from the local encrypted store, when one exists and a master key is configured. */
   async function storedSecret(key: string): Promise<string | undefined> {
-    const masterKey = env.SECRETS_MASTER_KEY;
-    if (!masterKey || !existsSync(join(directory(), "nodetool.db"))) return undefined;
-    const userId = owner();
-    return withLocalRepository(async repository => {
-      const secret = (await repository.list("secrets", userId)).find(row => row.key === key);
-      return secret ? decrypt(masterKey, userId, z.string().parse(secret.encrypted_value)) : undefined;
-    });
+    return (await decryptedSecrets()).get(key);
   }
   /** Stored tenant secret first, then the process environment. */
   async function provider(): Promise<OpenAITextProvider> {
@@ -246,11 +266,15 @@ export function createProgram(options: CliOptions = {}): Command {
       print(await host.run({ graph, params, signal: controller.signal, userId: owner(), jobId: "cli-local", emit: () => {} }));
     } finally { process.removeListener("SIGINT", abort); }
   }
-  /** Secret names in the local store. Reading names needs no master key. */
+  /**
+   * Secret names a run can resolve from the local store. Without
+   * SECRETS_MASTER_KEY every stored name counts, because a run may take the key
+   * from the system keychain. With it, only names that decrypt under it count.
+   */
   async function storedKeyNames(): Promise<Set<string>> {
-    if (!existsSync(join(directory(), "nodetool.db"))) return new Set();
     try {
-      return await withLocalRepository(async repository => new Set((await repository.list("secrets", owner())).map(row => String(row.key))));
+      if (env.SECRETS_MASTER_KEY) return new Set((await decryptedSecrets()).keys());
+      return new Set(await withSecretStore(async repository => (await repository.list("secrets", owner())).map(row => String(row.key)), false) ?? []);
     } catch {
       return new Set();
     }
@@ -273,14 +297,14 @@ export function createProgram(options: CliOptions = {}): Command {
   program.command("info").description("Display system and environment information").option("--json", "Output as JSON").action(async (flags: { json?: boolean }) => {
     const states = await currentProviderStates();
     const names = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY", "OLLAMA_API_URL", "SERPAPI_API_KEY", "HF_TOKEN"];
-    const data = { version, node_version: process.version, platform: process.platform, arch: process.arch,
+    const data = { version, node_version: process.version, platform: process.platform, arch: process.arch, secrets_store: localSecretStorePath(env),
       api_keys: Object.fromEntries(names.map(name => [name, env[name] ? "configured" : "not set"])),
       providers: states.map(state => ({ id: state.id, requires: state.requires, status: credentialStatus(state) })),
       environment: { ENV: env.ENV ?? "development", LOG_LEVEL: env.LOG_LEVEL ?? "INFO", PORT: env.PORT ?? "7777" }
     };
     if (flags.json) { print(data); return; }
     output("\nNodeTool System Information\n\n");
-    printTable([{ property: "Version", value: data.version }, { property: "Node.js", value: data.node_version }, { property: "Platform", value: `${data.platform}/${data.arch}` }]);
+    printTable([{ property: "Version", value: data.version }, { property: "Node.js", value: data.node_version }, { property: "Platform", value: `${data.platform}/${data.arch}` }, { property: "Secrets store", value: data.secrets_store }]);
     output("\nAPI Keys:\n");
     printTable(Object.entries(data.api_keys).map(([key, status]) => ({ key, status })));
     output("\nProviders:\n");
@@ -333,7 +357,7 @@ export function createProgram(options: CliOptions = {}): Command {
   const secrets = program.command("secrets").description("Manage encrypted secrets: on the server with a token, otherwise in the local store (needs SECRETS_MASTER_KEY)");
   secrets.command("list").description("List secret names (never values)").action(async () => {
     if (hasToken()) { print(await json("/api/secrets")); return; }
-    print(await withLocalRepository(async repository => (await repository.list("secrets", owner())).map(({ encrypted_value: _encrypted, ...metadata }) => metadata)));
+    print(await withSecretStore(async repository => (await repository.list("secrets", owner())).map(({ encrypted_value: _encrypted, ...metadata }) => metadata), false) ?? []);
   });
   secrets.command("set <key>").alias("store").description("Read a secret value from stdin, e.g. printf %s \"$OPENAI_API_KEY\" | nodetool secrets set OPENAI_API_KEY. With a token (--token or NODETOOL_API_TOKEN) it writes to the server. Without a token it writes to the local encrypted store, which needs SECRETS_MASTER_KEY.").action(async (key: string) => {
     if (process.stdin.isTTY) throw new Error("Pipe the secret value on stdin, e.g. printf %s \"$VALUE\" | nodetool secrets set KEY");
@@ -341,7 +365,7 @@ export function createProgram(options: CliOptions = {}): Command {
     if (hasToken()) { print(await json("/api/secrets", "POST", { key, value })); return; }
     const masterKey = requireMasterKey("store secrets locally");
     const userId = owner();
-    print(await withLocalRepository(async repository => {
+    print(await withSecretStore(async repository => {
       const existing = (await repository.list("secrets", userId)).find(secret => secret.key === key);
       const { encrypted_value: _encrypted, ...metadata } = await repository.put("secrets", userId, { ...existing, key, description: existing?.description ?? "", encrypted_value: encrypt(masterKey, userId, value) });
       return metadata;

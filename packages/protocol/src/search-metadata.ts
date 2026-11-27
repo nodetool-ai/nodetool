@@ -28,7 +28,11 @@ export const SEARCH_KINDS = [
 export const SearchKind = z.enum(SEARCH_KINDS);
 export type SearchKind = z.infer<typeof SearchKind>;
 
-/** The table an item comes from. Assets and entities share `asset`. */
+/**
+ * The table an item comes from. Assets and entities share `asset`. A
+ * `project_file` is a file in a project folder that no row names, with the
+ * resource id `<project id>:<path>`.
+ */
 export const SEARCH_RESOURCE_TYPES = [
   "asset",
   "workflow",
@@ -38,20 +42,25 @@ export const SEARCH_RESOURCE_TYPES = [
   "storyboard",
   "timeline_sequence",
   "js_script",
-  "game"
+  "game",
+  "project_file"
 ] as const;
 
 export const SearchResourceType = z.enum(SEARCH_RESOURCE_TYPES);
 export type SearchResourceType = z.infer<typeof SearchResourceType>;
 
-/** The part of an item a chunk of text came from. */
+/**
+ * The part of an item a chunk of text came from. `image` names no chunk: a
+ * hit matched by its picture's vector carries it, with an empty snippet.
+ */
 export const SEARCH_FIELDS = [
   "title",
   "prompt",
   "description",
   "body",
   "caption",
-  "transcript"
+  "transcript",
+  "image"
 ] as const;
 
 export const SearchField = z.enum(SEARCH_FIELDS);

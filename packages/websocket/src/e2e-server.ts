@@ -104,6 +104,23 @@ async function main(): Promise<void> {
   if (examplesDir) {
     serverOptions.examplesDir = examplesDir;
   }
+  // Serve and resolve `package://` refs (a template's default inputs) from the
+  // checkout, as server.ts does. Without a root, a node reading one falls back
+  // to an HTTP request for the file, which this server cannot serve.
+  const packageAssetsRoot = resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "packages",
+    "base-nodes",
+    "nodetool",
+    "assets"
+  );
+  if (existsSync(packageAssetsRoot)) {
+    serverOptions.packageAssetsRoots = [packageAssetsRoot];
+    process.env.NODETOOL_PACKAGE_ASSETS_DIR ??= packageAssetsRoot;
+  }
   const srv = await createTestUiServer(serverOptions);
   await srv.listen();
 

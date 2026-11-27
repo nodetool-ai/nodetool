@@ -664,7 +664,7 @@ function selectedModel(
     if (!name || !propType || !PROVIDER_MODEL_TYPES.has(propType)) {
       continue;
     }
-    const value = data[name];
+    const value = Object.hasOwn(data, name) ? data[name] : undefined;
     if (isObjectLike(value)) {
       const id = (value as { id?: unknown }).id;
       if (isString(id) && id.trim() !== "") {
@@ -889,9 +889,15 @@ export function estimateWorkflowCost(
     if (input.isKnownNonBillable?.(node)) {
       continue;
     }
-    const quantity = positiveQuantity(quantities[node.id]);
+    const quantity = positiveQuantity(
+      Object.hasOwn(quantities, node.id) ? quantities[node.id] : undefined
+    );
     const metadata = input.getMetadata(node.type);
-    const title = nodeTitle(titles[node.id], metadata, node.type);
+    const title = nodeTitle(
+      Object.hasOwn(titles, node.id) ? titles[node.id] : undefined,
+      metadata,
+      node.type
+    );
     const price = resolvePrice(
       metadata,
       node.data,

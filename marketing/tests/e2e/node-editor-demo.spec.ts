@@ -26,3 +26,22 @@ test("the node editor demo loads only when asked and runs with sample media", as
     timeout: 15_000
   });
 });
+
+test("local-first shows the node editor demo behind a click", async ({ page }) => {
+  const editorRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/embed/node-editor/")) {
+      editorRequests.push(request.url());
+    }
+  });
+  await page.goto("/solutions/local-first");
+  const section = page.getByRole("region", { name: "Try the editor before you install." });
+  await section.scrollIntoViewIfNeeded();
+  await expect(section.getByRole("button", { name: "Open the node editor" })).toBeVisible();
+  expect(editorRequests).toEqual([]);
+
+  await section.getByRole("button", { name: "Open the node editor" }).click();
+  await expect(section.frameLocator("iframe").getByText("Text To Image").first()).toBeVisible({
+    timeout: 30_000
+  });
+});

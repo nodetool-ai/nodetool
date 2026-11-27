@@ -283,6 +283,35 @@ describe("erasing files of a cloud project", { timeout: 30_000 }, () => {
     expect(await readableProjectBlob({ projectId, hash })).not.toBeNull();
   });
 
+  it("does not disclose or record another tenant's asset IDs that share the same content hash", async () => {
+    const ownerProject = await cloudProject();
+    const strangerProject = id();
+    await Project.create<Project>({ id: strangerProject, user_id: STRANGER, name: "Stranger project", kind: "project" });
+    const bytes = new Uint8Array(randomBytes(64));
+    const { assetId: ownerAssetId, hash } = await heldFile(host, ownerProject, bytes);
+    const strangerAsset = await Asset.create<Asset>({
+      user_id: STRANGER,
+      project_id: strangerProject,
+      name: "stranger-secret.png",
+      content_type: "image/png",
+      size: bytes.byteLength,
+      content_hash: hash,
+      workspace_path: null
+    });
+
+    const preview = await previewErase(host, OWNER, { project_id: ownerProject, hash });
+    expect(preview.asset_ids).toEqual([ownerAssetId]);
+    expect(preview.asset_ids).not.toContain(strangerAsset.id);
+
+    const erased = await eraseProjectFile(host, OWNER, { project_id: ownerProject, hash });
+    expect(erased.outcome).toBe("erased");
+    if (erased.outcome === "erased") {
+      expect(erased.asset_ids).toEqual([ownerAssetId]);
+      expect(erased.asset_ids).not.toContain(strangerAsset.id);
+    }
+    expect((await getErasedFile(ownerProject, hash))?.asset_ids).toEqual([ownerAssetId]);
+  });
+
   it("does not require, stage or commit an erased file, and stages it again once it is off the list", async () => {
     const projectId = await cloudProject();
     const bytes = new Uint8Array(randomBytes(40));

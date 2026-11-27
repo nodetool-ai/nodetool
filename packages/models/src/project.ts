@@ -423,16 +423,15 @@ export class Project extends DBModel {
   }
 
   static async findOwned(userId: string, id: string): Promise<Project | null> {
-    const row = await Project.findById(id);
-    return row && row.user_id === userId ? row : null;
+    const row = await Project.getForUser<Project>(userId, id);
+    return row?.deleted_at ? null : row;
   }
 
   static async findOwnedIncludingDeleted(
     userId: string,
     id: string
   ): Promise<Project | null> {
-    const project = await Project.get<Project>(id);
-    return project?.user_id === userId ? project : null;
+    return Project.getForUser<Project>(userId, id);
   }
 
   static async tombstoneOwned(

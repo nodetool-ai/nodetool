@@ -54,6 +54,11 @@ jobs:
         - /opt/ghc:/reclaim/ghc
         - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 120
+    # Steps in a container job run with sh unless a shell is named, and the
+    # steps below use bash arrays and [[ ]].
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:

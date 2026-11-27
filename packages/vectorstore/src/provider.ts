@@ -83,6 +83,12 @@ export interface VectorQuery {
   topK?: number;
   /** Metadata / document filter applied before ranking. */
   filter?: VectorFilter;
+  /**
+   * Only records whose partition key value (see
+   * `CreateCollectionOptions.partitionKey`) equals this. sqlite-vec scans only
+   * that partition; hosted providers apply it as a metadata filter.
+   */
+  partition?: string;
 }
 
 export interface CollectionInfo {
@@ -124,6 +130,8 @@ export interface VectorCollection {
     ids?: string[];
     limit?: number;
     offset?: number;
+    /** Also return each record's stored vector. */
+    includeEmbeddings?: boolean;
   }): Promise<VectorRecord[]>;
 
   /** Vector / text / URI search. Results sorted by ascending distance. */
@@ -156,6 +164,11 @@ export interface CreateCollectionOptions {
    * (cosine for Pinecone/pgvector, L2 for sqlite-vec).
    */
   metric?: DistanceMetric;
+  /**
+   * A record metadata key whose value partitions the collection, such as a
+   * project id. A query that names a partition reads only its records.
+   */
+  partitionKey?: string;
 }
 
 export interface GetCollectionOptions {

@@ -171,6 +171,36 @@ describe("application budgets", () => {
     });
     expect(await listInvocations(APP)).toEqual([]);
   });
+
+  it("rejects negative and non-finite USD values across budget check, reservation, and settlement", async () => {
+    await setApplicationBudget(APP, { period: "total", maxUsd: 1 });
+    await run("job-1", 0.9);
+
+    await expect(checkApplicationBudget(APP, Number.NaN)).rejects.toThrow();
+    await expect(checkApplicationBudget(APP, -0.5)).rejects.toThrow();
+    await expect(checkApplicationBudget(APP, Number.POSITIVE_INFINITY)).rejects.toThrow();
+
+    await expect(
+      recordInvocation({ applicationId: APP, invocationId: "job-neg", estimatedUsd: -10 })
+    ).rejects.toThrow();
+    await expect(
+      recordInvocation({ applicationId: APP, invocationId: "job-nan", estimatedUsd: Number.NaN })
+    ).rejects.toThrow();
+
+    await expect(
+      reserveInvocation({ applicationId: APP, invocationId: "job-res-neg", estimatedUsd: -10 })
+    ).rejects.toThrow();
+    await expect(
+      reserveInvocation({ applicationId: APP, invocationId: "job-res-nan", estimatedUsd: Number.NaN })
+    ).rejects.toThrow();
+
+    await expect(settleInvocation(APP, "job-1", -5)).rejects.toThrow();
+    await expect(settleInvocation(APP, "job-1", Number.NaN)).rejects.toThrow();
+    await expect(settleInvocation(APP, "job-1", Number.POSITIVE_INFINITY)).rejects.toThrow();
+
+    // Ledger must remain intact at the original $0.90 estimate.
+    expect((await applicationUsage(APP, "total")).spentUsd).toBeCloseTo(0.9);
+  });
 });
 
 describe("periodStart", () => {

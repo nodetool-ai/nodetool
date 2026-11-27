@@ -32,7 +32,7 @@ const CLI_NAME = "@nodetool-ai/cli";
 export const CORE_INSTALL_BUDGET_KIB = 150 * 1024;
 export const REQUIRED_COMMANDS = ["info", "run", "validate", "workflows", "jobs", "assets", "secrets", "text", "serve", "packs", "models", "providers", "help"];
 export const FEATURE_REQUIRED_COMMANDS = {
-  "cli-workflow": ["run", "validate", "debug", "node", "workflows", "jobs", "assets", "secrets", "settings", "runs", "generate", "generations", "projects", "collections", "costs", "errors"],
+  "cli-workflow": ["run", "validate", "debug", "node", "workflows", "jobs", "assets", "secrets", "settings", "runs", "generate", "generations", "projects", "collections", "search", "costs", "errors"],
   "cli-harness": ["harness", "affected", "eval", "jtbd", "reliability"],
   "cli-chat": ["chat", "agent", "tools"], "cli-models": ["models"],
   "cli-admin": ["deploy", "worker", "db", "auth", "package", "runtime", "packs", "extension", "storage", "telemetry", "telegram"],

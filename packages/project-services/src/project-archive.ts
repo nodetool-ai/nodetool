@@ -727,12 +727,23 @@ function metadataOf(row: ProjectArchiveRow): Record<string, unknown> {
     : {};
 }
 
+/** Largest `manifest.json` {@link readProjectArchiveManifest} inflates. */
+const MAX_MANIFEST_BYTES = 64 * 1024 * 1024;
+
 /** Reads a project file's manifest without importing it. */
 export function readProjectArchiveManifest(
   zipBytes: Uint8Array
 ): ProjectArchiveManifest {
   const entries = unzipSync(zipBytes, {
-    filter: (file) => file.name === "manifest.json"
+    filter: (file) => {
+      if (file.name !== "manifest.json") return false;
+      if (file.originalSize > MAX_MANIFEST_BYTES) {
+        throw new ProjectArchiveError(
+          `manifest.json decompressed size exceeds ${MAX_MANIFEST_BYTES} bytes`
+        );
+      }
+      return true;
+    }
   });
   return parseJsonEntry(entries, "manifest.json", manifestSchema);
 }

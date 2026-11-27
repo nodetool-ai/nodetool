@@ -54,6 +54,7 @@ import { registerValidateCommand } from "./commands/validate.js";
 import { registerNodeCommands } from "./commands/node.js";
 import { registerGenerateCommand } from "./commands/generate.js";
 import { registerCollectionCommands } from "./commands/collections.js";
+import { registerSearchCommands } from "./commands/search.js";
 import { registerCostsCommands } from "./commands/costs.js";
 import { registerErrorsCommands } from "./commands/errors.js";
 import { registerGenerationsCommands } from "./commands/generations.js";
@@ -1344,6 +1345,7 @@ export async function createProgram(): Promise<CommanderCommand> {
   registerNodeCommands(program);
   registerGenerateCommand(program);
   registerCollectionCommands(program);
+  registerSearchCommands(program);
   registerCostsCommands(program);
   registerErrorsCommands(program);
   registerGenerationsCommands(program);

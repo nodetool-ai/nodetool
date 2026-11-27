@@ -77,6 +77,8 @@ function pointerSegments(pointer: string): string[] {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
+const FORBIDDEN_POINTER_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 /**
  * Walk a pointer to its parent container and report the leaf key, or null when
  * the container does not exist. A pointer whose container is missing addresses
@@ -89,6 +91,9 @@ function resolveCompositionPointer(
 ): { container: Record<string, unknown> | unknown[]; key: string } | null {
   const segments = pointerSegments(pointer);
   if (segments.length === 0) return null;
+  if (segments.some((segment) => FORBIDDEN_POINTER_KEYS.has(segment))) {
+    return null;
+  }
   let cursor: unknown = children;
   for (const segment of segments.slice(0, -1)) {
     if (Array.isArray(cursor)) {
@@ -99,13 +104,23 @@ function resolveCompositionPointer(
       cursor = cursor[index];
       continue;
     }
-    if (!isRecord(cursor)) return null;
+    if (!isRecord(cursor) || !Object.prototype.hasOwnProperty.call(cursor, segment)) {
+      return null;
+    }
     cursor = cursor[segment];
   }
-  if (!isRecord(cursor) && !Array.isArray(cursor)) return null;
+  const key = segments[segments.length - 1];
+  if (Array.isArray(cursor)) {
+    const index = Number(key);
+    if (!Number.isInteger(index) || index < 0 || index >= cursor.length) {
+      return null;
+    }
+    return { container: cursor, key };
+  }
+  if (!isRecord(cursor)) return null;
   return {
-    container: cursor as Record<string, unknown> | unknown[],
-    key: segments[segments.length - 1]
+    container: cursor,
+    key
   };
 }
 

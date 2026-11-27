@@ -69,7 +69,29 @@ export type PageSection =
       slugs?: readonly string[];
       link?: PageLink;
     }
-  | { kind: "installers"; id: string; title: string; intro?: string };
+  | { kind: "installers"; id: string; title: string; intro?: string }
+  | {
+      /** One of the app's editors, loaded in an iframe when the reader opens it. */
+      kind: "demo";
+      id: string;
+      editor: "timeline" | "nodeEditor";
+      copy: EditorDemoCopy;
+    };
+
+/**
+ * The words around an editor demo. `{film}` in `open` and `frameTitle` is the
+ * example film's name (timeline only). The editor inside the frame is the
+ * app's English interface.
+ */
+export type EditorDemoCopy = {
+  title: string;
+  intro: string;
+  open: string;
+  frameTitle: string;
+  note: string;
+  /** Timeline only: label of the film picker. */
+  filmPicker?: string;
+};
 
 export type LocalizedPageContent = {
   /** The English route this page translates. */

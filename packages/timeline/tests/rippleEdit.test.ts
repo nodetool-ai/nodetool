@@ -89,6 +89,16 @@ describe("rippleTrim", () => {
     expect(byId(out, "b").startMs).toBe(750);
   });
 
+  it("extending the head of a clip parked at zero reveals source and ripples later clips right", () => {
+    const out = rippleTrim(clips(), "a", "start", 200);
+    const a = byId(out, "a");
+    expect(a.startMs).toBe(0);
+    expect(a.inPointMs).toBe(0);
+    expect(a.durationMs).toBe(1200);
+    expect(byId(out, "b").startMs).toBe(1200);
+    expect(byId(out, "c").startMs).toBe(2200);
+  });
+
   it("moves linked siblings with the clip and does not ripple them twice", () => {
     const linked = [
       clip("v", 0, 1000, { linkId: "L" }),

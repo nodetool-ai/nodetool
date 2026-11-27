@@ -442,13 +442,29 @@ export function attachRunCostLedger(
   const pending = new Set<Promise<void>>();
   const generationWrites = new Map<string, Promise<void>>();
   const detach = context.addMessageListener((msg) => {
+    const isCostMessage =
+      msg.type === "prediction" ||
+      (msg.type === "node_update" &&
+        msg.status === "completed" &&
+        Boolean(msg.provider_cost));
+    if (!isCostMessage) return;
+
     const generationId = msg.type === "prediction" ? msg.id : null;
-    const previous = generationId
-      ? generationWrites.get(generationId)
-      : undefined;
-    const operation = previous
-      ? previous.then(() => recordFromMessage(msg, options, state))
-      : recordFromMessage(msg, options, state);
+    let operation: Promise<void>;
+    if (generationId) {
+      const previous = generationWrites.get(generationId);
+      operation = previous
+        ? previous.then(() => recordFromMessage(msg, options, state))
+        : recordFromMessage(msg, options, state);
+    } else if (pending.size > 0) {
+      const priorWrites = [...pending];
+      operation = Promise.all(priorWrites).then(() =>
+        recordFromMessage(msg, options, state)
+      );
+    } else {
+      operation = recordFromMessage(msg, options, state);
+    }
+
     const write = operation
       .catch(() => undefined)
       .finally(() => {

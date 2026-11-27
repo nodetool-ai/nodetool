@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Triggers"
-description: "Run a workflow at set times, at a fixed interval, when a file changes, when a webhook arrives, or by hand."
+description: "Run a workflow at set times, at a fixed interval, when a file changes, when a webhook arrives, when new mail arrives, or by hand."
 ---
 
 Each trigger starts a workflow automatically in the background when its event happens. The editor does not need to be open. Add the node, save the workflow, then click the bolt button in the floating toolbar and turn on **Workflow active**.
@@ -12,6 +12,7 @@ Each trigger starts a workflow automatically in the background when its event ha
 | Interval Trigger | A fixed number of seconds passes |
 | File Watch Trigger | A file or folder changes on the server |
 | Webhook Trigger | An HTTP request reaches `/api/webhooks/{token}` |
+| Email Trigger | New mail arrives in a Gmail folder |
 | Manual Trigger | You click **Fire now**, or something calls the [API](api-reference.md) |
 
 ---
@@ -32,7 +33,7 @@ A triggered run also receives three parameters. An Input node with a matching na
 
 ## Trigger nodes
 
-Schedule, interval, file watch, webhook, and manual triggers start runs. The Wait node is not a trigger. It is listed here because it sits in the same node group.
+Schedule, interval, file watch, webhook, email, and manual triggers start runs. The Wait node is not a trigger. It is listed here because it sits in the same node group. The Discord and Telegram bot trigger nodes are not in the table above either. They listen only while a workflow that contains them is running, and you cannot arm them to start runs in the background.
 
 ### Schedule Trigger
 
@@ -105,6 +106,33 @@ The server watches the path on its own machine, so the folder must exist there. 
 Fires when an HTTP request arrives at the trigger's URL. The node has no settings. Saving the workflow creates the URL token and a shared secret, and the popover shows both. They stay the same across later saves.
 
 Outputs: `body`, `headers`, `query`, `method`, `path`, `timestamp`, `source`, `event_type`. See [Calling a webhook](#calling-a-webhook).
+
+### Email Trigger
+
+Fires when new mail arrives in a Gmail folder. It reads the folder over IMAP with a Google [app password](google-workspace.md#gmail-without-a-google-login), so it works on an install with no Google sign-in. Enter `GOOGLE_MAIL_USER` and `GOOGLE_APP_PASSWORD` in **Settings → Models & providers**. Only `imap.gmail.com` is supported.
+
+| Setting | Default | What it does |
+|---------|---------|--------------|
+| Folder | `INBOX` | The folder to watch |
+| From Address | empty | Only mail from this sender starts a run |
+| Subject | empty | Only mail whose subject contains this text starts a run |
+| Poll Interval Seconds | 60 | Seconds between checks. At least 30, because Gmail limits how often an account may log in |
+| Max Messages Per Check | 10 | Most runs one check starts. Mail beyond that waits for the next check, so nothing is skipped |
+
+Outputs: `email` (the whole message as a dict), `message_id`, `subject`, `sender`, `date`, `body`, `source`, `event_type`. The body is decoded to plain text and cut at 10,000 characters. Attachments are not passed on.
+
+The server checks the folder on the same schedule as an interval trigger and starts one run for each new message. A check that finds nothing starts no run. The server remembers where the last check stopped, so a restart neither runs the workflow again for old mail nor skips mail that arrived while the server was down.
+
+- **The first check starts no run.** It records where the folder ends, so arming the trigger does not run the workflow once for every message already there. Only mail that arrives after that starts a run.
+- **A paused trigger catches up.** Turning the trigger off and on again starts runs for the mail that arrived while it was off, up to **Max Messages Per Check** at a time. To skip that mail, change a setting and save, which clears the position and takes a new baseline.
+- **Changing a setting starts over.** Saving the workflow with a different folder, sender, subject, or interval clears the position. Mail that arrived between the last check and the save does not start a run.
+- **Last fired shows the last check.** The popover time is when the server last looked at the folder, whether or not it found mail.
+- **A failed check counts as a failure.** A wrong app password or a network error shows as `Poll failed: ...` in **Last error**. After 5 failed checks in a row the trigger stops. See [Automatic disarm](#automatic-disarm).
+- **Gmail renumbers a folder rarely.** When it does, the trigger takes a new baseline and mail that arrived during the change does not start a run.
+
+Treat the message as untrusted input. Anyone can send you mail, so do not hand `body` to an agent that has tools with side effects unless you want strangers to steer it.
+
+To reply, add a **Send Email** node. It sends through `smtp.gmail.com` with the same app password.
 
 ### Manual Trigger
 
@@ -227,6 +255,13 @@ The route enforces these limits:
 
 The `404`, `401`, and `410` responses, and the idempotency rules, are described in [Triggering a Workflow by Webhook](api-reference.md#triggering-a-workflow-by-webhook).
 
+## Use n8n with NodeTool
+
+n8n and NodeTool can start each other's workflows over HTTP.
+
+- **n8n calls NodeTool.** Save a workflow with a Webhook Trigger and arm it. In n8n, add an HTTP Request node with the method `POST`, the trigger's webhook URL, and the header `x-webhook-secret` set to the secret from the popover. The JSON body arrives on the trigger's `body` output. See [Calling a webhook](#calling-a-webhook).
+- **NodeTool calls n8n.** Add a Code node and `fetch` the URL of an n8n Webhook node, with the method and body the n8n node expects. See [JavaScript Sandbox](javascript-sandbox.md). The Code node's `fetch` refuses loopback and private network addresses, so the n8n URL must be a public one.
+
 ## Where triggers run
 
 Triggers run inside the NodeTool server process. Nothing fires while the server is stopped.
@@ -244,7 +279,7 @@ The mobile app has no Triggers screen. Manage triggers on desktop or web.
 
 ## Troubleshooting
 
-**The bolt button is missing.** The graph has no schedule, interval, file watch, webhook, or manual trigger node. The Wait node does not count.
+**The bolt button is missing.** The graph has no schedule, interval, file watch, webhook, email, or manual trigger node. The Wait node does not count.
 
 **Nothing fires.**
 - Check that the trigger shows **Active**, not **Inactive**.
@@ -262,6 +297,8 @@ The mobile app has no Triggers screen. Manage triggers on desktop or web.
 **A webhook call returns an error.** `404` means the token is wrong, or triggers are disabled on that server. `401` means the secret is missing or wrong. `410` means the trigger is not armed. `413` and `429` are the limits above.
 
 **A webhook call returns `"duplicate": true`.** The request matched an earlier one, so no new run started. Change the body or the `x-webhook-id`.
+
+**An email trigger stays silent.** Read the last error. `Poll failed: Invalid credentials` means the app password or address in settings is wrong. `GOOGLE_MAIL_USER and GOOGLE_APP_PASSWORD must be configured` means a setting is missing. Also check that the folder is the one the mail lands in, that **From Address** and **Subject** match, and that the mail arrived after the first check. Mail already in the folder when you armed the trigger never starts a run.
 
 **The trigger shows Stopped.** Read **Last error** and see [Automatic disarm](#automatic-disarm).
 

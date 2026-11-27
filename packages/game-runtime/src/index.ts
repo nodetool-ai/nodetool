@@ -7,6 +7,7 @@ export * from "./script-log.js";
 export * from "./script-saves.js";
 export * from "./player-saves.js";
 export * from "./autoplay.js";
+export * from "./bot.js";
 export * from "./validate3d.js";
 export * from "./document-ops3d.js";
 export * from "./open-session.js";

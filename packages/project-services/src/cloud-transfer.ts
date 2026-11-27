@@ -574,9 +574,10 @@ export async function commitTransfer(
         );
         continue;
       }
-      // A document already in the target project counts as moved.
-      if (op.op === "move_document" && document.projectId === op.target_project_id) continue;
-      if (document.projectId !== projectId) {
+      // A document already in the target project counts as moved, once the
+      // caller's ownership of the document and target project is verified.
+      const alreadyMoved = op.op === "move_document" && document.projectId === op.target_project_id;
+      if (!alreadyMoved && document.projectId !== projectId) {
         failures.push(failure("DOCUMENT_NOT_IN_PROJECT", "The document is not in this project", where));
         continue;
       }

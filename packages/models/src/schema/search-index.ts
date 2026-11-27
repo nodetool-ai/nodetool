@@ -51,7 +51,15 @@ export const searchItems = sqliteTable(
     error: text("error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull(),
-    indexed_at: text("indexed_at")
+    indexed_at: text("indexed_at"),
+    /** `source_version|model` the captions or transcript were made from. */
+    enriched_version: text("enriched_version"),
+    enrich_attempts: integer("enrich_attempts").notNull().default(0),
+    enrich_error: text("enrich_error"),
+    /** `source_version|project_id|space` the image vector was made from. */
+    image_embedded_version: text("image_embedded_version"),
+    image_embed_attempts: integer("image_embed_attempts").notNull().default(0),
+    image_embed_error: text("image_embed_error")
   },
   (table) => [
     uniqueIndex("idx_search_items_resource").on(
@@ -87,3 +95,14 @@ export const searchChunks = sqliteTable(
   },
   (table) => [index("idx_search_chunks_item").on(table.item_id, table.ordinal)]
 );
+
+/**
+ * Named leases the library indexers share across processes: the hosted
+ * embedding budget is one, held while a process checks the day's spend and
+ * makes the paid call, so two processes never both spend the last of it.
+ */
+export const searchLeases = sqliteTable("nodetool_search_leases", {
+  name: text("name").primaryKey(),
+  owner: text("owner").notNull(),
+  expires_at: text("expires_at").notNull()
+});

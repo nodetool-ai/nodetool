@@ -226,7 +226,7 @@ const scriptedCalls: unknown[][] = [];
 vi.mock("@nodetool-ai/cli-providers", () => ({
   buildConfiguredProviders: async () => ({}),
   createProvider: async () => currentProvider,
-  DEFAULT_MODELS: { claude_agent_sdk: "sonnet" }
+  defaultModelFor: (providerId: string) => (providerId === "claude_agent_sdk" ? "sonnet" : undefined)
 }));
 
 const { ScriptedProvider, textScript, toolCallScript } = await import(

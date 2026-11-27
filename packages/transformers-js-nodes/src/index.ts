@@ -48,6 +48,11 @@ export {
   setTransformersJsCacheDir,
   setTransformersJsRemoteHost,
   tjsModelDefault,
+  type ClipImageProcessor,
+  type ClipTensor,
+  type ClipTextModel,
+  type ClipTokenizer,
+  type ClipVisionModel,
   type HfModelRef,
   type RawImage
 } from "./transformers-base.js";

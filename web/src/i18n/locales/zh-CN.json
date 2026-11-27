@@ -9260,7 +9260,8 @@
         "provider-options": "服务商选项",
         "observability": "可观测性",
         "data-and-storage": "数据和存储",
-        "other": "其他"
+        "other": "其他",
+        "library-search": "素材库搜索"
       },
       "credentials": {
         "genericButton": "获取 API 密钥",
@@ -21352,6 +21353,65 @@
       "scriptMissing": "未找到脚本：{{name}}",
       "scriptEmpty": "此脚本还没有台词。",
       "openScript": "打开脚本"
+    },
+    "sidePanel": {
+      "tabs": "侧边栏",
+      "chat": "AI 聊天",
+      "structure": "结构"
+    },
+    "outline": {
+      "source": "查看结构",
+      "current": "当前",
+      "snapshot": "快照",
+      "label": "文档结构",
+      "snapshotLabel": "快照结构",
+      "emptyTitle": "没有标题",
+      "emptyBody": "以 #、## 或 ### 开头的行会成为标题。标题会显示在这里，点击即可跳转。",
+      "snapshotEmptyBody": "此快照没有标题。",
+      "noSnapshotBody": "选择一个快照以查看其结构。"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "名称",
+      "prompt": "提示词",
+      "description": "描述",
+      "body": "文本",
+      "caption": "图片说明",
+      "transcript": "转录文本",
+      "image": "与图片本身匹配"
+    },
+    "matchedIn": "{{field}}：{{snippet}}",
+    "palette": {
+      "heading": "素材库",
+      "indexing": "正在为素材库建立索引：{{total}} 项中已完成 {{ready}} 项",
+      "embedding": "按含义搜索尚待嵌入的段落：{{count}}",
+      "noMatch": "素材库中没有与“{{query}}”匹配的内容。已搜索所有项目。",
+      "failed": "资料库搜索失败。资料库中的结果未显示。"
+    },
+    "setup": {
+      "heading": "按含义搜索",
+      "description": "按内容所展示或讲述的东西查找，而不只是按其中的文字。本地模型在这台电脑上运行，你的内容会留在这里。",
+      "local": "下载本地模型（{{size}} MB）",
+      "provider": "使用服务商的模型",
+      "providerNote": "将发送给所选服务商的段落：{{count}}",
+      "notNow": "以后再说"
+    },
+    "status": {
+      "loadFailed": "无法读取素材库搜索的状态。",
+      "items": "{{total}} 项中已索引 {{ready}} 项",
+      "pending": "等待索引：{{count}}",
+      "failed": "无法索引：{{count}}",
+      "failure": "{{title}}：{{error}}",
+      "semanticOn": "按含义搜索使用 {{model}}。",
+      "semanticOff": "按含义搜索已关闭。关键词搜索无需它即可使用。",
+      "vectors": "{{total}} 个段落中已嵌入 {{embedded}} 个",
+      "rebuildingVectors": "新模型正在嵌入素材库。完成前，搜索仍使用之前的模型。",
+      "images": "图片使用 {{model}} 嵌入：已完成 {{embedded}} 张，剩余 {{remaining}} 张。",
+      "turnOff": "关闭按含义搜索",
+      "embedAgain": "重新嵌入",
+      "rebuild": "重建索引",
+      "providerHint": "要使用服务商的模型，请在上方设置服务商和模型。发送给该服务商的段落：{{count}}"
     }
   }
 }

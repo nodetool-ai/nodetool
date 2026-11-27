@@ -23,7 +23,13 @@ import type {
   Disposition,
   InvocationState
 } from "./state.js";
-import { isNumber, isObjectLike, isRecord, isString } from "./predicates.js";
+import {
+  getOwn,
+  isFiniteNumber,
+  isObjectLike,
+  isRecord,
+  isString
+} from "./predicates.js";
 
 export interface FoldContext {
   /**
@@ -139,9 +145,17 @@ const sourceOf = (message: Record<string, unknown>): string | undefined => {
 /** The most characters of a tool result one transcript entry keeps. */
 const RESULT_CHARS = 400;
 
+const safeJson = (value: unknown): string => {
+  try {
+    return JSON.stringify(value) ?? "";
+  } catch {
+    return String(value);
+  }
+};
+
 const resultText = (value: unknown): string => {
   const summary = isRecord(value) && isString(value.summary) ? value.summary : null;
-  const text = summary ?? (isString(value) ? value : JSON.stringify(value) ?? "");
+  const text = summary ?? (isString(value) ? value : safeJson(value));
   return text.length > RESULT_CHARS ? `${text.slice(0, RESULT_CHARS)}…` : text;
 };
 
@@ -240,7 +254,8 @@ export const messageToEvents = (
 
     case "node_progress": {
       const { progress, total } = message;
-      const hasRatio = isNumber(progress) && isNumber(total) && total > 0;
+      const hasRatio =
+        isFiniteNumber(progress) && isFiniteNumber(total) && total > 0;
       const ratio = hasRatio ? progress / total : undefined;
       const nodeId = str(message.node_id);
       return [
@@ -321,7 +336,7 @@ export const messageToEvents = (
 
     case "job_update": {
       const status = str(message.status);
-      const mapped = TERMINAL_JOB_STATUS[status];
+      const mapped = getOwn(TERMINAL_JOB_STATUS, status);
       if (!mapped) {
         return status === "running"
           ? [

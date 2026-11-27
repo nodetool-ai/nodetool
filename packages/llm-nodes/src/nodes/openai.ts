@@ -108,6 +108,13 @@ export class EmbeddingNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // 2. WebSearch
 // ---------------------------------------------------------------------------
+/**
+ * The reasoning model that runs OpenAI's hosted `web_search` tool, at its
+ * default effort. It rejects reasoning effort `none`, so the request leaves
+ * effort unset.
+ */
+const OPENAI_WEB_SEARCH_MODEL = "gpt-6.2-sol";
+
 /** Output handles WebSearchNode.process() emits. */
 type WebSearchNodeOutputs = {
   output: string;
@@ -139,13 +146,14 @@ export class WebSearchNode extends BaseNode {
     const query = this.query;
     if (!query) throw new Error("Search query cannot be empty");
 
-    const res = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
+    const res = await fetch(`${OPENAI_API_BASE}/responses`, {
       method: "POST",
       headers: authHeaders(apiKey),
       body: JSON.stringify({
-        model: "gpt-4o-search-preview",
-        web_search_options: {},
-        messages: [{ role: "user", content: query }]
+        model: OPENAI_WEB_SEARCH_MODEL,
+        tools: [{ type: "web_search" }],
+        tool_choice: "required",
+        input: query
       })
     });
     if (!res.ok) {
@@ -154,14 +162,18 @@ export class WebSearchNode extends BaseNode {
     }
     const data = (await res.json()) as Record<string, unknown>;
 
-    let content: string;
-    if (data.choices && Array.isArray(data.choices)) {
-      const first = data.choices[0] as Record<string, unknown> | undefined;
-      const msg = first?.message as Record<string, unknown> | undefined;
-      content = String(msg?.content ?? JSON.stringify(data));
-    } else {
-      content = JSON.stringify(data);
+    // The answer is every output_text part of every message item.
+    let content = "";
+    const output = Array.isArray(data.output) ? data.output : [];
+    for (const item of output as Array<Record<string, unknown>>) {
+      if (item?.type !== "message" || !Array.isArray(item.content)) continue;
+      for (const part of item.content as Array<Record<string, unknown>>) {
+        if (part?.type === "output_text" && isString(part.text)) {
+          content += part.text;
+        }
+      }
     }
+    if (!content) content = JSON.stringify(data);
 
     return { output: content };
   }

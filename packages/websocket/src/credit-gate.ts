@@ -47,7 +47,9 @@ export function reserveSpend(
     byKey = new Map();
     reservations.set(userId, byKey);
   }
-  byKey.set(key, { usd: Math.max(0, estimatedUsd), at: Date.now() });
+  const safeUsd =
+    Number.isFinite(estimatedUsd) && estimatedUsd > 0 ? estimatedUsd : 0;
+  byKey.set(key, { usd: safeUsd, at: Date.now() });
 }
 
 /** Releasing an unknown key is a no-op, so terminal paths can call it blindly. */
@@ -86,9 +88,11 @@ export async function admitSpend(
   models: readonly string[] = []
 ): Promise<CreditGateResult> {
   try {
+    const safeEstimate =
+      Number.isNaN(estimatedUsd) || estimatedUsd <= 0 ? 0 : estimatedUsd;
     const decision = await checkCredits(
       userId ?? "1",
-      estimatedUsd + reservedSpendUsd(userId ?? "1"),
+      safeEstimate + reservedSpendUsd(userId ?? "1"),
       models
     );
     return decision.allowed

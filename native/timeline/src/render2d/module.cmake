@@ -26,9 +26,16 @@ function(nt_render2d_copy_fonts)
         "${font_dir}/OFL-PlayfairDisplay.txt"
         "${font_dir}/OFL-SpaceGrotesk.txt"
     )
+    # In a macOS bundle the fonts go to Contents/Resources: Gatekeeper treats
+    # every file in Contents/MacOS as code and rejects a signed app that keeps
+    # data there.
+    set(destination "$<TARGET_FILE_DIR:nodetool-timeline>/fonts")
+    if(APPLE AND NT_MACOS_BUNDLE)
+        set(destination "$<TARGET_BUNDLE_CONTENT_DIR:nodetool-timeline>/Resources/fonts")
+    endif()
     add_custom_target(timeline_fonts
-        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:nodetool-timeline>/fonts"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${fonts} "$<TARGET_FILE_DIR:nodetool-timeline>/fonts"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${destination}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${fonts} "${destination}"
         DEPENDS ${fonts}
         VERBATIM)
     add_dependencies(nodetool-timeline timeline_fonts)

@@ -57,9 +57,22 @@ export function assertFetchUrlAllowed(url: string, allowPrivate = false): void {
     throw new Error(`fetch: unsupported scheme "${parsed.protocol}"`);
   }
   if (allowPrivate) return;
-  const host = parsed.hostname.toLowerCase();
-  if (host === "localhost" || host.endsWith(".localhost")) {
-    throw new Error("fetch: access to localhost is blocked");
+  const bare = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  let end = bare.length;
+  while (end > 0 && bare[end - 1] === ".") end -= 1;
+  const host = bare.slice(0, end);
+  if (!host) {
+    throw new Error("fetch: invalid URL");
+  }
+  if (
+    host === "localhost" ||
+    host === "ip6-localhost" ||
+    host === "ip6-loopback" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    throw new Error(`fetch: access to localhost/internal host "${host}" is blocked`);
   }
   if (isBlockedIpLiteral(host)) {
     throw new Error(

@@ -66,7 +66,8 @@ export {
   scripts,
   jsScripts,
   searchItems,
-  searchChunks
+  searchChunks,
+  searchLeases
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────

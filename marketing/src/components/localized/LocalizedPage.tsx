@@ -8,12 +8,15 @@ import FaqSection from "../FaqSection";
 import JsonLd from "../JsonLd";
 import DownloadPanel from "../DownloadPanel";
 import LocalizedCatalog from "./LocalizedCatalog";
+import NodeEditorDemo from "../NodeEditorDemo";
+import TimelineEditorDemo from "../TimelineEditorDemo";
 import { breadcrumbSchema } from "@/lib/jsonld";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 import { modelDirectoryCounts } from "@/data/modelDirectory";
 import { STAGE_COSTS } from "@/data/stageCosts";
 import { storyboards } from "@/data/storyboards";
 import { adRecipes } from "@/data/adLibrary";
+import { SOURCES_CHECKED } from "@/data/gameEngineComparison";
 import { LOCALES, languageAlternates, localizedPath, type Locale } from "@/i18n/routes";
 import type { LocalizedPageContent, PageLink, PageMedia, PageSection } from "@/i18n/content";
 import { localizedPage, localeChrome, downloadPanelCopy } from "@/i18n/pages";
@@ -61,6 +64,7 @@ const TOKENS: Record<string, string> = {
   fiveClipPrice: STAGE_COSTS.fiveClipPrice,
   storyboardCount: String(storyboards.length),
   adCount: String(adRecipes.length),
+  gameSourcesChecked: SOURCES_CHECKED,
 };
 
 export function fill(text: string): string {
@@ -319,6 +323,13 @@ function Section({ locale, section }: { locale: Locale; section: PageSection }) 
             <DownloadPanel copy={downloadPanelCopy(locale)} />
           </div>
         </>
+      );
+    case "demo":
+      // Each demo is its own <section> with a fixed id the page can link to.
+      return section.editor === "timeline" ? (
+        <TimelineEditorDemo copy={section.copy} />
+      ) : (
+        <NodeEditorDemo copy={section.copy} />
       );
   }
 }

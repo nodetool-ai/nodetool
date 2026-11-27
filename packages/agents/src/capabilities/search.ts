@@ -124,8 +124,18 @@ const search: CapabilityExport = {
     const projectId = await scopeProjectId(run, params);
     if (projectId) request.projectId = projectId;
     if (isNonBlankString(params["cursor"])) request.cursor = params["cursor"];
+    const mode = params["mode"];
+    if (mode === "keyword" || mode === "semantic" || mode === "auto") request.mode = mode;
+    if (isNonBlankString(params["similar_to"])) request.similarTo = params["similar_to"].trim();
 
-    const result = await searchLibrary(request);
+    let result: Awaited<ReturnType<typeof searchLibrary>>;
+    try {
+      result = await searchLibrary(request);
+    } catch (error) {
+      // An unknown or ambiguous similar_to id is the caller's to fix.
+      if (request.similarTo) return { error: error instanceof Error ? error.message : String(error) };
+      throw error;
+    }
     const names = await projectNames(userId, result.hits.map((hit) => hit.projectId));
     const hits = result.hits.map((hit) => {
       const metadata = hit.metadata;
@@ -161,7 +171,7 @@ const search: CapabilityExport = {
       total: result.total,
       index: result.index
     };
-    if (params["mode"] === "semantic") {
+    if (params["mode"] === "semantic" && result.index.mode === "keyword" && !result.index.note) {
       answer.note = "Search by meaning is not set up for this library, so this was a keyword search.";
     }
     if (hits.some((hit) => hit.matches.length > 0)) answer.notice = UNTRUSTED_NOTICE;

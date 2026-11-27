@@ -84,7 +84,8 @@ jobs:
   # unparseable plan runs every leg: only an explicit plan skips work.
   #
   # Each leg's `when` names the plan key that selects it (`always`: every run
-  # with code). `docker` is the image smoke test: the caller turns it off on
+  # with code). `built-any` tells `build` and `built` whether any built leg
+  # was selected: GitHub fails a job whose matrix is empty. `docker` is the image smoke test: the caller turns it off on
   # push, where docker.yml builds main and gates the deploy.
   #
   # Notes on the legs, kept beside their definitions:
@@ -259,6 +260,7 @@ jobs:
     outputs:
       static: ${{ steps.legs.outputs.static }}
       built: ${{ steps.legs.outputs.built }}
+      built-any: ${{ steps.legs.outputs.built-any }}
       docker: ${{ steps.legs.outputs.docker }}
       turbo-affected: ${{ steps.legs.outputs.turbo-affected }}
       integration: ${{ steps.legs.outputs.integration }}
@@ -274,11 +276,12 @@ jobs:
           set -euo pipefail
           if ! jq -e 'type == "object"' <<<"${PLAN:-null}" >/dev/null 2>&1; then
             echo "::notice::No usable plan; running every leg."
-            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_cli":true,"packages_engine":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true,"node_catalog":true}'
+            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"packages_cli":true,"packages_engine":true,"packages_game":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true,"node_catalog":true,"typecheck":true,"harness_gate":true}'
           fi
           select_legs() {
             jq -c --argjson p "$PLAN" --arg skip "${SKIP_TESTS:-false}" '
               def on($w): $w == "always" or $p[$w] == true
+                or ($w == "harness_gate" and $skip == "true")
                 or ($w == "web_full" and $p.web == "full")
                 or ($w == "web_related" and $p.web == "related")
                 or ($w == "electron_or_mobile" and ($p.electron == true or $p.mobile == true));
@@ -315,7 +318,7 @@ jobs:
               "is-test": "false",
               "fetch-depth": "1",
               "timeout": 20,
-              "when": "always",
+              "when": "typecheck",
               "jest-cache": ""
             },
             {
@@ -487,7 +490,7 @@ jobs:
               "is-test": "false",
               "fetch-depth": "0",
               "timeout": 60,
-              "when": "always",
+              "when": "harness_gate",
               "jest-cache": ""
             }
           ]
@@ -496,6 +499,7 @@ jobs:
           {
             echo "static=$static"
             echo "built=$built"
+            echo "built-any=$(jq -r '.include | length > 0' <<<"$built")"
             echo "docker=$(jq -r --arg event "$GITHUB_EVENT_NAME" '.docker == true and $event != "push"' <<<"$PLAN")"
             echo "turbo-affected=$(jq -r '.turbo_affected == true' <<<"$PLAN")"
             echo "integration=$(jq -r '.integration == true' <<<"$PLAN")"
@@ -578,8 +582,10 @@ jobs:
     name: build
     # `built` needs this job, so skipping it skips every leg that consumes the
     # dist artifact too.
-    needs: ci-image
-    if: ${{ !inputs.docs-only && inputs.shared }}
+    needs: [changes, ci-image]
+    # Only a `built` leg downloads the dist. A diff that starts none of them
+    # (native code, workflow files, the marketing site) builds nothing.
+    if: ${{ needs.changes.outputs.built-any == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.ci-image.outputs.image }}
@@ -706,6 +712,8 @@ jobs:
   built:
     name: ${{ matrix.shard && format('{0} ({1}/{2})', matrix.check, matrix.shard, matrix.shards) || matrix.check }}
     needs: [changes, build, ci-image]
+    # GitHub fails a job whose matrix has no entries.
+    if: ${{ needs.changes.outputs.built-any == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.ci-image.outputs.image }}

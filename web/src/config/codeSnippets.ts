@@ -2870,11 +2870,12 @@ return {
     ]
   },
   // ---------------------------------------------------------------------------
-  // Email — the replacement for the retired `lib.mail.*` nodes.
+  // Email through the Google sign-in.
   //
   // These call the `google` capability module, so the OAuth session stays on
-  // the host and the guest never holds a token. The retired nodes spoke IMAP
-  // with a Gmail app password; this path needs only the user's Google sign-in.
+  // the host and the guest never holds a token. The `lib.mail.*` nodes speak
+  // IMAP with a Gmail app password instead, and are the route on an install
+  // with no Google sign-in.
   // ---------------------------------------------------------------------------
   {
     id: "gmail-search",

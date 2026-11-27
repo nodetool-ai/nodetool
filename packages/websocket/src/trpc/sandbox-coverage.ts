@@ -1165,6 +1165,23 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "scripts.get": { capability: "get_script" },
   "scripts.list": { capability: "list_scripts" },
   "scripts.update": { capability: "edit_script" },
+  "search.query": { capability: "search" },
+  "search.read": { capability: "search_read" },
+  "search.rebuild": {
+    withheld:
+      "A rebuild clears the library index and embeds every item again, " +
+      "which spends provider credit. It is a host maintenance operation."
+  },
+  "search.setup": {
+    withheld:
+      "Setup stores the user's library search settings, including the " +
+      "embedding model and daily spend limit. That choice stays with the user."
+  },
+  "search.status": {
+    elsewhere:
+      "search reports the index mode and its pending and failed counts with " +
+      "every result."
+  },
   "segmentation.segment": { capability: "segment_image" },
   "settings.list": { capability: "list_settings" },
   "settings.providerCatalog": {

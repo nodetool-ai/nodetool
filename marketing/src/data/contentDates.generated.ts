@@ -15,20 +15,20 @@ export const contentDates: {
       "hash": "9588275884052993"
     },
     "/gamedev": {
-      "date": "2026-11-24",
-      "hash": "a07fc532b321adaa"
+      "date": "2026-11-26",
+      "hash": "ea9f63dd7a2bd46a"
     },
     "/gamedev/ai-game-engines": {
-      "date": "2026-11-06",
-      "hash": "11a4d9bec9749169"
+      "date": "2026-11-26",
+      "hash": "4bfc62ca95d49f37"
     },
     "/ai-video-editor": {
       "date": "2026-11-21",
       "hash": "7a98b54705c83e41"
     },
     "/ai-image-editor": {
-      "date": "2026-11-09",
-      "hash": "46c7726eaecfadf0"
+      "date": "2026-11-26",
+      "hash": "62fbc4f03b37e1be"
     },
     "/mcp": {
       "date": "2026-11-21",

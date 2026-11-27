@@ -12,8 +12,12 @@ export interface MutationObserver {
   completed(id: string, outcome: Outcome, timedOut?: boolean): void;
 }
 
+/** The hash that places an ID in shard `hash % count + 1`, for callers that try several counts. */
+export function shardHash(mutationId: string): number {
+  return createHash("sha256").update(mutationId).digest().readUInt32BE(0);
+}
+
 /** Assign IDs independently of traversal order or the number of other sites. */
 export function belongsToShard(mutationId: string, shard: MutationShard): boolean {
-  const hash = createHash("sha256").update(mutationId).digest().readUInt32BE(0);
-  return hash % shard.count === shard.index - 1;
+  return shardHash(mutationId) % shard.count === shard.index - 1;
 }

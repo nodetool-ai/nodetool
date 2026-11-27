@@ -555,8 +555,8 @@ export class TimelineSequence extends DBModel {
     options: { deletedWithProject?: string } = {}
   ): Promise<boolean> {
     return changingAccess([{ kind: "timeline", id }], async () => {
-      const row = await TimelineSequence.findById(id);
-      if (!row || row.user_id !== userId) return false;
+      const row = await TimelineSequence.getForUser<TimelineSequence>(userId, id);
+      if (!row) return false;
       // The row, its versions, grants and references go in one transaction,
       // with the copy kept for a restore (PRD D4). The row lock makes a save
       // that races the delete wait, then find no row.
@@ -807,7 +807,7 @@ export class TimelineSequence extends DBModel {
       const doc = seq.toDocument();
       const result = await mutator(doc, seq);
       const updated = await TimelineSequence.updateDocumentIfUnchanged(
-        id,
+        seq.id,
         seq.updated_at,
         doc,
         meta

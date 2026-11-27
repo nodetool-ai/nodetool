@@ -293,7 +293,7 @@ function applyOutputKind(
 
 function isListTypeHandle(node: NodeDescriptor, handle: string): boolean {
   const propertyTypes = node.propertyTypes;
-  if (!propertyTypes) return false;
+  if (!propertyTypes || !Object.hasOwn(propertyTypes, handle)) return false;
   const typeStr = propertyTypes[handle];
   // Guard non-string/empty values here so TypeMetadata.fromString only ever
   // sees a valid type string (it is total over strings and never throws).
@@ -552,8 +552,10 @@ export function analyzeCorrelation(
 
     for (const handle of handlesToProcess) {
       const corr =
-        outputCorr[handle] ??
-        (dynamicHandles.has(handle) ? dynamicCorr[handle] : undefined);
+        (Object.hasOwn(outputCorr, handle) ? outputCorr[handle] : undefined) ??
+        (dynamicHandles.has(handle) && Object.hasOwn(dynamicCorr, handle)
+          ? dynamicCorr[handle]
+          : undefined);
 
       // Default behavior when no correlation metadata is provided: treat as
       // `single` with `__execution__` source. This keeps the analyzer usable
@@ -1006,7 +1008,7 @@ export function projectLineageKey(
   if (scope.length === 0) return "";
   const parts: string[] = [];
   for (const root of scope) {
-    const tok = lineage[root];
+    const tok = Object.hasOwn(lineage, root) ? lineage[root] : undefined;
     if (!tok) return ""; // not enough lineage to project; caller decides
     parts.push(`${root}=${tok.index}`);
   }
@@ -1025,7 +1027,7 @@ export function tryProjectLineageKey(
   if (scope.length === 0) return "";
   const parts: string[] = [];
   for (const root of scope) {
-    const tok = lineage[root];
+    const tok = Object.hasOwn(lineage, root) ? lineage[root] : undefined;
     if (!tok) return null;
     parts.push(`${root}=${tok.index}`);
   }

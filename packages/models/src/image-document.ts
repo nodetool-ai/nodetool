@@ -263,8 +263,8 @@ export class ImageDocument extends DBModel {
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     return changingAccess([{ kind: "sketch", id }], async () => {
-      const row = await ImageDocument.findById(id);
-      if (!row || row.user_id !== userId) return false;
+      const row = await ImageDocument.getForUser<ImageDocument>(userId, id);
+      if (!row) return false;
       await row.delete();
       await removeDocumentSharing("sketch", row.id);
       // Belt-and-braces with the FK cascade: version rows outliving their
@@ -439,7 +439,7 @@ export class ImageDocument extends DBModel {
       const changeMeta =
         typeof meta === "function" ? meta(result) : meta;
       const updated = await ImageDocument.updateDocumentDataIfUnchanged(
-        id,
+        doc.id,
         doc.updated_at,
         data,
         changeMeta

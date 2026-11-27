@@ -80,7 +80,12 @@ describe("WebSearchNode", () => {
     const node = new WebSearchNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "Search result" } }]
+        output: [
+          {
+            type: "message",
+            content: [{ type: "output_text", text: "Search result", annotations: [] }]
+          }
+        ]
       })
     );
     node.assign({ query: "test" });
@@ -98,7 +103,7 @@ describe("WebSearchNode", () => {
     );
   });
 
-  it("handles response without choices", async () => {
+  it("handles a response without output", async () => {
     const node = new WebSearchNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ result: "raw" }));
     node.assign({ query: "test" });

@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLogHook, type LogEntry } from "@nodetool-ai/config";
-import { Asset, ModelObserver, initTestDb } from "@nodetool-ai/models";
+import { Asset, ModelObserver, Project, initTestDb } from "@nodetool-ai/models";
 import {
   createLocalWorkspace,
   setProjectFolderResolver,
@@ -32,6 +32,7 @@ let workspace: Workspace;
 
 beforeEach(async () => {
   initTestDb();
+  await Project.create({ id: PROJECT, user_id: USER, name: "Staged Project" });
   root = await mkdtemp(join(tmpdir(), "nodetool-chat-staged-doc-"));
   workspace = createLocalWorkspace(join(root, PROJECT));
   setProjectFolderResolver(async (projectId) => ({

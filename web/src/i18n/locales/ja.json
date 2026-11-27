@@ -9260,7 +9260,8 @@
         "provider-options": "プロバイダーのオプション",
         "observability": "可観測性",
         "data-and-storage": "データとストレージ",
-        "other": "その他"
+        "other": "その他",
+        "library-search": "ライブラリ検索"
       },
       "credentials": {
         "genericButton": "API キーを取得する",
@@ -21352,6 +21353,65 @@
       "scriptMissing": "スクリプトが見つかりません：{{name}}",
       "scriptEmpty": "このスクリプトにはまだセリフがありません。",
       "openScript": "スクリプトを開く"
+    },
+    "sidePanel": {
+      "tabs": "サイドパネル",
+      "chat": "AI チャット",
+      "structure": "構成"
+    },
+    "outline": {
+      "source": "表示する構成",
+      "current": "現在",
+      "snapshot": "スナップショット",
+      "label": "ドキュメントの構成",
+      "snapshotLabel": "スナップショットの構成",
+      "emptyTitle": "見出しがありません",
+      "emptyBody": "行頭に #、##、### を付けると見出しになります。見出しはここに表示され、クリックでその位置へ移動できます。",
+      "snapshotEmptyBody": "このスナップショットには見出しがありません。",
+      "noSnapshotBody": "スナップショットを選択すると構成が表示されます。"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "名前",
+      "prompt": "プロンプト",
+      "description": "説明",
+      "body": "テキスト",
+      "caption": "キャプション",
+      "transcript": "文字起こし",
+      "image": "画像そのものに一致"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "ライブラリ",
+      "indexing": "ライブラリをインデックス中: {{total}} 件中 {{ready}} 件完了",
+      "embedding": "意味検索のために埋め込み待ちの文章: {{count}}",
+      "noMatch": "ライブラリに「{{query}}」に一致するものはありません。すべてのプロジェクトを検索しました。",
+      "failed": "ライブラリの検索に失敗しました。ライブラリの結果は表示されていません。"
+    },
+    "setup": {
+      "heading": "意味で検索",
+      "description": "言葉だけでなく、写っているものや話している内容でアイテムを見つけます。ローカルモデルはこのコンピューターで動作するため、コンテンツはここに残ります。",
+      "local": "ローカルモデルをダウンロード ({{size}} MB)",
+      "provider": "プロバイダーのモデルを使う",
+      "providerNote": "選んだプロバイダーに送信される文章: {{count}}",
+      "notNow": "今はしない"
+    },
+    "status": {
+      "loadFailed": "ライブラリ検索の状態を読み込めませんでした。",
+      "items": "{{total}} 件中 {{ready}} 件をインデックス済み",
+      "pending": "インデックス待ち: {{count}}",
+      "failed": "インデックスできなかった件数: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "意味検索は {{model}} を使用しています。",
+      "semanticOff": "意味検索はオフです。キーワード検索はなしでも使えます。",
+      "vectors": "{{total}} 件中 {{embedded}} 件の文章を埋め込み済み",
+      "rebuildingVectors": "新しいモデルがライブラリを埋め込んでいます。完了するまで検索は以前のモデルを使います。",
+      "images": "画像は {{model}} で埋め込まれます: {{embedded}} 件完了、残り {{remaining}} 件。",
+      "turnOff": "意味検索をオフにする",
+      "embedAgain": "再度埋め込む",
+      "rebuild": "インデックスを再構築",
+      "providerHint": "プロバイダーのモデルを使うには、上でプロバイダーとモデルを設定してください。そのプロバイダーに送信される文章: {{count}}"
     }
   }
 }

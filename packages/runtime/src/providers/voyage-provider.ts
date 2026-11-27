@@ -6,10 +6,12 @@
  * API docs: https://docs.voyageai.com/reference/embeddings-api
  */
 
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { BaseProvider, type EmbeddingImage, type ProviderCapability } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import type { EmbeddingModel, Message, ProviderStreamItem } from "./types.js";
 import {
+  imageDataUri,
+  normalizeEmbeddingImages,
   normalizeEmbeddingTexts,
   postEmbeddingRequest,
   sortEmbeddingsByIndex
@@ -62,8 +64,21 @@ const VOYAGE_EMBEDDING_MODELS: EmbeddingModel[] = [
     name: "Voyage Multilingual 2",
     provider: "voyage",
     dimensions: 1024
+  },
+  {
+    id: "voyage-multimodal-3",
+    name: "Voyage Multimodal 3",
+    provider: "voyage",
+    dimensions: 1024
   }
 ];
+
+/** Voyage models that embed images and text into one space, through `/multimodalembeddings`. */
+function isVoyageMultimodalModel(model: string): boolean {
+  return model.startsWith("voyage-multimodal-");
+}
+
+type VoyageContent = { type: "text"; text: string } | { type: "image_base64"; image_base64: string };
 
 interface VoyageProviderOptions {
   fetchFn?: typeof fetch;
@@ -133,6 +148,12 @@ export class VoyageProvider extends BaseProvider {
       throw new Error("VOYAGE_API_KEY is not configured");
     }
     const texts = normalizeEmbeddingTexts(args.text);
+    if (isVoyageMultimodalModel(args.model)) {
+      return this.multimodalEmbedding(
+        args.model,
+        texts.map((text) => ({ type: "text", text }))
+      );
+    }
 
     const body: Record<string, unknown> = {
       model: args.model || "voyage-3.5",
@@ -156,6 +177,49 @@ export class VoyageProvider extends BaseProvider {
       label: "Voyage"
     });
 
+    return sortEmbeddingsByIndex(data.data ?? []);
+  }
+
+  /** Embed images with a Voyage multimodal model, in the space of its text embeddings. */
+  override async generateImageEmbedding(args: {
+    images: EmbeddingImage[];
+    model: string;
+    dimensions?: number;
+  }): Promise<number[][]> {
+    if (!this.apiKey) {
+      throw new Error("VOYAGE_API_KEY is not configured");
+    }
+    const model = args.model || "voyage-multimodal-3";
+    if (!isVoyageMultimodalModel(model)) {
+      throw new Error(`Voyage model ${model} does not embed images. Use voyage-multimodal-3.`);
+    }
+    return this.multimodalEmbedding(
+      model,
+      normalizeEmbeddingImages(args.images).map((image) => ({
+        type: "image_base64",
+        image_base64: imageDataUri(image)
+      }))
+    );
+  }
+
+  /** One input per piece of content: each text or image gets its own vector. */
+  private async multimodalEmbedding(model: string, contents: VoyageContent[]): Promise<number[][]> {
+    const body: Record<string, unknown> = {
+      model,
+      inputs: contents.map((content) => ({ content: [content] }))
+    };
+    if (this.inputType) {
+      body.input_type = this.inputType;
+    }
+    const data = await postEmbeddingRequest<{
+      data?: Array<{ embedding: number[]; index?: number }>;
+    }>({
+      fetchFn: this._fetch,
+      url: `${VOYAGE_API_BASE_URL}/multimodalembeddings`,
+      apiKey: this.apiKey,
+      body,
+      label: "Voyage"
+    });
     return sortEmbeddingsByIndex(data.data ?? []);
   }
 }

@@ -134,7 +134,7 @@ export function frame3D(
         const previousTransform = copyTransform3D(state.previousTransform);
         if (lifetime?.kind === "lifetime") {
           const scale = 1 + (lifetime.endScale - 1) * progress;
-          const previousScale = 1 + (lifetime.endScale - 1) * Math.max(0, (tick - state.spawnTick - 1) / lifetime.ticks);
+          const previousScale = 1 + (lifetime.endScale - 1) * Math.max(0, Math.min(1, (tick - state.spawnTick - 1) / lifetime.ticks));
           transform.scale = {
             x: transform.scale.x * scale,
             y: transform.scale.y * scale,

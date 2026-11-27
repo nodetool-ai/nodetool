@@ -9,8 +9,8 @@
  */
 
 import {
+  isFiniteNumber,
   isNonEmptyString,
-  isNumber,
   isRecord,
   isString
 } from "./predicates.js";
@@ -83,15 +83,15 @@ export const isSketchDocumentLike = (value: unknown): boolean => {
   const canvas = value.canvas;
   return (
     isRecord(canvas) &&
-    isNumber(canvas.width) &&
-    isNumber(canvas.height) &&
+    isFiniteNumber(canvas.width) &&
+    isFiniteNumber(canvas.height) &&
     Array.isArray(value.layers)
   );
 };
 
 export const isTimelineSequenceLike = (value: unknown): boolean =>
   isRecord(value) &&
-  isNumber(value.durationMs) &&
+  isFiniteNumber(value.durationMs) &&
   Array.isArray(value.tracks) &&
   Array.isArray(value.clips);
 
@@ -161,6 +161,7 @@ export const timelineSummary = (document: unknown): TimelineSummary | null => {
 
 /** `m:ss` for a clip/sequence duration, the form the timeline editor uses. */
 export const formatDuration = (ms: number): string => {
+  if (!Number.isFinite(ms)) return "0:00";
   const total = Math.max(0, Math.round(ms / 1000));
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;

@@ -239,7 +239,7 @@ export const applicationDocument = z.object({
     const binding = output.binding ?? `var:${output.id}`;
     const match = /^op:([^/]+)\/out:(.+)$/.exec(binding);
     if (binding.startsWith("var:") && variableIds.has(binding.slice(4))) return;
-    if (match && document.operations.some((operation) => operation.id === match[1] && operation.outputs[match[2]])) return;
+    if (match && document.operations.some((operation) => operation.id === match[1] && Object.hasOwn(operation.outputs, match[2]))) return;
     context.addIssue({ code: "custom", path: ["recipe", "outputs", index], message: "Recipe output must resolve to a readable Application binding." });
   });
 });

@@ -49,6 +49,28 @@ export interface GetResult {
   documents: (string | null)[];
   metadatas: (Record<string, unknown> | null)[];
   uris: (string | null)[];
+  /** Stored vectors, present only when `includeEmbeddings` was asked for. */
+  embeddings?: (number[] | null)[];
+}
+
+/** Collection metadata key naming the record metadata key that partitions the index. */
+export const PARTITION_KEY_METADATA_KEY = "partition_key";
+/** Collection metadata key recording the vector dimension once known. */
+export const DIMENSION_METADATA_KEY = "dimension";
+
+/** Read a float32 little-endian buffer written by `serializeEmbedding`. */
+function deserializeEmbedding(buffer: Buffer): number[] {
+  const out: number[] = [];
+  for (let offset = 0; offset + 4 <= buffer.length; offset += 4) out.push(buffer.readFloatLE(offset));
+  return out;
+}
+
+function parseMetadata(raw: string | null): Record<string, unknown> {
+  try {
+    return JSON.parse(raw ?? "{}") as Record<string, unknown>;
+  } catch {
+    return {};
+  }
 }
 
 function emptyQueryResult(): QueryResult {
@@ -106,8 +128,23 @@ export class VecCollection {
     return `vec_idx_${this.collectionId}`;
   }
 
-  /** Get the vector dimension for this collection (from first stored doc or 0). */
+  /** The record metadata key whose value partitions the index, if any. */
+  private get partitionKey(): string | null {
+    const key = this.metadata[PARTITION_KEY_METADATA_KEY];
+    return typeof key === "string" && key ? key : null;
+  }
+
+  /** The partition value of one record: its metadata value as text, or "". */
+  private partitionOf(metadata: Record<string, unknown> | null | undefined): string {
+    const key = this.partitionKey;
+    const value = key ? metadata?.[key] : undefined;
+    return value === undefined || value === null ? "" : String(value);
+  }
+
+  /** Get the vector dimension for this collection (recorded, else from the first stored doc, else 0). */
   private getDimension(): number {
+    const recorded = this.metadata[DIMENSION_METADATA_KEY];
+    if (typeof recorded === "number" && recorded > 0) return recorded;
     const row = this.db
       .prepare(
         `SELECT embedding FROM "${this.docsTable}" WHERE embedding IS NOT NULL LIMIT 1`
@@ -127,33 +164,61 @@ export class VecCollection {
       .get(this.idxTable) as { name: string } | undefined;
 
     if (!exists) {
+      // A partitioned index keeps one partition per value of the key, so a
+      // query that names a partition scans only its vectors.
+      const columns = this.partitionKey
+        ? `partition text partition key, embedding float[${dimension}]`
+        : `embedding float[${dimension}]`;
       this.db.exec(
-        `CREATE VIRTUAL TABLE IF NOT EXISTS "${this.idxTable}" USING vec0(embedding float[${dimension}])`
+        `CREATE VIRTUAL TABLE IF NOT EXISTS "${this.idxTable}" USING vec0(${columns})`
       );
 
       // Backfill any existing docs that have embeddings but no vec_rowid
       const docs = this.db
         .prepare(
-          `SELECT rowid, embedding FROM "${this.docsTable}" WHERE embedding IS NOT NULL AND vec_rowid IS NULL`
+          `SELECT rowid, embedding, metadata FROM "${this.docsTable}" WHERE embedding IS NOT NULL AND vec_rowid IS NULL`
         )
-        .all() as Array<{ rowid: number; embedding: Buffer }>;
+        .all() as Array<{ rowid: number; embedding: Buffer; metadata: string }>;
 
       if (docs.length > 0) {
-        const idxInsert = this.db.prepare(
-          `INSERT INTO "${this.idxTable}"(embedding) VALUES (?)`
-        );
+        const idxInsert = this.prepareIndexInsert();
         const updateVecRowid = this.db.prepare(
           `UPDATE "${this.docsTable}" SET vec_rowid = ? WHERE rowid = ?`
         );
         const tx = this.db.transaction(() => {
           for (const doc of docs) {
-            const info = idxInsert.run(doc.embedding);
+            const info = idxInsert(doc.embedding, parseMetadata(doc.metadata));
             updateVecRowid.run(info.lastInsertRowid, doc.rowid);
           }
         });
         tx();
       }
     }
+    this.recordDimension(dimension);
+  }
+
+  /** An insert into the vec0 index that fills the partition column when there is one. */
+  private prepareIndexInsert(): (
+    embedding: Buffer,
+    metadata: Record<string, unknown> | null | undefined
+  ) => { lastInsertRowid: number | bigint } {
+    if (this.partitionKey) {
+      const statement = this.db.prepare(
+        `INSERT INTO "${this.idxTable}"(partition, embedding) VALUES (?, ?)`
+      );
+      return (embedding, metadata) => statement.run(this.partitionOf(metadata), embedding);
+    }
+    const statement = this.db.prepare(`INSERT INTO "${this.idxTable}"(embedding) VALUES (?)`);
+    return (embedding) => statement.run(embedding);
+  }
+
+  /** Write the dimension into the collection metadata the first time it is known. */
+  private recordDimension(dimension: number): void {
+    if (this.metadata[DIMENSION_METADATA_KEY] === dimension) return;
+    this.metadata = { ...this.metadata, [DIMENSION_METADATA_KEY]: dimension };
+    this.db
+      .prepare(`UPDATE vec_collections SET metadata = ? WHERE id = ?`)
+      .run(JSON.stringify(this.metadata), this.collectionId);
   }
 
   /** Serialize a float32 array to a Buffer for sqlite-vec. */
@@ -200,18 +265,26 @@ export class VecCollection {
 
     // Ensure vec0 index exists before inserting
     if (dimension > 0) {
+      const existing = this.getDimension();
+      if (existing > 0 && existing !== dimension) {
+        throw new Error(
+          `Collection '${this.name}' holds ${existing}-dimension vectors, got ${dimension}.`
+        );
+      }
+      for (const emb of embeddings ?? []) {
+        if (emb && emb.length > 0 && emb.length !== dimension) {
+          throw new Error(
+            `Embeddings in one call to '${this.name}' differ in dimension: ${dimension} and ${emb.length}.`
+          );
+        }
+      }
       this.ensureIndex(dimension);
     }
 
     const insert = this.db.prepare(
       `INSERT INTO "${this.docsTable}" (doc_id, document, embedding, uri, metadata) VALUES (?, ?, ?, ?, ?)`
     );
-    const idxInsert =
-      dimension > 0
-        ? this.db.prepare(
-            `INSERT INTO "${this.idxTable}"(embedding) VALUES (?)`
-          )
-        : null;
+    const idxInsert = dimension > 0 ? this.prepareIndexInsert() : null;
     const updateVecRowid =
       dimension > 0
         ? this.db.prepare(
@@ -235,7 +308,7 @@ export class VecCollection {
 
         // Insert into vec0 index and record the mapping
         if (embBuf && idxInsert && updateVecRowid) {
-          const idxInfo = idxInsert.run(embBuf);
+          const idxInfo = idxInsert(embBuf, opts.metadatas?.[i]);
           updateVecRowid.run(idxInfo.lastInsertRowid, info.lastInsertRowid);
         }
       }
@@ -259,8 +332,10 @@ export class VecCollection {
     ids?: string[];
     limit?: number;
     offset?: number;
+    includeEmbeddings?: boolean;
   }): Promise<GetResult> {
-    let sql = `SELECT doc_id, document, uri, metadata FROM "${this.docsTable}"`;
+    const columns = opts?.includeEmbeddings ? "doc_id, document, uri, metadata, embedding" : "doc_id, document, uri, metadata";
+    let sql = `SELECT ${columns} FROM "${this.docsTable}"`;
     const params: unknown[] = [];
 
     if (opts?.ids && opts.ids.length > 0) {
@@ -284,9 +359,10 @@ export class VecCollection {
       document: string | null;
       uri: string | null;
       metadata: string;
+      embedding?: Buffer | null;
     }>;
 
-    return {
+    const result: GetResult = {
       ids: rows.map((r) => r.doc_id),
       documents: rows.map((r) => r.document),
       uris: rows.map((r) => r.uri ?? null),
@@ -298,6 +374,10 @@ export class VecCollection {
         }
       })
     };
+    if (opts?.includeEmbeddings) {
+      result.embeddings = rows.map((r) => (r.embedding ? deserializeEmbedding(r.embedding) : null));
+    }
+    return result;
   }
 
   async peek(opts?: { limit?: number }): Promise<GetResult> {
@@ -344,7 +424,12 @@ export class VecCollection {
     nResults?: number;
     whereDocument?: Record<string, unknown>;
     include?: string[];
+    /** Only records whose partition key value is this. Needs a partitioned collection. */
+    partition?: string;
   }): Promise<QueryResult> {
+    if (opts.partition !== undefined && !this.partitionKey) {
+      throw new Error(`Collection '${this.name}' has no partition key.`);
+    }
     const nResults = opts.nResults ?? 10;
     let queryEmbeddings = opts.queryEmbeddings;
 
@@ -399,6 +484,8 @@ export class VecCollection {
 
       let sql: string;
       let params: unknown[];
+      const partitionSql = opts.partition !== undefined ? "AND v.partition = ?" : "";
+      const partitionParams = opts.partition !== undefined ? [opts.partition] : [];
 
       if (docFilter) {
         // Filter first, then rank by distance
@@ -406,20 +493,20 @@ export class VecCollection {
           SELECT d.doc_id, d.document, d.uri, d.metadata, v.distance
           FROM "${this.idxTable}" v
           JOIN "${this.docsTable}" d ON d.vec_rowid = v.rowid
-          WHERE v.embedding MATCH ? AND k = ?
+          WHERE v.embedding MATCH ? AND k = ? ${partitionSql}
             AND ${docFilter}
           ORDER BY v.distance
         `;
-        params = [queryBuf, nResults * 3, ...filterParams]; // over-fetch then limit
+        params = [queryBuf, nResults * 3, ...partitionParams, ...filterParams]; // over-fetch then limit
       } else {
         sql = `
           SELECT d.doc_id, d.document, d.uri, d.metadata, v.distance
           FROM "${this.idxTable}" v
           JOIN "${this.docsTable}" d ON d.vec_rowid = v.rowid
-          WHERE v.embedding MATCH ? AND k = ?
+          WHERE v.embedding MATCH ? AND k = ? ${partitionSql}
           ORDER BY v.distance
         `;
-        params = [queryBuf, nResults];
+        params = [queryBuf, nResults, ...partitionParams];
       }
 
       const rows = this.db.prepare(sql).all(...params) as Array<{
@@ -625,6 +712,8 @@ export class SqliteVecStore {
     mkdirSync(dirname(resolvedPath), { recursive: true });
 
     this.db = new Database(resolvedPath);
+    // The library indexer writes from its own process (R1).
+    this.db.pragma("busy_timeout = 5000");
     this.db.pragma("journal_mode = WAL");
 
     // Load sqlite-vec extension

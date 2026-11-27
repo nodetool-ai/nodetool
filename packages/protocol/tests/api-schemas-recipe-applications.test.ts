@@ -18,6 +18,8 @@ describe("Recipe Application API validation", () => {
     expect(applicationDocument.safeParse(missingOperation).success).toBe(false);
     const missingOutput = document(); missingOutput.recipe.outputs[0].binding = "op:finish/out:missing";
     expect(applicationDocument.safeParse(missingOutput).success).toBe(false);
+    const inheritedOutput = document(); inheritedOutput.recipe.outputs[0].binding = "op:finish/out:toString";
+    expect(applicationDocument.safeParse(inheritedOutput).success).toBe(false);
   });
   it("rejects future Recipe and Application versions", () => {
     const future = document(); future.recipe.schemaVersion = 2;

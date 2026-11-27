@@ -9403,7 +9403,8 @@
         "provider-options": "Opzioni del fornitore",
         "observability": "Osservabilità",
         "data-and-storage": "Dati e archiviazione",
-        "other": "Altro"
+        "other": "Altro",
+        "library-search": "Ricerca nella libreria"
       },
       "credentials": {
         "genericButton": "Ottieni la tua chiave API",
@@ -21670,6 +21671,65 @@
       "scriptMissing": "Copione non trovato: {{name}}",
       "scriptEmpty": "Questo copione non ha ancora battute.",
       "openScript": "Apri copione"
+    },
+    "sidePanel": {
+      "tabs": "Pannello laterale",
+      "chat": "Chat IA",
+      "structure": "Struttura"
+    },
+    "outline": {
+      "source": "Struttura di",
+      "current": "Attuale",
+      "snapshot": "Snapshot",
+      "label": "Struttura del documento",
+      "snapshotLabel": "Struttura dello snapshot",
+      "emptyTitle": "Nessun titolo",
+      "emptyBody": "Inizia una riga con #, ## o ### per aggiungere un titolo. I titoli compaiono qui così puoi saltare direttamente a essi.",
+      "snapshotEmptyBody": "Questo snapshot non ha titoli.",
+      "noSnapshotBody": "Seleziona uno snapshot per vederne la struttura."
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Nome",
+      "prompt": "Prompt",
+      "description": "Descrizione",
+      "body": "Testo",
+      "caption": "Didascalia",
+      "transcript": "Trascrizione",
+      "image": "Corrisponde all’immagine stessa"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Libreria",
+      "indexing": "Indicizzazione della libreria: {{ready}} di {{total}} elementi pronti",
+      "embedding": "Passaggi ancora da incorporare per la ricerca per significato: {{count}}",
+      "noMatch": "Nulla nella tua libreria corrisponde a «{{query}}». Cercato in tutti i progetti.",
+      "failed": "La ricerca nella libreria non è riuscita. Mancano i risultati della tua libreria."
+    },
+    "setup": {
+      "heading": "Ricerca per significato",
+      "description": "Trova gli elementi in base a ciò che mostrano o dicono, non solo alle parole che contengono. Il modello locale gira su questo computer, quindi i tuoi contenuti restano qui.",
+      "local": "Scarica il modello locale ({{size}} MB)",
+      "provider": "Usa il modello di un provider",
+      "providerNote": "Passaggi che verranno inviati al provider scelto: {{count}}",
+      "notNow": "Non ora"
+    },
+    "status": {
+      "loadFailed": "Impossibile leggere lo stato della ricerca nella libreria.",
+      "items": "{{ready}} di {{total}} elementi indicizzati",
+      "pending": "In attesa di indicizzazione: {{count}}",
+      "failed": "Non indicizzabili: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "La ricerca per significato usa {{model}}.",
+      "semanticOff": "La ricerca per significato è disattivata. La ricerca per parole funziona senza.",
+      "vectors": "{{embedded}} di {{total}} passaggi incorporati",
+      "rebuildingVectors": "Il nuovo modello sta incorporando la libreria. Fino al termine la ricerca usa il modello precedente.",
+      "images": "Le immagini vengono incorporate con {{model}}: {{embedded}} completate, {{remaining}} rimanenti.",
+      "turnOff": "Disattiva la ricerca per significato",
+      "embedAgain": "Incorpora di nuovo",
+      "rebuild": "Ricostruisci l’indice",
+      "providerHint": "Per usare il modello di un provider, imposta provider e modello qui sopra. Passaggi inviati a quel provider: {{count}}"
     }
   }
 }

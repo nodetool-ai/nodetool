@@ -6,9 +6,12 @@
  * text. Edits autosave; blocks nobody touched keep their exact bytes.
  *
  * Operates in two workspace modes (R31):
- * - Default Mode (two panels): editable document + full-height docked assistant.
+ * - Default Mode (two panels): editable document + full-height side panel.
  * - Snapshots Mode (three panels): editable document + read-only center snapshot
- *   viewer + right column split vertically between Snapshot List and assistant.
+ *   viewer + right column split vertically between Snapshot List and side panel.
+ * The side panel switches between the assistant and the heading outline
+ * (Document Structure), which has a tree for the live document and one for
+ * the selected snapshot.
  *
  * Staged assistant proposals appear for review/edit/accept/reject by default
  * (D2, R8, R9), while direct-apply mode marks changed blocks with per-block
@@ -129,7 +132,11 @@ import {
   DocumentChangesBar
 } from "./DocumentChangeMarks";
 import { DocumentSelectionAssistPlugin } from "./DocumentSelectionAssistPlugin";
-import DocumentAgentPanel from "./DocumentAgentPanel";
+import DocumentSidePanel from "./DocumentSidePanel";
+import {
+  DocumentOutlinePlugin,
+  type DocumentOutline
+} from "./DocumentOutlinePlugin";
 import DocumentEmbedDialog from "./DocumentEmbedDialog";
 import { DocumentEmbedDropPlugin } from "./DocumentEmbedDropPlugin";
 import type { DocumentEmbedInsert } from "./documentEmbeds";
@@ -327,6 +334,11 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
   const [saveAsOpen, setSaveAsOpen] = useState(false);
   const [savingSnapshot, setSavingSnapshot] = useState(false);
   const [applyingProposal, setApplyingProposal] = useState(false);
+  const [currentOutline, setCurrentOutline] = useState<DocumentOutline | null>(
+    null
+  );
+  const [snapshotOutline, setSnapshotOutline] =
+    useState<DocumentOutline | null>(null);
 
   const versions = useTextDocumentVersions(
     asset.id,
@@ -685,6 +697,22 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
     [view, getSource, flushSource]
   );
 
+  // The page is hidden in the Markdown view, so a jump shows it first.
+  const revealCurrentHeading = useCallback(
+    (key: string) => {
+      if (!currentOutline) {
+        return;
+      }
+      if (view === "markdown") {
+        changeView("formatted");
+        requestAnimationFrame(() => currentOutline.reveal(key));
+        return;
+      }
+      currentOutline.reveal(key);
+    },
+    [changeView, currentOutline, view]
+  );
+
   // The insert form takes focus, so remember the selection it applies to.
   const [insert, setInsert] = useState<DocumentInsertRequest | null>(null);
   const savedSelection = useRef<BaseSelection | null>(null);
@@ -968,6 +996,7 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
               error={snapshotContent.error}
               paperTheme={display.paperTheme}
               zoom={display.zoom}
+              onOutlineChange={setSnapshotOutline}
             />
           </FlexColumn>
         )}
@@ -1028,11 +1057,16 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
                 borderColor: "divider"
               }}
             >
-              <DocumentAgentPanel
+              <DocumentSidePanel
                 assetId={asset.id}
                 title={currentAsset.name}
                 flush={flushDraft}
                 getSelectedText={getSelectedText}
+                currentOutline={currentOutline}
+                snapshotOutline={snapshotOutline}
+                snapshotsOpen={snapshotsMode}
+                hasSnapshot={activeSnapshot !== null}
+                onRevealCurrent={revealCurrentHeading}
               />
             </FlexColumn>
           </ResizableDock>
@@ -1048,6 +1082,7 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
       <HorizontalRulePlugin />
       <CodeHighlightPlugin />
       <MarkdownShortcutPlugin transformers={DOCUMENT_TRANSFORMERS} />
+      <DocumentOutlinePlugin onChange={setCurrentOutline} />
       <DocumentShortcutsPlugin onLink={openLink} onSave={triggerSnapshotShortcut} />
       <DocumentChangeMarksPlugin
         binding={binding}

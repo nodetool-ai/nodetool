@@ -40,3 +40,11 @@
   `timeout_seconds` with `Promise.race([iterator.next(), timeoutPromise])` (a
   `unique symbol` sentinel so TS narrows the result), clearing the timer each
   iteration.
+- **A trigger whose events live in an external system declares `pollTrigger`
+  instead of delivering ticks.** `lib.mail.EmailTrigger` is the one example. It
+  still compiles to a `schedule` registration, so keep the interval property
+  named `interval_seconds`. The host calls the poller when the schedule is due,
+  starts one run per returned event, and stores the returned cursor on the
+  registration ([`poll.ts`](../websocket/src/triggers/poll.ts)). The first poll must return
+  no events and a baseline cursor, an event `id` must be stable across polls,
+  and a poll that finds nothing must not start a run.

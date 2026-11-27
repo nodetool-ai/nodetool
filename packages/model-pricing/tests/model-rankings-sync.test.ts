@@ -19,7 +19,8 @@ import {
 import * as genspendNormalize from "../../../scripts/genspend/normalize.mjs";
 import {
   buildRankings,
-  collectRankings
+  collectRankings,
+  emptyArtifactMessage
 } from "../../../scripts/sync-model-rankings.mjs";
 
 /**
@@ -514,6 +515,49 @@ describe("buildRankings", () => {
     );
     expect(artifact.models).toEqual({});
     expect(report.tasks[0].error).toBe("unrecognized-response");
+  });
+});
+
+describe("emptyArtifactMessage", () => {
+  const reportOf = (leaderboards: unknown[]) =>
+    buildRankings({
+      leaderboards,
+      index,
+      aliases: { models: {} },
+      previous: null,
+      nowIso: "2026-01-01T00:00:00.000Z"
+    }).report;
+
+  it("names every leaderboard that failed to load, with its reason", () => {
+    const message = emptyArtifactMessage(
+      reportOf([
+        {
+          task: "text_to_image",
+          rows: [],
+          dropped: [],
+          error: "fetch-failed: GET https://example.test/t2i → HTTP 401: Invalid API key"
+        },
+        parseLeaderboard("text_to_video", { error: "Invalid API key." })
+      ])
+    );
+    expect(message).toContain("Every leaderboard failed to load");
+    expect(message).toContain("text_to_image: fetch-failed: GET https://example.test/t2i → HTTP 401");
+    expect(message).toContain("text_to_video: unrecognized-response");
+  });
+
+  it("tells loaded rows that matched nothing apart from a failed load", () => {
+    const message = emptyArtifactMessage(
+      reportOf([
+        board("text_to_video", [
+          aaModel({ name: "Unlisted Model", slug: "unlisted-model" }),
+          aaModel({ name: "Another Unlisted", slug: "another-unlisted", elo: 1000 })
+        ]),
+        { task: "text_to_image", rows: [], dropped: [], error: "fetch-failed: HTTP 500" }
+      ])
+    );
+    expect(message).toBe(
+      "2 leaderboard row(s) loaded from 1 leaderboard(s), but none matched a provider route — refusing to write an empty artifact"
+    );
   });
 });
 

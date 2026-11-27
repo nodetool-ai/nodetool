@@ -20,7 +20,12 @@
  *     and its whole suite (sharded by the caller) when a package it depends on
  *     changed;
  *   - electron and mobile run the step `buildPlan` chose for them, through
- *     `run`.
+ *     `run`;
+ *   - the `typecheck` leg runs when the diff reaches a workspace or a file
+ *     outside `TYPECHECK_FREE`, which none of its steps read;
+ *   - the `harness-gate` leg runs when `nodetool harness gate` would run a
+ *     selfcheck or fail on the diff (`harnessGateNeeded`);
+ *   - the `build` job runs only when a leg that downloads its dist runs.
  *
  * Usage:
  *   node scripts/ci-plan.mjs plan [--base <sha>] [--head <sha>]
@@ -31,7 +36,8 @@
  *     after `--` are appended to each step, as in `-- --shard=1/3`.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, existsSync } from "node:fs";
+import { registerHooks } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -98,6 +104,114 @@ export function reachesNodeCatalog(files, affected) {
   return (
     files.some((f) => NODE_CATALOG_FILES.test(f) || NODE_CATALOG_MANIFESTS.has(f)) ||
     affected.some((name) => NODE_CATALOG_PACKAGES.has(name))
+  );
+}
+
+/**
+ * Files outside every workspace that no step of the `typecheck` leg reads:
+ * native code (its own workflows build it), the marketing site, the
+ * engineering skills, the Python fine-tuning scripts, the backlog lint
+ * configs (the `lint` leg reads them) and the scripts' own suites (the
+ * harness gate's `repo-scripts` selfcheck runs them). A diff of only these
+ * files and prose reaches no workspace and skips the leg.
+ */
+export const TYPECHECK_FREE =
+  /^(native\/|marketing\/|\.agents\/|scripts\/finetune\/|scripts\/__tests__\/|scripts\/crap-score\.mjs$|\.oxlintrc\.anti-slop(-enforced)?\.json$)/;
+
+/** The capability table the harness gate compares against the base. */
+const CAPABILITY_TABLE = "packages/cli-harness/src/harness/capability-table.ts";
+
+/**
+ * Whether `nodetool harness gate --base <base>` has anything to do for this
+ * diff: a cheap, non-suite-only selfcheck to run, a changed code file no
+ * surface claims (the gate fails on it), or a changed capability table (the
+ * gate checks its mapping). Without one of them the gate prints an empty plan
+ * and passes, so its leg would hold a runner for install and dist download
+ * alone. Conservative where the gate is finer: it ignores the gate's pruning
+ * of suites the test legs already run and its existence check on deleted
+ * files, so it may start a gate that then runs nothing, never the reverse.
+ * `registry` is `packages/cli-harness/src/harness/registry.ts` and
+ * `changedFiles` its `changed-files.ts`, passed in to keep this pure.
+ */
+export function harnessGateNeeded(files, registry, changedFiles) {
+  if (files.includes(CAPABILITY_TABLE)) return true;
+  const gate = registry.planGate(files);
+  if (gate.globalFiles.length > 0) return true;
+  if (gate.checks.some((c) => c.cost === "cheap" && !c.suiteOnly)) return true;
+  return gate.unmappedFiles.some(
+    (f) => changedFiles.isGateRelevantCodeFile(f) && !registry.isUnclaimedPath(f)
+  );
+}
+
+const LOCKFILE = "package-lock.json";
+
+/** Dependency fields an npm v3 lockfile entry may list. */
+const LOCK_DEP_FIELDS = ["dependencies", "optionalDependencies", "peerDependencies", "devDependencies"];
+
+/**
+ * The lockfile key npm installs `name` at for the entry at `from`: the
+ * nearest `node_modules/<name>` walking up from `from`, as Node resolves it.
+ */
+function resolveLockKey(lock, from, name) {
+  let base = from;
+  for (;;) {
+    const key = base ? `${base}/node_modules/${name}` : `node_modules/${name}`;
+    if (lock[key]) return key;
+    if (!base) return null;
+    const i = base.lastIndexOf("node_modules/");
+    base = i < 0 ? "" : base.slice(0, i).replace(/\/$/, "");
+  }
+}
+
+/** Whether the installed tree under `start` holds a key in `changed`. */
+function lockTreeTouches(lock, start, changed, workspaceDirs) {
+  const seen = new Set();
+  const queue = [start];
+  while (queue.length > 0) {
+    const key = queue.pop();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (changed.has(key)) return true;
+    let entry = lock[key];
+    if (entry?.link) {
+      // Another workspace: the package graph carries its dependents.
+      if (workspaceDirs.has(entry.resolved)) continue;
+      queue.push(entry.resolved);
+      continue;
+    }
+    for (const field of LOCK_DEP_FIELDS) {
+      for (const name of Object.keys(entry?.[field] ?? {})) {
+        const dep = resolveLockKey(lock, key, name);
+        if (dep !== null) queue.push(dep);
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * The workspaces whose installed dependency tree a `package-lock.json`
+ * change reaches, so a dependency bump runs the legs of the packages that
+ * install it instead of every leg. Compares each lockfile entry before and
+ * after, then walks every workspace's tree in both lockfiles. Returns null,
+ * which keeps the lockfile global, when either side is unreadable or the
+ * change reaches the root's own dependencies: the root dev tools (vitest,
+ * turbo, typescript, oxlint) run every suite without the packages declaring
+ * them. `check-workspace-deps` keeps each workspace's imports declared, which
+ * is what lets a walk of its declared tree stand for what it loads.
+ */
+export function lockfileWorkspaces(before, after, workspaceDirs) {
+  const a = before?.packages;
+  const b = after?.packages;
+  if (!a || !b) return null;
+  const dirs = new Set(workspaceDirs);
+  const changed = new Set();
+  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) changed.add(key);
+  }
+  if (lockTreeTouches(a, "", changed, dirs) || lockTreeTouches(b, "", changed, dirs)) return null;
+  return workspaceDirs.filter(
+    (dir) => lockTreeTouches(a, dir, changed, dirs) || lockTreeTouches(b, dir, changed, dirs)
   );
 }
 
@@ -176,6 +290,8 @@ export function fullCiPlan() {
     docker: true,
     blender: true,
     node_catalog: true,
+    typecheck: true,
+    harness_gate: true,
     turbo_affected: false
   };
 }
@@ -200,15 +316,23 @@ export function deferToQueue(plan) {
 }
 
 /**
- * Decide the CI legs for a list of changed files. Pure: the package graph and
- * `computeAffected` are passed in, as for `buildPlan`.
+ * Decide the CI legs for a list of changed files. Pure: the package graph,
+ * `computeAffected` and the harness gate predicate are passed in, as for
+ * `buildPlan`. Without `gateNeeded` the harness gate always runs.
  */
-export function buildCiPlan(files, packages, computeAffected) {
+export function buildCiPlan(files, packages, computeAffected, gateNeeded = () => true, lockDirs = null) {
   const docker = files.some((f) => DOCKER_FILES.test(f));
-  if (files.some((f) => GATE_FILES.test(f))) return { ...fullCiPlan(), docker };
+  const tsc6 = files.some((f) => TSC6_FILES.test(f));
+  const harness_gate = gateNeeded(files);
+  if (files.some((f) => GATE_FILES.test(f))) return { ...fullCiPlan(), docker, harness_gate };
 
-  const plan = buildPlan(files, packages, computeAffected);
-  if (plan.globalFiles.length > 0) return { ...fullCiPlan(), docker };
+  // A lockfile change stands for the workspaces whose tree it reaches
+  // (`lockfileWorkspaces`). Without that list it stays a global file.
+  const lockScoped = lockDirs !== null && files.includes(LOCKFILE);
+  const scoped = lockScoped ? [...files.filter((f) => f !== LOCKFILE), ...lockDirs] : files;
+
+  const plan = buildPlan(scoped, packages, computeAffected);
+  if (plan.globalFiles.length > 0) return { ...fullCiPlan(), docker, harness_gate };
 
   // Turbo's `--affected` maps a changed file to the workspace whose directory
   // holds it, and a file in no workspace directory to the root, which no
@@ -219,13 +343,13 @@ export function buildCiPlan(files, packages, computeAffected) {
   // sandbox pack's SKILL.md is parsed by node-sdk, even though DOC_ONLY reads
   // it as prose.
   const under = (f, dir) => f === dir || f.startsWith(`${dir}/`);
-  const outsideWorkspaces = files.some(
+  const outsideWorkspaces = scoped.some(
     (f) =>
       !packages.some((p) => under(f, p.dir)) &&
       (!DOC_ONLY.test(f) || packages.some((p) => p.ownedPaths?.some((dir) => under(f, dir))))
   );
 
-  const { affected } = computeAffected(files, packages);
+  const { affected } = computeAffected(scoped, packages);
   const byName = new Map(packages.map((p) => [p.name, p]));
   const dirOf = (name) => byName.get(name)?.dir ?? "";
   const appStep = (dir) => plan.steps.find((s) => s.label.startsWith(`${dir}:`));
@@ -236,7 +360,7 @@ export function buildCiPlan(files, packages, computeAffected) {
   const webOwnOnly =
     webStep !== undefined &&
     webStep.args.includes("--findRelatedTests") &&
-    files.every((f) => !f.startsWith("web/") || (f.startsWith("web/src/") && !WEB_GLOBAL.test(f)));
+    scoped.every((f) => !f.startsWith("web/") || (f.startsWith("web/src/") && !WEB_GLOBAL.test(f)));
 
   return {
     full: false,
@@ -252,11 +376,16 @@ export function buildCiPlan(files, packages, computeAffected) {
     packages_game: shards.has("test-packages-game"),
     integration: affected.includes("@nodetool-ai/base-nodes"),
     workflow_runner_e2e: affected.includes("@nodetool-ai/workflow-runner"),
-    tsc6: files.some((f) => TSC6_FILES.test(f)),
+    tsc6,
     docker,
-    blender: files.some((f) => BLENDER_FILES.test(f)),
-    node_catalog: reachesNodeCatalog(files, affected),
-    turbo_affected: !outsideWorkspaces
+    blender: scoped.some((f) => BLENDER_FILES.test(f)),
+    node_catalog: reachesNodeCatalog(scoped, affected),
+    typecheck:
+      affected.length > 0 || scoped.some((f) => !DOC_ONLY.test(f) && !TYPECHECK_FREE.test(f)),
+    harness_gate,
+    // Turbo reads a lockfile change on its own terms, so the shards the
+    // lockfile selected run their whole slice.
+    turbo_affected: !outsideWorkspaces && !lockScoped
   };
 }
 
@@ -277,6 +406,19 @@ function diffFiles(base, head) {
     .filter(Boolean);
 }
 
+/** `lockfileWorkspaces` for the diff, or null (lockfile stays global) on any error. */
+function readLockfileWorkspaces(base, head, packages) {
+  try {
+    const read = (ref) => JSON.parse(execFileSync("git", ["show", `${ref}:${LOCKFILE}`], { cwd: repoRoot, encoding: "utf8", maxBuffer: 1 << 28 }));
+    const dirs = lockfileWorkspaces(read(base), read(head), packages.map((p) => p.dir).filter((d) => d !== "mobile"));
+    console.log(dirs === null ? "Lockfile change reaches the root's dependencies: global." : `Lockfile change reaches: ${dirs.join(", ") || "no workspace"}.`);
+    return dirs;
+  } catch (error) {
+    console.log(`Lockfile comparison failed (${error.message}): global.`);
+    return null;
+  }
+}
+
 function option(argv, name) {
   const i = argv.indexOf(name);
   return i >= 0 ? argv[i + 1] || undefined : undefined;
@@ -286,6 +428,27 @@ async function loadAffected() {
   return import(pathToFileURL(join(repoRoot, "packages/cli-harness/src/affected/affected.ts")).href);
 }
 
+/**
+ * The harness registry, loaded from source with Node's type stripping. Its
+ * relative imports name the compiled `.js` files, so a resolve hook maps them
+ * to the `.ts` sources beside them: the `changes` job has no install or build.
+ */
+async function loadGateNeeded() {
+  registerHooks({
+    resolve(specifier, context, next) {
+      if (specifier.startsWith(".") && specifier.endsWith(".js") && context.parentURL?.endsWith(".ts")) {
+        const source = new URL(`${specifier.slice(0, -3)}.ts`, context.parentURL);
+        if (existsSync(fileURLToPath(source))) return next(source.href, context);
+      }
+      return next(specifier, context);
+    }
+  });
+  const dir = join(repoRoot, "packages/cli-harness/src/harness");
+  const registry = await import(pathToFileURL(join(dir, "registry.ts")).href);
+  const changedFiles = await import(pathToFileURL(join(dir, "changed-files.ts")).href);
+  return (files) => harnessGateNeeded(files, registry, changedFiles);
+}
+
 async function main(argv) {
   const [mode, ...rest] = argv;
   const base = option(rest, "--base");
@@ -293,9 +456,13 @@ async function main(argv) {
   const { computeAffected, EXTRA_WORKSPACE_PATHS } = await loadAffected();
   const packages = readPackages(EXTRA_WORKSPACE_PATHS);
   const files = base ? diffFiles(base, head) : null;
+  const lockDirs = files?.includes(LOCKFILE) ? readLockfileWorkspaces(base, head, packages) : null;
 
   if (mode === "plan") {
-    const planned = files === null ? fullCiPlan() : buildCiPlan(files, packages, computeAffected);
+    const planned =
+      files === null
+        ? fullCiPlan()
+        : buildCiPlan(files, packages, computeAffected, await loadGateNeeded(), lockDirs);
     const plan = rest.includes("--defer-to-queue") ? deferToQueue(planned) : planned;
     const json = JSON.stringify(plan);
     console.log(files === null ? "No base: full run." : `${files.length} changed file(s) vs ${base}.`);

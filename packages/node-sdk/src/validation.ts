@@ -197,7 +197,7 @@ export function validateNodeProperties(
 
   for (const { name, options: meta } of declared) {
     if (connected.has(name)) continue;
-    const value = properties[name];
+    const value = Object.hasOwn(properties, name) ? properties[name] : undefined;
     const typeStr = meta.type;
 
     if (meta.required) {
@@ -270,8 +270,8 @@ function validateDynamicSlots(
   const issues: NodePropertyValidationIssue[] = [];
 
   for (const [name, slot] of Object.entries(slots)) {
-    if (connected.has(name)) continue;
-    const value = values[name];
+    if (connected.has(name) || !isObjectLike(slot)) continue;
+    const value = Object.hasOwn(values, name) ? values[name] : undefined;
     const typeStr = slotTypeToString(slot);
 
     if (slot.required && isEmptyValue(value)) {

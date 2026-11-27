@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/data-nodes",
-  "version": "0.8.11",
+  "version": "0.8.18",
   "description": "NodeTool data nodes — dataframes (CSV), RSS feeds, charts",
   "type": "module",
   "engines": {
@@ -19,7 +19,7 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "chart.js": "^4.5.1",
+    "chart.js": "4.6.1",
     "papaparse": "^5.5.3"
   },
   "devDependencies": {

@@ -221,6 +221,7 @@ export async function checkApplicationBudget(
   estimatedUsd: number,
   now = new Date()
 ): Promise<BudgetDecision> {
+  assertNonNegativeUsd(estimatedUsd, "estimatedUsd");
   const budget = await getApplicationBudget(applicationId);
   if (!budget) {
     // No budget configured: unmetered, as a draft app the creator runs itself.
@@ -257,6 +258,7 @@ export async function checkApplicationBudget(
 export async function recordInvocation(
   input: ReserveInput
 ): Promise<InvocationRecord> {
+  assertNonNegativeUsd(input.estimatedUsd ?? 0, "estimatedUsd");
   const db = getPortableDb();
   const userId =
     input.userId ?? (await ownerOfApplication(input.applicationId));
@@ -303,7 +305,7 @@ export async function settleInvocation(
   // Left out, never set to `undefined`: Drizzle writes an explicit `undefined`
   // as a column update, so an unpriced settle must omit the column entirely.
   if (actualUsd != null) {
-    patch.actual_usd = actualUsd;
+    patch.actual_usd = assertNonNegativeUsd(actualUsd, "actualUsd");
   }
   const rows = await db
     .update(applicationInvocations)
@@ -374,6 +376,13 @@ const overBudget = (
   return null;
 };
 
+function assertNonNegativeUsd(value: number, label: string): number {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${label} must be a non-negative finite number.`);
+  }
+  return value;
+}
+
 export interface ReserveInput {
   applicationId: string;
   /** Owner the run is booked against. Read off the app when omitted. */
@@ -405,7 +414,10 @@ export async function reserveInvocation(
   input: ReserveInput,
   now = new Date()
 ): Promise<Reservation> {
-  const estimatedUsd = input.estimatedUsd ?? 0;
+  const estimatedUsd = assertNonNegativeUsd(
+    input.estimatedUsd ?? 0,
+    "estimatedUsd"
+  );
   const db = getPortableDb();
   // Resolved before the transaction: the SQLite branch runs synchronously and
   // cannot await a lookup of its own.

@@ -9,7 +9,7 @@ function motionClips(motion: GameAnimationMotion3D): string[] {
 
 /** Checks references inside one graph: states, transitions, parameters and blend points. */
 export function validateAnimationGraph3D(graph: GameAnimationGraph3D, path: (string | number)[], add: AddDiagnostic): void {
-  const parameterKind = (name: string): string | undefined => graph.parameters[name]?.kind;
+  const parameterKind = (name: string): string | undefined => Object.hasOwn(graph.parameters, name) ? graph.parameters[name]?.kind : undefined;
   const layerIds = new Set<string>();
   graph.layers.forEach((layer, layerIndex) => {
     const layerPath = [...path, "layers", layerIndex];
@@ -84,7 +84,7 @@ export function validateAnimatorGraph3D(
   if (animator?.graph === undefined) {
     return;
   }
-  const graph = document.animationGraphs?.[animator.graph];
+  const graph = document.animationGraphs && Object.hasOwn(document.animationGraphs, animator.graph) ? document.animationGraphs[animator.graph] : undefined;
   if (!graph) {
     add("missing_animation_graph", [...path, "graph"], `Animation graph ${animator.graph} does not exist`);
     return;

@@ -28,7 +28,9 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 
-const EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
+const TS_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
+const CPP_EXTENSIONS = new Set([".c", ".cc", ".cpp", ".cxx", ".mm"]);
+const EXTENSIONS = new Set([...TS_EXTENSIONS, ...CPP_EXTENSIONS]);
 const SKIP_DIRS = new Set([
   ".git",
   "node_modules",
@@ -38,6 +40,8 @@ const SKIP_DIRS = new Set([
   "coverage",
   ".metrics",
   ".turbo",
+  "third_party",
+  "_deps",
   "test",
   "tests",
   "__tests__",
@@ -48,9 +52,13 @@ const SKIP_DIRS = new Set([
 ]);
 export const HELP = `Usage: node scripts/crap-score.mjs [options] [path-or-filter ...]
 
-Score TypeScript functions with CRAP = CC² × (1 − coverage)³ + CC and print
-them worst first. 1–5 is low risk, 5–30 is worth a look, 30+ is complex and
-under-tested.
+Score TypeScript and C/C++ functions with CRAP = CC² × (1 − coverage)³ + CC and
+print them worst first. 1–5 is low risk, 5–30 is worth a look, 30+ is complex
+and under-tested.
+
+C/C++ complexity uses clang-tidy's readability-function-size check
+(CC = branches + 1). Pass --build <dir> for a CMake compile_commands.json
+directory and --lcov <file> for llvm-cov/lcov coverage.
 
 Options:
   -h, --help             Print this help and exit.
@@ -58,13 +66,18 @@ Options:
   --changed              Analyze files changed in the working tree.
   --base <ref>           Analyze files changed since the merge-base with <ref>,
                          plus the working tree. Implies --changed.
+  --build <dir>          CMake build directory with compile_commands.json for
+                         clang-tidy C/C++ analysis.
+  --clang-tidy <path>    Path to clang-tidy binary (default: CLANG_TIDY env,
+                         PATH, or Homebrew LLVM).
+  --extra-arg <arg>      Extra compiler flag passed to clang-tidy. Repeatable.
   --no-coverage          Score complexity only. Coverage and CRAP are N/A.
   --lcov <file>          Read this LCOV report. May be repeated. Default: the
                          coverage/lcov.info of each workspace that owns an
                          analyzed file, and of the root.
   --run-coverage         Before scoring, run the tests related to the analyzed
-                         files with coverage in each owning workspace (Vitest
-                         or Jest) and read the LCOV they write.
+                         TypeScript files with coverage in each owning workspace
+                         (Vitest or Jest) and read the LCOV they write.
   --threshold <number>   Exit 2 when the worst CRAP score is above this.
   --top <n>              Print only the n worst rows.
   --json                 Print JSON instead of the table.
@@ -74,11 +87,20 @@ Arguments:
   filter    When the argument is not a path, only files whose path contains
             this text are analyzed.
 
-Files: .ts, .tsx, .mts, .cts. Declaration files, *.test.*, *.spec.*, and the
-directories ${[...SKIP_DIRS].join(", ")} are skipped.
+Files: .ts, .tsx, .mts, .cts, .c, .cc, .cpp, .cxx, .mm. Declaration files,
+*.test.*, *.spec.*, *_test.*, *_tests.*, test_*.*, build* directories, and
+${[...SKIP_DIRS].join(", ")} are skipped.
 `;
 
-const TEST_FILE = /\.(test|spec)\.(ts|tsx|mts|cts)$/;
+const TEST_FILE =
+  /(?:\.(?:test|spec)\.(?:ts|tsx|mts|cts)$)|(?:(?:^|[\\/])test_[^\\/]+\.(?:c|cc|cpp|cxx|mm)$)|(?:_(?:test|tests)\.(?:c|cc|cpp|cxx|mm)$)/;
+const CLANG_TIDY_CONFIG = JSON.stringify({
+  CheckOptions: {
+    "readability-function-size.BranchThreshold": 0,
+    "readability-function-size.LineThreshold": 0,
+    "readability-function-size.StatementThreshold": 0
+  }
+});
 const ROUTE_METHODS = new Set(["get", "post", "put", "patch", "delete", "head", "options", "all", "use"]);
 const LOGICAL_OPERATORS = new Set([
   ts.SyntaxKind.AmpersandAmpersandToken,
@@ -426,6 +448,183 @@ export function functionsInSource(source, path) {
 }
 
 // ---------------------------------------------------------------------------
+// C/C++ complexity via clang-tidy
+
+const CLANG_TIDY_WARNING =
+  /^(.+?):(\d+):(\d+): warning: function '(.+)' exceeds recommended size\/complexity thresholds \[readability-function-size\]$/;
+const CLANG_TIDY_NOTE =
+  /^(.+?):(\d+):(\d+): note: (\d+) (lines including whitespace and comments|branches) \(threshold \d+\)$/;
+
+export function findClangTidy(explicitPath = null) {
+  const candidates = [
+    explicitPath,
+    process.env.CLANG_TIDY,
+    "clang-tidy",
+    "/opt/homebrew/opt/llvm/bin/clang-tidy",
+    "/usr/local/opt/llvm/bin/clang-tidy"
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    if (candidate.includes(sep) || candidate.includes("/")) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+      continue;
+    }
+    const probe = spawnSync(candidate, ["--version"], { encoding: "utf8" });
+    if (!probe.error && probe.status === 0) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+/**
+ * Parse `clang-tidy --checks=-*,readability-function-size` output into
+ * `{ name, file, line, endLine, complexity }` entries.
+ * `allowedFiles` (optional Set of absolute paths) filters out headers or
+ * files outside the analyzed set.
+ */
+export function parseClangTidyComplexity(output, root, allowedFiles = null) {
+  const byKey = new Map();
+  let current = null;
+  for (const rawLine of output.split(/\r?\n/)) {
+    const warn = rawLine.match(CLANG_TIDY_WARNING);
+    if (warn) {
+      const absFile = resolve(root, warn[1]);
+      if (allowedFiles && !allowedFiles.has(absFile)) {
+        current = null;
+        continue;
+      }
+      const line = Number(warn[2]);
+      const name = warn[4];
+      const relFile = relative(root, absFile).split(sep).join("/");
+      const key = `${relFile}:${line}:${name}`;
+      current = byKey.get(key) ?? { name, file: relFile, absFile, line, lines: 0, branches: 0 };
+      byKey.set(key, current);
+      continue;
+    }
+    if (!current) {
+      continue;
+    }
+    const note = rawLine.match(CLANG_TIDY_NOTE);
+    if (note) {
+      const noteLine = Number(note[2]);
+      if (noteLine !== current.line) {
+        continue;
+      }
+      const value = Number(note[4]);
+      if (note[5] === "branches") {
+        current.branches = Math.max(current.branches, value);
+      } else {
+        current.lines = Math.max(current.lines, value);
+      }
+    }
+  }
+
+  const ordered = [...byKey.values()].sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+  const usedByFile = new Map();
+  return ordered.map(({ name, file, absFile, line, lines, branches }) => {
+    const used = usedByFile.get(file) ?? new Map();
+    usedByFile.set(file, used);
+    const count = (used.get(name) ?? 0) + 1;
+    used.set(name, count);
+    return {
+      name: count === 1 ? name : `${name}#${count}`,
+      file,
+      absFile,
+      line,
+      endLine: line + lines,
+      complexity: branches + 1
+    };
+  });
+}
+
+function cmakeProjectOf(file, root) {
+  for (let dir = dirname(file); dir.startsWith(root); dir = dirname(dir)) {
+    if (existsSync(join(dir, "CMakeLists.txt"))) {
+      return dir;
+    }
+    if (dir === root) {
+      break;
+    }
+  }
+  return dirname(file);
+}
+
+function detectBuildDir(projectDir) {
+  for (const name of ["build", "build-sanitize", "build-debug", "build-release"]) {
+    const candidate = join(projectDir, name);
+    if (existsSync(join(candidate, "compile_commands.json"))) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+export function functionsInCppFiles(files, root, options = {}) {
+  if (files.length === 0) {
+    return [];
+  }
+  const binary = findClangTidy(options.clangTidy ?? null);
+  if (!binary) {
+    throw new Error(
+      "clang-tidy not found. Install LLVM or pass --clang-tidy <path> (or set CLANG_TIDY)."
+    );
+  }
+  const explicitBuild = options.build ? resolve(root, options.build) : null;
+  if (explicitBuild && !existsSync(join(explicitBuild, "compile_commands.json"))) {
+    throw new Error(`${join(explicitBuild, "compile_commands.json")} not found. Configure with -DCMAKE_EXPORT_COMPILE_COMMANDS=ON`);
+  }
+  const extraArgs = options.extraArgs ?? [];
+  const groups = new Map();
+  for (const file of files) {
+    const projectDir = cmakeProjectOf(file, root);
+    const buildDir = explicitBuild ?? detectBuildDir(projectDir);
+    const key = buildDir ? `p:${buildDir}` : `d:${projectDir}`;
+    const group = groups.get(key) ?? { buildDir, projectDir, files: [] };
+    group.files.push(file);
+    groups.set(key, group);
+  }
+
+  const allowed = new Set(files.map((file) => resolve(file)));
+  const entries = [];
+  for (const { buildDir, projectDir, files: batch } of groups.values()) {
+    const args = [
+      "--checks=-*,readability-function-size",
+      `--config=${CLANG_TIDY_CONFIG}`,
+      "--header-filter=^$",
+      "--quiet"
+    ];
+    if (buildDir) {
+      args.push("-p", buildDir);
+      for (const flag of extraArgs) {
+        args.push(`--extra-arg=${flag}`);
+      }
+      args.push(...batch);
+    } else {
+      args.push(...batch, "--", "-std=c++20");
+      for (const dir of [join(projectDir, "include"), join(projectDir, "src"), projectDir]) {
+        if (existsSync(dir)) {
+          args.push(`-I${dir}`);
+        }
+      }
+      args.push(...extraArgs);
+    }
+    const result = spawnSync(binary, args, {
+      cwd: root,
+      encoding: "utf8",
+      maxBuffer: 128 * 1024 * 1024
+    });
+    if (result.error) {
+      throw new Error(`clang-tidy failed: ${result.error.message}`);
+    }
+    const combined = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+    entries.push(...parseClangTidyComplexity(combined, root, allowed));
+  }
+  return entries;
+}
+
+// ---------------------------------------------------------------------------
 // Coverage
 
 /** `SF` path → `{ lines: Map<line, hit 0|1>, branches: Map<line, Map<"block,branch", hit 0|1>> }`. */
@@ -526,19 +725,32 @@ export function loadLcov(reports, root) {
 // ---------------------------------------------------------------------------
 // Files
 
-function hasExtension(path) {
+function isTsExtension(path) {
   const dot = path.lastIndexOf(".");
-  return dot !== -1 && EXTENSIONS.has(path.slice(dot)) && !path.endsWith(".d.ts") && !/\.d\.[mc]ts$/.test(path);
+  return dot !== -1 && TS_EXTENSIONS.has(path.slice(dot)) && !path.endsWith(".d.ts") && !/\.d\.[mc]ts$/.test(path);
+}
+
+export function isCppFile(path) {
+  const dot = path.lastIndexOf(".");
+  return dot !== -1 && CPP_EXTENSIONS.has(path.slice(dot));
+}
+
+function hasExtension(path) {
+  return isTsExtension(path) || isCppFile(path);
 }
 
 export function isSourceFile(path) {
   return hasExtension(path) && !TEST_FILE.test(path);
 }
 
+function isSkippedDirName(name) {
+  return SKIP_DIRS.has(name) || name.startsWith(".") || name.startsWith("build");
+}
+
 function walk(dir, found) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
-      if (!SKIP_DIRS.has(entry.name) && !entry.name.startsWith(".")) {
+      if (!isSkippedDirName(entry.name)) {
         walk(join(dir, entry.name), found);
       }
     } else if (entry.isFile() && isSourceFile(entry.name)) {
@@ -568,7 +780,7 @@ function changedFiles(root, base) {
 }
 
 function inSkippedDir(root, path) {
-  return relative(root, path).split(sep).slice(0, -1).some((part) => SKIP_DIRS.has(part));
+  return relative(root, path).split(sep).slice(0, -1).some((part) => isSkippedDirName(part));
 }
 
 export function selectFiles(options) {
@@ -644,7 +856,13 @@ export function coverageCommand(workspace, files) {
 }
 
 function runCoverage(root, files) {
-  for (const [workspace, owned] of groupByWorkspace(files, root)) {
+  const tsFiles = files.filter((file) => !isCppFile(file));
+  if (files.some((file) => isCppFile(file))) {
+    process.stderr.write(
+      "crap: C/C++ coverage is not auto-run; generate LCOV with llvm-cov export --format=lcov and pass --lcov <file>.\n"
+    );
+  }
+  for (const [workspace, owned] of groupByWorkspace(tsFiles, root)) {
     const command = coverageCommand(workspace, owned);
     const name = relative(root, workspace) || ".";
     if (!command) {
@@ -685,6 +903,9 @@ export function parseArgs(args) {
     positionals: [],
     changed: false,
     base: null,
+    build: null,
+    clangTidy: null,
+    extraArgs: [],
     noCoverage: false,
     lcov: [],
     runCoverage: false,
@@ -710,6 +931,21 @@ export function parseArgs(args) {
         options.base = take(args, index++, arg);
         options.changed = true;
         break;
+      case "--build":
+        options.build = take(args, index++, arg);
+        break;
+      case "--clang-tidy":
+        options.clangTidy = take(args, index++, arg);
+        break;
+      case "--extra-arg": {
+        const value = args[index + 1];
+        if (value === undefined) {
+          throw new Error(`${arg} requires a value`);
+        }
+        index += 1;
+        options.extraArgs.push(value);
+        break;
+      }
       case "--no-coverage":
         options.noCoverage = true;
         break;
@@ -742,12 +978,24 @@ export function parseArgs(args) {
 }
 
 /** Score `files`. `coverage` is null for --no-coverage, else the merged LCOV map. */
-export function analyze(files, root, coverage) {
+export function analyze(files, root, coverage, cppOptions = {}) {
   const entries = [];
+  const cppFiles = [];
   for (const file of files) {
+    if (isCppFile(file)) {
+      cppFiles.push(file);
+      continue;
+    }
     const path = relative(root, file).split(sep).join("/");
     const record = coverage?.get(file);
     for (const fn of functionsInSource(readFileSync(file, "utf8"), path)) {
+      const pct = coverage === null ? null : record ? round(percentForSpan(record, fn.line, fn.endLine)) : 0;
+      entries.push({ ...fn, coverage: pct, crap: round(crapScore(fn.complexity, pct)) });
+    }
+  }
+  if (cppFiles.length > 0) {
+    for (const { absFile, ...fn } of functionsInCppFiles(cppFiles, root, cppOptions)) {
+      const record = coverage?.get(absFile);
       const pct = coverage === null ? null : record ? round(percentForSpan(record, fn.line, fn.endLine)) : 0;
       entries.push({ ...fn, coverage: pct, crap: round(crapScore(fn.complexity, pct)) });
     }
@@ -787,7 +1035,7 @@ export function main(argv) {
   const root = resolve(options.root);
   const files = selectFiles(options);
   if (files.length === 0) {
-    process.stdout.write(options.json ? "[]\n" : "No TypeScript files to analyze.\n");
+    process.stdout.write(options.json ? "[]\n" : "No TypeScript or C/C++ files to analyze.\n");
     return 0;
   }
   let coverage = null;
@@ -802,7 +1050,11 @@ export function main(argv) {
     }
     coverage = loadLcov(found, root);
   }
-  const entries = analyze(files, root, coverage);
+  const entries = analyze(files, root, coverage, {
+    build: options.build,
+    clangTidy: options.clangTidy,
+    extraArgs: options.extraArgs
+  });
   const shown = options.top === null ? entries : entries.slice(0, options.top);
   process.stdout.write(options.json ? `${JSON.stringify(shown, null, 2)}\n` : formatTable(shown));
   if (options.threshold !== null) {

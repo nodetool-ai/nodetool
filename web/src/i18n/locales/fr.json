@@ -9403,7 +9403,8 @@
         "provider-options": "Options du fournisseur",
         "observability": "Observabilité",
         "data-and-storage": "Données et stockage",
-        "other": "Autre"
+        "other": "Autre",
+        "library-search": "Recherche dans la bibliothèque"
       },
       "credentials": {
         "genericButton": "Obtenez votre clé API",
@@ -21670,6 +21671,65 @@
       "scriptMissing": "Script introuvable : {{name}}",
       "scriptEmpty": "Ce script n’a pas encore de lignes.",
       "openScript": "Ouvrir le script"
+    },
+    "sidePanel": {
+      "tabs": "Panneau latéral",
+      "chat": "Chat IA",
+      "structure": "Structure"
+    },
+    "outline": {
+      "source": "Structure de",
+      "current": "Actuel",
+      "snapshot": "Instantané",
+      "label": "Structure du document",
+      "snapshotLabel": "Structure de l'instantané",
+      "emptyTitle": "Aucun titre",
+      "emptyBody": "Commencez une ligne par #, ## ou ### pour ajouter un titre. Les titres apparaissent ici pour que vous puissiez y accéder directement.",
+      "snapshotEmptyBody": "Cet instantané n'a aucun titre.",
+      "noSnapshotBody": "Sélectionnez un instantané pour voir sa structure."
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Nom",
+      "prompt": "Prompt",
+      "description": "Description",
+      "body": "Texte",
+      "caption": "Légende",
+      "transcript": "Transcription",
+      "image": "Correspond à l’image elle-même"
+    },
+    "matchedIn": "{{field}} : {{snippet}}",
+    "palette": {
+      "heading": "Bibliothèque",
+      "indexing": "Indexation de la bibliothèque : {{ready}} sur {{total}} éléments prêts",
+      "embedding": "Passages restant à vectoriser pour la recherche par le sens : {{count}}",
+      "noMatch": "Rien dans votre bibliothèque ne correspond à « {{query}} ». Tous les projets ont été parcourus.",
+      "failed": "La recherche dans la bibliothèque a échoué. Les résultats de votre bibliothèque manquent."
+    },
+    "setup": {
+      "heading": "Recherche par le sens",
+      "description": "Trouvez des éléments d’après ce qu’ils montrent ou disent, pas seulement d’après leurs mots. Le modèle local s’exécute sur cet ordinateur, votre contenu reste donc ici.",
+      "local": "Télécharger le modèle local ({{size}} Mo)",
+      "provider": "Utiliser le modèle d’un fournisseur",
+      "providerNote": "Passages qui seront envoyés au fournisseur choisi : {{count}}",
+      "notNow": "Pas maintenant"
+    },
+    "status": {
+      "loadFailed": "Impossible de lire l’état de la recherche dans la bibliothèque.",
+      "items": "{{ready}} sur {{total}} éléments indexés",
+      "pending": "En attente d’indexation : {{count}}",
+      "failed": "Indexation impossible : {{count}}",
+      "failure": "{{title}} : {{error}}",
+      "semanticOn": "La recherche par le sens utilise {{model}}.",
+      "semanticOff": "La recherche par le sens est désactivée. La recherche par mots fonctionne sans elle.",
+      "vectors": "{{embedded}} sur {{total}} passages vectorisés",
+      "rebuildingVectors": "Le nouveau modèle vectorise la bibliothèque. La recherche utilise l’ancien modèle jusqu’à la fin.",
+      "images": "Les images sont vectorisées avec {{model}} : {{embedded}} faites, {{remaining}} restantes.",
+      "turnOff": "Désactiver la recherche par le sens",
+      "embedAgain": "Vectoriser à nouveau",
+      "rebuild": "Reconstruire l’index",
+      "providerHint": "Pour utiliser le modèle d’un fournisseur, indiquez le fournisseur et le modèle ci-dessus. Passages envoyés à ce fournisseur : {{count}}"
     }
   }
 }
