@@ -912,7 +912,19 @@ const model3dCameraParams = withFieldNotes(clipModel3DCamera, {
   rollDeg:
     'mode "free" only: roll around the view axis, degrees. Positive turns ' +
     "the horizon clockwise in the picture."
-}).strict();
+})
+  .extend({
+    focalLengthMm: z
+      .number()
+      .positive()
+      .optional()
+      .describe(
+        "The lens as a focal length in mm on a 24 mm tall sensor, in place " +
+          "of fovDeg: 24 is wide, 35 a moderate wide, 50 normal, 85 a " +
+          "portrait lens. Stored as fovDeg. Send one of the two, not both."
+      )
+  })
+  .strict();
 
 /** Which glTF animation a 3D clip plays, and how. */
 const model3dAnimationParams = withFieldNotes(clipModel3DAnimation, {
@@ -980,7 +992,52 @@ export const SET_MODEL3D_STYLE_DESCRIPTION =
   "and keeps the elevation, lens and framing it was framed at. `background` " +
   "replaces whole: {transparent: true} or {transparent: false, color}. Use " +
   "animate_clip with the `orbit` preset for a camera move over time rather " +
-  "than a fixed pose.";
+  "than a fixed pose. A blockout camera is {camera: {mode: \"free\", " +
+  "position, target, focalLengthMm, rollDeg}}, in the model's own units " +
+  "with Y up. `keyAtMs` keys that free camera instead of re-posing the " +
+  "clip: the position, target, rollDeg and lens in the patch (or, for the " +
+  "ones it leaves out, the camera as it stands at that time) become " +
+  "keyframes at `keyAtMs` milliseconds from the clip's start, and the " +
+  "camera eases between keys. Key 0 first, then the later poses. For a " +
+  "named move such as a push in or an orbit use " +
+  "apply_model3d_camera_move.";
+
+/**
+ * The camera moves `apply_model3d_camera_move` takes. The engine's list is
+ * `MODEL3D_CAMERA_MOVES` in `@nodetool-ai/timeline`, which this package cannot
+ * import. `packages/timeline/tests/ops.model3dCamera.test.ts` holds the two
+ * equal.
+ */
+export const MODEL3D_CAMERA_MOVE_IDS = [
+  "pan",
+  "tilt",
+  "orbit",
+  "pushIn",
+  "truck",
+  "crane",
+  "pedestal",
+  "zoom",
+  "dollyZoom",
+  "dutch"
+] as const;
+
+export const APPLY_MODEL3D_CAMERA_MOVE_DESCRIPTION =
+  "Key a camera move onto a 3D clip whose camera is in free mode. The move " +
+  "starts from the camera as it stands at `startMs` and runs for " +
+  "`durationMs`, both in milliseconds from the clip's start, so moves chain: " +
+  "a push in over 0 to 2000 and an orbit from 2000 on. Keyframes the move's " +
+  "channels already had inside that span are replaced. `amount` is in the " +
+  "move's own unit. Degrees: pan (default 30, positive turns right), tilt " +
+  "(15, up), orbit (45, the eye circles to the camera's right around the " +
+  "target), dutch (15, the horizon turns clockwise). A fraction of the " +
+  "eye-to-target distance at the start: pushIn (0.3, negative pulls out), " +
+  "truck (0.25, right), crane (0.25, the eye rises and keeps its target), " +
+  "pedestal (0.25, eye and target rise together), dollyZoom (0.4, the eye " +
+  "moves in while the lens widens). A multiplier on the focal length: zoom " +
+  "(1.5, above 1 zooms in). A negative amount reverses a move. The result " +
+  "carries the camera at the start and the end of the move. Put the clip in " +
+  "free mode first with set_model3d_style {patch: {camera: {mode: " +
+  '"free", position, target}}}.';
 
 export const BAKE_MODEL3D_CLIP_DESCRIPTION =
   "Render a 3D clip through Blender and store the result on it, so the clip " +
@@ -993,6 +1050,23 @@ export const BAKE_MODEL3D_CLIP_DESCRIPTION =
   "draws again until it is baked afresh; validate_timeline reports that as " +
   "`bake_stale`. A clip with a transparent background is refused: an alpha " +
   "bake needs a WebM VP9 encode this build does not have.";
+
+export const RENDER_MODEL3D_REFERENCE_DESCRIPTION =
+  "Render a 3D clip's span as a grey reference video and store it on the " +
+  "clip as model3dStyle.reference. A video model follows this video when a " +
+  "storyboard shot linked to the clip is generated. The clip is not changed " +
+  "on the timeline and never plays the reference. `pass` picks what each " +
+  'frame draws: "clay" (default) is one grey matte material under a fixed ' +
+  'light, "depth" is distance from the camera with near white and far ' +
+  'black, "normal" is view-space surface normals as RGB. Every pass is ' +
+  "drawn on an opaque neutral background and ignores the clip's lighting " +
+  "and background. The render covers the clip as it stands, with its trim, " +
+  "speed, animation choice and camera keys applied, at the sequence's fps. " +
+  "The longest side is at most 1280 px. A later change to the model, the " +
+  "camera, the span or the sequence settings makes the reference stale. " +
+  "A call on a clip whose stored reference is current renders nothing and " +
+  "returns it. The result carries `reference` {assetId, dependencyHash, " +
+  "pass} and `cameraMove`, a one-sentence description of the camera move.";
 
 /**
  * A caption's look. Every field is optional and an absent one keeps the
@@ -3730,7 +3804,9 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   // timeline adds on top.
   "ui_timeline_add_model3d_clip",
   "ui_timeline_set_model3d_style",
+  "ui_timeline_apply_model3d_camera_move",
   "ui_timeline_bake_model3d_clip",
+  "ui_timeline_render_model3d_reference",
   "ui_timeline_add_group",
   "ui_timeline_generate_clip",
   "ui_timeline_generatively_edit_clip",

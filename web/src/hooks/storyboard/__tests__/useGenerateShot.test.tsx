@@ -587,6 +587,80 @@ describe("clip generation on a script-linked board", () => {
     expect(scriptQuery).not.toHaveBeenCalled();
   });
 
+  describe("with a linked Blockout", () => {
+    const REFERENCE_ASSET_ID = "0123456789abcdef0123456789abcdef";
+    const blockout = {
+      referenceAssetId: REFERENCE_ASSET_ID,
+      referenceHash: "model3d-reference-v1:abc",
+      cameraMove: "The camera pushes in slowly."
+    };
+    const renderWithBlockout = async (
+      source: typeof blockout | Omit<typeof blockout, "referenceAssetId">
+    ): Promise<Record<string, unknown>> => {
+      seedBoard(null);
+      useStoryboardStore.getState().setVideoModel(LINKED, videoModel);
+      const { result } = renderHook(() => useGenerateShot());
+      await act(async () => {
+        await result.current.generateClip(
+          LINKED,
+          linkedShot,
+          undefined,
+          undefined,
+          { blockout: source }
+        );
+      });
+      return sentData();
+    };
+
+    it("sends the reference video to a model that declares reference_to_video", async () => {
+      mockVideoModels[0].supported_tasks = [
+        "image_to_video",
+        "reference_to_video"
+      ];
+      const data = await renderWithBlockout(blockout);
+      expect(data.capability).toBe("reference_to_video");
+      // The full asset id the clip stores, never a shortened one.
+      expect(data.reference_videos).toEqual([
+        { type: "video", asset_id: REFERENCE_ASSET_ID }
+      ]);
+      // The still rides as a reference image: a source image is refused
+      // beside references.
+      expect(data.reference_images).toEqual([
+        { type: "image", asset_id: "still-1" }
+      ]);
+      expect(data).not.toHaveProperty("source_asset_id");
+      expect(data.prompt).toContain("a lighthouse");
+      expect(data.prompt).toContain("The camera pushes in slowly.");
+      expect(data.prompt).toContain("reference video");
+      expect(
+        useStoryboardGenerationStore.getState().shotJobs[linkedShot.id]
+          ?.renderInputs?.blockout_reference_hash
+      ).toBe("model3d-reference-v1:abc");
+    });
+
+    it("sends no reference and describes the camera to any other model", async () => {
+      const data = await renderWithBlockout({
+        referenceHash: blockout.referenceHash,
+        cameraMove: blockout.cameraMove
+      });
+      expect(data).not.toHaveProperty("reference_videos");
+      expect(data).not.toHaveProperty("capability");
+      expect(data.source_asset_id).toBe("still-1");
+      expect(data.prompt).toBe("a lighthouse\n\nThe camera pushes in slowly.");
+      expect(
+        useStoryboardGenerationStore.getState().shotJobs[linkedShot.id]
+          ?.renderInputs?.blockout_reference_hash
+      ).toBe("model3d-reference-v1:abc");
+    });
+
+    it("keeps the reference off a model that declares no reference task", async () => {
+      const data = await renderWithBlockout(blockout);
+      expect(data).not.toHaveProperty("reference_videos");
+      expect(data.source_asset_id).toBe("still-1");
+      expect(data.prompt).toBe("a lighthouse\n\nThe camera pushes in slowly.");
+    });
+  });
+
   it("renders a linked shot as long as the takes it covers", async () => {
     seedBoard("script-1");
     scriptQuery.mockResolvedValue(script(true));

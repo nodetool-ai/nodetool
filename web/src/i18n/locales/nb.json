@@ -2831,7 +2831,11 @@
         "rotation": "Rotasjon",
         "orbit": "Bane",
         "fieldOfView": "Synsfelt",
-        "zoom": "Zoom"
+        "zoom": "Zoom",
+        "cameraPosition": "Posisjon",
+        "cameraTarget": "Mål",
+        "cameraLens": "Objektiv",
+        "cameraRoll": "Rulling"
       },
       "inputs": {
         "opacity": "Opasitet",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "Kameraasimut",
         "cameraElevation": "Kamerahøyde",
         "cameraFieldOfView": "Kameraets synsfelt",
-        "cameraZoom": "Kamerazoom"
+        "cameraZoom": "Kamerazoom",
+        "cameraPositionX": "Kameraposisjon X",
+        "cameraPositionY": "Kameraposisjon Y",
+        "cameraPositionZ": "Kameraposisjon Z",
+        "cameraTargetX": "Kameramål X",
+        "cameraTargetY": "Kameramål Y",
+        "cameraTargetZ": "Kameramål Z",
+        "cameraLens": "Kameraobjektiv i millimeter",
+        "cameraRoll": "Kamerarulling i grader"
       },
       "easing": {
         "linear": "Lineær",
@@ -5682,7 +5694,35 @@
           "bakeFailed": "Baking av 3D-klipp mislyktes",
           "loadingModel": "Laster inn modell …",
           "unavailable": "Utilgjengelig",
-          "missingName": "{{name}} (mangler)"
+          "missingName": "{{name}} (mangler)",
+          "free": "Fri",
+          "keyCamera": "Sett kameranøkkel",
+          "keyCameraHelp": "Legg til en nøkkelramme for hver kamerakanal ved spillehodet",
+          "cameraMove": "Kamerabevegelse",
+          "addCameraMove": "Legg til en kamerabevegelse",
+          "move": "Bevegelse",
+          "moveAmount": "Mengde",
+          "moveDuration": "Varighet",
+          "moveAmountDegrees": "Mengden er en vinkel.",
+          "moveAmountDistance": "Mengden er en andel av avstanden fra kameraet til målet.",
+          "moveAmountFactor": "Mengden multipliserer brennvidden.",
+          "moveStartsAt": "Bevegelsen starter ved {{time}}.",
+          "applyMove": "Legg til bevegelse",
+          "freeCameraHelp": "I forhåndsvisningen: hold Alt og dra for å gå i bane, legg til Skift for å flytte sidelengs, rull for å kjøre inn, og legg til Ctrl mens du ruller for å endre objektivet.",
+          "editSet": "Rediger sett",
+          "editSetHelp": "Åpne 3D-modellen til dette klippet i modellredigereren",
+          "moves": {
+            "pan": "Panorering",
+            "tilt": "Tilt",
+            "orbit": "Bane",
+            "pushIn": "Kjøring inn",
+            "truck": "Sidekjøring",
+            "crane": "Kran",
+            "pedestal": "Heving",
+            "zoom": "Zoom",
+            "dollyZoom": "Dolly-zoom",
+            "dutch": "Skråstilt bilde"
+          }
         },
         "reframe": {
           "title": "Smart reframe",
@@ -12926,7 +12966,10 @@
       "speechTextPrompt": "Skriv inn tekst for å snakke og trykk Enter...",
       "templates": "Maler",
       "upload3dAsset": "Last opp et {{formats}}-element først.",
-      "useOutput": "Bruk {{name}} utgang"
+      "useOutput": "Bruk {{name}} utgang",
+      "blockoutSet": "Blockout-sett",
+      "blockoutSetDescription": "Start et tomt 3D-sett og film det med et fritt kamera",
+      "addBlockoutSet": "Legg til et klipp med blockout-sett"
     },
     "preview": {
       "autoQuality": "Auto ({{quality}})",
@@ -17045,7 +17088,8 @@
         "Keyframes & source": "Keyframes og kilde",
         "Zoom & view": "Zoom og se",
         "Workspaces": "Arbeidsområder",
-        "History": "Historie"
+        "History": "Historie",
+        "3D camera (3D clip selected)": "3D-kamera (3D-klipp valgt)"
       },
       "rows": {
         "selectTool": "Velg verktøy",
@@ -17196,7 +17240,12 @@
         "panelScript": "Gå til manuset",
         "panelStoryboard": "Gå til storyboardet",
         "nextPanel": "Gå til neste panel",
-        "prevPanel": "Gå til forrige panel"
+        "prevPanel": "Gå til forrige panel",
+        "keyCamera": "Sett nøkkel for det frie 3D-kameraet ved spillehodet",
+        "camera3dOrbit": "La kameraet gå i bane",
+        "camera3dTruck": "Flytt et fritt kamera og målet sidelengs",
+        "camera3dDolly": "Kjør kameraet inn eller ut",
+        "camera3dLens": "Endre objektivet til et fritt kamera"
       }
     },
     "vst": {
@@ -21463,6 +21512,60 @@
       "embedAgain": "Bygg inn på nytt",
       "rebuild": "Bygg indeksen på nytt",
       "providerHint": "For å bruke en leverandørmodell, angi leverandør og modell ovenfor. Avsnitt sendt til den leverandøren: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "Leire",
+        "hint": "Grå skyggelagte former med fast lys, slik at modellen følger kamera og oppstilling og finner opp hver overflate"
+      },
+      "depth": {
+        "label": "Dybde",
+        "hint": "Bare avstanden fra kameraet, slik at modellen finner opp hver overflate"
+      },
+      "normal": {
+        "label": "Normaler",
+        "hint": "Bare overflateretningen, slik at modellen beholder formene og finner opp materialene"
+      }
+    },
+    "reference": {
+      "label": "Referanse",
+      "pass": "Referansepass",
+      "render": "Render referanse",
+      "renderAgain": "Render på nytt",
+      "cancel": "Avbryt",
+      "cancelProgress": "Avbryt ({{done}}/{{total}})",
+      "play": "Spill av referanse",
+      "hide": "Skjul referanse",
+      "stale": "Referansen er utdatert",
+      "playerLabel": "Blockout-referanse",
+      "failed": "Rendering av referansen mislyktes"
+    },
+    "shot": {
+      "label": "Shot",
+      "pickerLabel": "Shot som denne blockouten setter opp",
+      "none": "Ikke koblet",
+      "elsewhere": "Et shot et annet sted på tidslinjen",
+      "noCandidates": "Ingen shot-klipp overlapper dette klippet. Legg det under klippet til et shot for å koble det.",
+      "help": "Et opptak av det koblede shotet genereres fra referansen til dette klippet."
+    },
+    "shotPanel": {
+      "title": "Blockout",
+      "clip": "Blockout-klipp",
+      "none": "Ingen",
+      "noCandidates": "Legg et 3D-klipp under klippet til dette shotet for å bruke det som blockout.",
+      "help": "Neste opptak følger kamera og oppstilling i det koblede 3D-klippet.",
+      "camera": "Kamera: {{move}}",
+      "selectClip": "Velg klipp",
+      "selectClipTooltip": "Velg blockout-klippet på tidslinjen",
+      "takeStale": "Opptak laget fra en eldre blockout",
+      "rendering": "Renderer blockout-referansen",
+      "renderingProgress": "Renderer blockout-referansen ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "Referansevideoen til blockouten sendes til denne modellen sammen med prompten. Den rendres først hvis den mangler eller er utdatert.",
+      "promptOnly": "Denne modellen tar ikke imot en referansevideo. Den grå renderingen sendes ikke, og kamerabevegelsen legges til i prompten som tekst: {{move}}"
     }
   }
 }

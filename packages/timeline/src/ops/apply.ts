@@ -134,6 +134,26 @@ import {
 } from "../midi/tempo.js";
 import { msToTicks, ticksToMs } from "../midi/ticks.js";
 import { computeModel3DBakeHash } from "../model3dBake.js";
+import { describeModel3DCameraMove } from "../model3dCameraDescription.js";
+import {
+  DEFAULT_MODEL3D_REFERENCE_PASS,
+  computeModel3DReferenceHash,
+  model3dReferenceStatus
+} from "../model3dReference.js";
+import { keyframeTimesMs } from "../keyframes.js";
+import { MODEL3D_FREE_CAMERA_PROPERTIES } from "../model3d.js";
+import {
+  assertKnownEasing,
+  keyModel3DFreeCamera,
+  model3dFreeCameraReport,
+  resolveModel3DLensFovDeg
+} from "../model3dCameraKeys.js";
+import {
+  MODEL3D_MAX_DOLLY_FRACTION,
+  applyModel3DCameraMove,
+  model3dCameraMoveSpec,
+  model3dKeyframedFreeCameraPose
+} from "../model3dCameraMoves.js";
 import {
   addReframeKeyframe,
   clearReframe,
@@ -1240,6 +1260,24 @@ function outPointOf(clip: TimelineClip): number {
   );
 }
 
+/**
+ * The keyframe helpers mint their own id for a keyframe animation they
+ * create. An op takes every id from its context, so a new animation is
+ * re-identified here and the ones the clip already had keep theirs.
+ */
+function withContextAnimationIds(
+  scope: OpScope,
+  clip: TimelineClip,
+  animations: ClipAnimation[]
+): ClipAnimation[] {
+  const known = new Set((clip.animations ?? []).map((a) => a.id));
+  return animations.map((animation) =>
+    known.has(animation.id)
+      ? animation
+      : { ...animation, id: scope.ctx.newId("anim") }
+  );
+}
+
 /** CE6: set or clear the midi region parameters (D53). Null clears. */
 function applyMidiRegionPatch(
   clip: TimelineClip,
@@ -1821,9 +1859,135 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
           "glTF, and nothing else reads it."
       );
     }
-    clip.model3dStyle = model3dStyleWithPatch(clip.model3dStyle, op.patch);
+    if (op.keyAtMs === undefined) {
+      if (op.keyEasing !== undefined) {
+        throw new Error(
+          "keyEasing eases the move arriving at a camera key, so it needs " +
+            "keyAtMs. Add keyAtMs, or leave keyEasing out."
+        );
+      }
+      clip.model3dStyle = model3dStyleWithPatch(clip.model3dStyle, op.patch);
+      scope.touch(clip.id);
+      return { ok: true, clip: scope.clipOut(clip) };
+    }
+    // A key holds the pose, so the pose fields leave the patch and everything
+    // else in it (the mode, the lighting) lands on the clip as usual.
+    const { position, target, rollDeg, fovDeg, focalLengthMm, ...camera } =
+      op.patch.camera ?? {};
+    const lens = resolveModel3DLensFovDeg(
+      { fovDeg, focalLengthMm },
+      "patch.camera"
+    );
+    const keyed: TimelineClip = {
+      ...clip,
+      model3dStyle: model3dStyleWithPatch(clip.model3dStyle, {
+        ...op.patch,
+        camera
+      })
+    };
+    const animations = keyModel3DFreeCamera(
+      keyed,
+      op.keyAtMs,
+      { position, target, rollDeg, fovDeg: lens },
+      { easing: op.keyEasing }
+    );
+    clip.model3dStyle = keyed.model3dStyle;
+    clip.animations = withContextAnimationIds(scope, clip, animations);
     scope.touch(clip.id);
-    return { ok: true, clip: scope.clipOut(clip) };
+    return {
+      ok: true,
+      clip: scope.clipOut(clip),
+      keyAtMs: op.keyAtMs,
+      camera: model3dFreeCameraReport(
+        model3dKeyframedFreeCameraPose(clip, op.keyAtMs)
+      ),
+      cameraKeyTimesMs: keyframeTimesMs(clip, MODEL3D_FREE_CAMERA_PROPERTIES)
+    };
+  },
+
+  apply_model3d_camera_move: (scope, op) => {
+    const clip = scope.resolveClip(op.target);
+    if (clip.mediaType !== "model3d") {
+      throw new Error(
+        `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip. A ` +
+          "camera move keys the camera of a model3d clip. Pass a clip that " +
+          "add_model3d_clip placed."
+      );
+    }
+    const mode = clip.model3dStyle?.camera.mode;
+    if (mode !== "free") {
+      throw new Error(
+        `Camera move "${op.move}" needs a free camera, and clip ` +
+          `"${clip.name}" has ${mode === undefined ? "no camera" : `a ${mode} camera`}. ` +
+          'Call set_model3d_style with patch {camera: {mode: "free", ' +
+          "position, target}} first, then apply the move."
+      );
+    }
+    const spec = model3dCameraMoveSpec(op.move);
+    const amount = op.amount ?? spec.defaultAmount;
+    if (!Number.isFinite(amount)) {
+      throw new Error(
+        `amount must be a finite number of ${spec.unit}, and it is ${amount}. ` +
+          `Leave it out for the ${op.move} default of ${spec.defaultAmount}.`
+      );
+    }
+    if (spec.unit === "factor" && amount <= 0) {
+      throw new Error(
+        `amount for ${op.move} multiplies the focal length, so it must be ` +
+          `above 0, and it is ${amount}. Use 1.5 to zoom in or 0.67 to zoom out.`
+      );
+    }
+    if (
+      (op.move === "pushIn" || op.move === "dollyZoom") &&
+      amount > MODEL3D_MAX_DOLLY_FRACTION
+    ) {
+      throw new Error(
+        `amount for ${op.move} is the fraction of the eye-to-target distance ` +
+          `the eye travels, at most ${MODEL3D_MAX_DOLLY_FRACTION}, and it is ` +
+          `${amount}. To end closer, move the target with set_model3d_style ` +
+          "or lengthen the lens with the zoom move."
+      );
+    }
+    const startMs = op.startMs ?? 0;
+    if (startMs >= clip.durationMs) {
+      throw new Error(
+        `startMs ${startMs} is at or past the end of clip "${clip.name}", ` +
+          `which is ${clip.durationMs} ms long. startMs counts from the ` +
+          `clip's start. Use a value below ${clip.durationMs}.`
+      );
+    }
+    const durationMs = op.durationMs ?? clip.durationMs - startMs;
+    if (startMs + durationMs > clip.durationMs + 0.5) {
+      throw new Error(
+        `durationMs ${durationMs} from startMs ${startMs} ends at ` +
+          `${startMs + durationMs} ms, past the end of clip "${clip.name}" ` +
+          `(${clip.durationMs} ms). Use a durationMs of at most ` +
+          `${clip.durationMs - startMs}, or lengthen the clip with trim_clip.`
+      );
+    }
+    if (op.easing !== undefined) assertKnownEasing(op.easing, "easing");
+    const endMs = Math.min(startMs + durationMs, clip.durationMs);
+    const from = model3dKeyframedFreeCameraPose(clip, startMs);
+    clip.animations = withContextAnimationIds(
+      scope,
+      clip,
+      applyModel3DCameraMove(clip, op.move, {
+        startMs,
+        durationMs,
+        amount,
+        easing: op.easing
+      })
+    );
+    scope.touch(clip.id);
+    return {
+      ok: true,
+      clip: scope.clipOut(clip),
+      move: { id: spec.id, unit: spec.unit, amount },
+      startMs,
+      endMs,
+      from: model3dFreeCameraReport(from),
+      to: model3dFreeCameraReport(model3dKeyframedFreeCameraPose(clip, endMs))
+    };
   },
 
   bake_model3d_clip: async (scope, op) => {
@@ -1887,6 +2051,67 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     ];
     scope.touch(clip.id);
     return { ok: true, clip: scope.clipOut(clip), bakeStarted: true };
+  },
+
+  render_model3d_reference: async (scope, op) => {
+    const state = scope.state;
+    const clip = scope.resolveClip(op.target);
+    if (clip.mediaType !== "model3d") {
+      throw new Error(
+        `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip. ` +
+          "Only a 3D clip has a set and a camera to render a reference from."
+      );
+    }
+    const style = clip.model3dStyle;
+    if (!style) {
+      throw new Error(
+        `Clip "${clip.name}" has no model3dStyle, so nothing names the ` +
+          "camera a reference would be rendered through."
+      );
+    }
+    if (!clip.currentAssetId) {
+      throw new Error(`Clip "${clip.name}" has no glTF asset to render.`);
+    }
+    const pass = op.pass ?? DEFAULT_MODEL3D_REFERENCE_PASS;
+    const sequence = {
+      fps: state.fps,
+      width: state.width,
+      height: state.height
+    };
+    const dependencyHash = computeModel3DReferenceHash(clip, sequence, pass);
+    if (model3dReferenceStatus(clip, sequence, pass) === "current") {
+      return {
+        ok: true,
+        clip: scope.clipOut(clip),
+        reference: style.reference,
+        referenceRendered: false,
+        note: "The stored reference already shows this clip, so nothing was rendered."
+      };
+    }
+    if (!scope.ctx.renderModel3DReference) {
+      return {
+        ok: true,
+        clip: scope.clipOut(clip),
+        referenceRendered: false,
+        note: "This surface has no 3D renderer, so no reference was rendered."
+      };
+    }
+    const rendered = await scope.ctx.renderModel3DReference({
+      clip,
+      sequence,
+      pass,
+      dependencyHash
+    });
+    const reference = { assetId: rendered.assetId, dependencyHash, pass };
+    clip.model3dStyle = { ...style, reference };
+    scope.touch(clip.id);
+    return {
+      ok: true,
+      clip: scope.clipOut(clip),
+      reference,
+      referenceRendered: true,
+      cameraMove: describeModel3DCameraMove(clip)
+    };
   },
 
   add_group: (scope, op) => {

@@ -165,7 +165,7 @@ export function clipModel3DCameraFromBakeParams(
  * the value has to be is identical on every host for the same input, which a
  * pure-arithmetic hash over a canonically ordered payload is.
  */
-function digest(payload: string): string {
+export function model3dPictureDigest(payload: string): string {
   const hash = (seed: number): number => {
     let acc = seed >>> 0;
     for (let i = 0; i < payload.length; i += 1) {
@@ -184,25 +184,17 @@ function digest(payload: string): string {
 const MODEL3D_BAKE_HASH_VERSION_PREFIX = "model3d-bake-v1:";
 
 /**
- * The hash a `model3d` clip's bake is stored under, and checked against.
- *
- * It names every input the baked picture depends on (§D6): the style without
- * `bake` itself, the glTF asset, the clip's animations (the camera curves and
- * the `orbit` preset among them), the trim window, the duration, the speed,
- * the time remap, and the sequence's fps and size. A change to any of them
- * makes the bake stale and the live 3D layer draws again.
- *
- * Everything else about the clip is deliberately absent: start, track,
- * transform, opacity, effects, mask and matte apply to the baked layer the
- * way they apply to any video clip, so a change to one of them does not need
- * a re-render.
+ * Everything about a clip and its sequence that a render of the clip's span
+ * depends on, apart from the style, which each caller narrows first. The
+ * Blender bake and the Blockout reference both hash this record, so a field
+ * added here makes both stale.
  */
-export function computeModel3DBakeHash(
+export function model3dPictureInputs(
   clip: TimelineClip,
-  sequence: Model3DBakeSequence
-): string {
-  const { bake: _bake, ...style } = clip.model3dStyle ?? {};
-  const payload = `${MODEL3D_BAKE_HASH_VERSION_PREFIX}${stableSerialize({
+  sequence: Model3DBakeSequence,
+  style: Partial<ClipModel3DStyle>
+): Record<string, unknown> {
+  return {
     assetId: clip.currentAssetId,
     style,
     animations: clip.animations,
@@ -215,6 +207,32 @@ export function computeModel3DBakeHash(
     fps: sequence.fps,
     width: sequence.width,
     height: sequence.height
-  })}`;
-  return digest(payload);
+  };
+}
+
+/**
+ * The hash a `model3d` clip's bake is stored under, and checked against.
+ *
+ * It names every input the baked picture depends on (§D6): the style without
+ * `bake` and `reference`, the glTF asset, the clip's animations (the camera
+ * curves and the `orbit` preset among them), the trim window, the duration,
+ * the speed, the time remap, and the sequence's fps and size. A change to any
+ * of them makes the bake stale and the live 3D layer draws again.
+ *
+ * Everything else about the clip is deliberately absent: start, track,
+ * transform, opacity, effects, mask and matte apply to the baked layer the
+ * way they apply to any video clip, so a change to one of them does not need
+ * a re-render. `reference` is a render of the clip, not an input to one, so
+ * storing a Blockout reference leaves a bake current.
+ */
+export function computeModel3DBakeHash(
+  clip: TimelineClip,
+  sequence: Model3DBakeSequence
+): string {
+  const { bake: _bake, reference: _reference, ...style } =
+    clip.model3dStyle ?? {};
+  const payload = `${MODEL3D_BAKE_HASH_VERSION_PREFIX}${stableSerialize(
+    model3dPictureInputs(clip, sequence, style)
+  )}`;
+  return model3dPictureDigest(payload);
 }

@@ -109,9 +109,8 @@ figure, because they are how a later prompt says who stands where.
 down its own -Z. `position` places it and `lookAt: [x, y, z]` turns it to face
 a point, applied after the position. `fovDeg` is the vertical field of view,
 default 40. `set_camera` moves, re-aims or relenses it. A `model3d` clip in
-`scene` camera mode picks a camera by `sceneCameraName`. Name cameras without
-spaces or punctuation, such as `cam_wide`, because the renderer's loader
-rewrites those characters and the name would no longer match.
+`scene` camera mode picks a camera by `sceneCameraName`, which is the name
+`get_model3d` reports, spaces included.
 
 ```json
 {"ops": [

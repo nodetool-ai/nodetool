@@ -389,12 +389,32 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_set_model3d_style"),
-  async execute({ timeline_id, target, patch }) {
-    const clip = await getTimelineAgentHandler(timeline_id).setModel3DStyle(
-      target,
-      patch
-    );
+  async execute({ timeline_id, target, patch, keyAtMs, keyEasing }) {
+    const handler = getTimelineAgentHandler(timeline_id);
+    if (keyAtMs !== undefined || keyEasing !== undefined) {
+      // A camera key reports the keyed pose, which only the op returns.
+      const result = await handler.applyOp(
+        timelineOpFromToolArgs("set_model3d_style", {
+          target,
+          patch,
+          keyAtMs,
+          keyEasing
+        })
+      );
+      return { ...result, url: docUrl("timeline", timeline_id) };
+    }
+    const clip = await handler.setModel3DStyle(target, patch);
     return { ok: true, clip };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_apply_model3d_camera_move"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("apply_model3d_camera_move", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -409,6 +429,16 @@ FrontendToolRegistry.register({
       bakeStarted: true,
       url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
     };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_render_model3d_reference"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("render_model3d_reference", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 

@@ -28,7 +28,7 @@ import type {
 } from "@nodetool-ai/models";
 import type { TimelineValidation } from "@nodetool-ai/execution/timeline-debug";
 import type { TimelineBridgeFinalState } from "./timeline-bridge.js";
-import { parseOps, applyOps, TOOL_PREFIX, isReadOnlyRecord, timelineModel3DBaker } from "./timeline-operations.js";
+import { parseOps, applyOps, TOOL_PREFIX, isReadOnlyRecord, timelineModel3DBaker, timelineModel3DReferenceRenderer } from "./timeline-operations.js";
 export { parseOps, applyOps } from "./timeline-operations.js";
 export type { ParsedOp, OpRecord, ApplyOutcome } from "./timeline-operations.js";
 import type { IsolateSubjectInput } from "./timeline-isolate-subject.js";
@@ -66,6 +66,8 @@ import {
   DEFAULT_PREVIEW_COUNT,
   DEFAULT_COMPARE_WIDTH,
   MAX_PREVIEW_TIMES,
+  PREVIEW_PASSES,
+  type PreviewPass,
   MAX_PREVIEW_RANGE_COUNT,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
@@ -742,6 +744,7 @@ async function applyTimelineEdit(
   // Shared across retries, like the media edit generator: a retry re-applies
   // every op, and a 3D bake already rendered must not render again.
   const bakeModel3DClip = timelineModel3DBaker(run);
+  const renderModel3DReference = timelineModel3DReferenceRenderer(run);
   for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
     const sequence = await TimelineSequence.findById(timelineId);
     // A sequence owned by someone else reads as missing — the rule the tRPC
@@ -750,7 +753,7 @@ async function applyTimelineEdit(
       return { error: `Timeline ${timelineId} was not found.` };
     }
     const document: TimelineDocument = sequence.toDocument();
-    const { records, state } = await applyOps(run, sequence, document, ops, { generateMediaEdit, bakeModel3DClip });
+    const { records, state } = await applyOps(run, sequence, document, ops, { generateMediaEdit, bakeModel3DClip, renderModel3DReference });
 
     // The transcript rides along untouched — no timeline operation edits it,
     // so the stored copy stays authoritative. Markers come back from the
@@ -1394,6 +1397,20 @@ const previewTimelineFrame: CapabilityExport = {
     const times = requestedTimes(params, durationMs);
     if (isError(times)) return times;
 
+    const rawPass = params["pass"];
+    if (
+      rawPass !== undefined &&
+      rawPass !== null &&
+      !PREVIEW_PASSES.some((known) => known === rawPass)
+    ) {
+      return {
+        error:
+          `pass must be one of ${PREVIEW_PASSES.join(", ")}, and it is ` +
+          `${JSON.stringify(rawPass)}. Leave it out for the beauty render.`
+      };
+    }
+    const pass = (rawPass ?? "beauty") as PreviewPass;
+
     const { renderTimelineFrames } = await import(
       "../timeline-preview/frames.js"
     );
@@ -1415,6 +1432,7 @@ const previewTimelineFrame: CapabilityExport = {
         } as Parameters<typeof renderTimelineFrames>[0]["sequence"],
         timesMs: times,
         width: numberParam(params["width"]),
+        pass,
         motionBlur: {
           samplesPerFrame: numberParam(params["motion_blur_samples"]),
           shutterAngle: angleParam(params["shutter_angle"])
@@ -1461,6 +1479,9 @@ const previewTimelineFrame: CapabilityExport = {
       };
     }
 
+    const passNotApplied = result.frames.some((frame) =>
+      frame.degraded.some((entry) => entry.reason === "render_pass_not_applied")
+    );
     const frames = [];
     for (const frame of result.frames) {
       const entry: Record<string, unknown> = {
@@ -1489,6 +1510,7 @@ const previewTimelineFrame: CapabilityExport = {
       visual_output_verified: false,
       timeline_id: isString(timelineId) ? timelineId : undefined,
       name,
+      pass,
       fps: meta.fps,
       sequence_width: meta.width,
       sequence_height: meta.height,
@@ -1499,6 +1521,8 @@ const previewTimelineFrame: CapabilityExport = {
       fonts_unavailable: result.fontsUnavailable,
       hint: (!result.complete
         ? "Incomplete preview: requested content was skipped or approximated. Inspect failures, dropped, degradations, skipped layers, effects_not_applied and fonts_unavailable. This image cannot verify the complete composition. "
+        : "") + (passNotApplied
+        ? `The ${pass} pass applies to 3D clips only. The layers reported as render_pass_not_applied drew their ordinary picture. Hide their tracks or preview a time where only the 3D clip is active. `
         : "") + (wantSheet
         ? "Call view_image with the sheet's asset_id to see every frame at " +
           "once; the cells run left to right, labelled with their timecode. " +

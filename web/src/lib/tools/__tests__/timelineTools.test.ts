@@ -488,6 +488,91 @@ describe("ui_timeline_* tools", () => {
     });
   });
 
+  it("keys a free camera and applies a camera move through the shared ops", async () => {
+    const handler = createMockHandler();
+    handler.applyOp.mockResolvedValue({ ok: true });
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const keyed = await FrontendToolRegistry.call(
+      "ui_timeline_set_model3d_style",
+      {
+        timeline_id: SEQ_ID,
+        target: "selected",
+        patch: { camera: { mode: "free", focalLengthMm: 35 } },
+        keyAtMs: 1000
+      },
+      "tc-model3d-key",
+      ctx
+    );
+    expect(handler.setModel3DStyle).not.toHaveBeenCalled();
+    expect(handler.applyOp).toHaveBeenLastCalledWith({
+      op: "set_model3d_style",
+      target: "selected",
+      patch: { camera: { mode: "free", focalLengthMm: 35 } },
+      keyAtMs: 1000
+    });
+    expect(keyed).toMatchObject({ ok: true, url: `timeline://${SEQ_ID}` });
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_apply_model3d_camera_move",
+      {
+        timeline_id: SEQ_ID,
+        target: "selected",
+        move: "pushIn",
+        amount: 0.4,
+        durationMs: 2000
+      },
+      "tc-model3d-move",
+      ctx
+    );
+    expect(handler.applyOp).toHaveBeenLastCalledWith({
+      op: "apply_model3d_camera_move",
+      target: "selected",
+      move: "pushIn",
+      amount: 0.4,
+      durationMs: 2000
+    });
+
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_timeline_apply_model3d_camera_move",
+        { timeline_id: SEQ_ID, target: "selected", move: "whip" },
+        "tc-model3d-bad-move",
+        ctx
+      )
+    ).rejects.toThrow();
+  });
+
+  it("renders a 3D clip's reference through the shared op", async () => {
+    const handler = createMockHandler();
+    handler.applyOp.mockResolvedValue({ ok: true, referenceRendered: true });
+    setTimelineAgentHandler(SEQ_ID, handler);
+    const result = await FrontendToolRegistry.call(
+      "ui_timeline_render_model3d_reference",
+      { timeline_id: SEQ_ID, target: "selected", pass: "depth" },
+      "tc-model3d-reference",
+      ctx
+    );
+    expect(handler.applyOp).toHaveBeenLastCalledWith({
+      op: "render_model3d_reference",
+      target: "selected",
+      pass: "depth"
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      referenceRendered: true,
+      url: `timeline://${SEQ_ID}`
+    });
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_timeline_render_model3d_reference",
+        { timeline_id: SEQ_ID, target: "selected", pass: "wireframe" },
+        "tc-model3d-reference-bad",
+        ctx
+      )
+    ).rejects.toThrow();
+  });
+
   it("rejects an unknown generation kind during validation", async () => {
     setTimelineAgentHandler(SEQ_ID, createMockHandler());
     await expect(

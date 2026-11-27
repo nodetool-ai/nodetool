@@ -1,10 +1,13 @@
 /**
  * 3D section: everything `ClipModel3DStyle` carries (design §D7).
  *
- * The camera splits the section in two — `orbit` frames the model's bounding
- * sphere from the four orbit terms, `scene` uses a camera the glTF declares —
- * so the fields that mean nothing in the current mode are not rendered rather
- * than shown greyed out, the way the shape section renders per kind.
+ * The camera splits the section in three. `orbit` frames the model's bounding
+ * sphere from the four orbit terms, `scene` uses a camera the glTF declares,
+ * and `free` places the camera in world space with a position, a target, a
+ * lens and a roll. The fields that mean nothing in the current mode are not
+ * rendered rather than shown greyed out, the way the shape section renders per
+ * kind. Switching from `orbit` to `free` converts the pose, so the picture
+ * does not jump.
  *
  * The camera and animation pickers are filled from the render session, so they
  * only ever offer names the model actually has; until it loads they say so
@@ -12,10 +15,13 @@
  * term keeps the other three.
  */
 
-import React, { memo, useCallback, useRef } from "react";
+import React, { memo, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
+import DiamondOutlinedIcon from "@mui/icons-material/DiamondOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import type {
   ClipModel3DStyle,
   ClipModel3DStylePatch,
@@ -28,6 +34,15 @@ import {
 } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import {
+  useTimelinePlaybackStoreApi,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineInstance";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../../../stores/WorkspaceTabsStore";
 import ErrorBanner from "../../support/ErrorBanner";
 import {
   Button,
@@ -36,17 +51,18 @@ import {
   Chip,
   CollapsibleSection,
   FlexColumn,
+  FlexRow,
   SPACING,
-  BatchedColorInput
+  BatchedColorInput,
+  Tooltip
 } from "../../ui_primitives";
 import { useModel3DBake } from "../../../hooks/timeline/useModel3DBake";
 import { usePersistedFold } from "./usePersistedFold";
 import { KeyframedPropertyRow } from "./KeyframedPropertyRow";
-import {
-  CAMERA_FOV_ROW,
-  CAMERA_ORBIT_ROW,
-  CAMERA_ZOOM_ROW
-} from "./keyframeRows";
+import { cameraRowsFor } from "./keyframeRows";
+import { BlockoutReferenceSection } from "./BlockoutReferenceSection";
+import { Model3DCameraMoveMenu } from "./Model3DCameraMoveMenu";
+import { keyFreeCameraPatch, orbitToFreeCameraPatch } from "./model3dFreeCamera";
 import {
   InspectorDivider,
   InspectorPillInput,
@@ -85,7 +101,18 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
   ({ clip, model3dStyle }) => {
     const { t } = useTranslation();
     const patchClip = useTimelineStore((s) => s.patchClip);
+    const editClipKeyframes = useTimelineStore((s) => s.editClipKeyframes);
+    const playbackApi = useTimelinePlaybackStoreApi();
+    const docApi = useTimelineStoreApi();
     const [open, setOpen] = usePersistedFold("model3d");
+    const [moveAnchor, setMoveAnchor] = useState<HTMLElement | null>(null);
+    const clipEndMs = clip.startMs + clip.durationMs;
+    // Keying needs an instant on the clip, the way a row's stopwatch does.
+    const playheadInside = useTimelinePlaybackStore(
+      (s) => s.currentTimeMs >= clip.startMs && s.currentTimeMs <= clipEndMs
+    );
+    const projectId =
+      useWorkspaceTabsStore((s) => s.activeProjectId) ?? LOOSE_PROJECT_ID;
 
     const styleRef = useRef(model3dStyle);
     styleRef.current = model3dStyle;
@@ -93,6 +120,8 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
     clipIdRef.current = clip.id;
 
     const names = useModel3DSessionNames(clip, model3dStyle);
+    const boundsRef = useRef(names.bounds);
+    boundsRef.current = names.bounds;
 
     const bake = useModel3DBake();
     const baking = bake.state.clipId === clip.id;
@@ -124,11 +153,71 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
 
     // A stable callback per field, so an edit re-renders only the control whose
     // value changed rather than every memoized row in the section.
+    /** The playhead as a clip-relative time, read now, or null off the clip. */
+    const playheadNow = useCallback((): number | null => {
+      const current = docApi
+        .getState()
+        .clips.find((c) => c.id === clipIdRef.current);
+      if (!current) {
+        return null;
+      }
+      const now = playbackApi.getState().currentTimeMs - current.startMs;
+      return now < 0 || now > current.durationMs ? null : now;
+    }, [docApi, playbackApi]);
+
+    const sequenceRef = useRef(sequence);
+    sequenceRef.current = sequence;
     const handleModeChange = useCallback(
-      (value: string) =>
-        patchStyle({ camera: { mode: value as Model3DCameraMode } }),
-      [patchStyle]
+      (value: string) => {
+        const mode = value as Model3DCameraMode;
+        if (mode !== "free" || styleRef.current.camera.mode !== "orbit") {
+          patchStyle({ camera: { mode } });
+          return;
+        }
+        // Orbit to free keeps the picture: the free pose is the orbit pose at
+        // the playhead, measured against the model the session loaded.
+        const bounds = boundsRef.current;
+        const { width, height } = sequenceRef.current;
+        const fit = bounds
+          ? {
+              center: bounds.center,
+              radius: bounds.radius,
+              aspect: width / Math.max(height, 1)
+            }
+          : null;
+        const at = playheadNow();
+        editClipKeyframes(clipIdRef.current, (current) =>
+          orbitToFreeCameraPatch(current, fit, at)
+        );
+      },
+      [editClipKeyframes, patchStyle, playheadNow]
     );
+    const handleKeyCamera = useCallback(() => {
+      const at = playheadNow();
+      editClipKeyframes(clipIdRef.current, (current) =>
+        keyFreeCameraPatch(current, at)
+      );
+    }, [editClipKeyframes, playheadNow]);
+    const handleOpenMoveMenu = useCallback(
+      (event: React.MouseEvent<HTMLElement>) =>
+        setMoveAnchor(event.currentTarget),
+      []
+    );
+    const handleCloseMoveMenu = useCallback(() => setMoveAnchor(null), []);
+    const assetId = clip.currentAssetId;
+    const clipName = clip.name;
+    const handleEditSet = useCallback(() => {
+      if (!assetId) {
+        return;
+      }
+      useWorkspaceTabsStore.getState().openTab({
+        type: "model3d",
+        ref: assetId,
+        mode: "edit",
+        title: clipName,
+        projectId
+      });
+    }, [assetId, clipName, projectId]);
     const handleSceneCameraChange = useCallback(
       (value: string) =>
         patchStyle({
@@ -182,6 +271,7 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
     const background = model3dStyle.background;
     const cameraModes = [
       { value: "orbit", label: t("pass3_25.timeline.inspector.model3d.orbit") },
+      { value: "free", label: t("pass3_25.timeline.inspector.model3d.free") },
       {
         value: "scene",
         label: t("pass3_25.timeline.inspector.model3d.sceneCamera")
@@ -210,6 +300,23 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
           unmountOnExit
         >
           <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+            {assetId && (
+              <FlexRow sx={{ px: SPACING.xs }}>
+                <Tooltip
+                  title={t("pass3_25.timeline.inspector.model3d.editSetHelp")}
+                >
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<EditOutlinedIcon />}
+                    onClick={handleEditSet}
+                    data-testid="model3d-edit-set"
+                  >
+                    {t("pass3_25.timeline.inspector.model3d.editSet")}
+                  </Button>
+                </Tooltip>
+              </FlexRow>
+            )}
             <InspectorRow
               label={t("pass3_25.timeline.inspector.model3d.camera")}
             >
@@ -221,11 +328,54 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
               />
             </InspectorRow>
 
-            {camera.mode === "orbit" && (
+            {cameraRowsFor(camera.mode).map((row) => (
+              <KeyframedPropertyRow key={row.id} clip={clip} row={row} />
+            ))}
+
+            {camera.mode === "free" && (
               <>
-                <KeyframedPropertyRow clip={clip} row={CAMERA_ORBIT_ROW} />
-                <KeyframedPropertyRow clip={clip} row={CAMERA_FOV_ROW} />
-                <KeyframedPropertyRow clip={clip} row={CAMERA_ZOOM_ROW} />
+                <FlexRow gap={SPACING.sm} wrap sx={{ px: SPACING.xs }}>
+                  <Tooltip
+                    title={
+                      playheadInside
+                        ? t("pass3_25.timeline.inspector.model3d.keyCameraHelp")
+                        : t(
+                            "i18n-cont-inspector-02.keyframes.movePlayheadToAnimate"
+                          )
+                    }
+                  >
+                    <span>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<DiamondOutlinedIcon />}
+                        onClick={handleKeyCamera}
+                        disabled={!playheadInside}
+                        data-testid="model3d-key-camera"
+                      >
+                        {t("pass3_25.timeline.inspector.model3d.keyCamera")}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<VideocamOutlinedIcon />}
+                    onClick={handleOpenMoveMenu}
+                    aria-haspopup="dialog"
+                    data-testid="model3d-camera-move"
+                  >
+                    {t("pass3_25.timeline.inspector.model3d.cameraMove")}
+                  </Button>
+                </FlexRow>
+                <Caption color="muted">
+                  {t("pass3_25.timeline.inspector.model3d.freeCameraHelp")}
+                </Caption>
+                <Model3DCameraMoveMenu
+                  clip={clip}
+                  anchorEl={moveAnchor}
+                  onClose={handleCloseMoveMenu}
+                />
               </>
             )}
 
@@ -355,6 +505,7 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
                 {bake.state.error}
               </ErrorBanner>
             )}
+            <BlockoutReferenceSection clip={clip} />
           </FlexColumn>
         </CollapsibleSection>
         <InspectorDivider />

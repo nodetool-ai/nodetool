@@ -1414,7 +1414,8 @@ const nodetool = (() => {
        * Composited frames at chosen timecodes — the finished picture, with
        * every track layered, animations sampled mid-flight and transitions
        * part way through. Takes an id or an inline document, like validate().
-       * Options: {times_ms, count, width}.
+       * Options: {times_ms, count, range, sheet, width, pass}. pass draws 3D
+       * clips as "clay", "depth" or "normal".
        */
       preview: (target, opts) =>
         typeof target === "string"

@@ -169,15 +169,17 @@ const ATLASCLOUD_CALLBACK_SUITES =
 
 /**
  * The 3D-clip suites: the render session `model3d` layers draw through in the
- * browser, and the headless pre-pass that draws them for
- * `preview_timeline_frame`. One constant so the entry's `command` and its
- * `selfcheck` cannot drift.
+ * browser, the headless pre-pass that draws them for
+ * `preview_timeline_frame`, and the blockout path (a set built from
+ * primitives, a free camera, keyed camera moves, a clay frame). One constant
+ * so the entry's `command` and its `selfcheck` cannot drift.
  *
  * Vitest takes these positional arguments as file-path filters.
  */
 const TIMELINE_MODEL3D_SUITES =
   "npm run test --workspace=packages/video-nodes -- model3d-render && " +
-  "npm run test --workspace=packages/agents -- timeline-model3d-frames";
+  "npm run test --workspace=packages/timeline -- ops.model3dCamera && " +
+  "npm run test --workspace=packages/agents -- timeline-model3d-frames timeline-blockout-path";
 
 /**
  * A trimmed imported source receives a candidate edit, keeps its active take
@@ -820,7 +822,8 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "timeline-model3d",
-    title: "3D clips on the timeline (render session, headless preview frames)",
+    title:
+      "3D clips on the timeline (render session, headless preview frames, blockout camera)",
     // No CLI command owns it: a 3D layer is drawn by the browser preview and,
     // on the server, by the headless pre-pass behind `preview_timeline_frame`.
     // The checked-in suites are the headless surface — the session's pure
@@ -2283,6 +2286,9 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "packages/video-nodes/src/nodes/model3d/",
       "packages/agents/src/timeline-preview/",
+      "packages/timeline/src/model3d.ts",
+      "packages/timeline/src/model3dCameraMoves.ts",
+      "packages/timeline/src/model3dCameraKeys.ts",
       "web/src/components/timeline/preview/Model3DLayerSource.ts",
       "web/src/components/timeline/preview/bakeDecoding.ts",
       "web/src/components/timeline/Tracks/model3dClipFrames.ts"

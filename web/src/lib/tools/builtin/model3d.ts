@@ -78,7 +78,7 @@ const given = (fields: Record<string, unknown>): string[] =>
 FrontendToolRegistry.register({
   name: "ui_3d_add_object",
   description:
-    "Add an object to the 3D editor scene and select it. `kind` is one of box, sphere, plane, cylinder, torus, cone, empty (a group), directionalLight, pointLight, spotLight, figure, camera. Optionally provide a name; otherwise a unique default name is assigned. `position` places it. A figure is a jointed mannequin standing on y = 0 and facing +Z; it takes body, pose, height, color, entityId and label. A camera looks down its own -Z; it takes fovDeg and lookAt. Name a camera without spaces so a timeline clip can pick it by name.",
+    "Add an object to the 3D editor scene and select it. `kind` is one of box, sphere, plane, cylinder, torus, cone, empty (a group), directionalLight, pointLight, spotLight, figure, camera. Optionally provide a name; otherwise a unique default name is assigned. `position` places it. A figure is a jointed mannequin standing on y = 0 and facing +Z; it takes body, pose, height, color, entityId and label. A camera looks down its own -Z; it takes fovDeg and lookAt. A timeline clip in scene camera mode picks a camera by this name.",
   parameters: z.object({
     kind: z.enum(PRIMITIVE_KINDS),
     name: z.string().optional(),

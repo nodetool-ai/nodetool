@@ -12,14 +12,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClipModel3DStyle, TimelineClip } from "@nodetool-ai/timeline";
 import type { ActiveLayer } from "@nodetool-ai/timeline/render";
 
-import { Model3DLayerSource } from "../preview/Model3DLayerSource";
+import {
+  Model3DLayerSource,
+  type Model3DRenderSession
+} from "../preview/Model3DLayerSource";
 import { useAssetUrl } from "../Tracks/useAssetUrl";
+import { useAssetRevision } from "../../../stores/AssetRevisionStore";
 
 /** What the inspector knows about a 3D clip's model right now. */
 export interface Model3DSessionNames {
   status: "loading" | "ready" | "unavailable";
   animations: readonly string[];
   cameras: readonly string[];
+  /**
+   * The model's rest-pose bounding sphere, once it has loaded: what an orbit
+   * camera is fitted against.
+   */
+  bounds?: Model3DRenderSession["bounds"];
   /** Why there are no names — shown in place of the pickers. */
   message?: string;
 }
@@ -46,6 +55,9 @@ export function useModel3DSessionNames(
 ): Model3DSessionNames {
   const assetId = clip.currentAssetId;
   const url = useAssetUrl(assetId);
+  // Saving the model in the 3D editor rewrites the bytes under the same id.
+  const revision = useAssetRevision(assetId ?? undefined);
+  const loadedRevision = useRef(revision);
   const urlRef = useRef(url);
   urlRef.current = url;
   const styleRef = useRef(style);
@@ -61,7 +73,12 @@ export function useModel3DSessionNames(
       }),
     []
   );
-  useEffect(() => () => source.dispose(), [source]);
+  useEffect(() => {
+    // React StrictMode runs this cleanup and then the setup again against the
+    // same memoized pool, so the setup has to bring a disposed pool back.
+    source.revive();
+    return () => source.dispose();
+  }, [source]);
 
   const [names, setNames] = useState<Model3DSessionNames>(LOADING);
 
@@ -78,6 +95,10 @@ export function useModel3DSessionNames(
     }
     let cancelled = false;
     setNames(LOADING);
+    if (loadedRevision.current !== revision) {
+      loadedRevision.current = revision;
+      source.invalidateAsset(assetId);
+    }
     const layer: ActiveLayer = {
       kind: "model3d",
       clip: clipRef.current,
@@ -95,7 +116,8 @@ export function useModel3DSessionNames(
         setNames({
           status: "ready",
           animations: state.session.animations,
-          cameras: state.session.cameras
+          cameras: state.session.cameras,
+          bounds: state.session.bounds
         });
       } else if (state?.status === "unavailable") {
         setNames(unavailable(state.message));
@@ -109,7 +131,7 @@ export function useModel3DSessionNames(
     return () => {
       cancelled = true;
     };
-  }, [source, clip.id, assetId, url]);
+  }, [source, clip.id, assetId, url, revision]);
 
   return names;
 }

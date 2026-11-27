@@ -622,6 +622,20 @@ describe("harness gate", () => {
     expect(check!.command).toContain("packages/agents -- timeline-model3d-frames");
   });
 
+  it("maps a blockout camera change onto the blockout path suite", () => {
+    for (const file of [
+      "packages/timeline/src/model3dCameraMoves.ts",
+      "packages/timeline/src/model3dCameraKeys.ts"
+    ]) {
+      const plan = planGate([file]);
+      expect(plan.surfaces.map((s) => s.id), file).toContain("timeline-model3d");
+      const check = plan.checks.find((c) => c.harnessId === "timeline-model3d");
+      expect(check, file).toBeDefined();
+      expect(check!.command).toContain("packages/timeline -- ops.model3dCamera");
+      expect(check!.command).toContain("timeline-blockout-path");
+    }
+  });
+
   it("runs the Serein frame reproduction for a fixture-only change", () => {
     const plan = planGate(["demo/benchmarks/serein/timeline-gap-repro.json"]);
     expect(plan.unmappedFiles).toEqual([]);

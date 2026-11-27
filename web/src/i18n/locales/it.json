@@ -2860,7 +2860,11 @@
         "rotation": "Rotazione",
         "orbit": "Orbita",
         "fieldOfView": "Campo visivo",
-        "zoom": "Zoom"
+        "zoom": "Zoom",
+        "cameraPosition": "Posizione",
+        "cameraTarget": "Bersaglio",
+        "cameraLens": "Obiettivo",
+        "cameraRoll": "Rollio"
       },
       "inputs": {
         "opacity": "Opacità",
@@ -2872,7 +2876,15 @@
         "cameraAzimuth": "Azimut della fotocamera",
         "cameraElevation": "Elevazione della fotocamera",
         "cameraFieldOfView": "Campo visivo della telecamera",
-        "cameraZoom": "Zoom della fotocamera"
+        "cameraZoom": "Zoom della fotocamera",
+        "cameraPositionX": "Posizione della camera X",
+        "cameraPositionY": "Posizione della camera Y",
+        "cameraPositionZ": "Posizione della camera Z",
+        "cameraTargetX": "Bersaglio della camera X",
+        "cameraTargetY": "Bersaglio della camera Y",
+        "cameraTargetZ": "Bersaglio della camera Z",
+        "cameraLens": "Obiettivo della camera in millimetri",
+        "cameraRoll": "Rollio della camera in gradi"
       },
       "easing": {
         "linear": "Lineare",
@@ -5758,7 +5770,35 @@
           "bakeFailed": "La cottura della clip 3D non è riuscita",
           "loadingModel": "Caricamento modello…",
           "unavailable": "Non disponibile",
-          "missingName": "{{name}} (mancante)"
+          "missingName": "{{name}} (mancante)",
+          "free": "Libera",
+          "keyCamera": "Fissa camera",
+          "keyCameraHelp": "Aggiunge un fotogramma chiave per ogni canale della camera alla testina",
+          "cameraMove": "Movimento di camera",
+          "addCameraMove": "Aggiungi un movimento di camera",
+          "move": "Movimento",
+          "moveAmount": "Quantità",
+          "moveDuration": "Durata",
+          "moveAmountDegrees": "La quantità è un angolo.",
+          "moveAmountDistance": "La quantità è una parte della distanza tra la camera e il suo bersaglio.",
+          "moveAmountFactor": "La quantità moltiplica la lunghezza focale.",
+          "moveStartsAt": "Il movimento inizia a {{time}}.",
+          "applyMove": "Aggiungi movimento",
+          "freeCameraHelp": "Nell'anteprima, tieni premuto Alt e trascina per orbitare, aggiungi Maiusc per la carrellata laterale, usa la rotellina per avanzare e aggiungi Ctrl con la rotellina per cambiare obiettivo.",
+          "editSet": "Modifica set",
+          "editSetHelp": "Apri il modello 3D di questa clip nell'editor dei modelli",
+          "moves": {
+            "pan": "Panoramica",
+            "tilt": "Inclinazione",
+            "orbit": "Orbita",
+            "pushIn": "Carrellata in avanti",
+            "truck": "Carrellata laterale",
+            "crane": "Gru",
+            "pedestal": "Elevazione",
+            "zoom": "Zoom",
+            "dollyZoom": "Dolly zoom",
+            "dutch": "Inquadratura olandese"
+          }
         },
         "reframe": {
           "title": "Riformulazione intelligente",
@@ -13123,7 +13163,10 @@
       "speechTextPrompt": "Digita il testo da pronunciare e premi Invio...",
       "templates": "Modelli",
       "upload3dAsset": "Carica prima una risorsa {{formats}}.",
-      "useOutput": "Utilizza l'output {{name}}"
+      "useOutput": "Utilizza l'output {{name}}",
+      "blockoutSet": "Set di blockout",
+      "blockoutSetDescription": "Inizia un set 3D vuoto e riprendilo con una camera libera",
+      "addBlockoutSet": "Aggiungi una clip con set di blockout"
     },
     "preview": {
       "autoQuality": "Automatico ({{quality}})",
@@ -17337,7 +17380,8 @@
         "Keyframes & source": "Fotogrammi chiave e sorgente",
         "Zoom & view": "Zoom e visualizzazione",
         "Workspaces": "Spazi di lavoro",
-        "History": "Storia"
+        "History": "Storia",
+        "3D camera (3D clip selected)": "Camera 3D (clip 3D selezionata)"
       },
       "rows": {
         "selectTool": "Seleziona strumento",
@@ -17488,7 +17532,12 @@
         "panelScript": "Vai alla sceneggiatura",
         "panelStoryboard": "Vai allo storyboard",
         "nextPanel": "Vai al pannello successivo",
-        "prevPanel": "Vai al pannello precedente"
+        "prevPanel": "Vai al pannello precedente",
+        "keyCamera": "Fissa la camera 3D libera alla testina",
+        "camera3dOrbit": "Orbita la camera",
+        "camera3dTruck": "Sposta lateralmente una camera libera e il suo bersaglio",
+        "camera3dDolly": "Avvicina o allontana la camera",
+        "camera3dLens": "Cambia l'obiettivo di una camera libera"
       }
     },
     "vst": {
@@ -21781,6 +21830,60 @@
       "embedAgain": "Incorpora di nuovo",
       "rebuild": "Ricostruisci l’indice",
       "providerHint": "Per usare il modello di un provider, imposta provider e modello qui sopra. Passaggi inviati a quel provider: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "Argilla",
+        "hint": "Forme grigie ombreggiate con una luce fissa, così il modello segue camera e messa in scena e inventa ogni superficie"
+      },
+      "depth": {
+        "label": "Profondità",
+        "hint": "Solo la distanza dalla camera, così il modello inventa ogni superficie"
+      },
+      "normal": {
+        "label": "Normali",
+        "hint": "Solo la direzione delle superfici, così il modello mantiene le forme e inventa i materiali"
+      }
+    },
+    "reference": {
+      "label": "Riferimento",
+      "pass": "Passata di riferimento",
+      "render": "Renderizza riferimento",
+      "renderAgain": "Renderizza di nuovo",
+      "cancel": "Annulla",
+      "cancelProgress": "Annulla ({{done}}/{{total}})",
+      "play": "Riproduci riferimento",
+      "hide": "Nascondi riferimento",
+      "stale": "Riferimento non aggiornato",
+      "playerLabel": "Riferimento del blockout",
+      "failed": "Rendering del riferimento non riuscito"
+    },
+    "shot": {
+      "label": "Inquadratura",
+      "pickerLabel": "Inquadratura messa in scena da questo blockout",
+      "none": "Non collegato",
+      "elsewhere": "Un'inquadratura in un altro punto della timeline",
+      "noCandidates": "Nessuna clip di inquadratura si sovrappone a questa clip. Mettila sotto la clip di un'inquadratura per collegarla.",
+      "help": "Una ripresa dell'inquadratura collegata viene generata dal riferimento di questa clip."
+    },
+    "shotPanel": {
+      "title": "Blockout",
+      "clip": "Clip di blockout",
+      "none": "Nessuna",
+      "noCandidates": "Metti una clip 3D sotto la clip di questa inquadratura per usarla come blockout.",
+      "help": "La prossima ripresa segue camera e messa in scena della clip 3D collegata.",
+      "camera": "Camera: {{move}}",
+      "selectClip": "Seleziona clip",
+      "selectClipTooltip": "Seleziona la clip di blockout sulla timeline",
+      "takeStale": "Ripresa creata da un blockout precedente",
+      "rendering": "Rendering del riferimento del blockout",
+      "renderingProgress": "Rendering del riferimento del blockout ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "Il video di riferimento del blockout viene inviato a questo modello con il prompt. Viene renderizzato prima se manca o non è aggiornato.",
+      "promptOnly": "Questo modello non accetta un video di riferimento. Il rendering grigio non viene inviato e il movimento di camera viene aggiunto al prompt come testo: {{move}}"
     }
   }
 }

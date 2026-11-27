@@ -19,6 +19,7 @@ import type {
 } from "../types.js";
 import type { TimelineComposition } from "../composition.js";
 import type { Model3DBakeSequence } from "../model3dBake.js";
+import type { Model3DReferencePass } from "../model3dReference.js";
 import type {
   AnimationRole,
   ClipAnimation,
@@ -104,6 +105,24 @@ export interface TimelineOpBakeModel3DRequest {
 export interface TimelineOpBakeModel3DResult {
   assetId: string;
   /** Recorded on the clip version, so a bake is traceable to its run. */
+  jobId?: string;
+}
+
+/** What {@link TimelineOpContext.renderModel3DReference} is asked to render. */
+export interface TimelineOpRenderModel3DReferenceRequest {
+  /** The clip to render, as it stands after the op's own checks. */
+  clip: TimelineClip;
+  /** The sequence settings the frames are sampled at. */
+  sequence: Model3DBakeSequence;
+  pass: Model3DReferencePass;
+  /** The hash the result is stored under, computed by the op. */
+  dependencyHash: string;
+}
+
+/** What a finished reference render hands back. */
+export interface TimelineOpRenderModel3DReferenceResult {
+  /** The full id of the stored video asset. */
+  assetId: string;
   jobId?: string;
 }
 
@@ -389,6 +408,13 @@ export interface TimelineOpContext {
   bakeModel3DClip?(
     request: TimelineOpBakeModel3DRequest
   ): Promise<TimelineOpBakeModel3DResult>;
+  /**
+   * Render `render_model3d_reference` and store the video. Absent means this
+   * surface has no renderer, and the op reports that.
+   */
+  renderModel3DReference?(
+    request: TimelineOpRenderModel3DReferenceRequest
+  ): Promise<TimelineOpRenderModel3DReferenceResult>;
   /**
    * The host's SVG path parser (`parseSvgPath` from `./scene`). Passed in
    * rather than imported: the parser lives under `src/render`, which this

@@ -312,6 +312,23 @@ describe("session selection", () => {
     );
     expect(() => selectSceneCamera([], "drone")).toThrow(/no cameras/);
   });
+
+  it("matches the glTF node name the loader rewrote", () => {
+    // GLTFLoader loads "Camera 2" as "Camera_2" and keeps the original in
+    // userData.name. A second node of the same name gets a numeric suffix.
+    const loaded = [
+      { name: "Camera", userData: { name: "Camera" } },
+      { name: "Camera_2", userData: { name: "Camera 2" } },
+      { name: "wide_shot" }
+    ];
+    expect(selectSceneCamera(loaded, "Camera 2")).toBe(loaded[1]);
+    expect(selectSceneCamera(loaded, "Camera_2")).toBe(loaded[1]);
+    // A name kept only on the glTF camera definition has no userData.name.
+    expect(selectSceneCamera(loaded, "wide shot")).toBe(loaded[2]);
+    expect(() => selectSceneCamera(loaded, "drone")).toThrow(
+      /available cameras: Camera, Camera 2, wide_shot/
+    );
+  });
 });
 
 const chromePath = findChrome();

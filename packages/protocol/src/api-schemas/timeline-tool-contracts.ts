@@ -27,6 +27,8 @@ import { BLEND_MODE_TUPLE } from "../blend-modes.js";
 import { clipAudioEffect, clipFadeShapeEnum } from "./timeline.js";
 import {
   ADD_MODEL3D_CLIP_DESCRIPTION,
+  APPLY_MODEL3D_CAMERA_MOVE_DESCRIPTION,
+  MODEL3D_CAMERA_MOVE_IDS,
   ADD_SHAPE_CLIP_DESCRIPTION,
   ADD_TEXT_CLIP_DESCRIPTION,
   ADD_TRACK_DESCRIPTION,
@@ -86,6 +88,7 @@ import {
   setTrackInstrumentParams,
   SET_MODEL3D_STYLE_DESCRIPTION,
   BAKE_MODEL3D_CLIP_DESCRIPTION,
+  RENDER_MODEL3D_REFERENCE_DESCRIPTION,
   shapeStyleParams,
   transposeClipParams,
   targetParam,
@@ -540,7 +543,65 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       description: SET_MODEL3D_STYLE_DESCRIPTION,
       shape: {
         target: targetParam,
-        patch: model3dStyleParams
+        patch: model3dStyleParams,
+        keyAtMs: z
+          .number()
+          .nonnegative()
+          .optional()
+          .describe(
+            "Key the free camera at this time, in milliseconds from the " +
+              "clip's start, instead of changing its resting pose. Needs " +
+              'camera mode "free".'
+          ),
+        keyEasing: z
+          .string()
+          .optional()
+          .describe(
+            "With keyAtMs: the easing of the move arriving at this key, " +
+              'such as "easeInOut". Linear when absent.'
+          )
+      },
+      finalize: strictParams
+    },
+
+    ui_timeline_apply_model3d_camera_move: {
+      description: APPLY_MODEL3D_CAMERA_MOVE_DESCRIPTION,
+      shape: {
+        target: targetParam,
+        move: z
+          .enum(MODEL3D_CAMERA_MOVE_IDS)
+          .describe("The move to key."),
+        amount: z
+          .number()
+          .optional()
+          .describe(
+            "How far, in the move's unit: degrees, a fraction of the " +
+              "eye-to-target distance, or a focal-length multiplier. The " +
+              "move's default when absent."
+          ),
+        startMs: z
+          .number()
+          .nonnegative()
+          .optional()
+          .describe(
+            "When the move starts, in milliseconds from the clip's start. " +
+              "Default 0."
+          ),
+        durationMs: z
+          .number()
+          .positive()
+          .optional()
+          .describe(
+            "How long the move runs, in milliseconds. Default the rest of " +
+              "the clip."
+          ),
+        easing: z
+          .string()
+          .optional()
+          .describe(
+            'Easing over the whole move, such as "easeInOut". Linear ' +
+              "when absent."
+          )
       },
       finalize: strictParams
     },
@@ -549,6 +610,18 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       description: BAKE_MODEL3D_CLIP_DESCRIPTION,
       shape: {
         target: targetParam
+      },
+      finalize: strictParams
+    },
+
+    ui_timeline_render_model3d_reference: {
+      description: RENDER_MODEL3D_REFERENCE_DESCRIPTION,
+      shape: {
+        target: targetParam,
+        pass: z
+          .enum(["clay", "depth", "normal"])
+          .optional()
+          .describe('What each frame draws. "clay" when absent.')
       },
       finalize: strictParams
     },

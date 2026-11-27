@@ -558,7 +558,7 @@ export function parseJsScriptEditOps(value: unknown): JsScriptEditOp[] | ToolErr
   return ops;
 }
 
-/** How many non-overlapping times `needle` occurs in `haystack`. */
+/** How many times (overlapping included) `needle` occurs in `haystack`. */
 function countOccurrences(haystack: string, needle: string): number {
   let count = 0;
   let from = 0;
@@ -566,7 +566,7 @@ function countOccurrences(haystack: string, needle: string): number {
     const at = haystack.indexOf(needle, from);
     if (at === -1) break;
     count++;
-    from = at + needle.length;
+    from = at + 1;
   }
   return count;
 }

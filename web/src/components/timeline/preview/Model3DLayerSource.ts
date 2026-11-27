@@ -170,7 +170,9 @@ function probeRenderSupport(): boolean {
 }
 
 async function fetchGlb(url: string): Promise<Uint8Array> {
-  const response = await fetch(url);
+  // Revalidate: a model saved in place keeps its url, and a cached copy would
+  // draw the set as it was before the edit.
+  const response = await fetch(url, { cache: "no-cache" });
   if (!response.ok) {
     throw new Error(`the model could not be fetched (HTTP ${response.status})`);
   }
@@ -274,6 +276,19 @@ export class Model3DLayerSource {
     if (!entry) return;
     this.entries.delete(clipId);
     if (entry.state.status === "ready") entry.state.session.dispose();
+  }
+
+  /**
+   * Forget an asset whose bytes changed under the same id, such as a set saved
+   * from the model editor: its cached GLB and every session drawn from it. The
+   * next {@link acquire} fetches the model again.
+   */
+  invalidateAsset(assetId: string): void {
+    this.models.delete(assetId);
+    this.pendingModels.delete(assetId);
+    for (const [clipId, entry] of [...this.entries]) {
+      if (entry.assetId === assetId) this.release(clipId);
+    }
   }
 
   /**

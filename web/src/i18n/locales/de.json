@@ -2831,7 +2831,11 @@
         "rotation": "Drehung",
         "orbit": "Kamerafahrt im Kreis",
         "fieldOfView": "Sichtfeld",
-        "zoom": "Zoom"
+        "zoom": "Zoom",
+        "cameraPosition": "Position",
+        "cameraTarget": "Ziel",
+        "cameraLens": "Objektiv",
+        "cameraRoll": "Rollen"
       },
       "inputs": {
         "opacity": "Deckkraft",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "Kamera-Azimut",
         "cameraElevation": "Kamera-Elevation",
         "cameraFieldOfView": "Kamera-Sichtfeld",
-        "cameraZoom": "Kamera-Zoom"
+        "cameraZoom": "Kamera-Zoom",
+        "cameraPositionX": "Kameraposition X",
+        "cameraPositionY": "Kameraposition Y",
+        "cameraPositionZ": "Kameraposition Z",
+        "cameraTargetX": "Kameraziel X",
+        "cameraTargetY": "Kameraziel Y",
+        "cameraTargetZ": "Kameraziel Z",
+        "cameraLens": "Kameraobjektiv in Millimetern",
+        "cameraRoll": "Kamerarollen in Grad"
       },
       "easing": {
         "linear": "Linear",
@@ -5682,7 +5694,35 @@
           "bakeFailed": "3D-Clip-Backen fehlgeschlagen",
           "loadingModel": "Modell wird geladen …",
           "unavailable": "Nicht verfügbar",
-          "missingName": "{{name}} (fehlt)"
+          "missingName": "{{name}} (fehlt)",
+          "free": "Frei",
+          "keyCamera": "Kamera-Keyframe",
+          "keyCameraHelp": "Am Abspielkopf einen Keyframe für jeden Kamerakanal setzen",
+          "cameraMove": "Kamerabewegung",
+          "addCameraMove": "Kamerabewegung hinzufügen",
+          "move": "Bewegung",
+          "moveAmount": "Betrag",
+          "moveDuration": "Dauer",
+          "moveAmountDegrees": "Der Betrag ist ein Winkel.",
+          "moveAmountDistance": "Der Betrag ist ein Anteil der Entfernung zwischen Kamera und Ziel.",
+          "moveAmountFactor": "Der Betrag multipliziert die Brennweite.",
+          "moveStartsAt": "Die Bewegung beginnt bei {{time}}.",
+          "applyMove": "Bewegung hinzufügen",
+          "freeCameraHelp": "In der Vorschau: Alt halten und ziehen zum Umkreisen, mit Umschalt seitlich verschieben, scrollen für die Kamerafahrt, mit Strg beim Scrollen das Objektiv ändern.",
+          "editSet": "Set bearbeiten",
+          "editSetHelp": "Das 3D-Modell dieses Clips im Modell-Editor öffnen",
+          "moves": {
+            "pan": "Schwenk",
+            "tilt": "Neigen",
+            "orbit": "Umkreisen",
+            "pushIn": "Ranfahrt",
+            "truck": "Seitfahrt",
+            "crane": "Kran",
+            "pedestal": "Hubfahrt",
+            "zoom": "Zoom",
+            "dollyZoom": "Dolly-Zoom",
+            "dutch": "Dutch Angle"
+          }
         },
         "reframe": {
           "title": "Intelligenter Bildausschnitt",
@@ -12926,7 +12966,10 @@
       "speechTextPrompt": "Gib Text zum Sprechen ein und drücke Enter…",
       "templates": "Vorlagen",
       "upload3dAsset": "Füge zuerst ein {{formats}}-Asset hinzu.",
-      "useOutput": "Ausgabe {{name}} verwenden"
+      "useOutput": "Ausgabe {{name}} verwenden",
+      "blockoutSet": "Blockout-Set",
+      "blockoutSetDescription": "Ein leeres 3D-Set beginnen und mit freier Kamera filmen",
+      "addBlockoutSet": "Blockout-Set-Clip hinzufügen"
     },
     "preview": {
       "autoQuality": "Automatisch ({{quality}})",
@@ -17045,7 +17088,8 @@
         "Keyframes & source": "Keyframes und Quelle",
         "Zoom & view": "Zoom und Ansicht",
         "Workspaces": "Arbeitsbereiche",
-        "History": "Verlauf"
+        "History": "Verlauf",
+        "3D camera (3D clip selected)": "3D-Kamera (3D-Clip ausgewählt)"
       },
       "rows": {
         "selectTool": "Auswahlwerkzeug",
@@ -17196,7 +17240,12 @@
         "panelScript": "Zum Skript",
         "panelStoryboard": "Zum Storyboard",
         "nextPanel": "Zum nächsten Bedienfeld",
-        "prevPanel": "Zum vorherigen Bedienfeld"
+        "prevPanel": "Zum vorherigen Bedienfeld",
+        "keyCamera": "Freie 3D-Kamera am Abspielkopf mit Keyframe versehen",
+        "camera3dOrbit": "Kamera umkreisen lassen",
+        "camera3dTruck": "Freie Kamera und ihr Ziel seitlich verschieben",
+        "camera3dDolly": "Kamerafahrt vor und zurück",
+        "camera3dLens": "Objektiv einer freien Kamera ändern"
       }
     },
     "vst": {
@@ -21463,6 +21512,60 @@
       "embedAgain": "Neu einbetten",
       "rebuild": "Index neu aufbauen",
       "providerHint": "Für ein Anbietermodell oben Anbieter und Modell eintragen. An diesen Anbieter gesendete Abschnitte: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "Clay",
+        "hint": "Grau schattierte Formen mit festem Licht, damit das Modell Kamera und Anordnung übernimmt und jede Oberfläche erfindet"
+      },
+      "depth": {
+        "label": "Tiefe",
+        "hint": "Nur der Abstand zur Kamera, damit das Modell jede Oberfläche erfindet"
+      },
+      "normal": {
+        "label": "Normalen",
+        "hint": "Nur die Oberflächenrichtung, damit das Modell Formen behält und Materialien erfindet"
+      }
+    },
+    "reference": {
+      "label": "Referenz",
+      "pass": "Referenz-Pass",
+      "render": "Referenz rendern",
+      "renderAgain": "Erneut rendern",
+      "cancel": "Abbrechen",
+      "cancelProgress": "Abbrechen ({{done}}/{{total}})",
+      "play": "Referenz abspielen",
+      "hide": "Referenz ausblenden",
+      "stale": "Referenz veraltet",
+      "playerLabel": "Blockout-Referenz",
+      "failed": "Referenz-Rendering fehlgeschlagen"
+    },
+    "shot": {
+      "label": "Shot",
+      "pickerLabel": "Shot, den dieses Blockout inszeniert",
+      "none": "Nicht verknüpft",
+      "elsewhere": "Ein Shot an anderer Stelle der Timeline",
+      "noCandidates": "Kein Shot-Clip überlappt diesen Clip. Lege ihn unter den Clip eines Shots, um ihn zu verknüpfen.",
+      "help": "Ein Take des verknüpften Shots wird aus der Referenz dieses Clips generiert."
+    },
+    "shotPanel": {
+      "title": "Blockout",
+      "clip": "Blockout-Clip",
+      "none": "Keiner",
+      "noCandidates": "Lege einen 3D-Clip unter den Clip dieses Shots, um ihn als Blockout zu verwenden.",
+      "help": "Der nächste Take folgt Kamera und Anordnung des verknüpften 3D-Clips.",
+      "camera": "Kamera: {{move}}",
+      "selectClip": "Clip auswählen",
+      "selectClipTooltip": "Den Blockout-Clip in der Timeline auswählen",
+      "takeStale": "Take aus einem älteren Blockout",
+      "rendering": "Blockout-Referenz wird gerendert",
+      "renderingProgress": "Blockout-Referenz wird gerendert ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "Das Referenzvideo des Blockouts wird mit dem Prompt an dieses Modell gesendet. Es wird zuerst gerendert, wenn es fehlt oder veraltet ist.",
+      "promptOnly": "Dieses Modell nimmt kein Referenzvideo an. Das graue Rendering wird nicht gesendet, und die Kamerabewegung wird dem Prompt als Text hinzugefügt: {{move}}"
     }
   }
 }

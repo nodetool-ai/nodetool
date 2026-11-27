@@ -1,7 +1,7 @@
 name: Logic Simplifier
 
 # Ranks source files by branch density and nesting depth, then rewrites the
-# worst offender's logic without changing what it does.
+# logic of the worst module users depend on without changing what it does.
 #
 # The ranking is a crude proxy — a switch over twenty node kinds scores high and
 # is fine as it is — so the scan only nominates candidates. The agent reads the
@@ -149,6 +149,11 @@ jobs:
             echo "HOTSPOTS_FOUND=0" >> $GITHUB_ENV
           fi
 
+      - name: Rank impact signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/agent-impact.mjs "$RUNNER_TEMP/agent-impact.md"
+
       - name: Run Claude Code
         if: env.HOTSPOTS_FOUND == '1'
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
@@ -159,7 +164,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing. Open the PR with the label agent:logic-simplifier (gh pr create --label agent:logic-simplifier). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
+            --append-system-prompt "Read .github/agent-routines.md before you pick a target and follow it: rank candidates by the signals in ${{ runner.temp }}/agent-impact.md, fix every instance of the theme in the module you choose, and start the PR body with an Impact section. Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing. Open the PR with the label agent:logic-simplifier (gh pr create --label agent:logic-simplifier). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Simplify Convoluted Logic
 
@@ -167,8 +172,9 @@ jobs:
             depth, and longest unbroken run of code. It is a proxy, not a
             verdict — read the code before touching it.
 
-            Pick **one** function or closely related group of functions and make
-            the logic easier to follow without changing what it does.
+            Pick the module that ranks high in the hotspot log and by impact,
+            and make the logic of every convoluted function in it easier to
+            follow without changing what it does.
 
             ## What to look for
             - **Deep nesting** that inverts cleanly: guard clauses and early
@@ -210,7 +216,8 @@ jobs:
               find a bug, leave it and report it in the PR body.
             - No new abstractions. This routine removes indirection; it does not
               add a strategy object to flatten an `if`.
-            - One function or one tight cluster per PR. Maximum 6 files.
+            - One module per PR. No file cap: every function you change gets
+              characterization tests first.
             - Do not touch CI workflow files.
 
             ## Before starting

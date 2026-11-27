@@ -48,7 +48,8 @@ import type {
   TimelineBridgeAsset,
   TimelineBridgeFinalState,
   TimelineFormatRetargeter,
-  TimelineModel3DBaker
+  TimelineModel3DBaker,
+  TimelineModel3DReferenceRenderer
 } from "./timeline-bridge.js";
 import type { BakeCustomAnimationParams } from "../custom-animation-bake.js";
 import type { CapabilityRun } from "./types.js";
@@ -1089,18 +1090,51 @@ export function createServerStepPatternLibrary(
 }
 
 /**
+ * A reference render that runs once per clip, pass and dependency hash, for
+ * the reason {@link timelineModel3DBaker} gives: a compare-and-swap retry
+ * re-applies every op, and the same picture must not be rendered twice.
+ */
+export function timelineModel3DReferenceRenderer(
+  run: CapabilityRun
+): TimelineModel3DReferenceRenderer {
+  const rendered = new Map<string, ReturnType<TimelineModel3DReferenceRenderer>>();
+  return (request) => {
+    const key = JSON.stringify([
+      request.clip.id,
+      request.pass,
+      request.dependencyHash
+    ]);
+    const existing = rendered.get(key);
+    if (existing) {
+      return existing;
+    }
+    const result = import("./timeline-reference.js").then(
+      ({ renderModel3DReferenceOnServer }) =>
+        renderModel3DReferenceOnServer(run.context, request)
+    );
+    // A failed render is not kept, so a retry of the op can try again.
+    result.catch(() => rendered.delete(key));
+    rendered.set(key, result);
+    return result;
+  };
+}
+
+/**
  * The bridge hooks that write outside the document: a Blender render of a 3D
- * clip, and the new sequence `retarget_format` creates.
+ * clip, a reference render of one, and the new sequence `retarget_format`
+ * creates.
  */
 function writingHooks(
   run: CapabilityRun,
   sequence: TimelineSequence
 ): {
   bakeModel3DClip: TimelineModel3DBaker;
+  renderModel3DReference: TimelineModel3DReferenceRenderer;
   retargetFormat: TimelineFormatRetargeter;
 } {
   return {
     bakeModel3DClip: timelineModel3DBaker(run),
+    renderModel3DReference: timelineModel3DReferenceRenderer(run),
     retargetFormat: async (adapted) => {
       const { TimelineSequence } = await import("@nodetool-ai/models");
       const derivedDocument: TimelineDocument = {
@@ -1286,6 +1320,8 @@ export async function applyOps(
     bakeModel3DClip?: TimelineModel3DBaker;
     /** Optional plugin host override for VST/AU ops. */
     pluginHost?: import("@nodetool-ai/timeline/ops").TimelineOpContext["pluginHost"];
+    /** A reference renderer shared across retries of one call. */
+    renderModel3DReference?: TimelineModel3DReferenceRenderer;
   } = {}
 ): Promise<ApplyOutcome> {
   assertTimelineColorSpaceSupported(document);
@@ -1349,6 +1385,9 @@ export async function applyOps(
     Object.assign(init, writingHooks(run, sequence));
     if (options.bakeModel3DClip) {
       init.bakeModel3DClip = options.bakeModel3DClip;
+    }
+    if (options.renderModel3DReference) {
+      init.renderModel3DReference = options.renderModel3DReference;
     }
     const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
     const generate = options.generateMediaEdit ?? timelineMediaEditGenerator(run);
