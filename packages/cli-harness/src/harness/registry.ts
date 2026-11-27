@@ -781,6 +781,23 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "timeline-preflight",
+    title: "Timeline export preflight (GPU adapter and encoder on this machine)",
+    command: "nodetool timeline preflight [--json]",
+    kind: "execution",
+    capabilities: ["json", "no-db"],
+    docs: "docs/cli.md § Headless Linux rendering",
+    selfcheck: {
+      // Renders the built-in text-and-shape timeline through the real
+      // compositor and encoder from the built CLI. Needs a WebGPU adapter,
+      // which the CI image provides with lavapipe.
+      command:
+        "npm run test --workspace=packages/cli-timeline -- timeline-preflight && " +
+        "npm run dev:nodetool -- timeline preflight --json",
+      cost: "cheap"
+    }
+  },
+  {
     id: "timeline-score",
     title: "Timeline craft scorecard (agent output vs. shipped showcase examples)",
     command:
@@ -2246,6 +2263,7 @@ export const SURFACES: SurfaceEntry[] = [
       "timeline-validate",
       "timeline-debug",
       "timeline-render",
+      "timeline-preflight",
       "timeline-score",
       "timeline-versions",
       "eval"
@@ -2257,6 +2275,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-timeline/src/timeline-debug/",
       "packages/cli-timeline/src/commands/timeline-versions.ts",
       "packages/cli-timeline/src/commands/timeline-render.ts",
+      "packages/cli-timeline/src/commands/timeline-preflight.ts",
       "packages/cli-timeline/src/commands/timeline-score.ts",
       "packages/video-nodes/src/nodes/timeline/compositeRender.ts",
       "packages/agents/src/capabilities/timelines.ts",

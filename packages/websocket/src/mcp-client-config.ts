@@ -126,12 +126,21 @@ export function mcpServersSnippet(launch: McpLaunch): string {
   return JSON.stringify({ mcpServers: { [SERVER_NAME]: server } }, null, 2);
 }
 
+/**
+ * Codex's configuration directory: `CODEX_HOME` when set, as Codex itself
+ * reads it, else `~/.codex`. A managed environment with a read-only home
+ * points `CODEX_HOME` at a writable directory.
+ */
+export function codexHome(home: string, env: NodeJS.ProcessEnv = process.env): string {
+  return env["CODEX_HOME"]?.trim() || join(home, ".codex");
+}
+
 export function mcpClientConfigPath(client: McpClientId, home: string): string {
   switch (client) {
     case "claude":
       return join(home, ".claude.json");
     case "codex":
-      return join(home, ".codex", "config.toml");
+      return join(codexHome(home), "config.toml");
     case "opencode":
       return join(home, ".config", "opencode", "opencode.json");
   }
@@ -147,7 +156,7 @@ export function isMcpClientPresent(client: McpClientId, home: string): boolean {
         isOnPath("claude")
       );
     case "codex":
-      return existsSync(join(home, ".codex")) || isOnPath("codex");
+      return existsSync(codexHome(home)) || isOnPath("codex");
     case "opencode":
       return (
         existsSync(join(home, ".config", "opencode")) || isOnPath("opencode")
@@ -301,7 +310,7 @@ export function writeMcpClientEntry(
       return path;
     }
     case "codex": {
-      mkdirSync(join(home, ".codex"), { recursive: true });
+      mkdirSync(codexHome(home), { recursive: true });
       const block = codexBlock(launch);
       const content = existsSync(path) ? readFileSync(path, "utf8") : "";
       const next = CODEX_BLOCK.test(content)

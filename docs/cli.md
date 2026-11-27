@@ -1146,10 +1146,62 @@ nodetool timeline render sequence.json --frames coverage:build-sequence.ts --she
 nodetool timeline render sequence.json --only title,logo --frames 60,120 --sheet 2
 ```
 
-The command needs a WebGPU adapter. On a headless
-machine, install a Vulkan ICD such as lavapipe
-([headless WebGPU setup](dev-environment.md#webgpu-on-a-headless-machine)).
-The first frame compiles the GPU pipelines, so progress starts after a delay.
+The command needs a WebGPU adapter. Run `nodetool timeline preflight` first
+on a new machine, and see [Headless Linux rendering](#headless-linux-rendering)
+when it fails. The first frame compiles the GPU pipelines, so progress starts
+after a delay.
+
+#### `nodetool timeline preflight`
+
+Renders a built-in timeline with one shape clip and one text clip to a
+160 × 90 MP4 in a temporary directory, through the same GPU compositor and
+encoder as `nodetool timeline render`. It exits `0` when the export works and
+`1` when it does not, with the error and the Vulkan driver manifest the loader
+was pointed at (`VK_DRIVER_FILES`, then `VK_ICD_FILENAMES`). It needs the
+`video` pack and no media-generation packs or provider keys.
+
+- `--json` — print `{ok, vulkanDriverFiles, frames, width, height, elapsedMs}`, or `{ok, vulkanDriverFiles, error}` on failure.
+
+```bash
+nodetool timeline preflight --json
+```
+
+#### Headless Linux rendering
+
+Dawn, the WebGPU implementation behind the compositor, reaches the GPU through
+a Vulkan driver and has no software fallback. A headless Linux host with no
+Vulkan driver fails with `No WebGPU adapter available (Node/Dawn)`. Lavapipe,
+the CPU Vulkan driver in Mesa, renders without a GPU or a display. It is slower
+than a GPU and gives the same pixels on every run.
+
+With root on Debian or Ubuntu:
+
+```bash
+sudo apt-get install -y mesa-vulkan-drivers
+nodetool timeline preflight
+```
+
+Without root, download the driver and the Vulkan loader, extract them into a
+directory you own, and point the loader at the extracted driver. The shipped
+manifest names the library by file name only, so write a copy with the
+absolute path:
+
+```bash
+mkdir -p ~/.local/vulkan && cd ~/.local/vulkan
+apt-get download mesa-vulkan-drivers libvulkan1
+for deb in *.deb; do dpkg-deb -x "$deb" root; done
+lib="$PWD/root/usr/lib/$(uname -m)-linux-gnu"
+sed "s|\"libvulkan_lvp.so\"|\"$lib/libvulkan_lvp.so\"|" \
+  root/usr/share/vulkan/icd.d/lvp_icd.json > lvp_icd.json
+export VK_DRIVER_FILES="$PWD/lvp_icd.json"
+export LD_LIBRARY_PATH="$lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+nodetool timeline preflight
+```
+
+`LD_LIBRARY_PATH` is needed only when the host has no `libvulkan.so.1`. Unset
+`DISPLAY` on a host that has one but no running X server. `apt-get download`
+works without root but needs the distribution's package index, so run it on a
+matching release if the host has none.
 
 #### `nodetool timeline reference <timeline_id> <clip>`
 
