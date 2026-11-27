@@ -1741,7 +1741,7 @@ describe("NewProjectSurface", () => {
 
     expect(prompt).toHaveValue("A spot lit by Aurora lamp ");
     expect(
-      screen.getByRole("button", { name: /^Entities · Aurora lamp/ })
+      screen.getByRole("button", { name: /· Aurora lamp/ })
     ).toBeInTheDocument();
   });
 
