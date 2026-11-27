@@ -228,6 +228,7 @@ QList<Command> buildAllowed() {
     actions(numbered("takeSwitch", 9), clips);
     actions(numbered("takeCut", 9), clipsAtTime);
     action("takeGrid");
+    action("saveDocument");
     // The Source monitor.
     actions({"sourceInsert", "sourceOverwrite", "sourceAppend"}, seek);
     action("matchFrame", seek);
@@ -304,7 +305,7 @@ QList<Command> buildAllowed() {
          {clip, P{"patch", ParamKind::Patch, true, "Fields to set. textStyle changes only the fields it names. For position, scale and rotation use keyframes.input.",
                   {"name", "labelColor", "speaker", "opacity", "blendMode", "hidden", "muted", "borderRadius", "textStyle"}}});
     // Tracks.
-    const P trackType{"type", ParamKind::Choice, true, "The kind of track.", {"video", "audio", "overlay"}};
+    const P trackType{"type", ParamKind::Choice, true, "The kind of track.", {"video", "audio", "overlay", "midi"}};
     const P trackName{"name", ParamKind::Text, false, "Its name."};
     edit("addTrack", "Add a track at the end", {trackType, trackName});
     edit("insertTrack", "Insert a track", {trackType, trackName, P{"atIndex", ParamKind::Number, true, "Where it goes among the tracks, from 0.", {}, {}, 0}});

@@ -628,6 +628,12 @@ for line in sys.stdin:
         // addTrack appends and has no position to ignore.
         QVERIFY(!run("addTrack", {{"type", "video"}, {"atIndex", 0}}).value("ok").toBool());
     }
+    void addTrackMakesAMidiTrack() {
+        QVERIFY(run("addTrack", {{"type", "midi"}, {"name", "Keys"}}).value("ok").toBool());
+        const auto added = doc().value("tracks").toArray().last().toObject();
+        QCOMPARE(added.value("type").toString(), QString("midi"));
+        QCOMPARE(added.value("name").toString(), QString("Keys"));
+    }
     // Captions go to the clip the time finds, so the command doesn't pretend to take one.
     void captionAddHasNoClipParameter() {
         QVERIFY(!run("captions.add", {{"clip_id", CLIP_AUDIO}, {"text", "Hi"}, {"atMs", 100}}).value("ok").toBool());
