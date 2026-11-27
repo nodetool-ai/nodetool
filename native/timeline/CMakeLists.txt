@@ -383,6 +383,39 @@ foreach(callback IN LISTS NT_TEST_CALLBACKS)
     cmake_language(CALL ${callback})
 endforeach()
 
+# Headless stress workload. Private profiler API is pinned by the Qt version above.
+qt_add_executable(tst_timeline_perf tests/tst_timeline_perf.cpp src/edit/tracks/TrackEditRegistrations.cpp)
+set_target_properties(tst_timeline_perf PROPERTIES MACOSX_BUNDLE FALSE)
+target_compile_options(tst_timeline_perf PRIVATE ${NT_WARNINGS})
+target_link_libraries(tst_timeline_perf PRIVATE timeline_core timeline_decode timeline_server
+    Qt6::GuiPrivate Qt6::QmlPrivate Qt6::QuickPrivate Qt6::Quick Qt6::QuickControls2 Qt6::Test
+    PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+nt_add_timeline_qml(tst_timeline_perf OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_timeline_perf_qml/NodeTool/Timeline)
+add_test(NAME tst_timeline_perf_observers COMMAND tst_timeline_perf --selfcheck)
+set_tests_properties(tst_timeline_perf_observers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME tst_timeline_perf_budget_checker COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/test_check_perf.py)
+foreach(scenario playback scroll zoom clip_drag note_drag model_change)
+    add_test(NAME tst_timeline_perf_${scenario} COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/check_perf.py
+        --binary $<TARGET_FILE:tst_timeline_perf> --scenario ${scenario}
+        --allow-new-budget --budget ${CMAKE_CURRENT_SOURCE_DIR}/budgets/ui-120hz.json
+        --output ${CMAKE_CURRENT_BINARY_DIR}/perf-${scenario}.json)
+    set_tests_properties(tst_timeline_perf_${scenario} PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic;QT_SCALE_FACTOR=1;QT_FONT_DPI=96;QT_QUICK_CONTROLS_STYLE=Basic"
+        TIMEOUT 360 LABELS perf RUN_SERIAL TRUE)
+endforeach()
+
+add_test(NAME tst_timeline_perf_agent COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/check_perf.py
+    --binary $<TARGET_FILE:tst_timeline_perf> --scenario model_change --agent
+    --allow-new-budget --budget ${CMAKE_CURRENT_SOURCE_DIR}/budgets/ui-120hz.json
+    --output ${CMAKE_CURRENT_BINARY_DIR}/perf-agent.json)
+set_tests_properties(tst_timeline_perf_agent PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic;QT_SCALE_FACTOR=1;QT_FONT_DPI=96;QT_QUICK_CONTROLS_STYLE=Basic"
+    TIMEOUT 360 LABELS perf RUN_SERIAL TRUE)
+
 # What scripts/op-conformance.mjs and scripts/plan-conformance.mjs run: the
 # app, timeline-ops and the oracle each suite in scripts/conformance/suites/
 # names next to timeline-ops.

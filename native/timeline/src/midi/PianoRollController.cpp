@@ -84,6 +84,7 @@ void PianoRollController::reload() {
     m_clipName = raw.value(u"name").toString();
     if (notesDiffer) {
         m_noteData = noteData;
+        m_timeline->crossing("PianoRoll.reloadNotes", [&noteData] { return noteData; });
         m_notes = noteData.toVariantList();
     }
     if (controllersDiffer) {
@@ -158,8 +159,10 @@ bool PianoRollController::setNotes(const QVariantList& notes) {
     if (!editable()) {
         return false;
     }
+    const auto jsonNotes = QJsonArray::fromVariantList(notes);
+    m_timeline->crossing("PianoRoll.setNotes", [&jsonNotes] { return jsonNotes; });
     return m_timeline->applyEdit(QStringLiteral("midi.setNotes"),
-                                 QJsonObject{{"clipId", m_clipId}, {"notes", QJsonArray::fromVariantList(notes)}}) != 0;
+                                 QJsonObject{{"clipId", m_clipId}, {"notes", jsonNotes}}) != 0;
 }
 
 bool PianoRollController::setControllers(const QVariantList& controllers) {

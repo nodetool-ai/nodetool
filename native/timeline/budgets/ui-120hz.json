@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "scenarios": {
+    "playback": {
+      "clipSignals": 0,
+      "crossings": 0,
+      "dataChangedRows": 0,
+      "delegateCreations": 0,
+      "jsonParses": 0,
+      "markerSignals": 0,
+      "menuItemCreations": 0,
+      "objectCreations": 0,
+      "payloadBytes": 0,
+      "sourceSignals": 0,
+      "timelineSignals": 0
+    },
+    "scroll": {
+      "clipSignals": 0,
+      "crossings": 416,
+      "dataChangedRows": 0,
+      "delegateCreations": 414,
+      "jsonParses": 0,
+      "markerSignals": 0,
+      "menuItemCreations": 0,
+      "objectCreations": 46651,
+      "payloadBytes": 457441,
+      "sourceSignals": 0,
+      "timelineSignals": 0
+    },
+    "zoom": {
+      "clipSignals": 0,
+      "crossings": 42,
+      "dataChangedRows": 0,
+      "delegateCreations": 28,
+      "jsonParses": 0,
+      "markerSignals": 0,
+      "menuItemCreations": 0,
+      "objectCreations": 2264,
+      "payloadBytes": 43855,
+      "sourceSignals": 0,
+      "timelineSignals": 0
+    },
+    "clip_drag": {
+      "clipSignals": 10,
+      "crossings": 151,
+      "dataChangedRows": 0,
+      "delegateCreations": 8,
+      "jsonParses": 11,
+      "markerSignals": 0,
+      "menuItemCreations": 0,
+      "objectCreations": 672,
+      "payloadBytes": 405596,
+      "sourceSignals": 11,
+      "timelineSignals": 10
+    },
+    "note_drag": {
+      "clipSignals": 1,
+      "crossings": 2,
+      "dataChangedRows": 0,
+      "delegateCreations": 0,
+      "jsonParses": 2,
+      "markerSignals": 0,
+      "menuItemCreations": 0,
+      "objectCreations": 0,
+      "payloadBytes": 367276,
+      "sourceSignals": 1,
+      "timelineSignals": 1
+    },
+    "model_change": {
+      "clipSignals": 32,
+      "crossings": 280,
+      "dataChangedRows": 64,
+      "delegateCreations": 0,
+      "jsonParses": 40,
+      "markerSignals": 14,
+      "menuItemCreations": 0,
+      "objectCreations": 51059,
+      "payloadBytes": 41936284,
+      "sourceSignals": 46,
+      "timelineSignals": 32
+    },
+    "agent": {
+      "clipSignals": 32,
+      "crossings": 285,
+      "dataChangedRows": 64,
+      "delegateCreations": 0,
+      "jsonParses": 56,
+      "markerSignals": 14,
+      "menuItemCreations": 0,
+      "objectCreations": 51059,
+      "payloadBytes": 41937215,
+      "sourceSignals": 46,
+      "timelineSignals": 32
+    }
+  }
+}

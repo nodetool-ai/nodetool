@@ -9,6 +9,8 @@
 #include <QObject>
 #include <QSet>
 #include <QUndoStack>
+#include <QThread>
+#include <atomic>
 
 #include <functional>
 #include <memory>
@@ -53,6 +55,67 @@ class TimelineModel : public TimelineSource {
     Q_PROPERTY(bool readOnly READ readOnly NOTIFY readOnlyChanged)
 
 public:
+    // Observer installation and callbacks are UI-thread only. The disabled path
+    // reads one relaxed atomic and never constructs payloads or lifetime guards.
+    class MeasurementObserver {
+    public:
+        virtual ~MeasurementObserver() = default;
+        virtual void phase(const char*, bool) const noexcept = 0;
+        virtual void crossing(const char*, const QJsonValue&) const noexcept = 0;
+    };
+private:
+    struct MeasurementRegistration {
+        // Shared with scopes because a callback may destroy the model.
+        std::shared_ptr<const MeasurementObserver> observer;
+        unsigned active = 0; // UI thread only.
+    };
+public:
+    bool clearMeasurementObserver() noexcept {
+        Q_ASSERT(QThread::currentThread() == thread());
+        if (m_measurement && m_measurement->active) { return false; }
+        m_measuring.store(false, std::memory_order_relaxed);
+        m_measurement.reset();
+        return true;
+    }
+    bool setMeasurementObserver(std::shared_ptr<const MeasurementObserver> observer) {
+        Q_ASSERT(QThread::currentThread() == thread());
+        if (m_measurement && m_measurement->active) { return false; }
+        m_measurement = observer ? std::make_shared<MeasurementRegistration>(MeasurementRegistration{std::move(observer), 0}) : nullptr;
+        m_measuring.store(bool(m_measurement), std::memory_order_relaxed);
+        return true;
+    }
+    template<class Payload>
+    void crossing(const char* site, Payload&& payload) const {
+        if (!m_measuring.load(std::memory_order_relaxed)) { return; }
+        Q_ASSERT(QThread::currentThread() == thread());
+        // Keep the observer alive if the callback destroys the model.
+        const auto observer = m_measurement;
+        ++observer->active;
+        observer->observer->crossing(site, payload());
+        --observer->active;
+    }
+    class Measurement {
+    public:
+        Measurement(const TimelineModel& model, const char* phase) : m_phase(phase) {
+            if (!model.m_measuring.load(std::memory_order_relaxed)) { return; }
+            Q_ASSERT(QThread::currentThread() == model.thread());
+            m_observer = model.m_measurement;
+            ++m_observer->active;
+            m_observer->observer->phase(m_phase, true);
+        }
+        ~Measurement() noexcept {
+            if (!m_observer) { return; }
+            m_observer->observer->phase(m_phase, false);
+            --m_observer->active;
+        }
+        Measurement(const Measurement&) = delete;
+        Measurement& operator=(const Measurement&) = delete;
+    private:
+        // Shared with the model because a synchronous signal can destroy it
+        // before this scope closes. Destruction never accesses the model.
+        std::shared_ptr<MeasurementRegistration> m_observer;
+        const char* m_phase;
+    };
     explicit TimelineModel(QObject* parent = nullptr);
     ~TimelineModel() override;
 
@@ -203,6 +266,9 @@ signals:
     void effectMatteChanged();
 
 private:
+    std::atomic<bool> m_measuring{false};
+    // Shared with active scopes, UI-thread only.
+    std::shared_ptr<MeasurementRegistration> m_measurement;
     mutable std::shared_ptr<const nt::Timeline> m_trackIndexSource; // Keeps indexed storage alive across edits.
     mutable QHash<QString, std::vector<size_t>> m_trackClipIndices;
     mutable QSet<QString> m_indexChangedTracks;

@@ -111,6 +111,7 @@ QJsonObject ClipInspectorController::selected() const {
 }
 QVariantMap ClipInspectorController::clip() const {
     if (!m_clipMapValid) {
+        if (m_timeline) { m_timeline->crossing("ClipInspector.clip", [this] { return m_clip; }); }
         m_clipMap = m_clip.toVariantMap();
         m_clipMapValid = true;
     }

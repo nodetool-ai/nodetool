@@ -2324,6 +2324,7 @@ void ClipGestureController::redo() {
 
 QVariantMap ClipGestureController::clipData(const QString& id) const {
     const nt::Clip* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
+    if (clip) { m_timeline->crossing("ClipGesture.clipData", [clip] { return clip->raw; }); }
     return clip ? clip->raw.toVariantMap() : QVariantMap{};
 }
 
