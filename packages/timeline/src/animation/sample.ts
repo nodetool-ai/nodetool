@@ -112,6 +112,20 @@ export interface AnimationSample {
   cameraZoom: number;
   /** degrees, add to a `model3d` clip's field of view (identity 0) */
   cameraFov: number;
+  /** world units, add to a free `model3d` camera's position x (identity 0) */
+  cameraPosX: number;
+  /** world units, add to a free `model3d` camera's position y (identity 0) */
+  cameraPosY: number;
+  /** world units, add to a free `model3d` camera's position z (identity 0) */
+  cameraPosZ: number;
+  /** world units, add to a free `model3d` camera's target x (identity 0) */
+  cameraTargetX: number;
+  /** world units, add to a free `model3d` camera's target y (identity 0) */
+  cameraTargetY: number;
+  /** world units, add to a free `model3d` camera's target z (identity 0) */
+  cameraTargetZ: number;
+  /** degrees, add to a free `model3d` camera's roll (identity 0) */
+  cameraRoll: number;
   /** canvas px, replaces transform.position.x. Absent = clip's own value. */
   positionX?: number;
   /** canvas px, replaces transform.position.y. Absent = clip's own value. */
@@ -156,7 +170,14 @@ export function createAnimationSample(): AnimationSample {
     cameraAzimuth: 0,
     cameraElevation: 0,
     cameraZoom: 1,
-    cameraFov: 0
+    cameraFov: 0,
+    cameraPosX: 0,
+    cameraPosY: 0,
+    cameraPosZ: 0,
+    cameraTargetX: 0,
+    cameraTargetY: 0,
+    cameraTargetZ: 0,
+    cameraRoll: 0
   };
 }
 
@@ -191,6 +212,13 @@ export function isIdentitySample(s: AnimationSample): boolean {
     s.cameraElevation === 0 &&
     s.cameraZoom === 1 &&
     s.cameraFov === 0 &&
+    s.cameraPosX === 0 &&
+    s.cameraPosY === 0 &&
+    s.cameraPosZ === 0 &&
+    s.cameraTargetX === 0 &&
+    s.cameraTargetY === 0 &&
+    s.cameraTargetZ === 0 &&
+    s.cameraRoll === 0 &&
     s.mask === undefined &&
     s.replacedBy === undefined
   );
@@ -217,6 +245,13 @@ function resetIdentity(s: AnimationSample): AnimationSample {
   s.cameraElevation = 0;
   s.cameraZoom = 1;
   s.cameraFov = 0;
+  s.cameraPosX = 0;
+  s.cameraPosY = 0;
+  s.cameraPosZ = 0;
+  s.cameraTargetX = 0;
+  s.cameraTargetY = 0;
+  s.cameraTargetZ = 0;
+  s.cameraRoll = 0;
   s.positionX = undefined;
   s.positionY = undefined;
   s.anchorX = undefined;

@@ -11434,7 +11434,9 @@
         "directionalLight": "दिशात्मक प्रकाश",
         "pointLight": "प्वाइंट लाइट",
         "spotLight": "स्पॉट लाइट",
-        "empty": "खाली वस्तु"
+        "empty": "खाली वस्तु",
+        "figure": "आकृति",
+        "camera": "कैमरा"
       },
       "loading": {
         "saving": "बचत",
@@ -11655,6 +11657,29 @@
       "decay": "Decay",
       "angle": "कोण",
       "penumbra": "पेन्यूम्ब्रा",
+      "figure": "आकृति",
+      "figureBody": "शरीर",
+      "figureBodies": {
+        "male": "पुरुष",
+        "female": "महिला",
+        "child": "बच्चा"
+      },
+      "figurePose": "मुद्रा",
+      "figurePoses": {
+        "stand": "खड़ा",
+        "sit": "बैठा",
+        "walk": "चलता",
+        "run": "दौड़ता",
+        "lie": "लेटा"
+      },
+      "figureHeight": "ऊँचाई",
+      "figureLabel": "लेबल",
+      "figureEntity": "कास्ट एंटिटी ID",
+      "camera": "कैमरा",
+      "cameraFov": "दृश्य क्षेत्र",
+      "cameraAspect": "पक्षानुपात",
+      "cameraNear": "निकट",
+      "cameraFar": "दूर",
       "geometry": "ज्यामिति",
       "material": "सामग्री",
       "slot": "स्लॉट",

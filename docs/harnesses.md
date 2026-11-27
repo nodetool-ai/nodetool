@@ -841,8 +841,9 @@ Two fields on a 3D layer's report say what the pixels do not:
 
 - `camera` — the pose the layer was drawn with (mode, azimuth, elevation, fov,
   zoom, and the glTF camera's name in `scene` mode), the clip's authored camera
-  already folded with the four animated camera channels. A turntable mid-sweep
-  and a static pose are the same picture at one instant.
+  already folded with the animated camera channels. A turntable mid-sweep
+  and a static pose are the same picture at one instant. A `free` camera also
+  reports `position`, `target` and `roll_deg`.
 - `animation_time_sec` — the glTF animation's own clock: the clip's source time
   times `animation.speed`. It is not the timeline time, so a trimmed or retimed
   clip's animation is readable from the report.
@@ -1379,8 +1380,9 @@ An agent builds and fixes a 3D model without an editor open:
 one holding an empty glTF scene (optionally applying operations in the same
 call), **`get_model3d`** lists every object with its transform, visibility and
 material color plus the scene's world-space bounds, **`edit_model3d`** runs the
-`ui_3d_*` verbs — add and delete primitives and lights, set transforms, rename,
-show and hide, recolor, select — against the stored document and saves it back
+`ui_3d_*` verbs — add and delete primitives, lights, blockout figures and
+cameras, set transforms, rename, show and hide, recolor, pose a figure, aim a
+camera, select — against the stored document and saves it back
 over the same asset, **`validate_model3d`** checks a document statically,
 and **`render_model3d`** renders one through headless Blender and stores the
 PNG.
@@ -1392,7 +1394,15 @@ it names — an imported model keeps its meshes, textures, skins and animations.
 Object ids are stamped into `node.extras.nodetool_id`, because glTF addresses
 nodes by array index and a delete renumbers them.
 
-The camera has no headless equivalent: `ui_3d_frame_scene` and
+A blockout set is built with the same operations. `add_object` with kind
+`figure` adds a jointed mannequin (`body`, `pose`, `height`, `entityId`,
+`label`) that `get_model3d` lists as one object of type `Figure`, and
+`set_figure` poses it. Kind `camera` adds a named perspective camera
+(`position`, `lookAt`, `fovDeg`) that a `model3d` clip selects with
+`sceneCameraName`, and `set_camera` re-aims it. The figure geometry and poses
+are in `packages/model3d/src/figure.ts`.
+
+The viewport has no headless equivalent: `ui_3d_frame_scene` and
 `ui_3d_capture_view` need a WebGL context, and `get_model3d`'s bounds are what
 answers "how big is this and where is it" without one. Implementations:
 `packages/agents/src/capabilities/model3d.ts`. The `ui_3d_*` tools remain the

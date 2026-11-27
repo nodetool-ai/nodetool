@@ -28,7 +28,10 @@ import type {
 import { isClipGrainEffect } from "../types.js";
 import { applySmoothingToSample, isMediaTrackStale, sampleMediaTrackAt } from "../mediaTrack.js";
 import { renderableReframe, resolveReframeCrop } from "../reframe.js";
-import type { Model3DCameraChannels } from "../model3d.js";
+import {
+  IDENTITY_MODEL3D_CAMERA_CHANNELS,
+  type Model3DCameraChannels
+} from "../model3d.js";
 import type {
   AnimationSample,
   AnimationSampleMask,
@@ -1890,7 +1893,7 @@ export interface AnimatedLayerProps extends Model3DCameraChannels {
   shapeStyle?: TimelineClip["shapeStyle"];
   textStyle?: TimelineClip["textStyle"];
   clipMask?: ClipMask;
-  // The four camera channels come from {@link Model3DCameraChannels}. They are
+  // The camera channels come from {@link Model3DCameraChannels}. They are
   // at identity on every layer that is not `model3d`, which is what makes them
   // free to ignore there — `resolveModel3DCamera` is the only reader.
 }
@@ -2173,7 +2176,14 @@ export function resolveAnimatedLayerProps(
     cameraAzimuth: s.cameraAzimuth,
     cameraElevation: s.cameraElevation,
     cameraZoom: s.cameraZoom,
-    cameraFov: s.cameraFov
+    cameraFov: s.cameraFov,
+    cameraPosX: s.cameraPosX,
+    cameraPosY: s.cameraPosY,
+    cameraPosZ: s.cameraPosZ,
+    cameraTargetX: s.cameraTargetX,
+    cameraTargetY: s.cameraTargetY,
+    cameraTargetZ: s.cameraTargetZ,
+    cameraRoll: s.cameraRoll
   }, layer.camera2d, currentTimeMs);
 }
 
@@ -2229,10 +2239,7 @@ function staticProps(
     textStyle: layer.clip.textStyle,
     clipMask: layer.clip.mask,
     borderRadius: layer.clip.borderRadius,
-    cameraAzimuth: 0,
-    cameraElevation: 0,
-    cameraZoom: 1,
-    cameraFov: 0
+    ...IDENTITY_MODEL3D_CAMERA_CHANNELS
   };
 }
 

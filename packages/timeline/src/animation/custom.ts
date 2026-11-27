@@ -214,6 +214,41 @@ const PROPERTY_RANGES: Record<
     identity: 0,
     range: "degrees",
     describe: "Added to a 3D clip's field of view. Ignored on other clips."
+  },
+  cameraPosX: {
+    identity: 0,
+    range: "world units",
+    describe: "Added to a 3D clip's free camera position on x. Ignored on other clips and camera modes."
+  },
+  cameraPosY: {
+    identity: 0,
+    range: "world units",
+    describe: "Added to a 3D clip's free camera position on y. Ignored on other clips and camera modes."
+  },
+  cameraPosZ: {
+    identity: 0,
+    range: "world units",
+    describe: "Added to a 3D clip's free camera position on z. Ignored on other clips and camera modes."
+  },
+  cameraTargetX: {
+    identity: 0,
+    range: "world units",
+    describe: "Added to a 3D clip's free camera look-at point on x. Ignored on other clips and camera modes."
+  },
+  cameraTargetY: {
+    identity: 0,
+    range: "world units",
+    describe: "Added to a 3D clip's free camera look-at point on y. Ignored on other clips and camera modes."
+  },
+  cameraTargetZ: {
+    identity: 0,
+    range: "world units",
+    describe: "Added to a 3D clip's free camera look-at point on z. Ignored on other clips and camera modes."
+  },
+  cameraRoll: {
+    identity: 0,
+    range: "degrees",
+    describe: "Added to a 3D clip's free camera roll. Positive turns the horizon clockwise. Ignored on other clips and camera modes."
   }
 };
 

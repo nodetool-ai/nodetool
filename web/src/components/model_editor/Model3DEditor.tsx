@@ -7,7 +7,8 @@ import {
   useMemo,
   useRef,
   useState,
-  type MutableRefObject
+  type MutableRefObject,
+  type ReactElement
 } from "react";
 import { registerComboCallback, useKeyPressedStore } from "../../stores/KeyPressedStore";
 import type { ContextCommand } from "../../stores/CommandMenuStore";
@@ -34,6 +35,8 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
+import AccessibilityNewOutlinedIcon from "@mui/icons-material/AccessibilityNewOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SaveIcon from "@mui/icons-material/Save";
 import PublicIcon from "@mui/icons-material/Public";
@@ -123,9 +126,12 @@ import {
   buildSceneTree,
   clearScene,
   disposeObject,
-  isLightTarget,
+  isInternalObject,
   replaceSceneContent
 } from "./sceneTree";
+import { cameraPatchCommand } from "./agentEdits";
+import { selectableOf } from "./figure";
+import type { Model3DAddOptions } from "./model3DToolBridge";
 import {
   createPrimitive,
   type PrimitiveKind
@@ -167,6 +173,7 @@ import {
   CameraRig,
   CaptureBridge,
   FollowSelection,
+  CameraGizmos,
   GroundAxes,
   LightGizmos,
   SelectionBounds,
@@ -392,9 +399,23 @@ const OrbitTargetBridge = ({
 
 const ADD_MENU_GROUPS: { title: string; kinds: PrimitiveKind[] }[] = [
   { title: "Mesh", kinds: ["box", "sphere", "plane", "cylinder", "cone", "torus"] },
+  { title: "Blockout", kinds: ["figure", "camera"] },
   { title: "Light", kinds: ["directionalLight", "pointLight", "spotLight"] },
   { title: "Other", kinds: ["empty"] }
 ];
+
+const addMenuIcon = (kind: PrimitiveKind): ReactElement => {
+  if (kind === "figure") {
+    return <AccessibilityNewOutlinedIcon fontSize="small" />;
+  }
+  if (kind === "camera") {
+    return <VideocamOutlinedIcon fontSize="small" />;
+  }
+  if (kind.endsWith("Light")) {
+    return <LightbulbOutlinedIcon fontSize="small" />;
+  }
+  return <ViewInArOutlinedIcon fontSize="small" />;
+};
 
 interface Model3DEditorProps {
   url: string;
@@ -788,21 +809,27 @@ const Model3DEditor = ({
   // --- Scene edits -----------------------------------------------------------
 
   const addPrimitiveObject = useCallback(
-    (kind: PrimitiveKind, name?: string): THREE.Object3D => {
-      const obj = createPrimitive(kind);
+    (kind: PrimitiveKind, name?: string, options: Model3DAddOptions = {}): THREE.Object3D => {
+      const obj = createPrimitive(kind, { figure: options.figure });
       obj.name = nextAvailableName(name?.trim() || t(`i18n-cont-model-editor-11.modelEditor.primitives.${kind}`), takenNames());
-      // New objects appear where the user is looking, resting on the ground.
       const target = orbitTargetRef.current;
-      if (target) {
+      if (options.position) {
+        obj.position.fromArray(options.position);
+      } else if (target) {
+        // New objects appear where the user is looking, resting on the ground.
         obj.position.x += target.x;
         obj.position.z += target.z;
       }
-      if (obj instanceof THREE.Mesh) {
+      if (obj instanceof THREE.Mesh && !options.position) {
         obj.updateMatrixWorld(true);
         const box = new THREE.Box3().setFromObject(obj);
         obj.position.y += -box.min.y;
       }
       root.add(obj);
+      if (obj instanceof THREE.Camera && options.camera) {
+        // The lens and aim are part of the add, so one undo removes it all.
+        cameraPatchCommand(obj, { ...options.camera, position: undefined });
+      }
       pushCommand(addObjectCommand(t("i18n-cont-model-editor-11.modelEditor.history.add", { name: t(`i18n-cont-model-editor-11.modelEditor.primitives.${kind}`) }), obj, root));
       setSelectedUuid(obj.uuid);
       return obj;
@@ -1029,7 +1056,7 @@ const Model3DEditor = ({
   const handleUnhideAll = useCallback(() => {
     const hidden: THREE.Object3D[] = [];
     root.traverse((node) => {
-      if (node !== root && !node.visible && !isLightTarget(node)) {
+      if (node !== root && !node.visible && !isInternalObject(node)) {
         hidden.push(node);
       }
     });
@@ -1176,7 +1203,7 @@ const Model3DEditor = ({
     if (e.delta > 4 || performance.now() - lastDragEnd.current < 250) {
       return;
     }
-    setSelectedUuid(e.object.uuid);
+    setSelectedUuid(selectableOf(e.object).uuid);
   }, []);
 
   // A right-click on an object opens the viewport menu. A right-drag pans the
@@ -1190,7 +1217,7 @@ const Model3DEditor = ({
       return;
     }
     e.stopPropagation();
-    rightPress.current = { uuid: e.object.uuid, x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
+    rightPress.current = { uuid: selectableOf(e.object).uuid, x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
   }, []);
 
   const handleScenePointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
@@ -1201,7 +1228,7 @@ const Model3DEditor = ({
     e.stopPropagation();
     rightPress.current = null;
     const { clientX: x, clientY: y } = e.nativeEvent;
-    if (press.uuid !== e.object.uuid || Math.hypot(x - press.x, y - press.y) > 4) {
+    if (press.uuid !== selectableOf(e.object).uuid || Math.hypot(x - press.x, y - press.y) > 4) {
       return;
     }
     setSelectedUuid(press.uuid);
@@ -1694,13 +1721,7 @@ const Model3DEditor = ({
                   key={kind}
                   label={t(`i18n-cont-model-editor-11.modelEditor.primitives.${kind}`)}
                   dividerBefore={groupIndex > 0 && index === 0}
-                  icon={
-                    group.title === "Light" ? (
-                      <LightbulbOutlinedIcon fontSize="small" />
-                    ) : (
-                      <ViewInArOutlinedIcon fontSize="small" />
-                    )
-                  }
+                  icon={addMenuIcon(kind)}
                   onClick={() => {
                     addPrimitiveObject(kind);
                     close();
@@ -1941,6 +1962,15 @@ const Model3DEditor = ({
                   <SelectionBounds object={selectedObject} color={palette.accent} />
                   {viewPrefs.wireframe && (
                     <WireframeOverlay root={root} tick={tick} color={palette.wire} />
+                  )}
+                  {viewPrefs.lightIcons && (
+                    <CameraGizmos
+                      root={root}
+                      tick={tick}
+                      selectedUuid={selectedUuid}
+                      palette={gizmoPalette}
+                      onSelect={selectLight}
+                    />
                   )}
                   {viewPrefs.lightIcons && (
                     <LightGizmos

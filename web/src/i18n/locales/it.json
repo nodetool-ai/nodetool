@@ -11608,7 +11608,9 @@
         "directionalLight": "Luce direzionale",
         "pointLight": "Punto luce",
         "spotLight": "Luce spot",
-        "empty": "Oggetto vuoto"
+        "empty": "Oggetto vuoto",
+        "figure": "Figura",
+        "camera": "Camera"
       },
       "loading": {
         "saving": "Salvataggio…",
@@ -11831,6 +11833,29 @@
       "decay": "Decadimento",
       "angle": "Angolo",
       "penumbra": "Penombra",
+      "figure": "Figura",
+      "figureBody": "Corpo",
+      "figureBodies": {
+        "male": "Uomo",
+        "female": "Donna",
+        "child": "Bambino"
+      },
+      "figurePose": "Posa",
+      "figurePoses": {
+        "stand": "In piedi",
+        "sit": "Seduto",
+        "walk": "Cammina",
+        "run": "Corre",
+        "lie": "Sdraiato"
+      },
+      "figureHeight": "Altezza",
+      "figureLabel": "Etichetta",
+      "figureEntity": "ID entità del cast",
+      "camera": "Camera",
+      "cameraFov": "Campo visivo",
+      "cameraAspect": "Proporzioni",
+      "cameraNear": "Vicino",
+      "cameraFar": "Lontano",
       "geometry": "Geometria",
       "material": "Materiale",
       "slot": "Scanalatura",

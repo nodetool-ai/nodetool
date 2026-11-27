@@ -15,6 +15,7 @@ import {
   computeModel3DBakeHash,
   makeClip,
   model3dBakeCameraParams,
+  setKeyframe,
   type ClipModel3DCamera,
   type ClipModel3DStyle,
   type Model3DBakeRenderSettings,
@@ -244,6 +245,124 @@ describe("model3dBakeCameraParams", () => {
           model3dBakeCameraParams(camera, opaque(), render)
         )
       ).toEqual(camera);
+    }
+  });
+});
+
+describe("model3dBakeCameraParams in free mode", () => {
+  const render: Model3DBakeRenderSettings = {
+    engine: "eevee",
+    samples: 16,
+    denoise: true,
+    resolutionPercentage: 100
+  };
+  const free: ClipModel3DCamera = {
+    mode: "free",
+    azimuthDeg: 45,
+    elevationDeg: 25,
+    fovDeg: 42,
+    zoom: 1,
+    position: [3, 2, -4],
+    target: [-1, 0.5, 2],
+    rollDeg: 37
+  };
+
+  it("sends the eye, the target, the roll and the lens", () => {
+    const params = model3dBakeCameraParams(free, opaque(), render);
+    expect(params.camera_mode).toBe("free");
+    expect(params.position).toEqual([3, 2, -4]);
+    expect(params.target).toEqual([-1, 0.5, 2]);
+    expect(params.roll).toBe(37);
+    expect(params.fov).toBe(42);
+  });
+
+  it("fills in the default pose so the op never has to know it", () => {
+    const params = model3dBakeCameraParams(
+      { ...DEFAULT_MODEL3D_STYLE.camera, mode: "free" },
+      opaque(),
+      render
+    );
+    expect(params.position).toEqual([0, 1.6, 5]);
+    expect(params.target).toEqual([0, 1, 0]);
+    expect(params.roll).toBe(0);
+  });
+
+  it("round-trips a free camera", () => {
+    expect(
+      clipModel3DCameraFromBakeParams(model3dBakeCameraParams(free, opaque(), render))
+    ).toEqual(free);
+  });
+
+  it("samples the free channels per output frame", () => {
+    let clip = model3dClip({
+      durationMs: 1000,
+      model3dStyle: { ...DEFAULT_MODEL3D_STYLE, camera: free }
+    });
+    clip = { ...clip, animations: setKeyframe(clip, "cameraPosX", 0, 0) };
+    clip = { ...clip, animations: setKeyframe(clip, "cameraPosX", 1000, 10) };
+    clip = { ...clip, animations: setKeyframe(clip, "cameraRoll", 0, 0) };
+    clip = { ...clip, animations: setKeyframe(clip, "cameraRoll", 1000, 20) };
+    const samples = computeModel3DBakeSamples(clip, { fps: 10, width: 640, height: 360 }, []);
+    expect(samples.cameras).toHaveLength(10);
+    expect(samples.cameras[0].position).toEqual([3, 2, -4]);
+    expect(samples.cameras[5].position![0]).toBeCloseTo(8);
+    expect(samples.cameras[5].rollDeg).toBeCloseTo(47);
+    expect(samples.cameras[5].target).toEqual([-1, 0.5, 2]);
+  });
+});
+
+describe("computeModel3DBakeHash for a free camera", () => {
+  const sequence = { fps: 30, width: 1920, height: 1080 };
+  const base = () =>
+    model3dClip({
+      model3dStyle: {
+        ...DEFAULT_MODEL3D_STYLE,
+        camera: {
+          ...DEFAULT_MODEL3D_STYLE.camera,
+          mode: "free",
+          position: [0, 1, 4],
+          target: [0, 1, 0],
+          rollDeg: 0
+        }
+      }
+    });
+  const withCamera = (patch: Partial<ClipModel3DCamera>) => {
+    const clip = base();
+    return {
+      ...clip,
+      model3dStyle: {
+        ...clip.model3dStyle!,
+        camera: { ...clip.model3dStyle!.camera, ...patch }
+      }
+    };
+  };
+
+  it("changes with the mode, the position, the target and the roll", () => {
+    const hash = computeModel3DBakeHash(base(), sequence);
+    for (const patch of [
+      { mode: "orbit" },
+      { position: [0, 1, 5] },
+      { target: [0, 2, 0] },
+      { rollDeg: 5 }
+    ] satisfies Partial<ClipModel3DCamera>[]) {
+      expect(computeModel3DBakeHash(withCamera(patch), sequence)).not.toBe(hash);
+    }
+  });
+
+  it("changes with a key on each free channel", () => {
+    const clip = base();
+    const hash = computeModel3DBakeHash(clip, sequence);
+    for (const channel of [
+      "cameraPosX",
+      "cameraPosY",
+      "cameraPosZ",
+      "cameraTargetX",
+      "cameraTargetY",
+      "cameraTargetZ",
+      "cameraRoll"
+    ] as const) {
+      const keyed = { ...clip, animations: setKeyframe(clip, channel, 500, 1) };
+      expect(computeModel3DBakeHash(keyed, sequence)).not.toBe(hash);
     }
   });
 });

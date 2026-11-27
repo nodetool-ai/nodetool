@@ -285,6 +285,42 @@ describe("model3d layers on the agent frame path", () => {
     expect(await pixelAt(result.frames[0]!.png, W / 2, H / 2)).toEqual([255, 0, 0, 255]);
   });
 
+  it("folds the free camera channels and reports the pose it drew", async () => {
+    const cube = model3dClip({ id: "cube", style: {
+      camera: {
+        mode: "free", azimuthDeg: 45, elevationDeg: 25, fovDeg: 40, zoom: 1,
+        position: [0, 1, 4], target: [0, 1, 0], rollDeg: 5
+      }
+    } });
+    cube.motionBlur = { samplesPerFrame: 1 };
+    cube.animations = [{
+      id: "camera", role: "in", preset: "custom", durationMs: 2000, easing: "linear",
+      custom: { curves: [
+        { property: "cameraPosZ", keyframes: [{ t: 0, value: 0 }, { t: 1, value: -2 }] },
+        { property: "cameraTargetX", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] },
+        { property: "cameraRoll", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 20 }] },
+        { property: "cameraFov", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 10 }] }
+      ] }
+    }];
+    const result = await renderTimelineFrames({
+      sequence: sequenceOf([cube]), timesMs: [0, 1000], width: W,
+      loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
+    });
+    expect(result.complete).toBe(true);
+    const requested = renderFrames.mock.calls.flatMap(([, , frames]) => frames);
+    // Two poses that differ only in the free fields are two renders.
+    expect(requested).toHaveLength(2);
+    expect(requested[0]!.camera).toMatchObject({
+      mode: "free", position: [0, 1, 4], target: [0, 1, 0], rollDeg: 5, fovDeg: 40
+    });
+    expect(requested[1]!.camera).toMatchObject({
+      mode: "free", position: [0, 1, 3], target: [0.5, 1, 0], rollDeg: 15, fovDeg: 45
+    });
+    expect(result.frames[1]!.layers[0]!.camera).toMatchObject({
+      mode: "free", position: [0, 1, 3], target: [0.5, 1, 0], roll_deg: 15, fov_deg: 45
+    });
+  });
+
   it("uses the per-clip shutter clock for a 3D matte source", async () => {
     const key = model3dClip({ id: "key", trackId: "track-1", style: {
       camera: { mode: "orbit", azimuthDeg: 0, elevationDeg: 0, fovDeg: 35, zoom: 1 }
@@ -497,5 +533,53 @@ describe.skipIf(!chromePath)("model3d layers, real headless render", () => {
     // An opaque background means every pixel of the layer is drawn, so the
     // frame is opaque wherever the layer covers it — which is all of it.
     expect((await pixelAt(frames[0]!.png, W / 2, H / 2))[3]).toBe(255);
+  }, 180_000);
+
+  it("draws a free camera frame from its eye toward its target", async () => {
+    process.env.CHROME_PATH = chromePath!;
+    const actual = await vi.importActual<
+      typeof import("@nodetool-ai/video-nodes/nodes/model3d/render3d-headless")
+    >("@nodetool-ai/video-nodes/nodes/model3d/render3d-headless");
+    renderFrames.mockImplementation(actual.renderGlbFramesHeadless);
+
+    const glb = createTriangleGlb();
+    const render = async (
+      camera: Pick<ClipModel3DStyle["camera"], "mode" | "position" | "target">
+    ) => {
+      const { frames } = await renderTimelineFrames({
+        sequence: sequenceOf([
+          model3dClip({
+            id: "triangle",
+            style: {
+              lighting: "studio",
+              background: { transparent: false, color: "#102030" },
+              camera: { azimuthDeg: 0, elevationDeg: 0, fovDeg: 35, zoom: 1, ...camera }
+            }
+          })
+        ]),
+        timesMs: [0],
+        width: W,
+        loadAsset: async () => glb
+      });
+      expect(frames[0]!.degraded).toEqual([]);
+      expect(frames[0]!.layers[0]!.skipped).toBeUndefined();
+      return frames[0]!;
+    };
+
+    // In front of the triangle and looking at it, the triangle covers the
+    // middle of the picture. Turned to look away, only the background is.
+    const onTarget = await render({
+      mode: "free", position: [0.3, 0.3, 2], target: [0.3, 0.3, 0]
+    });
+    expect(onTarget.layers[0]!.camera).toMatchObject({
+      mode: "free", position: [0.3, 0.3, 2], target: [0.3, 0.3, 0], roll_deg: 0
+    });
+    const drawn = await pixelAt(onTarget.png, W / 2, H / 2);
+    const away = await render({
+      mode: "free", position: [0.3, 0.3, 2], target: [0.3, 0.3, 4]
+    });
+    const empty = await pixelAt(away.png, W / 2, H / 2);
+    expect(empty).toEqual([16, 32, 48, 255]);
+    expect(drawn).not.toEqual(empty);
   }, 180_000);
 });

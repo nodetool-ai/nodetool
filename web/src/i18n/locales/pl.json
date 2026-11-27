@@ -11782,7 +11782,9 @@
         "directionalLight": "Światło kierunkowe",
         "pointLight": "Światło punktowe",
         "spotLight": "Światło punktowe",
-        "empty": "Pusty obiekt"
+        "empty": "Pusty obiekt",
+        "figure": "Postać",
+        "camera": "Kamera"
       },
       "loading": {
         "saving": "Zapisuję…",
@@ -12007,6 +12009,29 @@
       "decay": "Rozpad",
       "angle": "Kąt",
       "penumbra": "Półcień",
+      "figure": "Postać",
+      "figureBody": "Sylwetka",
+      "figureBodies": {
+        "male": "Mężczyzna",
+        "female": "Kobieta",
+        "child": "Dziecko"
+      },
+      "figurePose": "Poza",
+      "figurePoses": {
+        "stand": "Stoi",
+        "sit": "Siedzi",
+        "walk": "Idzie",
+        "run": "Biegnie",
+        "lie": "Leży"
+      },
+      "figureHeight": "Wzrost",
+      "figureLabel": "Etykieta",
+      "figureEntity": "ID postaci z obsady",
+      "camera": "Kamera",
+      "cameraFov": "Pole widzenia",
+      "cameraAspect": "Proporcje",
+      "cameraNear": "Blisko",
+      "cameraFar": "Daleko",
       "geometry": "Geometria",
       "material": "Materiał",
       "slot": "Gniazdo",

@@ -11434,7 +11434,9 @@
         "directionalLight": "Riktat ljus",
         "pointLight": "Punktljus",
         "spotLight": "Punktljus",
-        "empty": "Tomt föremål"
+        "empty": "Tomt föremål",
+        "figure": "Figur",
+        "camera": "Kamera"
       },
       "loading": {
         "saving": "Sparar...",
@@ -11655,6 +11657,29 @@
       "decay": "Förfall",
       "angle": "Vinkel",
       "penumbra": "Penumbra",
+      "figure": "Figur",
+      "figureBody": "Kropp",
+      "figureBodies": {
+        "male": "Man",
+        "female": "Kvinna",
+        "child": "Barn"
+      },
+      "figurePose": "Pose",
+      "figurePoses": {
+        "stand": "Står",
+        "sit": "Sitter",
+        "walk": "Går",
+        "run": "Springer",
+        "lie": "Ligger"
+      },
+      "figureHeight": "Längd",
+      "figureLabel": "Etikett",
+      "figureEntity": "Rollentitetens ID",
+      "camera": "Kamera",
+      "cameraFov": "Synfält",
+      "cameraAspect": "Bildförhållande",
+      "cameraNear": "Nära",
+      "cameraFar": "Fjärran",
       "geometry": "Geometri",
       "material": "Material",
       "slot": "Slot",

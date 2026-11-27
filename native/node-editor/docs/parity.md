@@ -2471,6 +2471,8 @@ and `ui_paste` have native host handlers. Other document kinds in
 | `ui_3d_redo` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
 | `ui_3d_rename_object` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
 | `ui_3d_select_object` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_set_camera` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
+| `ui_3d_set_figure` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
 | `ui_3d_set_geometry` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
 | `ui_3d_set_light` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |
 | `ui_3d_set_material` | Not applicable | Requires the model3d document editor handler, outside the native workflow-canvas host. |

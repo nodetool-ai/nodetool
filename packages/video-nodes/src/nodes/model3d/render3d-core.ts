@@ -34,10 +34,14 @@ export type LightingPreset = "studio" | "soft" | "flat";
  * `packages/timeline/src/types.ts`, so a caller assigns one to the other
  * without a conversion.
  */
-export type Model3DCameraMode = "orbit" | "scene";
+export type Model3DCameraMode = "orbit" | "scene" | "free";
 
 export interface ClipModel3DCamera {
-  /** `orbit` frames the model's bounding sphere; `scene` uses a glTF camera. */
+  /**
+   * `orbit` frames the model's bounding sphere, `scene` uses a glTF camera,
+   * and `free` places the camera by `position`, `target`, `rollDeg` and
+   * `fovDeg` with no fit.
+   */
   mode: Model3DCameraMode;
   /** Horizontal orbit angle around the model, degrees. 0 looks down -Z. */
   azimuthDeg: number;
@@ -51,7 +55,45 @@ export interface ClipModel3DCamera {
   targetOffset?: [number, number, number];
   /** `scene` mode: the glTF camera's name; the first camera when absent. */
   sceneCameraName?: string;
+  /** `free` mode: the camera eye, world units. Default `[0, 1.6, 5]`. */
+  position?: [number, number, number];
+  /** `free` mode: the look-at point, world units. Default `[0, 1, 0]`. */
+  target?: [number, number, number];
+  /**
+   * `free` mode: roll around the view axis, degrees. Positive turns the
+   * horizon clockwise in the picture. Default 0.
+   */
+  rollDeg?: number;
 }
+
+/**
+ * What a frame draws.
+ *
+ * - `beauty`: the model's own materials under the session's lighting.
+ * - `clay`: every mesh drawn with one mid-grey matte material, under the
+ *   session's lighting. Lines and points are left out, as in `depth` and
+ *   `normal`.
+ * - `depth`: linear distance from the camera as grey. Near is white and far
+ *   is black. The range runs from the nearest to the farthest point of the
+ *   model's bounding box as seen from the camera, so it uses the whole grey
+ *   scale. Empty space is black, or transparent on a transparent session.
+ * - `normal`: view-space surface normals as RGB, `normal * 0.5 + 0.5`. Empty
+ *   space is `(0.5, 0.5, 1)`, the normal that faces the camera, or transparent
+ *   on a transparent session.
+ *
+ * `depth` and `normal` ignore the lighting and the tone mapping.
+ */
+export type Model3DRenderPass = "beauty" | "clay" | "depth" | "normal";
+
+export const MODEL3D_RENDER_PASSES = [
+  "beauty",
+  "clay",
+  "depth",
+  "normal"
+] as const satisfies readonly Model3DRenderPass[];
+
+/** The grey every surface takes in the `clay` pass, sRGB. */
+export const MODEL3D_CLAY_COLOR = 0x8c8c8c;
 
 export interface ClipModel3DAnimation {
   /** glTF animation name; every animation plays when absent. */
@@ -98,6 +140,11 @@ export interface Model3DRenderFrame {
   camera: ClipModel3DCamera;
   width: number;
   height: number;
+  /**
+   * What to draw. `beauty` when absent. A render option of the host, never
+   * stored on the clip, and free to differ between frames of one session.
+   */
+  pass?: Model3DRenderPass;
 }
 
 export interface Model3DRenderSession {
@@ -150,6 +197,52 @@ export function computeFraming(
     near: Math.max(distance - safeRadius * 4, distance / 100, 1e-4),
     far: distance + safeRadius * 10
   };
+}
+
+/** Where a free camera sits when the frame's camera stores no `position`. */
+export const DEFAULT_FREE_CAMERA_POSITION = [0, 1.6, 5] as const;
+/** Where a free camera looks when the frame's camera stores no `target`. */
+export const DEFAULT_FREE_CAMERA_TARGET = [0, 1, 0] as const;
+
+/**
+ * Clip planes for a free camera, from the model's bounding sphere as seen
+ * from the eye. `far` clears the far side of the sphere with room for an
+ * animation that leaves the rest pose. `near` is the near side of the sphere
+ * when the camera stands outside it, and never less than a thousandth of
+ * `far`, which is what a camera inside the set gets. Pure, exported for tests.
+ */
+export function computeFreeClipPlanes(
+  distanceToCenter: number,
+  radius: number
+): { near: number; far: number } {
+  const safeRadius = Math.max(radius, 1e-6);
+  const distance = Math.max(distanceToCenter, 0);
+  const far = distance + safeRadius * 4;
+  return {
+    near: Math.max(distance - safeRadius * 4, far / 1000, 1e-4),
+    far
+  };
+}
+
+/**
+ * The nearest and farthest distance, along the view axis, of a box's corners
+ * given in view space (`viewZ` is each corner's z, negative in front of the
+ * camera). Padded by 2% of the span, the way the model editor's `depthRange`
+ * pads it. Null when the whole box is behind the camera. Pure, exported for
+ * tests.
+ */
+export function depthRangeFromViewZ(
+  viewZ: readonly number[]
+): { near: number; far: number } | null {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const z of viewZ) {
+    min = Math.min(min, -z);
+    max = Math.max(max, -z);
+  }
+  if (!(max > 0)) return null;
+  const span = Math.max(max - min, 1e-3);
+  return { near: Math.max(min - span * 0.02, 1e-3), far: max + span * 0.02 };
 }
 
 /** Spherical → cartesian offset for the orbit camera. Exported for tests. */
@@ -321,6 +414,48 @@ function createLightRig(
   };
 }
 
+const STOCK_DEPTH_OUTPUT = "vec3( 1.0 - fragCoordZ )";
+
+/**
+ * A depth material whose grey is linear in distance for a perspective camera.
+ *
+ * Stock `MeshDepthMaterial` writes the depth buffer value, which is hyperbolic
+ * under a perspective projection and spends most of its range next to the
+ * near plane. The clip-space `w` it already carries is the distance along the
+ * view axis, so the patched output is `1 - (w - near) / (far - near)`. An
+ * orthographic camera's depth buffer is linear already and keeps the stock
+ * output.
+ */
+function createLinearDepthMaterial(): THREE.MeshDepthMaterial {
+  const material = new THREE.MeshDepthMaterial();
+  const range = {
+    near: { value: 0 },
+    far: { value: 1 },
+    perspective: { value: 1 }
+  };
+  material.userData.range = range;
+  material.onBeforeCompile = (shader) => {
+    if (!shader.fragmentShader.includes(STOCK_DEPTH_OUTPUT)) {
+      throw new Error(
+        "Model3D render: the three.js depth shader changed, so the linear depth pass cannot patch it"
+      );
+    }
+    shader.uniforms.model3dDepthNear = range.near;
+    shader.uniforms.model3dDepthFar = range.far;
+    shader.uniforms.model3dDepthPerspective = range.perspective;
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "varying vec2 vHighPrecisionZW;",
+        "varying vec2 vHighPrecisionZW;\nuniform float model3dDepthNear;\nuniform float model3dDepthFar;\nuniform float model3dDepthPerspective;"
+      )
+      .replace(
+        STOCK_DEPTH_OUTPUT,
+        "vec3( 1.0 - mix( fragCoordZ, clamp( ( vHighPrecisionZW[ 1 ] - model3dDepthNear ) / ( model3dDepthFar - model3dDepthNear ), 0.0, 1.0 ), model3dDepthPerspective ) )"
+      );
+  };
+  return material;
+}
+
 function disposeMaterial(material: THREE.Material): void {
   for (const value of Object.values(material)) {
     if (value instanceof THREE.Texture) value.dispose();
@@ -470,7 +605,68 @@ export async function createModel3DRenderSession(
   const orbitCamera = new THREE.PerspectiveCamera();
   const target = new THREE.Vector3();
   const eye = new THREE.Vector3();
+  const corner = new THREE.Vector3();
+  const clayMaterial = new THREE.MeshStandardMaterial({
+    color: MODEL3D_CLAY_COLOR,
+    roughness: 0.9,
+    metalness: 0
+  });
+  const clayFlatMaterial = clayMaterial.clone();
+  clayFlatMaterial.flatShading = true;
+  const depthMaterial = createLinearDepthMaterial();
+  const normalMaterial = new THREE.MeshNormalMaterial();
+  const normalFlatMaterial = new THREE.MeshNormalMaterial({ flatShading: true });
+  const passMaterials = [
+    clayMaterial,
+    clayFlatMaterial,
+    depthMaterial,
+    normalMaterial,
+    normalFlatMaterial
+  ];
+  // A pass swaps materials per object instead of setting
+  // `scene.overrideMaterial`, because a mesh with no normals needs the flat
+  // variant, the way GLTFLoader flat-shades its own material.
+  const passMeshes: THREE.Mesh[] = [];
+  const passHidden: THREE.Object3D[] = [];
+  gltf.scene.traverse((object) => {
+    if ((object as THREE.Mesh).isMesh) {
+      passMeshes.push(object as THREE.Mesh);
+    } else if (
+      (object as THREE.Line).isLine ||
+      (object as THREE.Points).isPoints
+    ) {
+      passHidden.push(object);
+    }
+  });
+  const sceneBackground = scene.background;
+  const depthBackground = new THREE.Color(0x000000);
+  // Given in sRGB, so the canvas reads exactly (128, 128, 255).
+  const normalBackground = new THREE.Color().setRGB(
+    0.5,
+    0.5,
+    1,
+    THREE.SRGBColorSpace
+  );
+  const beautyToneMapping = renderer.toneMapping;
   let disposed = false;
+
+  /** The rest-pose box's corners along the view axis of `camera`. */
+  const boxViewZ = (camera: THREE.Camera): number[] => {
+    camera.updateMatrixWorld(true);
+    const view = camera.matrixWorldInverse;
+    const depths: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      corner
+        .set(
+          i & 1 ? box.max.x : box.min.x,
+          i & 2 ? box.max.y : box.min.y,
+          i & 4 ? box.max.z : box.min.z
+        )
+        .applyMatrix4(view);
+      depths.push(corner.z);
+    }
+    return depths;
+  };
 
   return {
     animations: gltf.animations.map((clip) => clip.name),
@@ -501,7 +697,30 @@ export async function createModel3DRenderSession(
       }
 
       let camera: THREE.Camera;
-      if (frame.camera.mode === "scene") {
+      if (frame.camera.mode === "free") {
+        const position =
+          frame.camera.position ?? DEFAULT_FREE_CAMERA_POSITION;
+        const lookAt = frame.camera.target ?? DEFAULT_FREE_CAMERA_TARGET;
+        eye.set(position[0], position[1], position[2]);
+        target.set(lookAt[0], lookAt[1], lookAt[2]);
+        const planes = computeFreeClipPlanes(
+          eye.distanceTo(sphere.center),
+          sphere.radius
+        );
+        orbitCamera.fov = Math.min(Math.max(frame.camera.fovDeg, 1), 179);
+        orbitCamera.aspect = aspect;
+        orbitCamera.near = planes.near;
+        orbitCamera.far = planes.far;
+        orbitCamera.updateProjectionMatrix();
+        orbitCamera.position.copy(eye);
+        orbitCamera.up.set(0, 1, 0);
+        orbitCamera.lookAt(target);
+        // Counter-clockwise around the view axis seen from behind the camera,
+        // so the horizon turns clockwise in the picture.
+        orbitCamera.rotateZ(((frame.camera.rollDeg ?? 0) * Math.PI) / 180);
+        orbitCamera.updateMatrixWorld(true);
+        camera = orbitCamera;
+      } else if (frame.camera.mode === "scene") {
         const sceneCamera = selectSceneCamera(
           sceneCameras,
           frame.camera.sceneCameraName
@@ -542,7 +761,69 @@ export async function createModel3DRenderSession(
 
       rig.aim(eye, target);
       renderer.setSize(width, height, false);
-      renderer.render(scene, camera);
+
+      const pass = frame.pass ?? "beauty";
+      if (pass === "beauty") {
+        renderer.render(scene, camera);
+        return canvas;
+      }
+
+      const projection =
+        camera instanceof THREE.PerspectiveCamera ||
+        camera instanceof THREE.OrthographicCamera
+          ? camera
+          : null;
+      const planes = projection
+        ? { near: projection.near, far: projection.far }
+        : null;
+      const originals = passMeshes.map((mesh) => mesh.material);
+      const shown = passHidden.map((object) => object.visible);
+      const swap = (smooth: THREE.Material, flat: THREE.Material): void => {
+        for (const mesh of passMeshes) {
+          mesh.material = mesh.geometry.attributes.normal ? smooth : flat;
+        }
+        for (const object of passHidden) object.visible = false;
+      };
+      try {
+        if (pass === "clay") {
+          swap(clayMaterial, clayFlatMaterial);
+        } else if (pass === "depth") {
+          swap(depthMaterial, depthMaterial);
+          renderer.toneMapping = THREE.NoToneMapping;
+          if (sceneBackground) scene.background = depthBackground;
+          const range = depthRangeFromViewZ(boxViewZ(camera));
+          if (projection && range) {
+            projection.near = range.near;
+            projection.far = range.far;
+            projection.updateProjectionMatrix();
+          }
+          if (projection) {
+            depthMaterial.userData.range.near.value = projection.near;
+            depthMaterial.userData.range.far.value = projection.far;
+            depthMaterial.userData.range.perspective.value =
+              projection instanceof THREE.PerspectiveCamera ? 1 : 0;
+          }
+        } else {
+          swap(normalMaterial, normalFlatMaterial);
+          renderer.toneMapping = THREE.NoToneMapping;
+          if (sceneBackground) scene.background = normalBackground;
+        }
+        renderer.render(scene, camera);
+      } finally {
+        passMeshes.forEach((mesh, i) => {
+          mesh.material = originals[i];
+        });
+        passHidden.forEach((object, i) => {
+          object.visible = shown[i];
+        });
+        scene.background = sceneBackground;
+        renderer.toneMapping = beautyToneMapping;
+        if (projection && planes) {
+          projection.near = planes.near;
+          projection.far = planes.far;
+          projection.updateProjectionMatrix();
+        }
+      }
       return canvas;
     },
 
@@ -554,6 +835,7 @@ export async function createModel3DRenderSession(
         mixer.uncacheRoot(gltf.scene);
       }
       disposeScene(scene);
+      for (const material of passMaterials) material.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
     }

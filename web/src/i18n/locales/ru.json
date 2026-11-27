@@ -11782,7 +11782,9 @@
         "directionalLight": "Направленный свет",
         "pointLight": "Точечный свет",
         "spotLight": "Прожектор",
-        "empty": "Пустой объект"
+        "empty": "Пустой объект",
+        "figure": "Фигура",
+        "camera": "Камера"
       },
       "loading": {
         "saving": "Сохранение…",
@@ -12007,6 +12009,29 @@
       "decay": "Затухание",
       "angle": "Угол",
       "penumbra": "Полутень",
+      "figure": "Фигура",
+      "figureBody": "Телосложение",
+      "figureBodies": {
+        "male": "Мужчина",
+        "female": "Женщина",
+        "child": "Ребёнок"
+      },
+      "figurePose": "Поза",
+      "figurePoses": {
+        "stand": "Стоит",
+        "sit": "Сидит",
+        "walk": "Идёт",
+        "run": "Бежит",
+        "lie": "Лежит"
+      },
+      "figureHeight": "Рост",
+      "figureLabel": "Подпись",
+      "figureEntity": "ID персонажа",
+      "camera": "Камера",
+      "cameraFov": "Угол обзора",
+      "cameraAspect": "Соотношение сторон",
+      "cameraNear": "Ближняя",
+      "cameraFar": "Дальняя",
       "geometry": "Геометрия",
       "material": "Материал",
       "slot": "Слот",

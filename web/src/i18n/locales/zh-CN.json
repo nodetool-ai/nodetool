@@ -11434,7 +11434,9 @@
         "directionalLight": "方向光",
         "pointLight": "点光源",
         "spotLight": "聚光灯",
-        "empty": "空对象"
+        "empty": "空对象",
+        "figure": "人偶",
+        "camera": "摄像机"
       },
       "loading": {
         "saving": "正在保存…",
@@ -11655,6 +11657,29 @@
       "decay": "衰减",
       "angle": "角度",
       "penumbra": "半影",
+      "figure": "人偶",
+      "figureBody": "体型",
+      "figureBodies": {
+        "male": "男性",
+        "female": "女性",
+        "child": "儿童"
+      },
+      "figurePose": "姿势",
+      "figurePoses": {
+        "stand": "站立",
+        "sit": "坐",
+        "walk": "行走",
+        "run": "奔跑",
+        "lie": "躺"
+      },
+      "figureHeight": "身高",
+      "figureLabel": "标签",
+      "figureEntity": "角色实体 ID",
+      "camera": "摄像机",
+      "cameraFov": "视场角",
+      "cameraAspect": "宽高比",
+      "cameraNear": "近裁剪面",
+      "cameraFar": "远裁剪面",
       "geometry": "几何体",
       "material": "材质",
       "slot": "插槽",
