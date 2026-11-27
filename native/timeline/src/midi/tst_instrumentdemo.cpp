@@ -13,7 +13,10 @@
 #include <QFile>
 #include <QtTest/QtTest>
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
+#include <span>
 #include <vector>
 
 using namespace nt::midi;
@@ -43,10 +46,15 @@ void writeWav(const QString& path, const std::vector<float>& stereo) {
     f.write(pcm);
 }
 
+struct PlayResult {
+    std::vector<float> audio;
+    float rawPeak = 0.0f;
+};
+
 // Plays `notes` through `on`/`off`/`render` callbacks at block resolution, then
 // normalizes the peak to -1 dBFS only when it clips, so presets keep relative levels.
 template <class On, class Off, class Render>
-std::vector<float> play(const std::vector<Note>& notes, double totalSec, On on, Off off, Render render) {
+PlayResult play(const std::vector<Note>& notes, double totalSec, On on, Off off, Render render) {
     const int total = int(totalSec * kRate);
     std::vector<float> out(std::size_t(total) * 2, 0.0f);
     for (int pos = 0; pos < total; pos += kBlock) {
@@ -64,7 +72,7 @@ std::vector<float> play(const std::vector<Note>& notes, double totalSec, On on, 
     for (float s : out) { peak = std::max(peak, std::isfinite(s) ? std::abs(s) : 0.0f); }
     qInfo("raw peak %.2f", double(peak));
     if (peak > 0.891f) { for (float& s : out) { s *= 0.891f / peak; } }
-    return out;
+    return {std::move(out), peak};
 }
 
 std::vector<Note> bassLine() {
@@ -113,37 +121,73 @@ class TstInstrumentDemo : public QObject {
     Q_OBJECT
 private slots:
     void bass() {
+        float minPeak = std::numeric_limits<float>::max();
+        float maxPeak = 0.0f;
         for (const auto& p : factoryBassPresets()) {
             BassSynth s; s.prepare(kRate); s.setParams(p.params); s.snapParams();
-            auto a = play(bassLine(), 3.5, [&](int m, float v) { s.noteOn(m, v); }, [&](int m) { s.noteOff(m); },
-                          [&](std::span<float> b) { s.renderBlock(b); });
-            finish(QStringLiteral("bass1_") + QString::fromUtf8(p.id.data(), qsizetype(p.id.size())), a);
+            auto [a, peak] = play(bassLine(), 3.5, [&](int m, float v) { s.noteOn(m, v); }, [&](int m) { s.noteOff(m); },
+                                  [&](std::span<float> b) { s.renderBlock(b); });
+            const QString name = QStringLiteral("bass1_") + QString::fromUtf8(p.id.data(), qsizetype(p.id.size()));
+            QVERIFY2(peak <= 1.0f, qPrintable(QStringLiteral("%1 raw peak %2 > 1.0").arg(name).arg(peak, 0, 'f', 3)));
+            minPeak = std::min(minPeak, peak);
+            maxPeak = std::max(maxPeak, peak);
+            finish(name, a);
         }
+        QVERIFY(minPeak > 0.0f);
+        QVERIFY2(maxPeak / minPeak <= 2.0f,
+                 qPrintable(QStringLiteral("bass peak spread %1 / %2 = %3 > 2.0").arg(maxPeak, 0, 'f', 3).arg(minPeak, 0, 'f', 3).arg(maxPeak / minPeak, 0, 'f', 3)));
     }
     void wavetable() {
+        float minPeak = std::numeric_limits<float>::max();
+        float maxPeak = 0.0f;
         for (const auto& p : factoryWavetablePresets()) {
             WavetableSynth s; s.prepare(kRate); s.setParams(p.params);
-            auto a = play(melody(), 4.5, [&](int m, float v) { s.noteOn(m, v); }, [&](int m) { s.noteOff(m); },
-                          [&](std::span<float> b) { s.renderBlock(b); });
-            finish(QStringLiteral("wt1_") + QString::fromUtf8(p.id.data(), qsizetype(p.id.size())), a);
+            auto [a, peak] = play(melody(), 4.5, [&](int m, float v) { s.noteOn(m, v); }, [&](int m) { s.noteOff(m); },
+                                  [&](std::span<float> b) { s.renderBlock(b); });
+            const QString name = QStringLiteral("wt1_") + QString::fromUtf8(p.id.data(), qsizetype(p.id.size()));
+            QVERIFY2(peak <= 1.0f, qPrintable(QStringLiteral("%1 raw peak %2 > 1.0").arg(name).arg(peak, 0, 'f', 3)));
+            minPeak = std::min(minPeak, peak);
+            maxPeak = std::max(maxPeak, peak);
+            finish(name, a);
         }
+        QVERIFY(minPeak > 0.0f);
+        QVERIFY2(maxPeak / minPeak <= 2.0f,
+                 qPrintable(QStringLiteral("wavetable peak spread %1 / %2 = %3 > 2.0").arg(maxPeak, 0, 'f', 3).arg(minPeak, 0, 'f', 3).arg(maxPeak / minPeak, 0, 'f', 3)));
     }
     void modal() {
+        float minPeak = std::numeric_limits<float>::max();
+        float maxPeak = 0.0f;
         for (const auto& p : factoryModalPresets()) {
             ModalSynth s; s.prepare(kRate); s.setParams(p.params);
-            auto a = play(melody(), 5.0, [&](int m, float v) { s.noteOn(m, v); }, [&](int m) { s.noteOff(m); },
-                          [&](std::span<float> b) { s.renderBlock(b); });
-            finish(QStringLiteral("mod1_") + QString::fromUtf8(p.id.data(), qsizetype(p.id.size())), a);
+            auto [a, peak] = play(melody(), 5.0, [&](int m, float v) { s.noteOn(m, v); }, [&](int m) { s.noteOff(m); },
+                                  [&](std::span<float> b) { s.renderBlock(b); });
+            const QString name = QStringLiteral("mod1_") + QString::fromUtf8(p.id.data(), qsizetype(p.id.size()));
+            QVERIFY2(peak <= 1.0f, qPrintable(QStringLiteral("%1 raw peak %2 > 1.0").arg(name).arg(peak, 0, 'f', 3)));
+            minPeak = std::min(minPeak, peak);
+            maxPeak = std::max(maxPeak, peak);
+            finish(name, a);
         }
+        QVERIFY(minPeak > 0.0f);
+        QVERIFY2(maxPeak / minPeak <= 2.0f,
+                 qPrintable(QStringLiteral("modal peak spread %1 / %2 = %3 > 2.0").arg(maxPeak, 0, 'f', 3).arg(minPeak, 0, 'f', 3).arg(maxPeak / minPeak, 0, 'f', 3)));
     }
     void drums() {
+        float minPeak = std::numeric_limits<float>::max();
+        float maxPeak = 0.0f;
         for (auto [kit, name] : {std::pair{DrumKitId::Classic808, "808"}, std::pair{DrumKitId::Uzu, "uzu"}}) {
             DrumSampler s; s.loadKit(kit); s.prepare(kRate);
             std::vector<DrumSampler::NoteEvent> pending;
-            auto a = play(drumGroove(), 4.5, [&](int m, float v) { pending.push_back({0, m, v, 1.0f}); }, [](int) {},
-                          [&](std::span<float> b) { s.renderBlock(b, pending); pending.clear(); });
-            finish(QStringLiteral("drum1_") + QLatin1String(name), a);
+            auto [a, peak] = play(drumGroove(), 4.5, [&](int m, float v) { pending.push_back({0, m, v, 1.0f}); }, [](int) {},
+                                  [&](std::span<float> b) { s.renderBlock(b, pending); pending.clear(); });
+            const QString fullName = QStringLiteral("drum1_") + QLatin1String(name);
+            QVERIFY2(peak <= 1.0f, qPrintable(QStringLiteral("%1 raw peak %2 > 1.0").arg(fullName).arg(peak, 0, 'f', 3)));
+            minPeak = std::min(minPeak, peak);
+            maxPeak = std::max(maxPeak, peak);
+            finish(fullName, a);
         }
+        QVERIFY(minPeak > 0.0f);
+        QVERIFY2(maxPeak / minPeak <= 2.0f,
+                 qPrintable(QStringLiteral("drums peak spread %1 / %2 = %3 > 2.0").arg(maxPeak, 0, 'f', 3).arg(minPeak, 0, 'f', 3).arg(maxPeak / minPeak, 0, 'f', 3)));
     }
 };
 

@@ -511,6 +511,7 @@ public:
     double decay = 1.0;
     double radius = 0.5;
     double cut = 0.0;
+    double modeNorm = 1.0;
 
     std::array<ModalPartial, kMaxPartials> partials{};
     ModalWaveguide waveguide{};

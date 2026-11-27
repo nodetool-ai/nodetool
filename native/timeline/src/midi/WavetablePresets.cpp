@@ -40,6 +40,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
     // 1. wt1-init
     {
         P p;
+        p.masterVolume = 0.90f;
         list.push_back({"wt1-init", "WT-1 Init", "Init", p});
     }
     // 2. wt1-acid-line
@@ -52,6 +53,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.modEnv = {0.001f, 0.19f, 0.0f, 0.12f};
         p.mono = true;
         p.glideSec = 0.06f;
+        p.masterVolume = 1.01f;
         list.push_back({"wt1-acid-line", "WT-1 Acid Line", "Bass", p});
     }
     // 3. wt1-hyper-saw
@@ -62,6 +64,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.sub = {true, SubShape::Sine, -1, 0.45f};
         p.filter = {true, FilterType::Lp12, 12000.0f, 0.05f, 0.0f, 0.0f, 0.0f};
         p.ampEnv = {0.01f, 0.4f, 0.9f, 0.5f};
+        p.masterVolume = 0.87f;
         list.push_back({"wt1-hyper-saw", "WT-1 Hyper Saw", "Lead", p});
     }
     // 4. wt1-neuro-wobble
@@ -75,6 +78,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.rateHz = 2.2f;
         p.lfo.toCutoff = 0.55f;
         p.lfo.toPos = 0.5f;
+        p.masterVolume = 0.69f;
         list.push_back({"wt1-neuro-wobble", "WT-1 Neuro Wobble", "Bass", p});
     }
     // 5. wt1-reese-bass
@@ -88,6 +92,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.rateHz = 0.16f;
         p.lfo.toCutoff = 0.18f;
         p.lfo.toPos = 0.12f;
+        p.masterVolume = 0.69f;
         list.push_back({"wt1-reese-bass", "WT-1 Reese Bass", "Bass", p});
     }
     // 6. wt1-power-fifths
@@ -99,7 +104,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.filter = {true, FilterType::Lp12, 6500.0f, 0.12f, 0.0f, 0.3f, 0.3f};
         p.ampEnv = {0.005f, 0.6f, 0.8f, 0.35f};
         p.modEnv = {0.005f, 0.3f, 0.0f, 0.2f};
-        p.masterVolume = 0.5005f;
+        p.masterVolume = 0.95f;
         list.push_back({"wt1-power-fifths", "WT-1 Power Fifths", "Chord", p});
     }
     // 7. wt1-growl-bass
@@ -114,6 +119,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.rateHz = 5.5f;
         p.lfo.toPos = 0.7f;
         p.lfo.toCutoff = 0.4f;
+        p.masterVolume = 0.62f;
         list.push_back({"wt1-growl-bass", "WT-1 Growl Bass", "Bass", p});
     }
     // 8. wt1-future-chord
@@ -126,13 +132,14 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.rateHz = 0.5f;
         p.lfo.toPos = 0.3f;
         p.lfo.toCutoff = 0.2f;
+        p.masterVolume = 0.90f;
         list.push_back({"wt1-future-chord", "WT-1 Future Chord", "Chord", p});
     }
     // 9. wt1-screech-lead
     {
         P p;
-        p.oscA = {true, WavetableId::Pulse, 0.7f, 0, 0, 0.0f, 3, 0.3f, 0.7f, 1.0f, 0.78f, 0.0f};
-        p.oscB = {true, WavetableId::Glitch, 0.4f, 0, 0, 0.0f, 1, 0.2f, 0.6f, 1.0f, 0.4f, 0.0f};
+        p.oscA = {true, WavetableId::Pulse, 0.7f, 0, 0, 0.0f, 3, 0.3f, 0.7f, 1.0f, 1.2f, 0.0f};
+        p.oscB = {true, WavetableId::Glitch, 0.4f, 0, 0, 0.0f, 1, 0.2f, 0.6f, 1.0f, 0.62f, 0.0f};
         p.filter = {true, FilterType::Bp12, 1800.0f, 0.6f, 0.4f, 0.0f, 0.0f};
         p.ampEnv = {0.004f, 0.4f, 0.85f, 0.15f};
         p.lfo.shape = LfoShape::Square;
@@ -141,6 +148,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.toPos = 0.4f;
         p.velToCutoff = 0.3f;
         p.mono = true;
+        p.masterVolume = 1.50f;
         list.push_back({"wt1-screech-lead", "WT-1 Screech Lead", "Lead", p});
     }
     // 10. wt1-house-pluck
@@ -151,19 +159,20 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.filter = {true, FilterType::Lp24, 2200.0f, 0.2f, 0.0f, 0.55f, 0.5f};
         p.ampEnv = {0.003f, 0.28f, 0.0f, 0.2f};
         p.modEnv = {0.003f, 0.18f, 0.0f, 0.15f};
-        p.masterVolume = 0.5365f;
+        p.masterVolume = 1.17f;
         list.push_back({"wt1-house-pluck", "WT-1 House Pluck", "Pluck", p});
     }
     // 11. wt1-8-bit-lead
     {
         P p;
-        p.oscA = {true, WavetableId::Pulse, 0.0f, 0, 0, 0.0f, 1, 0.2f, 0.6f, 1.0f, 0.8f, 0.0f};
+        p.oscA = {true, WavetableId::Pulse, 0.0f, 0, 0, 0.0f, 1, 0.2f, 0.6f, 1.0f, 1.2f, 0.0f};
         p.filter = {false, FilterType::Lp12, 20000.0f, 0.0f, 0.0f, 0.0f, 0.0f};
         p.ampEnv = {0.001f, 0.1f, 0.7f, 0.05f};
         p.lfo.rateHz = 6.0f;
         p.lfo.toPitch = 0.01f;
         p.lfo.toPos = 0.2f;
         p.mono = true;
+        p.masterVolume = 1.49f;
         list.push_back({"wt1-8-bit-lead", "WT-1 8-Bit Lead", "Lead", p});
     }
     // 12. wt1-wub-bass
@@ -176,13 +185,14 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.ampEnv = {0.004f, 0.3f, 0.95f, 0.12f};
         p.lfo.rateHz = 4.0f;
         p.lfo.toCutoff = 0.7f;
+        p.masterVolume = 0.55f;
         list.push_back({"wt1-wub-bass", "WT-1 Wub Bass", "Bass", p});
     }
     // 13. wt1-glide-lead
     {
         P p;
-        p.oscA = {true, WavetableId::Prime, 0.66f, 1, 0, 0.0f, 2, 0.12f, 0.4f, 1.0f, 0.82f, 0.0f};
-        p.oscB = {true, WavetableId::Pulse, 0.4f, 1, -12, 0.0f, 1, 0.2f, 0.6f, 1.0f, 0.4f, 0.0f};
+        p.oscA = {true, WavetableId::Prime, 0.66f, 1, 0, 0.0f, 2, 0.12f, 0.4f, 1.0f, 1.0f, 0.0f};
+        p.oscB = {true, WavetableId::Pulse, 0.4f, 1, -12, 0.0f, 1, 0.2f, 0.6f, 1.0f, 0.49f, 0.0f};
         p.filter = {true, FilterType::Lp24, 1600.0f, 0.4f, 0.0f, 0.5f, 0.4f};
         p.ampEnv = {0.005f, 0.5f, 0.6f, 0.25f};
         p.modEnv = {0.005f, 0.3f, 0.2f, 0.2f};
@@ -190,6 +200,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.toPitch = 0.008f;
         p.mono = true;
         p.glideSec = 0.12f;
+        p.masterVolume = 1.38f;
         list.push_back({"wt1-glide-lead", "WT-1 Glide Lead", "Lead", p});
     }
     // 14. wt1-brass-section
@@ -204,6 +215,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.rateHz = 5.0f;
         p.lfo.toPitch = 0.003f;
         p.velToCutoff = 0.3f;
+        p.masterVolume = 0.94f;
         list.push_back({"wt1-brass-section", "WT-1 Brass Section", "Brass", p});
     }
     // 15. wt1-soft-brass
@@ -214,6 +226,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.filter = {true, FilterType::Lp12, 1200.0f, 0.1f, 0.0f, 0.5f, 0.25f};
         p.ampEnv = {0.12f, 0.6f, 0.8f, 0.8f};
         p.modEnv = {1.5f, 0.8f, 0.4f, 0.6f};
+        p.masterVolume = 1.11f;
         list.push_back({"wt1-soft-brass", "WT-1 Soft Brass", "Brass", p});
     }
     // 16. wt1-tape-keys
@@ -229,6 +242,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.rateHz = 3.2f;
         p.lfo.toPitch = 0.006f;
         p.velToCutoff = 0.35f;
+        p.masterVolume = 0.96f;
         list.push_back({"wt1-tape-keys", "WT-1 Tape Keys", "Keys", p});
     }
     // 17. wt1-mini-lead
@@ -243,6 +257,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.toPitch = 0.005f;
         p.mono = true;
         p.glideSec = 0.05f;
+        p.masterVolume = 1.25f;
         list.push_back({"wt1-mini-lead", "WT-1 Mini Lead", "Lead", p});
     }
     // 18. wt1-jump-brass
@@ -253,7 +268,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.filter = {true, FilterType::Lp12, 4500.0f, 0.08f, 0.0f, 0.15f, 0.3f};
         p.ampEnv = {0.005f, 0.4f, 0.9f, 0.3f};
         p.modEnv = {0.003f, 0.25f, 0.4f, 0.25f};
-        p.masterVolume = 0.5033f;
+        p.masterVolume = 0.95f;
         list.push_back({"wt1-jump-brass", "WT-1 Jump Brass", "Brass", p});
     }
     // 19. wt1-blade-brass
@@ -268,6 +283,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.riseSec = 1.2f;
         p.lfo.toPitch = 0.006f;
         p.glideSec = 0.09f;
+        p.masterVolume = 0.97f;
         list.push_back({"wt1-blade-brass", "WT-1 Blade Brass", "Brass", p});
     }
     // 20. wt1-taurus-pedal
@@ -281,18 +297,20 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.modEnv = {0.003f, 0.4f, 0.2f, 0.2f};
         p.mono = true;
         p.glideSec = 0.07f;
+        p.masterVolume = 1.08f;
         list.push_back({"wt1-taurus-pedal", "WT-1 Taurus Pedal", "Bass", p});
     }
     // 21. wt1-funky-worm
     {
         P p;
-        p.oscA = {true, WavetableId::Prime, 0.0f, 1, 0, 0.0f, 1, 0.2f, 0.6f, 1.0f, 0.9f, 0.0f};
+        p.oscA = {true, WavetableId::Prime, 0.0f, 1, 0, 0.0f, 1, 0.2f, 0.6f, 1.0f, 1.1f, 0.0f};
         p.filter = {true, FilterType::Lp12, 4000.0f, 0.1f, 0.0f, 0.0f, 0.5f};
         p.ampEnv = {0.002f, 0.3f, 0.85f, 0.15f};
         p.lfo.rateHz = 5.8f;
         p.lfo.toPitch = 0.007f;
         p.mono = true;
         p.glideSec = 0.22f;
+        p.masterVolume = 1.31f;
         list.push_back({"wt1-funky-worm", "WT-1 Funky Worm", "Lead", p});
     }
     // 22. wt1-lately-bass
@@ -305,7 +323,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.ampEnv = {0.001f, 0.4f, 0.6f, 0.1f};
         p.modEnv = {0.001f, 0.18f, 0.0f, 0.1f};
         p.velToCutoff = 0.4f;
-        p.masterVolume = 0.4767f;
+        p.masterVolume = 0.86f;
         list.push_back({"wt1-lately-bass", "WT-1 Lately Bass", "Bass", p});
     }
     // 23. wt1-prophet-stab
@@ -316,7 +334,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.filter = {true, FilterType::Lp12, 1700.0f, 0.25f, 0.0f, 0.55f, 0.4f};
         p.ampEnv = {0.003f, 0.5f, 0.35f, 0.3f};
         p.modEnv = {0.002f, 0.35f, 0.1f, 0.25f};
-        p.masterVolume = 0.4805f;
+        p.masterVolume = 1.22f;
         list.push_back({"wt1-prophet-stab", "WT-1 Prophet Stab", "Stab", p});
     }
     // 24. wt1-glitch-shuffle
@@ -332,6 +350,7 @@ std::vector<WavetablePreset> buildFactoryPresets() {
         p.lfo.syncDiv = 8;  // 1/16
         p.lfo.toPos = 0.45f;
         p.lfo.toCutoff = 0.3f;
+        p.masterVolume = 0.58f;
         list.push_back({"wt1-glitch-shuffle", "WT-1 Glitch Shuffle", "FX", p});
     }
 

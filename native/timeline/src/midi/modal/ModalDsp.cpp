@@ -1012,6 +1012,7 @@ void ModalResonator::setParams(double sr, bool enabled, ModalModel mdl, int part
     waveguide.srate = srate;
     waveguide.velDecay = velDecay;
     waveguide.rel = rel;
+    modeNorm = isWaveguideModel(model) ? 0.5 : 1.0;
 }
 
 void ModalResonator::activate() noexcept {
@@ -1023,26 +1024,45 @@ void ModalResonator::update(double frequency, double vel, bool isRelease, double
                             const std::array<double, kMaxPartials>& ratios,
                             const std::array<double, kMaxPartials>& gains,
                             const ModalLookupTable* a1Lut) noexcept {
+    constexpr int kRefPartials = 8;
     if (isWaveguideModel(model)) {
         waveguide.update(ratios[0] * frequency, vel, pitchBend, isRelease);
+        modeNorm = 0.5;
     } else {
         const double ratioMax = ratios[kMaxPartials - 1];
+        int activePartials = 0;
         for (int i = 0; i < npartials; ++i) {
             const std::size_t idx = static_cast<std::size_t>(i);
             partials[idx].update(frequency, ratios[idx], ratioMax, vel, pitchBend, isRelease, a1Lut);
             partials[idx].applyGain(gains[idx]);
+            if (!partials[idx].outOfRange) {
+                ++activePartials;
+            }
         }
+        modeNorm = (activePartials > kRefPartials)
+            ? std::sqrt(static_cast<double>(kRefPartials) / static_cast<double>(activePartials))
+            : 1.0;
     }
 }
 
 void ModalResonator::applyPitchBend(double bend, const ModalLookupTable& a1Lut) noexcept {
     if (!active) return;
+    constexpr int kRefPartials = 8;
     if (isWaveguideModel(model)) {
         waveguide.applyPitchBend(bend);
+        modeNorm = 0.5;
     } else {
+        int activePartials = 0;
         for (int p = 0; p < npartials; ++p) {
-            partials[static_cast<std::size_t>(p)].applyPitchBend(bend, a1Lut);
+            auto& partial = partials[static_cast<std::size_t>(p)];
+            partial.applyPitchBend(bend, a1Lut);
+            if (!partial.outOfRange) {
+                ++activePartials;
+            }
         }
+        modeNorm = (activePartials > kRefPartials)
+            ? std::sqrt(static_cast<double>(kRefPartials) / static_cast<double>(activePartials))
+            : 1.0;
     }
 }
 
@@ -1050,11 +1070,12 @@ double ModalResonator::process(double input) noexcept {
     double out = 0.0;
     if (active) {
         if (isWaveguideModel(model)) {
-            out = waveguide.process(input);
+            out = waveguide.process(input) * modeNorm;
         } else {
             for (int p = 0; p < npartials; ++p) {
                 out += partials[static_cast<std::size_t>(p)].process(input);
             }
+            out *= modeNorm;
         }
     }
 

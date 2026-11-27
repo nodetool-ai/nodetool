@@ -29,6 +29,18 @@ inline double clampFinite(double v, double lo, double hi, double fallback) noexc
     return std::isfinite(v) ? std::clamp(v, lo, hi) : fallback;
 }
 
+// C2-continuous soft safety ceiling: exact identity for |x| <= kKnee,
+// asymptotically bounded below kCeiling so impulsive chord transients never clip.
+inline double softSafetyCeiling(double x) noexcept {
+    constexpr double kKnee = 0.80;
+    constexpr double kCeiling = 0.90;
+    constexpr double kSpan = kCeiling - kKnee;
+    const double ax = std::abs(x);
+    if (ax <= kKnee) return x;
+    const double shaped = kKnee + kSpan * std::tanh((ax - kKnee) / kSpan);
+    return x < 0.0 ? -shaped : shaped;
+}
+
 inline bool advanceSmootherBy(audio::ParameterSmoother& sm, std::size_t steps) noexcept {
     if (!sm.smoothing()) return false;
     for (std::size_t i = 0; i < steps && sm.smoothing(); ++i) {
@@ -272,7 +284,7 @@ void ModalSynth::prepare(double sampleRate) noexcept {
     }
 
     comb_.init(sampleRate_);
-    limiter_.init(sampleRate_);
+    limiter_.init(sampleRate_, -1.5, 70.0, 100.0, 0.0);
 
     gainLinSm_.prepare(sampleRate_);
     abMixSm_.prepare(sampleRate_);
@@ -1634,7 +1646,9 @@ void ModalSynth::renderSubBlock(std::span<float> stereo, std::size_t startFrame,
             if (preLimPk > maxPreLimiterAbs_) maxPreLimiterAbs_ = preLimPk;
         }
 
-        const auto [left, right] = limiter_.process(spl0, spl1);
+        auto [left, right] = limiter_.process(spl0, spl1);
+        if (std::isfinite(left)) left = softSafetyCeiling(left);
+        if (std::isfinite(right)) right = softSafetyCeiling(right);
 
         // Post-limiter / pre-clamp diagnostics.
         if (!std::isfinite(left) || !std::isfinite(right)) [[unlikely]] {

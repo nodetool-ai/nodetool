@@ -44,7 +44,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.a.hit = 0.26f;
         p.a.cut = 0.28f;
         p.b.on = false;
-        p.gainDb = 10.0f;
+        p.gainDb = 3.0f;
         out.push_back({"modal-marimba", "Marimba", "Mallets", p});
     }
 
@@ -62,7 +62,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.a.tone = -0.10f;
         p.a.hit = 0.24f;
         p.b.on = false;
-        p.gainDb = 8.0f;
+        p.gainDb = 2.0f;
         out.push_back({"modal-concert-marimba", "Concert Marimba", "Mallets", p});
     }
 
@@ -85,7 +85,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.b.fine = 4.0f;
         p.coupling = ModalCoupling::Serial;
         p.abSplit = 0.12f;
-        p.gainDb = -6.0f;
+        p.gainDb = -9.0f;
         out.push_back({"modal-vibes", "Vibraphone", "Mallets", p});
     }
 
@@ -111,7 +111,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.a.ratio = 2.0f;
         p.a.cut = 0.42f;
         p.b.on = false;
-        p.gainDb = 6.0f;
+        p.gainDb = -1.0f;
         out.push_back({"modal-tubular-bells", "Tubular Bells", "Bells", p});
     }
 
@@ -129,7 +129,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.a.tone = 0.05f;
         p.a.hit = 0.32f;
         p.b.on = false;
-        p.gainDb = 6.0f;
+        p.gainDb = -2.0f;
         out.push_back({"modal-church-bell", "Church Bell", "Bells", p});
     }
 
@@ -165,7 +165,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.b.cut = 0.50f;
         p.coupling = ModalCoupling::Parallel;
         p.abMix = 0.50f;
-        p.gainDb = 8.0f;
+        p.gainDb = 10.0f;
         out.push_back({"modal-kalimba", "Kalimba", "Mallets", p});
     }
 
@@ -218,7 +218,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.a.tone = -0.15f;
         p.a.hit = 0.28f;
         p.b.on = false;
-        p.gainDb = 4.0f;
+        p.gainDb = -4.0f;
         out.push_back({"modal-concert-tom", "Concert Tom", "Percussion", p});
     }
 
@@ -243,7 +243,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.a.hit = 0.22f;
         p.a.ratio = 1.0f;
         p.b.on = false;
-        p.gainDb = 5.0f;
+        p.gainDb = 0.0f;
         out.push_back({"modal-djembe", "Djembe", "Percussion", p});
     }
 
@@ -293,7 +293,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.b.coarse = 12.0f;
         p.coupling = ModalCoupling::Parallel;
         p.abMix = 0.30f;
-        p.gainDb = 3.0f;
+        p.gainDb = 15.0f;
         out.push_back({"modal-crystal-glass", "Crystal Glass", "Bells", p});
     }
 
@@ -320,7 +320,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.b.coarse = 5.0f;
         p.coupling = ModalCoupling::Parallel;
         p.abMix = 0.45f;
-        p.gainDb = 8.0f;
+        p.gainDb = 7.0f;
         out.push_back({"modal-wood-block", "Wood Block", "Percussion", p});
     }
 
@@ -343,7 +343,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.a.radius = 0.72f;
         p.a.release = 0.25f;
         p.b.on = false;
-        p.gainDb = -2.0f;
+        p.gainDb = -3.0f;
         out.push_back({"modal-open-tube", "Open Pipe", "Tubes", p});
     }
 
@@ -366,7 +366,7 @@ std::vector<ModalPreset> buildFactoryPresets() {
         p.a.radius = 0.78f;
         p.a.release = 0.30f;
         p.b.on = false;
-        p.gainDb = -2.0f;
+        p.gainDb = -6.0f;
         out.push_back({"modal-closed-tube", "Closed Tube", "Tubes", p});
     }
 
