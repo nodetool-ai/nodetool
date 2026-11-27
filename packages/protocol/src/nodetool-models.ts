@@ -62,18 +62,18 @@ export const NODETOOL_PROVIDER_ID = "nodetool";
 
 export const NODETOOL_MODELS: readonly NodetoolModelDef[] = [
   {
-    id: "nodetool/free",
-    name: "NodeTool Free",
-    kind: "language",
-    blurb: "Free text models, chosen by OpenRouter. Uses no credits.",
-    delegate: { provider: "openrouter", model: "openrouter/free" }
-  },
-  {
     id: "nodetool/director",
     name: "NodeTool Director",
     kind: "language",
     blurb: "Writes and directs. Not user-selectable.",
     delegate: { provider: "anthropic", model: "claude-sonnet-5" }
+  },
+  {
+    id: "nodetool/free",
+    name: "NodeTool Free",
+    kind: "language",
+    blurb: "Free text models, chosen by OpenRouter. Uses no credits.",
+    delegate: { provider: "openrouter", model: "openrouter/free" }
   },
   {
     id: "nodetool/flux-schnell",
