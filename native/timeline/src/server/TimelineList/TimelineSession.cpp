@@ -16,8 +16,11 @@ void TimelineSession::Loader::run() {
 TimelineSession::TimelineSession(TimelineModel& model, PlaybackClock& clock, AssetCacheRoot cache, bool cloudTimeline,
                                  QObject* parent)
     : QObject(parent), m_model(model), m_clock(clock), m_cache(std::move(cache)), m_cloudTimeline(cloudTimeline) {
-    connect(&m_model, &TimelineModel::timelineChanged, this, &TimelineSession::updateWindowTitle);
-    connect(&m_model, &TimelineModel::timelineChanged, this, &TimelineSession::canSaveChanged);
+    // One coarse connection serves the title and the Save availability.
+    connect(&m_model, &TimelineModel::timelineChanged, this, [this] {
+        updateWindowTitle();
+        emit canSaveChanged();
+    });
     connect(&m_model, &TimelineModel::readOnlyChanged, this, &TimelineSession::canSaveChanged);
     connect(this, &TimelineSession::switchingChanged, this, &TimelineSession::canSaveChanged);
     connect(this, &TimelineSession::autosaveChanged, this, &TimelineSession::canSaveChanged);
