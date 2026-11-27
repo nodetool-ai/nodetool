@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { listObjectIds, type GltfNode } from "@nodetool-ai/model3d";
 
+import { isFigurePart } from "./figure";
+
 /**
  * glTF has no visibility flag, so a hidden object is saved with this key in its
  * node `extras` and hidden again when the file is loaded.
@@ -100,7 +102,10 @@ export const computeSceneStats = (root: THREE.Object3D): SceneStats => {
     if (isTarget) {
       return;
     }
-    stats.objects += 1;
+    // A figure is one object, though its joints still count as meshes.
+    if (!isFigurePart(node)) {
+      stats.objects += 1;
+    }
     if (node instanceof THREE.Light) {
       stats.lights += 1;
     }

@@ -11430,7 +11430,9 @@
         "directionalLight": "Suuntavalo",
         "pointLight": "Pistevalo",
         "spotLight": "Kohdevalo",
-        "empty": "Tyhjä objekti"
+        "empty": "Tyhjä objekti",
+        "figure": "Hahmo",
+        "camera": "Kamera"
       },
       "loading": {
         "saving": "Tallennetaan…",
@@ -11651,6 +11653,29 @@
       "decay": "Vaimeneminen",
       "angle": "Kulma",
       "penumbra": "Puolivarjo",
+      "figure": "Hahmo",
+      "figureBody": "Vartalo",
+      "figureBodies": {
+        "male": "Mies",
+        "female": "Nainen",
+        "child": "Lapsi"
+      },
+      "figurePose": "Asento",
+      "figurePoses": {
+        "stand": "Seisoo",
+        "sit": "Istuu",
+        "walk": "Kävelee",
+        "run": "Juoksee",
+        "lie": "Makaa"
+      },
+      "figureHeight": "Pituus",
+      "figureLabel": "Nimiö",
+      "figureEntity": "Roolihahmon tunnus",
+      "camera": "Kamera",
+      "cameraFov": "Näkökenttä",
+      "cameraAspect": "Kuvasuhde",
+      "cameraNear": "Lähi",
+      "cameraFar": "Kauko",
       "geometry": "Geometria",
       "material": "Materiaali",
       "slot": "Paikka",

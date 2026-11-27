@@ -20,8 +20,13 @@ const PRIMITIVE_KINDS = [
   "empty",
   "directionalLight",
   "pointLight",
-  "spotLight"
+  "spotLight",
+  "figure",
+  "camera"
 ] as const;
+
+const FIGURE_BODIES = ["male", "female", "child"] as const;
+const FIGURE_POSES = ["stand", "sit", "walk", "run", "lie"] as const;
 
 const vec3 = z.tuple([z.number(), z.number(), z.number()]);
 const targetParam = z
@@ -39,17 +44,88 @@ FrontendToolRegistry.register({
   }
 });
 
+const figureFields = {
+  body: z
+    .enum(FIGURE_BODIES)
+    .optional()
+    .describe("Figure body: male (about 1.8 m), female (about 1.65 m) or child (about 1.2 m)."),
+  pose: z.enum(FIGURE_POSES).optional().describe("Figure pose preset."),
+  height: z.number().optional().describe("Figure standing height in meters."),
+  color: z.string().optional().describe("Figure color as a CSS hex string."),
+  entityId: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("The cast entity the figure stands in for. Null clears it."),
+  label: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("A label for the figure, such as a character name. Null clears it.")
+};
+
+const cameraFields = {
+  fovDeg: z.number().optional().describe("Camera vertical field of view in degrees, 1 to 179."),
+  lookAt: vec3.optional().describe("An [x, y, z] point the camera is turned to face."),
+  aspectRatio: z.number().optional(),
+  znear: z.number().optional(),
+  zfar: z.number().optional()
+};
+
+const given = (fields: Record<string, unknown>): string[] =>
+  Object.keys(fields).filter((key) => fields[key] !== undefined);
+
 FrontendToolRegistry.register({
   name: "ui_3d_add_object",
   description:
-    "Add a primitive object to the 3D editor scene and select it. `kind` is one of box, sphere, plane, cylinder, torus, cone, empty (a group), directionalLight, pointLight, spotLight. Optionally provide a name; otherwise a unique default name is assigned.",
+    "Add an object to the 3D editor scene and select it. `kind` is one of box, sphere, plane, cylinder, torus, cone, empty (a group), directionalLight, pointLight, spotLight, figure, camera. Optionally provide a name; otherwise a unique default name is assigned. `position` places it. A figure is a jointed mannequin standing on y = 0 and facing +Z; it takes body, pose, height, color, entityId and label. A camera looks down its own -Z; it takes fovDeg and lookAt. Name a camera without spaces so a timeline clip can pick it by name.",
   parameters: z.object({
     kind: z.enum(PRIMITIVE_KINDS),
-    name: z.string().optional()
+    name: z.string().optional(),
+    position: vec3.optional(),
+    ...figureFields,
+    ...cameraFields
   }),
-  async execute({ kind, name }) {
-    const node = getModel3DToolHandler().addPrimitive(kind, name);
+  async execute({ kind, name, position, body, pose, height, color, entityId, label, ...camera }) {
+    const figure = { body, pose, height, color, entityId, label };
+    if (kind !== "figure" && given(figure).length > 0) {
+      throw new Error(`${given(figure).join(", ")} applies to kind "figure" only.`);
+    }
+    if (kind !== "camera" && given(camera).length > 0) {
+      throw new Error(`${given(camera).join(", ")} applies to kind "camera" only.`);
+    }
+    const node = getModel3DToolHandler().addPrimitive(kind, name, {
+      position,
+      figure: kind === "figure" ? figure : undefined,
+      camera: kind === "camera" ? camera : undefined
+    });
     return { ok: true, object: node };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_3d_set_figure",
+  description:
+    "Change a figure in the 3D editor: its body (male, female, child), pose (stand, sit, walk, run, lie), height in meters, color, entityId or label. Omitted fields stay as they are. A new body takes that body's default height unless height is given. Move and turn the figure with ui_3d_set_transform.",
+  parameters: z.object({ target: targetParam, ...figureFields }),
+  async execute({ target, ...patch }) {
+    if (given(patch).length === 0) {
+      throw new Error("ui_3d_set_figure needs at least one of body, pose, height, color, entityId or label.");
+    }
+    return { ok: true, object: getModel3DToolHandler().setFigure(target, patch) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_3d_set_camera",
+  description:
+    "Change a camera object in the 3D editor: move it with position, turn it to face a point with lookAt, and set its lens with fovDeg (vertical field of view in degrees), aspectRatio, znear and zfar. Omitted fields stay as they are. This edits a camera saved in the scene, not the viewport's own view.",
+  parameters: z.object({ target: targetParam, position: vec3.optional(), ...cameraFields }),
+  async execute({ target, ...patch }) {
+    if (given(patch).length === 0) {
+      throw new Error("ui_3d_set_camera needs at least one of position, lookAt, fovDeg, aspectRatio, znear or zfar.");
+    }
+    return { ok: true, object: getModel3DToolHandler().setCamera(target, patch) };
   }
 });
 
@@ -130,7 +206,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_3d_set_material_color",
   description:
-    "Set the base color of a mesh's material in the 3D editor. `color` is a CSS hex string like \"#ff8800\". Only applies to mesh objects with a colored material.",
+    "Set the base color of a mesh's material, or of a whole figure, in the 3D editor. `color` is a CSS hex string like \"#ff8800\". Only applies to figures and to mesh objects with a colored material.",
   parameters: z.object({
     target: targetParam,
     color: z.string()

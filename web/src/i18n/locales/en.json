@@ -11430,7 +11430,9 @@
         "directionalLight": "Directional light",
         "pointLight": "Point light",
         "spotLight": "Spot light",
-        "empty": "Empty object"
+        "empty": "Empty object",
+        "figure": "Figure",
+        "camera": "Camera"
       },
       "loading": {
         "saving": "Saving…",
@@ -11651,6 +11653,29 @@
       "decay": "Decay",
       "angle": "Angle",
       "penumbra": "Penumbra",
+      "figure": "Figure",
+      "figureBody": "Body",
+      "figureBodies": {
+        "male": "Male",
+        "female": "Female",
+        "child": "Child"
+      },
+      "figurePose": "Pose",
+      "figurePoses": {
+        "stand": "Stand",
+        "sit": "Sit",
+        "walk": "Walk",
+        "run": "Run",
+        "lie": "Lie"
+      },
+      "figureHeight": "Height",
+      "figureLabel": "Label",
+      "figureEntity": "Cast entity ID",
+      "camera": "Camera",
+      "cameraFov": "Field of view",
+      "cameraAspect": "Aspect ratio",
+      "cameraNear": "Near",
+      "cameraFar": "Far",
       "geometry": "Geometry",
       "material": "Material",
       "slot": "Slot",

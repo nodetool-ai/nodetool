@@ -11430,7 +11430,9 @@
         "directionalLight": "방향성 조명",
         "pointLight": "포인트 라이트",
         "spotLight": "스포트라이트",
-        "empty": "빈 개체"
+        "empty": "빈 개체",
+        "figure": "피규어",
+        "camera": "카메라"
       },
       "loading": {
         "saving": "저장 중…",
@@ -11651,6 +11653,29 @@
       "decay": "디케이",
       "angle": "각도",
       "penumbra": "반그림자",
+      "figure": "피규어",
+      "figureBody": "체형",
+      "figureBodies": {
+        "male": "남성",
+        "female": "여성",
+        "child": "어린이"
+      },
+      "figurePose": "포즈",
+      "figurePoses": {
+        "stand": "서기",
+        "sit": "앉기",
+        "walk": "걷기",
+        "run": "달리기",
+        "lie": "눕기"
+      },
+      "figureHeight": "키",
+      "figureLabel": "레이블",
+      "figureEntity": "캐스트 엔티티 ID",
+      "camera": "카메라",
+      "cameraFov": "시야각",
+      "cameraAspect": "화면비",
+      "cameraNear": "근거리",
+      "cameraFar": "원거리",
       "geometry": "기하학",
       "material": "소재",
       "slot": "슬롯",

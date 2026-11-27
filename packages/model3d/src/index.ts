@@ -1,4 +1,5 @@
 export * from "./animations.js";
+export * from "./figure.js";
 export * from "./gltf.js";
 export * from "./math.js";
 export * from "./operations.js";

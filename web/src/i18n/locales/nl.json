@@ -11430,7 +11430,9 @@
         "directionalLight": "Richtbaar licht",
         "pointLight": "Puntlicht",
         "spotLight": "Vleklicht",
-        "empty": "Leeg voorwerp"
+        "empty": "Leeg voorwerp",
+        "figure": "Figuur",
+        "camera": "Camera"
       },
       "loading": {
         "saving": "Opslaan…",
@@ -11651,6 +11653,29 @@
       "decay": "Verval",
       "angle": "Hoek",
       "penumbra": "Halfschaduw",
+      "figure": "Figuur",
+      "figureBody": "Lichaam",
+      "figureBodies": {
+        "male": "Man",
+        "female": "Vrouw",
+        "child": "Kind"
+      },
+      "figurePose": "Houding",
+      "figurePoses": {
+        "stand": "Staan",
+        "sit": "Zitten",
+        "walk": "Lopen",
+        "run": "Rennen",
+        "lie": "Liggen"
+      },
+      "figureHeight": "Lengte",
+      "figureLabel": "Label",
+      "figureEntity": "Cast-entiteit-ID",
+      "camera": "Camera",
+      "cameraFov": "Gezichtsveld",
+      "cameraAspect": "Beeldverhouding",
+      "cameraNear": "Dichtbij",
+      "cameraFar": "Ver",
       "geometry": "Geometrie",
       "material": "Materiaal",
       "slot": "Sleuf",

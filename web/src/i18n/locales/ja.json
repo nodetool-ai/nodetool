@@ -11430,7 +11430,9 @@
         "directionalLight": "指向性ライト",
         "pointLight": "ポイントライト",
         "spotLight": "スポットライト",
-        "empty": "空のオブジェクト"
+        "empty": "空のオブジェクト",
+        "figure": "フィギュア",
+        "camera": "カメラ"
       },
       "loading": {
         "saving": "保存中…",
@@ -11651,6 +11653,29 @@
       "decay": "ディケイ",
       "angle": "角度",
       "penumbra": "半影",
+      "figure": "フィギュア",
+      "figureBody": "体型",
+      "figureBodies": {
+        "male": "男性",
+        "female": "女性",
+        "child": "子ども"
+      },
+      "figurePose": "ポーズ",
+      "figurePoses": {
+        "stand": "立つ",
+        "sit": "座る",
+        "walk": "歩く",
+        "run": "走る",
+        "lie": "横たわる"
+      },
+      "figureHeight": "身長",
+      "figureLabel": "ラベル",
+      "figureEntity": "キャストエンティティ ID",
+      "camera": "カメラ",
+      "cameraFov": "視野角",
+      "cameraAspect": "アスペクト比",
+      "cameraNear": "ニア",
+      "cameraFar": "ファー",
       "geometry": "ジオメトリ",
       "material": "材質",
       "slot": "スロット",

@@ -107,6 +107,22 @@ export interface GltfSkin {
   [key: string]: unknown;
 }
 
+/** A camera, as glTF core declares it. */
+export interface GltfCamera {
+  type: "perspective" | "orthographic";
+  name?: string;
+  perspective?: {
+    /** Vertical field of view in radians. */
+    yfov: number;
+    znear: number;
+    zfar?: number;
+    aspectRatio?: number;
+    [key: string]: unknown;
+  };
+  orthographic?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 /** A punctual light, as `KHR_lights_punctual` declares it. */
 export interface GltfPunctualLight {
   type: "directional" | "point" | "spot";

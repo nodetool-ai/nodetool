@@ -12,6 +12,7 @@ import { Environment, Html, Lightformer } from "@react-three/drei";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import FlashlightOnIcon from "@mui/icons-material/FlashlightOn";
+import VideocamIcon from "@mui/icons-material/Videocam";
 
 import { BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import {
@@ -465,6 +466,151 @@ export const LightGizmos = memo(
   }
 );
 LightGizmos.displayName = "LightGizmos";
+
+/** How far in front of a scene camera its frustum outline is drawn. */
+const CAMERA_FRUSTUM_DEPTH = 0.8;
+
+/** The outline of a camera's view: four edges from the eye and the far frame. */
+const frustumPoints = (camera: THREE.Camera): THREE.Vector3[] => {
+  const lens = camera instanceof THREE.PerspectiveCamera ? camera : null;
+  const halfHeight = lens
+    ? Math.tan(THREE.MathUtils.degToRad(lens.fov) / 2) * CAMERA_FRUSTUM_DEPTH
+    : CAMERA_FRUSTUM_DEPTH / 2;
+  const halfWidth = halfHeight * (lens ? lens.aspect : 1);
+  const corners = [
+    new THREE.Vector3(-halfWidth, halfHeight, -CAMERA_FRUSTUM_DEPTH),
+    new THREE.Vector3(halfWidth, halfHeight, -CAMERA_FRUSTUM_DEPTH),
+    new THREE.Vector3(halfWidth, -halfHeight, -CAMERA_FRUSTUM_DEPTH),
+    new THREE.Vector3(-halfWidth, -halfHeight, -CAMERA_FRUSTUM_DEPTH)
+  ];
+  const eye = new THREE.Vector3();
+  return corners.flatMap((corner, index) => [
+    eye,
+    corner,
+    corner,
+    corners[(index + 1) % corners.length]
+  ]);
+};
+
+interface CameraIconProps {
+  camera: THREE.Camera;
+  selected: boolean;
+  palette: GizmoPalette;
+  onSelect: (uuid: string) => void;
+}
+
+const CameraIcon = memo(({ camera, selected, palette, onSelect }: CameraIconProps) => {
+  const { t } = useTranslation();
+  const group = useRef<THREE.Group>(null);
+  const icon = useRef<HTMLDivElement>(null);
+  const lines = useMemo(() => {
+    const segments = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints(frustumPoints(camera)),
+      new THREE.LineBasicMaterial({ transparent: true, opacity: 0.9 })
+    );
+    segments.raycast = () => {};
+    return segments;
+  }, [camera]);
+  const lensKey = useRef("");
+
+  useEffect(
+    () => () => {
+      lines.geometry.dispose();
+      (lines.material as THREE.Material).dispose();
+    },
+    [lines]
+  );
+
+  useFrame(() => {
+    if (!group.current) {
+      return;
+    }
+    camera.updateWorldMatrix(true, false);
+    camera.matrixWorld.decompose(
+      group.current.position,
+      group.current.quaternion,
+      group.current.scale
+    );
+    // The outline keeps its size whatever scale the camera node carries.
+    group.current.scale.set(1, 1, 1);
+    const shown = isVisibleInTree(camera) && isInScene(camera);
+    group.current.visible = shown;
+    if (icon.current) {
+      icon.current.style.visibility = shown ? "visible" : "hidden";
+    }
+    // The icon is memoized on the camera object, so a lens edit or its undo
+    // does not re-render it. Follow the lens here.
+    const key =
+      camera instanceof THREE.PerspectiveCamera ? `${camera.fov}:${camera.aspect}` : "";
+    if (key !== lensKey.current) {
+      lensKey.current = key;
+      lines.geometry.setFromPoints(frustumPoints(camera));
+    }
+    (lines.material as THREE.LineBasicMaterial).color.set(
+      selected ? palette.accent : palette.border
+    );
+  });
+
+  return (
+    <group ref={group}>
+      <primitive object={lines} />
+      <Html zIndexRange={[Z_INDEX.raised, Z_INDEX.base]} style={{ pointerEvents: "none" }}>
+        <div
+          ref={icon}
+          role="button"
+          tabIndex={-1}
+          aria-label={t("i18n-next38.lightGizmo.select", { name: camera.name || camera.type })}
+          title={camera.name || camera.type}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onSelect(camera.uuid);
+          }}
+          style={{
+            ...LIGHT_ICON_STYLE,
+            pointerEvents: "auto",
+            color: palette.accent,
+            background: palette.surface,
+            boxShadow: `0 0 0 ${selected ? 2 : 1}px ${selected ? palette.accent : palette.border}`
+          }}
+        >
+          <VideocamIcon fontSize="small" />
+        </div>
+      </Html>
+    </group>
+  );
+});
+CameraIcon.displayName = "CameraIcon";
+
+/** A clickable icon and a view outline for every camera saved in the scene. */
+export const CameraGizmos = memo(
+  ({ root, tick, selectedUuid, palette, onSelect }: LightGizmosProps) => {
+    const cameras = useMemo(() => {
+      void tick;
+      const found: THREE.Camera[] = [];
+      root.traverse((node) => {
+        if (node instanceof THREE.Camera) {
+          found.push(node);
+        }
+      });
+      return found;
+    }, [root, tick]);
+
+    return (
+      <>
+        {cameras.map((camera) => (
+          <CameraIcon
+            key={camera.uuid}
+            camera={camera}
+            selected={camera.uuid === selectedUuid}
+            palette={palette}
+            onSelect={onSelect}
+          />
+        ))}
+      </>
+    );
+  }
+);
+CameraGizmos.displayName = "CameraGizmos";
 
 interface WireframeOverlayProps {
   root: THREE.Object3D;

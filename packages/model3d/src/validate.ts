@@ -10,6 +10,7 @@
  */
 
 import type { GltfJson } from "./gltf.js";
+import { FIGURE_EXTRA, FIGURE_JOINTS, FIGURE_PART_EXTRA, isFigureJoint } from "./figure.js";
 import { listScene } from "./scene.js";
 
 export type Model3DIssueSeverity = "error" | "warning";
@@ -438,6 +439,61 @@ function checkDocument(json: GltfJson): Model3DValidation {
     );
   }
 
+  // A figure's joint nodes are not addressable, so their names cannot clash.
+  const isPart = (extras: unknown): boolean =>
+    isRecord(extras) && isFigureJoint(extras[FIGURE_PART_EXTRA]);
+
+  cameras.forEach((camera, index) => {
+    const path = `cameras[${index}]`;
+    if (!isRecord(camera)) {
+      error(`${path} must be an object.`, path);
+      return;
+    }
+    if (camera.type === "perspective") {
+      const lens = isRecord(camera.perspective) ? camera.perspective : {};
+      const yfov = lens.yfov;
+      const znear = lens.znear;
+      if (typeof yfov !== "number" || !(yfov > 0 && yfov < Math.PI)) {
+        error(`${path}.perspective.yfov must be between 0 and pi radians.`, path);
+      }
+      if (typeof znear !== "number" || !(znear > 0)) {
+        error(`${path}.perspective.znear must be above 0.`, path);
+      }
+    } else if (camera.type !== "orthographic") {
+      error(`${path}.type is "${String(camera.type)}"; expected perspective or orthographic.`, path);
+    }
+  });
+
+  // A figure is posed through its joint nodes, so one that lost a joint can
+  // still render but no longer takes a pose.
+  nodes.forEach((node, index) => {
+    if (!isRecord(node.extras) || !isRecord(node.extras[FIGURE_EXTRA])) {
+      return;
+    }
+    const joints = new Set<unknown>();
+    const stack = [...(node.children ?? [])];
+    const seen = new Set<number>();
+    while (stack.length > 0) {
+      const child = stack.pop() as number;
+      if (seen.has(child) || !inRange(child, nodes.length)) {
+        continue;
+      }
+      seen.add(child);
+      const extras = nodes[child].extras;
+      if (isPart(extras)) {
+        joints.add((extras as Record<string, unknown>)[FIGURE_PART_EXTRA]);
+      }
+      stack.push(...(nodes[child].children ?? []));
+    }
+    const missing = FIGURE_JOINTS.filter((joint) => !joints.has(joint));
+    if (missing.length > 0) {
+      warn(
+        `Figure "${node.name ?? index}" is missing its ${missing.join(", ")} joint(s) and cannot be posed with set_figure.`,
+        `nodes[${index}]`
+      );
+    }
+  });
+
   const objects = listScene(json);
   if (objects.length === 0) {
     warn("The scene is empty — add an object before rendering it.", "scenes");
@@ -453,7 +509,7 @@ function checkDocument(json: GltfJson): Model3DValidation {
   const byName = new Map<string, number>();
   for (const node of nodes) {
     const key = (node.name ?? "").trim().toLowerCase();
-    if (!key) {
+    if (!key || isPart(node.extras)) {
       continue;
     }
     byName.set(key, (byName.get(key) ?? 0) + 1);
