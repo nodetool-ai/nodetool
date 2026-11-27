@@ -6,11 +6,12 @@
 
 #include <QColor>
 #include <QFont>
-#include <QQuickPaintedItem>
+#include "ui/SceneLayerItem.h"
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
 
-class MonitorRulerCanvas : public QQuickPaintedItem {
+// GUI thread prepares ticks and labels. SceneLayerItem owns the render handoff.
+class MonitorRulerCanvas : public SceneLayerItem {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(bool vertical READ vertical WRITE setVertical NOTIFY changed)
@@ -43,7 +44,7 @@ public:
     void setFont(const QFont& value);
     QVariantList ticks() const;
 
-    void paint(QPainter* painter) override;
+    void prepare() override;
 
 signals:
     void changed();

@@ -12,13 +12,14 @@
 #include <QPointer>
 #include <QColor>
 #include <QFont>
-#include <QQuickPaintedItem>
+#include "ui/SceneLayerItem.h"
+#include "markers/MarkerWindowModel.h"
 #include <QVariantList>
 #include <vector>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 // UI thread only.
-class RulerCanvas : public QQuickPaintedItem {
+class RulerCanvas : public SceneLayerItem {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
@@ -36,8 +37,6 @@ class RulerCanvas : public QQuickPaintedItem {
     // -1: not set.
     Q_PROPERTY(double rangeInMs READ rangeInMs WRITE setRangeInMs NOTIFY changed)
     Q_PROPERTY(double rangeOutMs READ rangeOutMs WRITE setRangeOutMs NOTIFY changed)
-    // The document's markers ({timeMs, color?}).
-    Q_PROPERTY(QVariantList markers READ markers WRITE setMarkers NOTIFY changed)
     Q_PROPERTY(int paintCount READ paintCount NOTIFY painted)
     Q_PROPERTY(int labelCount READ labelCount NOTIFY painted)
 
@@ -72,12 +71,11 @@ public:
     void setRangeInMs(double v);
     double rangeOutMs() const { return m_rangeOutMs; }
     void setRangeOutMs(double v);
-    QVariantList markers() const { return m_markers; }
-    void setMarkers(const QVariantList& markers);
+    QVariantList markers() const { return m_timeline ? m_timeline->markers() : QVariantList{}; }
     int paintCount() const { return m_paintCount; }
     int labelCount() const { return m_labelCount; }
 
-    void paint(QPainter* painter) override;
+    void prepare() override;
 
 signals:
     void changed();
@@ -104,7 +102,7 @@ private:
     QColor m_marker;
     double m_rangeInMs = -1;
     double m_rangeOutMs = -1;
-    QVariantList m_markers;
+    MarkerWindowModel m_markerModel;
     int m_paintCount = 0;
     int m_labelCount = 0;
 };

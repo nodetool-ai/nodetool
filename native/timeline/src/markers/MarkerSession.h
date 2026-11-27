@@ -11,6 +11,7 @@
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+// GUI thread only.
 class MarkerSession : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -33,8 +34,6 @@ public:
 
     // The palette: {id, name, css}.
     Q_INVOKABLE QVariantList colors() const;
-    // The markers that pass the search text and colour filter, in time order.
-    Q_INVOKABLE QVariantList rows(const QVariantList& markers, const QString& query, const QString& color) const;
     Q_INVOKABLE QString timecode(double ms, double fps) const;
     Q_INVOKABLE QString csv(const QVariantList& markers, double fps) const;
     // Writes the CSV atomically. Returns an empty string, or what went wrong.

@@ -18,6 +18,7 @@ nt_qml_files(qml/Tracks/TrackHeader.qml)
 nt_qml_files(qml/Tracks/TrackIconButton.qml)
 nt_qml_files(qml/Tracks/TrackLane.qml)
 nt_qml_files(qml/Tracks/Clip.qml)
+nt_qml_files(qml/Tracks/ClipLaneRow.qml)
 nt_qml_files(qml/Tracks/ClipBody.qml)
 nt_qml_files(qml/Tracks/FadeRamp.qml)
 nt_qml_files(qml/Tracks/Playhead.qml)
@@ -29,6 +30,8 @@ nt_qml_files(qml/Tracks/ToolbarDivider.qml)
 nt_qml_files(qml/Tracks/ToolToggle.qml)
 nt_qml_files(qml/Tracks/ShortcutsSheet.qml)
 nt_sources(qml
+    src/ui/SceneLayerItem.h
+    src/ui/SceneLayerItem.cpp
     src/ui/MonitorViewState.h
     src/ui/MonitorViewState.cpp
     src/ui/MonitorRulerCanvas.h

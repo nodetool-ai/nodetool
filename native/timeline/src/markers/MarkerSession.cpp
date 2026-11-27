@@ -50,14 +50,6 @@ QVariantList MarkerSession::colors() const {
     return list;
 }
 
-QVariantList MarkerSession::rows(const QVariantList& markers, const QString& query, const QString& color) const {
-    QVariantList list;
-    for (const auto& m : nt::markers::sorted(toArray(markers))) {
-        if (nt::markers::matches(m, query.trimmed(), color)) { list.append(m.toVariantMap()); }
-    }
-    return list;
-}
-
 QString MarkerSession::timecode(double ms, double fps) const { return nt::markers::timecode(ms, fps); }
 
 QString MarkerSession::csv(const QVariantList& markers, double fps) const { return nt::markers::toCsv(toArray(markers), fps); }

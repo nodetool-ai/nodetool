@@ -17,9 +17,14 @@ Rectangle {
     property TimelineModel timeline: null
     property ClipGestureController gestures: null
     property double fps: 30
-    // The document's markers ({id, timeMs, label, color?, note?, durationMs?, author?}).
-    // JSON data from the document, controller, or shared JavaScript API.
-    property var markers: []
+    // Only markers intersecting the viewport and its overscan create flags.
+    MarkerWindowModel {
+        id: markerWindow
+        retainWindow: true
+        timeline: ruler.timeline
+        fromMs: (ruler.viewState.scrollLeftPx - 200) * ruler.viewState.msPerPx
+        toMs: (ruler.viewState.scrollLeftPx + ruler.width + 200) * ruler.viewState.msPerPx
+    }
     signal seekRequested(real ms)
     // A press or drag on the ruler: the transport plays a short burst of audio.
     signal scrubRequested(real ms)
@@ -52,7 +57,6 @@ Rectangle {
         markerColor: Ui.Theme.accentPrimary
         rangeInMs: ruler.viewState.rangeInMs
         rangeOutMs: ruler.viewState.rangeOutMs
-        markers: ruler.markers
     }
 
     // borderBottom: 1px divider.
@@ -81,7 +85,7 @@ Rectangle {
                 if (!ruler.rulerMenu) return
                 const px = mouse.x
                 const py = mouse.y
-                const context = { timeMs: ruler.viewState.timeAtViewportX(mouse.x), editable: true, kind: "ruler", gestures: ruler.gestures, rulerMode: ruler.viewState.rulerMode, hasMarkers: ruler.markers.length > 0 }
+                const context = { timeMs: ruler.viewState.timeAtViewportX(mouse.x), editable: true, kind: "ruler", gestures: ruler.gestures, rulerMode: ruler.viewState.rulerMode, hasMarkers: markerWindow.sourceCount > 0 }
                 ruler.rulerMenu.retarget(this, anchor => {
                     ruler.rulerMenu.context = context
                     if (MenuRegistry.query("ruler", context).length > 0) ruler.rulerMenu.popupAt(anchor, px, py)
@@ -132,31 +136,34 @@ Rectangle {
         width: parent.width
         height: parent.height
         Repeater {
-            model: ruler.markers
+            model: markerWindow
             // A marker is a small pentagon glyph centred on its time, as in Premiere.
             // The ruler draws no name, so a marker never covers the playhead or a
             // close neighbour. Hover shows the name, timecode and note.
             delegate: Item {
                 id: flag
-                // JSON record supplied by the delegate model.
-                required property var modelData
-                readonly property double contentPx: modelData.timeMs / ruler.viewState.msPerPx
-                readonly property string label: modelData.label ? modelData.label : "Marker"
-                readonly property bool chosen: MarkerSession.selectedIds.indexOf(modelData.id) >= 0
-                readonly property double durationPx: (modelData.durationMs ?? 0) / ruler.viewState.msPerPx
-                readonly property color color: modelData.color ? modelData.color : Ui.Theme.accentPrimary
+                // Typed row supplied by the window model.
+                required property markerRow marker
+                readonly property double contentPx: marker.timeMs / ruler.viewState.msPerPx
+                readonly property string label: marker.label ? marker.label : "Marker"
+                readonly property bool chosen: MarkerSession.selectedIds.indexOf(marker.id) >= 0
+                readonly property double durationPx: (marker.durationMs ?? 0) / ruler.viewState.msPerPx
+                readonly property color color: marker.color ? marker.color : Ui.Theme.accentPrimary
                 objectName: "timelineMarker"
-                visible: contentPx >= ruler.viewState.scrollLeftPx - 200
-                         && contentPx <= ruler.viewState.scrollLeftPx + ruler.width + 200
+                readonly property bool glyphInViewport: contentPx + width / 2 >= ruler.viewState.scrollLeftPx
+                    && contentPx - width / 2 <= ruler.viewState.scrollLeftPx + ruler.width
+                visible: true
                 width: Ui.Metrics.md
                 height: ruler.height * 0.34
                 x: contentPx - width / 2
                 y: Ui.Metrics.border
                 Accessible.role: Accessible.Button
-                Accessible.name: label + (modelData.note ? ", " + modelData.note : "")
+                Accessible.name: label + (marker.note ? ", " + marker.note : "")
                 Accessible.selected: chosen
+                Accessible.ignored: !glyphInViewport
                 Shape {
                     objectName: "markerGlyph"
+                    visible: flag.glyphInViewport
                     anchors.fill: parent
                     preferredRendererType: Shape.CurveRenderer
                     ShapePath {
@@ -175,10 +182,10 @@ Rectangle {
                     objectName: "markerTooltip"
                     trigger: flag
                     visible: flagHover.hovered
-                    text: flag.label + "  " + MarkerSession.timecode(flag.modelData.timeMs, ruler.fps)
-                          + (flag.modelData.note ? "\n" + flag.modelData.note : "")
+                    text: flag.label + "  " + MarkerSession.timecode(flag.marker.timeMs, ruler.fps)
+                          + (flag.marker.note ? "\n" + flag.marker.note : "")
                 }
-                HoverHandler { id: flagHover; cursorShape: Qt.PointingHandCursor }
+                HoverHandler { id: flagHover; enabled: flag.glyphInViewport; cursorShape: Qt.PointingHandCursor }
                 // A range marker shows its name inside the bar, as in Premiere. The name is
                 // elided to the span and is hidden when less than a few characters fit.
                 Ui.Text {
@@ -203,12 +210,14 @@ Rectangle {
                         property double draftMs: -1
                         function msAt(mouseX) {
                             const at = ruler.viewState.timeAtViewportX(mapToItem(ruler, mouseX, 0).x)
-                            return Math.max(0, Math.round(at - flag.modelData.timeMs))
+                            return Math.max(0, Math.round(at - flag.marker.timeMs))
                         }
                         x: flag.width / 2 + flag.durationPx - width / 2
                         y: -flag.y
                         width: Ui.Metrics.md
                         height: ruler.height
+                        enabled: pressed || flag.contentPx + flag.durationPx >= ruler.viewState.scrollLeftPx - width / 2
+                            && flag.contentPx + flag.durationPx <= ruler.viewState.scrollLeftPx + ruler.width + width / 2
                         cursorShape: Qt.SizeHorCursor
                         preventStealing: true
                         onPressed: mouse => { draftMs = msAt(mouse.x) }
@@ -216,8 +225,8 @@ Rectangle {
                         onReleased: mouse => {
                             const ms = msAt(mouse.x)
                             draftMs = -1
-                            if (ms !== flag.modelData.durationMs && ruler.timeline)
-                                ruler.timeline.applyEdit("markers.update", { ids: [flag.modelData.id], patch: { durationMs: ms } })
+                            if (ms !== flag.marker.durationMs && ruler.timeline)
+                                ruler.timeline.applyEdit("markers.update", { ids: [flag.marker.id], patch: { durationMs: ms } })
                         }
                         onCanceled: draftMs = -1
                         // The range as dragged, from the marker's time.
@@ -247,6 +256,7 @@ Rectangle {
                 MouseArea {
                     id: seekArea
                     objectName: "markerSeek"
+                    enabled: flag.glyphInViewport || pressed
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     preventStealing: true
@@ -256,7 +266,7 @@ Rectangle {
                     property bool suppressClick: false
                     function altMsAt(mouseX) {
                         const at = ruler.viewState.timeAtViewportX(mapToItem(ruler, mouseX, 0).x)
-                        return Math.max(0, Math.round(at - flag.modelData.timeMs))
+                        return Math.max(0, Math.round(at - flag.marker.timeMs))
                     }
                     onPressed: mouse => {
                         if (mouse.button === Qt.LeftButton && (mouse.modifiers & Qt.AltModifier)) altDraftMs = altMsAt(mouse.x)
@@ -266,8 +276,8 @@ Rectangle {
                         if (altDraftMs < 0) return
                         const ms = altMsAt(mouse.x)
                         altDraftMs = -1
-                        if (ms !== (flag.modelData.durationMs ?? 0) && ruler.timeline)
-                            ruler.timeline.applyEdit("markers.update", { ids: [flag.modelData.id], patch: { durationMs: ms } })
+                        if (ms !== (flag.marker.durationMs ?? 0) && ruler.timeline)
+                            ruler.timeline.applyEdit("markers.update", { ids: [flag.marker.id], patch: { durationMs: ms } })
                         suppressClick = true
                     }
                     onCanceled: altDraftMs = -1
@@ -284,23 +294,23 @@ Rectangle {
                     onClicked: mouse => {
                         if (suppressClick) { suppressClick = false; return }
                         if (mouse.button === Qt.RightButton) {
-                            if (!flag.chosen) MarkerSession.select(flag.modelData.id)
+                            if (!flag.chosen) MarkerSession.select(flag.marker.id)
                             if (!ruler.markerMenu) ruler.markerMenu = markerMenuComponent.createObject(ruler)
                             if (!ruler.markerMenu) return
                             const px = mouse.x
                             const py = mouse.y
-                            const context = { markerId: flag.modelData.id, timeMs: flag.modelData.timeMs, color: flag.modelData.color ?? "", editable: true }
+                            const context = { markerId: flag.marker.id, timeMs: flag.marker.timeMs, color: flag.marker.color ?? "", editable: true }
                             ruler.markerMenu.retarget(this, anchor => {
                                 ruler.markerMenu.context = context
                                 ruler.markerMenu.popupAt(anchor, px, py)
                             })
                         } else {
-                            MarkerSession.select(flag.modelData.id, (mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0)
-                            if (!(mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier))) ruler.seekRequested(flag.modelData.timeMs)
+                            MarkerSession.select(flag.marker.id, (mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0)
+                            if (!(mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier))) ruler.seekRequested(flag.marker.timeMs)
                         }
                     }
                     onDoubleClicked: mouse => {
-                        if (mouse.button === Qt.LeftButton) MarkerSession.requestEdit(flag.modelData.id)
+                        if (mouse.button === Qt.LeftButton) MarkerSession.requestEdit(flag.marker.id)
                     }
                 }
             }

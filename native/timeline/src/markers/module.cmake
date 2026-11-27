@@ -1,5 +1,5 @@
 nt_sources(core src/markers/MarkerOps.h src/markers/MarkerOps.cpp)
-nt_qml_sources(src/markers/MarkerSession.h src/markers/MarkerSession.cpp src/markers/MarkerRegistrations.cpp)
+nt_qml_sources(src/markers/MarkerWindowModel.h src/markers/MarkerWindowModel.cpp src/markers/MarkerSession.h src/markers/MarkerSession.cpp src/markers/MarkerRegistrations.cpp)
 nt_sources(app src/markers/MarkerPanels.cpp)
 function(nt_marker_tests)
     qt_add_executable(tst_markerops src/markers/tst_markerops.cpp)

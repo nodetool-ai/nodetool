@@ -1,3 +1,4 @@
+#include "audio/automation/AutomationLayerItem.h"
 #include "../../../tests/RequireValue.h"
 #include <QDir>
 #include "../../../tests/TestAssetCacheRoot.h"
@@ -1554,11 +1555,95 @@ track: ({id:"a",type:"audio"}); lane: ({id:"virtual",target:{kind:"mixer",param:
         lane->setProperty("dragging",true); lane->setProperty("selected",4);
         QVERIFY(std::isfinite(item("automation-value-label")->x()));
     }
-    void boundedCanvasF16() {
+    void draftRevisionUpdatesSceneCurve() {
+        QVERIFY(open(R"(AutomationLaneView { width:600; required timeline
+track: ({id:"a",type:"audio"}); lane: ({id:"virtual",target:{kind:"mixer",param:"volumeDb"},points:[]})
+function beginDraft() { draft=[{timeMs:1000,value:-6}]; dragging=true }
+function moveDraft() { draft[0]={timeMs:2000,value:-12}; ++draftRevision }
+})"));
+        QVERIFY(QMetaObject::invokeMethod(root.get(),"beginDraft"));
+        auto* curve=qobject_cast<AutomationLayerItem*>(item("automation-curve-canvas"));
+        QVERIFY(curve);
+        QSignalSpy changed(curve,&AutomationLayerItem::pointsChanged);
+        QVERIFY(QMetaObject::invokeMethod(root.get(),"moveDraft"));
+        QCOMPARE(changed.count(),1);
+    }
+    void sceneCurveClipsToItsTile() {
+        AutomationLayerItem curve;
+        QVERIFY(curve.clip());
+    }
+    void invalidCurveViewportDoesNotVisitPoints() {
+        AutomationLayerItem curve;
+        curve.setWidth(100); curve.setHeight(56);
+        curve.setPoints({QVariantMap{{"timeMs",0},{"value",.5}}});
+        curve.setProperty("contentLeft",std::numeric_limits<double>::infinity());
+        curve.ensurePolished();
+        QCOMPARE(curve.paintedPointCount(),0);
+    }
+    void disabledSelectedPointUsesDisabledStroke() {
+        QVERIFY(open(R"(AutomationLaneView { width:600; required timeline
+track: ({id:"a",type:"audio"}); selected:0
+lane: ({id:"virtual",enabled:false,target:{kind:"mixer",param:"volumeDb"},points:[{timeMs:1000,value:-6}]}) })"));
+        auto* curve=item("automation-curve-canvas");
+        QVERIFY(curve);
+        QCOMPARE(curve->property("selectedColor").value<QColor>(),curve->property("stroke").value<QColor>());
+    }
+    void invalidPointsPreserveSelectionAndPaintingVisits() {
+        QVERIFY(open(R"(Rectangle { width:400; height:100; color:"black"; required property TimelineModel timeline
+AutomationLayerItem { objectName:"curve"; width:400; height:56; stroke:"red"; selectedColor:"white"; pointRadius:4 }
+})"));
+        auto* curve=qobject_cast<AutomationLayerItem*>(item("curve"));
+        QVERIFY(curve);
+        const QVariantMap point{{"timeMs",1000},{"value",.5}};
+        curve->setProperty("selected",0);
+        curve->setPoints({point});
+        curve->ensurePolished();
+        const auto before=window->grabWindow();
+        QVERIFY(!before.isNull());
+        const double nan=std::numeric_limits<double>::quiet_NaN();
+        curve->setProperty("selected",1);
+        curve->setPoints({QVariantMap{{"timeMs",nan},{"value",nan}},point});
+        curve->ensurePolished();
+        QCOMPARE(curve->paintedPointCount(),1);
+        QCOMPARE(window->grabWindow(),before);
+    }
+    void selectionRingAndPaintVisitsFollowTheLane() {
+        QVERIFY(open(R"(import NodeTool.UiPrimitives as Ui
+AutomationLaneView { width:600; required timeline
+readonly property real expectedFocus:Ui.Metrics.focus
+track: ({id:"a",type:"audio"}); selected:0
+lane: ({id:"virtual",target:{kind:"mixer",param:"volumeDb"},points:[{timeMs:1000,value:-6}]}) })"));
+        auto* curve=item("automation-curve-canvas");
+        QVERIFY(curve);
+        QCOMPARE(curve->property("selectionWidth").toDouble(),root->property("expectedFocus").toDouble());
+        root->setProperty("pointVisits",0);
+        qobject_cast<AutomationLayerItem*>(curve)->requestPaint();
+        curve->ensurePolished();
+        QVERIFY(root->property("pointVisits").toInt()>0);
+    }
+    void densityNotificationSchedulesLayerPreparation() {
+        // GUI thread only, matching the item-change notification delivered by Qt.
+        class DensityCurve : public AutomationLayerItem {
+        public:
+            void changeDensity() { itemChange(ItemDevicePixelRatioHasChanged,ItemChangeData(2.)); }
+        };
+        QQuickWindow view;
+        DensityCurve curve;
+        curve.setParentItem(view.contentItem());
+        curve.setWidth(100); curve.setHeight(56);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        QVERIFY(!view.grabWindow().isNull());
+        QSignalSpy prepared(&curve,&AutomationLayerItem::prepared);
+        curve.changeDensity();
+        view.grabWindow();
+        QCOMPARE(prepared.count(),1);
+    }
+    void boundedSceneLayerF16() {
         QVERIFY(open(R"(AutomationLaneView { width:300000; required timeline; viewportLeft:100; viewportWidth:600; track: ({id:"a",type:"audio"}); lane: ({id:"lane",target:{kind:"mixer",param:"volumeDb"},points:[]}) })"));
         auto* lane=qobject_cast<QQuickItem*>(root.get());
         QQuickItem* canvas=nullptr;
-        for (auto* child:lane->childItems()) { if (child->inherits("QQuickCanvasItem")) { canvas=child; break; } }
+        for (auto* child:lane->childItems()) { if (qobject_cast<AutomationLayerItem*>(child)) { canvas=child; break; } }
         QVERIFY(canvas);
         // A retained tile covers the viewport with at most one viewport of overscan.
         QVERIFY(canvas->width()<=1200);

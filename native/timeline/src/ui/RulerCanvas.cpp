@@ -4,21 +4,20 @@
 #include <QJsonDocument>
 
 #include <QFontMetricsF>
-#include <QPainter>
+
 
 #include <algorithm>
 #include <cmath>
 
-RulerCanvas::RulerCanvas(QQuickItem* parent) : QQuickPaintedItem(parent) {
-    setAntialiasing(true);
-    setOpaquePainting(true);
+RulerCanvas::RulerCanvas(QQuickItem* parent) : SceneLayerItem(parent) {
+
     connect(this, &QQuickItem::widthChanged, this, &RulerCanvas::changedValue);
     connect(this, &QQuickItem::heightChanged, this, &RulerCanvas::changedValue);
 }
 
 void RulerCanvas::changedValue() {
     emit changed();
-    update();
+    requestPaint();
 }
 
 void RulerCanvas::setMsPerPx(double v) {
@@ -42,7 +41,6 @@ void RulerCanvas::setFps(double v) {
 void RulerCanvas::setBackground(const QColor& c) {
     if (c == m_background) return;
     m_background = c;
-    setFillColor(c);
     changedValue();
 }
 
@@ -82,75 +80,38 @@ void RulerCanvas::setRangeOutMs(double v) {
     changedValue();
 }
 
-void RulerCanvas::setMarkers(const QVariantList& markers) {
-    if (markers == m_markers) return;
-    m_markers = markers;
-    changedValue();
-}
-
-void RulerCanvas::paint(QPainter* painter) {
+void RulerCanvas::prepare() {
     ++m_paintCount;
-    const double w = width();
-    const double h = height();
-    painter->fillRect(QRectF(0, 0, w, h), m_background);
-    if (w <= 0 || h <= 0 || m_msPerPx <= 0) {
-        m_labelCount = 0;
-        emit painted();
-        return;
-    }
-    // In/out range: a band at 18 % from the in point (or 0) to the out point
-    // (or the right edge), with a 2 px line at each point that is set.
-    if (m_rangeInMs >= 0 || m_rangeOutMs >= 0) {
-        const double inPx = m_rangeInMs < 0 ? 0 : m_rangeInMs / m_msPerPx - m_scrollLeftPx;
-        const double outPx = m_rangeOutMs < 0 ? w : m_rangeOutMs / m_msPerPx - m_scrollLeftPx;
-        QColor band = m_marker;
-        band.setAlphaF(0.18 * m_marker.alphaF());
-        const double left = std::max(0.0, inPx);
-        painter->fillRect(QRectF(left, 0, std::min(w, outPx) - left, h), band);
-        QPen edge(m_marker);
-        edge.setWidthF(2.0);
-        painter->setPen(edge);
-        for (const double px : {m_rangeInMs < 0 ? -1.0 : inPx, m_rangeOutMs < 0 ? -1.0 : outPx}) {
-            if (px < 0 || px > w) continue;
-            painter->drawLine(QPointF(px, 0), QPointF(px, h));
+    const double w=width(), h=height();
+    rect(QRectF(0,0,w,h),m_background);
+    if (w<=0 || h<=0 || !std::isfinite(m_msPerPx) || m_msPerPx<=0) { m_labelCount=0; emit painted(); return; }
+    if (m_rangeInMs>=0 || m_rangeOutMs>=0) {
+        const double a=m_rangeInMs<0?0:m_rangeInMs/m_msPerPx-m_scrollLeftPx;
+        const double b=m_rangeOutMs<0?w:m_rangeOutMs/m_msPerPx-m_scrollLeftPx;
+        QColor band=m_marker; band.setAlphaF(.18*m_marker.alphaF());
+        const double left=std::max(0.0,a);
+        rect(QRectF(left,0,std::min(w,b)-left,h),band);
+        for (const double x:{m_rangeInMs<0?-1:a,m_rangeOutMs<0?-1:b}) {
+            if (x>=0 && x<=w) { line({x,0},{x,h},m_marker,2); }
         }
     }
-    painter->setFont(m_font);
     const QFontMetricsF metrics(m_font);
-    QPen tickPen(m_tick);
-    tickPen.setWidthF(1.0);
-    int labels = 0;
-    // The canvas strokes a 1 px line centred on the x, so it covers half a
-    // pixel on each side; the same line here.
-    for (const auto& tick : typedTicks()) {
-        const bool isMajor = tick.major;
-        const double px = tick.timeMs / m_msPerPx - m_scrollLeftPx;
-        painter->setPen(tickPen);
-        // As in Premiere: short minor ticks and taller major ticks at the bottom.
-        painter->drawLine(QPointF(px, h), QPointF(px, isMajor ? h * 0.7 : h * 0.84));
-        const auto label = tick.label;
-        if (label.isEmpty()) { continue; }
-        painter->setPen(m_text);
-        const double textX = m_rulerMode == u"timecode"
-            ? std::max(0.0, std::min(px + 3.0, w - metrics.horizontalAdvance(label) - 3.0)) : px + 3.0;
-        // The timecode sits in the middle row, under the marker row.
-        painter->drawText(QPointF(textX, h * 0.36 + metrics.ascent()), label);
-        ++labels;
+    m_labelCount=0;
+    for (const auto& tick:typedTicks()) {
+        const double x=tick.timeMs/m_msPerPx-m_scrollLeftPx;
+        line({x,h},{x,h*(tick.major?.7:.84)},m_tick);
+        if (tick.label.isEmpty()) { continue; }
+        const double textX=m_rulerMode==u"timecode"?std::max(0.0,std::min(x+3,w-metrics.horizontalAdvance(tick.label)-3)):x+3;
+        label(tick.label,{textX,h*.36},m_font,m_text); ++m_labelCount;
     }
-    // Markers: the glyph is a QML item in the top row. A range marker draws its
-    // span as a bar in that row, as Premiere's extended marker does.
-    const double markerRowPx = h * 0.34;
-    for (const QVariant& v : m_markers) {
-        const QVariantMap m = v.toMap();
-        const double px = m.value(QStringLiteral("timeMs")).toDouble() / m_msPerPx - m_scrollLeftPx;
-        const double durationPx = m.value(QStringLiteral("durationMs")).toDouble() / m_msPerPx;
-        if (durationPx <= 0 || px > w || px + durationPx < 0) continue;
-        const QString color = m.value(QStringLiteral("color")).toString();
-        QColor span = color.isEmpty() ? m_marker : QColor(color);
-        span.setAlphaF(0.45 * span.alphaF());
-        painter->fillRect(QRectF(px, 1.0, durationPx, markerRowPx - 1.0), span);
+    m_markerModel.setWindow(m_scrollLeftPx*m_msPerPx,(m_scrollLeftPx+w)*m_msPerPx);
+    for (const auto& marker:m_markerModel.rows()) {
+        if (marker.durationMs<=0) { continue; }
+        const double x=marker.timeMs/m_msPerPx-m_scrollLeftPx;
+        QColor span=marker.color.isEmpty()?m_marker:QColor(marker.color); span.setAlphaF(.45*span.alphaF());
+        const double left=std::max(0.0,x),right=std::min(w,x+marker.durationMs/m_msPerPx);
+        rect(QRectF(left,1,right-left,h*.34-1),span);
     }
-    m_labelCount = labels;
     emit painted();
 }
 
@@ -158,10 +119,15 @@ void RulerCanvas::setTimeline(TimelineModel* timeline) {
     if (timeline == m_timeline) { return; }
     if (m_timeline) { disconnect(m_timeline, nullptr, this, nullptr); }
     m_timeline = timeline;
+    m_markerModel.setTimeline(timeline);
     if (m_timeline) {
         m_tempoKey = tempoKey();
         m_dropFrameKey = m_timeline->timeline().raw.value("dropFrame").toBool();
-        connect(m_timeline, &TimelineModel::timelineChanged, this, &RulerCanvas::timelineEdited);
+        connect(m_timeline, &TimelineModel::changed, this, [self=QPointer<RulerCanvas>(this)](const ChangeSet& changes) {
+            if (self && (changes.fullReplacement || changes.documentFields.contains("tempo"))) { self->timelineEdited(); }
+        });
+        connect(m_timeline, &TimelineModel::dropFrameChanged, this, &RulerCanvas::timelineEdited);
+        connect(m_timeline, &TimelineModel::markersChanged, this, &RulerCanvas::changedValue);
         connect(m_timeline, &QObject::destroyed, this, &RulerCanvas::changedValue);
     }
     changedValue();
@@ -194,7 +160,7 @@ void RulerCanvas::setGridDivision(const QString& division) {
 
 std::vector<nt::wiring::RulerTick> RulerCanvas::typedTicks() const {
     std::vector<nt::wiring::RulerTick> result;
-    if (width() <= 0 || m_msPerPx <= 0) { return result; }
+    if (width() <= 0 || !std::isfinite(m_msPerPx) || m_msPerPx <= 0 || !std::isfinite(m_scrollLeftPx)) { return result; }
     nt::wiring::RulerRequest request;
     request.msPerPx = m_msPerPx;
     request.fromMs = m_scrollLeftPx * m_msPerPx;

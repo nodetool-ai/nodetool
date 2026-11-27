@@ -5,7 +5,7 @@
 // the playhead through the add-marker action. The lane part sits under the
 // ruler and scrolls with the track lanes (same offset and zoom): one block per
 // document marker, from its time to its duration, the next marker or the
-// sequence end (MarkerLaneLayout.js). A click selects the marker and seeks to
+// sequence end (MarkerWindowModel). A click selects the marker and seeks to
 // it, a double-click opens the Edit Marker dialog, a drag moves it, snapped to
 // the grid unless Alt is held or Snap is off, in one undo step.
 pragma ComponentBehavior: Bound
@@ -13,7 +13,6 @@ import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 import "../music/MusicLayout.js" as MusicLayout
-import "MarkerLaneLayout.js" as Layout
 
 Item {
     id: root
@@ -27,7 +26,14 @@ Item {
     property var editor: null
     readonly property bool shown: !!editor && !!editor.dockStore && editor.dockStore.workspace === "Music" && sequence.isMusic
     readonly property real rowHeight: Ui.Metrics.iconMd + Ui.Metrics.xs
-    readonly property var blocks: shown && timeline ? Layout.extents(timeline.markers, timeline.contentEndMs) : []
+    MarkerWindowModel {
+        id: markerWindow
+        retainWindow: true
+        timeline: root.shown ? root.timeline : null
+        blocks: true
+        fromMs: root.viewState ? (root.viewState.scrollLeftPx - 200) * root.viewState.msPerPx : 0
+        toMs: root.viewState ? (root.viewState.scrollLeftPx + lane.width + 200) * root.viewState.msPerPx : 0
+    }
     visible: shown
     implicitHeight: shown ? rowHeight : 0
 
@@ -105,15 +111,15 @@ Item {
             x: root.viewState ? -root.viewState.scrollLeftPx : 0
             height: parent.height
             Repeater {
-                model: root.blocks
+                model: markerWindow
                 delegate: Rectangle {
                     id: block
-                    required property var modelData
-                    readonly property string markerId: modelData.id
-                    readonly property double startMs: modelData.startMs
-                    readonly property double endMs: modelData.endMs
-                    readonly property string label: modelData.label
-                    readonly property color blockColor: modelData.color !== "" ? modelData.color : Ui.Theme.surfaceOverlay
+                    required property markerRow marker
+                    readonly property string markerId: marker.id
+                    readonly property double startMs: marker.startMs
+                    readonly property double endMs: marker.endMs
+                    readonly property string label: marker.label || "Marker"
+                    readonly property color blockColor: marker.color !== "" ? marker.color : Ui.Theme.surfaceOverlay
                     readonly property bool chosen: MarkerSession.selectedIds.indexOf(markerId) >= 0
                     // The start while a drag is under way, else -1.
                     property double dragMs: -1
@@ -133,7 +139,7 @@ Item {
                         verticalAlignment: Text.AlignVCenter
                         text: block.label
                         role: Ui.Typography.SansCaption
-                        tone: block.modelData.color !== "" ? Ui.Text.OnAccent : Ui.Text.Primary
+                        tone: block.marker.color !== "" ? Ui.Text.OnAccent : Ui.Text.Primary
                         elide: Text.ElideRight
                     }
                     MouseArea {

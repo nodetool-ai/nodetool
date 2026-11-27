@@ -146,8 +146,8 @@ Rectangle {
     }
     onActiveFocusChanged: if (!activeFocus) { flushPending(); finish(true) }
     Component.onDestruction: flushPending()
-    onDraftRevisionChanged: curve.requestPaint()
-    onPointsChanged: curve.requestPaint()
+    onDraftRevisionChanged: curve.setPoints(points)
+    onPointsChanged: curve.setPoints(points)
     onWidthChanged: curve.requestPaint()
     onHeightChanged: curve.requestPaint()
     onSelectedChanged: curve.requestPaint()
@@ -169,42 +169,26 @@ Rectangle {
         anchors.fill: parent
         color: Qt.alpha(root.on ? root.parameterColor : Ui.Theme.textDisabled, root.on ? .12 : .04)
     }
-    Canvas {
+    AutomationLayerItem {
         id: curve
         objectName: "automation-curve-canvas"
-        // Retain a two-viewport tile while scrolling within its first half.
         x: root.tileLeft
         width: Math.max(0,Math.min(root.viewportWidth*2,root.width-x))
         height: root.height
-        onXChanged: requestPaint()
-        onWidthChanged: requestPaint()
-        onPaint: {
-            var ctx=getContext("2d"); ctx.reset()
-            var ps=root.points, vertices=[]
-            const from=curve.x*root.msPerPx, to=(curve.x+curve.width)*root.msPerPx
-            const first=Math.max(0,root.lowerBound(from)-1)
-            const last=Math.min(ps.length,root.upperBound(to)+1)
-            root.paintedPointCount=last-first
-            if(ps.length) vertices=controller.call("automationBreakpoints",[ps.slice(first,last),from,{maxStepMs:Math.max(1,root.msPerPx*3)}])
-            if (!vertices.length) vertices=[{timeMs:0,value:root.spec?root.spec.value:0}]
-            var stroke=root.on?root.parameterColor:Ui.Theme.textDisabled
-            ctx.beginPath()
-            if (ps.length) {
-                vertices.forEach(function(p,i){ var x=p.timeMs/root.msPerPx-curve.x,y=root.yOf(p.value); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y) })
-            } else ctx.moveTo(0,root.spec?root.yOf(root.spec.value):28)
-            var tail=vertices[vertices.length-1]
-            ctx.lineTo(width,root.spec?root.yOf(tail.value):28)
-            ctx.strokeStyle=stroke; ctx.lineWidth=1.5
-            ctx.stroke()
-            for (let i=first; i<last; ++i) {
-                const p=ps[i]
-                ++root.pointVisits
-                if (p.timeMs<from || p.timeMs>to) continue
-                ctx.beginPath(); ctx.arc(p.timeMs/root.msPerPx-curve.x,root.yOf(p.value),Ui.Metrics.sm/2,0,2*Math.PI)
-                ctx.fillStyle=root.on && i === root.selected ? Ui.Theme.textOnAccent : stroke; ctx.fill()
-                if (i === root.selected) { ctx.strokeStyle=stroke; ctx.lineWidth=Ui.Metrics.focus; ctx.stroke() }
-            }
-        }
+        Component.onCompleted: setPoints(root.points)
+        msPerPx: root.msPerPx
+        contentLeft: x
+        minimum: root.spec ? root.spec.min : 0
+        maximum: root.spec ? root.spec.max : 1
+        defaultValue: root.spec ? root.spec.value : 0
+        logarithmic: root.spec ? root.spec.curve === "log" : false
+        valid: root.spec !== null
+        selected: root.selected
+        stroke: root.on ? root.parameterColor : Ui.Theme.textDisabled
+        selectedColor: root.on ? Ui.Theme.textOnAccent : Ui.Theme.textDisabled
+        pointRadius: Ui.Metrics.sm / 2
+        selectionWidth: Ui.Metrics.focus
+        onPrepared: { root.paintedPointCount = paintedPointCount; root.pointVisits += paintedPointCount }
     }
     Rectangle {
         objectName: "automation-value-label"

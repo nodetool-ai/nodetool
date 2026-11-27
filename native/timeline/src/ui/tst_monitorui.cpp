@@ -1,3 +1,4 @@
+#include "ui/MonitorRulerCanvas.h"
 // The Program monitor's view controls through the mounted editor, with real pointer and key events.
 #include "app/MenuRegistry.h"
 #include "app/Preferences/Preferences.h"
@@ -149,6 +150,31 @@ private slots:
     void init() { open(300); QVERIFY(monitor()); QVERIFY(compositor()); monitor()->setFit(); }
     void cleanup() { view.reset(); }
 
+    void extremeRulerZoomKeepsTickWorkBounded() {
+        MonitorRulerCanvas ruler;
+        ruler.setWidth(800); ruler.setHeight(24);
+        ruler.setPixelsPerUnit(0.00001);
+        QVERIFY(ruler.ticks().size()<=4096);
+        ruler.setPixelsPerUnit(std::numeric_limits<double>::min());
+        QVERIFY(ruler.ticks().isEmpty());
+    }
+    void zeroRulerLabelDoesNotDependOnOriginSign() {
+        QQuickWindow window;
+        window.resize(400,24);
+        auto ruler=std::make_unique<MonitorRulerCanvas>();
+        ruler->setParentItem(window.contentItem());
+        ruler->setWidth(400); ruler->setHeight(24);
+        ruler->setBackground(Qt::black); ruler->setTextColor(Qt::white);
+        ruler->setTickColor(Qt::transparent);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        ruler->ensurePolished();
+        const auto zero=window.grabWindow();
+        QVERIFY(!zero.isNull());
+        ruler->setOrigin(0.00000001);
+        ruler->ensurePolished();
+        QCOMPARE(window.grabWindow(),zero);
+    }
     void perf2ClockMovesWithoutBackdropPaint() {
         auto* bar=scrubBar();
         QVERIFY(bar);
