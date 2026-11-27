@@ -104,6 +104,20 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * The root layout serves every route, so it renders <html lang="en"> and each
+ * translated page marks its own <main> with its language. This script sets
+ * the document language from the path before first paint, so the header,
+ * footer, browser translate prompt, screen readers and CJK font selection
+ * (see `:lang()` rules in globals.css) see the page's language too.
+ */
+const PATH_LANGUAGES: Record<string, string> = Object.fromEntries(
+  Object.entries(HOME_LANGUAGE_ALTERNATES)
+    .filter(([hreflang]) => hreflang !== "en" && hreflang !== "x-default")
+    .map(([hreflang, path]) => [path.slice(1), hreflang])
+);
+const DOCUMENT_LANGUAGE_SCRIPT = `(function(){var l=${JSON.stringify(PATH_LANGUAGES)}[location.pathname.split("/")[1]];if(l)document.documentElement.lang=l;})();`;
+
 export const viewport: Viewport = {
   themeColor: "#020617",
   colorScheme: "dark",
@@ -115,8 +129,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetBrainsMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetBrainsMono.variable}`} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: DOCUMENT_LANGUAGE_SCRIPT }} />
 
         <JsonLd data={softwareApplicationSchema} />
         <JsonLd data={organizationSchema} />

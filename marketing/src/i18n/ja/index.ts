@@ -23,9 +23,12 @@ import { aiImageEditor } from "./pages/aiImageEditor";
 import { gamedev } from "./pages/gamedev";
 import { aiGameEngines } from "./pages/aiGameEngines";
 import { figmaWeave } from "./pages/figmaWeave";
+import { lmStudio } from "./pages/lmStudio";
+import { flora } from "./pages/flora";
+import { moviePoster } from "./pages/moviePoster";
 
 export const JA_PAGES: Record<string, LocalizedPageContent> = Object.fromEntries(
-  [studio, agents, nodeBasedWorkflows, aiVideoEditor, storyboards, mcp, models, download, pricing, marketing, recipes, adLibrary, comfyui, demo, cloud, nodeBasedAi, aiImageEditor, gamedev, aiGameEngines, figmaWeave].map(
+  [studio, agents, nodeBasedWorkflows, aiVideoEditor, storyboards, mcp, models, download, pricing, marketing, recipes, adLibrary, comfyui, demo, cloud, nodeBasedAi, aiImageEditor, gamedev, aiGameEngines, figmaWeave, lmStudio, flora, moviePoster].map(
     (page) => [page.route, page]
   )
 );
