@@ -48,6 +48,7 @@ jest.mock("../useRecommendedModelKeys", () => ({
 }));
 let mockDefaultKeys: string[] = [];
 jest.mock("../useDefaultLanguageModelKeys", () => ({
+  FREE_TEXT_MODEL_KEY: "openrouter:openrouter/free",
   useDefaultLanguageModelKeys: () => mockDefaultKeys
 }));
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
@@ -122,6 +123,40 @@ describe("useSeedDefaultModels", () => {
       provider: "openrouter",
       id: "openrouter/free"
     });
+  });
+
+  it("replaces a free-router default the account can no longer run", () => {
+    const FREE = lm("openrouter", "openrouter/free");
+    const MANAGED = lm("nodetool", "nodetool/free");
+    mockLanguage.models = [OPENAI, FREE, MANAGED];
+    mockUnavailable.add("openrouter:openrouter/free");
+    mockDefaultKeys = ["nodetool:nodetool/free", "openrouter:openrouter/free"];
+    useModelPreferencesStore.getState().setDefault("language_model", {
+      provider: "openrouter",
+      id: "openrouter/free",
+      name: "openrouter/free"
+    });
+    mockChat.selectedModel = FREE;
+    renderHook(() => useSeedDefaultModels());
+    expect(defaults()["language_model"]).toMatchObject({
+      provider: "nodetool",
+      id: "nodetool/free"
+    });
+    expect(mockChat.setSelectedModel).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "nodetool", id: "nodetool/free" })
+    );
+  });
+
+  it("keeps a free-router default that runs on the user's own key", () => {
+    const FREE = lm("openrouter", "openrouter/free");
+    mockLanguage.models = [OPENAI, FREE];
+    useModelPreferencesStore.getState().setDefault("language_model", {
+      provider: "openrouter",
+      id: "openrouter/free",
+      name: "openrouter/free"
+    });
+    renderHook(() => useSeedDefaultModels());
+    expect(defaults()["language_model"]?.id).toBe("openrouter/free");
   });
 
   it("sets the chat model from the default", () => {

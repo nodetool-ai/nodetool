@@ -34,6 +34,15 @@ export {
   signupGrantCredits
 } from "./credit-policy.js";
 
+export {
+  registerUserCredentialKey,
+  isUserCredentialKey,
+  userCredentialKeyList,
+  isCloudProfileEnv,
+  mayUseServerCredential,
+  withheldServerCredentials
+} from "./server-credentials.js";
+
 export { isGoogleWorkspaceEnabled } from "./google-workspace.js";
 
 export { isAutomaticStorageCleanupEnabled } from "./retention.js";

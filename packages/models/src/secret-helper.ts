@@ -5,7 +5,8 @@
  * 1. Forced env priority keys -> environment variable
  * 2. Local cache
  * 3. Database (encrypted Secret model) -- if userId provided
- * 4. Environment variable
+ * 4. Environment variable, unless `mayUseServerCredential` withholds it
+ *    (a provider credential on the cloud profile)
  * 5. Default value
  *
  * A value found in steps 1-4 may be a 1Password secret reference
@@ -18,7 +19,7 @@
  * New secrets must be created via the TS endpoints for TS runtime access.
  */
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, mayUseServerCredential } from "@nodetool-ai/config";
 import { Secret } from "./secret.js";
 import { Setting } from "./setting.js";
 import { resolveCodexAccessToken } from "./codex-token.js";
@@ -218,7 +219,9 @@ async function resolveSecret(
     }
   }
 
-  const envValue = process.env[key];
+  // On the cloud profile a provider credential is never served from the
+  // server's environment: it would pay for every user who saved none.
+  const envValue = mayUseServerCredential(key) ? process.env[key] : undefined;
   if (envValue !== undefined) {
     secretCache.set(cacheKey, envValue);
     return materialize(envValue, userId);
@@ -252,7 +255,7 @@ export async function hasSecret(
 ): Promise<boolean> {
   const resolvedUserId = userId ?? "default";
 
-  if (process.env[key] !== undefined) {
+  if (process.env[key] !== undefined && mayUseServerCredential(key)) {
     return true;
   }
 

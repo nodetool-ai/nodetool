@@ -24,7 +24,8 @@ import {
   getDefaultDbPath,
   getPostgresDatabaseUrl,
   loadEnvironment,
-  applyRuntimeEnv
+  applyRuntimeEnv,
+  withheldServerCredentials
 } from "@nodetool-ai/config";
 import {
   bootstrapNodeRegistry,
@@ -1477,6 +1478,15 @@ app.addHook("onRequest", enforceAccountStatus);
 // Every prediction row records whose provider key paid, so a user's quota
 // leaves out spend on keys they saved themselves.
 installQuotaLedger();
+
+// On the cloud profile, provider keys in the environment are not served to
+// users. Name any that are set, so a key left in .env shows in the deploy log.
+const withheldCredentials = withheldServerCredentials();
+if (withheldCredentials.length > 0) {
+  log.warn("Provider keys set in the environment are withheld from users on the cloud profile", {
+    keys: withheldCredentials
+  });
+}
 
 registerHttpTracing(app, {
   async authorizeTraceParent(request, parent) {

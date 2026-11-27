@@ -7,6 +7,8 @@
  * so that tool implementations can be provider-agnostic.
  */
 
+import { mayUseServerCredential } from "@nodetool-ai/config";
+
 export interface SearchResult {
   title: string;
   url: string;
@@ -82,7 +84,11 @@ async function getSecret(
   key: string,
   resolver?: SecretResolver
 ): Promise<string | null> {
-  return (resolver?.getSecret?.(key) ?? null) || process.env[key] || null;
+  return (
+    (resolver?.getSecret?.(key) ?? null) ||
+    (mayUseServerCredential(key) ? process.env[key] : undefined) ||
+    null
+  );
 }
 
 /**

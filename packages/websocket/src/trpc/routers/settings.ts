@@ -40,7 +40,7 @@ import { onePasswordRouter } from "./onepassword.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-import { settingCatalog } from "@nodetool-ai/config";
+import { mayUseServerCredential, settingCatalog } from "@nodetool-ai/config";
 import { isCloudProvider, isCloudSettingGroup, isCustomProviderId } from "@nodetool-ai/protocol";
 import { isCloudProfile } from "../../lib/cloud-profile.js";
 import type { SettingWithValue } from "../../settings-registry.js";
@@ -123,7 +123,8 @@ const secretsRouter = router({
 
     // Registry secrets: mark configured if in map, else placeholder. A key
     // set only in the process environment counts as configured because
-    // getSecret falls back to process.env.
+    // getSecret falls back to process.env, except where the cloud profile
+    // withholds a provider credential from users.
     const registrySecrets = settingCatalog().filter((d) => d.isSecret);
     const normalizedResults: SecretResponse[] = await Promise.all(
       registrySecrets.map(async (def) => {
@@ -131,7 +132,9 @@ const secretsRouter = router({
         if (configured) {
           return toSecretResponse(configured);
         }
-        const fromServer = process.env[def.envVar] !== undefined;
+        const fromServer =
+          process.env[def.envVar] !== undefined &&
+          mayUseServerCredential(def.envVar);
         const placeholder: SecretResponse = {
           key: def.envVar,
           user_id: ctx.userId,
