@@ -2480,6 +2480,99 @@ export const SET_NOTES_DESCRIPTION =
   "bend or pressure lanes. Read the current notes and lanes with " +
   "ui_timeline_get_state and `clip`.";
 
+/** Narrow automation edits. Selection ranges include both endpoints. */
+/** Bounds sample conversion to safe integer magnitudes even at MHz sample rates. */
+export const MAX_AUTOMATION_TIME_MS = 1e12;
+const [mixerAutomationTarget, deviceAutomationTarget, clipAutomationTarget] =
+  automationTarget.options;
+const strictAutomationTarget = z.discriminatedUnion("kind", [
+  mixerAutomationTarget.strict(),
+  deviceAutomationTarget.strict(),
+  clipAutomationTarget.strict()
+]);
+export const automationEditSchemas = {
+  "automation.addPoints": z
+    .object({
+      edit: z.literal("automation.addPoints"),
+      target: strictAutomationTarget,
+      points: z
+        .array(
+          z
+            .object({
+              timeMs: z
+                .number()
+                .finite()
+                .min(-MAX_AUTOMATION_TIME_MS)
+                .max(MAX_AUTOMATION_TIME_MS),
+              value: z.number().finite(),
+              easing: z.string().min(1).max(256).optional()
+            })
+            .strict()
+        )
+        .min(1)
+        .max(MAX_AUTOMATION_POINTS_PER_LANE)
+    })
+    .strict(),
+  "automation.movePoints": z
+    .object({
+      edit: z.literal("automation.movePoints"),
+      target: strictAutomationTarget,
+      fromMs: z.number().finite().min(0).max(MAX_AUTOMATION_TIME_MS),
+      toMs: z.number().finite().min(0).max(MAX_AUTOMATION_TIME_MS),
+      deltaMs: z
+        .number()
+        .finite()
+        .min(-MAX_AUTOMATION_TIME_MS)
+        .max(MAX_AUTOMATION_TIME_MS),
+      deltaValue: z.number().finite()
+    })
+    .strict()
+    .refine((p) => p.toMs >= p.fromMs, {
+      message: "toMs must be at or after fromMs.",
+      path: ["toMs"]
+    }),
+  "automation.deletePoints": z
+    .object({
+      edit: z.literal("automation.deletePoints"),
+      target: strictAutomationTarget,
+      fromMs: z.number().finite().min(0).max(MAX_AUTOMATION_TIME_MS),
+      toMs: z.number().finite().min(0).max(MAX_AUTOMATION_TIME_MS)
+    })
+    .strict()
+    .refine((p) => p.toMs >= p.fromMs, {
+      message: "toMs must be at or after fromMs.",
+      path: ["toMs"]
+    }),
+  "automation.clearLane": z
+    .object({
+      edit: z.literal("automation.clearLane"),
+      target: strictAutomationTarget
+    })
+    .strict(),
+  "automation.setLaneEnabled": z
+    .object({
+      edit: z.literal("automation.setLaneEnabled"),
+      target: strictAutomationTarget,
+      enabled: z.boolean()
+    })
+    .strict(),
+  setTrackAutomationMode: z
+    .object({
+      edit: z.literal("setTrackAutomationMode"),
+      mode: z.enum(["off", "read", "touch", "latch", "write"])
+    })
+    .strict()
+};
+export const automationEditParams = z.discriminatedUnion("edit", [
+  automationEditSchemas["automation.addPoints"],
+  automationEditSchemas["automation.movePoints"],
+  automationEditSchemas["automation.deletePoints"],
+  automationEditSchemas["automation.clearLane"],
+  automationEditSchemas["automation.setLaneEnabled"],
+  automationEditSchemas["setTrackAutomationMode"]
+]);
+export type AutomationEditParams = z.infer<typeof automationEditParams>;
+
 /** The lanes one `set_track` call writes. */
 export const automationLaneParams = z.object({
   target: automationTarget.describe(
@@ -2506,6 +2599,12 @@ export const automationLaneParams = z.object({
 
 /** The mixer and music fields `set_track` takes beyond the plain channel settings. */
 export const setTrackMixShape = {
+  automationEdit: automationEditParams
+    .optional()
+    .describe(
+      "Narrow automation edit. Use alone with track. Moves/deletes select an inclusive fromMs/toMs range. Read lanes and points with get_state track."
+    ),
+
   effects: z
     .array(trackEffect)
     .max(32)

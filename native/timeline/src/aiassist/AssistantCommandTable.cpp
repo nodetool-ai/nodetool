@@ -88,6 +88,23 @@ QList<Command> buildAllowed() {
     edit("midi.removeNotes", "Remove MIDI notes", {clip,
         P{"noteIds", ParamKind::Array, true, "Existing note ids to remove."}});
 
+    const P automationTarget{"target", ParamKind::Object, true, "Automation target: mixer volumeDb/pan, device deviceId/param, or clip property."};
+    edit("automation.addPoints", "Add automation points", {track, automationTarget,
+        P{"points", ParamKind::Array, true, "Points {timeMs, value, easing?}. Easing: a named curve, cubic-bezier(x1,y1,x2,y2), or spring(stiffness,damping,mass), at most 256 characters. Values clamp to the UI range; times below zero clamp to zero."}});
+    edit("automation.movePoints", "Move automation points", {track, automationTarget,
+        P{"fromMs", ParamKind::Number, true, "Inclusive range start.", {}, {}, 0},
+        P{"toMs", ParamKind::Number, true, "Inclusive range end.", {}, {}, 0},
+        P{"deltaMs", ParamKind::Number, true, "Time offset in ms."},
+        P{"deltaValue", ParamKind::Number, true, "Value offset in parameter units."}});
+    edit("automation.deletePoints", "Delete automation points", {track, automationTarget,
+        P{"fromMs", ParamKind::Number, true, "Inclusive range start.", {}, {}, 0},
+        P{"toMs", ParamKind::Number, true, "Inclusive range end.", {}, {}, 0}});
+    edit("automation.clearLane", "Clear automation lane", {track, automationTarget});
+    edit("automation.setLaneEnabled", "Set automation lane enabled", {track, automationTarget,
+        P{"enabled", ParamKind::Boolean, true, "Whether the lane plays."}});
+    edit("setTrackAutomationMode", "Set automation mode", {track,
+        P{"mode", ParamKind::Choice, true, "Track automation mode.", {"off", "read", "touch", "latch", "write"}}});
+
     // Music clip and song-section operations share the editor's atomic edit path.
     const P musicClip{"clipId", ParamKind::ClipId, true, "The clip id."};
     const P barPosition{"atBar", ParamKind::Number, false, "One-based bar position, instead of milliseconds.", {}, {}, 1};
@@ -708,7 +725,7 @@ QHash<QString, QString> buildDenied() {
           "assistant.ui_timeline_set_clip_binding", "assistant.ui_timeline_set_setup", "assistant.ui_timeline_split_clip", "assistant.ui_timeline_update_beat",
           "midi.setNotes", "midi.setControllers", "midi.setEvents", "music.createMidiClip"},
          "the Assistant has its own tool for it");
-    deny({"setTrackAutomationMode", "writeTrackAutomationPass"}, "it is a step of automation recording, which a person performs during playback");
+    deny({"writeTrackAutomationPass"}, "it is a step of automation recording, which a person performs during playback");
     deny({"setTrackInstrument", "setTrackInstrumentState"}, "the Assistant uses ui_timeline_load_plugin, ui_timeline_select_plugin_preset and ui_timeline_set_plugin_parameters");
     deny({"assist.addBeat", "assist.applyBeatTake", "assist.applyTranscription", "assist.assembleStoryboard", "assist.correctTranscript", "assist.deleteBeat",
           "assist.deleteTranscriptRange", "assist.reconcileScript", "assist.reorderBeats", "assist.setBeatText", "assist.syncStoryboardShot", "shot.accept", "shot.insertDerived",

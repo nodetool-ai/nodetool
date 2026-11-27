@@ -18309,6 +18309,502 @@
           "minimum": 24,
           "maximum": 300
         },
+        "automationEdit": {
+          "description": "Narrow automation edit. Use alone with track. Moves/deletes select an inclusive fromMs/toMs range. Read lanes and points with get_state track.",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "edit": {
+                  "type": "string",
+                  "const": "automation.addPoints"
+                },
+                "target": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "mixer"
+                        },
+                        "param": {
+                          "type": "string",
+                          "enum": [
+                            "volumeDb",
+                            "pan"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "device"
+                        },
+                        "deviceId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "param": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "deviceId",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "clip"
+                        },
+                        "property": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "property"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "points": {
+                  "minItems": 1,
+                  "maxItems": 10000,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "timeMs": {
+                        "type": "number",
+                        "minimum": -1000000000000,
+                        "maximum": 1000000000000
+                      },
+                      "value": {
+                        "type": "number"
+                      },
+                      "easing": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    },
+                    "required": [
+                      "timeMs",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "edit",
+                "target",
+                "points"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "edit": {
+                  "type": "string",
+                  "const": "automation.movePoints"
+                },
+                "target": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "mixer"
+                        },
+                        "param": {
+                          "type": "string",
+                          "enum": [
+                            "volumeDb",
+                            "pan"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "device"
+                        },
+                        "deviceId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "param": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "deviceId",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "clip"
+                        },
+                        "property": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "property"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "fromMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000000000
+                },
+                "toMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000000000
+                },
+                "deltaMs": {
+                  "type": "number",
+                  "minimum": -1000000000000,
+                  "maximum": 1000000000000
+                },
+                "deltaValue": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "edit",
+                "target",
+                "fromMs",
+                "toMs",
+                "deltaMs",
+                "deltaValue"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "edit": {
+                  "type": "string",
+                  "const": "automation.deletePoints"
+                },
+                "target": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "mixer"
+                        },
+                        "param": {
+                          "type": "string",
+                          "enum": [
+                            "volumeDb",
+                            "pan"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "device"
+                        },
+                        "deviceId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "param": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "deviceId",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "clip"
+                        },
+                        "property": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "property"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "fromMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000000000
+                },
+                "toMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000000000
+                }
+              },
+              "required": [
+                "edit",
+                "target",
+                "fromMs",
+                "toMs"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "edit": {
+                  "type": "string",
+                  "const": "automation.clearLane"
+                },
+                "target": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "mixer"
+                        },
+                        "param": {
+                          "type": "string",
+                          "enum": [
+                            "volumeDb",
+                            "pan"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "device"
+                        },
+                        "deviceId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "param": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "deviceId",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "clip"
+                        },
+                        "property": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "property"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "edit",
+                "target"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "edit": {
+                  "type": "string",
+                  "const": "automation.setLaneEnabled"
+                },
+                "target": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "mixer"
+                        },
+                        "param": {
+                          "type": "string",
+                          "enum": [
+                            "volumeDb",
+                            "pan"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "device"
+                        },
+                        "deviceId": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "param": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "deviceId",
+                        "param"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "clip"
+                        },
+                        "property": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "property"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "edit",
+                "target",
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "edit": {
+                  "type": "string",
+                  "const": "setTrackAutomationMode"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "off",
+                    "read",
+                    "touch",
+                    "latch",
+                    "write"
+                  ]
+                }
+              },
+              "required": [
+                "edit",
+                "mode"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
         "effects": {
           "description": "The whole insert chain, in order. [] removes it.",
           "maxItems": 32,

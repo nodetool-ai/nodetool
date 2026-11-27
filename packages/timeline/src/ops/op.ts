@@ -1,4 +1,13 @@
 import type { TimelineToolArgs } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
+import type { AutomationEditParams } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+
+export type AutomationOp = {
+  [E in AutomationEditParams["edit"]]: { op: E; track_id: string } & Omit<
+    Extract<AutomationEditParams, { edit: E }>,
+    "edit"
+  >;
+}[AutomationEditParams["edit"]];
+
 /**
  * The op union `applyTimelineOp` dispatches on.
  *
@@ -629,6 +638,7 @@ type ContractOp = {
 }[ContractOpName];
 
 export type TimelineOp =
+  | AutomationOp
   | ContractOp
   | GetStateOp
   | AddTrackOp
@@ -689,6 +699,13 @@ export type TimelineOpName = TimelineOp["op"];
  * it samples rendered video and has no document mutation to share.
  */
 export const TIMELINE_OP_NAMES = [
+  "automation.addPoints",
+  "automation.movePoints",
+  "automation.deletePoints",
+  "automation.clearLane",
+  "automation.setLaneEnabled",
+  "setTrackAutomationMode",
+
   "add_midi_clip",
   "set_notes",
   "set_tempo",

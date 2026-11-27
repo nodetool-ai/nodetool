@@ -911,7 +911,7 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
                 [&editError, &edit, &validNoop, &id](QJsonObject raw, const QJsonObject& payload) {
                     try {
                         auto result = edit(raw, payload);
-                        validNoop = result == raw && (id == u"set_clip_params" || id == u"music.setAutoCrossfade" || id == u"set_tempo");
+                        validNoop = result == raw && (id == u"set_clip_params" || id == u"music.setAutoCrossfade" || id == u"set_tempo" || id.startsWith(u"automation.") || id == u"setTrackAutomationMode");
                         return result;
                     }
                     catch (const std::exception& error) { editError = QString::fromUtf8(error.what()); throw; }
