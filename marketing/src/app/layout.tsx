@@ -116,7 +116,10 @@ const PATH_LANGUAGES: Record<string, string> = Object.fromEntries(
     .filter(([hreflang]) => hreflang !== "en" && hreflang !== "x-default")
     .map(([hreflang, path]) => [path.slice(1), hreflang])
 );
-const DOCUMENT_LANGUAGE_SCRIPT = `(function(){var l=${JSON.stringify(PATH_LANGUAGES)}[location.pathname.split("/")[1]];if(l)document.documentElement.lang=l;})();`;
+// The map travels in a data attribute, which React escapes, so the script
+// itself is a fixed string.
+const DOCUMENT_LANGUAGE_SCRIPT =
+  '(function(){var d=document.documentElement;var l=JSON.parse(d.dataset.pathLanguages||"{}")[location.pathname.split("/")[1]];if(l)d.lang=l;})();';
 
 export const viewport: Viewport = {
   themeColor: "#020617",
@@ -129,7 +132,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetBrainsMono.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${inter.variable} ${jetBrainsMono.variable}`}
+      data-path-languages={JSON.stringify(PATH_LANGUAGES)}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: DOCUMENT_LANGUAGE_SCRIPT }} />
 
