@@ -45,6 +45,17 @@ if [[ -n "$profile_file" ]]; then
     /usr/libexec/PlistBuddy -c "Add :keychain-access-groups:0 string $access_group" "$tmp_entitlements"
     entitlements="$tmp_entitlements"
 fi
+# Gatekeeper treats every file in Contents/MacOS as code. A data file there
+# keeps the ad-hoc signature of the build and makes spctl reject the app.
+stray=()
+while IFS= read -r -d '' f; do
+    [[ $(file -bL "$f") == *Mach-O* ]] || stray+=("${f#"$app"/}")
+done < <(find "$app/Contents/MacOS" -type f -print0)
+if (( ${#stray[@]} )); then
+    echo "error: Contents/MacOS holds files that are not Mach-O code. Move them to Contents/Resources:" >&2
+    printf '  %s\n' "${stray[@]}" >&2
+    exit 2
+fi
 sign=(codesign --force --timestamp --options runtime --sign "$identity")
 
 # Inside out: every Mach-O file, then each framework, then the app. A file
