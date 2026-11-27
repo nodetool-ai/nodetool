@@ -438,7 +438,6 @@ records the decision.
 |---|---|
 | Keep the first-run connection dialog, move it to first use, or give the key route equal weight | study-1-I2 |
 | Rail labels, and whether developer terms belong in the status bar | study-1-I5 |
-| What the home box's "Entities · none" control should be called, or whether it shows before the first entity | study-17-I4 |
 | A shorter path from one sentence to a picture, and a use case for an everyday picture | study-3-I4 |
 | How a scene-by-scene plan with pictures is reached from home | study-10-I1 |
 | Whether chat should hand "make me a page" or "make me a game" to the matching flow | study-6-I2 |

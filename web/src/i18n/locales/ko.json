@@ -16,12 +16,12 @@
   },
   "screen_storyboard": {
     "entities": {
-      "pickTitle": "엔터티 선택",
+      "pickTitle": "레퍼런스 선택",
       "done": "완료",
       "untitled": "제목 없음",
-      "searchPlaceholder": "이름, 종류 또는 태그로 항목 검색",
-      "searchLabel": "엔터티 검색",
-      "kindLabel": "항목 종류",
+      "searchPlaceholder": "이름, 종류, 태그로 레퍼런스 검색",
+      "searchLabel": "레퍼런스 검색",
+      "kindLabel": "레퍼런스 종류",
       "kindFilters": {
         "all": "모두",
         "characters": "캐릭터",
@@ -29,16 +29,16 @@
         "styles": "스타일",
         "props": "소품"
       },
-      "loading": "엔터티 로드 중",
-      "emptyTitle": "아직 항목이 없습니다.",
+      "loading": "레퍼런스를 불러오는 중",
+      "emptyTitle": "아직 레퍼런스가 없습니다",
       "emptyPickerDescription": "귀하가 생성한 캐릭터, 위치, 스타일 및 소품이 여기에 표시됩니다.",
-      "newEntity": "새로운 엔터티",
-      "noMatches": "일치하는 항목이 없습니다.",
+      "newEntity": "새 레퍼런스",
+      "noMatches": "일치하는 레퍼런스가 없습니다",
       "noMatchesDescription": "다른 이름, 종류, 태그를 사용해 보세요.",
-      "entitiesLabel": "엔터티",
+      "entitiesLabel": "레퍼런스",
       "noImage": "이미지 없음",
-      "editEntity": "엔터티 편집",
-      "removeEntity": "엔터티 제거",
+      "editEntity": "레퍼런스 편집",
+      "removeEntity": "레퍼런스 제거",
       "save": "저장",
       "create": "만들기",
       "image": "이미지",
@@ -52,14 +52,14 @@
       },
       "name": "이름",
       "descriptor": "설명자",
-      "descriptorHelp": "어떻게 보이는지 한 문장으로 표현해 보겠습니다. 이 엔터티를 사용하는 모든 프롬프트는 단어 그대로 가져옵니다.",
+      "descriptorHelp": "모습을 한 문장으로. 이 레퍼런스를 쓰는 모든 프롬프트에 글자 그대로 들어갑니다.",
       "voiceId": "음성 ID(선택 사항)",
       "tags": "태그(쉼표로 구분)",
-      "panelEmptyDescription": "위의 + 버튼을 사용하여 이미지에 캐릭터, 위치, 스타일 또는 소품으로 태그를 지정하거나 라이브러리에서 이미지를 마우스 오른쪽 버튼으로 클릭하고 엔터티로 사용을 선택합니다.",
-      "libraryEmptyDescription": "이미지에 캐릭터, 위치, 스타일 또는 소품으로 태그를 지정하여 여러 장면에서 재사용할 수 있습니다. 라이브러리에서 이미지를 마우스 오른쪽 버튼으로 클릭하고 엔터티로 사용을 선택합니다.",
-      "addEntity": "엔터티 추가",
+      "panelEmptyDescription": "위의 + 버튼으로 이미지를 캐릭터, 장소, 스타일, 소품으로 태그하거나, 라이브러리에서 이미지를 마우스 오른쪽 버튼으로 클릭하고 레퍼런스로 사용을 선택하세요.",
+      "libraryEmptyDescription": "이미지를 캐릭터, 장소, 스타일, 소품으로 태그하면 여러 샷에서 다시 쓸 수 있습니다. 라이브러리에서 이미지를 마우스 오른쪽 버튼으로 클릭하고 레퍼런스로 사용을 선택하세요.",
+      "addEntity": "레퍼런스 추가",
       "librarySubtitle": "재사용 가능한 캐릭터, 위치, 스타일 및 소품",
-      "backToEntities": "엔터티로 돌아가기",
+      "backToEntities": "레퍼런스로 돌아가기",
       "pickImageTitle": "참조 이미지 선택",
       "noImages": "이미지 없음",
       "noImagesDescription": "먼저 이미지를 생성하거나 업로드하세요."
@@ -191,7 +191,7 @@
     "sendMediaToWorkflowTooltip": "선택한 미디어를 워크플로 캔버스에 상수 노드로 추가합니다.",
     "transformWithWorkflow": "워크플로로 혁신…",
     "transformWithWorkflowTooltip": "워크플로 중 하나를 통해 이 파일을 실행하세요.",
-    "useAsEntity": "엔터티로 사용…",
+    "useAsEntity": "레퍼런스로 사용…",
     "useAsEntityTooltip": "여러 장면에서 재사용하려면 이 이미지에 캐릭터, 위치, 스타일 또는 소품으로 태그를 지정하세요.",
     "editTimeline": "타임라인 편집",
     "createTimelineFromVideo": "비디오에서 타임라인 만들기",
@@ -3001,7 +3001,7 @@
       }
     },
     "entity": {
-      "title": "엔터티",
+      "title": "레퍼런스",
       "kinds": {
         "character": "성격",
         "location": "위치",
@@ -3009,51 +3009,51 @@
         "prop": "소품"
       },
       "defaults": {
-        "untitledName": "제목 없는 엔터티",
+        "untitledName": "제목 없는 레퍼런스",
         "untitledReferenceFile": "제목없음.png"
       },
       "errors": {
         "canvasUnavailable": "캔버스 2D 컨텍스트를 사용할 수 없습니다.",
         "blankImageFailed": "빈 이미지를 렌더링하지 못했습니다.",
-        "blankStart": "빈 엔터티를 시작할 수 없습니다: {{detail}}",
-        "referenceRequired": "엔터티를 생성하기 전에 참조 이미지를 선택하세요.",
-        "createdEntityUnreadable": "엔터티를 생성한 후 읽을 수 없습니다."
+        "blankStart": "빈 레퍼런스를 시작할 수 없습니다: {{detail}}",
+        "referenceRequired": "레퍼런스를 만들기 전에 이미지를 선택하세요.",
+        "createdEntityUnreadable": "레퍼런스를 만든 뒤 읽을 수 없습니다."
       },
       "steps": {
         "details": {
           "label": "세부정보",
           "primary": "참조를 선택하세요",
           "blocked": {
-            "name": "엔터티 이름 지정",
+            "name": "레퍼런스 이름 지정",
             "descriptor": "보존해야 할 특성을 설명하세요."
           },
           "pending": "빈 참조 준비"
         },
         "reference": {
           "label": "참고자료",
-          "primary": "검토 항목",
+          "primary": "레퍼런스 검토",
           "blocked": {
-            "libraryError": "엔터티 라이브러리를 확인할 수 없습니다.",
-            "libraryLoading": "엔터티 라이브러리 로드",
+            "libraryError": "레퍼런스 라이브러리를 확인할 수 없습니다",
+            "libraryLoading": "레퍼런스 라이브러리를 불러오는 중",
             "reference": "참조 이미지 선택"
           }
         },
         "review": {
           "label": "검토",
-          "primary": "엔터티 만들기",
-          "pending": "엔터티 만들기",
+          "primary": "레퍼런스 만들기",
+          "pending": "레퍼런스를 만드는 중",
           "blocked": {
-            "libraryError": "엔터티 라이브러리를 확인할 수 없습니다.",
-            "libraryLoading": "엔터티 라이브러리 로드",
+            "libraryError": "레퍼런스 라이브러리를 확인할 수 없습니다",
+            "libraryLoading": "레퍼런스 라이브러리를 불러오는 중",
             "reference": "돌아가서 참조 이미지를 선택하세요.",
-            "name": "돌아가서 엔터티 이름을 지정하세요.",
+            "name": "돌아가서 레퍼런스 이름을 지정하세요",
             "descriptor": "돌아가서 보존해야 할 특성을 설명하세요."
           }
         }
       },
       "details": {
         "title": "일관성을 유지해야 하는 것은 무엇입니까?",
-        "description": "엔터티에 안정적인 이름을 지정하면 설명 생성 프롬프트가 재사용됩니다.",
+        "description": "레퍼런스에 고정된 이름과 생성 프롬프트가 다시 쓸 설명을 붙이세요.",
         "kinds": {
           "character": {
             "title": "캐릭터",
@@ -3073,10 +3073,10 @@
           }
         },
         "fields": {
-          "kind": "엔터티 유형",
+          "kind": "레퍼런스 유형",
           "name": "이름",
           "descriptor": "설명자",
-          "descriptorHelp": "이 텍스트는 엔터티를 사용하는 모든 프롬프트에 추가됩니다. 안정적인 시각적 특성만 설명하세요.",
+          "descriptorHelp": "이 글은 레퍼런스를 쓰는 모든 프롬프트에 추가됩니다. 변하지 않는 시각적 특징만 적으세요.",
           "tagsOptional": "태그(선택사항)"
         },
         "placeholders": {
@@ -3098,7 +3098,7 @@
         "description": "이후 생성 결과에서 유지할 특징이 가장 선명하게 보이는 이미지를 고르거나 AI로 만드세요.",
         "imageCaption": "{{name}} 참조",
         "selectedCaption": "선정된 참고자료",
-        "selectedAlt": "선택된 엔터티 참조",
+        "selectedAlt": "선택한 레퍼런스 이미지",
         "assets": {
           "unavailable": "에셋을 사용할 수 없음",
           "loading": "에셋 로드 중",
@@ -3131,7 +3131,7 @@
         "errors": {
           "noImage": "이미지 모델이 참조 이미지를 반환하지 않았습니다.",
           "generationFailed": "참조 이미지를 생성할 수 없습니다.",
-          "reportSummary": "항목 참조 이미지를 생성하지 못했습니다."
+          "reportSummary": "레퍼런스 이미지를 생성하지 못했습니다"
         },
         "prompt": {
           "template": "{{name}}의 참조 이미지입니다. {{descriptor}} {{instruction}}",
@@ -3192,7 +3192,7 @@
         "clipTask": {
           "image_to_video": "스틸 애니메이션",
           "text_to_video": "프롬프트에서 생성",
-          "reference_to_video": "엔터티 참조 사용"
+          "reference_to_video": "레퍼런스 사용"
         },
         "confirmWithCost": "{{verb}} · 약 {{cost}}",
         "renderClip": "클립 렌더링",
@@ -3564,58 +3564,58 @@
       "entities": {
         "editOnlyModel": "{{model}}은 이미지만 편집하므로 설명에서 참조를 그릴 수 없습니다. 텍스트에서 이미지를 생성하는 모델을 선택하세요.",
         "substituteModelHelper": "{{originalModel}}은 이미지만 편집하므로 참조는 {{referenceModel}}을 사용합니다. Look 단계의 스틸은 {{originalModel}}을 유지합니다.",
-        "referenceModelHelper": "생성하기로 선택한 누락된 엔터티에만 사용됩니다. 동일한 모델이 Look 단계로 전달됩니다.",
+        "referenceModelHelper": "만들기로 한 빠진 레퍼런스에만 쓰입니다. 같은 모델이 Look 단계로 이어집니다.",
         "priceUnknown": "가격을 알 수 없음",
         "aboutPrice": "{{price}} 정보",
         "missingScreenplayOrModel": "스토리보드에는 먼저 각본과 감독 모델이 필요합니다.",
-        "findFailedFallback": "스토리에서 항목을 찾을 수 없습니다.",
+        "findFailedFallback": "이야기에서 레퍼런스를 찾을 수 없습니다.",
         "pickReferenceModelFirst": "먼저 참조 이미지 모델을 선택하세요.",
         "noReferenceImageReturned": "이미지 모델이 참조 이미지를 반환하지 않았습니다.",
-        "entitySaveFailed": "항목을 저장할 수 없습니다.",
-        "entityCreateFailedFallback": "엔터티를 만들 수 없습니다.",
+        "entitySaveFailed": "레퍼런스를 저장할 수 없습니다.",
+        "entityCreateFailedFallback": "레퍼런스를 만들 수 없습니다.",
         "title": "사람과 장소의 일관성 유지",
         "description": "전체 장면에서 일관성을 유지해야 하는 캐릭터, 장소, 소품을 선택하세요.",
         "suggestedFromStory": "당신의 이야기에서 추천",
         "suggestionsDescription": "각본에서 반복되는 참조를 찾아보세요. 사용하고 싶은 것만 생성하세요.",
-        "findingEntities": "엔터티 찾기",
+        "findingEntities": "레퍼런스를 찾는 중",
         "refreshSuggestions": "새로 고침 제안",
-        "findEntities": "엔터티 찾기",
-        "cancelFinding": "엔터티 찾기 취소",
+        "findEntities": "레퍼런스 찾기",
+        "cancelFinding": "레퍼런스 찾기 취소",
         "cancel": "취소",
         "noSuggestionsFound": "귀하의 각본에는 반복되는 캐릭터, 장소 또는 소품이 없습니다.",
         "loadingEstimate": "예상 로드 중…",
         "findEstimateResult": "시나리오에서 등장인물, 장소, 소품을 찾아보세요.",
         "findEstimateNext": "선택하기 전까지는 아무것도 생성되지 않습니다.",
-        "findFailureTitle": "항목을 찾을 수 없습니다.",
-        "createFailureTitle": "항목을 생성할 수 없습니다.",
-        "findFailureSummary": "스토리보드 엔터티 제안이 실패했습니다.",
-        "createFailureSummary": "스토리보드 엔터티 생성에 실패했습니다.",
+        "findFailureTitle": "레퍼런스를 찾을 수 없습니다",
+        "createFailureTitle": "레퍼런스를 만들 수 없습니다",
+        "findFailureSummary": "스토리보드 레퍼런스 제안을 가져오지 못했습니다",
+        "createFailureSummary": "스토리보드 레퍼런스를 만들지 못했습니다",
         "referenceImageModel": "참조 이미지 모델",
         "creatingEntity": "{{name}} 생성 중…",
         "useEntity": "{{name}} 사용",
         "createEntity": "{{name}} 생성",
-        "libraryTitle": "엔터티 라이브러리",
+        "libraryTitle": "내 레퍼런스 라이브러리",
         "selectedCount_one": "이 스토리보드에 {{count}}이(가) 선택되었습니다.",
         "selectedCount_other": "이 스토리보드에 {{count}}이(가) 선택되었습니다.",
-        "createFromImage": "이미지에서 엔터티 만들기",
-        "loadingEntities": "엔터티 로드 중",
-        "loadFailedTitle": "항목을 로드할 수 없습니다.",
+        "createFromImage": "이미지로 레퍼런스 만들기",
+        "loadingEntities": "레퍼런스를 불러오는 중",
+        "loadFailedTitle": "레퍼런스를 불러올 수 없습니다",
         "tryAgain": "다시 시도하세요",
-        "loadFailureSummary": "스토리보드 엔터티 라이브러리를 로드하지 못했습니다.",
-        "loadFailedFallback": "엔터티 라이브러리가 로드되지 않았습니다. 다시 시도하거나 이 단계를 건너뛰세요.",
-        "emptyTitle": "아직 항목이 없습니다.",
+        "loadFailureSummary": "스토리보드 레퍼런스 라이브러리를 불러오지 못했습니다",
+        "loadFailedFallback": "레퍼런스 라이브러리를 불러오지 못했습니다. 다시 시도하거나 이 단계를 건너뛰세요.",
+        "emptyTitle": "아직 레퍼런스가 없습니다",
         "emptyDescription": "생성되거나 업로드된 이미지에서 이미지를 생성하거나 이 단계를 건너뜁니다.",
-        "searchPlaceholder": "엔터티 검색",
+        "searchPlaceholder": "레퍼런스 검색",
         "selectedOnly": "선택된 것만",
-        "noEntitiesSelected": "선택한 항목이 없습니다.",
-        "noMatchingEntities": "일치하는 항목이 없습니다.",
+        "noEntitiesSelected": "선택한 레퍼런스 없음",
+        "noMatchingEntities": "일치하는 레퍼런스 없음",
         "noSelectedDescription": "라이브러리를 탐색하여 이 스토리보드에 대한 참조를 선택하세요.",
         "noMatchingDescription": "다른 이름을 사용하거나 선택한 필터를 변경하세요.",
         "viewReferenceImage": "{{name}} 참조 이미지 보기",
         "selectEntity": "{{name}} · {{kind}}",
         "noDescription": "설명 없음",
         "assignEachShot": "각 샷 할당",
-        "assignDescription": "표시되어서는 안 되는 샷에서 엔터티를 제거합니다.",
+        "assignDescription": "나오면 안 되는 샷에서 레퍼런스를 빼세요.",
         "shotNumber": "샷 {{number}}",
         "groups": {
           "characters": "캐릭터",
@@ -6122,7 +6122,7 @@
         "actionLabel": "{{name}}을 다른 프로젝트에 복사",
         "title": "{{name}} 복사",
         "confirm": "복사",
-        "description": "참조된 에셋, 엔터티 및 지원되는 문서가 대상에 복사됩니다. 소스는 변함이 없습니다.",
+        "description": "연결된 에셋, 레퍼런스, 지원되는 문서가 대상으로 복사됩니다. 원본은 바뀌지 않습니다.",
         "destinationProject": "대상 프로젝트"
       },
       "documents": {
@@ -6167,7 +6167,7 @@
         "openChatError": "채팅을 열 수 없습니다: {{error}}",
         "startFlowError": "{{flow}}을(를) 시작할 수 없습니다: {{error}}",
         "flowNames": {
-          "entity": "엔터티",
+          "entity": "레퍼런스",
           "storyboard": "스토리보드",
           "video": "비디오",
           "script": "스크립트",
@@ -6178,9 +6178,9 @@
         },
         "attachedFileCount_one": "{{count}} 첨부파일",
         "attachedFileCount_other": "{{count}} 첨부 파일",
-        "singleEntity": "엔터티 {{name}}",
-        "entityCount_one": "{{count}} 엔터티",
-        "entityCount_other": "{{count}} 엔터티",
+        "singleEntity": "레퍼런스 {{name}}",
+        "entityCount_one": "레퍼런스 {{count}}개",
+        "entityCount_other": "레퍼런스 {{count}}개",
         "uncarriedContext": "{{flow}} 흐름은 프롬프트에서 시작되므로 {{items}}은 이 화면에 남아 있습니다. 흐름 자체 단계에서 추가합니다.",
         "documentNames": {
           "storyboard": "새로운 스토리보드",
@@ -6190,11 +6190,11 @@
           "workflow": "새로운 워크플로",
           "app": "새로운 앱",
           "game": "새로운 게임",
-          "entity": "새로운 엔터티"
+          "entity": "새 레퍼런스"
         },
         "entryCards": {
           "entity": {
-            "title": "엔터티",
+            "title": "레퍼런스",
             "description": "재사용 가능한 캐릭터, 장소, 스타일 또는 소품을 만듭니다."
           },
           "storyboard": {
@@ -6257,13 +6257,13 @@
         "heading": "무엇을 만들고 싶나요?",
         "intro": "아이디어를 이미지, 비디오, 앱, 워크플로로 바꿔보세요. 질문을 하거나 무엇을 만들 것인지 설명해보세요.",
         "chatPromptLabel": "채팅 프롬프트",
-        "promptPlaceholder": "무엇을 만들고 싶은지 설명하세요. 스킬의 경우 /를 입력하고, 파일 또는 엔터티의 경우 @를 입력합니다.",
+        "promptPlaceholder": "만들고 싶은 것을 설명하세요. 스킬은 /, 파일이나 레퍼런스는 @를 입력하세요.",
         "removeReference": "{{name}} 제거",
         "attachFiles": "파일 첨부",
         "attachedFileCountShort_one": "파일 · {{count}}",
         "attachedFileCountShort_other": "파일 · {{count}}",
-        "entitiesNone": "엔터티 · 없음",
-        "entitiesSelected": "엔터티 · {{entities}}",
+        "entitiesNone": "레퍼런스 · 없음",
+        "entitiesSelected": "레퍼런스 · {{entities}}",
         "selectedModel": "모델 · {{name}}",
         "selectModel": "모델을 선택하세요",
         "sendToChat": "채팅으로 보내기",
@@ -6283,7 +6283,7 @@
         "blankDocumentDescription": "— 프로젝트 외부에서 느슨한 탭으로 열립니다.",
         "browseExamples": "예시 찾아보기",
         "tutorials": "튜토리얼",
-        "entitiesDialogTitle": "이 프로젝트의 엔터티",
+        "entitiesDialogTitle": "이 프로젝트의 레퍼런스",
         "blankStoryboard": "빈 스토리보드",
         "renderedExampleShots_one": "{{count}} 샷, 이미 렌더링됨",
         "renderedExampleShots_other": "{{count}} 샷, 이미 렌더링됨",
@@ -6777,7 +6777,7 @@
         "title": "흐름을 변경하시겠습니까?",
         "confirm": "버리고 선택하세요",
         "cancel": "이 초안을 유지하세요",
-        "description": "귀하의 브리핑, 귀하가 시작한 참조 및 엔터티는 다음에 선택하는 흐름과 함께 제공됩니다. 이 {{flow}} 초안은 광고 소재 컨텍스트, 가져온 파일, 배치된 미디어 등 이 단계에서 추가된 다른 항목과 함께 삭제됩니다. 아직 아무것도 생성되지 않았습니다."
+        "description": "브리프와 처음에 넣은 이미지, 레퍼런스는 다음에 고르는 흐름으로 함께 넘어갑니다. 이 {{flow}} 초안은 이 단계에서 추가한 창작 맥락, 가져온 파일, 배치한 미디어 등과 함께 삭제됩니다. 아직 생성된 것은 없습니다."
       }
     },
     "setupFooterField": {
@@ -6815,12 +6815,12 @@
     },
     "entityDetails": {
       "title": "일관성을 유지해야 하는 것은 무엇입니까?",
-      "description": "엔터티에 안정적인 이름을 지정하면 설명 생성 프롬프트가 재사용됩니다.",
+      "description": "레퍼런스에 고정된 이름과 생성 프롬프트가 다시 쓸 설명을 붙이세요.",
       "fields": {
-        "kind": "엔터티 유형",
+        "kind": "레퍼런스 유형",
         "name": "이름",
         "descriptor": "설명자",
-        "descriptorHelp": "이 텍스트는 엔터티를 사용하는 모든 프롬프트에 추가됩니다. 안정적인 시각적 특성만 설명하세요.",
+        "descriptorHelp": "이 글은 레퍼런스를 쓰는 모든 프롬프트에 추가됩니다. 변하지 않는 시각적 특징만 적으세요.",
         "tagsOptional": "태그(선택사항)"
       },
       "placeholders": {
@@ -6916,9 +6916,9 @@
   },
   "pass3_5": {
     "entity": {
-      "title": "엔터티",
+      "title": "레퍼런스",
       "defaults": {
-        "untitledName": "제목 없는 엔터티",
+        "untitledName": "제목 없는 레퍼런스",
         "untitledReferenceFile": "제목없음.png"
       },
       "kinds": {
@@ -6930,38 +6930,38 @@
       "errors": {
         "canvasUnavailable": "캔버스를 사용할 수 없기 때문에 빈 참조를 생성할 수 없습니다.",
         "blankImageFailed": "빈 참조 이미지를 렌더링할 수 없습니다.",
-        "blankStart": "빈 엔터티를 시작할 수 없습니다: {{detail}}",
-        "referenceRequired": "엔터티를 생성하기 전에 참조 이미지를 선택하세요.",
-        "createdEntityUnreadable": "엔터티를 생성한 후 읽을 수 없습니다."
+        "blankStart": "빈 레퍼런스를 시작할 수 없습니다: {{detail}}",
+        "referenceRequired": "레퍼런스를 만들기 전에 이미지를 선택하세요.",
+        "createdEntityUnreadable": "레퍼런스를 만든 뒤 읽을 수 없습니다."
       },
       "steps": {
         "details": {
           "label": "세부정보",
           "primary": "참조를 선택하세요",
           "blocked": {
-            "name": "엔터티 이름 지정",
+            "name": "레퍼런스 이름 지정",
             "descriptor": "보존해야 할 특성을 설명하세요."
           },
           "pending": "빈 참조 준비"
         },
         "reference": {
           "label": "참고자료",
-          "primary": "검토 항목",
+          "primary": "레퍼런스 검토",
           "blocked": {
-            "libraryError": "엔터티 라이브러리를 확인할 수 없습니다.",
-            "libraryLoading": "엔터티 라이브러리 로드",
+            "libraryError": "레퍼런스 라이브러리를 확인할 수 없습니다",
+            "libraryLoading": "레퍼런스 라이브러리를 불러오는 중",
             "reference": "참조 이미지 선택"
           }
         },
         "review": {
           "label": "검토",
-          "primary": "엔터티 만들기",
-          "pending": "엔터티 만들기",
+          "primary": "레퍼런스 만들기",
+          "pending": "레퍼런스를 만드는 중",
           "blocked": {
-            "libraryError": "엔터티 라이브러리를 확인할 수 없습니다.",
-            "libraryLoading": "엔터티 라이브러리 로드",
+            "libraryError": "레퍼런스 라이브러리를 확인할 수 없습니다",
+            "libraryLoading": "레퍼런스 라이브러리를 불러오는 중",
             "reference": "돌아가서 참조 이미지를 선택하세요.",
-            "name": "돌아가서 엔터티 이름을 지정하세요.",
+            "name": "돌아가서 레퍼런스 이름을 지정하세요",
             "descriptor": "돌아가서 보존해야 할 특성을 설명하세요."
           }
         }
@@ -6971,7 +6971,7 @@
         "description": "이후 생성 결과에서 유지할 특징이 가장 선명하게 보이는 이미지를 고르거나 AI로 만드세요.",
         "imageCaption": "{{name}} 참조",
         "selectedCaption": "선정된 참고자료",
-        "selectedAlt": "선택된 엔터티 참조",
+        "selectedAlt": "선택한 레퍼런스 이미지",
         "assets": {
           "unavailable": "에셋을 사용할 수 없음",
           "loading": "에셋 로드 중",
@@ -6997,7 +6997,7 @@
         "errors": {
           "noImage": "이미지 모델이 참조 이미지를 반환하지 않았습니다.",
           "generationFailed": "참조 이미지를 생성할 수 없습니다.",
-          "reportSummary": "항목 참조 이미지를 생성하지 못했습니다."
+          "reportSummary": "레퍼런스 이미지를 생성하지 못했습니다"
         },
         "prompt": {
           "template": "{{name}}의 참조 이미지입니다. {{descriptor}} {{instruction}}",
@@ -7050,12 +7050,12 @@
         }
       },
       "review": {
-        "title": "엔터티 검토",
-        "description": "이 참조 및 설명자는 엔터티를 추가할 수 있는 모든 곳에서 사용할 수 있습니다.",
+        "title": "레퍼런스를 검토하세요",
+        "description": "이 레퍼런스와 설명은 레퍼런스를 추가할 수 있는 모든 곳에서 쓸 수 있습니다.",
         "imageCaption": "{{name}} 참조",
         "imageAlt": "{{name}} 참조",
         "tags": "태그: {{tags}}",
-        "loadingLibrary": "항목 라이브러리 로드 중…",
+        "loadingLibrary": "레퍼런스 라이브러리를 불러오는 중…",
         "empty": {
           "title": "아직 참조 이미지가 없습니다.",
           "description": "참조 단계로 돌아가서 참조 단계를 선택하거나 생성하세요."
@@ -7212,7 +7212,7 @@
         "uploadFailed": "이미지 업로드 실패",
         "promptContext": "당신의 메시지와 함께 왔습니다",
         "referenceImages": "참조 이미지",
-        "entities": "엔터티",
+        "entities": "레퍼런스",
         "referencesHelp": "단계별 개요는 다음을 읽습니다. 바로 생성하면 텍스트만 사용됩니다.",
         "entitiesHelp": "이는 문서를 설정할 때 문서와 함께 유지됩니다.",
         "alternativesLabel": "다른 시작 방법"
@@ -7222,11 +7222,11 @@
         "downloadUnreadable": "파일을 읽을 수 없습니다({{status}}).",
         "variation": "변형 {{number}}",
         "unrecordedFailure": "이 사람은 렌더링하지도 않았고 이유도 제시하지 않았습니다.",
-        "savingEntity": "항목에 저장 중…",
+        "savingEntity": "레퍼런스에 저장하는 중…",
         "opening": "여는 중…",
-        "savedEntity": "엔터티에 저장되었습니다.",
+        "savedEntity": "레퍼런스에 저장했습니다.",
         "openedCanvas": "새 노드 캔버스에서 열렸습니다.",
-        "saveEntityFailed": "항목에 저장할 수 없습니다.",
+        "saveEntityFailed": "레퍼런스에 저장할 수 없습니다.",
         "openCanvasFailed": "해당 캔버스를 열 수 없습니다.",
         "heading": "이미지를 선택하세요",
         "intro": "모든 변형이 문서에 유지되므로 렌더링한 내용이 손실되지 않습니다.",
@@ -7245,7 +7245,7 @@
           "failed": "이건 실패했어"
         },
         "sketchEditor": "스케치 편집기",
-        "saveToEntities": "엔터티에 저장",
+        "saveToEntities": "레퍼런스에 저장",
         "newNodeCanvas": "새 노드 캔버스",
         "imageToVideo": "이미지를 비디오로",
         "retryVariation": "{{label}}을(를) 다시 시도해 보세요.",
@@ -7478,8 +7478,8 @@
       "sourceLineCount_other": "{{count}} 라인",
       "referenceCount_one": "{{count}} 참조",
       "referenceCount_other": "{{count}} 참조",
-      "entityCount_one": "{{count}} 엔터티",
-      "entityCount_other": "{{count}} 엔터티"
+      "entityCount_one": "레퍼런스 {{count}}개",
+      "entityCount_other": "레퍼런스 {{count}}개"
     },
     "review": {
       "addDirection": "방향 추가",
@@ -7876,14 +7876,14 @@
       "addOwnDisabledReason": "보드를 설정하는 동안 사용자 정의 스타일이 추가됩니다."
     },
     "entityStillModelWarning": {
-      "message": "엔터티는 참조 이미지를 전달하지만 이 모델은 텍스트만 사용합니다. 이를 사용하려면 이미지 대 이미지 모델을 선택하세요."
+      "message": "레퍼런스에는 이미지가 있지만 이 모델은 텍스트만 받습니다. 사용하려면 이미지-이미지 모델을 선택하세요."
     }
   },
   "screens4_13": {
     "storyboard": {
       "entityTiles": {
         "untitled": "제목 없음",
-        "chooseEntities": "엔터티 선택"
+        "chooseEntities": "레퍼런스 선택"
       },
       "oneTake": {
         "title": "원 테이크",
@@ -7898,7 +7898,7 @@
         "referenceStills": "샷 스틸",
         "referenceEntities": "출연진 및 위치",
         "referenceStillsHelp": "각 샷은 여전히 프레임과 포즈를 수정합니다. 차분한 촬영에 가장 적합합니다.",
-        "referenceEntitiesHelp": "엔터티 이미지는 누구와 장소를 수정합니다. 샷 텍스트는 프레임과 모션을 설정합니다. 액션에 가장 적합합니다.",
+        "referenceEntitiesHelp": "레퍼런스는 누가, 어디서를 정합니다. 샷 텍스트는 구도와 움직임을 정합니다. 액션에 가장 좋습니다.",
         "duration": "길이",
         "aspectRatio": "종횡비",
         "resolution": "해상도",
@@ -7930,7 +7930,7 @@
         "blockers": {
           "addShot": "먼저 보드에 샷을 추가하세요.",
           "renderStill": "적어도 한 번의 샷에 대해 스틸을 렌더링합니다.",
-          "addEntityImage": "먼저 보드의 개체에 참조 이미지를 제공합니다.",
+          "addEntityImage": "먼저 보드의 레퍼런스에 이미지를 넣으세요.",
           "noModel": "선택한 동영상 모델이 없습니다.",
           "imageLimit_one": "{{count}} 이미지가 {{limit}} 한도를 초과했습니다. {{removeCount}}을(를) 제거합니다.",
           "imageLimit_other": "{{count}} 이미지가 {{limit}} 한도를 초과했습니다. {{removeCount}}을(를) 제거합니다.",
@@ -7986,9 +7986,9 @@
         "shotStillAlt": "정지샷",
         "imageReference": "[이미지 {{number}}] ",
         "references": "참조 이미지",
-        "referencesHelp": "스틸은 프레임과 포즈를 수정합니다. 엔터티 이미지는 누구와 장소를 수정합니다.",
+        "referencesHelp": "스틸은 구도와 포즈를 정하고, 레퍼런스는 누가, 어디서를 정합니다.",
         "stills": "스틸",
-        "entities": "엔터티",
+        "entities": "레퍼런스",
         "addEntity": "라이브러리에서 추가",
         "noStill": "아직은 아니야",
         "noEntityImage": "이미지 없음",
@@ -8003,7 +8003,7 @@
           "differentScenes": "이 장면 클립의 샷은 더 이상 하나의 장면에 없습니다.",
           "addShot": "먼저 보드에 샷을 추가하세요.",
           "renderStill": "적어도 한 번의 샷에 대해 스틸을 렌더링합니다.",
-          "addEntityImage": "먼저 보드의 개체에 참조 이미지를 제공합니다.",
+          "addEntityImage": "먼저 보드의 레퍼런스에 이미지를 넣으세요.",
           "noReference": "참조 이미지를 하나 이상 선택하세요.",
           "noVideoModel": "선택한 동영상 모델이 없습니다.",
           "imageLimit": "{{imageCount}} 이미지가 {{limit}} 한도를 초과했습니다. {{remove}}을(를) 제거합니다.",
@@ -8087,8 +8087,8 @@
       "shotEntitiesField": {
         "label": "이 장면에서는",
         "remove": "이 장면에서 {{name}}을(를) 삭제하세요.",
-        "empty": "아직 항목이 없습니다. 이 장면에서 일관성을 유지할 수 있도록 캐릭터, 위치, 스타일 또는 소품을 선택하세요.",
-        "newEntity": "새로운 엔터티"
+        "empty": "아직 레퍼런스가 없습니다. 캐릭터, 장소, 스타일, 소품을 선택해 이 샷에서 모습을 똑같이 유지하세요.",
+        "newEntity": "새 레퍼런스"
       },
       "shotGraphicsEditor": {
         "title": "그래픽",
@@ -8104,7 +8104,7 @@
         "exactText": "정확한 텍스트: {{id}}",
         "protectedCopy": "보호된 사본은 프로덕션 입력에서 나옵니다. 거기에서 편집하세요.",
         "assetReference": "에셋 참조: {{id}}",
-        "entity": "엔터티: {{id}}",
+        "entity": "레퍼런스: {{id}}",
         "graphicNotes": "그래픽 노트: {{id}}",
         "defaultText": "당신의 텍스트",
         "addText": "텍스트 추가",
@@ -8202,7 +8202,7 @@
         "clipTask": {
           "image_to_video": "스틸 애니메이션",
           "text_to_video": "프롬프트에서 생성",
-          "reference_to_video": "엔터티 참조 사용"
+          "reference_to_video": "레퍼런스 사용"
         }
       },
       "shotScript": {
@@ -8482,11 +8482,11 @@
         "style": "스타일",
         "prop": "소품"
       },
-      "editEntity": "엔터티 편집",
+      "editEntity": "레퍼런스 편집",
       "editEntityFor": "{{name}} 편집",
-      "removeEntity": "엔터티 제거",
+      "removeEntity": "레퍼런스 제거",
       "removeEntityFor": "{{name}} 제거",
-      "newEntity": "새로운 엔터티",
+      "newEntity": "새 레퍼런스",
       "save": "저장",
       "cancel": "취소",
       "create": "만들기",
@@ -8495,33 +8495,33 @@
       "kind": "종류",
       "name": "이름",
       "descriptor": "설명자",
-      "descriptorHelp": "그 모습을 문장으로 표현해보세요. 이 엔터티를 사용하는 모든 프롬프트에는 작성된 대로 정확하게 이 텍스트가 포함됩니다.",
+      "descriptorHelp": "모습을 한 문장으로 설명하세요. 이 레퍼런스를 쓰는 모든 프롬프트에 이 글이 그대로 들어갑니다.",
       "voiceId": "음성 ID(선택 사항)",
       "tags": "태그(쉼표로 구분)",
-      "saveFailed": "이 항목을 저장할 수 없습니다. 연결을 확인하고 다시 시도하세요.",
-      "loadingEntities": "엔터티 로드 중",
-      "emptyTitle": "아직 항목이 없습니다.",
-      "libraryEmptyDescription": "이미지를 캐릭터, 위치, 스타일 또는 소품으로 추가하여 여러 장면에서 재사용할 수 있습니다. 라이브러리에서 이미지를 마우스 오른쪽 버튼으로 클릭하고 엔터티로 사용을 선택할 수도 있습니다.",
-      "addEntity": "엔터티 추가",
-      "backToEntities": "엔터티로 돌아가기",
-      "entitiesLabel": "엔터티",
+      "saveFailed": "이 레퍼런스를 저장할 수 없습니다. 연결을 확인하고 다시 시도하세요.",
+      "loadingEntities": "레퍼런스를 불러오는 중",
+      "emptyTitle": "아직 레퍼런스가 없습니다",
+      "libraryEmptyDescription": "이미지를 캐릭터, 장소, 스타일, 소품으로 추가하면 여러 샷에서 다시 쓸 수 있습니다. 라이브러리에서 이미지를 마우스 오른쪽 버튼으로 클릭하고 레퍼런스로 사용을 선택할 수도 있습니다.",
+      "addEntity": "레퍼런스 추가",
+      "backToEntities": "레퍼런스로 돌아가기",
+      "entitiesLabel": "레퍼런스",
       "librarySubtitle": "재사용 가능한 캐릭터, 위치, 스타일 및 소품",
       "retakeImage": "새로 생성"
     }
   },
   "screens4_23": {
     "entities": {
-      "newEntity": "새로운 엔터티",
-      "loading": "엔터티 로드 중",
-      "emptyTitle": "아직 항목이 없습니다.",
-      "panelEmptyDescription": "위의 + 버튼을 사용하여 이미지에 캐릭터, 위치, 스타일 또는 소품으로 태그를 지정하거나 라이브러리에서 이미지를 마우스 오른쪽 버튼으로 클릭하고 엔터티로 사용을 선택합니다.",
+      "newEntity": "새 레퍼런스",
+      "loading": "레퍼런스를 불러오는 중",
+      "emptyTitle": "아직 레퍼런스가 없습니다",
+      "panelEmptyDescription": "위의 + 버튼으로 이미지를 캐릭터, 장소, 스타일, 소품으로 태그하거나, 라이브러리에서 이미지를 마우스 오른쪽 버튼으로 클릭하고 레퍼런스로 사용을 선택하세요.",
       "emptyPickerDescription": "귀하가 생성한 캐릭터, 위치, 스타일 및 소품이 여기에 표시됩니다.",
-      "noMatches": "일치하는 항목이 없습니다.",
+      "noMatches": "일치하는 레퍼런스가 없습니다",
       "noMatchesDescription": "다른 이름, 종류, 태그를 사용해 보세요.",
       "untitled": "제목 없음",
-      "searchPlaceholder": "이름, 종류 또는 태그로 항목 검색",
-      "searchLabel": "엔터티 검색",
-      "kindLabel": "항목 종류",
+      "searchPlaceholder": "이름, 종류, 태그로 레퍼런스 검색",
+      "searchLabel": "레퍼런스 검색",
+      "kindLabel": "레퍼런스 종류",
       "kindFilters": {
         "all": "모두",
         "characters": "캐릭터",
@@ -8535,10 +8535,10 @@
         "style": "스타일",
         "prop": "소품"
       },
-      "entitiesLabel": "엔터티",
-      "selectedCount_one": "{{formattedCount}} 항목이 선택됨",
-      "selectedCount_other": "{{formattedCount}} 항목이 선택됨",
-      "pickTitle": "엔터티 선택",
+      "entitiesLabel": "레퍼런스",
+      "selectedCount_one": "레퍼런스 {{formattedCount}}개 선택됨",
+      "selectedCount_other": "레퍼런스 {{formattedCount}}개 선택됨",
+      "pickTitle": "레퍼런스 선택",
       "done": "완료"
     }
   },
@@ -9951,9 +9951,9 @@
     "shotDesignFrame": {
       "ariaLabel": "샷 {{shot}} 디자인 미리보기",
       "errors": {
-        "entityAssetMismatch": "엔터티 {{entityId}}의 에셋이 선택한 엔터티와 일치하지 않습니다.",
-        "entitySourceMismatch": "소스 요소 {{elementId}}이 이 항목과 일치하지 않습니다.",
-        "missingEntityReference": "스토리보드에 엔터티 {{entityId}}이(가) 없습니다.",
+        "entityAssetMismatch": "레퍼런스 {{entityId}}의 에셋이 선택한 레퍼런스와 맞지 않습니다.",
+        "entitySourceMismatch": "소스 요소 {{elementId}}이(가) 이 레퍼런스와 맞지 않습니다.",
+        "missingEntityReference": "스토리보드에 레퍼런스 {{entityId}}이(가) 없습니다.",
         "unavailable": "샷 미리보기를 사용할 수 없습니다."
       },
       "pause": "미리보기 일시중지",
@@ -10036,7 +10036,7 @@
         "takes": "소요"
       },
       "title": "장면 {{scene}}, 샷 {{shot}}",
-      "untitledEntity": "제목 없는 엔터티"
+      "untitledEntity": "제목 없는 레퍼런스"
     },
     "shotEditTable": {
       "camera": {
@@ -10679,8 +10679,8 @@
       "sketches": "스케치",
       "timelines": "타임라인",
       "storyboards": "스토리보드",
-      "entities": "엔터티",
-      "openEntitiesFullPage": "전체 페이지에서 엔터티 열기",
+      "entities": "레퍼런스",
+      "openEntitiesFullPage": "레퍼런스를 전체 페이지로 열기",
       "examples": "예시",
       "scripts": "스크립트",
       "jsScripts": "JS 스크립트",
@@ -10704,7 +10704,7 @@
         "sketches": "스케치",
         "scripts": "스크립트",
         "storyboards": "스토리보드",
-        "entities": "엔터티",
+        "entities": "레퍼런스",
         "examples": "예시",
         "timelines": "타임라인",
         "jsScripts": "JS 스크립트",
@@ -13350,7 +13350,7 @@
         "selectModel": "모델을 선택하세요",
         "attach": {
           "assetsTab": "에셋",
-          "entitiesTab": "엔터티",
+          "entitiesTab": "레퍼런스",
           "documentsTab": "문서",
           "uploadTab": "업로드",
           "tabsLabel": "추가할 내용",
@@ -14103,7 +14103,7 @@
         "creative": "창의적인 문서",
         "text": "텍스트 파일",
         "agents": "에이전트 및 코드",
-        "entities": "엔터티",
+        "entities": "레퍼런스",
         "shared": "나와 공유됨",
         "cloud": "클라우드",
         "cloudShared": "나와 공유됨"
@@ -14115,7 +14115,7 @@
         "script": "스크립트",
         "storyboard": "스토리보드",
         "timeline": "타임라인",
-        "entity": "엔터티",
+        "entity": "레퍼런스",
         "jsscript": "JS 스크립트",
         "game": "게임",
         "text": "텍스트 파일"
@@ -14124,7 +14124,7 @@
       "deleteFailure": "{{name}}을(를) 삭제할 수 없습니다: {{error}}",
       "unknownError": "알 수 없는 오류",
       "deleteConfirmTitle": "{{type}}을 삭제하시겠습니까?",
-      "deleteEntityDescription": "\"{{name}}\"은 더 이상 엔터티가 아닙니다. 그 에셋은 유지됩니다.",
+      "deleteEntityDescription": "\"{{name}}\"은(는) 더 이상 레퍼런스가 아닙니다. 에셋은 유지됩니다.",
       "deleteDescription": "\"{{name}}\"이(가) 영구적으로 삭제됩니다.",
       "deleteAction": "삭제",
       "cancel": "취소",
@@ -14204,8 +14204,8 @@
       "noRecentAssets": "아직 파일이 없습니다. 하나를 첨부하거나 드래그하세요.",
       "noAssetsMatch": "일치하는 에셋이 없습니다.",
       "noSavedAssets": "아직 저장된 에셋이 없습니다.",
-      "noEntitiesMatch": "일치하는 항목이 없습니다.",
-      "entities": "엔터티",
+      "noEntitiesMatch": "일치하는 레퍼런스가 없습니다.",
+      "entities": "레퍼런스",
       "assetSource": "에셋 소스",
       "rename": "{{name}} 이름 바꾸기",
       "assetName": "에셋 이름",
@@ -14896,8 +14896,8 @@
       "error": "오류: {{error}}"
     },
     "entity": {
-      "add": "엔터티 추가",
-      "pick": "엔터티 선택",
+      "add": "레퍼런스 추가",
+      "pick": "레퍼런스 선택",
       "untitled": "제목 없음"
     },
     "collection": {
@@ -15967,7 +15967,7 @@
       "sketches": "스케치",
       "scripts": "스크립트",
       "storyboards": "스토리보드",
-      "entities": "엔터티",
+      "entities": "레퍼런스",
       "examples": "예시",
       "timelines": "타임라인",
       "jsscripts": "JS 스크립트",
@@ -16102,7 +16102,7 @@
         "models": "모델 관리자",
         "packages": "패키지 관리자",
         "collections": "컬렉션",
-        "entities": "엔터티",
+        "entities": "레퍼런스",
         "memory": "메모리",
         "settings": "설정",
         "effects": "효과",
@@ -17004,14 +17004,14 @@
   },
   "i18n-next62": {
     "scriptCastPanel": {
-      "noEntity": "엔터티 없음",
+      "noEntity": "레퍼런스 없음",
       "noVoice": "음성 없음",
       "speakerName": "발표자 이름",
       "hideVoiceSettings": "음성 설정 숨기기",
       "voiceSettings": "음성 설정",
-      "linkedEntityMissing": "연결된 엔터티가 누락되었습니다.",
-      "linkedEntity": "연결된 엔터티",
-      "linkedEntityNotFound": "연결된 엔터티를 찾을 수 없습니다. 제거되었습니다. 다른 것을 선택하거나 지웁니다.",
+      "linkedEntityMissing": "연결된 레퍼런스 없음",
+      "linkedEntity": "연결된 레퍼런스",
+      "linkedEntityNotFound": "연결된 레퍼런스를 찾을 수 없습니다. 삭제되었습니다. 다른 것을 고르거나 비우세요.",
       "removeSpeaker": "스피커 제거",
       "speakerDefaultName": "스피커 {{count}}",
       "cast": "캐스트",
@@ -17220,9 +17220,9 @@
         "imageLabel": "이미지 {{index}}",
         "noImages": "클립의 조건을 지정할 이미지를 추가합니다.",
         "addImage": "이미지 추가",
-        "entitiesLabel": "엔터티",
+        "entitiesLabel": "레퍼런스",
         "entitiesEmpty": "클립에서 일관성을 유지하려면 캐릭터, 위치, 스타일 또는 소품을 선택하세요.",
-        "newEntity": "새로운 엔터티",
+        "newEntity": "새 레퍼런스",
         "pickImageTitle": "참조 이미지 선택"
       },
       "transcript": {
@@ -19882,8 +19882,8 @@
   "lipsync": {
     "title": "립싱크",
     "subtitle": "선택한 음성으로 사진을 말해보세요.",
-    "entity": "엔터티를 선택하세요",
-    "entityImage": "저장된 참조 이미지가 있는 엔터티를 선택하거나 사진을 업로드하세요.",
+    "entity": "레퍼런스 선택",
+    "entityImage": "저장된 이미지가 있는 레퍼런스를 선택하거나 이미지를 업로드하세요.",
     "realPerson": "이것은 실제 사람입니다",
     "consent": "나는 이 생성된 클립에 자신의 이미지를 사용하는 데 이 사람의 동의를 얻었습니다.",
     "line": "그들은 무엇을 말해야 합니까?",
@@ -20383,7 +20383,7 @@
   "storyboardText": {
     "mode": "텍스트",
     "editorLabel": "Markdown 텍스트로 보는 스토리보드",
-    "hint": "막은 #, 장면은 ##, 샷은 ###, 필드는 - **Motion:** 으로 입력하세요. 엔터티나 이미지를 언급하려면 @를 입력하세요.",
+    "hint": "막은 #, 장면은 ##, 샷은 ###, 필드는 - **Motion:**을 입력하세요. 레퍼런스나 이미지를 언급하려면 @를 입력하세요.",
     "issues": "확인이 필요한 줄: {{lines}}",
     "loading": "텍스트를 불러오는 중…",
     "warnings": {
@@ -20419,7 +20419,7 @@
       "instruction": "에이전트 요청",
       "send": "에이전트에게 보내기",
       "failed": "모델 요청이 실패했습니다.",
-      "context": "요청과 함께 보냄: 스토리보드 전체, 샷 {{shots}}개, 라이브러리 엔터티 {{entities}}개.",
+      "context": "요청과 함께 전송: 보드 전체, 샷 {{shots}}개, 라이브러리의 레퍼런스 {{entities}}개.",
       "quick": {
         "tighten": "다듬기",
         "visual": "더 시각적으로",

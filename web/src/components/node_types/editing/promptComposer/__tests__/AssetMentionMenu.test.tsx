@@ -52,6 +52,6 @@ describe("AssetMentionMenu", () => {
 
   it("says no entity matches when entities only finds none", () => {
     renderMenu({ entities: [], entitiesOnly: true });
-    expect(screen.getByText("No entities match.")).toBeInTheDocument();
+    expect(screen.getByText("No references match.")).toBeInTheDocument();
   });
 });

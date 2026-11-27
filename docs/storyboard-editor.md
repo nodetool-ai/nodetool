@@ -5,7 +5,7 @@ permalink: /storyboard-editor
 description: "Plan a film as scenes and shots, render stills and clips with the models you choose, and hand the cut to the timeline."
 ---
 
-A storyboard is a board of shots. Each shot has a prompt, a camera setup, and the entities it shows, and holds a still, a clip, and their takes. Selected clips go to a timeline.
+A storyboard is a board of shots. Each shot has a prompt, a camera setup, and the references it shows, and holds a still, a clip, and their takes. Selected clips go to a timeline.
 
 > **Runs:** locally or cloud, depending on the models you pick. **Needs:** a language model for **Direct**, an image model for stills, and a video model for clips. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** stills, clips, still edits that call a model, and **Iterate** are billed by paid providers at provider rates. **Adjust**, reordering, and slideshow call no provider.
 {: .callout-note}
@@ -33,7 +33,7 @@ The ⋮ menu holds **Slideshow**, **One take**, **Open script** or **Extract scr
 | New menu | **+** in the tab bar, then **New storyboard…**, then **Blank storyboard** |
 | Examples | Same menu, then pick an example. Each one lists its shot count and says "stills included" |
 | Command palette | **New storyboard** |
-| Guided flow | Choose **Storyboard** on the new-project screen. The flow reviews the screenplay, entities, and look before it opens the board. See [Guided Flows](guided-flows.md) |
+| Guided flow | Choose **Storyboard** on the new-project screen. The flow reviews the screenplay, references, and look before it opens the board. See [Guided Flows](guided-flows.md) |
 | Agent | Ask the [creative agent](creative-agent.md) or the board's assistant to create one |
 
 A blank board is named "Untitled storyboard". The left panel also has a **New storyboard** button.
@@ -49,7 +49,7 @@ In **Board settings**, write the brief and press **Direct**. The screenplay mode
 | Title | Placeholder: "Untitled film" |
 | Brief | |
 | Style | Palette, light, lens, texture |
-| Entities | Apply to the whole board |
+| References | Apply to the whole board |
 | Screenplay model | |
 | Aspect ratio | 16:9, 9:16, 1:1, 4:3, or 21:9 |
 | Shots | How many shots **Direct** writes |
@@ -90,7 +90,7 @@ Select a card to open the shot inspector under the grid. It repeats **Edit**, **
 |---|---|
 | Description | |
 | Dialogue | Edit in place, or jump to the linked script |
-| In this shot | The entities that appear. Pick a character, location, style, or prop to keep it consistent. See [Entities](entities.md) |
+| In this shot | The references that appear. Pick a character, location, style, or prop to keep it consistent. See [References](entities.md) |
 | Size, Focal length, Perspective, Equipment | Camera setup, chosen from lists |
 | Movement | Free text, or camera presets from the picker. See [Camera movement presets](#camera-movement-presets) |
 | Duration (seconds) | The length of the clip. With a linked script, the chip reads **From voice takes** or **Set by hand**. Click it to switch between the two. The shot card shows the duration next to the shot number |
@@ -99,7 +99,7 @@ Select a card to open the shot inspector under the grid. It repeats **Edit**, **
 | Notes | Not sent as direction to the render |
 | Composition mode, graphic direction | **None**, **Overlay**, **Graphics first**, or **Hybrid** for on-screen text and graphics |
 
-Type `@` in **Description**, **Motion**, or **End** to pick an entity from the library. Its name goes into the text and the entity joins **In this shot**, the same as picking it there. A picked entity also joins the board, and joins the shot at once, before you save the text.
+Type `@` in **Description**, **Motion**, or **End** to pick a reference from the library. Its name goes into the text and the reference joins **In this shot**, the same as picking it there. A picked reference also joins the board, and joins the shot at once, before you save the text.
 
 Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. When the shot has camera presets, the clip prompt shows the camera wording for the board's video model, and a note lists any preset that has no wording for that model. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
 
@@ -133,7 +133,7 @@ The same move is worded differently for each video model. See [Presets](presets.
 | **Regenerate** | Card, inspector, editor | Re-renders the still with the model the shot used last |
 | **Iterate** | Card, inspector | Asks for a note such as "make it darker, add rain" and re-renders the current clip with it |
 
-If an entity is attached and the chosen still model cannot take reference images, a warning appears under the model picker.
+If a reference is attached and the chosen still model cannot take reference images, a warning appears under the model picker.
 
 The Render button shows the next batch, stills until every shot has one and then clips. Its arrow offers both. The dialog and confirm button show a price, for example "Render stills · ~$0.40". Text under the picker explains any request that could not be priced, and **Select a priced model to see the estimate.** appears when no priced model is selected. After you choose stills, the dialog also shows what rendering the clips for the same shots would add. See [Costs and Credits](costs-and-credits.md).
 
@@ -225,14 +225,14 @@ Nova kneels by a single green shoot under the dome.
 | `##` heading and `- **Lighting:**` | A scene, named by its scene heading. Shots below it belong to it |
 | `###` heading and the text under it | A shot and its action. Shot numbers are computed |
 | `Framing`, `Lens`, `Angle`, `Camera movement`, `Rig`, `Motion`, `End`, `Sound`, `Dialogue`, `Narration`, `Duration`, `Render`, `Notes` | The shot's fields |
-| A mentioned entity in a shot, or `- **Cast:**` and `- **Location:**` | The shot's entities |
+| A mentioned reference in a shot, or `- **Cast:**` and `- **Location:**` | The shot's references |
 | An image under a shot heading | The selected still. A video file selects the clip |
 | `- **Transition:**` | A transition to the next shot |
 | `- **Continuity:** until Shot 7` | Intent that runs from this shot through shot 7 |
 
 The editor adds hidden identifiers to headings and links so each shot keeps its takes. The raw syntax is in [Creative Agent Tools](developer/creative-agent-tools.md#storyboard-editor).
 
-Type `@` to mention an entity or an image from the library. The identifiers show only on the line that holds the caret. A new heading gets one when you type it.
+Type `@` to mention a reference or an image from the library. The identifiers show only on the line that holds the caret. A new heading gets one when you type it.
 
 A still line shows the image under it. Beside the text, **Outline** lists the acts, scenes and shots, marks the one the caret is in, and lists the lines that need attention. Click an entry to jump to its line. The outline needs a window at least as wide as a laptop screen.
 
@@ -240,7 +240,7 @@ A still line shows the image under it. Beside the text, **Outline** lists the ac
 
 Select text and a prompt opens under it. Type what to do with the passage, or use the microphone to dictate it, and press Enter. The quick actions are **Tighten**, **More visual**, **Suggest camera** and **Check continuity** for a passage, and **Summarize** and **Find inconsistencies** for a selection across several shots.
 
-The agent receives the whole board as Markdown, the entity library with each descriptor, and the selection marked inside its lines. It answers with a proposed replacement or a note. **Replace selection** puts the replacement in the text as one undo step. Type again in the prompt to refine the answer.
+The agent receives the whole board as Markdown, the reference library with each descriptor, and the selection marked inside its lines. It answers with a proposed replacement or a note. **Replace selection** puts the replacement in the text as one undo step. Type again in the prompt to refine the answer.
 
 The board's director model answers. Before one is picked, the chat model answers. With neither, the prompt says to pick one. The call is billed by the provider at its rates.
 
@@ -292,5 +292,5 @@ Builders driving this from code or MCP: see [Creative Agent Tools](developer/cre
 ## Related pages
 
 - [AI Video Production](ai-video-production.md) covers the guided Storyboard flow and how takes fit into a full production.
-- [Entities](entities.md) covers the characters, locations, and styles shots reuse.
+- [References](entities.md) covers the characters, locations, and styles shots reuse.
 - [Templates Gallery](templates-gallery.md) lists starting points.

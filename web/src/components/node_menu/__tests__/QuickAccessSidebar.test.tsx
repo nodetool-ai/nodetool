@@ -32,7 +32,7 @@ describe("QuickAccessSidebar", () => {
       "Chats",
       "Files",
       "Library",
-      "Entities",
+      "References",
       "Examples",
       "Nodes",
       "More"

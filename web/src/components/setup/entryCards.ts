@@ -32,7 +32,7 @@ export interface EntryCard extends OptionCardItem {
 export const ENTRY_CARDS: readonly EntryCard[] = [
   {
     id: "entity",
-    title: "Entity",
+    title: "Reference",
     description: "Create a reusable character, place, style, or prop."
   },
   {

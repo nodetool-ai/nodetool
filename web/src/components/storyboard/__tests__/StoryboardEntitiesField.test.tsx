@@ -87,7 +87,7 @@ describe("StoryboardEntitiesField", () => {
   it("adds a library entity to the board", async () => {
     renderField(["mark"]);
     await userEvent.click(
-      screen.getByRole("button", { name: /Choose entities/ })
+      screen.getByRole("button", { name: /Choose references/ })
     );
     await userEvent.click(
       await screen.findByRole("button", { name: "Pick Exotic Bazaar" })
@@ -98,6 +98,6 @@ describe("StoryboardEntitiesField", () => {
   it("offers no changes on a read-only board", () => {
     renderField(["mark"], true);
     expect(screen.queryByRole("button", { name: /Remove/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Choose entities/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Choose references/ })).toBeNull();
   });
 });
