@@ -662,6 +662,9 @@ QHash<QString, QString> buildDenied() {
     const QString internal = "it is a step inside another command or a server sync, not a command of its own";
     const QString window = "it covers or rearranges the window in a way the person has to undo by hand";
     deny({"exportVideo", "quickExport", "exportFrame", "exportPremiere", "importPremiere", "exportMarkersCsv"}, files);
+    deny({"accountSignIn"}, "it signs in, cancels sign-in or signs out, which a person controls");
+    deny({"accountOtherServer", "accountSwitchServer"}, "it changes the account server through controls a person drives");
+    deny({"shareTimeline"}, "it opens sharing controls, where a person decides who can access the timeline");
     deny({"remixClip", "sceneEditDetection"}, paid);
     deny({"revertRemix"}, "it runs through the remix panel, which a person drives");
     deny({"toggleSnap", "sequence.linkedSelection", "toggleLoop", "toggleScrubAudio", "toggleShuttleKeepsPitch", "toggleLibraryScrub"}, settings);

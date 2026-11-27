@@ -210,7 +210,8 @@ for line in sys.stdin:
     }
     void securityDenials_data() {
         QTest::addColumn<QString>("id");
-        for (const auto* id : {"exportVideo", "quickExport", "exportFrame", "exportPremiere", "importPremiere", "exportMarkersCsv",
+        for (const auto* id : {"accountSignIn", "accountOtherServer", "accountSwitchServer", "shareTimeline",
+                               "exportVideo", "quickExport", "exportFrame", "exportPremiere", "importPremiere", "exportMarkersCsv",
                                "remixClip", "sceneEditDetection", "projectSettings", "toggleSnap", "playPause", "resetWorkspace", "updateTrackEffect",
                                "ai.insertGeneration", "music.insertPlaceholder", "music.applyResult", "music.removeTakes", "musicCleanUpTakes", "assets.dropAsset", "restoreDocument", "acceptExternalUnit", "toggleScrubAudio"}) {
             QTest::newRow(id) << QString(id);
