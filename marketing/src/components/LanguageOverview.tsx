@@ -6,7 +6,8 @@ import HeroDemoPlayer from "./HeroDemoPlayer";
 import FaqSection from "./FaqSection";
 import JsonLd from "./JsonLd";
 import { breadcrumbSchema } from "@/lib/jsonld";
-import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
+import { shareImages } from "@/lib/defaultOgImage";
+import { LOCALE_KEYWORDS } from "@/i18n/keywords";
 import {
   BLOCK_HREFS,
   CARD_HREFS,
@@ -30,6 +31,7 @@ export function languageMetadata(locale: LanguageCode): Metadata {
   return {
     title: { absolute: page.title },
     description: page.description,
+    ...(LOCALE_KEYWORDS[locale] ? { keywords: [...LOCALE_KEYWORDS[locale]] } : {}),
     alternates: { canonical: page.path, languages: HOME_LANGUAGE_ALTERNATES },
     openGraph: {
       title: page.title,
@@ -39,7 +41,7 @@ export function languageMetadata(locale: LanguageCode): Metadata {
       locale: page.ogLocale,
       alternateLocale: ["en_US"],
       type: "website",
-      images: DEFAULT_OG_IMAGES,
+      images: shareImages(locale),
     },
     twitter: { card: "summary_large_image", title: page.title, description: page.description },
   };
