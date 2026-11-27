@@ -77,8 +77,15 @@ Rectangle {
         }
         onPressed: mouse => {
             if (mouse.button === Qt.RightButton) {
-                rulerMenu.context = { timeMs: ruler.viewState.timeAtViewportX(mouse.x), editable: true, kind: "ruler", gestures: ruler.gestures, rulerMode: ruler.viewState.rulerMode, hasMarkers: ruler.markers.length > 0 }
-                if (MenuRegistry.query("ruler", rulerMenu.context).length > 0) rulerMenu.popupAt(this, mouse.x, mouse.y)
+                if (!ruler.rulerMenu) ruler.rulerMenu = rulerMenuComponent.createObject(ruler)
+                if (!ruler.rulerMenu) return
+                const px = mouse.x
+                const py = mouse.y
+                const context = { timeMs: ruler.viewState.timeAtViewportX(mouse.x), editable: true, kind: "ruler", gestures: ruler.gestures, rulerMode: ruler.viewState.rulerMode, hasMarkers: ruler.markers.length > 0 }
+                ruler.rulerMenu.retarget(this, anchor => {
+                    ruler.rulerMenu.context = context
+                    if (MenuRegistry.query("ruler", context).length > 0) ruler.rulerMenu.popupAt(anchor, px, py)
+                })
             } else {
                 MarkerSession.clearSelection()
                 seekTo(mouse.x, true)
@@ -91,17 +98,32 @@ Rectangle {
         onCanceled: lastScrubMs = -1
     }
 
-    RegistryContextMenu {
-        id: rulerMenu
-        kind: "ruler"
-        gestures: ruler.gestures
+    property RegistryContextMenu rulerMenu: null
+    property RegistryContextMenu markerMenu: null
+    Component {
+        id: rulerMenuComponent
+        RegistryContextMenu { kind: "ruler"; gestures: ruler.gestures }
     }
-    RegistryContextMenu {
-        id: markerMenu
-        kind: "marker"
-        gestures: ruler.gestures
+    Component {
+        id: markerMenuComponent
+        RegistryContextMenu { kind: "marker"; gestures: ruler.gestures }
     }
 
+    function closeSharedMenus() {
+        if (rulerMenu) {
+            rulerMenu.cancelRetarget()
+            rulerMenu.close()
+        }
+        if (markerMenu) {
+            markerMenu.cancelRetarget()
+            markerMenu.close()
+        }
+    }
+    Connections {
+        target: ruler.viewState
+        function onScrollLeftPxChanged() { ruler.closeSharedMenus() }
+        function onMsPerPxChanged() { ruler.closeSharedMenus() }
+    }
     // Marker flags, in content space, culled to the view with 200 px of
     // overscan. Over the seek area: a press on a flag never seeks the ruler.
     Item {
@@ -263,8 +285,15 @@ Rectangle {
                         if (suppressClick) { suppressClick = false; return }
                         if (mouse.button === Qt.RightButton) {
                             if (!flag.chosen) MarkerSession.select(flag.modelData.id)
-                            markerMenu.context = { markerId: flag.modelData.id, timeMs: flag.modelData.timeMs, color: flag.modelData.color ?? "", editable: true }
-                            markerMenu.popupAt(this, mouse.x, mouse.y)
+                            if (!ruler.markerMenu) ruler.markerMenu = markerMenuComponent.createObject(ruler)
+                            if (!ruler.markerMenu) return
+                            const px = mouse.x
+                            const py = mouse.y
+                            const context = { markerId: flag.modelData.id, timeMs: flag.modelData.timeMs, color: flag.modelData.color ?? "", editable: true }
+                            ruler.markerMenu.retarget(this, anchor => {
+                                ruler.markerMenu.context = context
+                                ruler.markerMenu.popupAt(anchor, px, py)
+                            })
                         } else {
                             MarkerSession.select(flag.modelData.id, (mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0)
                             if (!(mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier))) ruler.seekRequested(flag.modelData.timeMs)

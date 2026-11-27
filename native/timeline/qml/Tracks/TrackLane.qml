@@ -22,6 +22,9 @@ Rectangle {
     required property TimelineViewState viewState
     required property ClipGestureController gestures
 
+    signal laneMenuRequested(var context, Item area, real areaX, real areaY)
+    signal editPointMenuRequested(var context, Item area, real areaX, real areaY)
+
     readonly property alias clipModel: clips
     readonly property bool mutedSoundTrack: (trackType === "audio" || trackType === "midi") && muted
 
@@ -46,9 +49,9 @@ Rectangle {
         onPressed: mouse => {
             if (mouse.button === Qt.RightButton) {
                 if (lane.locked) return
-                laneMenu.context = { trackId: lane.trackId, trackType: lane.trackType,
+                const context = { trackId: lane.trackId, trackType: lane.trackType,
                                      timeMs: Math.max(0, mouse.x * lane.viewState.msPerPx), editable: true }
-                laneMenu.openAt(this, mouse.x, mouse.y)
+                lane.laneMenuRequested(context, this, mouse.x, mouse.y)
                 return
             }
             const atMs = Math.max(0, mouse.x * lane.viewState.msPerPx)
@@ -72,20 +75,11 @@ Rectangle {
         border.color: Ui.Theme.accentPrimary
     }
 
-    TrackLaneContextMenu {
-        id: laneMenu
-        gestures: lane.gestures
-    }
-    RegistryContextMenu {
-        id: editPointMenu
-        kind: "editPoint"
-        gestures: lane.gestures
-    }
     function openEditPointMenu(clipId, edge, area, areaX, areaY) {
         const cut = lane.gestures.editPointAt(clipId, edge)
-        editPointMenu.context = { clipId: clipId, edge: edge, leftId: cut.leftId, rightId: cut.rightId,
+        const context = { clipId: clipId, edge: edge, leftId: cut.leftId, rightId: cut.rightId,
                                   clipIds: cut.rightId ? [cut.rightId] : [], editable: true }
-        editPointMenu.popupAt(area, areaX, areaY)
+        lane.editPointMenuRequested(context, area, areaX, areaY)
     }
 
     Repeater {

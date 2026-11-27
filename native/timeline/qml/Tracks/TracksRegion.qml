@@ -154,6 +154,57 @@ Rectangle {
         lanesViewport: lanesArea
     }
 
+    property TrackLaneContextMenu laneMenu: null
+    property RegistryContextMenu editPointMenu: null
+    Component { id: laneMenuComponent; TrackLaneContextMenu { gestures: clipGestures } }
+    Component { id: editPointMenuComponent; RegistryContextMenu { kind: "editPoint"; gestures: clipGestures } }
+    function closeSharedMenus() {
+        if (laneMenu) {
+            laneMenu.cancelRetarget()
+            laneMenu.close()
+        }
+        if (editPointMenu) {
+            editPointMenu.cancelRetarget()
+            editPointMenu.close()
+        }
+    }
+    Connections {
+        target: view
+        function onScrollLeftPxChanged() { region.closeSharedMenus() }
+        function onScrollTopPxChanged() { region.closeSharedMenus() }
+        function onMsPerPxChanged() { region.closeSharedMenus() }
+        function onVerticalZoomChanged() { region.closeSharedMenus() }
+    }
+    function editPointExists(context) {
+        const ids = [context.clipId, context.leftId, context.rightId]
+        return !ids.some(id => id && !clipGestures.clipData(id).id)
+    }
+    Connections {
+        target: region.timeline
+        function onDocumentReplaced() { region.closeSharedMenus() }
+        function onClipsChanged() {
+            if (!region.editPointMenu || !region.editPointMenu.visible) return
+            if (!region.editPointExists(region.editPointMenu.context)) region.editPointMenu.close()
+        }
+    }
+    function openLaneMenu(context, area, px, py) {
+        if (!laneMenu) laneMenu = laneMenuComponent.createObject(region)
+        if (!laneMenu) return
+        laneMenu.retarget(area, anchor => {
+            laneMenu.context = context
+            laneMenu.openAt(anchor, px, py)
+        })
+    }
+    function openEditPointMenu(context, area, px, py) {
+        if (!editPointMenu) editPointMenu = editPointMenuComponent.createObject(region)
+        if (!editPointMenu) return
+        editPointMenu.retarget(area, anchor => {
+            if (!region.editPointExists(context)) return
+            editPointMenu.context = context
+            editPointMenu.popupAt(anchor, px, py)
+        })
+    }
+
     // ── Toolbar (above the ruler) ──
     Rectangle {
         id: toolbar
@@ -559,6 +610,8 @@ Rectangle {
                         clock: region.clock
                         viewState: view
                         gestures: clipGestures
+                        onLaneMenuRequested: (context, area, px, py) => region.openLaneMenu(context, area, px, py)
+                        onEditPointMenuRequested: (context, area, px, py) => region.openEditPointMenu(context, area, px, py)
                     }
                     // Contributions drawn over the base lane, such as the music range band.
                     SlotItems {

@@ -7,6 +7,14 @@ function(nt_menu_tests)
     target_link_libraries(tst_menus PRIVATE timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_menus OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_menus_qml/NodeTool/Timeline)
+    qt_add_executable(tst_menu_primitives ../ui_primitives/tests/main.cpp)
+    set_target_properties(tst_menu_primitives PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_menu_primitives PRIVATE Qt6::QuickTest Qt6::Test)
+    nodetool_use_ui_primitives(tst_menu_primitives)
+    add_test(NAME tst_menu_primitives COMMAND tst_menu_primitives -input
+        ${CMAKE_CURRENT_SOURCE_DIR}/../ui_primitives/tests/qml/tst_overlays.qml)
+    set_tests_properties(tst_menu_primitives PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     # Each fresh editor is costly under ASan. Discover and partition all functions,
     # including future additions, without omitting any data rows.
     foreach(group RANGE 0 1)

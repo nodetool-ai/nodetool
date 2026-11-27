@@ -12,6 +12,10 @@ Ui.ContextMenu {
     property var context: ({})
     objectName: "registryContextMenu-" + kind
     popupType: Popup.Item
+    Connections {
+        target: menu
+        function onClosed() { menu.context = ({}) }
+    }
     RegistryMenuItems {
         menu: menu
         kind: menu.kind

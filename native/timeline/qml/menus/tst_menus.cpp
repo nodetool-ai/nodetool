@@ -6,9 +6,20 @@
 #include "wiring/KeyActions.h"
 #include <QJSValue>
 #include <QQmlEngine>
+#include <QQmlContext>
+#include <QQmlComponent>
 #include <QTemporaryDir>
+#include <QScopeGuard>
 #include <algorithm>
 #include <cmath>
+
+// UI thread only. The test owns the probe for the lifetime of its QML engine.
+class MenuItemCreationProbe : public QObject {
+    Q_OBJECT
+public:
+    int count = 0;
+    Q_INVOKABLE void recordCreation() { ++count; }
+};
 
 class TestMenus : public WiringFixture {
     Q_OBJECT
@@ -32,7 +43,10 @@ class TestMenus : public WiringFixture {
             surface->mapToScene({x < 0 ? surface->width() / 2 : x, surface->height() / 2}).toPoint());
         QCoreApplication::processEvents();
         activeMenu = surface->findChild<QObject*>(kind == "track" ? "trackHeaderMenu" : "registryContextMenu-" + kind);
-        return activeMenu;
+        if (!activeMenu && kind == "lane") {
+            activeMenu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-lane");
+        }
+        return activeMenu && activeMenu->property("visible").toBool() ? activeMenu.data() : nullptr;
     }
     QStringList entries(QObject* menu) {
         QStringList result;
@@ -174,6 +188,236 @@ private slots:
         patch("c", {{"mediaType", "video"}});
     }
     void cleanup() { view.reset(); nt::edit::setIdGenerator({}); }
+    void closedMenusCreateNoItemsDuringEditsAndScroll() {
+        MenuItemCreationProbe probe;
+        const auto teardown = qScopeGuard([this] { view.reset(); });
+        view->engine()->rootContext()->setContextProperty("menuItemCreationProbe", &probe);
+        // Verify the counter observes actual production MenuItem creation.
+        auto* menu = popup("lane", "trackLane-v", 350);
+        QVERIFY(menu);
+        QVERIFY(probe.count > 0);
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        auto raw = doc();
+        auto tracks = raw.value("tracks").toArray();
+        for (int i = 3; i < 64; ++i) {
+            tracks.append(QJsonObject{{"id", QString("stress%1").arg(i)}, {"name", "Stress"},
+                {"type", "video"}, {"index", i}, {"heightPx", 80}, {"visible", true}});
+        }
+        raw.insert("tracks", tracks);
+        restore(raw);
+        probe.count = 0;
+        for (int i = 0; i < 40; ++i) {
+            QVERIFY(model.applyEdit("setTrackName", {{"trackId", "v"}, {"name", QString::number(i)}}));
+            QCoreApplication::processEvents();
+        }
+        qInfo() << "MenuItem creations in 40 closed-menu edits:" << probe.count;
+        const int editsCreated = probe.count;
+        probe.count = 0;
+        for (int i = 0; i < 120; ++i) {
+            gestures()->viewState()->setScrollTopPx((i % 60) * 80);
+            gestures()->viewState()->flush();
+            QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
+            view->update();
+            QVERIFY(!frame.isEmpty() || frame.wait(1000));
+        }
+        qInfo() << "MenuItem creations in 120 closed-menu scroll frames:" << probe.count;
+        QCOMPARE(editsCreated, 0);
+        QCOMPARE(probe.count, 0);
+        // Destroy QML before its borrowed probe.
+        view.reset();
+    }
+    void laneRowsAreCreatedOncePerOpen() {
+        MenuItemCreationProbe probe;
+        const auto teardown = qScopeGuard([this] { view.reset(); });
+        view->engine()->rootContext()->setContextProperty("menuItemCreationProbe", &probe);
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        int rows = 0;
+        for (const auto& entry : entries(menu)) {
+            if (!entry.endsWith(':')) { ++rows; }
+        }
+        QVERIFY(rows > 0);
+        QCOMPARE(probe.count, rows);
+    }
+    void registryFollowsContextWhileOpen() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        // Removing the edit sides disables their actions without reopening.
+        auto* region = item("tracksRegion");
+        QVERIFY(region);
+        QVERIFY(QMetaObject::invokeMethod(region, "openEditPointMenu",
+            Q_ARG(QVariant, (QVariantMap{{"clipId", "c"}, {"leftId", "c"}, {"rightId", "d"}, {"editable", true}})),
+            Q_ARG(QVariant, QVariant::fromValue(item("trackLane-v"))), Q_ARG(QVariant, 400), Q_ARG(QVariant, 20)));
+        auto* edit = region->findChild<QObject*>("registryContextMenu-editPoint");
+        QVERIFY(edit);
+        const auto before = entries(edit);
+        QVERIFY(!before.isEmpty());
+        QVERIFY(edit->setProperty("context", QVariantMap{{"editable", false}}));
+        QCoreApplication::processEvents();
+        bool enabled = false;
+        for (int i = 0; i < edit->property("count").toInt(); ++i) {
+            QQuickItem* row = nullptr;
+            QMetaObject::invokeMethod(edit, "itemAt", Q_RETURN_ARG(QQuickItem*, row), Q_ARG(int, i));
+            if (row && !row->property("text").toString().isEmpty()) { enabled |= row->isEnabled(); }
+        }
+        QVERIFY(!enabled);
+    }
+    void retargetingLaneToEmptyClosesIt() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu && menu->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(item("tracksRegion"), "openLaneMenu",
+            Q_ARG(QVariant, (QVariantMap{{"trackId", "missing"}, {"trackType", "audio"}, {"timeMs", 4000}})),
+            Q_ARG(QVariant, QVariant::fromValue(item("trackLane-w"))), Q_ARG(QVariant, 400), Q_ARG(QVariant, 20)));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QCOMPARE(menu->property("count").toInt(), 0);
+    }
+    void laneRetargetsWhileOpenOrExiting_data() {
+        QTest::addColumn<bool>("exiting");
+        QTest::addColumn<bool>("scroll");
+        QTest::newRow("open") << false << false;
+        QTest::newRow("exiting") << true << false;
+        QTest::newRow("scroll-during-exit") << true << true;
+    }
+    void laneRetargetsWhileOpenOrExiting() {
+        QFETCH(bool, exiting);
+        QFETCH(bool, scroll);
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu && menu->property("visible").toBool());
+        QQmlComponent transition(view->engine());
+        transition.setData(R"(import QtQuick
+            Transition { NumberAnimation { property: "opacity"; to: 0; duration: 100 } })", QUrl{});
+        const std::unique_ptr<QObject> exit(transition.create());
+        const auto teardown = qScopeGuard([this] { view.reset(); });
+        QVERIFY(exit);
+        QVERIFY(menu->setProperty("exit", QVariant::fromValue(exit.get())));
+        if (exiting) {
+            QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+            QVERIFY(menu->property("visible").toBool());
+        }
+        QVERIFY(QMetaObject::invokeMethod(item("tracksRegion"), "openLaneMenu",
+            Q_ARG(QVariant, (QVariantMap{{"trackId", "w"}, {"trackType", "video"}, {"timeMs", 4000}, {"editable", true}})),
+            Q_ARG(QVariant, QVariant::fromValue(item("trackLane-w"))), Q_ARG(QVariant, 400), Q_ARG(QVariant, 20)));
+        QCOMPARE(item("tracksRegion")->findChild<QObject*>("registryContextMenu-lane"), menu);
+        if (scroll) {
+            gestures()->viewState()->setScrollLeftPx(20);
+            gestures()->viewState()->flush();
+            QTest::qWait(200); // The queued popup must stay closed after the 100 ms exit.
+            QVERIFY(!menu->property("visible").toBool());
+            return;
+        }
+        QTRY_VERIFY_WITH_TIMEOUT(menu->property("opened").toBool(), 1000);
+        QCOMPARE(entries(menu).first(), QString("laneMenu-addText:Add text"));
+        trigger("laneMenu-addText");
+        QCOMPARE(model.clipsJson().last().toObject().value("trackId").toString(), QString("w"));
+    }
+    void latestRetargetWinsBeforeQueuedReopen() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        for (const auto& id : {QString("w"), QString("v")}) {
+            QVERIFY(QMetaObject::invokeMethod(item("tracksRegion"), "openLaneMenu",
+                Q_ARG(QVariant, (QVariantMap{{"trackId", id}, {"trackType", "video"}, {"timeMs", 4000}, {"editable", true}})),
+                Q_ARG(QVariant, QVariant::fromValue(item("trackLane-" + id))), Q_ARG(QVariant, 400), Q_ARG(QVariant, 20)));
+        }
+        QCoreApplication::processEvents();
+        QTRY_VERIFY_WITH_TIMEOUT(menu->property("opened").toBool(), 1000);
+        trigger("laneMenu-addText");
+        QCOMPARE(model.clipsJson().last().toObject().value("trackId").toString(), QString("v"));
+    }
+    void closedSharedMenuReleasesContext() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        const auto context = menu->property("context");
+        const auto fields = context.metaType() == QMetaType::fromType<QJSValue>()
+            ? context.value<QJSValue>().toVariant().toMap() : context.toMap();
+        QVERIFY(fields.isEmpty());
+    }
+    void laneMenuClosesWhenViewMoves() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu && menu->property("visible").toBool());
+        gestures()->viewState()->setScrollLeftPx(20);
+        gestures()->viewState()->flush();
+        QTRY_VERIFY_WITH_TIMEOUT(!menu->property("visible").toBool(), 1000);
+    }
+    void registryCheckmarkFollowsToolWhileOpen() {
+        auto* edge = named(item("clip-c"), "clipTrimEnd");
+        QVERIFY(edge);
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(edge));
+        QCoreApplication::processEvents();
+        auto* menu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint");
+        QVERIFY(menu && menu->property("visible").toBool());
+        gestures()->selectEdit("c", "end");
+        gestures()->setActiveTool("ripple");
+        QCoreApplication::processEvents();
+        auto* row = item("registryMenu-editPoint-editPoint.rippleOut");
+        QVERIFY(row);
+        QVERIFY(row->property("checked").toBool());
+    }
+    void deletingOtherSideOfEditClosesMenu() {
+        patch("d", {{"startMs", 3000}});
+        auto* edge = named(item("clip-c"), "clipTrimEnd");
+        QVERIFY(edge);
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(edge));
+        QCoreApplication::processEvents();
+        auto* menu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint");
+        QVERIFY(menu && menu->property("visible").toBool());
+        auto remaining = model.clipsJson();
+        for (qsizetype i = remaining.size(); i-- > 0;) {
+            if (remaining[i].toObject().value("id").toString() == "d") { remaining.removeAt(i); }
+        }
+        model.replaceClips(remaining);
+        QVERIFY(!model.findClip("d"));
+        QCoreApplication::processEvents();
+        QVERIFY(item("clip-c"));
+        QTRY_VERIFY_WITH_TIMEOUT(!menu->property("visible").toBool(), 1000);
+    }
+    void markerMenuClosesWhenTargetIsInvalidated_data() {
+        QTest::addColumn<bool>("remove");
+        QTest::newRow("deleted") << true;
+        QTest::newRow("scrolled-away") << false;
+    }
+    void markerMenuClosesWhenTargetIsInvalidated() {
+        QFETCH(bool, remove);
+        const auto id = model.addMarker(1500, "Target");
+        QCoreApplication::processEvents();
+        auto* flag = item("timelineMarker");
+        QVERIFY(flag);
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(flag));
+        QCoreApplication::processEvents();
+        auto* menu = item("timeRuler")->findChild<QObject*>("registryContextMenu-marker");
+        QVERIFY(menu && menu->property("visible").toBool());
+        if (remove) {
+            QVERIFY(model.deleteMarker(id));
+        } else {
+            gestures()->viewState()->setScrollLeftPx(800);
+            gestures()->viewState()->flush();
+        }
+        QTRY_VERIFY_WITH_TIMEOUT(!menu->property("visible").toBool(), 1000);
+    }
+    void sharedMenuTeardownHasNoBindingErrors() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu && menu->property("visible").toBool());
+        QTest::failOnWarning(QRegularExpression(".*(TypeError|ReferenceError|Cannot read property|Cannot call method).*"));
+        view.reset();
+    }
+    void laneMenuIsSharedAndRetargeted() {
+        auto* region = item("tracksRegion");
+        QVERIFY(region);
+        QVERIFY(!region->findChild<QObject*>("registryContextMenu-lane"));
+        QVERIFY(!region->findChild<QObject*>("registryContextMenu-editPoint"));
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QCOMPARE(popup("lane", "trackLane-w", 400), menu);
+        trigger("laneMenu-addText");
+        QCOMPARE(model.clipsJson().last().toObject().value("trackId").toString(), QString("w"));
+        QVERIFY(!item("trackLane-v")->findChild<QObject*>("registryContextMenu-lane"));
+        QVERIFY(!item("trackLane-w")->findChild<QObject*>("registryContextMenu-lane"));
+        QCOMPARE(region->findChildren<QObject*>("registryContextMenu-lane").size(), 1);
+    }
     void shortcutSheetListsOnlyShortcuts_data() {
         QTest::addColumn<QString>("action");
         QTest::addColumn<QString>("groupTitle");
@@ -503,10 +747,13 @@ private slots:
         model.undoStack()->undo(); QCOMPARE(doc(), before);
     }
     void lockedLane() {
+        auto* warmMenu = popup("lane", "trackLane-v", 400);
+        QVERIFY(warmMenu);
+        QVERIFY(QMetaObject::invokeMethod(warmMenu, "close"));
+        QTRY_VERIFY(!warmMenu->property("visible").toBool());
         auto raw = doc(); auto tracks = raw.value("tracks").toArray(); auto t = tracks[0].toObject();
         t.insert("locked", true); tracks[0] = t; raw.insert("tracks", tracks); restore(raw);
-        auto* menu = popup("lane", "trackLane-v", 400); QVERIFY(menu);
-        QVERIFY(!menu->property("visible").toBool());
+        QVERIFY(!popup("lane", "trackLane-v", 400));
     }
     void laneExtension() {
         QVERIFY(nt::app::registerMenuItem({"lane", "selectAll", "Select all clips", "Ctrl+A", {}}));
@@ -776,7 +1023,7 @@ private slots:
         const auto rightClickEdge = [&](QQuickItem* target) {
             QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(target));
             QCoreApplication::processEvents();
-            activeMenu = item("trackLane-v")->findChild<QObject*>("registryContextMenu-editPoint");
+            activeMenu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint");
         };
         rightClickEdge(edge);
         QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
@@ -823,7 +1070,7 @@ private slots:
     void editPointMenuAtTheEndOfAGap() {
         auto* edge = named(item("clip-c"), "clipTrimEnd"); QVERIFY(edge);
         QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(edge));
-        activeMenu = item("trackLane-v")->findChild<QObject*>("registryContextMenu-editPoint");
+        activeMenu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint");
         QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
         for (const auto* action : {"editPoint.rippleIn", "editPoint.roll", "editPoint.trimIn", "applyDefaultTransition"}) {
             auto* entry = item(QString("registryMenu-editPoint-") + action); QVERIFY(entry);
@@ -1361,7 +1608,7 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(menu, "close"));
         QTRY_VERIFY(!menu->property("visible").toBool());
         QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(named(item("clip-c"), "clipTrimEnd")));
-        menu = item("trackLane-v")->findChild<QObject*>("registryContextMenu-editPoint"); QVERIFY(menu);
+        menu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint"); QVERIFY(menu);
         QTRY_VERIFY(menu->property("opened").toBool());
         save("edit-point-menu");
     }

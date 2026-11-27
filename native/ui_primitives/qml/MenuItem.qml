@@ -4,6 +4,10 @@ import NodeTool.UiPrimitives as Ui
 
 Basic.MenuItem {
     id: root
+    // Tests install an engine-local probe to count even short-lived menu rows.
+    Component.onCompleted: {
+        if (typeof menuItemCreationProbe !== "undefined" && menuItemCreationProbe) menuItemCreationProbe.recordCreation()
+    }
     property string iconName: ""
     property int iconTone: Ui.Text.Primary
     property int textTone: Ui.Text.Primary
