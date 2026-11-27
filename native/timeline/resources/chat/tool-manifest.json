@@ -10142,7 +10142,8 @@
                             "type": "string",
                             "enum": [
                               "orbit",
-                              "scene"
+                              "scene",
+                              "free"
                             ]
                           },
                           "azimuthDeg": {
@@ -10173,6 +10174,37 @@
                           },
                           "sceneCameraName": {
                             "type": "string"
+                          },
+                          "position": {
+                            "type": "array",
+                            "prefixItems": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              }
+                            ]
+                          },
+                          "target": {
+                            "type": "array",
+                            "prefixItems": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              }
+                            ]
+                          },
+                          "rollDeg": {
+                            "type": "number"
                           }
                         },
                         "required": [
