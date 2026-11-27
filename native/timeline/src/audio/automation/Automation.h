@@ -5,6 +5,9 @@
 #include <QString>
 
 namespace nt::automation {
+inline constexpr double MaxAutomationTimeMs = 1e12;
+inline constexpr qsizetype MaxAutomationPointsPerLane = 10000;
+inline constexpr qsizetype MaxAutomationLanesPerTrack = 256;
 // Control/UI-thread pure document operations. Returned JSON owns its storage.
 QString automationModeOf(const QJsonObject& track);
 bool automationModePlays(const QString& mode);
@@ -22,5 +25,6 @@ QJsonValue call(const QString& name, const QJsonArray& args);
 QJsonObject edit(QJsonObject doc, const QString& name, const QJsonObject& payload);
 QJsonObject trackEffectDefaults(const QString& type);
 QJsonArray instrumentAutomationSpecs(const QJsonObject& instrument);
+QJsonArray automationTargetRange(const QJsonObject& track, const QJsonObject& target);
 void registerEdits();
 }

@@ -10,6 +10,7 @@
 #include <QJsonDocument>
 #include <QScopeGuard>
 #include <QtTest>
+#include <stdexcept>
 #include <array>
 #include <algorithm>
 #include <atomic>
@@ -365,6 +366,17 @@ private slots:
         doc = edit(doc, "removeMasterEffect", {{"effectId","kept"}});
         QVERIFY(doc["master"].toObject()["effects"].toArray().empty());
     }
+    void unknownAutomationAction() {
+        const QJsonObject target{{"kind", "mixer"}, {"param", "pan"}};
+        auto raw = edit(document(), "setTrackAutomation", {{"trackId", "a"}, {"automation", QJsonArray{lane("mixer", "pan", {QJsonObject{{"timeMs", 10}, {"value", 9}}})}}});
+        QVERIFY_THROWS_EXCEPTION(std::runtime_error, edit(raw, "automation.typo", {{"trackId", "a"}, {"target", target}, {"fromMs", 0}, {"toMs", 100}}));
+    }
+    void drumPadSyntax() {
+        const QJsonObject track{{"type", "midi"}, {"instrument", QJsonObject{{"type", "drum"}}}};
+        for (const auto* param : {"pad+0.lvl", "pad 0.lvl", "pad-0.lvl"}) {
+            QVERIFY(automationTargetRange(track, {{"kind", "device"}, {"deviceId", "instrument"}, {"param", param}}).isEmpty());
+        }
+    }
     void automationEdits() {
         const QJsonArray lanes{lane("mixer","pan",{QJsonObject{{"timeMs",0},{"value",1}}})};
         auto doc = edit(document(), "setTrackAutomation", {{"trackId","a"},{"automation",lanes}});
@@ -470,7 +482,17 @@ int main(int argc, char** argv) {
         QJsonArray out;
         for (const auto& v : QJsonDocument::fromJson(in.readAll()).array()) {
             const auto a = v.toArray();
-            if (a[0]=="panSamples") {
+            if (a[0] == "automationEditResult") {
+                const auto args = a[1].toArray();
+                try { out.append(QJsonObject{{"state", edit(args[0].toObject(), args[1].toString(), args[2].toObject())}, {"ok", true}}); }
+                catch (const std::exception& error) { out.append(QJsonObject{{"state", args[0]}, {"ok", false}, {"error", QString::fromUtf8(error.what())}}); }
+            } else if (a[0] == "automationLimits") {
+                out.append(QJsonArray{MaxAutomationPointsPerLane, MaxAutomationLanesPerTrack, MaxAutomationTimeMs});
+            } else if (a[0] == "automationEdit") {
+                const auto args = a[1].toArray();
+                try { out.append(edit(args[0].toObject(), args[1].toString(), args[2].toObject())); }
+                catch (const std::exception&) { out.append(args[0]); }
+            } else if (a[0]=="panSamples") {
                 const auto args=a[1].toArray();
                 auto doc=document(); auto tracks=doc["tracks"].toArray(); auto track=tracks[0].toObject();
                 track["automation"]=QJsonArray{lane("mixer","pan",args[0].toArray())}; tracks[0]=track; doc["tracks"]=tracks;

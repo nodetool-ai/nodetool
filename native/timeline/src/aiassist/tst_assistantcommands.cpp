@@ -87,6 +87,37 @@ class TestAssistantCommands : public WiringFixture {
     QJsonObject rawClip(const QString& id) { return clip(id); }
 
 private slots:
+    void agentAutomationCommands() {
+        const QVariantMap target{{"kind", "mixer"}, {"param", "pan"}};
+        const auto added = run("automation.addPoints", {{"track_id", TRACK_A.left(12)}, {"target", target},
+            {"points", QVariantList{QVariantMap{{"timeMs", 100}, {"value", 9}}}}});
+        QVERIFY2(added.value("ok").toBool(), qPrintable(QJsonDocument::fromVariant(added).toJson()));
+        const auto changed = run("setTrackAutomationMode", {{"track_id", TRACK_A.left(12)}, {"mode", "touch"}});
+        QVERIFY(changed.value("ok").toBool());
+        const auto read = session->executeHostTool("ui_timeline_get_state", {{"timeline_id", TIMELINE}}, {});
+        bool found = false;
+        for (const auto& value : read.value("tracks").toArray()) {
+            const auto track = value.toObject();
+            if (track["id"].toString() != TRACK_A) { continue; }
+            found = true;
+            QCOMPARE(track["automationMode"].toString(), QString("touch"));
+            QCOMPARE(track["automation"].toArray().first().toObject()["points"].toArray().first().toObject()["value"].toDouble(), 1.);
+        }
+        QVERIFY(found);
+        QVERIFY(!run("setTrackAutomation", {{"track_id", TRACK_A}, {"automation", QVariantList{}}}).value("ok").toBool());
+        QVERIFY(!run("writeTrackAutomationPass", {{"track_id", TRACK_A}}).value("ok").toBool());
+    }
+    void automationNoopsAndErrors() {
+        const QVariantMap target{{"kind", "mixer"}, {"param", "pan"}};
+        QVERIFY(run("automation.addPoints", {{"track_id", TRACK_A}, {"target", target},
+            {"points", QVariantList{QVariantMap{{"timeMs", 100}, {"value", 0}}}}}).value("ok").toBool());
+        const auto before = model.undoStack()->count();
+        QVERIFY(run("automation.setLaneEnabled", {{"track_id", TRACK_A}, {"target", target}, {"enabled", true}}).value("ok").toBool());
+        QCOMPARE(model.undoStack()->count(), before);
+        const auto missing = run("automation.clearLane", {{"track_id", TRACK_A}, {"target", QVariantMap{{"kind", "mixer"}, {"param", "volumeDb"}}}});
+        QVERIFY(!missing.value("ok").toBool());
+        QCOMPARE(missing.value("error").toString(), QString("Automation lane does not exist."));
+    }
     // A window takes seconds to open, so the tests share one and each gets a fresh document.
     void initTestCase() {
         open();

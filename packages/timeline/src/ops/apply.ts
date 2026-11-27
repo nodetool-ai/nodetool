@@ -49,6 +49,7 @@ import {
   runSetTrackMix,
   selectNotes
 } from "./midiMix.js";
+import { runAutomationEdit } from "./automation.js";
 import { runLoopClip, unrollLoopedInScope } from "./loop.js";
 import { runPasteRange } from "./pasteRange.js";
 import { runDeleteTime, runDuplicateRange, runInsertTime } from "./sections.js";
@@ -200,7 +201,7 @@ import type {
   TrackBinding,
   MidiRegionGrid
 } from "../types.js";
-import type { ClipTransformPatch, TimelineOp } from "./op.js";
+import type { AutomationOp, ClipTransformPatch, TimelineOp } from "./op.js";
 import {
   midiClipDetail,
   serializeClip,
@@ -1627,7 +1628,20 @@ function commitRipple(
   return { movedClipIds, removedClipIds };
 }
 
+function runNamedAutomation(scope: OpScope, op: AutomationOp): TimelineOpResult {
+  const track = scope.resolveTrack(op.track_id);
+  const {op: edit, track_id: _track, ...payload} = op;
+  runAutomationEdit(track, {...payload, edit}, () => scope.ctx.newId("lane"));
+  return {ok: true, track: scope.trackOut(track)};
+}
+
 const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
+  "automation.addPoints": runNamedAutomation,
+  "automation.movePoints": runNamedAutomation,
+  "automation.deletePoints": runNamedAutomation,
+  "automation.clearLane": runNamedAutomation,
+  "automation.setLaneEnabled": runNamedAutomation,
+  setTrackAutomationMode: runNamedAutomation,
   get_state: (scope, op) => {
     const state = scope.state;
     const durationMs = scope.clips.reduce(
@@ -3677,6 +3691,22 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
   set_notes: (scope, op) => runSetNotes(scope, op),
 
   set_track: (scope, op) => {
+    if (op.automationEdit) {
+      if (
+        Object.entries(op).some(
+          ([key, value]) =>
+            !["op", "track", "automationEdit"].includes(key) &&
+            value !== undefined
+        )
+      ) {
+        throw new Error("automationEdit must be sent alone with track.");
+      }
+      const track = scope.resolveTrack(op.track);
+      runAutomationEdit(track, op.automationEdit, () =>
+        scope.ctx.newId("lane")
+      );
+      return { ok: true, track: scope.trackOut(track) };
+    }
     // `master` names the master bus, unless a track carries that id or name.
     const lowerTrack = op.track.toLowerCase();
     const hasMatchingTrack = scope.tracks.some(

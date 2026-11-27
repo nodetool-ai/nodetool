@@ -8,6 +8,7 @@ import {
   liftCustomAnimation
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
 import {
+  automationEditSchemas,
   applyTransitionAtCutParams,
   setBakedAnimationParams,
   setGeneratedMatteParams,
@@ -38,6 +39,109 @@ type OpParser<N extends TimelineOpName> = (
 
 /** One parser per op, so each is checked against its own op type. */
 const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
+  "automation.addPoints": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.addPoints"
+    ].parse({
+      ...payload,
+      edit: "automation.addPoints"
+    });
+    return {
+      op: "automation.addPoints",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  "automation.movePoints": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.movePoints"
+    ].parse({
+      ...payload,
+      edit: "automation.movePoints"
+    });
+    return {
+      op: "automation.movePoints",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  "automation.deletePoints": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.deletePoints"
+    ].parse({
+      ...payload,
+      edit: "automation.deletePoints"
+    });
+    return {
+      op: "automation.deletePoints",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  "automation.clearLane": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.clearLane"
+    ].parse({
+      ...payload,
+      edit: "automation.clearLane"
+    });
+    return {
+      op: "automation.clearLane",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  "automation.setLaneEnabled": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.setLaneEnabled"
+    ].parse({
+      ...payload,
+      edit: "automation.setLaneEnabled"
+    });
+    return {
+      op: "automation.setLaneEnabled",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  setTrackAutomationMode: (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "setTrackAutomationMode"
+    ].parse({
+      ...payload,
+      edit: "setTrackAutomationMode"
+    });
+    return {
+      op: "setTrackAutomationMode",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+
   add_midi_clip: (args) => ({
     op: "add_midi_clip",
     ...parseContract(contracts.ui_timeline_add_midi_clip, args)

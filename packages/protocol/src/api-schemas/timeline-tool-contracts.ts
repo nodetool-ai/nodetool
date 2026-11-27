@@ -23,6 +23,7 @@
  */
 
 import { z } from "zod";
+import { isRecord } from "../predicates.js";
 import { BLEND_MODE_TUPLE } from "../blend-modes.js";
 import { clipAudioEffect, clipFadeShapeEnum } from "./timeline.js";
 import {
@@ -437,7 +438,24 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         heightPx: z.number().min(24).max(300).optional(),
         ...setTrackMixShape
       },
-      finalize: strictParams
+      finalize: (schema: z.ZodObject<z.ZodRawShape>) =>
+        strictParams(schema).superRefine((p, ctx) => {
+          if (
+            isRecord(p) &&
+            p.automationEdit !== undefined &&
+            Object.entries(p).some(
+              ([key, value]) =>
+                !["track", "automationEdit"].includes(key) &&
+                value !== undefined
+            )
+          ) {
+            ctx.addIssue({
+              code: "custom",
+              message: "automationEdit must be sent alone with track.",
+              path: ["automationEdit"]
+            });
+          }
+        })
     },
 
     ui_timeline_ripple_delete: {

@@ -119,6 +119,71 @@ private slots:
         QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
         QCoreApplication::processEvents();
     }
+    void agentAutomationEdits_data() {
+        QTest::addColumn<QString>("action");
+        for (const auto* action : {"automation.addPoints", "automation.movePoints", "automation.deletePoints", "automation.clearLane", "automation.setLaneEnabled", "setTrackAutomationMode"}) {
+            QTest::newRow(action) << QString::fromLatin1(action);
+        }
+    }
+    void agentAutomationEdits() {
+        QFETCH(QString, action);
+        auto raw = doc();
+        auto tracks = raw["tracks"].toArray();
+        auto initialTrack = tracks[0].toObject();
+        auto lanes = initialTrack["automation"].toArray();
+        auto lane = lanes[0].toObject();
+        lane["points"] = QJsonArray{QJsonObject{{"timeMs", 10}, {"value", -12}}, QJsonObject{{"timeMs", 20}, {"value", 0}}};
+        lanes[0] = lane; initialTrack["automation"] = lanes; tracks[0] = initialTrack; raw["tracks"] = tracks;
+        auto parsed = nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
+        QJsonObject p{{"trackId", "a"}};
+        if (action == "setTrackAutomationMode") { p["mode"] = "write"; }
+        else {
+            p["target"] = lane["target"];
+            if (action == "automation.addPoints") { p["points"] = QJsonArray{QJsonObject{{"timeMs", -10}, {"value", 100}}}; }
+            else if (action == "automation.setLaneEnabled") { p["enabled"] = false; }
+            else if (action == "automation.movePoints" || action == "automation.deletePoints") {
+                p["fromMs"] = 10; p["toMs"] = 10;
+                if (action == "automation.movePoints") { p["deltaMs"] = -100; p["deltaValue"] = -100; }
+            }
+        }
+        const auto before = doc();
+        const auto count = model.undoStack()->count();
+        QVERIFY(model.applyEdit(action, p));
+        QCOMPARE(model.undoStack()->count(), count + 1);
+        const auto after = track();
+        const auto afterLanes = after["automation"].toArray();
+        const auto afterLane = afterLanes.empty() ? QJsonObject{} : afterLanes.first().toObject();
+        if (action == "automation.addPoints") {
+            QCOMPARE(afterLane["points"].toArray().first().toObject()["value"].toDouble(), 6.);
+            QCOMPARE(afterLane["points"].toArray().first().toObject()["timeMs"].toDouble(), 0.);
+        } else if (action == "automation.movePoints") {
+            QCOMPARE(afterLane["points"].toArray().first().toObject()["value"].toDouble(), -60.);
+            QCOMPARE(afterLane["points"].toArray().first().toObject()["timeMs"].toDouble(), 0.);
+        } else if (action == "automation.deletePoints") { QCOMPARE(afterLane["points"].toArray().size(), 1); }
+        else if (action == "automation.clearLane") { QVERIFY(!after.contains("automation")); }
+        else if (action == "automation.setLaneEnabled") { QCOMPARE(afterLane["enabled"], QJsonValue(false)); }
+        else { QCOMPARE(after["automationMode"].toString(), QString("write")); }
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+        initialTrack["locked"] = true; tracks[0] = initialTrack; raw["tracks"] = tracks;
+        parsed = nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
+        const auto locked = doc();
+        QVERIFY(!model.applyEdit(action, p));
+        QCOMPARE(doc(), locked);
+    }
+    void agentAutomationHistory() {
+        const auto before = doc();
+        const QJsonObject target{{"kind", "mixer"}, {"param", "pan"}};
+        const QJsonObject p{{"trackId", "a"}, {"target", target}, {"points", QJsonArray{QJsonObject{{"timeMs", 10}, {"value", .5}}}}};
+        QVERIFY(model.applyEdit("automation.addPoints", p));
+        const auto created = doc();
+        QVERIFY(model.applyEdit("automation.setLaneEnabled", {{"trackId", "a"}, {"target", target}, {"enabled", false}}));
+        const auto disabled = doc();
+        model.undoStack()->undo(); QCOMPARE(doc(), created);
+        model.undoStack()->undo(); QCOMPARE(doc(), before);
+        model.undoStack()->redo(); QCOMPARE(doc(), created);
+        model.undoStack()->redo(); QCOMPARE(doc(), disabled);
+    }
     void perf2MeterTickSleepsAndDecays() {
         auto peaks=nt::automation::publishMeter("perf2-meter");
         QVERIFY(open(R"(Item { id: fixture; width:200; height:100; required property var timeline; required property var clock
