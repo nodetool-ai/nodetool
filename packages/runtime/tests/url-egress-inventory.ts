@@ -442,6 +442,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     guardedBy: ["isSafePublicHttpsUrl"],
     note: "Under the cloud profile a base URL that is not https to a public host is refused on save, before the provider ever runs."
   },
+  {
+    file: "packages/cli/src/lean/program.ts",
+    owner: "lean CLI OpenAI text provider",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope: "The OPENAI_API_KEY the operator stored or exported, sent to the endpoint they named.",
+    redirects: "runtime-follows",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["isSafePublicHttpsUrl"],
+    note: "OPENAI_BASE_URL is refused unless it is https to a public host, so the API key cannot be sent to a loopback or private address."
+  },
 
   {
     file: "packages/server-feature-packs/src/scoped-services.ts",
