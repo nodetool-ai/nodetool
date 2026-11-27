@@ -9202,6 +9202,10 @@
         "gemini": {
           "description": "Hergebruikt uw Gemini-sleutel. Antwoordt in proza ​​en citeert de pagina's die het leest.",
           "keyLink": "Ontvang de Gemini API-sleutel"
+        },
+        "antigravity": {
+          "description": "Voert Google-zoekopdrachten uit via de Antigravity-CLI op deze computer. Geen sleutel nodig: meld je aan door agy één keer te starten.",
+          "keyLink": "Antigravity-CLI instellen"
         }
       }
     },

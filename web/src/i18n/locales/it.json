@@ -9346,6 +9346,10 @@
         "gemini": {
           "description": "Riutilizza la tua chiave Gemini. Risponde in prosa e cita le pagine lette.",
           "keyLink": "Ottieni la chiave API Gemini"
+        },
+        "antigravity": {
+          "description": "Esegue ricerche Google tramite la CLI di Antigravity su questo computer. Nessuna chiave: accedi eseguendo agy una volta.",
+          "keyLink": "Configura la CLI di Antigravity"
         }
       }
     },

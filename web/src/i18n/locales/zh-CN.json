@@ -9202,6 +9202,10 @@
         "gemini": {
           "description": "重复使用你的 Gemini 密钥。以自然语言提供答案，并引用所读取的网页。",
           "keyLink": "获取 Gemini API 密钥"
+        },
+        "antigravity": {
+          "description": "通过本机的 Antigravity CLI 运行 Google 搜索。无需密钥：运行一次 agy 即可登录。",
+          "keyLink": "设置 Antigravity CLI"
         }
       }
     },

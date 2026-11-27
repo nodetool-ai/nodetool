@@ -11,7 +11,8 @@ export type SerpProviderId =
   | "dataforseo"
   | "apify"
   | "openai"
-  | "gemini";
+  | "gemini"
+  | "antigravity";
 
 interface SearchProviderConfig {
   id: SerpProviderId;
@@ -82,6 +83,15 @@ export const SEARCH_PROVIDER_CONFIGS: Record<SerpProviderId, SearchProviderConfi
     credentialFields: ["GEMINI_API_KEY"],
     getApiKeyUrl: "https://aistudio.google.com/app/apikey",
     getApiKeyLabel: "Get Gemini API key"
+  },
+  antigravity: {
+    id: "antigravity",
+    label: "Antigravity web search",
+    description:
+      "Runs Google Search through the Antigravity CLI on this machine. No key needed: sign in by running agy once.",
+    credentialFields: [],
+    getApiKeyUrl: "https://antigravity.google/docs/cli/headless/",
+    getApiKeyLabel: "Set up the Antigravity CLI"
   }
 };
 

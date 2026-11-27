@@ -347,10 +347,11 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
     /**
      * Append a model-backed backend's citations to its prose answer.
      *
-     * OpenAI and Gemini answer a search with an argument rather than a result
-     * list, and the pages behind it are the only way a reader can check one.
-     * Both are read into the same `{title, url}` shape by their provider, so
-     * one formatter serves them and the domain filters still apply.
+     * OpenAI, Gemini and Antigravity answer a search with an argument rather
+     * than a result list, and the pages behind it are the only way a reader
+     * can check one. All are read into the same `{title, url}` shape by their
+     * provider, so one formatter serves them and the domain filters still
+     * apply.
      */
     const withSources = (text: string, raw: unknown): string => {
       const sources = (
@@ -615,6 +616,21 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
             ? result.results.join("\n\n")
             : String(result.results ?? "");
           return withSources(text, result.sources);
+        }
+      },
+      {
+        name: "antigravity",
+        requires: "the Antigravity CLI (agy), installed and signed in",
+        supports: new Set<SearchType>(SERP_PROVIDER_SEARCH_TYPES.antigravity),
+        isConfigured: (ctx) => serpProviderConfigured("antigravity", ctx),
+        run: async (ctx) => {
+          const { AntigravitySearchProvider } =
+            await import("../tools/serp-providers/antigravity-provider.js");
+          const answer = await new AntigravitySearchProvider().answer(
+            effectiveQuery,
+            { signal: ctx.signal ?? undefined }
+          );
+          return withSources(answer.text, answer.citations);
         }
       }
     ];

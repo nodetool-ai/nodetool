@@ -71,6 +71,7 @@ export const MODULES = {
     exports: {
       ACTIVE_MODEL_CONTEXT_KEY: pure("a constant of the runtime's processing context"),
       APPROVAL_DECISIONS: realRuntime("permission-gate.js"),
+      AntigravityProvider: unavailable("host-binary", "runs the Antigravity CLI (agy)"),
       BaseProvider: realRuntime("providers/base-provider.js"),
       BlenderExecutorError: blender,
       DEFAULT_YT_DLP_FORMAT: ytDlp,

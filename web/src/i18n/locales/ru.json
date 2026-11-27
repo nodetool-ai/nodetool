@@ -9490,6 +9490,10 @@
         "gemini": {
           "description": "Использует ваш ключ Gemini. Отвечает связным текстом и ссылается на прочитанные страницы.",
           "keyLink": "Получить API-ключ Gemini"
+        },
+        "antigravity": {
+          "description": "Выполняет поиск Google через Antigravity CLI на этом компьютере. Ключ не нужен: войдите, один раз запустив agy.",
+          "keyLink": "Настроить Antigravity CLI"
         }
       }
     },
