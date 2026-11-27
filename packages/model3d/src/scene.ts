@@ -280,6 +280,11 @@ function readTransform(node: GltfNode): TransformFields {
 }
 
 /** The light `KHR_lights_punctual` attaches to a node, if any. */
+const LIGHT_OBJECT_TYPES: Record<string, string> = {
+  directional: "DirectionalLight",
+  spot: "SpotLight"
+};
+
 function lightTypeOf(json: GltfJson, node: GltfNode): string | null {
   const nodeExt = isRecord(node.extensions)
     ? node.extensions[LIGHTS_EXTENSION]
@@ -293,14 +298,9 @@ function lightTypeOf(json: GltfJson, node: GltfNode): string | null {
   const lights = isRecord(docExt) && Array.isArray(docExt.lights) ? docExt.lights : [];
   const light = lights[nodeExt.light];
   const type = isRecord(light) && typeof light.type === "string" ? light.type : "point";
-  switch (type) {
-    case "directional":
-      return "DirectionalLight";
-    case "spot":
-      return "SpotLight";
-    default:
-      return "PointLight";
-  }
+  return Object.hasOwn(LIGHT_OBJECT_TYPES, type)
+    ? LIGHT_OBJECT_TYPES[type]
+    : "PointLight";
 }
 
 /** True for a joint node of a figure, which is addressed through its root. */
@@ -409,20 +409,10 @@ function objectType(json: GltfJson, node: GltfNode): string {
 
 /** Material indices a node's mesh draws with. */
 function materialIndices(json: GltfJson, node: GltfNode): number[] {
-  if (typeof node.mesh !== "number") {
-    return [];
-  }
-  const mesh = json.meshes?.[node.mesh];
-  if (!mesh) {
-    return [];
-  }
-  const indices: number[] = [];
-  for (const primitive of mesh.primitives ?? []) {
-    if (typeof primitive.material === "number") {
-      indices.push(primitive.material);
-    }
-  }
-  return indices;
+  const mesh = typeof node.mesh === "number" ? json.meshes?.[node.mesh] : undefined;
+  return (mesh?.primitives ?? []).flatMap((primitive) =>
+    typeof primitive.material === "number" ? [primitive.material] : []
+  );
 }
 
 function materialColorOf(
