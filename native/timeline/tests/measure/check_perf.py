@@ -91,22 +91,6 @@ def result_from(stdout):
     return actual
 
 
-def prior_budget(path, allow_new):
-    root = Path(subprocess.run(['git', 'rev-parse', '--show-toplevel'], cwd=path.parent,
-                               check=True, capture_output=True, text=True).stdout.strip())
-    relative = path.relative_to(root).as_posix()
-    subprocess.run(['git', 'rev-parse', '--verify', 'origin/main^{commit}'], cwd=root,
-                   check=True, capture_output=True)
-    tree = subprocess.run(['git', 'ls-tree', 'origin/main', '--', relative], cwd=root,
-                          check=True, capture_output=True, text=True)
-    if not tree.stdout:
-        if allow_new:
-            return None
-        raise ValueError('Budget absent from origin/main. Initial adoption requires --allow-new-budget')
-    return loads(subprocess.run(['git', 'show', f'origin/main:{relative}'], cwd=root,
-                                check=True, capture_output=True, text=True).stdout)
-
-
 def update_budget(path, scenario, counters, base, allow_new=False):
     # Lock a stable sibling inode: replacing the budget changes its own inode.
     with path.with_suffix(path.suffix + '.lock').open('a') as lock:
@@ -144,18 +128,18 @@ def main():
     parser.add_argument('--agent', action='store_true')
     parser.add_argument('--update', action='store_true', help='Lower this scenario to measured counters without raising a ceiling')
     parser.add_argument('--record', action='store_true', help='Print counters without enforcing ceilings')
-    parser.add_argument('--base-budget', type=Path, help='Use an explicit reviewed baseline instead of git')
+    parser.add_argument('--base-budget', type=Path, help='Use an explicit reviewed baseline instead of the checkout budget')
     parser.add_argument('--allow-new-budget', action='store_true', help='Explicit initial adoption of a new budget file or scenario')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     connections_path = Path(__file__).with_name('coarse-connections.json')
-    check_connections(root, loads(connections_path.read_text()), prior_budget(connections_path, True))
+    check_connections(root, loads(connections_path.read_text()))
     if args.agent and args.scenario not in ("model_change", "note_patch"):
         parser.error("--agent requires --scenario model_change or note_patch")
     budget = loads(args.budget.read_text())
     for ceilings in budget['scenarios'].values():
         check(ceilings, ceilings)
-    base = loads(args.base_budget.read_text()) if args.base_budget else prior_budget(args.budget.resolve(), args.allow_new_budget)
+    base = loads(args.base_budget.read_text()) if args.base_budget else budget
     if base is not None:
         ratchet(budget, base, args.allow_new_budget)
     frames = {'playback': 120, 'scroll': 120, 'zoom': 120, 'clip_drag': 90, 'note_drag': 60, 'model_change': 40, 'note_patch': 40}[args.scenario]

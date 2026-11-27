@@ -343,7 +343,29 @@ export function runSetNotes(scope: MidiMixScope, op: SetNotesOp): TimelineOpResu
     if (positions.size !== before.length) {
       throw new Error("Duplicate note id in clip.");
     }
-    const patch = op.patch;
+    const resolveNoteId = (id: string): string => {
+      if (positions.has(id)) { return id; }
+      const note = resolveByIdOrShortId(before, id, "note");
+      if (!note) { throw new Error(`Invalid patch note id: ${id}`); }
+      return note.id;
+    };
+    const incoming = op.patch;
+    const resolveUpdates = <T extends { id: string }>(notes: readonly T[]): T[] =>
+      notes.map((note) => ({ ...note, id: resolveNoteId(note.id) }));
+    const patch = (() => {
+      switch (incoming.edit) {
+        case "midi.addNotes": return incoming;
+        case "midi.removeNotes": return { ...incoming, noteIds: incoming.noteIds.map(resolveNoteId) };
+        case "midi.patchNotes": {
+          const resolved = { ...incoming, notes: resolveUpdates(incoming.notes) };
+          if (incoming.noteIds) { resolved.noteIds = incoming.noteIds.map(resolveNoteId); }
+          return resolved;
+        }
+        case "midi.moveNotes": return { ...incoming, notes: resolveUpdates(incoming.notes) };
+        case "midi.resizeNotes": return { ...incoming, notes: resolveUpdates(incoming.notes) };
+        case "midi.setNoteVelocities": return { ...incoming, notes: resolveUpdates(incoming.notes) };
+      }
+    })();
     const ids =
       patch.edit === "midi.removeNotes"
         ? patch.noteIds
@@ -353,10 +375,7 @@ export function runSetNotes(scope: MidiMixScope, op: SetNotesOp): TimelineOpResu
     }
     const adding = patch.edit === "midi.addNotes";
     for (const id of ids) {
-      if (
-        patch.edit !== "midi.patchNotes" &&
-        (adding ? positions.has(id) : !positions.has(id))
-      ) {
+      if (adding ? positions.has(id) : !positions.has(id)) {
         throw new Error(`Invalid patch note id: ${id}`);
       }
     }
@@ -384,7 +403,6 @@ export function runSetNotes(scope: MidiMixScope, op: SetNotesOp): TimelineOpResu
           updates.delete(note.id);
           return update ? fitExpressionToDuration(update) : note;
         });
-      notes.push(...Array.from(updates.values(), fitExpressionToDuration));
     } else {
       for (const update of patch.notes) {
         const index = positions.get(update.id);

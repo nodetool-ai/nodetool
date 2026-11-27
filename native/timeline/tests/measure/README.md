@@ -53,8 +53,16 @@ Counters have these boundaries:
   gadget field in QML and checks one counter increment and one C++ setter call.
 - `jsonParses` counts edit validation and document-replacement parser calls.
   Startup parsing is excluded. Signal counters cover model clip, timeline,
-  marker and source notifications. `dataChangedRows` sums emitted row ranges
-  from models instantiated before the measured workload.
+  marker and source notifications. `dataChangedRows` retains the original gate's
+  coverage of non-lane models in the editor and document QObject trees before
+  the workload. Declarative Repeater lanes were outside that traversal, as the
+  selfcheck verifies. Pooling gives lanes an explicit QObject parent. Their edit
+  notifications are reported in `dataChangedRowsByModel` alongside the other
+  models, without changing the legacy gated counter's coverage.
+  `reboundClipRows` reports pooled slot identity changes. Rebindings notify every
+  clip role including `clipId`. Exact lane edit roles remain covered by
+  `tst_tracksui`.
+
 
 Edit phase timers form an exclusive stack. `undo_stack` excludes redo's parse,
 replacement and synchronous signal fan-out. Marker notifications belong to
@@ -78,8 +86,8 @@ and event dispatch. `guiAndReadbackMs` includes GUI work and readback waiting,
 so it is not GPU execution time. No profiler TCP port or localhost is needed.
 
 `budgets/ui-120hz.json` gates counters only. The runner rejects missing fields
-and ceilings above the version in `origin/main`. Its first introduction has
-no earlier budget and requires explicit `--allow-new-budget`. Git failures
-fail closed. `--base-budget` uses an explicit reviewed baseline instead of git.
-New counters must start with a zero ceiling. There is no automatic budget update. The checker tests exercise deliberate
+and measurements above the committed ceilings in the checkout. Tests need no
+remote Git refs, including in shallow CI checkouts. `--base-budget` optionally
+checks ceilings against an explicit reviewed baseline. Adding scenarios against
+that baseline requires `--allow-new-budget`. New counters start with a zero ceiling. There is no automatic budget update. The checker tests exercise deliberate
 increases, missing counters and invalid negative counts.

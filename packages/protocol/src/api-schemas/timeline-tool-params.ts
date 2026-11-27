@@ -2468,7 +2468,7 @@ export const setNotesParams = z.object({
 export type SetNotesParams = z.infer<typeof setNotesParams>;
 
 export const SET_NOTES_DESCRIPTION =
-  "Write a midi clip's content. Send patch with edit midi.moveNotes, midi.resizeNotes, midi.setNoteVelocities, midi.addNotes or midi.removeNotes to change only named notes. midi.patchNotes combines full changed/added notes and optional removed noteIds atomically. " +
+  "Write a midi clip's content. Send patch with edit midi.moveNotes, midi.resizeNotes, midi.setNoteVelocities, midi.addNotes or midi.removeNotes to change only named notes. midi.patchNotes combines full changed notes and optional removed noteIds atomically. Unknown note IDs are errors. Use midi.addNotes to insert notes. " +
   "Send `notes` to replace the whole list, not " +
   "merge: every note the clip should keep, each with `pitch`, `start_tick` and " +
   "`duration_tick` (960 ticks = one quarter note, from the clip's content " +

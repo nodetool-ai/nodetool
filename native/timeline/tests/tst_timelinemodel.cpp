@@ -202,6 +202,24 @@ private slots:
         QCOMPARE(model.findClip("clip-0-0")->notes->size(), std::size_t{1});
     }
 
+    void typedNoteHistoryEmitsBeforeCommand() {
+        auto raw = document(); auto clips = raw.value("clips").toArray(); auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi");
+        clip.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}}});
+        clips[0] = clip; raw.insert("clips", clips);
+        TimelineModel model; const auto parsed = nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        QVERIFY(model.applyEdit("midi.moveNotes", {{"clipId", "clip-0-0"}, {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 62}}}}}));
+        QSignalSpy before(&model, &TimelineModel::beforeCommand);
+        QList<int> pitches;
+        connect(&model, &TimelineModel::beforeCommand, &model, [&] { pitches.append(model.findClip("clip-0-0")->notes->front().pitch); });
+        model.undoStack()->undo();
+        QCOMPARE(before.size(), 1);
+        QCOMPARE(model.findClip("clip-0-0")->notes->front().pitch, 60);
+        model.undoStack()->redo();
+        QCOMPARE(before.size(), 2);
+        QCOMPARE(pitches, QList<int>({62, 60}));
+    }
+
     void typedNotePatchParity() {
         const QJsonObject first{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 480}};
         auto raw = document();

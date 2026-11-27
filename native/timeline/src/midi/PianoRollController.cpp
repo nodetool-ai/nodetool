@@ -403,7 +403,13 @@ bool PianoRollController::commitNoteDrag(bool noOverlap) {
             else if (state.value(note.id) != note.raw) { patch.append(state.value(note.id)); }
         }
         if (m_dragKind == "duplicate") {
-            for (const auto& note : m_dragNotes) { patch.append(state.value(note.id)); }
+            QJsonArray next;
+            for (const auto& note : *clip->notes) {
+                if (!removed.contains(note.id)) { next.append(state.value(note.id)); }
+            }
+            for (const auto& note : m_dragNotes) { next.append(state.value(note.id)); }
+            cancelNoteDrag();
+            return setNotes(next.toVariantList());
         }
         cancelNoteDrag();
         return m_timeline->applyEdit("midi.patchNotes", {{"clipId", m_clipId}, {"notes", patch}, {"noteIds", deletions}}) != 0;
@@ -447,7 +453,7 @@ bool PianoRollController::patchNotes(const QVariantList& values) {
         if (uniqueIds.contains(id)) { patchOrder.append(id); }
     }
     for (const auto& id : requestedIds) {
-        if (!previous.contains(id)) { patchOrder.append(id); }
+        if (!previous.contains(id)) { return setNotes(values); }
     }
     if (patchOrder != requestedIds) { return setNotes(values); }
     QJsonArray patches, removed;

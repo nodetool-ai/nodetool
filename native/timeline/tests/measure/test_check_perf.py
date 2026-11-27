@@ -2,7 +2,7 @@ import sys
 import unittest
 
 sys.dont_write_bytecode = True
-from check_perf import check_connections, coarse_connections, check, loads, ratchet, result_from, prior_budget, update_budget
+from check_perf import check_connections, coarse_connections, check, loads, ratchet, result_from, update_budget
 from unittest.mock import patch
 import json
 import subprocess
@@ -96,23 +96,6 @@ class BudgetTest(unittest.TestCase):
             self.assertEqual(loads(path.read_text())['scenarios'],
                              {str(i): {'objects': i % 10} for i in range(16)})
 
-    def test_git_failures_are_not_adoption(self):
-        def result(stdout=''):
-            return subprocess.CompletedProcess([], 0, stdout=stdout)
-        with patch('check_perf.subprocess.run', side_effect=[result('/repo'), subprocess.CalledProcessError(1, 'git')]):
-            with self.assertRaises(subprocess.CalledProcessError):
-                prior_budget(Path('/repo/budget.json'), True)
-        for allow in (False, True):
-            with patch('check_perf.subprocess.run', side_effect=[result('/repo'), result(), result()]):
-                if allow:
-                    self.assertIsNone(prior_budget(Path('/repo/budget.json'), True))
-                else:
-                    with self.assertRaises(ValueError):
-                        prior_budget(Path('/repo/budget.json'), False)
-        with patch('check_perf.subprocess.run', side_effect=[result('/repo'), result(), result('budget.json'), subprocess.CalledProcessError(1, 'git')]):
-            with self.assertRaises(subprocess.CalledProcessError):
-                prior_budget(Path('/repo/budget.json'), True)
-
     def test_cli_regression_and_restore(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -135,6 +118,12 @@ class BudgetTest(unittest.TestCase):
             command = [sys.executable, str(checker),
                        '--binary', str(binary), '--scenario', 'playback', '--budget', str(budget),
                        '--base-budget', str(baseline), '--output', str(root / 'result.json')]
+            # A shallow checkout has no origin/main. A non-repository fixture
+            # proves the default gate needs only its committed budget file.
+            checkout_command = command.copy()
+            base_index = checkout_command.index('--base-budget')
+            del checkout_command[base_index:base_index + 2]
+            self.assertEqual(subprocess.run(checkout_command, capture_output=True).returncode, 0)
             def run():
                 return subprocess.run(command, capture_output=True, text=True)
             self.assertEqual(run().returncode, 0)

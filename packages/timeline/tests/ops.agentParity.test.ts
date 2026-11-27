@@ -4,6 +4,7 @@
  * track automation, track and master effects, and the project key.
  */
 import { describe, expect, it } from "vitest";
+import { shortResourceId } from "@nodetool-ai/protocol";
 import { makeClip, makeTrack, type TimelineClip } from "../src/index.js";
 import { DEFAULT_TEMPO } from "../src/midi/tempo.js";
 import {
@@ -516,7 +517,7 @@ it("resizing patches fit expression endpoints like the piano roll", async () => 
   ]);
 });
 
-it("patchNotes updates, adds and removes atomically and can unset optional note fields", async () => {
+it("patchNotes updates and removes atomically and can unset optional note fields", async () => {
   const s = state([
     midi([note("a", 60, 0, 480, { muted: true }), note("b", 62, 480, 480)])
   ]);
@@ -524,13 +525,12 @@ it("patchNotes updates, adds and removes atomically and can unset optional note 
     clip: "m",
     patch: {
       edit: "midi.patchNotes",
-      notes: [note("a", 64, 120, 240), note("new", 65, 960, 240)],
+      notes: [note("a", 64, 120, 240)],
       noteIds: ["b"]
     }
   });
   expect(notesOf(out)).toEqual([
-    note("a", 64, 120, 240),
-    note("new", 65, 960, 240)
+    note("a", 64, 120, 240)
   ]);
   await expect(
     run(s, "set_notes", {
@@ -557,14 +557,44 @@ it("rejects ambiguous existing note IDs before patching", async () => {
   await expect(run(s, "set_notes", {clip: "m", patch: {edit: "midi.moveNotes", notes: [{id: "a", pitch: 64}]}})).rejects.toThrow(/Duplicate.*id/i);
 });
 
-it("fits expression on newly inserted patchNotes notes", async () => {
+it("rejects unknown patchNotes IDs without inserting notes", async () => {
   const s = state([midi([])]);
-  const out = await run(s, "set_notes", {clip: "m", patch: {edit: "midi.patchNotes", notes: [{...note("new", 60, 0, 120), expression: {pitch: [{tick: 0, value: 0}, {tick: 480, value: 12}]}}]}});
-  expect(notesOf(out)[0]?.expression?.pitch).toEqual([{tick: 0, value: 0}, {tick: 120, value: 3}]);
+  await expect(run(s, "set_notes", {clip: "m", patch: {edit: "midi.patchNotes", notes: [note("new", 60, 0, 120)]}})).rejects.toThrow(/id/);
+  expect(s.clips[0]?.notes).toEqual([]);
 });
 
 it.each(["midi.moveNotes", "midi.setNoteVelocities"])("%s refuses malformed existing expression instead of changing it", async (edit) => {
   const bad = {...note("a", 60, 0, 120), expression: {pitch: [{tick: 0, value: 0}, {tick: 480, value: 12}]}};
   const s = state([midi([bad])]);
   await expect(run(s, "set_notes", {clip: "m", patch: {edit, notes: [{id: "a", ...(edit === "midi.moveNotes" ? {pitch: 62} : {velocity: 42})}]}})).rejects.toThrow(/Invalid note patch/);
+});
+
+it("patches the compact note ID returned to an agent and rejects ambiguous prefixes", async () => {
+  const id = "abcdef01234567890123456789012345";
+  const s = state([midi([note(id, 60, 0, 480)])]);
+  const read = await run(s, "get_state", {clip: "m"});
+  const detail = read.result.clipDetail;
+  expect(detail).toBeDefined();
+  if (!detail || typeof detail !== "object" || !("notes" in detail) || !Array.isArray(detail.notes)) {
+    throw new Error("Missing clip notes in agent read");
+  }
+  const readId: unknown = detail.notes[0]?.id;
+  if (typeof readId !== "string") { throw new Error("Missing note ID in agent read"); }
+  const shortId = shortResourceId(readId);
+  expect(readId).toBe(id);
+  expect(shortId).toHaveLength(12);
+  for (const patch of [
+    {edit: "midi.moveNotes", notes: [{id: shortId, pitch: 64}]},
+    {edit: "midi.resizeNotes", notes: [{id: shortId, durationTick: 120}]},
+    {edit: "midi.setNoteVelocities", notes: [{id: shortId, velocity: 42}]},
+    {edit: "midi.patchNotes", notes: [note(shortId, 64, 0, 120)]},
+    {edit: "midi.removeNotes", noteIds: [shortId]},
+    {edit: "midi.patchNotes", notes: [], noteIds: [shortId]}
+  ]) {
+    const out = await run(s, "set_notes", {clip: "m", patch});
+    expect(notesOf(out).every((n) => n.id === id)).toBe(true);
+    const ambiguous = state([midi([note(id, 60, 0, 480), note("abcdef012345ffffffffffffffffffff", 62, 0, 480)])]);
+    await expect(run(ambiguous, "set_notes", {clip: "m", patch})).rejects.toThrow(/more than one/);
+    expect(ambiguous.clips[0]?.notes).toHaveLength(2);
+  }
 });

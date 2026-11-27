@@ -402,6 +402,25 @@ std::optional<QJsonObject> updatedNote(const QString& name, const QJsonObject& e
 }
 } // namespace
 
+namespace {
+template<class Index>
+QString resolveNoteId(const Index& positions, const QString& id) {
+    if (positions.contains(id)) { return id; }
+    if (id.size() == 12 && std::all_of(id.cbegin(), id.cend(), [](QChar c) {
+        return (c >= u'0' && c <= u'9') || (c >= u'a' && c <= u'f');
+    })) {
+        QString match;
+        for (auto it = positions.cbegin(); it != positions.cend(); ++it) {
+            if (!it.key().startsWith(id)) { continue; }
+            if (!match.isEmpty()) { throw std::invalid_argument("Ambiguous note id prefix. Use a full id."); }
+            match = it.key();
+        }
+        if (!match.isEmpty()) { return match; }
+    }
+    throw std::invalid_argument("Unknown note id.");
+}
+} // namespace
+
 QJsonObject patchClipNotes(const QString& name, QJsonObject raw, const QJsonObject& payload) {
     const auto index = editableMidiClip(raw, payload.value("clipId").toString());
     if (index < 0) { return raw; }
@@ -418,7 +437,7 @@ QJsonObject patchClipNotes(const QString& name, QJsonObject raw, const QJsonObje
     if (name == "midi.removeNotes") {
         if (!payload.value("noteIds").isArray()) { return raw; }
         for (const auto& entry : payload.value("noteIds").toArray()) {
-            const auto id = entry.toString();
+            const auto id = resolveNoteId(positions, entry.toString());
             if (!positions.contains(id) || seen.contains(id)) { return raw; }
             seen.insert(id);
         }
@@ -433,9 +452,10 @@ QJsonObject patchClipNotes(const QString& name, QJsonObject raw, const QJsonObje
         if (updates.size() > MAX_NOTES_PER_CLIP) { return raw; }
         for (const auto& entry : updates) {
             if (!entry.isObject()) { return raw; }
-            const auto patch = entry.toObject();
-            const auto id = patch.value("id").toString();
-            const bool adding = name == "midi.addNotes" || (name == "midi.patchNotes" && !positions.contains(id));
+            auto patch = entry.toObject();
+            const bool adding = name == "midi.addNotes";
+            const auto id = adding ? patch.value("id").toString() : resolveNoteId(positions, patch.value("id").toString());
+            patch.insert("id", id);
             if (id.isEmpty() || seen.contains(id) || (adding ? positions.contains(id) : !positions.contains(id))) { return raw; }
             seen.insert(id);
             const auto updated = updatedNote(name, adding ? QJsonObject{} : notes.at(positions.value(id)).toObject(), patch, adding);
@@ -448,7 +468,7 @@ QJsonObject patchClipNotes(const QString& name, QJsonObject raw, const QJsonObje
         if (!payload.value("noteIds").isArray()) { return raw; }
         QSet<QString> removed;
         for (const auto& value : payload.value("noteIds").toArray()) {
-            const auto id = value.toString();
+            const auto id = resolveNoteId(positions, value.toString());
             if (!positions.contains(id) || seen.contains(id) || removed.contains(id)) { return raw; }
             removed.insert(id);
         }
@@ -482,7 +502,7 @@ nt::app::TypedEditResult patchTypedNotes(const QString& name, const nt::Timeline
     const auto remove = [&](const QJsonValue& value) {
         if (!value.isArray()) { return false; }
         for (const auto& entry : value.toArray()) {
-            const auto noteId = entry.toString();
+            const auto noteId = resolveNoteId(positions, entry.toString());
             if (!positions.contains(noteId) || removed.contains(noteId) || seen.contains(noteId)) { return false; }
             removed.insert(noteId);
         }
@@ -496,10 +516,11 @@ nt::app::TypedEditResult patchTypedNotes(const QString& name, const nt::Timeline
         if (updates.size() > MAX_NOTES_PER_CLIP) { throw std::invalid_argument("Invalid notes array or note limit exceeded."); }
         for (const auto& entry : updates) {
             if (!entry.isObject()) { throw std::invalid_argument("Invalid notes array or note limit exceeded."); }
-            const auto patch = entry.toObject();
-            const auto noteId = patch.value("id").toString();
+            auto patch = entry.toObject();
+            const bool adding = name == "midi.addNotes";
+            const auto noteId = adding ? patch.value("id").toString() : resolveNoteId(positions, patch.value("id").toString());
+            patch.insert("id", noteId);
             const bool exists = positions.contains(noteId);
-            const bool adding = name == "midi.addNotes" || (name == "midi.patchNotes" && !exists);
             if (noteId.isEmpty() || seen.contains(noteId) || (adding ? exists : !exists)) { throw std::invalid_argument("Invalid or duplicate patch note id."); }
             seen.insert(noteId);
             const auto updated = updatedNote(name, adding ? QJsonObject{} : (*notes)[positions.value(noteId)].raw, patch, adding);

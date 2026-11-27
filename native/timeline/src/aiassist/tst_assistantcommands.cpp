@@ -133,6 +133,45 @@ private slots:
     }
     void init() { loadDocument(); }
 
+    void compactNoteIdsRoundTrip() {
+        const QString full = "abcdef01234567890123456789012345";
+        auto raw = model.timeline().raw;
+        auto clips = raw.value("clips").toArray(); auto clip = clips[0].toObject();
+        const QJsonObject note{{"id", full}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 480}};
+        clip.insert("mediaType", "midi"); clip.insert("notes", QJsonArray{note}); clips[0] = clip; raw.insert("clips", clips);
+        const auto parsed = nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto read = session->executeHostTool("ui_timeline_get_state", {{"timeline_id", TIMELINE}, {"clip", CLIP_A}}, {});
+        const auto readId = read.value("clips").toArray().first().toObject().value("notes").toArray().first().toObject().value("id").toString();
+        QCOMPARE(readId, full);
+        const auto compact = readId.left(12);
+        const QList<QPair<QString, QVariantMap>> patches{
+            {"midi.moveNotes", {{"notes", QVariantList{QVariantMap{{"id", compact}, {"pitch", 64}}}}}},
+            {"midi.resizeNotes", {{"notes", QVariantList{QVariantMap{{"id", compact}, {"durationTick", 120}}}}}},
+            {"midi.setNoteVelocities", {{"notes", QVariantList{QVariantMap{{"id", compact}, {"velocity", 42}}}}}},
+            {"midi.patchNotes", {{"notes", QVariantList{QVariantMap{{"id", compact}, {"pitch", 64}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}}}}}},
+            {"midi.removeNotes", {{"noteIds", QVariantList{compact}}}},
+            {"midi.patchNotes", {{"notes", QVariantList{}}, {"noteIds", QVariantList{compact}}}}
+        };
+        for (const auto& [name, fields] : patches) {
+            model.setTimeline(*parsed.timeline);
+            auto params = fields; params.insert("clip_id", CLIP_A);
+            const auto result = run(name, params);
+            QVERIFY2(!result.contains("error"), qPrintable(QJsonDocument::fromVariant(result).toJson()));
+            for (const auto& n : *model.findClip(CLIP_A)->notes) { QCOMPARE(n.id, full); }
+            auto other = note; other.insert("id", "abcdef012345ffffffffffffffffffff");
+            clip.insert("notes", QJsonArray{note, other}); clips[0] = clip; raw.insert("clips", clips);
+            const auto ambiguous = nt::parseTimeline(raw); QVERIFY(ambiguous.timeline); model.setTimeline(*ambiguous.timeline);
+            const auto rejected = run(name, params);
+            QVERIFY2(rejected.value("error").toString().contains("Ambiguous"), qPrintable(QJsonDocument::fromVariant(rejected).toJson()));
+            QCOMPARE(model.findClip(CLIP_A)->notes->size(), std::size_t{2});
+        }
+        model.setTimeline(*parsed.timeline);
+        const auto unknown = run("midi.patchNotes", {{"clip_id", CLIP_A}, {"notes", QVariantList{QVariantMap{
+            {"id", "missing"}, {"pitch", 64}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}}}}});
+        QVERIFY(unknown.contains("error"));
+        QCOMPARE(model.findClip(CLIP_A)->notes->size(), std::size_t{1});
+    }
+
     void notePatchCommandsUseRegisteredEdits() {
         auto raw = model.timeline().raw;
         auto clips = raw.value("clips").toArray();

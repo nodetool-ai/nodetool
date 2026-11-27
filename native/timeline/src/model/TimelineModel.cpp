@@ -786,6 +786,8 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
                 // remains the codec fallback for rebased checkpoints.
                 auto snapshot = raw == after->raw ? after : raw == before->raw ? before : nullptr;
                 if (!snapshot) { owner->replaceFromHistory(raw); return; }
+                emit owner->beforeCommand();
+                if (!owner) { return; }
                 const auto previous = owner->m_timeline;
                 const bool notesOnly = !changes.fullReplacement && !changes.clips.isEmpty() && !changes.clipsStructural &&
                     !changes.tracksStructural && !changes.markersStructural && changes.tracks.isEmpty() && changes.markers.isEmpty() &&

@@ -50,10 +50,24 @@ QJsonArray notesWith(const QJsonObject& extra) {
 class TestMidiNotes : public QObject {
     Q_OBJECT
   private slots:
+    void shortIdsResolveInJsonPatches() {
+        const QString id = "abcdef01234567890123456789012345";
+        const auto raw = nt::midi::setClipNotes(document(), {{"clipId", "c1"}, {"notes", QJsonArray{note(60, 90, 0, 480, id)}}});
+        auto changed = note(64, 90, 0, 120, id.left(12));
+        const QJsonObject payload{{"clipId", "c1"}, {"notes", QJsonArray{changed}}};
+        const auto result = nt::midi::patchClipNotes("midi.patchNotes", raw, payload);
+        QCOMPARE(notesOf(result).size(), 1);
+        QCOMPARE(notesOf(result).first().toObject().value("id").toString(), id);
+        changed.insert("id", "missing");
+        QVERIFY_THROWS_EXCEPTION(std::invalid_argument, static_cast<void>(nt::midi::patchClipNotes("midi.patchNotes", raw,
+            (QJsonObject{{"clipId", "c1"}, {"notes", QJsonArray{changed}}}))));
+        const auto ambiguous = nt::midi::setClipNotes(raw, {{"clipId", "c1"}, {"notes", QJsonArray{note(60, 90, 0, 480, id), note(62, 90, 0, 480, "abcdef012345ffffffffffffffffffff")}}});
+        QVERIFY_THROWS_EXCEPTION(std::invalid_argument, static_cast<void>(nt::midi::patchClipNotes("midi.patchNotes", ambiguous, payload)));
+    }
     void shortenedAddedExpressionIsFitted() {
         auto n = note(60, 90, 0, 120, "new");
         n.insert("expression", QJsonObject{{"pitch", QJsonArray{point(0, 0), point(480, 12)}}});
-        const auto result = nt::midi::patchClipNotes("midi.patchNotes", document(),
+        const auto result = nt::midi::patchClipNotes("midi.patchNotes", nt::midi::setClipNotes(document(), {{"clipId", "c1"}, {"notes", QJsonArray{note(60, 90, 0, 480, "new")}}}),
             {{"clipId", "c1"}, {"notes", QJsonArray{n}}});
         QCOMPARE(notesOf(result).size(), 1);
         QCOMPARE(notesOf(result)[0].toObject().value("expression").toObject().value("pitch").toArray(),
@@ -73,7 +87,7 @@ class TestMidiNotes : public QObject {
         const QJsonObject good{{"clipId", "c1"}, {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}}}};
         auto bad = good;
         bad.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}, QJsonObject{{"id", "missing"}, {"velocity", 42}}});
-        QCOMPARE(nt::midi::patchClipNotes("midi.setNoteVelocities", raw, bad), raw);
+        QVERIFY_THROWS_EXCEPTION(std::invalid_argument, static_cast<void>(nt::midi::patchClipNotes("midi.setNoteVelocities", raw, bad)));
         bad.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}, QJsonObject{{"id", "n"}, {"velocity", 80}}});
         QCOMPARE(nt::midi::patchClipNotes("midi.setNoteVelocities", raw, bad), raw);
         bad.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 65}}});
