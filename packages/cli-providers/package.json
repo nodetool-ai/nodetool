@@ -31,7 +31,8 @@
     "@nodetool-ai/node-catalog": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "@nodetool-ai/pack-manager": "*"
+    "@nodetool-ai/pack-manager": "*",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "vitest": "^5.0.1",

@@ -10,6 +10,7 @@
 
 import type {
   BaseProvider,
+  CodexProvider,
   GetSecret,
   Message,
   ProviderStreamItem,
@@ -37,6 +38,9 @@ import {
   type UnifiedModel
 } from "@nodetool-ai/protocol";
 import { getSecret, Setting } from "@nodetool-ai/models";
+import { resolveCodexCliAccessToken } from "./codex-cli-login.js";
+
+export { codexCliAuthPath, resolveCodexCliAccessToken } from "./codex-cli-login.js";
 export type InferenceEvent =
   | { readonly type: "chunk"; readonly content: string }
   | { readonly type: "tool_call"; readonly id: string; readonly name: string; readonly args: ToolCall["args"] }
@@ -195,8 +199,49 @@ export function defaultModelFor(providerId: string): string | undefined {
   return isKnownProvider(providerId) ? DEFAULT_MODELS[providerId] : undefined;
 }
 
-/** Resolve a secret from the encrypted DB (user "1"); env fallback handled by the registry. */
-const resolveForUser1: GetSecret = (key) => getSecret(key, "1");
+function hasAccountCatalog(
+  provider: BaseProvider
+): provider is BaseProvider & Pick<CodexProvider, "listAccountLanguageModels"> {
+  return "listAccountLanguageModels" in provider && typeof provider.listAccountLanguageModels === "function";
+}
+
+/**
+ * The model a run uses when the caller names none. Codex serves a different
+ * catalog to each account, so its default is the first model the account's
+ * live catalog lists. Throws with guidance when that catalog cannot be loaded.
+ */
+export async function resolveDefaultModel(
+  providerId: string
+): Promise<string | undefined> {
+  if (providerId !== "codex") { return defaultModelFor(providerId); }
+  const provider = await createProviderStrict(providerId);
+  if (!hasAccountCatalog(provider)) { return defaultModelFor(providerId); }
+  try {
+    const [first] = await provider.listAccountLanguageModels();
+    return first.id;
+  } catch (error) {
+    throw new Error(
+      `Could not load the Codex models for this account (${
+        error instanceof Error ? error.message : String(error)
+      }). Pass --model <id> with a model your ChatGPT plan offers. ` +
+        "The Codex CLI lists them under /model.",
+      { cause: error }
+    );
+  }
+}
+
+/**
+ * The secret the command line hands every provider: the encrypted DB (user
+ * "1"), with the environment fallback handled by the registry. Codex also
+ * accepts the Codex CLI login, after a NodeTool sign-in and CODEX_ACCESS_TOKEN.
+ */
+const resolveForUser1: GetSecret = async (key) => {
+  const value = await getSecret(key, "1");
+  if (value || key !== "CODEX_ACCESS_TOKEN" || process.env.CODEX_ACCESS_TOKEN) {
+    return value;
+  }
+  return resolveCodexCliAccessToken();
+};
 
 /**
  * Lazily spawn the local Python worker bridge and register the Python-only
