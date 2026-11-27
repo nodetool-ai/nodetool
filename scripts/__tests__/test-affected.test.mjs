@@ -69,7 +69,9 @@ describe("buildPlan", () => {
     "scripts/test-affected.mjs",
     "scripts/__tests__/test-affected.test.mjs",
     "scripts/__tests__/desktop-release-recovery.test.mjs",
-    "scripts/__tests__/smoke-backend-bundle.test.mjs"
+    "scripts/__tests__/smoke-backend-bundle.test.mjs",
+    "scripts/check-linux-isa-baseline.mjs",
+    "scripts/__tests__/check-linux-isa-baseline.test.mjs"
   ])("selects script regressions for %s", (file) => {
     expect(plan([file]).globalFiles).toEqual([]);
     expect(plan([file]).steps).toEqual([
