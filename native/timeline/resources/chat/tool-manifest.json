@@ -385,9 +385,10 @@
                   "type": "string",
                   "enum": [
                     "orbit",
-                    "scene"
+                    "scene",
+                    "free"
                   ],
-                  "description": "\"orbit\" (default) frames the model's bounding sphere with the terms below; \"scene\" uses a camera the glTF declares and ignores them."
+                  "description": "\"orbit\" (default) frames the model's bounding sphere with the terms below; \"scene\" uses a camera the glTF declares and ignores them; \"free\" places the camera by position, target, rollDeg and fovDeg, with no fit to the model, and ignores azimuthDeg, elevationDeg, zoom and targetOffset."
                 },
                 "azimuthDeg": {
                   "type": "number",
@@ -399,7 +400,7 @@
                 },
                 "fovDeg": {
                   "type": "number",
-                  "description": "Vertical field of view, degrees. Lower is a longer lens."
+                  "description": "Vertical field of view, degrees. Lower is a longer lens. On a 24 mm tall sensor a 50 mm lens is about 27 and a 24 mm lens about 53."
                 },
                 "zoom": {
                   "type": "number",
@@ -423,6 +424,40 @@
                 "sceneCameraName": {
                   "description": "mode \"scene\" only: the glTF camera to shoot through. The first one when absent.",
                   "type": "string"
+                },
+                "position": {
+                  "description": "mode \"free\" only: [x, y, z] of the camera eye in the model's own units, Y up. [0, 1.6, 5] when absent.",
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "target": {
+                  "description": "mode \"free\" only: [x, y, z] of the point the camera looks at. [0, 1, 0] when absent.",
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "rollDeg": {
+                  "description": "mode \"free\" only: roll around the view axis, degrees. Positive turns the horizon clockwise in the picture.",
+                  "type": "number"
                 }
               },
               "additionalProperties": false
@@ -2047,7 +2082,7 @@
                   "properties": {
                     "property": {
                       "type": "string",
-                      "description": "One of: offsetX, offsetY, scale, scaleX, scaleY, rotation, rotationX, rotationY, opacity, wipeProgress, blur, brightness, saturation, contrast, hue, temperature, tint, positionX, positionY, anchorX, anchorY, trimStart, trimEnd, cameraAzimuth, cameraElevation, cameraZoom, cameraFov."
+                      "description": "One of: offsetX, offsetY, scale, scaleX, scaleY, rotation, rotationX, rotationY, opacity, wipeProgress, blur, brightness, saturation, contrast, hue, temperature, tint, positionX, positionY, anchorX, anchorY, trimStart, trimEnd, cameraAzimuth, cameraElevation, cameraZoom, cameraFov, cameraPosX, cameraPosY, cameraPosZ, cameraTargetX, cameraTargetY, cameraTargetZ, cameraRoll."
                     },
                     "keyframes": {
                       "minItems": 1,
@@ -2119,7 +2154,7 @@
                       "properties": {
                         "property": {
                           "type": "string",
-                          "description": "One of: offsetX, offsetY, scale, scaleX, scaleY, rotation, rotationX, rotationY, opacity, wipeProgress, blur, brightness, saturation, contrast, hue, temperature, tint, positionX, positionY, anchorX, anchorY, trimStart, trimEnd, cameraAzimuth, cameraElevation, cameraZoom, cameraFov."
+                          "description": "One of: offsetX, offsetY, scale, scaleX, scaleY, rotation, rotationX, rotationY, opacity, wipeProgress, blur, brightness, saturation, contrast, hue, temperature, tint, positionX, positionY, anchorX, anchorY, trimStart, trimEnd, cameraAzimuth, cameraElevation, cameraZoom, cameraFov, cameraPosX, cameraPosY, cameraPosZ, cameraTargetX, cameraTargetY, cameraTargetZ, cameraRoll."
                         },
                         "keyframes": {
                           "minItems": 1,
@@ -5216,9 +5251,10 @@
                   "type": "string",
                   "enum": [
                     "orbit",
-                    "scene"
+                    "scene",
+                    "free"
                   ],
-                  "description": "\"orbit\" (default) frames the model's bounding sphere with the terms below; \"scene\" uses a camera the glTF declares and ignores them."
+                  "description": "\"orbit\" (default) frames the model's bounding sphere with the terms below; \"scene\" uses a camera the glTF declares and ignores them; \"free\" places the camera by position, target, rollDeg and fovDeg, with no fit to the model, and ignores azimuthDeg, elevationDeg, zoom and targetOffset."
                 },
                 "azimuthDeg": {
                   "type": "number",
@@ -5230,7 +5266,7 @@
                 },
                 "fovDeg": {
                   "type": "number",
-                  "description": "Vertical field of view, degrees. Lower is a longer lens."
+                  "description": "Vertical field of view, degrees. Lower is a longer lens. On a 24 mm tall sensor a 50 mm lens is about 27 and a 24 mm lens about 53."
                 },
                 "zoom": {
                   "type": "number",
@@ -5254,6 +5290,40 @@
                 "sceneCameraName": {
                   "description": "mode \"scene\" only: the glTF camera to shoot through. The first one when absent.",
                   "type": "string"
+                },
+                "position": {
+                  "description": "mode \"free\" only: [x, y, z] of the camera eye in the model's own units, Y up. [0, 1.6, 5] when absent.",
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "target": {
+                  "description": "mode \"free\" only: [x, y, z] of the point the camera looks at. [0, 1, 0] when absent.",
+                  "type": "array",
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "rollDeg": {
+                  "description": "mode \"free\" only: roll around the view axis, degrees. Positive turns the horizon clockwise in the picture.",
+                  "type": "number"
                 }
               },
               "additionalProperties": false

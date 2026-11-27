@@ -24,6 +24,7 @@ import type { Canvas, loadImage } from "@napi-rs/canvas";
 import { loadCanvas } from "@nodetool-ai/runtime";
 import {
   computeModel3DBakeHash,
+  model3dFreeCameraPose,
   resolveModel3DCamera,
   type ClipModel3DCamera,
   type TimelineClip,
@@ -159,6 +160,12 @@ export interface PreviewCameraReport {
   scene_camera_name?: string;
   /** Look-at offset from the bounding-sphere center, world units. */
   target_offset?: [number, number, number];
+  /** `free` mode: the camera eye, world units. */
+  position?: [number, number, number];
+  /** `free` mode: the look-at point, world units. */
+  target?: [number, number, number];
+  /** `free` mode: roll in degrees. Positive turns the horizon clockwise. */
+  roll_deg?: number;
 }
 
 /** What one layer contributed to a frame, for the report beside the pixels. */
@@ -342,6 +349,17 @@ function cameraReport(camera: ClipModel3DCamera): PreviewCameraReport {
   };
   if (camera.sceneCameraName) report.scene_camera_name = camera.sceneCameraName;
   if (camera.targetOffset) report.target_offset = camera.targetOffset;
+  if (camera.mode === "free") {
+    const pose = model3dFreeCameraPose(camera);
+    const rounded = (v: number[]): [number, number, number] => [
+      Number(v[0].toFixed(3)),
+      Number(v[1].toFixed(3)),
+      Number(v[2].toFixed(3))
+    ];
+    report.position = rounded(pose.position);
+    report.target = rounded(pose.target);
+    report.roll_deg = Number(pose.rollDeg.toFixed(3));
+  }
   return report;
 }
 

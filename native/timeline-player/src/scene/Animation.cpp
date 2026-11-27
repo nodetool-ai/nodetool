@@ -243,6 +243,13 @@ const ChannelInfo kChannels[] = {
     {"cameraElevation", Channel::CameraElevation, Fold::Add, false},
     {"cameraZoom", Channel::CameraZoom, Fold::Multiply, false},
     {"cameraFov", Channel::CameraFov, Fold::Add, false},
+    {"cameraPosX", Channel::CameraPosX, Fold::Add, false},
+    {"cameraPosY", Channel::CameraPosY, Fold::Add, false},
+    {"cameraPosZ", Channel::CameraPosZ, Fold::Add, false},
+    {"cameraTargetX", Channel::CameraTargetX, Fold::Add, false},
+    {"cameraTargetY", Channel::CameraTargetY, Fold::Add, false},
+    {"cameraTargetZ", Channel::CameraTargetZ, Fold::Add, false},
+    {"cameraRoll", Channel::CameraRoll, Fold::Add, false},
 };
 
 const ChannelInfo& info(Channel c) { return kChannels[static_cast<int>(c)]; }
@@ -269,6 +276,13 @@ double* arithmeticField(AnimationSample& s, Channel c) {
     case Channel::CameraElevation: return &s.cameraElevation;
     case Channel::CameraZoom: return &s.cameraZoom;
     case Channel::CameraFov: return &s.cameraFov;
+    case Channel::CameraPosX: return &s.cameraPosX;
+    case Channel::CameraPosY: return &s.cameraPosY;
+    case Channel::CameraPosZ: return &s.cameraPosZ;
+    case Channel::CameraTargetX: return &s.cameraTargetX;
+    case Channel::CameraTargetY: return &s.cameraTargetY;
+    case Channel::CameraTargetZ: return &s.cameraTargetZ;
+    case Channel::CameraRoll: return &s.cameraRoll;
     default: return nullptr;
     }
 }
@@ -856,7 +870,9 @@ bool AnimationSample::isIdentity() const {
     return offsetX == 0 && offsetY == 0 && scale == 1 && scaleX == 1 && scaleY == 1 && rotation == 0 &&
            rotationX == 0 && rotationY == 0 && opacity == 1 && blur == 0 && brightness == 0 && saturation == 1 &&
            contrast == 1 && hue == 0 && temperature == 0 && tint == 0 && cameraAzimuth == 0 &&
-           cameraElevation == 0 && cameraZoom == 1 && cameraFov == 0 && !mask && !replaced;
+           cameraElevation == 0 && cameraZoom == 1 && cameraFov == 0 && cameraPosX == 0 && cameraPosY == 0 &&
+           cameraPosZ == 0 && cameraTargetX == 0 && cameraTargetY == 0 && cameraTargetZ == 0 && cameraRoll == 0 &&
+           !mask && !replaced;
 }
 
 std::vector<AnimationDef> parseAnimations(const QJsonArray& raw) {

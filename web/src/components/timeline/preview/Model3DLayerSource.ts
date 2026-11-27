@@ -29,11 +29,12 @@ import {
   type ActiveLayer
 } from "@nodetool-ai/timeline/render";
 import type {
+  Model3DRenderPass,
   Model3DRenderSession,
   Model3DSessionOptions
 } from "@nodetool-ai/video-nodes/nodes/model3d/render3d-core";
 
-export type { Model3DRenderSession, Model3DSessionOptions };
+export type { Model3DRenderPass, Model3DRenderSession, Model3DSessionOptions };
 
 /** Why a 3D layer will not draw, short of it still loading. */
 export type Model3DUnavailableReason =
@@ -232,12 +233,14 @@ export class Model3DLayerSource {
    * One drawn frame of a 3D layer, or null when its session is not ready. The
    * camera is the clip's own pose folded with the sampled channels, and the
    * time is the layer's `sourceTimeSec` — the clip's source clock, already
-   * multiplied by `animation.speed` by the scene model.
+   * multiplied by `animation.speed` by the scene model. `pass` picks what is
+   * drawn and is `beauty` when absent.
    */
   frame(
     layer: ActiveLayer,
     anim: Model3DCameraChannels,
-    size: Model3DFrameSize
+    size: Model3DFrameSize,
+    pass?: Model3DRenderPass
   ): OffscreenCanvas | null {
     const style = layer.model3dStyle;
     if (!style) return null;
@@ -247,7 +250,8 @@ export class Model3DLayerSource {
       timeSec: layer.sourceTimeSec ?? 0,
       camera: resolveModel3DCamera(style, anim),
       width: size.width,
-      height: size.height
+      height: size.height,
+      pass
     });
   }
 

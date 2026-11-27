@@ -64,10 +64,13 @@ field absent from the schema is stripped on PATCH):
 ```ts
 // packages/timeline/src/types.ts
 
-export type Model3DCameraMode = "orbit" | "scene";
+export type Model3DCameraMode = "orbit" | "scene" | "free";
 
 export interface ClipModel3DCamera {
-  /** `orbit` frames the model's bounding sphere; `scene` uses a glTF camera. */
+  /**
+   * `orbit` frames the model's bounding sphere, `scene` uses a glTF camera,
+   * `free` places the camera by position, target, roll and fov with no fit.
+   */
   mode: Model3DCameraMode;
   /** Orbit terms, the vocabulary of RenderToImage, the Blender job and the editor pose. */
   azimuthDeg: number;
@@ -79,6 +82,12 @@ export interface ClipModel3DCamera {
   targetOffset?: [number, number, number];
   /** `scene` mode: the glTF camera's name; the first camera when absent. */
   sceneCameraName?: string;
+  /** `free` mode: camera eye, glTF world units. Default `[0, 1.6, 5]`. */
+  position?: [number, number, number];
+  /** `free` mode: look-at point, glTF world units. Default `[0, 1, 0]`. */
+  target?: [number, number, number];
+  /** `free` mode: roll in degrees. Positive turns the horizon clockwise. */
+  rollDeg?: number;
 }
 
 export interface ClipModel3DAnimation {
@@ -135,6 +144,50 @@ them. One preset joins the catalog: `orbit` (role `loop`, `degrees` 360,
 `animate_clip` call. The channels are ignored on any layer that is not
 `model3d`, the way `wipeProgress` is ignored without a wipe.
 
+**Free mode.** `mode: "free"` is a camera placed in world space for a blockout.
+It reads `position`, `target`, `rollDeg` and `fovDeg`, where `fovDeg` is the
+vertical field of view. It does not fit the bounding sphere and ignores
+`azimuthDeg`, `elevationDeg`, `zoom` and `targetOffset`. The clip keeps those
+fields, so a mode switch loses nothing. A missing `position` is `[0, 1.6, 5]`,
+a missing `target` is `[0, 1, 0]` and a missing `rollDeg` is 0.
+
+A positive `rollDeg` turns the camera counter-clockwise around its view axis as
+seen from behind it, so the horizon turns clockwise in the picture. In three.js
+this is `lookAt` followed by `rotateZ(roll)`. `model3dFreeCameraBasis` in
+`packages/timeline/src/model3d.ts` is the reference, and the Blender op ports
+it in `blender_ops/framing.py`.
+
+Seven more channels drive the free camera. Each adds onto the authored field:
+
+| Channel | Adds onto | Unit | Identity |
+| --- | --- | --- | --- |
+| `cameraPosX`, `cameraPosY`, `cameraPosZ` | `position` | world units | 0 |
+| `cameraTargetX`, `cameraTargetY`, `cameraTargetZ` | `target` | world units | 0 |
+| `cameraRoll` | `rollDeg` | degrees | 0 |
+
+`cameraFov` is the free camera's lens. `cameraAzimuth`, `cameraElevation` and
+`cameraZoom` do nothing in free mode, and the seven free channels do nothing in
+`orbit` and `scene` mode. `resolveModel3DCamera` folds all of them, so every
+host gets the same camera.
+
+Near and far planes in free mode come from the model's bounding sphere as seen
+from the eye (`computeFreeClipPlanes` in the render core, `free_clip_planes` in
+the Blender op). A camera inside the sphere gets a near plane of one thousandth
+of the far plane.
+
+`orbitCameraToFree(camera, { center, radius, aspect })` returns the free camera
+that draws the picture an orbit camera draws, so a clip can switch modes
+without the picture moving. `focalLengthMmToFovDeg` and `fovDegToFocalLengthMm`
+convert a lens in millimetres on a 24 mm tall sensor.
+
+**Move presets.** `packages/timeline/src/model3dCameraMoves.ts` holds ten moves
+as pure functions: pan, tilt, orbit, push in, truck, crane, pedestal, zoom,
+dolly zoom and dutch. `model3dCameraMoveCurves` returns the curves of a move in
+the custom animation curve shape, with values as offsets from the start pose.
+`applyModel3DCameraMove` writes them into the clip's keyframe animation. Arcs
+and lens moves are sampled into evenly spaced keyframes. Straight moves are two
+keyframes.
+
 ### D5. One render session, four hosts
 
 `render3d-core.ts` becomes a session: load once, render many.
@@ -147,6 +200,7 @@ export interface Model3DRenderFrame {
   camera: ClipModel3DCamera;   // already folded with the sampled channels
   width: number;
   height: number;
+  pass?: "beauty" | "clay" | "depth" | "normal";   // host option, default beauty
 }
 
 export interface Model3DRenderSession {
@@ -182,6 +236,14 @@ A style edit to any session option disposes the session and creates a new
 one, in the browser pool and in the headless group alike, because a mixer
 whose actions were rebuilt mid-session is the same picture as a fresh one and
 harder to prove.
+
+`pass` picks what a frame draws. It is a render option of the host and is never
+stored on the clip. `beauty` is the model's own materials. `clay` draws every
+mesh in one mid-grey matte material under the session's lighting. `depth` is
+linear distance from the camera with near white and far black, over the range
+the model's bounding box covers as seen from the camera. `normal` is view-space
+normals as RGB. Empty space in `depth` is black and in `normal` is
+`(128, 128, 255)`, or transparent when the session's background is transparent.
 
 `renderGlbToPng` becomes a one-frame call on a session, so `RenderToImage`
 keeps its behavior and its tests. The hosts:
@@ -258,7 +320,10 @@ camera move. The sampled producer above removes that branch: each
 folded with the sampled channels, the same `resolveModel3DCamera` the live
 layer calls), and the op places the orbit camera per still. A static camera,
 the `orbit` preset and custom camera keyframes are all just different lists;
-`scene` mode uses the glTF camera and ignores the orbit terms. Nothing is
+`scene` mode uses the glTF camera and ignores the orbit terms. `free` mode
+sends `position`, `target` and `roll` per frame, in the glTF frame with Y up.
+The op rotates them into Blender's Z-up frame and builds the camera rotation
+from the same basis the live layer uses. Nothing is
 refused for its camera.
 
 ### D7. Editing surface
