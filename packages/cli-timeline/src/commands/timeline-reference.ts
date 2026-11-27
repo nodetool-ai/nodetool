@@ -57,11 +57,13 @@ async function renderReference(
   const { getDefaultAssetsPath, getDefaultDbPath } = await import(
     "@nodetool-ai/config"
   );
-  const { ProcessingContext, loadMediaRefBytes } = await import(
+  const { ProcessingContext, headlessGate, loadMediaRefBytes } = await import(
     "@nodetool-ai/runtime"
   );
   const { FileStorageAdapter } = await import("@nodetool-ai/storage");
-  const { UNGATED, createCapabilityRun } = await import("@nodetool-ai/agents");
+  const { contextSecretAvailability, createCapabilityRun } = await import(
+    "@nodetool-ai/agents"
+  );
 
   // `initDb` applies only the baseline schema. Migrate first, or storing the
   // video fails on a column added later.
@@ -79,8 +81,12 @@ async function renderReference(
     "@nodetool-ai/cli-execution/local-model-interfaces"
   );
   context.setModelInterfaces(await localModelInterfaces());
-  // The person at the terminal asked for this write, so nothing gates it.
-  const run = createCapabilityRun({ context, gate: UNGATED });
+  // The person at the terminal asked for this write.
+  const run = createCapabilityRun({
+    context,
+    gate: headlessGate("nodetool timeline reference"),
+    availableSecrets: contextSecretAvailability(context)
+  });
   const edited = (await run.invoke("edit_timeline", {
     timeline_id: timelineId,
     ops: [
