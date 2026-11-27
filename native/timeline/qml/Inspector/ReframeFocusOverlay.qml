@@ -101,7 +101,7 @@ Item {
             anchors.centerIn: parent
             width: root.handleRadius * 2
             height: width
-            radius: width / 2
+            radius: Ui.Metrics.radiusPill
             color: "transparent"
             border.color: Ui.Theme.accentPrimary
             border.width: Ui.Metrics.micro
