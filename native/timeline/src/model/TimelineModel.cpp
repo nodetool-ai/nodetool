@@ -396,7 +396,13 @@ void TimelineModel::notifyChanges() {
     collect("tracks", changes.tracks, changes.tracksStructural);
     collect("markers", changes.markers, changes.markersStructural);
     for (auto it = changes.clips.cbegin(); it != changes.clips.cend(); ++it) {
-        if (it.value().contains("notes")) { changes.noteClipIds.insert(it.key()); }
+        if (it.value().contains("notes")) {
+            changes.noteClipIds.insert(it.key());
+            const auto* old = m_notifiedSnapshot ? m_notifiedSnapshot->findClip(it.key().toStdString()) : nullptr;
+            const auto* next = m_timeline->findClip(it.key().toStdString());
+            changes.recordNoteRanges(it.key(), old ? old->raw.value("notes").toArray() : QJsonArray{},
+                next ? next->raw.value("notes").toArray() : QJsonArray{});
+        }
     }
     // Resolved media may change without changing the persisted document.
     if (m_changedClipIds) {
@@ -751,6 +757,93 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
         return false;
     }
     const Measurement measurement(*this, "apply_edit");
+    if (const auto* typed = edit.target<nt::app::RegisteredTypedEdit>()) {
+        const auto runTyped = [&](const nt::Timeline& snapshot) {
+            try { return typed->typed(snapshot, payload); }
+            catch (const std::exception& error) {
+                qWarning("edit %s failed: %s", qPrintable(name), error.what());
+                return nt::app::TypedEditResult{};
+            }
+        };
+        auto before = m_timeline;
+        auto result = runTyped(*before);
+        if (!result.snapshot) { return 0; }
+        const QPointer<TimelineModel> owner(this);
+        emit beforeCommand();
+        if (!owner || m_readOnly) { return 0; }
+        if (m_timeline != before) {
+            before = m_timeline;
+            result = runTyped(*before);
+            if (!result.snapshot) { return 0; }
+        }
+        const auto token = nextCommandToken();
+        const auto after = result.snapshot;
+        const auto changes = result.changes;
+        auto command = std::make_unique<DocumentCommand>(name, before->raw, after->raw,
+            [owner, before, after, changes](const QJsonObject& raw) {
+                if (!owner) { return; }
+                // Rebasing history invalidates the cached snapshot. The JSON path
+                // remains the codec fallback for rebased checkpoints.
+                auto snapshot = raw == after->raw ? after : raw == before->raw ? before : nullptr;
+                if (!snapshot) { owner->replaceFromHistory(raw); return; }
+                const auto previous = owner->m_timeline;
+                const bool notesOnly = !changes.fullReplacement && !changes.clips.isEmpty() && !changes.clipsStructural &&
+                    !changes.tracksStructural && !changes.markersStructural && changes.tracks.isEmpty() && changes.markers.isEmpty() &&
+                    changes.documentFields == QSet<QString>{QStringLiteral("clips")} &&
+                    std::all_of(changes.clips.cbegin(), changes.clips.cend(), [](const auto& fields) {
+                        return fields.size() == 1 && fields.contains("notes");
+                    });
+                auto next = notesOnly ? *previous : *snapshot;
+                if (notesOnly) {
+                    // Runtime media paths and live mixer handoffs can change between
+                    // checkpoints. A note undo replaces only the cached note arrays.
+                    auto clips = next.raw.value("clips").toArray();
+                    for (auto it = changes.clips.cbegin(); it != changes.clips.cend(); ++it) {
+                        const auto* target = snapshot->findClip(it.key().toStdString());
+                        const auto* current = previous->findClip(it.key().toStdString());
+                        if (!target || !current) { owner->replaceFromHistory(raw); return; }
+                        const auto index = static_cast<std::size_t>(current - previous->clips.data());
+                        auto& clip = next.clips[index];
+                        clip.notes = target->notes;
+                        clip.raw.insert("notes", target->raw.value("notes"));
+                        clips.replace(static_cast<qsizetype>(index), clip.raw);
+                    }
+                    next.raw.insert("clips", clips);
+                }
+                const auto project = previous->raw.value("projectId");
+                if (project.isUndefined()) { next.raw.remove("projectId"); }
+                else { next.raw.insert("projectId", project); }
+                next.revision = nt::nextTimelineRevision();
+                owner->m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+                if (notesOnly && owner->m_trackIndexSource == previous) {
+                    // Note patches keep track membership, clip offsets and prefix ends.
+                    owner->m_trackIndexSource = owner->m_timeline;
+                    owner->m_indexChangedTracks.clear();
+                    for (auto it = changes.clips.cbegin(); it != changes.clips.cend(); ++it) {
+                        const auto* clip = owner->findClip(it.key());
+                        if (clip) { owner->m_indexChangedTracks.insert(QString::fromStdString(clip->trackId)); }
+                    }
+                }
+                owner->m_changedClipIds = QSet<QString>{};
+                owner->m_changedTrackIds = QSet<QString>{};
+                for (auto it = changes.clips.cbegin(); it != changes.clips.cend(); ++it) { owner->m_changedClipIds->insert(it.key()); }
+                owner->m_tracks->rebind(owner->m_timeline.get());
+                const Measurement fanout(*owner, "signal_fanout");
+                {
+                    const Measurement notify(*owner, "typed_change_notification");
+                    if (notesOnly && owner->m_notifiedSnapshot == previous && owner->m_notifiedGeneration == owner->m_generation && !owner->m_transient) {
+                        // The registry already computed the exact note ranges. No
+                        // scalar document property changes in a note-only patch.
+                        owner->m_notifiedSnapshot = owner->m_timeline;
+                        emit owner->changed(changes);
+                    } else { owner->notifyChanges(); }
+                }
+                if (!owner) { return; }
+                { const Measurement source(*owner, "source_notification"); emit owner->sourceChanged(); }
+            }, token);
+        pushCommand(std::move(command));
+        return token;
+    }
     // False when nothing changed or `after` is not a valid document. `before` is the current document.
     m_validatedClips.clear();
     const auto valid = [this](const QJsonObject& before, const QJsonObject& after) {

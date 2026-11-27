@@ -28,7 +28,7 @@ import {
   scaleQuantizeNotes
 } from "../midi/noteFunctions.js";
 import type { MidiNoteParams } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
-import { removeNotes, setVelocity } from "../midi/notesEdit.js";
+import { fitExpressionToDuration, removeNotes, setVelocity } from "../midi/notesEdit.js";
 import { sortNotes, validateNotes } from "../midi/notes.js";
 import { resolveTempo } from "../midi/tempo.js";
 import { tonicPitchClass } from "../harmony/progressionLibrary.js";
@@ -318,8 +318,94 @@ function writeControllers(
 export function runSetNotes(scope: MidiMixScope, op: SetNotesOp): TimelineOpResult {
   const clip = scope.resolveMidiClip(op.clip);
   scope.assertWritable([clip]);
+  if (op.patch !== undefined) {
+    if (clip.pattern !== undefined) {
+      throw new Error(
+        "Pattern regions do not store notes. Edit the pattern instead."
+      );
+    }
+    if (
+      op.notes !== undefined ||
+      op.function !== undefined ||
+      op.controllers !== undefined ||
+      op.note_ids !== undefined ||
+      op.pitches !== undefined ||
+      op.velocity !== undefined ||
+      op.root !== undefined ||
+      op.scale !== undefined
+    ) {
+      throw new Error(
+        "Send patch alone, without notes, function, controllers or selection fields."
+      );
+    }
+    const before = clip.notes ?? [];
+    const positions = new Map(before.map((note, index) => [note.id, index]));
+    if (positions.size !== before.length) {
+      throw new Error("Duplicate note id in clip.");
+    }
+    const patch = op.patch;
+    const ids =
+      patch.edit === "midi.removeNotes"
+        ? patch.noteIds
+        : patch.notes.map((note) => note.id);
+    if (new Set(ids).size !== ids.length) {
+      throw new Error("Duplicate note id in patch.");
+    }
+    const adding = patch.edit === "midi.addNotes";
+    for (const id of ids) {
+      if (
+        patch.edit !== "midi.patchNotes" &&
+        (adding ? positions.has(id) : !positions.has(id))
+      ) {
+        throw new Error(`Invalid patch note id: ${id}`);
+      }
+    }
+    let notes = [...before];
+    if (patch.edit === "midi.removeNotes") {
+      const removed = new Set(ids);
+      notes = notes.filter((note) => !removed.has(note.id));
+    } else if (patch.edit === "midi.addNotes") {
+      notes.push(...patch.notes);
+    } else if (patch.edit === "midi.patchNotes") {
+      const removed = new Set(patch.noteIds ?? []);
+      if (removed.size !== (patch.noteIds ?? []).length) {
+        throw new Error("Duplicate removed note id.");
+      }
+      for (const id of removed) {
+        if (!positions.has(id) || ids.includes(id)) {
+          throw new Error(`Invalid removed note id: ${id}`);
+        }
+      }
+      const updates = new Map(patch.notes.map((note) => [note.id, note]));
+      notes = notes
+        .filter((note) => !removed.has(note.id))
+        .map((note) => {
+          const update = updates.get(note.id);
+          updates.delete(note.id);
+          return update ? fitExpressionToDuration(update) : note;
+        });
+      notes.push(...Array.from(updates.values(), fitExpressionToDuration));
+    } else {
+      for (const update of patch.notes) {
+        const index = positions.get(update.id);
+        const existing = index === undefined ? undefined : notes[index];
+        if (index === undefined || existing === undefined) {
+          throw new Error(`Invalid patch note id: ${update.id}`);
+        }
+        const note = { ...existing, ...update };
+        notes[index] = patch.edit === "midi.resizeNotes" ? fitExpressionToDuration(note) : note;
+      }
+    }
+    const problems = validateNotes(notes);
+    if (problems[0]) {
+      throw new Error(`Invalid note patch: ${problems[0].message}`);
+    }
+    clip.notes = notes;
+    scope.touch(clip.id);
+    return { ok: true, clip: scope.clipOut(clip), noteCount: notes.length };
+  }
   if (op.notes === undefined && op.function === undefined && op.controllers === undefined) {
-    throw new Error("Send `notes`, `function` or `controllers`.");
+    throw new Error("Send `patch`, `notes`, `function` or `controllers`.");
   }
   if (op.notes !== undefined && op.function !== undefined) {
     throw new Error("Send `notes` or `function`, not both. A function edits the notes the clip has.");

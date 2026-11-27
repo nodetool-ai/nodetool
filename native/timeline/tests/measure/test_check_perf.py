@@ -11,6 +11,18 @@ from pathlib import Path
 
 
 class BudgetTest(unittest.TestCase):
+    def test_new_scenarios_need_explicit_adoption_without_raising_old_limits(self):
+        base = {'scenarios': {'old': {'objects': 2}}}
+        current = {'scenarios': {'old': {'objects': 1}, 'new': {'objects': 3}}}
+        with self.assertRaises(ValueError):
+            ratchet(current, base)
+        ratchet(current, base, allow_new=True)
+        current['scenarios']['old']['objects'] = 3
+        with self.assertRaises(ValueError):
+            ratchet(current, base, allow_new=True)
+        with self.assertRaises(ValueError):
+            ratchet({'scenarios': {'new': {'objects': 1}}}, base, allow_new=True)
+
     def test_connection_audit_preserves_strings_and_aliases(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

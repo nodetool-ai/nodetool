@@ -117,6 +117,7 @@ class TestPianoRollUi : public QObject {
 
   private slots:
     void init() {
+        model.setReadOnly(false);
         const QJsonObject raw{
             {"id", "tl"}, {"name", "Song"}, {"fps", 30}, {"width", 1920}, {"height", 1080}, {"durationMs", 4000},
             {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
@@ -220,6 +221,55 @@ Item {
         QTRY_COMPARE(keyboard->property("hoverPitch").toInt(), -1);
     }
 
+    void reviewDuplicateVelocityUsesEarliest() {
+        const QJsonArray values{
+            QJsonObject{{"id", "late"}, {"pitch", 60}, {"velocity", 42}, {"startTick", 480}, {"durationTick", 120}},
+            QJsonObject{{"id", "early"}, {"pitch", 64}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}}};
+        QVERIFY(model.applyEdit("midi.setNotes", {{"clipId", "c"}, {"notes", values}}));
+        auto* panel = item("panel"); auto* controller = panel->findChild<PianoRollController*>(); QVERIFY(controller);
+        QVERIFY(controller->beginNoteDrag({"late", "early"}, "duplicate"));
+        panel->setProperty("selectedIds", controller->noteDragIds());
+        QCOMPARE(panel->property("shownVelocity").toInt(), 90);
+        controller->cancelNoteDrag();
+    }
+    void reviewCancellation_data() {
+        QTest::addColumn<QString>("trigger");
+        for (const auto* name : {"external", "escape", "hide", "focus", "delete", "prune"}) { QTest::newRow(name) << QString(name); }
+    }
+    void reviewCancellation() {
+        QFETCH(QString, trigger);
+        addNote();
+        auto* panel = item("panel");
+        auto* controller = panel->findChild<PianoRollController*>(); QVERIFY(controller);
+        const auto id = notes()[0].toObject().value("id").toString();
+        panel->setProperty("selectedIds", QStringList{id});
+        panel->forceActiveFocus();
+        if (trigger == "prune") {
+            QVERIFY(controller->patchNotes({}));
+            QVERIFY(panel->property("selectedIds").toStringList().isEmpty());
+            return;
+        }
+        QVERIFY(QMetaObject::invokeMethod(panel, "velocityBegin"));
+        QVERIFY(controller->noteDragActive());
+        if (trigger == "external") { model.setReadOnly(true); }
+        if (trigger == "escape") { QTest::keyClick(window.get(), Qt::Key_Escape); }
+        if (trigger == "hide") { panel->setVisible(false); }
+        QQuickItem outside;
+        outside.setParentItem(window->contentItem());
+        if (trigger == "focus") {
+            outside.forceActiveFocus();
+            QCOMPARE(window->activeFocusItem(), &outside);
+        }
+        if (trigger == "delete") {
+            QVERIFY(model.applyEdit("test.delete", {}, [](QJsonObject raw, const QJsonObject&) { raw.insert("clips", QJsonArray{}); return raw; }));
+            QQmlExpression empty(QQmlEngine::contextForObject(panel), panel, "committedNotes.length === 0");
+            QVERIFY(empty.evaluate().toBool());
+            QVERIFY(panel->property("selectedIds").toStringList().isEmpty());
+        }
+        QVERIFY(!controller->noteDragActive());
+        QQmlExpression cleared(QQmlEngine::contextForObject(panel), panel, "velocityGesture === null");
+        QVERIFY(cleared.evaluate().toBool());
+    }
     void clickAddsAndDeleteRemovesNote() {
         QTRY_VERIFY(item("pianoRollGrid"));
         auto* grid = item("pianoRollGrid");

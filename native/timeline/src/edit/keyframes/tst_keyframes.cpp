@@ -23,6 +23,18 @@ static nt::Timeline fixture() {
 class TestKeyframes : public QObject {
     Q_OBJECT
   private slots:
+    void deletedClipInvalidatesInspector() {
+        TimelineModel model; model.setTimeline(fixture());
+        ClipInspectorController controller; controller.setTimeline(&model); controller.setClipId("c");
+        const auto cached = controller.clip(); QVERIFY(!cached.isEmpty());
+        QSignalSpy changed(&controller, &ClipInspectorController::changed);
+        QVERIFY(model.applyEdit("test.deleteClip", {}, [](QJsonObject raw, const QJsonObject&) {
+            raw.insert("clips", QJsonArray{}); return raw;
+        }));
+        QVERIFY(controller.clip().isEmpty());
+        QVERIFY(controller.locked());
+        QVERIFY(!changed.isEmpty());
+    }
     void inspectorCrossingExcludesDenseArrays() {
         TimelineModel model;
         auto doc = fixture();

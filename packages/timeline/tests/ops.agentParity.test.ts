@@ -410,3 +410,161 @@ describe("get_state detail", () => {
     expect(tracks.find((x) => x.id === "keys")!.automationLaneCount).toBe(1);
   });
 });
+
+
+describe("named MIDI note patches", () => {
+  it.each([
+    [
+      "midi.moveNotes",
+      { notes: [{ id: "a", startTick: 720, pitch: 64 }] },
+      { startTick: 720, pitch: 64 }
+    ],
+    [
+      "midi.resizeNotes",
+      { notes: [{ id: "a", durationTick: 120 }] },
+      { durationTick: 120 }
+    ],
+    [
+      "midi.setNoteVelocities",
+      { notes: [{ id: "a", velocity: 42 }] },
+      { velocity: 42 }
+    ],
+    ["midi.addNotes", { notes: [note("new", 65, 960, 240)] }, {}],
+    [
+      "midi.patchNotes",
+      { notes: [note("a", 64, 120, 240)] },
+      { pitch: 64, startTick: 120 }
+    ],
+    ["midi.removeNotes", { noteIds: ["a"] }, {}]
+  ])(
+    "exposes %s through the shared headless tool contract",
+    async (edit, payload, expected) => {
+      const s = state([midi([note("a", 60, 0, 480), note("b", 62, 480, 480)])]);
+      const out = await run(s, "set_notes", {
+        clip: "m",
+        patch: { edit, ...payload }
+      });
+      const notes = notesOf(out);
+      expect(notes.find((n) => n.id === "b")).toEqual(s.clips[0]!.notes![1]);
+      if (edit === "midi.removeNotes") {
+        expect(notes.map((n) => n.id)).toEqual(["b"]);
+      } else if (edit === "midi.addNotes") {
+        expect(notes[2]).toEqual(note("new", 65, 960, 240));
+      } else {
+        expect(notes[0]).toMatchObject(expected);
+      }
+      expect(s.clips[0]!.notes![0]).toEqual(note("a", 60, 0, 480));
+    }
+  );
+  it("rejects unknown and duplicate ids atomically and respects locks", async () => {
+    const s = state([midi([note("a", 60, 0, 480)])]);
+    for (const notes of [
+      [
+        { id: "a", velocity: 42 },
+        { id: "missing", velocity: 42 }
+      ],
+      [
+        { id: "a", velocity: 42 },
+        { id: "a", velocity: 80 }
+      ]
+    ]) {
+      await expect(
+        run(s, "set_notes", {
+          clip: "m",
+          patch: { edit: "midi.setNoteVelocities", notes }
+        })
+      ).rejects.toThrow(/id/);
+      expect(s.clips[0]!.notes![0]!.velocity).toBe(90);
+    }
+    await expect(
+      run(
+        state([midi([note("a", 60, 0, 480)], { locked: true })]),
+        "set_notes",
+        { clip: "m", patch: { edit: "midi.removeNotes", noteIds: ["a"] } }
+      )
+    ).rejects.toThrow(/lock/i);
+    await expect(
+      run(s, "set_notes", {
+        clip: "m",
+        notes: [],
+        patch: { edit: "midi.removeNotes", noteIds: ["a"] }
+      })
+    ).rejects.toThrow(/alone/);
+  });
+});
+
+it("resizing patches fit expression endpoints like the piano roll", async () => {
+  const s = state([
+    midi([
+      note("a", 60, 0, 480, {
+        expression: {
+          pitch: [
+            { tick: 0, value: 0 },
+            { tick: 480, value: 12 }
+          ]
+        }
+      })
+    ])
+  ]);
+  const out = await run(s, "set_notes", {
+    clip: "m",
+    patch: { edit: "midi.resizeNotes", notes: [{ id: "a", durationTick: 120 }] }
+  });
+  expect(notesOf(out)[0]!.expression!.pitch).toEqual([
+    { tick: 0, value: 0 },
+    { tick: 120, value: 3 }
+  ]);
+});
+
+it("patchNotes updates, adds and removes atomically and can unset optional note fields", async () => {
+  const s = state([
+    midi([note("a", 60, 0, 480, { muted: true }), note("b", 62, 480, 480)])
+  ]);
+  const out = await run(s, "set_notes", {
+    clip: "m",
+    patch: {
+      edit: "midi.patchNotes",
+      notes: [note("a", 64, 120, 240), note("new", 65, 960, 240)],
+      noteIds: ["b"]
+    }
+  });
+  expect(notesOf(out)).toEqual([
+    note("a", 64, 120, 240),
+    note("new", 65, 960, 240)
+  ]);
+  await expect(
+    run(s, "set_notes", {
+      clip: "m",
+      patch: {
+        edit: "midi.patchNotes",
+        notes: [note("a", 64, 120, 240)],
+        noteIds: ["missing"]
+      }
+    })
+  ).rejects.toThrow(/id/);
+  expect(s.clips[0]!.notes![0]!.muted).toBe(true);
+});
+
+
+it("resize patches preserve fractional expression values without rounding", async () => {
+  const s = state([midi([note("a", 60, 0, 2, {expression: {pitch: [{tick: 0, value: 0}, {tick: 2, value: -0.01}]}})])]);
+  const out = await run(s, "set_notes", {clip: "m", patch: {edit: "midi.resizeNotes", notes: [{id: "a", durationTick: 1}]}});
+  expect(notesOf(out)[0]!.expression!.pitch!.at(-1)!.value).toBe(-0.005);
+});
+
+it("rejects ambiguous existing note IDs before patching", async () => {
+  const s = state([midi([note("a", 60, 0, 480), note("a", 62, 480, 480)])]);
+  await expect(run(s, "set_notes", {clip: "m", patch: {edit: "midi.moveNotes", notes: [{id: "a", pitch: 64}]}})).rejects.toThrow(/Duplicate.*id/i);
+});
+
+it("fits expression on newly inserted patchNotes notes", async () => {
+  const s = state([midi([])]);
+  const out = await run(s, "set_notes", {clip: "m", patch: {edit: "midi.patchNotes", notes: [{...note("new", 60, 0, 120), expression: {pitch: [{tick: 0, value: 0}, {tick: 480, value: 12}]}}]}});
+  expect(notesOf(out)[0]?.expression?.pitch).toEqual([{tick: 0, value: 0}, {tick: 120, value: 3}]);
+});
+
+it.each(["midi.moveNotes", "midi.setNoteVelocities"])("%s refuses malformed existing expression instead of changing it", async (edit) => {
+  const bad = {...note("a", 60, 0, 120), expression: {pitch: [{tick: 0, value: 0}, {tick: 480, value: 12}]}};
+  const s = state([midi([bad])]);
+  await expect(run(s, "set_notes", {clip: "m", patch: {edit, notes: [{id: "a", ...(edit === "midi.moveNotes" ? {pitch: 62} : {velocity: 42})}]}})).rejects.toThrow(/Invalid note patch/);
+});

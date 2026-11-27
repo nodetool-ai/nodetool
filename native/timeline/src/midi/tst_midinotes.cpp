@@ -50,6 +50,53 @@ QJsonArray notesWith(const QJsonObject& extra) {
 class TestMidiNotes : public QObject {
     Q_OBJECT
   private slots:
+    void shortenedAddedExpressionIsFitted() {
+        auto n = note(60, 90, 0, 120, "new");
+        n.insert("expression", QJsonObject{{"pitch", QJsonArray{point(0, 0), point(480, 12)}}});
+        const auto result = nt::midi::patchClipNotes("midi.patchNotes", document(),
+            {{"clipId", "c1"}, {"notes", QJsonArray{n}}});
+        QCOMPARE(notesOf(result).size(), 1);
+        QCOMPARE(notesOf(result)[0].toObject().value("expression").toObject().value("pitch").toArray(),
+                 QJsonArray({point(0, 0), point(120, 3)}));
+    }
+    void patchRejectsUnknownFields() {
+        const auto n = note(60, 90, 0, 480, "n");
+        const auto raw = nt::midi::setClipNotes(document(), {{"clipId", "c1"}, {"notes", QJsonArray{n}}});
+        auto bad = n;
+        bad.insert("unknown", true);
+        bad.insert("pitch", 62);
+        QCOMPARE(nt::midi::patchClipNotes("midi.patchNotes", raw,
+            {{"clipId", "c1"}, {"notes", QJsonArray{bad}}}), raw);
+    }
+    void patchesValidateAtomically() {
+        auto raw = nt::midi::setClipNotes(document(), {{"clipId", "c1"}, {"notes", QJsonArray{note(60, 90, 0, 480, "n")}}});
+        const QJsonObject good{{"clipId", "c1"}, {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}}}};
+        auto bad = good;
+        bad.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}, QJsonObject{{"id", "missing"}, {"velocity", 42}}});
+        QCOMPARE(nt::midi::patchClipNotes("midi.setNoteVelocities", raw, bad), raw);
+        bad.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}, QJsonObject{{"id", "n"}, {"velocity", 80}}});
+        QCOMPARE(nt::midi::patchClipNotes("midi.setNoteVelocities", raw, bad), raw);
+        bad.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 65}}});
+        QCOMPARE(nt::midi::patchClipNotes("midi.setNoteVelocities", raw, bad), raw);
+        for (const auto& locked : {document(true, false), document(false, true), document(false, false, "video")}) {
+            QCOMPARE(nt::midi::patchClipNotes("midi.setNoteVelocities", locked, good), locked);
+        }
+        QVERIFY(nt::midi::patchClipNotes("midi.setNoteVelocities", raw, good) != raw);
+        auto expr = note(60, 90, 0, 480, "n");
+        expr.insert("expression", QJsonObject{{"pitch", QJsonArray{point(0, 0), point(480, 12)}}});
+        raw = nt::midi::setClipNotes(raw, {{"clipId", "c1"}, {"notes", QJsonArray{expr}}});
+        const auto resized = nt::midi::patchClipNotes("midi.resizeNotes", raw,
+            {{"clipId", "c1"}, {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"durationTick", 120}}}}});
+        const auto points = notesOf(resized)[0].toObject().value("expression").toObject().value("pitch").toArray();
+        QCOMPARE(points, QJsonArray({point(0, 0), point(120, 3)}));
+        expr = note(60, 90, 0, 2, "n");
+        expr.insert("expression", QJsonObject{{"pitch", QJsonArray{point(0, 0), point(2, -0.01)}}});
+        raw = nt::midi::setClipNotes(raw, {{"clipId", "c1"}, {"notes", QJsonArray{expr}}});
+        const auto fractional = nt::midi::patchClipNotes("midi.resizeNotes", raw,
+            {{"clipId", "c1"}, {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"durationTick", 1}}}}});
+        QCOMPARE(notesOf(fractional)[0].toObject().value("expression").toObject().value("pitch").toArray().last().toObject().value("value").toDouble(), -0.005);
+    }
+
     void writesBothEventKindsAtomically() {
         const auto raw = document();
         const auto volume = QJsonObject{{"id","L1"},{"kind","cc"},{"cc",7},{"points",QJsonArray{point(0,80,"p")}}};

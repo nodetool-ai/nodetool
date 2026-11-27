@@ -100,7 +100,7 @@ void FrameCapture::setTimeline(TimelineModel* model) {
     m_timeline = model;
     invalidateSnapshot();
     if (model) {
-        connect(model, &TimelineModel::timelineChanged, this, &FrameCapture::invalidateSnapshot);
+        connect(model, &TimelineModel::changed, this, [this](const ChangeSet&) { invalidateSnapshot(); });
         connect(model, &TimelineModel::previewChanged, this, &FrameCapture::invalidateSnapshot);
         connect(model, &TimelineModel::markersChanged, this, &FrameCapture::invalidateSnapshot);
         connect(model, &QObject::destroyed, this, [this] {

@@ -1,4 +1,6 @@
 #include "midi/MidiNotes.h"
+#include <stdexcept>
+#include "app/EditRegistry.h"
 
 #include <QSet>
 #include <QUuid>
@@ -337,3 +339,197 @@ QJsonObject setClipNotes(QJsonObject raw, const QJsonObject& payload) {
 }
 
 }  // namespace nt::midi
+
+// Patch payloads are a codec boundary. Each update names an existing note and
+// supplies absolute fields, so replay and undo do not depend on gesture state.
+namespace nt::midi {
+namespace {
+std::optional<QJsonObject> updatedNote(const QString& name, const QJsonObject& existing, const QJsonObject& patch, bool adding) {
+    const QSet<QString> fields{"id", "pitch", "velocity", "startTick", "durationTick", "muted", "channel", "releaseVelocity", "expression"};
+    for (auto it = patch.begin(); it != patch.end(); ++it) {
+        if (!fields.contains(it.key())) { return std::nullopt; }
+    }
+    if ((name == "midi.resizeNotes" && !patch.contains("durationTick")) ||
+        (name == "midi.setNoteVelocities" && !patch.contains("velocity"))) { return std::nullopt; }
+    auto note = adding || name == "midi.patchNotes" ? patch : existing;
+    if (!adding) {
+        for (auto it = patch.begin(); it != patch.end(); ++it) {
+            const bool allowed = name == "midi.patchNotes" || it.key() == "id" ||
+                (name == "midi.moveNotes" && (it.key() == "startTick" || it.key() == "pitch")) ||
+                (name == "midi.resizeNotes" && it.key() == "durationTick") ||
+                (name == "midi.setNoteVelocities" && it.key() == "velocity");
+            if (!allowed) { return std::nullopt; }
+            note.insert(it.key(), it.value());
+        }
+    }
+    // A shortened note keeps expression points only within its new length.
+    if ((name == "midi.resizeNotes" || name == "midi.patchNotes") && note.contains("expression")) {
+        QJsonObject checked;
+        if (!sanitizeExpression(note.value("expression"), 9007199254740991.0, checked)) { return std::nullopt; }
+        auto expression = checked;
+        for (auto it = expression.begin(); it != expression.end(); ++it) {
+            QJsonArray kept;
+            for (const auto& point : it.value().toArray()) {
+                if (point.toObject().value("tick").toDouble() <= note.value("durationTick").toDouble()) { kept.append(point); }
+            }
+            const auto points = it.value().toArray();
+            const double duration = note.value("durationTick").toDouble();
+            if (kept.size() < points.size() && (kept.isEmpty() || kept.last().toObject().value("tick").toDouble() < duration)) {
+                double atEnd = it.key() == "volume" ? 1 : it.key() == "brightness" ? 0.5 : 0;
+                for (qsizetype p = 0; p < points.size(); ++p) {
+                    const auto point = points.at(p).toObject();
+                    const double tick = point.value("tick").toDouble();
+                    if (tick > duration) {
+                        if (p > 0) {
+                            const auto previous = points.at(p - 1).toObject();
+                            const double from = previous.value("tick").toDouble();
+                            const double value = previous.value("value").toDouble();
+                            atEnd = value + (point.value("value").toDouble() - value) * (duration - from) / (tick - from);
+                        }
+                        break;
+                    }
+                    atEnd = point.value("value").toDouble();
+                }
+                kept.append(QJsonObject{{"tick", duration}, {"value", atEnd}});
+            }
+            it.value() = kept;
+        }
+        note.insert("expression", expression);
+    }
+    QJsonArray clean;
+    if (!sanitizeNotes(QJsonArray{note}, clean)) { return std::nullopt; }
+    return clean.first().toObject();
+}
+} // namespace
+
+QJsonObject patchClipNotes(const QString& name, QJsonObject raw, const QJsonObject& payload) {
+    const auto index = editableMidiClip(raw, payload.value("clipId").toString());
+    if (index < 0) { return raw; }
+    auto clips = raw.value("clips").toArray();
+    auto clip = clips.at(index).toObject();
+    auto notes = clip.value("notes").toArray();
+    QHash<QString, qsizetype> positions;
+    for (qsizetype i = 0; i < notes.size(); ++i) {
+        const auto id = notes.at(i).toObject().value("id").toString();
+        if (id.isEmpty() || positions.contains(id)) { return raw; }
+        positions.insert(id, i);
+    }
+    QSet<QString> seen;
+    if (name == "midi.removeNotes") {
+        if (!payload.value("noteIds").isArray()) { return raw; }
+        for (const auto& entry : payload.value("noteIds").toArray()) {
+            const auto id = entry.toString();
+            if (!positions.contains(id) || seen.contains(id)) { return raw; }
+            seen.insert(id);
+        }
+        QJsonArray kept;
+        for (const auto& entry : notes) {
+            if (!seen.contains(entry.toObject().value("id").toString())) { kept.append(entry); }
+        }
+        notes = kept;
+    } else {
+        if (!payload.value("notes").isArray()) { return raw; }
+        const auto updates = payload.value("notes").toArray();
+        if (updates.size() > MAX_NOTES_PER_CLIP) { return raw; }
+        for (const auto& entry : updates) {
+            if (!entry.isObject()) { return raw; }
+            const auto patch = entry.toObject();
+            const auto id = patch.value("id").toString();
+            const bool adding = name == "midi.addNotes" || (name == "midi.patchNotes" && !positions.contains(id));
+            if (id.isEmpty() || seen.contains(id) || (adding ? positions.contains(id) : !positions.contains(id))) { return raw; }
+            seen.insert(id);
+            const auto updated = updatedNote(name, adding ? QJsonObject{} : notes.at(positions.value(id)).toObject(), patch, adding);
+            if (!updated) { return raw; }
+            if (adding) { notes.append(*updated); }
+            else { notes.replace(positions.value(id), *updated); }
+        }
+    }
+    if (name == "midi.patchNotes" && payload.contains("noteIds")) {
+        if (!payload.value("noteIds").isArray()) { return raw; }
+        QSet<QString> removed;
+        for (const auto& value : payload.value("noteIds").toArray()) {
+            const auto id = value.toString();
+            if (!positions.contains(id) || seen.contains(id) || removed.contains(id)) { return raw; }
+            removed.insert(id);
+        }
+        QJsonArray kept;
+        for (const auto& value : notes) {
+            if (!removed.contains(value.toObject().value("id").toString())) { kept.append(value); }
+        }
+        notes = kept;
+    }
+    if (notes.size() > MAX_NOTES_PER_CLIP || notes == clip.value("notes").toArray()) { return raw; }
+    clip.insert("notes", notes);
+    clips.replace(index, clip);
+    raw.insert("clips", clips);
+    return raw;
+}
+
+nt::app::TypedEditResult patchTypedNotes(const QString& name, const nt::Timeline& before, const QJsonObject& payload) {
+    const auto id = payload.value("clipId").toString();
+    const auto* old = before.findClip(id.toStdString());
+    const auto* track = old ? before.findTrack(old->trackId) : nullptr;
+    if (!old || old->mediaType != nt::MediaType::Midi || !old->notes || old->raw.value("locked").toBool() ||
+        old->raw.contains("pattern") || (track && track->locked)) { throw std::invalid_argument("Clip is missing, locked, non-MIDI or a pattern region."); }
+    auto notes = std::make_shared<std::vector<nt::MidiNote>>(*old->notes);
+    QHash<QString, std::size_t> positions;
+    for (std::size_t i = 0; i < notes->size(); ++i) {
+        const auto& note = (*notes)[i];
+        if (note.id.isEmpty() || positions.contains(note.id)) { throw std::invalid_argument("Duplicate or missing note id in clip."); }
+        positions.insert(note.id, i);
+    }
+    QSet<QString> seen, removed;
+    const auto remove = [&](const QJsonValue& value) {
+        if (!value.isArray()) { return false; }
+        for (const auto& entry : value.toArray()) {
+            const auto noteId = entry.toString();
+            if (!positions.contains(noteId) || removed.contains(noteId) || seen.contains(noteId)) { return false; }
+            removed.insert(noteId);
+        }
+        return true;
+    };
+    if (name == "midi.removeNotes") {
+        if (!remove(payload.value("noteIds"))) { throw std::invalid_argument("Invalid or duplicate removed note id."); }
+    } else {
+        if (!payload.value("notes").isArray()) { throw std::invalid_argument("Invalid notes array or note limit exceeded."); }
+        const auto updates = payload.value("notes").toArray();
+        if (updates.size() > MAX_NOTES_PER_CLIP) { throw std::invalid_argument("Invalid notes array or note limit exceeded."); }
+        for (const auto& entry : updates) {
+            if (!entry.isObject()) { throw std::invalid_argument("Invalid notes array or note limit exceeded."); }
+            const auto patch = entry.toObject();
+            const auto noteId = patch.value("id").toString();
+            const bool exists = positions.contains(noteId);
+            const bool adding = name == "midi.addNotes" || (name == "midi.patchNotes" && !exists);
+            if (noteId.isEmpty() || seen.contains(noteId) || (adding ? exists : !exists)) { throw std::invalid_argument("Invalid or duplicate patch note id."); }
+            seen.insert(noteId);
+            const auto updated = updatedNote(name, adding ? QJsonObject{} : (*notes)[positions.value(noteId)].raw, patch, adding);
+            if (!updated) { throw std::invalid_argument("Invalid note patch fields, values or expression."); }
+            nt::MidiNote note{noteId, updated->value("pitch").toInt(), updated->value("velocity").toInt(),
+                updated->value("startTick").toDouble(), updated->value("durationTick").toDouble(), *updated};
+            if (adding) { notes->push_back(std::move(note)); }
+            else { (*notes)[positions.value(noteId)] = std::move(note); }
+        }
+        if (name == "midi.patchNotes" && payload.contains("noteIds") && !remove(payload.value("noteIds"))) { throw std::invalid_argument("Invalid or duplicate removed note id."); }
+    }
+    std::erase_if(*notes, [&removed](const nt::MidiNote& note) { return removed.contains(note.id); });
+    if (notes->size() > MAX_NOTES_PER_CLIP) { throw std::invalid_argument("Invalid notes array or note limit exceeded."); }
+    QJsonArray encoded;
+    for (const auto& note : *notes) { encoded.append(note.raw); }
+    if (encoded == old->raw.value("notes").toArray()) { return {}; }
+    auto next = std::make_shared<nt::Timeline>(before);
+    const auto index = static_cast<std::size_t>(old - before.clips.data());
+    auto& clip = next->clips[index];
+    clip.raw.insert("notes", encoded);
+    clip.notes = std::move(notes);
+    auto clips = before.raw.value("clips").toArray();
+    clips.replace(static_cast<qsizetype>(index), clip.raw);
+    next->raw.insert("clips", clips);
+    next->revision = nt::nextTimelineRevision();
+    ChangeSet changes;
+    changes.clips.insert(id, {QStringLiteral("notes")});
+    changes.noteClipIds.insert(id);
+    changes.recordNoteRanges(id, old->raw.value("notes").toArray(), encoded);
+    changes.documentFields.insert("clips");
+    return {std::move(next), std::move(changes)};
+}
+} // namespace nt::midi

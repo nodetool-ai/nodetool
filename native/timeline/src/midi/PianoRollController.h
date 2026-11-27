@@ -1,19 +1,39 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QPointer>
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+#include <cstddef>
+#include <vector>
+
 class TimelineModel;
+
+// UI-thread value read by the retained Canvas while C++ owns the overlay.
+struct NoteDragValue {
+    Q_GADGET
+    QML_VALUE_TYPE(noteDragValue)
+    Q_PROPERTY(double startTick MEMBER startTick)
+    Q_PROPERTY(double durationTick MEMBER durationTick)
+    Q_PROPERTY(int pitch MEMBER pitch)
+    Q_PROPERTY(int velocity MEMBER velocity)
+public:
+    double startTick = 0;
+    double durationTick = 1;
+    int pitch = -1;
+    int velocity = 100;
+};
 
 // The piano roll's view of one midi clip (web PianoRoll.tsx): its notes, its
 // window and the tempo, with tick <-> timeline-ms math. Notes are measured in
 // ticks (960 per quarter) from the clip's content start, so a trimmed window
-// hides notes and does not delete them. Every write is one `midi.setNotes` or
-// `midi.setControllers` undo entry. UI thread only.
+// hides notes and does not delete them. Gestures keep a typed overlay and
+// commit one named MIDI patch. Controller lanes use `midi.setControllers`.
+// UI thread only.
 class PianoRollController : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -30,6 +50,7 @@ class PianoRollController : public QObject {
     // The tonic of the document key ("C", "Eb", ...), or "" when the document has none.
     Q_PROPERTY(QString keyTonic READ keyTonic NOTIFY clipChanged)
     Q_PROPERTY(QVariantList notes READ notes NOTIFY notesChanged)
+    Q_PROPERTY(bool noteDragActive READ noteDragActive NOTIFY noteDragChanged)
     // The controller lanes of the clip (cc, pitch bend, pressure), as stored.
     Q_PROPERTY(QVariantList controllers READ controllers NOTIFY controllersChanged)
     Q_PROPERTY(double startMs READ startMs NOTIFY clipChanged)
@@ -60,7 +81,7 @@ class PianoRollController : public QObject {
     QString trackColor() const { return m_trackColor; }
     QString trackName() const { return m_trackName; }
     QString keyTonic() const { return m_keyTonic; }
-    QVariantList notes() const { return m_notes; }
+    QVariantList notes() const;
     QVariantList controllers() const { return m_controllers; }
     double startMs() const { return m_startMs; }
     double inPointMs() const { return m_inPointMs; }
@@ -82,6 +103,15 @@ class PianoRollController : public QObject {
     Q_INVOKABLE QVariantList gridTicks(const QString& division, double fromTick, double toTick) const;
     // Writes the notes as one undo entry. False when nothing was written.
     Q_INVOKABLE bool setNotes(const QVariantList& notes);
+    Q_INVOKABLE bool patchNotes(const QVariantList& notes);
+    Q_INVOKABLE bool beginNoteDrag(const QStringList& ids, const QString& kind);
+    Q_INVOKABLE void updateNoteDrag(double ticks, double pitch, double minimum = 1, const QList<int>& rows = {}, const QList<int>& scale = {});
+    Q_INVOKABLE bool commitNoteDrag(bool noOverlap = false);
+    Q_INVOKABLE void cancelNoteDrag();
+    bool noteDragActive() const { return !m_dragKind.isEmpty(); }
+    Q_INVOKABLE QStringList noteDragIds() const;
+    Q_INVOKABLE int noteDragRow(const QString& id) const;
+    Q_INVOKABLE NoteDragValue previewNote(const QString& id) const;
     // Writes the controller lanes as one `midi.setControllers` undo entry.
     Q_INVOKABLE bool setControllers(const QVariantList& controllers);
     // Writes a mixed note/controller selection as one undo entry.
@@ -93,9 +123,29 @@ class PianoRollController : public QObject {
     void clipIdChanged();
     void clipChanged();
     void notesChanged();
+    void notesReset();
+    void notesPatched(const QStringList& ids);
+    void noteDragChanged();
     void controllersChanged();
 
   private:
+    struct DragNote {
+        QString id;
+        int row = 0;
+        double start = 0;
+        double duration = 1;
+        int pitch = 60;
+        int velocity = 100;
+    };
+    QString m_dragKind;
+    std::vector<DragNote> m_dragNotes;
+    QHash<QString, std::size_t> m_dragIndex;
+    double m_dragTicks = 0;
+    double m_dragPitch = 0;
+    double m_dragMinimum = 1;
+    QList<int> m_dragRows;
+    QList<int> m_dragScale;
+    QJsonArray dragPatch() const;
     double msToTicks(double ms) const;
     void reload();
 
@@ -112,7 +162,9 @@ class PianoRollController : public QObject {
     QJsonArray m_noteData;
     QJsonArray m_controllerData;
     QJsonObject m_reloadInputs;
-    QVariantList m_notes;
+    mutable QVariantList m_notes;
+    mutable bool m_notesValid = true;
+    QHash<QString, std::size_t> m_noteIndex;
     QVariantList m_controllers;
     double m_startMs = 0;
     double m_inPointMs = 0;

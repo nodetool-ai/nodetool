@@ -54,17 +54,17 @@
       "timelineSignals": 10
     },
     "note_drag": {
-      "clipSignals": 1,
-      "crossings": 2,
+      "clipSignals": 0,
+      "crossings": 0,
       "dataChangedRows": 0,
       "delegateCreations": 0,
-      "jsonParses": 1,
+      "jsonParses": 0,
       "markerSignals": 0,
       "menuItemCreations": 0,
       "objectCreations": 0,
-      "payloadBytes": 367276,
+      "payloadBytes": 0,
       "sourceSignals": 1,
-      "timelineSignals": 1
+      "timelineSignals": 0
     },
     "model_change": {
       "clipSignals": 32,
@@ -91,6 +91,32 @@
       "payloadBytes": 3156852,
       "sourceSignals": 46,
       "timelineSignals": 32
+    },
+    "note_patch": {
+      "clipSignals": 0,
+      "crossings": 56,
+      "dataChangedRows": 0,
+      "delegateCreations": 0,
+      "jsonParses": 0,
+      "markerSignals": 0,
+      "menuItemCreations": 0,
+      "objectCreations": 0,
+      "payloadBytes": 10283776,
+      "sourceSignals": 40,
+      "timelineSignals": 0
+    },
+    "agent_note_patch": {
+      "clipSignals": 0,
+      "crossings": 56,
+      "dataChangedRows": 0,
+      "delegateCreations": 0,
+      "jsonParses": 0,
+      "markerSignals": 0,
+      "menuItemCreations": 0,
+      "objectCreations": 0,
+      "payloadBytes": 10283776,
+      "sourceSignals": 40,
+      "timelineSignals": 0
     }
   }
 }

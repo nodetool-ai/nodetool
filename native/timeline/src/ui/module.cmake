@@ -106,7 +106,8 @@ function(nt_ui_tests)
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_midinotelines PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_midinotelines PRIVATE ${NT_WARNINGS})
-    target_link_libraries(tst_midinotelines PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate
+    target_include_directories(tst_midinotelines PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../vst-host/source")
+    target_link_libraries(tst_midinotelines PRIVATE timeline_core timeline_audio timeline_decode Qt6::Gui Qt6::GuiPrivate
         Qt6::Qml Qt6::Quick Qt6::Test PkgConfig::FFMPEG)
     add_test(NAME tst_midinotelines COMMAND tst_midinotelines)
     set_tests_properties(tst_midinotelines PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

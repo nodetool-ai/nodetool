@@ -78,6 +78,16 @@ QList<Command> buildAllowed() {
         return out.last();
     };
 
+    for (const auto* name : {"midi.moveNotes", "midi.resizeNotes", "midi.setNoteVelocities", "midi.addNotes"}) {
+        edit(QString::fromLatin1(name), "Patch MIDI notes", {clip,
+            P{"notes", ParamKind::Array, true, "Note patches with id and absolute startTick/pitch, durationTick, velocity, or complete new notes."}});
+    }
+    edit("midi.patchNotes", "Patch mixed MIDI notes", {clip,
+        P{"notes", ParamKind::Array, true, "Full changed or added notes."},
+        P{"noteIds", ParamKind::Array, false, "Existing note ids to remove atomically with the updates."}});
+    edit("midi.removeNotes", "Remove MIDI notes", {clip,
+        P{"noteIds", ParamKind::Array, true, "Existing note ids to remove."}});
+
     // Music clip and song-section operations share the editor's atomic edit path.
     const P musicClip{"clipId", ParamKind::ClipId, true, "The clip id."};
     const P barPosition{"atBar", ParamKind::Number, false, "One-based bar position, instead of milliseconds.", {}, {}, 1};

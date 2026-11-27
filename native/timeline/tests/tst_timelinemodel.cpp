@@ -8,6 +8,7 @@
 #include <QAbstractItemModelTester>
 
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
@@ -36,7 +37,7 @@ QJsonObject document() {
 
 void load(TimelineModel& model) {
     auto parsed = nt::parseTimeline(document());
-    QVERIFY(parsed.timeline);
+    if (!parsed.timeline) { QFAIL("Fixture must parse"); }
     model.setTimeline(std::move(*parsed.timeline));
 }
 
@@ -45,6 +46,247 @@ void load(TimelineModel& model) {
 class TestTimelineModel : public QObject {
     Q_OBJECT
 private slots:
+    void manifestKeepsCameraProperties() {
+        QFile file(QDir(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath()).filePath("../resources/chat/tool-manifest.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto text = file.readAll();
+        for (const auto* property : {"cameraPosX", "cameraPosY", "cameraPosZ", "cameraTargetX", "cameraTargetY", "cameraTargetZ", "cameraRoll"}) {
+            QVERIFY2(text.contains(property), property);
+        }
+    }
+    void notePatchDoesNotPolluteNextChange() {
+        auto raw = document(); auto clips = raw.value("clips").toArray(); auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi"); clip.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}}});
+        clips[0] = clip; raw.insert("clips", clips);
+        TimelineModel model; const auto parsed = nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        QVERIFY(model.applyEdit("midi.moveNotes", {{"clipId", "clip-0-0"}, {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 62}}}}}));
+        QSignalSpy changed(&model, &TimelineModel::changed);
+        QVERIFY(model.applyEdit("test.rename", {}, [](QJsonObject raw, const QJsonObject&) { raw.insert("name", "renamed"); return raw; }));
+        QCOMPARE(changed.size(), 1);
+        const auto delta = qvariant_cast<ChangeSet>(changed[0][0]);
+        QVERIFY(delta.clips.isEmpty());
+        QVERIFY(delta.documentFields.contains("name"));
+    }
+    void reviewGroupRowsAndReplacement() {
+        auto raw = document();
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        const QJsonObject a{{"id", "a"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}};
+        auto b = a; b.insert("id", "b"); b.insert("pitch", 64);
+        clip.insert("mediaType", "midi"); clip.insert("notes", QJsonArray{a, b});
+        clips[0] = clip; raw.insert("clips", clips);
+        TimelineModel model;
+        const auto parsed = nt::parseTimeline(raw); QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        PianoRollController controller; controller.setTimeline(&model); controller.setClipId("clip-0-0");
+        QCOMPARE(controller.previewNote("missing").pitch, -1);
+        QVERIFY(controller.beginNoteDrag({"a", "b"}, "move"));
+        controller.updateNoteDrag(0, 2, 1, {60, 62, 64, 65});
+        QCOMPARE(controller.previewNote("a").pitch, 62);
+        QCOMPARE(controller.previewNote("b").pitch, 65);
+        controller.cancelNoteDrag();
+        QVERIFY(controller.patchNotes(QJsonArray{b, a}.toVariantList()));
+        QCOMPARE(model.findClip("clip-0-0")->notes->front().id, QString("b"));
+        auto fresh = a; fresh.remove("id");
+        QVERIFY(controller.patchNotes(QJsonArray{fresh}.toVariantList()));
+        QVERIFY(!model.findClip("clip-0-0")->notes->front().id.isEmpty());
+    }
+    void reviewReadOnlyBeforeCommand() {
+        auto raw = document(); auto clips = raw.value("clips").toArray(); auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi"); clip.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}}});
+        clips[0] = clip; raw.insert("clips", clips);
+        TimelineModel model; const auto parsed = nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        connect(&model, &TimelineModel::beforeCommand, &model, [&model] { model.setReadOnly(true); });
+        QVERIFY(!model.applyEdit("midi.moveNotes", {{"clipId", "clip-0-0"}, {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 62}}}}}));
+        QCOMPARE(model.timeline().raw, raw);
+    }
+    void largeNotePatchRangesAndCap() {
+        auto raw = document();
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        QJsonArray notes, patches;
+        for (int i = 0; i < 4096; ++i) {
+            notes.append(QJsonObject{{"id", QString::number(i)}, {"pitch", 60}, {"velocity", 90}, {"startTick", i * 240}, {"durationTick", 120}});
+            if (i % 80 == 0 && patches.size() < 50) { patches.append(QJsonObject{{"id", QString::number(i)}, {"startTick", i * 240 + 1}}); }
+        }
+        clip.insert("mediaType", "midi"); clip.insert("notes", notes); clips[0] = clip; raw.insert("clips", clips);
+        const auto parsed = nt::parseTimeline(raw);
+        if (!parsed.timeline) { QFAIL("Fixture must parse"); }
+        TimelineModel model;
+        model.setTimeline(*parsed.timeline);
+        model.trackClipIndices("track-0");
+        const auto visits = model.trackIndexVisits();
+        QSignalSpy changed(&model, &TimelineModel::changed);
+        QVERIFY(model.applyEdit("midi.moveNotes", {{"clipId", "clip-0-0"}, {"notes", patches}}));
+        model.trackClipIndices("track-0");
+        QCOMPARE(model.trackIndexVisits(), visits);
+        const auto ranges = qvariant_cast<ChangeSet>(changed.first().first()).noteRanges.value("clip-0-0");
+        QCOMPARE(ranges.size(), 50);
+        for (qsizetype i = 0; i < ranges.size(); ++i) { QCOMPARE(ranges[i], qMakePair(i * 80, i * 80)); }
+        const auto before = model.documentJson();
+        QVERIFY(!model.applyEdit("midi.addNotes", {{"clipId", "clip-0-0"}, {"notes", QJsonArray{QJsonObject{{"id", "over-cap"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}}}}}));
+        QCOMPARE(model.documentJson(), before);
+        PianoRollController controller;
+        controller.setTimeline(&model); controller.setClipId("clip-0-0");
+        QStringList ids;
+        for (int i = 0; i < 4096; ++i) { ids.append(QString::number(i)); }
+        QVERIFY(controller.beginNoteDrag(ids, "move"));
+        controller.updateNoteDrag(120, 0);
+        QVERIFY(controller.commitNoteDrag(true));
+        QCOMPARE(model.findClip("clip-0-0")->notes->size(), std::size_t{4096});
+    }
+
+    void noteDragIsTransientAndCommitsOnce() {
+        auto raw = document();
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi");
+        clip.insert("generatedMatte", QJsonObject{{"assetId", "matte"}});
+        clip.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 480}}});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        const auto parsed = nt::parseTimeline(raw);
+        if (!parsed.timeline) { QFAIL("Fixture must parse"); }
+        TimelineModel model;
+        model.setTimeline(*parsed.timeline);
+        PianoRollController controller;
+        controller.setTimeline(&model);
+        controller.setClipId("clip-0-0");
+        const auto original = model.findClip("clip-0-0")->notes;
+        QSignalSpy patches(&controller, &PianoRollController::notesPatched);
+        QSignalSpy resets(&controller, &PianoRollController::notesReset);
+        QVERIFY(controller.beginNoteDrag({"n"}, "move"));
+        for (int i = 0; i < 90; ++i) { controller.updateNoteDrag(i * 10, 2); }
+        QCOMPARE(model.timeline().raw, raw);
+        QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(controller.previewNote("n").startTick, 890.0);
+        QCOMPARE(controller.previewNote("n").pitch, 62);
+        QVERIFY(controller.commitNoteDrag());
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(patches.size(), 1);
+        QCOMPARE(resets.size(), 0);
+        QVERIFY(!controller.noteDragActive());
+        QCOMPARE(model.findClip("clip-0-0")->notes->front().startTick, 890.0);
+        QCOMPARE(original->front().startTick, 0.0);
+        model.registerMatteMedia("matte", "/resolved/matte.png");
+        QCOMPARE(model.findClip("clip-0-0")->generatedMattePath, std::string("/resolved/matte.png"));
+        model.undoStack()->undo();
+        QCOMPARE(model.findClip("clip-0-0")->generatedMattePath, std::string("/resolved/matte.png"));
+        QCOMPARE(model.findClip("clip-0-0")->notes, original);
+        QCOMPARE(model.timeline().raw, raw);
+        model.undoStack()->redo();
+        QVERIFY(controller.beginNoteDrag({"n"}, "resize"));
+        controller.updateNoteDrag(-1000, 0, 120);
+        QCOMPARE(controller.previewNote("n").durationTick, 120.0);
+        controller.cancelNoteDrag();
+        QCOMPARE(model.undoStack()->count(), 1);
+        QVERIFY(controller.beginNoteDrag({"n"}, "velocity"));
+        controller.updateNoteDrag(100, 0);
+        QCOMPARE(controller.previewNote("n").velocity, 127);
+        model.setReadOnly(true);
+        QVERIFY(!controller.noteDragActive());
+        model.setReadOnly(false);
+        QVERIFY(controller.beginNoteDrag({"n"}, "duplicate"));
+        const auto duplicate = controller.noteDragIds().first();
+        QVERIFY(duplicate != "n");
+        QCOMPARE(controller.noteDragRow(duplicate), 0);
+        controller.updateNoteDrag(120, 1);
+        QVERIFY(controller.commitNoteDrag());
+        const auto& duplicated = *model.findClip("clip-0-0")->notes;
+        QCOMPARE(duplicated.size(), std::size_t{2});
+        QCOMPARE(duplicated[0].id, QString("n"));
+        QCOMPARE(duplicated[1].id, duplicate);
+        QCOMPARE(duplicated[1].startTick, 1010.0);
+        QCOMPARE(duplicated[1].pitch, 63);
+        model.undoStack()->undo();
+        QCOMPARE(model.findClip("clip-0-0")->notes->size(), std::size_t{1});
+    }
+
+    void typedNotePatchParity() {
+        const QJsonObject first{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 480}};
+        auto raw = document();
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi");
+        clip.insert("notes", QJsonArray{first});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        const QHash<QString, QJsonObject> fixtures{
+            {"midi.moveNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"startTick", 120}, {"pitch", 64}}}}}},
+            {"midi.resizeNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"durationTick", 120}}}}}},
+            {"midi.setNoteVelocities", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}}}}},
+            {"midi.addNotes", {{"notes", QJsonArray{QJsonObject{{"id", "new"}, {"pitch", 62}, {"velocity", 80}, {"startTick", 960}, {"durationTick", 240}}}}}},
+            {"midi.patchNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 61}, {"startTick", 60}, {"durationTick", 480}, {"velocity", 90}}}}}},
+            {"midi.removeNotes", {{"noteIds", QJsonArray{"n"}}}}
+        };
+        QFile manifest(QDir(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath()).filePath("../resources/chat/tool-manifest.json"));
+        QVERIFY(manifest.open(QIODevice::ReadOnly));
+        QSet<QString> headlessNames;
+        for (const auto& entry : QJsonDocument::fromJson(manifest.readAll()).array()) {
+            const auto tool = entry.toObject();
+            if (tool.value("name") != "ui_timeline_set_notes") { continue; }
+            const auto patch = tool.value("parameters").toObject().value("properties").toObject().value("patch").toObject();
+            for (const auto& branch : patch.value("oneOf").toArray()) {
+                headlessNames.insert(branch.toObject().value("properties").toObject().value("edit").toObject().value("const").toString());
+            }
+        }
+        QCOMPARE(headlessNames.size(), fixtures.size());
+        for (auto it = fixtures.cbegin(); it != fixtures.cend(); ++it) { QVERIFY2(headlessNames.contains(it.key()), qPrintable(it.key())); }
+        int inspected = 0;
+        for (auto it = nt::app::edits().cbegin(); it != nt::app::edits().cend(); ++it) {
+            const auto* typed = it.value().target<nt::app::RegisteredTypedEdit>();
+            if (!typed) { continue; }
+            ++inspected;
+            QVERIFY2(fixtures.contains(it.key()), qPrintable(it.key()));
+            auto payload = fixtures.value(it.key());
+            payload.insert("clipId", "clip-0-0");
+            const auto parsed = nt::parseTimeline(raw);
+            if (!parsed.timeline) { QFAIL("Fixture must parse"); }
+            const auto result = typed->typed(*parsed.timeline, payload);
+            QVERIFY(result.snapshot);
+            QCOMPARE(result.snapshot->raw, typed->json(raw, payload));
+            const auto decoded = nt::parseTimeline(result.snapshot->raw);
+            if (!decoded.timeline) { QFAIL("Typed result must parse"); }
+            const auto& actualNotes = *result.snapshot->findClip("clip-0-0")->notes;
+            const auto& decodedNotes = *decoded.timeline->findClip("clip-0-0")->notes;
+            QCOMPARE(actualNotes.size(), decodedNotes.size());
+            for (std::size_t n = 0; n < actualNotes.size(); ++n) {
+                QCOMPARE(actualNotes[n].raw, decodedNotes[n].raw);
+                QCOMPARE(actualNotes[n].pitch, decodedNotes[n].pitch);
+                QCOMPARE(actualNotes[n].velocity, decodedNotes[n].velocity);
+                QCOMPARE(actualNotes[n].startTick, decodedNotes[n].startTick);
+                QCOMPARE(actualNotes[n].durationTick, decodedNotes[n].durationTick);
+            }
+            QVERIFY(result.changes.noteClipIds.contains("clip-0-0"));
+            TimelineModel model, json;
+            model.setTimeline(*parsed.timeline);
+            json.setTimeline(*parsed.timeline);
+            QSignalSpy typedChanges(&model, &TimelineModel::changed);
+            QSignalSpy jsonChanges(&json, &TimelineModel::changed);
+            QVERIFY(model.applyEdit(it.key(), payload));
+            QVERIFY(json.applyEdit(it.key(), payload, typed->json));
+            QCOMPARE(model.documentJson(), json.documentJson());
+            QCOMPARE(typedChanges.size(), 1);
+            QCOMPARE(jsonChanges.size(), 1);
+            const auto delta = qvariant_cast<ChangeSet>(typedChanges[0][0]);
+            const auto jsonDelta = qvariant_cast<ChangeSet>(jsonChanges[0][0]);
+            QCOMPARE(delta.clips, jsonDelta.clips);
+            QCOMPARE(delta.documentFields, jsonDelta.documentFields);
+            QCOMPARE(delta.noteClipIds, jsonDelta.noteClipIds);
+            QCOMPARE(delta.noteRanges, jsonDelta.noteRanges);
+            QCOMPARE(delta.noteRanges, result.changes.noteRanges);
+            model.undoStack()->undo();
+            QCOMPARE(model.timeline().raw, raw);
+            model.undoStack()->redo();
+            QCOMPARE(model.timeline().raw, result.snapshot->raw);
+            payload = {{"clipId", "clip-0-0"}, {"notes", QJsonArray{QJsonObject{{"id", "missing"}, {"velocity", 42}}}}};
+            if (it.key() != "midi.addNotes") { QVERIFY(!model.applyEdit(it.key(), payload)); }
+            model.setReadOnly(true);
+            QVERIFY(!model.applyEdit(it.key(), fixtures.value(it.key())));
+        }
+        QCOMPARE(inspected, fixtures.size());
+    }
+
     void metadataNotificationDoesNotScanClipEnds() {
         TimelineModel model;
         load(model);

@@ -5,6 +5,7 @@
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "ui/MidiNoteLines.h"
+#include "midi/MidiNotes.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -215,6 +216,14 @@ class TestMidiNoteLines : public QObject {
         window.grabWindow();
         QTRY_COMPARE(item.paintCount(), base + 4);
         QCOMPARE(item.lines().size(), 1);
+        // The typed patch emits only the ChangeSet, not the legacy clip signal.
+        const nt::app::Edit patch = nt::app::RegisteredTypedEdit{
+            [](QJsonObject raw, const QJsonObject& payload) { return nt::midi::patchClipNotes("midi.moveNotes", std::move(raw), payload); },
+            [](const nt::Timeline& before, const QJsonObject& payload) { return nt::midi::patchTypedNotes("midi.moveNotes", before, payload); }};
+        QVERIFY(model.applyEdit("midi.moveNotes", {{"clipId", "c"},
+            {"notes", QJsonArray{QJsonObject{{"id", "0-60"}, {"pitch", 62}}}}}, patch));
+        window.grabWindow();
+        QTRY_COMPARE(item.paintCount(), base + 5);
         // An audio clip draws no lines.
         item.setClipId("au");
         QCOMPARE(item.lines().size(), 0);

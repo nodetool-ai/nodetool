@@ -254,9 +254,7 @@ void StepSequencerController::setTimeline(TimelineModel* timeline) {
     setStepRecording(false);
     m_timeline = timeline;
     if (m_timeline) {
-        // TimelineModel emits clipsChanged and then timelineChanged for one edit;
-        // timelineChanged alone covers clip, track and tempo changes.
-        connect(m_timeline, &TimelineModel::timelineChanged, this, &StepSequencerController::onTimelineChanged);
+        connect(m_timeline, &TimelineModel::changed, this, &StepSequencerController::onTimelineChanged);
         connect(m_timeline, &TimelineModel::readOnlyChanged, this, &StepSequencerController::reload);
     }
     emit timelineChanged();

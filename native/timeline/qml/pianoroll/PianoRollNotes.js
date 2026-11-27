@@ -61,9 +61,10 @@ function hitTest(notes, x, y, geo) {
 
 // Balanced interval trees per pitch, rebuilt only when note data changes.
 function noteIndex(notes) {
-    const pitches = Object.create(null)
+    const pitches = Object.create(null), rowsById = Object.create(null)
     for (let i = 0; i < notes.length; ++i) {
         const note = notes[i], pitch = note.pitch
+        rowsById[note.id] = i
         if (!pitches[pitch]) { pitches[pitch] = [] }
         pitches[pitch].push({note: note, order: i, start: note.startTick, end: note.startTick + note.durationTick})
     }
@@ -76,6 +77,7 @@ function noteIndex(notes) {
         return node
     }
     const roots = Object.create(null)
+    roots.rowsById = rowsById
     for (const pitch of Object.keys(pitches)) {
         const entries = pitches[pitch]
         entries.sort((a,b) => a.start - b.start || a.order - b.order)

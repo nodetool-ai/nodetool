@@ -236,6 +236,18 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         const QString audioPath = c.value(u"audioPath").toString();
         if (!audioPath.isEmpty()) clip.audioPath = local(audioPath);
         clip.raw = c;
+        if (clip.mediaType == MediaType::Midi) {
+            auto notes = std::make_shared<std::vector<MidiNote>>();
+            const auto values = c.value("notes").toArray();
+            notes->reserve(static_cast<std::size_t>(values.size()));
+            for (const auto& value : values) {
+                const auto note = value.toObject();
+                notes->push_back({note.value("id").toString(), note.value("pitch").toInt(),
+                    note.value("velocity").toInt(), note.value("startTick").toDouble(),
+                    note.value("durationTick").toDouble(), note});
+            }
+            clip.notes = std::move(notes);
+        }
         clip.scene = scene::parseClipScene(c);
         if (!tl.findTrack(clip.trackId)) {
             result.error = QStringLiteral("clip %1: unknown trackId").arg(QString::fromStdString(clip.id));

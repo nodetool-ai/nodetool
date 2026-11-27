@@ -151,6 +151,16 @@ struct ClipTimeRemap {
     std::vector<TimeRemapKeyframe> keyframes;
 };
 
+// Immutable musical event. Optional fields and expression data retain their codec representation.
+struct MidiNote {
+    QString id;
+    int pitch = 60;
+    int velocity = 100;
+    double startTick = 0;
+    double durationTick = 1;
+    QJsonObject raw;
+};
+
 struct Clip {
     std::string id;
     std::string trackId;
@@ -203,6 +213,10 @@ struct Clip {
     // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<const scene::ClipScene> scene;
     QJsonObject raw;
+
+    // Shared by successive snapshots and undo checkpoints. Unique ownership cannot
+    // preserve an old snapshot while a patch replaces this clip's notes.
+    std::shared_ptr<const std::vector<MidiNote>> notes;
 
     double endMs() const { return startMs + durationMs; }
 };

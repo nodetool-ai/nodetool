@@ -188,7 +188,9 @@ void MidiNoteLinesItem::setTimeline(TimelineModel* timeline) {
     QObject::disconnect(m_clipsConnection);
     m_timeline = timeline;
     if (m_timeline) {
-        m_clipsConnection = connect(m_timeline, &TimelineModel::clipsChanged, this, &MidiNoteLinesItem::markDirty);
+        m_clipsConnection = connect(m_timeline, &TimelineModel::changed, this, [this](const ChangeSet& changes) {
+            if (changes.clipChanged(m_clipId) || changes.documentFields.contains("tempo")) { markDirty(); }
+        });
     }
     emit timelineChanged();
     markDirty();

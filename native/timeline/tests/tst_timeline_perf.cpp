@@ -9,6 +9,7 @@
 // UI-thread-only stress driver. QPA stays offscreen in both render modes.
 // Counter/profiler and timing passes run in separate fresh processes.
 #include "app/EditRegistry.h"
+#include "aiassist/AssistantCommands.h"
 #include "edit/ClipGestureController.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -258,13 +259,13 @@ int main(int argc, char* argv[]) try {
     app.setApplicationName(QStringLiteral("NodeToolTimelineF6"));
 
     QCommandLineParser parser;
-    parser.addOption({QStringLiteral("scenario"), QStringLiteral("playback|scroll|zoom|clip_drag|note_drag"), QStringLiteral("name"), QStringLiteral("playback")});
+    parser.addOption({QStringLiteral("scenario"), QStringLiteral("playback|scroll|zoom|clip_drag|note_drag|model_change|note_patch"), QStringLiteral("name"), QStringLiteral("playback")});
     parser.addOption({QStringLiteral("frames"), QStringLiteral("Measured frames"), QStringLiteral("n"), QStringLiteral("90")});
     parser.addOption({QStringLiteral("warmup"), QStringLiteral("Warmup frames"), QStringLiteral("n"), QStringLiteral("15")});
     parser.addOption({QStringLiteral("width"), QStringLiteral("Viewport width"), QStringLiteral("px"), QStringLiteral("1920")});
     parser.addOption({QStringLiteral("height"), QStringLiteral("Viewport height"), QStringLiteral("px"), QStringLiteral("1080")});
     parser.addOption({QStringLiteral("selfcheck"), QStringLiteral("Test observer lifetimes and counting boundaries")});
-    parser.addOption({QStringLiteral("agent"), QStringLiteral("Use registered assistant move edits")});
+    parser.addOption({QStringLiteral("agent"), QStringLiteral("Use registered assistant edits")});
     parser.addOption({QStringLiteral("profile"), QStringLiteral("Enable in-process QQmlProfiler + QV4::Profiler")});
     parser.addOption({QStringLiteral("prof-out"), QStringLiteral("Write detailed profiler JSON to path"), QStringLiteral("path")});
     parser.process(app);
@@ -462,7 +463,7 @@ int main(int argc, char* argv[]) try {
         dockStore->dispatch({{"type", "reveal"}, {"panelId", "inspector"}});
         dockStore->dispatch({{"type", "reveal"}, {"panelId", "mixer"}});
     }
-    if (scenario == "note_drag" || scenario == "model_change") {
+    if (scenario == "note_drag" || scenario == "model_change" || scenario == "note_patch") {
         dockStore->dispatch({{"type", "reveal"}, {"panelId", "pianoRoll"}});
     }
 
@@ -501,7 +502,7 @@ int main(int argc, char* argv[]) try {
     view->zoomTo(15.0, 0.0);
     view->setScrollLeftPx(0);
     view->setScrollTopPx(0);
-    gestures->setSelection({scenario == "model_change" ? QStringLiteral("clip-midi-hero") : QStringLiteral("clip-v-0-0")});
+    gestures->setSelection({(scenario == "model_change" || scenario == "note_patch") ? QStringLiteral("clip-midi-hero") : QStringLiteral("clip-v-0-0")});
     for (int i = 0; i < warmup; ++i) renderFrame();
     if (!gpu && window.grabWindow().isNull()) { return 6; }
 
@@ -651,6 +652,7 @@ int main(int argc, char* argv[]) try {
     QObject::connect(&model, &TimelineModel::markersChanged, &counterContext, [&] { counters["markerSignals"] = counters["markerSignals"].toInteger() + 1; });
     QObject::connect(&model, &TimelineModel::sourceChanged, &counterContext, [&] { counters["sourceSignals"] = counters["sourceSignals"].toInteger() + 1; });
     const auto beforeDocument = model.documentJson();
+    const auto beforeSnapshot = model.snapshot();
 
     if (gpu && (window.rendererInterface()->graphicsApi() == QSGRendererInterface::Software
         || window.rendererInterface()->graphicsApi() == QSGRendererInterface::Unknown)) { return 6; }
@@ -659,6 +661,17 @@ int main(int argc, char* argv[]) try {
             return model.applyEdit(QStringLiteral("assistant.ui_timeline_move_clip"), {{"clipId", id}, {"startMs", startMs}}) != 0;
         }
         return model.moveClip(id, startMs);
+    };
+    nt::aiassist::AssistantCommands assistant(model, clock);
+    assistant.setEditor(root);
+    const auto patchNotes = [&](const QString& name, const QJsonObject& payload) {
+        if (!parser.isSet("agent")) { return model.applyEdit(name, payload) != 0; }
+        auto params = payload;
+        params.remove("clipId");
+        params.insert("clip_id", "clip-midi-hero");
+        const auto result = assistant.execute("ui_timeline_run_command", {{"timeline_id", QString::fromStdString(model.timeline().id)},
+            {"command", name}, {"params", params.toVariantMap()}});
+        return !result.contains("error");
     };
     ObjectCreations creations;
     {
@@ -677,7 +690,20 @@ int main(int argc, char* argv[]) try {
     for (int fIdx = 0; fIdx < frames; ++fIdx) {
         const auto priorPhases = phases;
         const double f0 = nowMs();
-        if (scenario == QLatin1String("model_change")) {
+        if (scenario == "note_patch") {
+            QString name;
+            QJsonObject payload{{"clipId", "clip-midi-hero"}};
+            const QString noteId = "clip-midi-hero-n0";
+            switch (fIdx % 5) {
+            case 0: name = "midi.moveNotes"; payload.insert("notes", QJsonArray{QJsonObject{{"id", noteId}, {"startTick", 120 + fIdx * 10}, {"pitch", 60 + fIdx % 12}}}); break;
+            case 1: name = "midi.resizeNotes"; payload.insert("notes", QJsonArray{QJsonObject{{"id", noteId}, {"durationTick", 120 + fIdx}}}); break;
+            case 2: name = "midi.setNoteVelocities"; payload.insert("notes", QJsonArray{QJsonObject{{"id", noteId}, {"velocity", 32 + fIdx}}}); break;
+            case 3: name = "midi.addNotes"; payload.insert("notes", QJsonArray{QJsonObject{{"id", "perf-added"}, {"pitch", 64}, {"startTick", 240}, {"durationTick", 120}, {"velocity", 90}}}); break;
+            case 4: name = "midi.removeNotes"; payload.insert("noteIds", QJsonArray{"perf-added"}); break;
+            default: workloadError = 3; break;
+            }
+            if (!patchNotes(name, payload)) { workloadError = 3; }
+        } else if (scenario == QLatin1String("model_change")) {
             switch (fIdx % 5) {
             case 0: if (!move(QStringLiteral("clip-v-0-0"), 100.0 + fIdx * 50.0)) { workloadError = 3; } break;
             case 1: {
@@ -721,7 +747,7 @@ int main(int argc, char* argv[]) try {
         polishMs.push_back(f2 - f1);
         creations.classify();
         frameMs.push_back(f2 - f0);
-        if (scenario == "model_change") {
+        if (scenario == "model_change" || scenario == "note_patch") {
             QJsonObject delta;
             for (auto it = phases.begin(); it != phases.end(); ++it) {
                 delta[it.key()] = it.value().toDouble() - priorPhases[it.key()].toDouble();
@@ -732,7 +758,11 @@ int main(int argc, char* argv[]) try {
         }
     }
 
-    const int liveNoteCount = pianoRoll && scenario == "note_drag" ? pianoRoll->property("liveNotes").toList().size() : 0;
+    const int liveNoteCount = pianoRoll && scenario == "note_drag" ? pianoRoll->property("notes").toList().size() : 0;
+    if (scenario == "note_drag") {
+        const auto* controller = pianoRoll ? pianoRoll->findChild<PianoRollController*>() : nullptr;
+        if (!controller || !controller->noteDragActive() || model.snapshot() != beforeSnapshot) { return 9; }
+    }
     double releaseMs = 0;
     if (dragActive) {
         const double releaseStart = nowMs();
@@ -911,7 +941,7 @@ int main(int argc, char* argv[]) try {
     if (scenario == "scroll" && (creations.objects == 0 || creations.delegates == 0)) { return 7; }
     if (scenario == "note_drag" && (liveNoteCount != 2000 || model.findClip(QStringLiteral("clip-midi-hero"))->raw.value("notes") == parsed.timeline->findClip("clip-midi-hero")->raw.value("notes"))) { return 8; }
     if (workloadError) { return workloadError; }
-    return ((scenario == "clip_drag" || scenario == "note_drag" || scenario == "model_change") && !changed) ? 4 : 0;
+    return ((scenario == "clip_drag" || scenario == "note_drag" || (scenario == "model_change" || scenario == "note_patch")) && !changed) ? 4 : 0;
 } catch (const std::exception& error) {
     std::fprintf(stderr, "measurement failed: %s\n", error.what());
     return 2;

@@ -143,6 +143,46 @@ QJsonObject parameterSchema(const Param& param) {
     if (!param.description.isEmpty()) { schema.insert("description", param.description); }
     return schema;
 }
+QJsonObject notePatchSchema(const QString& edit, const QString& parameter) {
+    const QJsonObject id{{"type", "string"}, {"minLength", 1}};
+    QJsonObject item = id;
+    if (parameter == "notes") {
+        const auto integer = [](double minimum, double maximum) {
+            return QJsonObject{{"type", "integer"}, {"minimum", minimum}, {"maximum", maximum}};
+        };
+        const bool complete = edit == "midi.addNotes" || edit == "midi.patchNotes";
+        QJsonObject properties{{"id", id}};
+        QJsonArray required{"id"};
+        if (complete || edit == "midi.moveNotes") {
+            properties.insert("startTick", integer(0, 9007199254740991.0));
+            properties.insert("pitch", integer(0, 127));
+        }
+        if (complete || edit == "midi.resizeNotes") { properties.insert("durationTick", integer(1, 9007199254740991.0)); }
+        if (complete || edit == "midi.setNoteVelocities") { properties.insert("velocity", integer(1, 127)); }
+        if (edit == "midi.resizeNotes") { required.append("durationTick"); }
+        if (edit == "midi.setNoteVelocities") { required.append("velocity"); }
+        if (complete) {
+            for (const auto* field : {"pitch", "velocity", "startTick", "durationTick"}) { required.append(field); }
+            properties.insert("muted", QJsonObject{{"type", "boolean"}});
+            properties.insert("channel", integer(0, 15));
+            properties.insert("releaseVelocity", integer(0, 127));
+            QJsonObject curves;
+            for (const auto* kind : {"pitch", "volume", "pan", "brightness"}) {
+                const QString key(kind);
+                const double low = key == "pitch" ? -48 : key == "pan" ? -1 : 0;
+                const double high = key == "pitch" ? 48 : key == "volume" ? 4 : 1;
+                const QJsonObject pointProperties{{"tick", integer(0, 9007199254740991.0)},
+                    {"value", QJsonObject{{"type", "number"}, {"minimum", low}, {"maximum", high}}}};
+                const QJsonObject point{{"type", "object"}, {"additionalProperties", false},
+                    {"required", QJsonArray{"tick", "value"}}, {"properties", pointProperties}};
+                curves.insert(key, QJsonObject{{"type", "array"}, {"maxItems", 256}, {"items", point}});
+            }
+            properties.insert("expression", QJsonObject{{"type", "object"}, {"additionalProperties", false}, {"properties", curves}});
+        }
+        item = {{"type", "object"}, {"additionalProperties", false}, {"properties", properties}, {"required", required}};
+    }
+    return {{"type", "array"}, {"maxItems", 4096}, {"items", item}};
+}
 QJsonObject commandEntry(const Command& command, ClipGestureController& gestures) {
     QJsonObject entry{{"id", command.id}, {"label", labelOf(command)}};
     const auto reason = blockedReason(command, gestures, menuContext(gestures));
@@ -152,7 +192,12 @@ QJsonObject commandEntry(const Command& command, ClipGestureController& gestures
         QJsonObject properties;
         QJsonArray required;
         for (const auto& param : command.params) {
-            properties.insert(param.name, parameterSchema(param));
+            auto schema = parameterSchema(param);
+            const QSet<QString> noteEdits{"midi.moveNotes", "midi.resizeNotes", "midi.setNoteVelocities", "midi.addNotes", "midi.patchNotes", "midi.removeNotes"};
+            if (noteEdits.contains(command.id) && (param.name == "notes" || param.name == "noteIds")) {
+                schema = notePatchSchema(command.id, param.name);
+            }
+            properties.insert(param.name, schema);
             if (param.required) { required.append(param.name); }
         }
         QJsonObject parameters{{"properties", properties}};
@@ -845,16 +890,33 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
         bool validNoop = false;
         const auto edit = app::findEdit(id);
         if (!edit) { return disabled("The edit is unavailable."); }
-        // The transform runs synchronously. Undo retains its JSON result, not these references.
-        ran = m_model.applyEdit(id, editPayload(*command, prepared, *editor, m_model),
-            [&editError, &edit, &validNoop, &id](QJsonObject raw, const QJsonObject& payload) {
-                try {
-                    auto result = edit(raw, payload);
-                    validNoop = result == raw && (id == u"set_clip_params" || id == u"music.setAutoCrossfade" || id == u"set_tempo");
-                    return result;
-                }
-                catch (const std::exception& error) { editError = QString::fromUtf8(error.what()); throw; }
-            }) != 0;
+        // Keep the registry callable intact so typed edits reach the snapshot path.
+        const auto payload = editPayload(*command, prepared, *editor, m_model);
+        if (const auto* typed = edit.target<app::RegisteredTypedEdit>()) {
+            const app::Edit checked = app::RegisteredTypedEdit{typed->json,
+                [&editError, &validNoop, typed](const nt::Timeline& before, const QJsonObject& input) {
+                    try {
+                        auto result = typed->typed(before, input);
+                        validNoop = !result.snapshot;
+                        return result;
+                    } catch (const std::exception& error) {
+                        editError = QString::fromUtf8(error.what());
+                        throw;
+                    }
+                }};
+            ran = m_model.applyEdit(id, payload, checked) != 0;
+        } else {
+            // The transform runs synchronously. Undo retains its JSON result, not these references.
+            ran = m_model.applyEdit(id, payload,
+                [&editError, &edit, &validNoop, &id](QJsonObject raw, const QJsonObject& payload) {
+                    try {
+                        auto result = edit(raw, payload);
+                        validNoop = result == raw && (id == u"set_clip_params" || id == u"music.setAutoCrossfade" || id == u"set_tempo");
+                        return result;
+                    }
+                    catch (const std::exception& error) { editError = QString::fromUtf8(error.what()); throw; }
+                }) != 0;
+        }
         if (!editError.isEmpty()) { return disabled(editError); }
         ran = ran || (validNoop && !m_model.readOnly());
     } else {

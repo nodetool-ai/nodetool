@@ -69,11 +69,13 @@ def check(actual, ceiling):
             raise ValueError(f'{key}: {value} exceeds {limit}')
 
 
-def ratchet(budget, base):
-    if budget['scenarios'].keys() != base['scenarios'].keys():
+def ratchet(budget, base, allow_new=False):
+    current = budget['scenarios'].keys()
+    previous = base['scenarios'].keys()
+    if not previous <= current or (current != previous and not allow_new):
         raise ValueError('Budget scenario schema changed')
-    for scenario, ceilings in budget['scenarios'].items():
-        check(ceilings, base['scenarios'][scenario])
+    for scenario, ceilings in base['scenarios'].items():
+        check(budget['scenarios'][scenario], ceilings)
 
 
 def result_from(stdout):
@@ -102,7 +104,7 @@ def prior_budget(path, allow_new):
                                 check=True, capture_output=True, text=True).stdout)
 
 
-def update_budget(path, scenario, counters, base):
+def update_budget(path, scenario, counters, base, allow_new=False):
     # Lock a stable sibling inode: replacing the budget changes its own inode.
     with path.with_suffix(path.suffix + '.lock').open('a') as lock:
         if os.name == 'nt':
@@ -114,7 +116,7 @@ def update_budget(path, scenario, counters, base):
             fcntl.flock(lock, fcntl.LOCK_EX)
         budget = loads(path.read_text())
         if base is not None:
-            ratchet(budget, base)
+            ratchet(budget, base, allow_new)
         check(counters, budget['scenarios'][scenario])
         budget['scenarios'][scenario] = counters
         temporary = None
@@ -140,20 +142,20 @@ def main():
     parser.add_argument('--update', action='store_true', help='Lower this scenario to measured counters without raising a ceiling')
     parser.add_argument('--record', action='store_true', help='Print counters without enforcing ceilings')
     parser.add_argument('--base-budget', type=Path, help='Use an explicit reviewed baseline instead of git')
-    parser.add_argument('--allow-new-budget', action='store_true', help='Explicit initial adoption when the path is absent from origin/main')
+    parser.add_argument('--allow-new-budget', action='store_true', help='Explicit initial adoption of a new budget file or scenario')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     connections_path = Path(__file__).with_name('coarse-connections.json')
     check_connections(root, loads(connections_path.read_text()), prior_budget(connections_path, True))
-    if args.agent and args.scenario != "model_change":
-        parser.error("--agent requires --scenario model_change")
+    if args.agent and args.scenario not in ("model_change", "note_patch"):
+        parser.error("--agent requires --scenario model_change or note_patch")
     budget = loads(args.budget.read_text())
     for ceilings in budget['scenarios'].values():
         check(ceilings, ceilings)
     base = loads(args.base_budget.read_text()) if args.base_budget else prior_budget(args.budget.resolve(), args.allow_new_budget)
     if base is not None:
-        ratchet(budget, base)
-    frames = {'playback': 120, 'scroll': 120, 'zoom': 120, 'clip_drag': 90, 'note_drag': 60, 'model_change': 40}[args.scenario]
+        ratchet(budget, base, args.allow_new_budget)
+    frames = {'playback': 120, 'scroll': 120, 'zoom': 120, 'clip_drag': 90, 'note_drag': 60, 'model_change': 40, 'note_patch': 40}[args.scenario]
     env = dict(os.environ, QT_QPA_PLATFORM='offscreen', QSG_RENDER_LOOP='basic',
                QT_SCALE_FACTOR='1', QT_FONT_DPI='96', QT_QUICK_CONTROLS_STYLE='Basic')
     if env.get('NT_TIMELINE_PERF_GPU') == '1':
@@ -174,13 +176,13 @@ def main():
         return result_from(result.stdout)
 
     actual = run(False)
-    scenario = 'agent' if args.agent else args.scenario
+    scenario = ('agent_note_patch' if args.scenario == 'note_patch' else 'agent') if args.agent else args.scenario
     if args.update or not args.record:
         check(actual['counters'], budget['scenarios'][scenario])
     profile = run(True)
     actual['profileSummary'] = profile.get('profileSummary', {})
     if args.update:
-        update_budget(args.budget, scenario, actual['counters'], base)
+        update_budget(args.budget, scenario, actual['counters'], base, args.allow_new_budget)
     print(json.dumps(actual, indent=2))
 
 

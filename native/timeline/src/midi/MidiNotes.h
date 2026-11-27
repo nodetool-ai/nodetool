@@ -3,6 +3,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+namespace nt { struct Timeline; namespace app { struct TypedEditResult; } }
+
 namespace nt::midi {
 
 // The note cap of one clip (MIDI_MAX_NOTES_PER_CLIP in the protocol schema).
@@ -44,4 +46,8 @@ inline constexpr int MAX_EXPRESSION_POINTS = 256;
 // event kinds before replacing either, so mixed selections remain one edit.
 [[nodiscard]] QJsonObject setClipEvents(QJsonObject raw, const QJsonObject& payload);
 
+// {clipId, notes:[{id, startTick?, pitch?}]} for move, {id,durationTick}
+// for resize, {id,velocity} for velocities, full notes for add, noteIds for remove.
+[[nodiscard]] QJsonObject patchClipNotes(const QString& name, QJsonObject raw, const QJsonObject& payload);
+[[nodiscard]] nt::app::TypedEditResult patchTypedNotes(const QString& name, const nt::Timeline& before, const QJsonObject& payload);
 }  // namespace nt::midi

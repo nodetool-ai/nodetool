@@ -19,6 +19,16 @@ void ClipInspectorController::setTimeline(TimelineModel* model) {
         });
         connect(model, &TimelineModel::changed, this, [this](const ChangeSet& changes) {
             if (!m_active) { return; }
+            auto fields = changes.clips.value(m_clipId);
+            fields.remove("notes");
+            fields.remove("controllers");
+            if (!changes.fullReplacement && changes.clipChanged(m_clipId) && fields.isEmpty() &&
+                !changes.trackChanged(m_clip.value("trackId").toString())) {
+                // Notes and controller lanes are absent from every inspector property.
+                // Keep the internal document current without invalidating scalar bindings.
+                m_clip = selected();
+                return;
+            }
             if (changes.clipChanged(m_clipId) || changes.trackChanged(m_clip.value("trackId").toString())) { refresh(); }
         });
         connect(model, &TimelineModel::documentReplaced, this, [this] {

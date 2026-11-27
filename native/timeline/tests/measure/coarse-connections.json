@@ -49,12 +49,6 @@
   "src/edit/trim/TrimMode.cpp": {
     "clipsChanged": 1
   },
-  "src/export/FrameCapture.cpp": {
-    "timelineChanged": 1
-  },
-  "src/midi/StepSequencerController.cpp": {
-    "timelineChanged": 1
-  },
   "src/model/TimelineModel.cpp": {
     "timelineChanged": 1
   },
@@ -99,9 +93,6 @@
     "clipsChanged": 1
   },
   "src/transcript/TranscriptSession.cpp": {
-    "clipsChanged": 1
-  },
-  "src/ui/MidiNoteLines.cpp": {
     "clipsChanged": 1
   },
   "src/ui/RulerCanvas.cpp": {

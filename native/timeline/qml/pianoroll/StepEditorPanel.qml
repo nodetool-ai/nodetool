@@ -304,6 +304,14 @@ Rectangle {
             root.pendingLanes = [];
             root.scrollTick = 0;
         }
+        onNotesChanged: {
+            if (!root.writing) { root.cancelGesture(); }
+            root.rebuildLanes();
+        }
+        onControllersChanged: {
+            if (!root.writing) { root.cancelGesture(); }
+            root.rebuildLanes();
+        }
         onClipChanged: {
             if (!root.writing) {
                 root.cancelGesture();
@@ -330,7 +338,7 @@ Rectangle {
         writing = true;
         let accepted = false;
         if (lane.type === "note") {
-            accepted = controller.setNotes(mergeNotes(lane, list));
+            accepted = controller.patchNotes(mergeNotes(lane, list));
         } else {
             const data = laneData(lane) || pendingLanes.find(entry => entry.id === lane.laneId);
             const points = list.concat(data.points.filter(point => point.tick < controller.windowFromTick || point.tick >= controller.windowToTick)).sort((a, b) => a.tick - b.tick);
@@ -499,7 +507,7 @@ Rectangle {
         const controllersChanged = JSON.stringify(nextControllers) !== JSON.stringify(controller.controllers);
         if (notesChanged || controllersChanged) {
             writing = true;
-            const accepted = notesChanged && controllersChanged ? controller.setEvents(nextNotes, nextControllers) : notesChanged ? controller.setNotes(nextNotes) : controller.setControllers(nextControllers);
+            const accepted = notesChanged && controllersChanged ? controller.setEvents(nextNotes, nextControllers) : notesChanged ? controller.patchNotes(nextNotes) : controller.setControllers(nextControllers);
             writing = false;
             if (!accepted) {
                 notice = qsTr("Could not apply MIDI edit. Check the clip and event limits.");

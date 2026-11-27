@@ -102,6 +102,57 @@ private slots:
     }
     void init() { loadDocument(); }
 
+    void notePatchCommandsUseRegisteredEdits() {
+        auto raw = model.timeline().raw;
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi");
+        clip.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 480}}});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        const auto parsed = nt::parseTimeline(raw);
+        if (!parsed.timeline) { QFAIL("Fixture must parse"); }
+        model.setTimeline(*parsed.timeline);
+        const QList<QPair<QString, QJsonObject>> fixtures{
+            {"midi.moveNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 62}, {"startTick", 120}}}}}},
+            {"midi.resizeNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"durationTick", 240}}}}}},
+            {"midi.setNoteVelocities", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}}}}},
+            {"midi.addNotes", {{"notes", QJsonArray{QJsonObject{{"id", "new"}, {"pitch", 64}, {"velocity", 80}, {"startTick", 960}, {"durationTick", 240}}}}}},
+            {"midi.patchNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 63}, {"velocity", 42}, {"startTick", 120}, {"durationTick", 240}}}}}},
+            {"midi.removeNotes", {{"noteIds", QJsonArray{"new"}}}}
+        };
+        QSignalSpy coarse(&model, &TimelineModel::timelineChanged);
+        for (const auto& [name, payload] : fixtures) {
+            QVERIFY2(!commandEntry(name).isEmpty(), qPrintable(name));
+            auto params = payload.toVariantMap();
+            params.insert("clip_id", CLIP_A);
+            auto expectedPayload = payload;
+            expectedPayload.insert("clipId", CLIP_A);
+            const auto expected = nt::app::findEdit(name)(model.timeline().raw, expectedPayload);
+            const auto result = run(name, params);
+            QVERIFY2(result.value("error").toString().isEmpty(), qPrintable(result.value("error").toString()));
+            QCOMPARE(model.timeline().raw, expected);
+            QCOMPARE(coarse.size(), 0);
+            const auto properties = commandEntry(name).value("parameters").toMap().value("properties").toMap();
+            const auto itemSchema = properties.value(name == "midi.removeNotes" ? "noteIds" : "notes").toMap().value("items").toMap();
+            if (name == "midi.removeNotes") { QCOMPARE(itemSchema.value("type").toString(), QString("string")); }
+            else { QVERIFY(itemSchema.contains("additionalProperties")); QVERIFY(!itemSchema.value("additionalProperties").toBool()); }
+            if (name != "midi.addNotes" && name != "midi.removeNotes") {
+                const int count = model.undoStack()->count();
+                const auto noop = run(name, params);
+                QVERIFY2(noop.value("error").toString().isEmpty(), qPrintable(noop.value("error").toString()));
+                QCOMPARE(model.undoStack()->count(), count);
+            }
+        }
+        const auto invalid = run("midi.moveNotes", {{"clip_id", CLIP_A},
+            {"notes", QVariantList{QVariantMap{{"id", "missing"}, {"pitch", 62}}}}});
+        QVERIFY(invalid.value("error").toString().contains("id", Qt::CaseInsensitive));
+        for (const auto* name : {"midi.resizeNotes", "midi.setNoteVelocities"}) {
+            const auto missingField = run(name, {{"clip_id", CLIP_A}, {"notes", QVariantList{QVariantMap{{"id", "n"}}}}});
+            QVERIFY2(!missingField.value("error").toString().isEmpty(), name);
+        }
+    }
+
     void closingCancelsPluginRequest() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
