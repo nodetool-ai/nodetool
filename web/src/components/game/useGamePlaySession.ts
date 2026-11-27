@@ -9,6 +9,7 @@ import { attachGameTouchInput, attachGameMouseInput, attachGameUiPointer, browse
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
+import { loadGameImage } from "./loadGameImage";
 import { useGameDraft } from "../../stores/game/GameDraftStore";
 import { useGameScriptReload } from "./useGameScriptReload";
 import { createEditorGameSaves } from "./gameEditorSaves";
@@ -235,15 +236,11 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     else audio.pause();
     audio.preload();
     setTitle(refId, "game", name ?? "Game");
-    const resolveAsset = async (assetId: string): Promise<HTMLImageElement | null> => {
+    const resolveAsset = async (assetId: string): Promise<ImageBitmap | null> => {
       const binding = assetBindingsRef.current ? assetBindingsRef.current[assetId] : sessionDocument.assets[assetId];
       if (!binding || binding.assetId.startsWith("builtin:")) return null;
       const url = await resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`);
-      if (!url) return null;
-      const image = new Image();
-      image.src = url;
-      try { await image.decode(); return image; }
-      catch { return null; }
+      return url ? loadGameImage(url) : null;
     };
     const fontKey = JSON.stringify(Object.entries(sessionDocument.assets).filter(([, binding]) => binding.mediaKind === "font"));
     const prepareFonts = async (): Promise<void> => {
