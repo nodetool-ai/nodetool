@@ -130,6 +130,9 @@ control [OpenTelemetry tracing](https://github.com/nodetool-ai/nodetool/blob/mai
 - `--no-trace-stdout` — disable stdout span output (overrides `NODETOOL_TRACE_STDOUT`).
 - `--version` — print the CLI version.
 
+The default CLI also accepts `--env-file <path>` in any position. See
+[Environment and Env Files](#environment-and-env-files).
+
 ```bash
 nodetool --trace-file trace.jsonl run workflow.ts
 nodetool --trace-stdout pretty workflows run <id>
@@ -2019,6 +2022,77 @@ nodetool secrets list
 # Store a secret read from stdin
 printf %s "$OPENAI_API_KEY" | nodetool secrets set OPENAI_API_KEY
 ```
+
+## Environment and Env Files
+
+The CLI loads env files at startup, before any command runs. Installed command
+features read the same environment. A variable already set in the process
+environment always wins. Among files, the first one in this order that sets a
+variable wins:
+
+1. The file named by `--env-file <path>`.
+2. The file named by `NODETOOL_ENV_FILE`.
+3. `./.env.local`, then `./.env`, in the working directory.
+4. `~/.nodetool/.env`, then `~/.env`.
+
+A file named by `--env-file` or `NODETOOL_ENV_FILE` must exist. The other files
+are optional. Node.js 22 reads `--env-file` anywhere on the command line, so a
+missing `--env-file` path stops Node with `node: <path>: not found` before the
+CLI starts. `NODETOOL_ENV_FILE` has no such clash. An empty assignment (`KEY=`) does not hide the same variable in a
+later file. With `NODETOOL_LOG_LEVEL=debug`, the CLI prints which file set which
+names to stderr. It never prints values. A file readable by its group or by
+every user produces a warning on every run. Fix it with `chmod 600 <file>`.
+
+Put `SECRETS_MASTER_KEY` in `~/.nodetool/.env` on a headless machine. Command
+features otherwise read the master key from the system keychain, which such a
+machine lacks.
+
+### `nodetool env`
+
+**Subcommands:**
+
+- `check [--json] [--all]` lists every known variable with its status and its
+  source. A status is `set`, `unset`, `locked` (in the secret store, but
+  `SECRETS_MASTER_KEY` is not set) or `unreadable` (in the secret store under
+  another master key). A source is `env` (process environment), `file` (with
+  the file path), `secret store` or `null`. The report also lists each env file
+  with the names it set, the secret store path and master key state, and
+  warnings for a file that is readable by others or tracked by git. Text output
+  hides unset provider credentials unless you pass `--all`.
+- `list [--json]` prints the catalogue of every variable the CLI reads, which
+  commands read it, and whether it is a credential.
+- `init [file] [--force]` writes a commented template of every variable, with
+  every value empty and mode 600. The default file is `./.env.example`. It
+  refuses to overwrite a file without `--force`, and prints a hint when
+  `.gitignore` does not cover `.env`.
+- `import [file] [--remove] [--json]` encrypts the provider credentials in an
+  env file (default `./.env`) into the local secret store. It needs
+  `SECRETS_MASTER_KEY`. It skips the master key, server settings and empty
+  values. `--remove` deletes the imported lines from the file and keeps the
+  rest.
+
+```bash
+nodetool env check --json
+nodetool env init
+cp .env.example ~/.nodetool/.env && chmod 600 ~/.nodetool/.env
+nodetool env import ~/.nodetool/.env --remove
+```
+
+### Agent contract
+
+An agent that drives the CLI bootstraps in this order:
+
+1. Run `nodetool env check --json`. Read `status` and `source` for the
+   variables the task needs, and `warnings`.
+2. Never print or log a secret value. Report only names, statuses and sources.
+3. Store provider keys in the secret store (`nodetool secrets set <NAME>` or
+   `nodetool env import`) rather than leaving them in an env file.
+4. On a machine without a system keychain, set `SECRETS_MASTER_KEY` in
+   `~/.nodetool/.env`. A `locked` status means the master key is missing, and
+   `unreadable` means the value was stored under another key.
+
+A missing credential error names the variable, says whether it is absent, locked
+or unreadable, and gives the command that sets it.
 
 ## Provider Sign-In
 
