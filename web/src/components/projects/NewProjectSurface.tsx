@@ -188,6 +188,7 @@ import {
   invokedStarter,
   invokesStarter,
   projectNameFromPrompt,
+  promptWithEntities,
   promptWithoutStarter,
   rankStarters,
   starterLabel,
@@ -859,6 +860,10 @@ const NewProjectSurface = ({
     [starter, summaries.data]
   );
 
+  const addEntity = useCallback((entity: Entity) => {
+    setEntityIds((ids) => (ids.includes(entity.id) ? ids : [...ids, entity.id]));
+  }, []);
+
   const toggleEntity = useCallback((entity: Entity) => {
     setEntityIds((ids) =>
       ids.includes(entity.id)
@@ -869,9 +874,10 @@ const NewProjectSurface = ({
 
   // The prompt box carries the composer's own triggers: `@` picks an asset or
   // a library entity, `/` picks the skill to start from. A picked asset is
-  // attached as an `asset://` reference the way a dropped file is; a picked
-  // entity is written inline as its `entity://<id>` token, which the server
-  // resolves per turn.
+  // attached as an `asset://` reference the way a dropped file is. A picked
+  // entity leaves its name in the text and joins the Entities pill, so the
+  // box never shows a raw `entity://` token (UX research study 23) and every
+  // route that carries the pill carries the entity.
   const handleSelectAsset = useCallback(
     (asset: Asset) => {
       addDroppedFiles([
@@ -893,7 +899,8 @@ const NewProjectSurface = ({
       value: prompt,
       setValue: setPrompt,
       onSelectAsset: handleSelectAsset,
-      includeEntities: true
+      includeEntities: true,
+      onSelectEntity: addEntity
     });
 
   // A skill picked from `/` is written into the prompt as `/name`, which is
@@ -1243,9 +1250,7 @@ const NewProjectSurface = ({
           name: ref.name,
           assetUri: ref.uri
         }));
-        // Create sends no entity mentions yet, so selected entities are named
-        // as left behind.
-        noteUncarriedContext("video", { entities: false, references: true });
+        noteUncarriedContext("video", { entities: true, references: true });
         if (!(await showDocumentProject(projectId, name))) {
           return;
         }
@@ -1259,7 +1264,7 @@ const NewProjectSurface = ({
         }
         await openCreateSession(projectId, {
           title: name,
-          prompt: text,
+          prompt: promptWithEntities(text, entityIds),
           ...videoSessionSeed(attachments)
         });
         closeTab(
@@ -1277,6 +1282,7 @@ const NewProjectSurface = ({
     [
       closeTab,
       droppedFiles,
+      entityIds,
       flowPrompt,
       flowRef,
       hasHomeTab,
@@ -1362,7 +1368,7 @@ const NewProjectSurface = ({
           assetUri: ref.uri
         }));
         noteUncarriedContext("image", {
-          entities: false,
+          entities: true,
           references: Math.min(references.length, MAX_IMAGE_REFERENCES)
         });
         if (!(await showDocumentProject(projectId, name))) {
@@ -1378,7 +1384,7 @@ const NewProjectSurface = ({
         }
         await openCreateSession(projectId, {
           title: name,
-          prompt: text,
+          prompt: promptWithEntities(text, entityIds),
           references: referencesFromAttachments(attachments),
           mode: attachments.length > 0 ? "image_edit" : "image"
         });
@@ -1397,6 +1403,7 @@ const NewProjectSurface = ({
     [
       closeTab,
       droppedFiles,
+      entityIds,
       flowRef,
       hasHomeTab,
       noteUncarriedContext,

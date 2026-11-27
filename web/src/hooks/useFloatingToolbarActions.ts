@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
 import { useRunningJobs } from "./useRunningJobs";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
@@ -20,6 +21,8 @@ import { useBottomPanelStore } from "../stores/BottomPanelStore";
 import { usePanelStore } from "../stores/PanelStore";
 import { useMiniMapStore } from "../stores/MiniMapStore";
 import { useNotificationStore } from "../stores/NotificationStore";
+import { openProviderOnboarding } from "../stores/ProviderOnboardingStore";
+import { useLanguageProviderReadiness } from "./useHasConfiguredProvider";
 
 /** Half a typical node, so a node added from the toolbar menu is centred. */
 const NEW_NODE_SCREEN_OFFSET = { x: 140, y: 70 };
@@ -49,6 +52,8 @@ interface FloatingToolbarActions {
 }
 
 export const useFloatingToolbarActions = (): FloatingToolbarActions => {
+  const { t } = useTranslation();
+  const languageReadiness = useLanguageProviderReadiness();
   const nodeStore = useNodeStoreRef();
   const workflow = useNodes((state) => state.workflow);
   const autoLayout = useNodes((state) => state.autoLayout);
@@ -217,14 +222,29 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       if (missing.length > 0) {
         const first = missing[0];
         showModelCallout(missing);
-        // The call-out sits in the inspector, which may be closed, so the
-        // blocked run also says why on its own, as a toast: in the bell alone
-        // it went unseen (UX research study 12).
-        addNotification({
-          type: "warning",
-          alert: true,
-          content: `Pick a model on ${first.nodeTitle} before running.`
-        });
+        // With no language model to pick, the model menu only leads on to
+        // the connect dialog, so open that straight away: a template's Run
+        // took four extra steps through the menu (UX research study 23).
+        // A connected provider fills the empty model with its default.
+        const needsLanguageProvider =
+          !languageReadiness.loading &&
+          !languageReadiness.ready &&
+          missing.every((node) => node.modelType === "language_model");
+        if (needsLanguageProvider) {
+          openProviderOnboarding({
+            capability: "generate_message",
+            reason: t("i18n-next36.nodeEditor.modelSetupCallout.onboardingReason")
+          });
+        } else {
+          // The call-out sits in the inspector, which may be closed, so the
+          // blocked run also says why on its own, as a toast: in the bell
+          // alone it went unseen (UX research study 12).
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: `Pick a model on ${first.nodeTitle} before running.`
+          });
+        }
         const target = nodeStore
           .getState()
           .nodes.find((n) => n.id === first.nodeId);
@@ -324,7 +344,10 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     showModelCallout,
     showSearchProviderDialog,
     isWorkflowBusy,
-    isStopping
+    isStopping,
+    languageReadiness.loading,
+    languageReadiness.ready,
+    t
   ]);
 
   const handleStop = useCallback(() => {

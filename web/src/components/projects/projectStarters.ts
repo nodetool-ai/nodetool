@@ -265,6 +265,25 @@ export const composeFirstTurn = ({
   return parts.filter((part) => part.length > 0).join("\n\n");
 };
 
+/**
+ * A Create prompt that carries the entities picked on Home. Each one the
+ * prompt does not already mention goes on its own last line as its
+ * `entity://<id>` token, which the server expands into the entity's name,
+ * descriptor and reference picture when the take is generated.
+ */
+export const promptWithEntities = (
+  prompt: string,
+  entityIds: readonly string[]
+): string => {
+  const tokens = entityIds
+    .map((id) => `entity://${id}`)
+    .filter((token) => !prompt.includes(token));
+  if (tokens.length === 0) {
+    return prompt;
+  }
+  return [prompt.trim(), tokens.join(" ")].filter((part) => part.length > 0).join("\n\n");
+};
+
 export interface SpendEstimate {
   minUsd: number;
   maxUsd: number;
