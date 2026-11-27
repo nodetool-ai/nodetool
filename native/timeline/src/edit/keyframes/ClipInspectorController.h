@@ -1,12 +1,14 @@
 #pragma once
 #include "model/TimelineModel.h"
+#include "Keyframes.h"
+#include <map>
 #include "playback/PlaybackClock.h"
 #include <QPointer>
 #include <QUuid>
 #include <QVariantMap>
 #include <QtQmlIntegration/qqmlintegration.h>
 
-// Document state changes on edits only. The separate playhead notification
+// UI thread only. Document state changes on edits only. The separate playhead notification
 // feeds inspector values, never TimelineModel or a lane delegate.
 class ClipInspectorController : public QObject {
     Q_OBJECT
@@ -25,7 +27,7 @@ class ClipInspectorController : public QObject {
     Q_PROPERTY(QVariantList rows READ rows CONSTANT)
   public:
     explicit ClipInspectorController(QObject* parent = nullptr) : QObject(parent) {
-        connect(this, &ClipInspectorController::changed, this, [this] { ++m_revision; }, Qt::DirectConnection);
+        connect(this, &ClipInspectorController::changed, this, [this] { ++m_revision; m_playbackRows.clear(); m_documentRows.clear(); m_graphRows.clear(); }, Qt::DirectConnection);
     }
     TimelineModel* timeline() const { return m_timeline; }
     PlaybackClock* clock() const { return m_clock; }
@@ -35,6 +37,8 @@ class ClipInspectorController : public QObject {
     void setClipId(const QString& id);
     QVariantMap clip() const;
     int revision() const { return m_revision; }
+    int preparedRowCount() const { return m_preparedRowCount; }
+    int graphBuildCount() const { return m_graphBuildCount; }
     bool locked() const { return m_locked; }
     bool active() const { return m_active; }
     void setActive(bool active);
@@ -73,6 +77,8 @@ class ClipInspectorController : public QObject {
 
   private:
     QJsonObject selected() const;
+    QJsonObject rowClip() const;
+    mutable QJsonObject m_rowClip;
     // Re-reads the selected clip and its lock. Emits `changed` only when either differs, or when forced.
     void refresh(bool force = false);
     void updatePlayhead(bool forcePlayheadSignal = false);
@@ -84,6 +90,11 @@ class ClipInspectorController : public QObject {
     int m_revision = 0;
     QJsonObject m_clip;
     mutable QVariantMap m_clipMap;
+    mutable std::map<QString, std::unique_ptr<nt::keyframes::RowPlayback>> m_playbackRows;
+    mutable QHash<QString, QVariantMap> m_documentRows;
+    mutable QHash<QString, QVariantMap> m_graphRows;
+    mutable int m_preparedRowCount = 0;
+    mutable int m_graphBuildCount = 0;
     mutable bool m_clipMapValid = false;
     bool m_locked = true;
     bool m_active = true;

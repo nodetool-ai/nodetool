@@ -11,8 +11,9 @@ Rectangle {
     required property Item plotItem
     required property string side
     readonly property var handles: segment.handles
+    onHandlesChanged: if (!handles && area && area.dragging) area.cancelDrag()
     readonly property point point: handles ? (side === "out" ? segment.place(handles.x1, handles.y1) : segment.place(handles.x2, handles.y2)) : Qt.point(0, 0)
-    visible: !!handles && point.x >= 0 && point.x <= plotItem.width
+    visible: area.dragging || (!!handles && point.x >= 0 && point.x <= plotItem.width)
     x: point.x - width / 2
     y: Math.max(0, Math.min(plotItem.height, point.y)) - height / 2
     width: Ui.Metrics.md
@@ -49,10 +50,11 @@ Rectangle {
             root.graph.panel.handleDragging = false
             dragging = false
         }
-        onCanceled: {
+        function cancelDrag() {
+            dragging = false
             root.graph.controller.cancelGesture()
             root.graph.panel.handleDragging = false
-            dragging = false
         }
+        onCanceled: cancelDrag()
     }
 }

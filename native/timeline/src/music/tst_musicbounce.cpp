@@ -12,6 +12,7 @@
 #include "../../tests/TestHttpServer.h"
 #include "assets/AssetWav.h"
 #include "audio/AudioEngine.h"
+#include "audio/MasterLimiter.h"
 #include "music/MusicBounce.h"
 #include "music/MusicTime.h"
 #include "playback/AudioClockFeed.h"
@@ -209,6 +210,7 @@ private slots:
         QVERIFY(!dry.clips[0].raw.contains("audioEffects"));
         QVERIFY(!dry.raw.value("master").toObject().contains("effects"));
         QCOMPARE(dry.clips[0].inPointMs, 500.0);
+        QVERIFY(!dry.raw.value("master").toObject().value("limiter").toBool(true));
         const auto mix = bounceTimeline(tl, BounceKind::Mix, "b");
         QCOMPARE(mix.tracks.size(), std::size_t(3));
         QVERIFY(mix.tracks[1].muted);
@@ -264,6 +266,10 @@ private slots:
             if (anchor.playing && anchor.seek && anchor.timelineMs == fromMs) first = anchor.frame;
         }
         QVERIFY2(first >= 0, "no play anchor at the range start");
+        // Offline output trims look-ahead latency; the device recording retains it.
+        if (audio::masterLimiterEnabled(tl)) {
+            first += audio::MasterLimiter::latencyFramesForRate(kRate);
+        }
         QVERIFY(static_cast<std::size_t>((first + frames) * 2) <= recording.size());
         QCOMPARE(stats.underruns, std::int64_t(0));
         const double worst = worstDifference(bounce, recording.data() + first * 2, bounce.size());

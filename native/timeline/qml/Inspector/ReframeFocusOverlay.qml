@@ -24,11 +24,11 @@ Item {
     property real sequenceHeight: 0
     property real frameWidth: 0
     property real frameHeight: 0
-    // The part of the frame on screen. A zoomed frame can be far larger than the Canvas may allocate.
+    // The part of the frame on screen, supplied by the monitor.
     property rect paintArea: Qt.rect(0, 0, width, height)
     readonly property var geometry: ({crop: crop, transform: layerTransform, parentMatrix: parentMatrix, drawMatrix: drawMatrix, sourceWidth: sourceWidth, sourceHeight: sourceHeight, sequenceWidth: sequenceWidth, sequenceHeight: sequenceHeight, frameWidth: frameWidth, frameHeight: frameHeight})
     readonly property var displayed: math.evaluate({op: "sourcePointToReframeViewport", x: focusX, y: focusY, geometry: geometry})
-    readonly property real handleRadius: Math.max(Ui.Metrics.md, 0.025 * Math.min(frameWidth, frameHeight))
+    readonly property real handleRadius: Math.max(Ui.Metrics.md, Math.min(Ui.Metrics.touch / 2, 0.025 * Math.min(frameWidth, frameHeight)))
     property bool dragging: false
     property real gestureSourceMs: 0
     property string gestureClipId: ""
@@ -90,25 +90,35 @@ Item {
     Keys.onPressed: event => { if (nudge(event.key, !!(event.modifiers & Qt.ShiftModifier))) event.accepted = true }
     onActiveFocusChanged: if (!activeFocus) endDrag()
     Component.onDestruction: endDrag()
-    Canvas {
+    Item {
         id: handle
-        objectName: "reframeHandleCanvas"
-        x: root.paintArea.x
-        y: root.paintArea.y
-        width: root.paintArea.width
-        height: root.paintArea.height
-        onPaint: {
-            const ctx = getContext("2d")
-            ctx.reset()
-            ctx.translate(-x, -y)
-            ctx.strokeStyle = Ui.Theme.accentPrimary
-            ctx.lineWidth = Ui.Metrics.micro
-            const cx = root.displayed.x, cy = root.displayed.y, r = root.handleRadius
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke()
-            ctx.beginPath(); ctx.moveTo(cx - r * 1.5, cy); ctx.lineTo(cx + r * 1.5, cy)
-            ctx.moveTo(cx, cy - r * 1.5); ctx.lineTo(cx, cy + r * 1.5); ctx.stroke()
+        objectName: "reframeFocusHandle"
+        x: root.displayed.x - width / 2
+        y: root.displayed.y - height / 2
+        width: root.handleRadius * 3
+        height: width
+        Rectangle {
+            anchors.centerIn: parent
+            width: root.handleRadius * 2
+            height: width
+            radius: width / 2
+            color: "transparent"
+            border.color: Ui.Theme.accentPrimary
+            border.width: Ui.Metrics.micro
+            antialiasing: true
         }
-        Connections { target: root; function onDisplayedChanged() { handle.requestPaint() } function onHandleRadiusChanged() { handle.requestPaint() } function onPaintAreaChanged() { handle.requestPaint() } }
+        Rectangle {
+            anchors.centerIn: parent
+            width: parent.width
+            height: Ui.Metrics.micro
+            color: Ui.Theme.accentPrimary
+        }
+        Rectangle {
+            anchors.centerIn: parent
+            width: Ui.Metrics.micro
+            height: parent.height
+            color: Ui.Theme.accentPrimary
+        }
     }
     MouseArea {
         anchors.fill: parent

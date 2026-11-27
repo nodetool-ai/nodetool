@@ -14,8 +14,8 @@ Column {
     id: root
     objectName: "musicTakeList"
     // The panel's MusicPanelModel and the editor's MusicJobs.
-    property var plan: null
-    property var jobs: null
+    property MusicPanelModel plan: null
+    property MusicJobs jobs: null
     // A job runs for the clip under the range.
     readonly property bool jobRunning: !!plan && !!jobs && plan.takeClipId !== "" && jobs.clipJobs[plan.takeClipId] !== undefined
         && jobs.clipJobs[plan.takeClipId].state !== "failed"
@@ -32,7 +32,10 @@ Column {
         return null
     }
     readonly property string clipId: plan ? plan.takeClipId : ""
-    onClipIdChanged: openIds = []
+    onClipIdChanged: {
+        openIds = []
+        closeAgain()
+    }
     function toggleRecord(id) {
         openIds = openIds.indexOf(id) >= 0 ? openIds.filter(other => other !== id) : openIds.concat([id])
     }
@@ -49,20 +52,28 @@ Column {
         tone: Ui.Text.Secondary
     }
 
-    Repeater {
-        model: root.plan && !root.plan.takeClipPending ? root.plan.takes : []
+    ListView {
+        objectName: "musicTakeViewport"
+        onMovementStarted: root.closeAgain()
+        width: root.width
+        height: Math.min(contentHeight, Ui.Metrics.dialogCompactWidth)
+        clip: true
+        reuseItems: true
+        cacheBuffer: Ui.Metrics.touch
+        spacing: root.spacing
+        model: root.plan && !root.plan.takeClipPending ? root.plan.takeRows : null
         delegate: Rectangle {
             id: card
-            required property var modelData
+            required property var take
             required property int index
-            readonly property bool recordOpen: root.openIds.indexOf(modelData.id) >= 0
+            readonly property bool recordOpen: root.openIds.indexOf(take.id) >= 0
             objectName: "musicTake_" + index
             width: root.width
             height: content.height + 2 * Ui.Metrics.md
             radius: Ui.Metrics.radiusCard
-            color: modelData.active ? Ui.Theme.actionSelected : Ui.Theme.surfacePanel
-            border.width: modelData.active ? Ui.Metrics.focus : Ui.Metrics.border
-            border.color: modelData.active ? Ui.Theme.borderFocus : Ui.Theme.borderSubtle
+            color: take.active ? Ui.Theme.actionSelected : Ui.Theme.surfacePanel
+            border.width: take.active ? Ui.Metrics.focus : Ui.Metrics.border
+            border.color: take.active ? Ui.Theme.borderFocus : Ui.Theme.borderSubtle
 
             Column {
                 id: content
@@ -80,11 +91,11 @@ Column {
                         variant: Ui.EditorButton.Flat
                         density: Ui.EditorButton.Compact
                         contentAlignment: Qt.AlignLeft
-                        iconName: card.modelData.active ? "check" : ""
-                        text: card.modelData.label
-                        accessibleName: qsTr("Make %1 active").arg(card.modelData.label)
-                        description: card.modelData.active ? qsTr("The clip plays this take.") : ""
-                        onClicked: if (!card.modelData.active) root.plan.selectTake(card.modelData.id)
+                        iconName: card.take.active ? "check" : ""
+                        text: card.take.label
+                        accessibleName: qsTr("Make %1 active").arg(card.take.label)
+                        description: card.take.active ? qsTr("The clip plays this take.") : ""
+                        onClicked: if (!card.take.active) root.plan.selectTake(card.take.id)
                     }
                     Row {
                         id: actions
@@ -93,25 +104,25 @@ Column {
                         Ui.EditorButton {
                             id: again
                             objectName: "musicTakeRegenerate"
-                            visible: card.modelData.canRegenerate
+                            visible: card.take.canRegenerate
                             density: Ui.EditorButton.Compact
                             variant: Ui.EditorButton.Flat
                             iconName: "refresh"
-                            accessibleName: qsTr("Run %1 again").arg(card.modelData.label)
+                            accessibleName: qsTr("Run %1 again").arg(card.take.label)
                             description: qsTr("Run this take's request again")
                             enabled: !!root.jobs
-                            onClicked: againMenu.openAt(again)
+                            onClicked: root.openAgain(again, card.take.id)
                         }
                         Ui.EditorButton {
                             objectName: "musicTakeDelete"
                             density: Ui.EditorButton.Compact
                             variant: Ui.EditorButton.Flat
                             iconName: "close"
-                            accessibleName: qsTr("Delete %1").arg(card.modelData.label)
+                            accessibleName: qsTr("Delete %1").arg(card.take.label)
                             description: qsTr("Delete the take. Its audio stays in the library.")
-                            enabled: card.modelData.canDelete
-                            disabledReason: card.modelData.deleteReason
-                            onClicked: root.plan.deleteTake(card.modelData.id)
+                            enabled: card.take.canDelete
+                            disabledReason: card.take.deleteReason
+                            onClicked: root.plan.deleteTake(card.take.id)
                         }
                     }
                 }
@@ -120,20 +131,20 @@ Column {
                     Ui.Text {
                         objectName: "musicTakeTask"
                         visible: text !== ""
-                        text: card.modelData.task
+                        text: card.take.task
                         role: Ui.Typography.MonoCaption
                         tone: Ui.Text.Secondary
                     }
                     Rectangle {
                         id: driftBadge
                         objectName: "musicTakeDrifting"
-                        visible: card.modelData.drifting
+                        visible: card.take.drifting
                         width: driftText.implicitWidth + 2 * Ui.Metrics.xs
                         height: driftText.implicitHeight
                         radius: Ui.Metrics.radiusControl
                         color: Ui.Theme.statusWarningSurface
                         Accessible.role: Accessible.StaticText
-                        Accessible.name: card.modelData.driftText
+                        Accessible.name: card.take.driftText
                         Ui.Text {
                             id: driftText
                             anchors.centerIn: parent
@@ -145,26 +156,26 @@ Column {
                         Ui.Tooltip {
                             trigger: driftBadge
                             visible: driftHover.hovered
-                            text: card.modelData.driftText
+                            text: card.take.driftText
                         }
                     }
                     Ui.Text {
                         objectName: "musicTakeMeta"
                         visible: text !== ""
-                        text: card.modelData.meta
+                        text: card.take.meta
                         role: Ui.Typography.MonoCaption
                         tone: Ui.Text.Secondary
                     }
                 }
                 Ui.EditorButton {
                     objectName: "musicTakeRecordToggle"
-                    visible: card.modelData.record.length > 0
+                    visible: card.take.record.length > 0
                     density: Ui.EditorButton.Compact
                     variant: Ui.EditorButton.Flat
                     contentAlignment: Qt.AlignLeft
                     iconName: card.recordOpen ? "expandMore" : "arrowRight"
                     text: qsTr("Generation record")
-                    onClicked: root.toggleRecord(card.modelData.id)
+                    onClicked: root.toggleRecord(card.take.id)
                 }
                 Column {
                     objectName: "musicTakeRecord"
@@ -172,7 +183,7 @@ Column {
                     width: parent.width
                     spacing: Ui.Metrics.micro
                     Repeater {
-                        model: card.recordOpen ? card.modelData.record : []
+                        model: card.recordOpen ? card.take.record : []
                         delegate: Row {
                             id: field
                             required property var modelData
@@ -195,19 +206,54 @@ Column {
                     }
                 }
             }
-            Ui.ContextMenu {
-                id: againMenu
-                Ui.MenuItem {
-                    objectName: "musicTakeSameSeed"
-                    text: qsTr("Same seed")
-                    onTriggered: root.jobs.regenerate(root.plan.takeClipId, card.modelData.id, true)
-                }
-                Ui.MenuItem {
-                    objectName: "musicTakeNewSeed"
-                    text: qsTr("New seed")
-                    onTriggered: root.jobs.regenerate(root.plan.takeClipId, card.modelData.id, false)
-                }
+
+        }
+    }
+    property string menuTakeId: ""
+    property string menuClipId: ""
+    function closeAgain() {
+        if (againMenuLoader.item) againMenuLoader.item.close()
+        againMenuLoader.active = false
+        menuTakeId = ""
+        menuClipId = ""
+    }
+    function menuTargetValid() {
+        return !!plan && plan.takeClipId === menuClipId
+            && plan.takes.some(take => take.id === menuTakeId && take.canRegenerate)
+    }
+    Connections {
+        target: root.plan
+        function onTakesChanged() { if (!root.menuTargetValid()) root.closeAgain() }
+    }
+    function regenerate(sameSeed) {
+        if (jobs && menuTargetValid()) jobs.regenerate(menuClipId, menuTakeId, sameSeed)
+        closeAgain()
+    }
+    function openAgain(button, takeId) {
+        if (!plan) return
+        menuTakeId = takeId
+        menuClipId = plan.takeClipId
+        againMenuLoader.active = true
+        againMenuLoader.item.openAt(button)
+    }
+    Loader {
+        id: againMenuLoader
+        width: 0
+        height: 0
+        active: false
+        sourceComponent: Ui.ContextMenu {
+            objectName: "musicTakeRegenerateMenu"
+            Ui.MenuItem {
+                objectName: "musicTakeSameSeed"
+                text: qsTr("Same seed")
+                onTriggered: root.regenerate(true)
+            }
+            Ui.MenuItem {
+                objectName: "musicTakeNewSeed"
+                text: qsTr("New seed")
+                onTriggered: root.regenerate(false)
             }
         }
     }
+
 }

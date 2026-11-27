@@ -1124,6 +1124,39 @@ std::vector<double> displayScales(const QString& row) {
     return result;
 }
 } // namespace
+struct RowPlayback::Impl {
+    double duration = 0;
+    std::vector<SampledCurve> curves;
+    std::vector<double> times;
+};
+RowPlayback::RowPlayback(const QJsonObject& clip, const QString& row) : m_impl(std::make_unique<Impl>()) {
+    m_impl->duration = clip.value("durationMs").toDouble();
+    for (const auto& input : inputs(row)) {
+        m_impl->curves.emplace_back(clip, input, 1);
+    }
+    for (const auto& time : nt::keyframes::times(clip, properties(row))) {
+        m_impl->times.push_back(time.toDouble());
+    }
+}
+RowPlayback::~RowPlayback() = default;
+QJsonObject RowPlayback::live(double relativeMs) const {
+    const auto& row = *m_impl;
+    const double ms = std::clamp(relativeMs, 0.0, std::max(0.0, row.duration));
+    const double t = row.duration > 0 ? std::clamp(ms / row.duration, 0.0, 1.0) : 0;
+    QJsonArray values;
+    for (const auto& curve : row.curves) {
+        values.append(curve.at(t));
+    }
+    const bool inside = relativeMs >= 0 && relativeMs <= row.duration;
+    const double margin = inside ? 0.5 : 0;
+    const auto next = std::lower_bound(row.times.begin(), row.times.end(), relativeMs + margin);
+    const auto prev = std::upper_bound(row.times.begin(), row.times.end(), relativeMs - margin);
+    const auto at = std::upper_bound(row.times.begin(), row.times.end(), ms - 0.5);
+    const bool here = at != row.times.end() && std::abs(*at - ms) < 0.5;
+    return {{"values", values}, {"here", inside && here},
+            {"hasPrev", prev != row.times.begin()}, {"hasNext", next != row.times.end()}};
+}
+
 bool rowDrivenElsewhere(const QJsonObject& clip, const QString& row) {
     const auto name = nt::scene::parseEffectCurveName(row);
     return name && effectParamHasStyleTrack(clip, name->effectId, name->param);
@@ -1230,6 +1263,21 @@ QJsonObject rowGraphKeys(const QJsonObject& clip, const QString& row) {
     }
     QJsonArray keyed;
     const auto ps = properties(row);
+    struct EasingKey { double t; QString easing; qsizetype order; };
+    std::vector<std::vector<EasingKey>> easings;
+    for (const auto& property : ps) {
+        std::vector<EasingKey> entries;
+        const auto override = easingOverride(clip, property);
+        const auto data = keys(clip, property);
+        entries.reserve(data.size());
+        for (qsizetype i = 0; i < data.size(); ++i) {
+            const auto key = data[i].toObject();
+            entries.push_back({key.value("t").toDouble(),
+                               override.isUndefined() ? key.value("easing").toString("linear") : override.toString("linear"), i});
+        }
+        std::stable_sort(entries.begin(), entries.end(), [](const EasingKey& a, const EasingKey& b) { return a.t < b.t; });
+        easings.push_back(std::move(entries));
+    }
     double previous = 0;
     bool first = true;
     for (const auto& time : times(clip, ps)) {
@@ -1239,10 +1287,19 @@ QJsonObject rowGraphKeys(const QJsonObject& clip, const QString& row) {
             values.append(curve.at(toT(clip, ms)));
         }
         QString easing = "linear";
-        for (const auto& property : ps) {
-            const auto found = helper("keyframeEasingAt", {clip, property, ms});
-            if (found.isString()) {
-                easing = found.toString();
+        const double t = toT(clip, ms);
+        const double near = tolerance(clip);
+        for (const auto& entries : easings) {
+            auto found = std::upper_bound(entries.begin(), entries.end(), t - near,
+                                          [](double value, const EasingKey& key) { return value < key.t; });
+            const EasingKey* chosen = nullptr;
+            for (; found != entries.end() && found->t < t + near; ++found) {
+                if (std::abs(found->t - t) < near && (!chosen || found->order < chosen->order)) {
+                    chosen = &*found;
+                }
+            }
+            if (chosen) {
+                easing = chosen->easing;
                 break;
             }
         }

@@ -23,6 +23,112 @@ static nt::Timeline fixture() {
 class TestKeyframes : public QObject {
     Q_OBJECT
   private slots:
+    void nullAnimationEasingKeepsLinearGraphFallback() {
+        auto parsed = nt::parseTimelineJson(R"({"name":"Null easing","fps":30,"width":640,"height":360,
+            "tracks":[{"id":"v","type":"video"}],"clips":[{"id":"c","trackId":"v","mediaType":"image",
+            "startMs":0,"durationMs":1000,"animations":[{"id":"keys","preset":"custom","role":"emphasis",
+            "easing":null,"params":{"keyframed":true},"custom":{"curves":[{"property":"offsetX",
+            "keyframes":[{"t":0,"value":0},{"t":1,"value":100}]}]}}]}]})");
+        QVERIFY(parsed.timeline);
+        const auto clip = parsed.timeline->raw.value("clips").toArray()[0].toObject();
+        const auto keys = nt::keyframes::rowGraphKeys(clip, "position").value("keys").toArray();
+        QCOMPARE(keys.size(), 2);
+        QCOMPARE(keys[0].toObject().value("easing").toString(), QStringLiteral("linear"));
+    }
+
+    void playbackNavigationBoundaries() {
+        const QJsonObject clip{{"durationMs", 200}, {"paramCurves", QJsonArray{QJsonObject{
+            {"property", "offsetX"}, {"keyframes", QJsonArray{QJsonObject{{"t", 0.5}, {"value", 10}}}}}}}};
+        nt::keyframes::RowPlayback row(clip, "position");
+        QVERIFY(row.live(99.5).value("hasNext").toBool());
+        QVERIFY(row.live(100.5).value("hasPrev").toBool());
+        QVERIFY(row.live(100).value("here").toBool());
+        QVERIFY(!row.live(99.5).value("here").toBool());
+        QVERIFY(!row.live(100.5).value("here").toBool());
+        for (double t : {0.0, 1.0}) {
+            auto endpoint = clip;
+            endpoint.insert("paramCurves", QJsonArray{QJsonObject{{"property", "offsetX"},
+                {"keyframes", QJsonArray{QJsonObject{{"t", t}, {"value", 10}}}}}});
+            nt::keyframes::RowPlayback boundary(endpoint, "position");
+            for (double distance : {1.0, 0.1}) {
+                const auto live = boundary.live(t == 0 ? -distance : 200 + distance);
+                QVERIFY(!live.value("here").toBool());
+                QVERIFY(live.value(t == 0 ? "hasNext" : "hasPrev").toBool());
+            }
+        }
+    }
+
+    void inactiveRowReadsFollowSelectedClip() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        PlaybackClock clock;
+        clock.setDurationMs(10000);
+        ClipInspectorController controller;
+        controller.setTimeline(&model);
+        controller.setClipId("c");
+        controller.setClock(&clock);
+        controller.rowLive("position");
+        controller.rowDocument("position");
+        controller.rowGraphKeys("position");
+        controller.setActive(false);
+        auto raw = model.timeline().raw;
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("startMs", 1000);
+        clip.insert("paramCurves", QJsonArray{QJsonObject{{"property", "offsetX"},
+            {"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"value", 0}}, QJsonObject{{"t", 1}, {"value", 100}}}}}});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        QVERIFY(model.settleDocument(raw));
+        clock.seek(1500);
+        QCOMPARE(controller.rowLive("position").value("values").toList()[0].toDouble(), 25.0);
+        QCOMPARE(controller.rowDocument("position").value("times").toList().size(), 2);
+        QCOMPARE(controller.rowGraphKeys("position").value("keys").toList().size(), 2);
+    }
+
+    void playbackAndGraphPrepareOncePerRowRevision() {
+        TimelineModel model;
+        auto doc = fixture();
+        QJsonArray keys;
+        for (int i = 0; i < 500; ++i) {
+            keys.append(QJsonObject{{"t", double(i) / 499}, {"value", double(i)}, {"easing", "linear"}});
+        }
+        auto raw = doc.raw;
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("paramCurves", QJsonArray{QJsonObject{{"property", "offsetX"}, {"keyframes", keys}}});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        clock.setDurationMs(2000);
+        ClipInspectorController controller;
+        controller.setTimeline(&model);
+        controller.setClipId("c");
+        controller.setClock(&clock);
+        for (int i = 0; i < 120; ++i) {
+            clock.seek(i * 10);
+            const auto live = controller.rowLive("position");
+            const double expected = nt::keyframes::inputValue(clip, "position", 0, i * 10);
+            QVERIFY(std::abs(live.value("values").toList()[0].toDouble() - expected) < 1e-8);
+            controller.rowDocument("position");
+            controller.rowGraphKeys("position");
+        }
+        QCOMPARE(controller.preparedRowCount(), 1);
+        QCOMPARE(controller.graphBuildCount(), 1);
+        clip.insert("name", "Changed");
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        QVERIFY(model.settleDocument(raw));
+        controller.rowLive("position");
+        controller.rowGraphKeys("position");
+        QCOMPARE(controller.preparedRowCount(), 2);
+        QCOMPARE(controller.graphBuildCount(), 2);
+        qInfo() << "120 playback reads -> one preparation; graph builds 120 -> 1";
+    }
+
     void transformEditsUndo() {
         nt::app::registerEdit("keyframes.input", nt::keyframes::edit);
         TimelineModel model;

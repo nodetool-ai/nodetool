@@ -4,11 +4,22 @@
 #include <QJsonObject>
 #include <QStringList>
 #include <optional>
+#include <memory>
 
 // Pure raw-JSON ports of Inspector/keyframeRows.ts and timeline/keyframes.ts.
 // Times are clip-relative milliseconds. Curves retain the web's ordering,
 // normalized-time tolerance and later-keyframe easing rule.
 namespace nt::keyframes {
+// Immutable prepared row. GUI-thread callers rebuild it only when the clip changes.
+class RowPlayback {
+public:
+    RowPlayback(const QJsonObject& clip, const QString& row);
+    ~RowPlayback();
+    QJsonObject live(double relativeMs) const;
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
 QJsonValue helper(const QString& name, const QJsonArray& args);
 QJsonObject edit(QJsonObject document, const QJsonObject& payload);
 const QJsonArray& rowSpecs();

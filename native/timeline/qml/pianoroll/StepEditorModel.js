@@ -94,3 +94,28 @@ function scaleValues(values, percent, min) {
 function thinOut(ids) {
     return ids.filter((_, i) => i % 2 === 1);
 }
+
+// Build once per event or window change, shared by every visible lane.
+function eventIndex(notes, controllers, pending, fromTick, toTick) {
+    const rows = Object.create(null);
+    for (const note of notes) {
+        if (note.startTick >= fromTick && note.startTick < toTick) {
+            const key = "note:" + note.pitch;
+            if (!rows[key]) { rows[key] = []; }
+            rows[key].push(note);
+        }
+    }
+    for (const lane of controllers.concat(pending)) {
+        const key = "controller:" + lane.id;
+        if (rows[key] === undefined) { rows[key] = lane.points.filter(point => point.tick >= fromTick && point.tick < toTick); }
+    }
+    return rows;
+}
+
+function controllerIndex(controllers, pending) {
+    const lanes = Object.create(null);
+    for (const lane of controllers.concat(pending)) {
+        if (lanes[lane.id] === undefined) { lanes[lane.id] = lane; }
+    }
+    return lanes;
+}

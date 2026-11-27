@@ -3,6 +3,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
 import "StepEditorModel.js" as Steps
 import "PianoRollNotes.js" as Notes
@@ -20,8 +21,8 @@ Rectangle {
     property var region: null
     property alias clipId: controller.clipId
     readonly property alias midi: controller
-    readonly property var clock: editor ? editor.clock : null
-    readonly property var gestures: region ? region.gestures : null
+    readonly property PlaybackClock clock: editor ? editor.clock : null
+    readonly property ClipGestureController gestures: region ? region.gestures : null
     property string laneSet: "automatic"
     property string tool: "pointer"
     property string altTool: "pencil"
@@ -100,8 +101,9 @@ Rectangle {
     function keyOf(lane) {
         return !lane ? "" : lane.type === "note" ? "note:" + lane.pitch : "controller:" + lane.laneId;
     }
+    readonly property var storedLanes: Steps.controllerIndex(controller.controllers, pendingLanes)
     function laneData(lane) {
-        return lane && lane.type === "controller" ? controller.controllers.concat(pendingLanes).find(entry => entry.id === lane.laneId) : null;
+        return lane && lane.type === "controller" ? storedLanes[lane.laneId] || null : null;
     }
     function laneName(lane) {
         if (!lane) {
@@ -197,15 +199,9 @@ Rectangle {
         pruneSelection();
         repaintRequested();
     }
+    readonly property var indexedEvents: Steps.eventIndex(notes, controllers, pendingLanes, controller.windowFromTick, controller.windowToTick)
     function eventsOf(lane) {
-        if (!lane) {
-            return [];
-        }
-        if (lane.type === "note") {
-            return notes.filter(note => note.pitch === lane.pitch && note.startTick >= controller.windowFromTick && note.startTick < controller.windowToTick);
-        }
-        const current = controllers.concat(pendingLanes).find(entry => entry.id === lane.laneId);
-        return current ? current.points.filter(event => event.tick >= controller.windowFromTick && event.tick < controller.windowToTick) : [];
+        return indexedEvents[keyOf(lane)] || [];
     }
     function tickOf(lane, event) {
         return lane.type === "note" ? event.startTick : event.tick;

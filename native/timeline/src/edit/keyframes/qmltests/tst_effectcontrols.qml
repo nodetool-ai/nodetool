@@ -620,11 +620,40 @@ Item {
             compare(testHarness.documentJson(), before)
             compare(controller.easingAt("position", 1000), "linear")
         }
+        function test_scrollingKeepsGrabbedHandleAlive() {
+            keyPosition()
+            panel.setView(500, 0)
+            click(child("effectControlsGraphs_position"))
+            const handle = child("effectControlsHandle_position_0_out")
+            waitForRendering(panel)
+            const p = center(handle)
+            mousePress(host, p.x, p.y)
+            verify(panel.handleDragging)
+            panel.setView(500, 1500)
+            wait(20)
+            verify(findChild(panel, "effectControlsHandle_position_0_out") !== null)
+            panel.forceActiveFocus()
+            keyClick(Qt.Key_Escape)
+            mouseRelease(host, p.x, p.y)
+            verify(!panel.handleDragging)
+        }
+        function test_removingHandlesCancelsGrab() {
+            keyPosition()
+            click(child("effectControlsGraphs_position"))
+            const handle = child("effectControlsHandle_position_0_out")
+            waitForRendering(panel)
+            const p = center(handle)
+            mousePress(host, p.x, p.y)
+            verify(panel.handleDragging)
+            controller.write({action: "easing", row: "position", atMs: 1000, easing: "hold"})
+            tryCompare(panel, "handleDragging", false)
+            mouseRelease(host, p.x, p.y)
+        }
         function test_holdHasNoHandles() {
             keyPosition()
             controller.write({action: "easing", row: "position", atMs: 1000, easing: "hold"})
             click(child("effectControlsGraphs_position"))
-            verify(!child("effectControlsHandle_position_0_out").visible)
+            compare(findChild(panel, "effectControlsHandle_position_0_out"), null)
         }
         function test_escapeAbandonsAHandle() {
             keyPosition()

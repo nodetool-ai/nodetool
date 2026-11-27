@@ -269,7 +269,17 @@ private slots:
 
         // The take list of the clip under the range: click activates, Delete keeps the asset (part 7).
         selection()->set("c", barFrame(10), barFrame(11));
+        auto* takes = inPanel("musicTakeViewport");
+        QVERIFY(takes);
+        QTRY_COMPARE(takes->property("count").toInt(), 6);
+        // Offscreen delegates are created on demand. Reach the last take by scrolling.
+        QVERIFY(QMetaObject::invokeMethod(takes, "positionViewAtIndex", Q_ARG(int, 5), Q_ARG(int, 3)));
         QTRY_VERIFY(inPanel("musicTake_5"));
+        // The card may be taller than the small offscreen viewport, so require overlap.
+        QTRY_VERIFY(inPanel("musicTake_5")->mapToItem(takes, QPointF()).y() < takes->height());
+        QTRY_VERIFY(inPanel("musicTake_5")->mapToItem(takes, QPointF(0, inPanel("musicTake_5")->height())).y() > 0);
+        QVERIFY(QMetaObject::invokeMethod(takes, "positionViewAtIndex", Q_ARG(int, 1), Q_ARG(int, 0)));
+        QTRY_VERIFY(inPanel("musicTake_1"));
         QCOMPARE(panel()->findChild<QObject*>("musicPanelModel")->property("takeClipId").toString(), clipId);
         auto* second = named(inPanel("musicTake_1"), "musicTakeSelect");
         QCOMPARE(second->property("text").toString(), QStringLiteral("Take A2"));
@@ -283,6 +293,8 @@ private slots:
         // The active take cannot be deleted; another can, and its asset stays.
         QTRY_VERIFY(!named(inPanel("musicTake_1"), "musicTakeDelete")->isEnabled());
         const auto requestsBefore = server.http.requests().size();
+        QVERIFY(QMetaObject::invokeMethod(takes, "positionViewAtIndex", Q_ARG(int, 3), Q_ARG(int, 0)));
+        QTRY_VERIFY(inPanel("musicTake_3"));
         press(named(inPanel("musicTake_3"), "musicTakeDelete"));
         QTRY_COMPARE(clip(clipId).value("versions").toArray().size(), 5);
         for (const auto& value : clip(clipId).value("versions").toArray()) {

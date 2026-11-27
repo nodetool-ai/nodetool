@@ -25,6 +25,7 @@ void PianoRollController::setTimeline(TimelineModel* timeline) {
         disconnect(m_timeline, nullptr, this, nullptr);
     }
     m_timeline = timeline;
+    m_reloadInputs = {};
     if (m_timeline) {
         connect(m_timeline, &TimelineModel::clipsChanged, this, &PianoRollController::reload);
         connect(m_timeline, &TimelineModel::timelineChanged, this, &PianoRollController::reload);
@@ -39,6 +40,7 @@ void PianoRollController::setClipId(const QString& clipId) {
         return;
     }
     m_clipId = clipId;
+    m_reloadInputs = {};
     emit clipIdChanged();
     reload();
 }
@@ -52,14 +54,42 @@ int PianoRollController::maxNotes() const { return nt::midi::MAX_NOTES_PER_CLIP;
 void PianoRollController::reload() {
     const nt::Clip* clip = m_timeline && !m_clipId.isEmpty() ? m_timeline->findClip(m_clipId) : nullptr;
     const auto raw = clip ? clip->raw : QJsonObject{};
+    const auto document = m_timeline ? m_timeline->timeline().raw : QJsonObject{};
+    QJsonObject trackData;
+    if (clip) {
+        for (const auto& entry : document.value(u"tracks").toArray()) {
+            const auto track = entry.toObject();
+            if (track.value(u"id") == raw.value(u"trackId")) {
+                trackData = QJsonObject{{"name", track.value(u"name")}, {"color", track.value(u"color")},
+                                        {"locked", track.value(u"locked")}};
+                break;
+            }
+        }
+    }
+    const QJsonObject inputs{{"clip", raw}, {"track", trackData},
+                             {"tempo", nt::tempo::json::resolveTempo(document)}};
+    if (inputs == m_reloadInputs) {
+        return;
+    }
+    m_reloadInputs = inputs;
+    const auto noteData = raw.value(u"notes").toArray();
+    const auto controllerData = raw.value(u"controllers").toArray();
+    const bool notesDiffer = noteData != m_noteData;
+    const bool controllersDiffer = controllerData != m_controllerData;
     m_valid = clip && raw.value(u"mediaType").toString() == u"midi";
     m_regionParams.clear();
     for (const auto* key : {"transpose", "velocityOffset", "quantize"}) {
         if (raw.contains(QLatin1String(key))) { m_regionParams.insert(QLatin1String(key), raw.value(QLatin1String(key)).toVariant()); }
     }
     m_clipName = raw.value(u"name").toString();
-    m_notes = raw.value(u"notes").toArray().toVariantList();
-    m_controllers = raw.value(u"controllers").toArray().toVariantList();
+    if (notesDiffer) {
+        m_noteData = noteData;
+        m_notes = noteData.toVariantList();
+    }
+    if (controllersDiffer) {
+        m_controllerData = controllerData;
+        m_controllers = controllerData.toVariantList();
+    }
     m_startMs = raw.value(u"startMs").toDouble();
     m_inPointMs = raw.value(u"inPointMs").toDouble();
     m_durationMs = raw.value(u"durationMs").toDouble();
@@ -69,14 +99,9 @@ void PianoRollController::reload() {
     m_trackName.clear();
     m_keyTonic.clear();
     if (m_valid) {
-        const auto trackId = raw.value(u"trackId").toString();
-        for (const auto& track : m_timeline->timeline().raw.value(u"tracks").toArray()) {
-            if (track.toObject().value(u"id").toString() == trackId) {
-                m_locked = m_locked || track.toObject().value(u"locked").toBool();
-                m_trackName = track.toObject().value(u"name").toString();
-                m_trackColor = track.toObject().value(u"color").toString();
-            }
-        }
+        m_locked = m_locked || trackData.value(u"locked").toBool();
+        m_trackName = trackData.value(u"name").toString();
+        m_trackColor = trackData.value(u"color").toString();
         m_keyTonic = m_timeline->timeline().raw.value(u"tempo").toObject().value(u"key").toObject().value(u"tonic").toString();
     }
     const auto tempo = nt::tempo::json::tempo(
@@ -85,6 +110,12 @@ void PianoRollController::reload() {
     m_offsetMs = std::isfinite(tempo.offsetMs) ? tempo.offsetMs : 0;
     m_beatsPerBar = std::isfinite(tempo.beatsPerBar) && tempo.beatsPerBar > 0 ? tempo.beatsPerBar : 4;
     m_beatUnit = std::isfinite(tempo.beatUnit) && tempo.beatUnit > 0 ? tempo.beatUnit : 4;
+    if (notesDiffer) {
+        emit notesChanged();
+    }
+    if (controllersDiffer) {
+        emit controllersChanged();
+    }
     emit clipChanged();
 }
 

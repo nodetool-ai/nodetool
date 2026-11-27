@@ -2,8 +2,15 @@
 // bump the takes revision or mark every clip changed.
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
+#include "midi/PianoRollController.h"
+#include "music/MusicPanelModel.h"
+#include <QAbstractItemModelTester>
 
 #include <QJsonArray>
+#include <QFile>
+#include <QDir>
+#include <QFileInfo>
+#include <QJSEngine>
 #include <QJsonObject>
 #include <QSignalSpy>
 #include <QtTest>
@@ -37,6 +44,179 @@ void load(TimelineModel& model) {
 class TestTimelineModel : public QObject {
     Q_OBJECT
 private slots:
+    void takeInputsFollowDocumentAndSelection() {
+        TimelineModel model;
+        auto raw = document();
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("mediaType", "audio");
+        clip.insert("durationMs", 8000);
+        clip.insert("versions", QJsonArray{QJsonObject{{"id", "take"}, {"label", "Take"},
+            {"musicGeneration", QJsonObject{{"task", "repaint"}, {"contextStartFrame", 0},
+                {"contextEndFrame", 384000}, {"alignment", QJsonObject{{"drifting", true}, {"lastBeatErrorMs", 42}}}}}}});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        raw.insert("tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}});
+        auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        MusicSelection selection;
+        selection.set("track-0", 0, 48000);
+        MusicPanelModel panel;
+        panel.setTimeline(&model);
+        panel.setSelection(&selection);
+        QCOMPARE(panel.takes().size(), 1);
+        const auto takes = panel.takes();
+        QVERIFY(takes[0].toMap().value("drifting").toBool());
+        selection.set("track-0", 48000, 96000);
+        QCOMPARE(panel.takes(), takes);
+        raw.insert("fps", 60);
+        raw.insert("sections", QJsonArray{QJsonObject{{"name", "Verse"}}});
+        QVERIFY(model.settleDocument(raw));
+        QCOMPARE(panel.takes(), takes);
+        raw.insert("tempo", QJsonObject{{"bpm", 60}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}});
+        QVERIFY(model.settleDocument(raw));
+        QVERIFY(panel.takes()[0].toMap().value("contextLabel") != takes[0].toMap().value("contextLabel"));
+        auto tracks = raw.value("tracks").toArray();
+        auto track = tracks[0].toObject();
+        track.insert("name", "Renamed");
+        tracks[0] = track;
+        raw.insert("tracks", tracks);
+        QVERIFY(model.settleDocument(raw));
+        QVERIFY(panel.takeClipTitle().startsWith("Renamed"));
+        selection.set("track-0", 480000, 528000);
+        QVERIFY(panel.takes().isEmpty());
+        QCOMPARE(panel.takeRows()->rowCount(), 0);
+    }
+
+    void takeRowsShrinkDuplicateIds() {
+        MusicTakeModel rows;
+        QAbstractItemModelTester tester(&rows, QAbstractItemModelTester::FailureReportingMode::QtTest);
+        for (const auto& id : {QString(), QStringLiteral("duplicate")}) {
+            const QVariantMap take{{"id", id}, {"label", "Take"}};
+            rows.apply({take, take, take});
+            rows.apply({take});
+            QCOMPARE(rows.rowCount(), 1);
+            QCOMPARE(rows.data(rows.index(0), Qt::UserRole).toMap(), take);
+        }
+    }
+
+    void takeRowsPreserveUnchangedRows() {
+        MusicTakeModel rows;
+        QAbstractItemModelTester tester(&rows, QAbstractItemModelTester::FailureReportingMode::QtTest);
+        QVariantList takes;
+        for (int i = 0; i < 1000; ++i) {
+            takes.append(QVariantMap{{"id", QString::number(i)}, {"label", "Take"}, {"active", i == 0}});
+        }
+        rows.apply(takes);
+        QSignalSpy reset(&rows, &QAbstractItemModel::modelReset);
+        QSignalSpy changed(&rows, &QAbstractItemModel::dataChanged);
+        QSignalSpy inserted(&rows, &QAbstractItemModel::rowsInserted);
+        QSignalSpy removed(&rows, &QAbstractItemModel::rowsRemoved);
+        rows.apply(takes);
+        QCOMPARE(changed.count(), 0);
+        QCOMPARE(reset.count(), 0);
+        auto first = takes[0].toMap();
+        first.insert("active", false);
+        takes[0] = first;
+        auto second = takes[1].toMap();
+        second.insert("active", true);
+        takes[1] = second;
+        rows.apply(takes);
+        QCOMPARE(changed.count(), 2);
+        QCOMPARE(inserted.count(), 0);
+        QCOMPARE(removed.count(), 0);
+        takes.removeAt(10);
+        rows.apply(takes);
+        QCOMPARE(removed.count(), 1);
+        QCOMPARE(reset.count(), 0);
+        QCOMPARE(rows.rowCount(), 999);
+        qInfo() << "Take active switch: 1000 replaced rows ->" << changed.count() << "changed rows";
+    }
+
+    void stepEditorIndexesEventsOnceForAllLanes() {
+        QFile file(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("../qml/pianoroll/StepEditorModel.js"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        auto source = QString::fromUtf8(file.readAll());
+        source.remove(".pragma library");
+        QJSEngine js;
+        QVERIFY2(!js.evaluate(source).isError(), "Step Editor module must load");
+        const auto result = js.evaluate(R"(
+            var visits=0;
+            var notes=Array.from({length:4096}, (_,i)=>({id:String(i),get pitch(){++visits;return i%128;},startTick:i,durationTick:1}));
+            var index=eventIndex(notes,[],[],0,4096);
+            var count=0;
+            for(var p=0;p<128;++p) count+=index['note:'+p].length;
+            count===4096 && visits===4096;
+        )");
+        QVERIFY2(!result.isError(), qPrintable(result.toString()));
+        QVERIFY(result.toBool());
+        qInfo() << "Step lane pitch visits: 524288 ->" << js.globalObject().property("visits").toInt();
+    }
+
+    void pianoRollIgnoresUnrelatedEdits() {
+        TimelineModel model;
+        auto raw = document();
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi");
+        QJsonArray notes;
+        for (int i = 0; i < 4096; ++i) {
+            notes.append(QJsonObject{{"id", QString::number(i)}, {"pitch", 60},
+                                     {"velocity", 100}, {"startTick", i * 120}, {"durationTick", 120}});
+        }
+        clip.insert("notes", notes);
+        clips.replace(0, clip);
+        raw.insert("clips", clips);
+        auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        PianoRollController controller;
+        controller.setTimeline(&model);
+        controller.setClipId("clip-0-0");
+        QCOMPARE(controller.notes().size(), 4096);
+        QSignalSpy changed(&controller, &PianoRollController::clipChanged);
+        QSignalSpy noteChanges(&controller, &PianoRollController::notesChanged);
+        QSignalSpy controllerChanges(&controller, &PianoRollController::controllersChanged);
+        raw.insert("name", "Another sequence name");
+        QVERIFY(model.settleDocument(raw));
+        QCOMPARE(changed.count(), 0);
+        auto other = clips[1].toObject();
+        other.insert("name", "Another clip name");
+        clips.replace(1, other);
+        raw.insert("clips", clips);
+        QVERIFY(model.settleDocument(raw));
+        QCOMPARE(changed.count(), 0);
+        clip.insert("name", "Renamed MIDI");
+        clips.replace(0, clip);
+        raw.insert("clips", clips);
+        QVERIFY(model.settleDocument(raw));
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(controller.clipName(), QStringLiteral("Renamed MIDI"));
+        QCOMPARE(noteChanges.count(), 0);
+        QCOMPARE(controllerChanges.count(), 0);
+        QCOMPARE(controller.notes().size(), 4096);
+        changed.clear();
+        model.setReadOnly(true);
+        QCOMPARE(changed.count(), 1);
+        QVERIFY(!controller.editable());
+        model.setReadOnly(false);
+        QCOMPARE(changed.count(), 2);
+        QVERIFY(controller.editable());
+        raw.insert("tempo", QJsonObject{{"bpm", 120}, {"key", QJsonObject{{"tonic", "F#"}}}});
+        QVERIFY(model.settleDocument(raw));
+        QCOMPARE(controller.keyTonic(), QStringLiteral("F#"));
+        TimelineModel readOnly;
+        auto replacement = nt::parseTimeline(raw);
+        QVERIFY(replacement.timeline);
+        readOnly.setTimeline(std::move(*replacement.timeline));
+        readOnly.setReadOnly(true);
+        changed.clear();
+        controller.setTimeline(&readOnly);
+        QCOMPARE(changed.count(), 1);
+        QVERIFY(!controller.editable());
+    }
+
     // F7: muting a track updates one row; no reset, no clip re-parse, no takes change.
     void trackEditUpdatesOnlyItsRow() {
         TimelineModel model;

@@ -185,7 +185,12 @@ void MusicPanelModel::refresh() {
         m_modelOptions.append(modelOption(kBaseDit, tr("ACE-Step 1.5 base")));
     }
     refreshSummary(plan, raw);
+    const auto previousTakes = m_takes;
     refreshTakes(raw);
+    if (m_takes != previousTakes) {
+        m_takeRows.apply(m_takes);
+        emit takesChanged();
+    }
     emit changed();
 }
 
@@ -285,23 +290,29 @@ void MusicPanelModel::refreshSummary(const nt::music::MusicPlan& plan, const QJs
 
 void MusicPanelModel::refreshTakes(const QJsonObject& raw) {
     using namespace nt::music;
+    const auto tempo = sequenceTempo(raw);
+    QJsonObject clip;
+    if (hasTarget() && tempo) {
+        for (const auto& value : raw.value(u"clips").toArray()) {
+            const auto candidate = value.toObject();
+            const auto frames = clipFrames(candidate);
+            if (candidate.value(u"trackId").toString() == m_trackId && candidate.value(u"mediaType").toString() == u"audio" &&
+                frames.startFrame <= static_cast<std::int64_t>(m_startFrame) && frames.endFrame >= static_cast<std::int64_t>(m_endFrame)) {
+                clip = candidate;
+                break;
+            }
+        }
+    }
+    const QJsonObject inputs{{"clip", clip}, {"tempo", raw.value(u"tempo")}, {"trackName", m_trackName}};
+    if (inputs == m_takeInputs) {
+        return;
+    }
+    m_takeInputs = inputs;
     m_takeClipId.clear();
     m_takeClipTitle.clear();
     m_takeClipPending = false;
     m_takes.clear();
-    const auto tempo = sequenceTempo(raw);
-    if (!hasTarget() || !tempo) return;
-    QJsonObject clip;
-    for (const auto& value : raw.value(u"clips").toArray()) {
-        const auto candidate = value.toObject();
-        const auto frames = clipFrames(candidate);
-        if (candidate.value(u"trackId").toString() == m_trackId && candidate.value(u"mediaType").toString() == u"audio" &&
-            frames.startFrame <= static_cast<std::int64_t>(m_startFrame) && frames.endFrame >= static_cast<std::int64_t>(m_endFrame)) {
-            clip = candidate;
-            break;
-        }
-    }
-    if (clip.isEmpty()) return;
+    if (clip.isEmpty() || !tempo) { return; }
     m_takeClipId = clip.value(u"id").toString();
     m_takeClipTitle = (m_trackName.isEmpty() ? tr("Untitled track") : m_trackName) + QStringLiteral(" · ") + bars(clipFrames(clip), *tempo);
     const auto versions = clip.value(u"versions").toArray();
@@ -408,4 +419,56 @@ bool MusicPanelModel::setTrackRole(const QString& role) {
         return false;
     }
     return m_timeline->applyEdit(QStringLiteral("music.setTrackRole"), {{"trackId", m_trackId}, {"role", role}}) != 0;
+}
+
+QHash<int, QByteArray> MusicTakeModel::roleNames() const {
+    return {{Qt::UserRole, "take"}};
+}
+
+QVariant MusicTakeModel::data(const QModelIndex& index, int role) const {
+    if (role != Qt::UserRole || !index.isValid() || index.row() < 0 || index.row() >= rowCount()) {
+        return {};
+    }
+    return m_rows[index.row()];
+}
+
+void MusicTakeModel::apply(const QVariantList& rows) {
+    QSet<QString> wanted;
+    for (const auto& row : rows) {
+        wanted.insert(row.toMap().value("id").toString());
+    }
+    for (int i = rowCount() - 1; i >= 0; --i) {
+        if (!wanted.contains(m_rows[i].toMap().value("id").toString())) {
+            beginRemoveRows({}, i, i);
+            m_rows.removeAt(i);
+            endRemoveRows();
+        }
+    }
+    for (int i = 0; i < rows.size(); ++i) {
+        const auto id = rows[i].toMap().value("id").toString();
+        int found = i;
+        while (found < rowCount() && m_rows[found].toMap().value("id").toString() != id) {
+            ++found;
+        }
+        if (found == rowCount()) {
+            beginInsertRows({}, i, i);
+            m_rows.insert(i, rows[i]);
+            endInsertRows();
+        } else {
+            if (found != i) {
+                beginMoveRows({}, found, found, {}, i);
+                m_rows.move(found, i);
+                endMoveRows();
+            }
+            if (m_rows[i] != rows[i]) {
+                m_rows[i] = rows[i];
+                emit dataChanged(index(i), index(i), {Qt::UserRole});
+            }
+        }
+    }
+    if (rowCount() > rows.size()) {
+        beginRemoveRows({}, rows.size(), rowCount() - 1);
+        m_rows.erase(m_rows.begin() + rows.size(), m_rows.end());
+        endRemoveRows();
+    }
 }

@@ -70,6 +70,8 @@ Timeline bounceTimeline(const Timeline& source, BounceKind kind, const std::stri
     auto master = copy.raw.value("master").toObject();
     master.remove("effects");
     master.remove("volumeDb");
+    // Dry context must preserve asset PCM, including peaks above the master ceiling.
+    master.insert("limiter", false);
     copy.raw.insert("master", master);
     QJsonArray rawTracks;
     for (const auto& track : copy.tracks) {

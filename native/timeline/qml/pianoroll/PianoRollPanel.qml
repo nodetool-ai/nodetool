@@ -10,6 +10,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
 import "PianoRollNotes.js" as Notes
 import "PianoRollLanes.js" as Lanes
@@ -76,8 +77,8 @@ Rectangle {
 
     // The clip the panel edits. The selection sets it; a test or caller can too.
     property alias clipId: controller.clipId
-    readonly property var gestures: region ? region.gestures : null
-    readonly property var clock: editor ? editor.clock : null
+    readonly property ClipGestureController gestures: region ? region.gestures : null
+    readonly property PlaybackClock clock: editor ? editor.clock : null
     readonly property var undoStack: controller.timeline ? controller.timeline.undoStack : null
     readonly property bool canUndo: !!undoStack && undoStack.canUndo
     readonly property bool canRedo: !!undoStack && undoStack.canRedo
@@ -201,6 +202,7 @@ Rectangle {
     // A gesture draws from these notes and writes them once, on release.
     property var liveNotes: null
     readonly property var notes: liveNotes !== null ? liveNotes : controller.notes
+    readonly property var noteIndex: Notes.noteIndex(controller.notes)
     readonly property var selectedSet: Notes.idSet(selectedIds)
     // Collapse Mode rows come from the committed notes, never from a drag preview.
     readonly property var rowSet: collapseMode ? Tools.rowSet(controller.notes) : null
@@ -342,6 +344,10 @@ Rectangle {
     function secondHeld(mouse) { return (mouse.modifiers & Qt.ControlModifier) !== 0 }
     function scaled(pitch) { return snapToScale && scaleActive ? Notes.snapPitchToScale(pitch, scaleRoot, scaleIv) : pitch }
     function playheadTick() { return clock ? Math.round(controller.timelineMsToTick(clock.time)) : 0 }
+    function pickNote(x, y, geo) {
+        // Preview arrays change each drag frame. Keep the committed index out of that rebuild path.
+        return liveNotes !== null ? Notes.hitTest(notes, x, y, geo) : Notes.hitTestIndexed(noteIndex, x, y, geo)
+    }
     function selectedNotes() { return notes.filter(note => selectedSet[note.id]) }
     function newId() { return controller.newNoteId() }
     function allIds() { return controller.notes.map(note => note.id) }
@@ -435,7 +441,8 @@ Rectangle {
         case "removeOverlaps": write(Notes.removeOverlaps(current, ids)); break
         case "deleteDuplicates":
             write(Notes.deleteDuplicates(current, ids))
-            selectedIds = selectedIds.filter(id => controller.notes.some(note => note.id === id))
+            const surviving = new Set(controller.notes.map(note => note.id))
+            selectedIds = selectedIds.filter(id => surviving.has(id))
             break
         }
     }
@@ -832,7 +839,8 @@ Rectangle {
                     if (left > 0) ctx.fillRect(0, 0, Math.min(width, left), height)
                     if (right < width) ctx.fillRect(Math.max(0, right), 0, width - Math.max(0, right), height)
                     ctx.globalAlpha = 1
-                    const list = root.notes, selected = root.selectedSet
+                    const list = root.liveNotes !== null ? root.notes : Notes.viewportNotes(root.noteIndex, geo, width, height)
+                    const selected = root.selectedSet
                     const clipMode = root.noteColorMode === "clip"
                     for (let i = 0; i < list.length; ++i) {
                         const r = Notes.noteRect(list[i], geo)
@@ -949,7 +957,7 @@ Rectangle {
 
                 // Removes the note under the pointer from the preview.
                 function eraseAt(x, y) {
-                    const hit = Notes.hitTest(root.notes, x, y, root.geometry)
+                    const hit = root.pickNote(x, y, root.geometry)
                     if (!hit) return
                     root.liveNotes = Notes.removeNotes(root.notes, [hit.note.id])
                     root.selectedIds = root.selectedIds.filter(id => id !== hit.note.id)
@@ -999,7 +1007,7 @@ Rectangle {
                     root.forceActiveFocus()
                     root.laneFocused = false
                     const geo = root.geometry
-                    const hit = Notes.hitTest(root.notes, mouse.x, mouse.y, geo)
+                    const hit = root.pickNote(mouse.x, mouse.y, geo)
                     const tick = Notes.xToTick(mouse.x, geo), pitch = Notes.yToPitch(mouse.y, geo)
                     const shift = (mouse.modifiers & Qt.ShiftModifier) !== 0
                     let tool = toolFor(mouse)
@@ -1076,7 +1084,7 @@ Rectangle {
                     const tick = Notes.xToTick(mouse.x, geo), pitch = Notes.yToPitch(mouse.y, geo)
                     root.hoverPos = {tick: tick, pitch: pitch}
                     if (!drag) {
-                        cursorShape = cursorOf(toolFor(mouse), Notes.hitTest(root.notes, mouse.x, mouse.y, geo))
+                        cursorShape = cursorOf(toolFor(mouse), root.pickNote(mouse.x, mouse.y, geo))
                         return
                     }
                     if (drag.kind === "erase") { eraseAt(mouse.x, mouse.y); return }
@@ -1085,7 +1093,7 @@ Rectangle {
                     if (drag.kind === "marquee") {
                         drag.moved = true
                         marquee = {fromTick: drag.startTick, toTick: tick, pitchA: drag.startPitch, pitchB: pitch}
-                        root.selectedIds = Array.from(new Set(drag.additiveIds.concat(Notes.notesInRect(root.notes, drag.startTick, tick, drag.startPitch, pitch))))
+                        root.selectedIds = Array.from(new Set(drag.additiveIds.concat(Notes.notesInRectIndexed(root.noteIndex, drag.startTick, tick, drag.startPitch, pitch))))
                         grid.requestPaint()
                         return
                     }
@@ -1171,7 +1179,7 @@ Rectangle {
                     root.dragIds = []
                     root.liveNotes = null
                     if (!controller.editable) return
-                    const hit = Notes.hitTest(root.notes, mouse.x, mouse.y, root.geometry)
+                    const hit = root.pickNote(mouse.x, mouse.y, root.geometry)
                     if (!hit) return
                     // The second click of a fast double-click on empty grid lands on the note the first one wrote.
                     if (lastClick && lastClick.id === hit.note.id && Date.now() - lastClick.time < 500) return

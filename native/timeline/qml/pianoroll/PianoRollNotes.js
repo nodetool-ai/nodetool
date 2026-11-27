@@ -59,6 +59,60 @@ function hitTest(notes, x, y, geo) {
     return null
 }
 
+// Balanced interval trees per pitch, rebuilt only when note data changes.
+function noteIndex(notes) {
+    const pitches = Object.create(null)
+    for (let i = 0; i < notes.length; ++i) {
+        const note = notes[i], pitch = note.pitch
+        if (!pitches[pitch]) { pitches[pitch] = [] }
+        pitches[pitch].push({note: note, order: i, start: note.startTick, end: note.startTick + note.durationTick})
+    }
+    function tree(entries, from, to) {
+        if (from >= to) { return null }
+        const mid = (from + to) >>> 1, node = entries[mid]
+        node.left = tree(entries, from, mid)
+        node.right = tree(entries, mid + 1, to)
+        node.maxEnd = Math.max(node.end, node.left ? node.left.maxEnd : -Infinity, node.right ? node.right.maxEnd : -Infinity)
+        return node
+    }
+    const roots = Object.create(null)
+    for (const pitch of Object.keys(pitches)) {
+        const entries = pitches[pitch]
+        entries.sort((a,b) => a.start - b.start || a.order - b.order)
+        roots[pitch] = tree(entries, 0, entries.length)
+    }
+    return roots
+}
+
+function queryNotes(index, fromTick, toTick, lowPitch, highPitch, counter) {
+    const found = []
+    function visit(node) {
+        if (!node || node.maxEnd < fromTick) { return }
+        if (counter) { ++counter.visits }
+        visit(node.left)
+        if (node.start <= toTick && node.end >= fromTick) { found.push(node) }
+        if (node.start <= toTick) { visit(node.right) }
+    }
+    for (let pitch = Math.max(0, Math.ceil(lowPitch)); pitch <= Math.min(127, Math.floor(highPitch)); ++pitch) { visit(index[pitch]) }
+    found.sort((a,b) => a.order - b.order)
+    return found.map(entry => entry.note)
+}
+
+function hitTestIndexed(index, x, y, geo, counter) {
+    const pitch = yToPitch(y, geo), tick = xToTick(x, geo)
+    const candidates = queryNotes(index, tick - 1 / geo.pxPerTick, tick, pitch, pitch, counter)
+    return hitTest(candidates, x, y, geo)
+}
+
+function viewportNotes(index, geo, width, height) {
+    const a = yToPitch(0, geo), b = yToPitch(height, geo)
+    return queryNotes(index, geo.scrollTick - 1 / geo.pxPerTick, xToTick(width, geo), Math.min(a,b), Math.max(a,b))
+}
+
+function notesInRectIndexed(index, fromTick, toTick, pitchA, pitchB) {
+    return notesInRect(queryNotes(index, Math.min(fromTick,toTick), Math.max(fromTick,toTick), Math.min(pitchA,pitchB), Math.max(pitchA,pitchB)), fromTick,toTick,pitchA,pitchB)
+}
+
 // The pitch for the top row that centres the notes in a view of `rows` rows.
 function initialTopPitch(notes, rows) {
     rows = Math.max(1, Math.floor(rows))
@@ -373,44 +427,47 @@ function glueNotes(notes, selectedIds, clickedId) {
     return notes.filter(function(n) { return !drop[n.id] }).map(function(n) { return replace[n.id] || n })
 }
 
-// Extends each listed note to the next later start of any pitch.
-function forceLegato(notes, ids) {
-    var set = idSet(ids)
-    return notes.map(function(note) {
-        if (!set[note.id]) return note
-        var next = Infinity
-        for (var i = 0; i < notes.length; ++i) {
-            if (notes[i].startTick > note.startTick && notes[i].startTick < next) next = notes[i].startTick
+// Sorted distinct start ticks map each chord to the next chord in one sweep.
+function nextStarts(notes, grouped) {
+    const groups = Object.create(null), next = Object.create(null)
+    for (const note of notes) {
+        const key = grouped ? note.pitch + ":" + channelOf(note) : "all"
+        if (!groups[key]) { groups[key] = [] }
+        groups[key].push(note)
+    }
+    for (const key of Object.keys(groups)) {
+        const entries = groups[key].slice().sort((a,b) => a.startTick - b.startTick)
+        let later = Infinity
+        for (let i = entries.length - 1; i >= 0; --i) {
+            if (i + 1 < entries.length && entries[i].startTick < entries[i+1].startTick) { later = entries[i+1].startTick }
+            next[entries[i].id] = later
         }
-        return next === Infinity ? note : fitExpression(copyNote(note, {durationTick: next - note.startTick}))
-    })
+    }
+    return next
 }
 
-// Cuts each listed note at the nearest later same-pitch note it overlaps.
+// Extends each listed note to the next later start of any pitch.
+function forceLegato(notes, ids) {
+    const set = idSet(ids), next = nextStarts(notes, false)
+    return notes.map(note => !set[note.id] || next[note.id] === Infinity ? note
+        : fitExpression(copyNote(note, {durationTick: next[note.id] - note.startTick})))
+}
+
+// Cuts each listed note at the nearest later same-pitch, same-channel note.
 function removeOverlaps(notes, ids) {
-    var set = idSet(ids)
-    return notes.map(function(note) {
-        if (!set[note.id]) return note
-        var end = note.startTick + note.durationTick, next = Infinity
-        for (var i = 0; i < notes.length; ++i) {
-            var other = notes[i]
-            if (other.pitch === note.pitch && channelOf(other) === channelOf(note) && other.startTick > note.startTick
-                && other.startTick < end && other.startTick < next) next = other.startTick
-        }
-        return next === Infinity ? note : fitExpression(copyNote(note, {durationTick: next - note.startTick}))
-    })
+    const set = idSet(ids), next = nextStarts(notes, true)
+    return notes.map(note => !set[note.id] || next[note.id] >= note.startTick + note.durationTick ? note
+        : fitExpression(copyNote(note, {durationTick: next[note.id] - note.startTick})))
 }
 
 // Removes each listed note that has an earlier twin in list order.
 function deleteDuplicates(notes, ids) {
-    var set = idSet(ids)
-    return notes.filter(function(note, index) {
-        if (!set[note.id]) return true
-        for (var i = 0; i < index; ++i) {
-            var other = notes[i]
-            if (other.pitch === note.pitch && channelOf(other) === channelOf(note) && other.startTick === note.startTick) return false
-        }
-        return true
+    const set = idSet(ids), seen = new Set()
+    return notes.filter(function(note) {
+        const key = note.pitch + ":" + channelOf(note) + ":" + note.startTick
+        const duplicate = seen.has(key)
+        seen.add(key)
+        return !set[note.id] || !duplicate
     })
 }
 

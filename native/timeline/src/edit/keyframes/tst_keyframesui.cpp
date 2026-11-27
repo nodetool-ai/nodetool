@@ -2,6 +2,7 @@
 #include "edit/ClipGestureController.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
+#include "music/MusicSelection.h"
 #include "playback/PlaybackClock.h"
 #include "platform/CpuUsage.h"
 #include <QFile>
@@ -38,12 +39,37 @@ class KeyframeUiSetup : public QObject {
     }
 
   public:
+    Q_INVOKABLE void loadPerf3Takes(int count) {
+        if (m_beforePerf3.isEmpty()) { m_beforePerf3 = m_model.timeline().raw; }
+        QJsonArray versions;
+        for (int i = 0; i < count; ++i) {
+            versions.append(QJsonObject{{"id", QString::number(i)}, {"assetId", QStringLiteral("asset-%1").arg(i)},
+                                         {"label", QStringLiteral("Take %1").arg(i)}});
+        }
+        const QJsonObject raw{{"id", "takes"}, {"fps", 30}, {"width", 640}, {"height", 360},
+                              {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+                              {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "audio"}}}},
+                              {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "v"}, {"mediaType", "audio"},
+                                                               {"startMs", 0}, {"durationMs", 2000}, {"status", "ready"},
+                                                               {"currentAssetId", "asset-0"}, {"activeTakeId", "0"}, {"versions", versions}}}}};
+        auto parsed = nt::parseTimeline(raw);
+        if (!parsed.timeline) { qFatal("Invalid take fixture"); }
+        m_model.setTimeline(std::move(*parsed.timeline));
+        m_gestures.musicSelection()->set("v", 0, 48000);
+    }
     Q_INVOKABLE void reset() {
         m_gestures.setSelection({});
         while (m_model.undoStack()->canUndo()) {
             m_model.undoStack()->undo();
         }
         m_model.undoStack()->clear();
+        if (!m_beforePerf3.isEmpty()) {
+            auto restored = nt::parseTimeline(m_beforePerf3);
+            if (!restored.timeline) { qFatal("Invalid saved test document"); }
+            m_beforePerf3 = {};
+            m_model.setTimeline(std::move(*restored.timeline));
+            m_gestures.musicSelection()->clear();
+        }
         m_clock.seek(0);
     }
     // The mean CPU time of `count` steps, each followed by a full frame: bindings, polish,
@@ -66,6 +92,7 @@ class KeyframeUiSetup : public QObject {
     Q_INVOKABLE QString documentJson() const { return QString::fromUtf8(m_model.documentJson()); }
 
   private:
+    QJsonObject m_beforePerf3;
     QTemporaryDir m_preferences;
     TimelineModel m_model;
     PlaybackClock m_clock;

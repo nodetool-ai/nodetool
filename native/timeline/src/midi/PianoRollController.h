@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QObject>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QPointer>
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
@@ -27,9 +29,9 @@ class PianoRollController : public QObject {
     Q_PROPERTY(QString trackName READ trackName NOTIFY clipChanged)
     // The tonic of the document key ("C", "Eb", ...), or "" when the document has none.
     Q_PROPERTY(QString keyTonic READ keyTonic NOTIFY clipChanged)
-    Q_PROPERTY(QVariantList notes READ notes NOTIFY clipChanged)
+    Q_PROPERTY(QVariantList notes READ notes NOTIFY notesChanged)
     // The controller lanes of the clip (cc, pitch bend, pressure), as stored.
-    Q_PROPERTY(QVariantList controllers READ controllers NOTIFY clipChanged)
+    Q_PROPERTY(QVariantList controllers READ controllers NOTIFY controllersChanged)
     Q_PROPERTY(double startMs READ startMs NOTIFY clipChanged)
     Q_PROPERTY(double inPointMs READ inPointMs NOTIFY clipChanged)
     Q_PROPERTY(double durationMs READ durationMs NOTIFY clipChanged)
@@ -90,6 +92,8 @@ class PianoRollController : public QObject {
     void timelineChanged();
     void clipIdChanged();
     void clipChanged();
+    void notesChanged();
+    void controllersChanged();
 
   private:
     double msToTicks(double ms) const;
@@ -105,6 +109,9 @@ class PianoRollController : public QObject {
     QString m_trackColor;
     QString m_trackName;
     QString m_keyTonic;
+    QJsonArray m_noteData;
+    QJsonArray m_controllerData;
+    QJsonObject m_reloadInputs;
     QVariantList m_notes;
     QVariantList m_controllers;
     double m_startMs = 0;

@@ -17,10 +17,24 @@
 #include "music/MusicSelection.h"
 
 #include <QObject>
+#include <QAbstractListModel>
 #include <QPointer>
 #include <QStringList>
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
+
+// UI thread only. Owned by MusicPanelModel, with stable take IDs across plan changes.
+class MusicTakeModel : public QAbstractListModel {
+    Q_OBJECT
+public:
+    using QAbstractListModel::QAbstractListModel;
+    int rowCount(const QModelIndex& parent = {}) const override { return parent.isValid() ? 0 : m_rows.size(); }
+    QHash<int, QByteArray> roleNames() const override;
+    QVariant data(const QModelIndex& index, int role) const override;
+    void apply(const QVariantList& rows);
+private:
+    QVariantList m_rows;
+};
 
 class MusicPanelModel : public QObject {
     Q_OBJECT
@@ -71,7 +85,8 @@ class MusicPanelModel : public QObject {
     //   canRegenerate, record: [{name, value}], contextLabel ("Model hears
     //   bars 1–5", empty without a context window), contextStartFrame,
     //   contextEndFrame}], in document order.
-    Q_PROPERTY(QVariantList takes READ takes NOTIFY changed)
+    Q_PROPERTY(QVariantList takes READ takes NOTIFY takesChanged)
+    Q_PROPERTY(QAbstractItemModel* takeRows READ takeRows CONSTANT)
 
 public:
     explicit MusicPanelModel(QObject* parent = nullptr);
@@ -110,6 +125,7 @@ public:
     QString takeClipTitle() const { return m_takeClipTitle; }
     bool takeClipPending() const { return m_takeClipPending; }
     QVariantList takes() const { return m_takes; }
+    QAbstractItemModel* takeRows() { return &m_takeRows; }
 
     // Writes the target track's role through the `music.setTrackRole` edit, one undo step.
     // An empty role removes it.
@@ -127,6 +143,7 @@ public:
 signals:
     void inputsChanged();
     void changed();
+    void takesChanged();
 
 private:
     void refresh();
@@ -160,5 +177,7 @@ private:
     QString m_takeClipId;
     QString m_takeClipTitle;
     bool m_takeClipPending = false;
+    QJsonObject m_takeInputs;
+    MusicTakeModel m_takeRows;
     QVariantList m_takes;
 };
