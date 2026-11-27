@@ -9202,6 +9202,10 @@
         "gemini": {
           "description": "Verwendet deinen Gemini-Schlüssel erneut. Antwortet in Prosa und nennt die gelesenen Seiten.",
           "keyLink": "Gemini-API-Schlüssel erhalten"
+        },
+        "antigravity": {
+          "description": "Führt Google-Suchen über die Antigravity-CLI auf diesem Rechner aus. Kein Schlüssel nötig: Melde dich an, indem du agy einmal startest.",
+          "keyLink": "Antigravity-CLI einrichten"
         }
       }
     },

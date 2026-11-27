@@ -16,8 +16,9 @@ import { WEB_SEARCH_TOOL_NAME, type JsonSchema } from "@nodetool-ai/runtime";
  *
  * Order is the routing order when nothing is pinned, and it is deliberate:
  * the dedicated SERP services come first because they answer a search with
- * search results, while `openai` and `gemini` answer it with a model's prose
- * about the results and are the fallback when no SERP key is configured.
+ * search results, while `openai`, `gemini` and `antigravity` answer it with a
+ * model's prose about the results and are the fallback when no SERP key is
+ * configured.
  */
 export const SEARCH_BACKEND_NAMES = [
   "serpapi",
@@ -25,7 +26,8 @@ export const SEARCH_BACKEND_NAMES = [
   "brave",
   "apify",
   "openai",
-  "gemini"
+  "gemini",
+  "antigravity"
 ] as const;
 
 export type SearchBackendName = (typeof SEARCH_BACKEND_NAMES)[number];
@@ -85,7 +87,8 @@ export const webSearchSpec: CapabilitySpec = {
     "image results use `image_search` instead. Optionally scope results " +
     "with allowed_domains (only these domains) or blocked_domains (never " +
     "these domains). Runs on the first configured backend — SerpAPI, " +
-    "DataForSEO, Brave, Apify, then OpenAI or Gemini native search; " +
+    "DataForSEO, Brave, Apify, then OpenAI, Gemini or Antigravity native " +
+    "search; " +
     "`backend` pins one.",
   inputSchema: WEB_SEARCH_SCHEMA,
   category: "read",

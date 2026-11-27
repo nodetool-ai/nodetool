@@ -9202,6 +9202,10 @@
         "gemini": {
           "description": "Gemini キーを再利用します。散文で回答し、読んだページを引用します。",
           "keyLink": "Gemini API キーを取得する"
+        },
+        "antigravity": {
+          "description": "このマシンの Antigravity CLI で Google 検索を実行します。キーは不要です。agy を一度実行してサインインしてください。",
+          "keyLink": "Antigravity CLI をセットアップ"
         }
       }
     },

@@ -556,3 +556,106 @@ it.skipIf(process.platform === "win32")("discovers models through the NodeTool-m
     await rm(root, { recursive: true, force: true });
   }
 });
+
+describe("AntigravityProvider.webSearch", () => {
+  const searchStep = line({
+    event: "step_update",
+    step_update: {
+      conversation_id: "conv-s",
+      state: "DONE",
+      step_type: "tool",
+      tool_name: "search_web",
+      tool_info: { name: "search_web", parameters: { query: "q" }, output: "..." }
+    }
+  });
+  const searchResult = (structured_output: unknown) =>
+    line({
+      event: "result",
+      result: { conversation_id: "conv-s", status: "SUCCESS", structured_output }
+    });
+
+  it("runs one headless turn with the result schema and reads the pages", async () => {
+    const { runCli, calls } = fakeRunner(() => ({
+      stdout: [
+        searchStep,
+        searchResult({
+          answer: " NodeTool is a workflow tool. ",
+          results: [
+            { title: "NodeTool", url: "https://nodetool.ai/", snippet: "Build AI workflows." },
+            { title: "Dup", url: "https://nodetool.ai/", snippet: "again" },
+            { title: "", url: "https://github.com/nodetool-ai/nodetool", snippet: "Repo" },
+            { title: "Local", url: "file:///etc/passwd", snippet: "no" }
+          ]
+        })
+      ]
+    }));
+    const provider = new AntigravityProvider({}, { runCli });
+    const search = await provider.webSearch("what is nodetool");
+
+    expect(search.answer).toBe("NodeTool is a workflow tool.");
+    expect(search.results).toEqual([
+      { title: "NodeTool", url: "https://nodetool.ai/", snippet: "Build AI workflows." },
+      {
+        title: "https://github.com/nodetool-ai/nodetool",
+        url: "https://github.com/nodetool-ai/nodetool",
+        snippet: "Repo"
+      }
+    ]);
+    expect(calls).toHaveLength(1);
+    const [call] = calls;
+    expect(call.args).toContain("--json-schema");
+    expect(call.args).toContain("--disable-slash-commands");
+    expect(call.args).not.toContain("--dangerously-skip-permissions");
+    expect(call.args).not.toContain("--agent");
+    expect(basename(call.cwd ?? "")).toBe("nodetool-antigravity-search");
+    const sent = JSON.parse(call.stdin) as { message: { content: string } };
+    expect(sent.message.content).toContain("search_web");
+    expect(sent.message.content).toContain("Query: what is nodetool");
+  });
+
+  it("fails when the CLI answered without running search_web", async () => {
+    const { runCli } = fakeRunner(() => ({
+      stdout: [
+        line({ event: "step_update", step_type: "tool", tool_name: "view_file" }),
+        searchResult({
+          answer: "From memory",
+          results: [{ title: "Made up", url: "https://example.com", snippet: "" }]
+        })
+      ],
+      stderr: "search_web was soft-denied; allow read_url to run it"
+    }));
+    const provider = new AntigravityProvider({}, { runCli });
+    await expect(provider.webSearch("q")).rejects.toThrow(
+      /without running search_web \(ran view_file\): search_web was soft-denied/
+    );
+  });
+
+  it("fails when the result carries no structured output", async () => {
+    const { runCli } = fakeRunner(() => ({
+      stdout: [searchStep, searchResult(undefined)]
+    }));
+    const provider = new AntigravityProvider({}, { runCli });
+    await expect(provider.webSearch("q")).rejects.toThrow(
+      /no structured search results/
+    );
+  });
+
+  it("names the sign-in remedy when the CLI is not signed in", async () => {
+    const { runCli } = fakeRunner(() => ({
+      stdout: [],
+      code: 1,
+      stderr: "authentication required"
+    }));
+    const provider = new AntigravityProvider({}, { runCli });
+    await expect(provider.webSearch("q")).rejects.toThrow(
+      /Antigravity sign-in required/
+    );
+  });
+
+  it("rejects an empty query without starting the CLI", async () => {
+    const { runCli, calls } = fakeRunner(() => ({ stdout: [] }));
+    const provider = new AntigravityProvider({}, { runCli });
+    await expect(provider.webSearch("  ")).rejects.toThrow(/cannot be empty/);
+    expect(calls).toHaveLength(0);
+  });
+});

@@ -9202,6 +9202,10 @@
         "gemini": {
           "description": "Reuses your Gemini key. Answers in prose and cites the pages it read.",
           "keyLink": "Get Gemini API key"
+        },
+        "antigravity": {
+          "description": "Runs Google Search through the Antigravity CLI on this machine. No key needed: sign in by running agy once.",
+          "keyLink": "Set up the Antigravity CLI"
         }
       }
     },

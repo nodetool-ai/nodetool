@@ -9202,6 +9202,10 @@
         "gemini": {
           "description": "Återanvänder din Gemini-nyckel. Svarar på prosa och citerar sidorna den läste.",
           "keyLink": "Hämta Gemini API-nyckel"
+        },
+        "antigravity": {
+          "description": "Kör Google-sökningar via Antigravity-CLI:t på den här datorn. Ingen nyckel behövs: logga in genom att köra agy en gång.",
+          "keyLink": "Konfigurera Antigravity-CLI:t"
         }
       }
     },

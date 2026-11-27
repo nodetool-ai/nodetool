@@ -1602,7 +1602,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "web_search",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "e4946512515e",
+    contract: "99b52729557b",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
@@ -1618,7 +1618,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "image_search",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "3c50d887acb1",
+    contract: "52f319644743",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",

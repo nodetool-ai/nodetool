@@ -69,7 +69,8 @@ export type SerpProviderType =
   | "brave"
   | "apify"
   | "openai"
-  | "gemini";
+  | "gemini"
+  | "antigravity";
 
 interface SecretResolver {
   getSecret?: (key: string) => Promise<string | null>;
@@ -98,7 +99,10 @@ export const SERP_PROVIDER_SECRETS: Readonly<
   brave: ["BRAVE_API_KEY"],
   apify: ["APIFY_API_TOKEN", "APIFY_API_KEY"],
   openai: ["OPENAI_API_KEY"],
-  gemini: ["GEMINI_API_KEY"]
+  gemini: ["GEMINI_API_KEY"],
+  // Antigravity signs in through the `agy` CLI's own credential cache, so it
+  // needs no secret. `serpProviderConfigured` checks that the CLI starts.
+  antigravity: []
 };
 
 /**
@@ -119,11 +123,13 @@ export const SERP_PROVIDER_SEARCH_TYPES: Readonly<
   dataforseo: ["web"],
   brave: ["web", "images"],
   apify: ["web"],
-  // OpenAI and Gemini answer in prose and cite the pages they read; the
-  // citations are the result list. Neither has an image or news endpoint, so
-  // routing skips them for those types instead of answering with pages.
+  // OpenAI, Gemini and Antigravity answer in prose and cite the pages they
+  // read; the citations are the result list. None has an image or news
+  // endpoint, so routing skips them for those types instead of answering with
+  // pages.
   openai: ["web"],
-  gemini: ["web"]
+  gemini: ["web"],
+  antigravity: ["web"]
 };
 
 /**
@@ -133,11 +139,19 @@ export const SERP_PROVIDER_SEARCH_TYPES: Readonly<
  * what Apify's own docs call it and what the rest of NodeTool's Apify layer
  * reads, while `APIFY_API_KEY` is what this install shipped first. Either
  * satisfies it, so upgrading does not silently turn search off.
+ *
+ * Antigravity has no secret: it is configured when the `agy` CLI starts.
  */
 export async function serpProviderConfigured(
   type: SerpProviderType,
   resolver?: SecretResolver
 ): Promise<boolean> {
+  if (type === "antigravity") {
+    const { antigravitySearchAvailable } = await import(
+      "./antigravity-provider.js"
+    );
+    return antigravitySearchAvailable();
+  }
   const names = SERP_PROVIDER_SECRETS[type];
   if (type === "apify") {
     for (const name of names) {
@@ -228,6 +242,12 @@ export async function createSerpProvider(
       );
     }
 
+    case "antigravity":
+      // No key: the search runs on the `agy` CLI's signed-in account, and a
+      // missing CLI or sign-in fails the search with the CLI's own remedy.
+      return new (await import("./antigravity-provider.js"))
+        .AntigravitySearchProvider();
+
     default:
       throw new Error(
         `Unknown SERP provider: ${providerType}. Supported: ${Object.keys(
@@ -243,3 +263,4 @@ export { BraveProvider } from "./brave-provider.js";
 export { ApifyProvider } from "./apify-provider.js";
 export { OpenAiSearchProvider, OPENAI_SEARCH_MODEL } from "./openai-provider.js";
 export { GeminiSearchProvider, GEMINI_SEARCH_MODEL } from "./gemini-provider.js";
+export { AntigravitySearchProvider } from "./antigravity-provider.js";

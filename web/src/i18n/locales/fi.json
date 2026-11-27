@@ -9202,6 +9202,10 @@
         "gemini": {
           "description": "Käyttää Gemini-avaintasi. Vastaa tekstinä ja viittaa lukemiinsa sivuihin.",
           "keyLink": "Hanki Gemini API-avain"
+        },
+        "antigravity": {
+          "description": "Hakee Googlesta tämän koneen Antigravity-komentorivityökalulla. Avainta ei tarvita: kirjaudu sisään ajamalla agy kerran.",
+          "keyLink": "Ota Antigravity-komentorivityökalu käyttöön"
         }
       }
     },
