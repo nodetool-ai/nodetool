@@ -1108,8 +1108,11 @@ nodetool timeline debug sequence.json \
   session:  1 step(s), 0 failed
 ```
 
-The bundle holds `report.json`, `report.md`, and `timeline.json` (the input
-document). The command exits `0` only when the verdict is ok.
+The bundle holds `report.json`, `report.md`, and `timeline.json`: the document
+after the last interaction (the input when none ran), wrapped with the target's
+`name`, `width`, `height`, `fps` and `durationMs`, so `nodetool timeline render`
+reads it at the original settings. The command exits `0` only when the verdict
+is ok.
 
 #### `nodetool timeline render <timeline_id_or_file>`
 
