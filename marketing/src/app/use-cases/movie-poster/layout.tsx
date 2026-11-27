@@ -2,6 +2,7 @@ import JsonLd from "../../../components/JsonLd";
 import { breadcrumbSchema, howToSchema } from "../../../lib/jsonld";
 import { moviePosterUseCase } from "../../../data/useCaseEntries";
 import type { Metadata, Viewport } from "next";
+import { languageAlternates } from "../../../i18n/routes";
 
 const TITLE = "AI Movie Poster Generator with Billing Block | NodeTool";
 const DESCRIPTION =
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/use-cases/movie-poster",
+    languages: languageAlternates("/use-cases/movie-poster"),
   },
   keywords: [
     "AI movie poster generator",

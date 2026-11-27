@@ -270,6 +270,13 @@ export type AnimationPresetId =
  * - `cameraElevation` — added to the orbit elevation, degrees (identity 0)
  * - `cameraZoom` — multiplies the framing distance multiplier (identity 1)
  * - `cameraFov` — added to the camera's field of view, degrees (identity 0)
+ *
+ * Seven more drive a `free` camera. Each adds onto the authored `position`,
+ * `target` or `rollDeg` (identity 0), and `cameraFov` is its lens:
+ *
+ * - `cameraPosX` / `cameraPosY` / `cameraPosZ` — camera eye, world units
+ * - `cameraTargetX` / `cameraTargetY` / `cameraTargetZ` — look-at point, world units
+ * - `cameraRoll` — roll around the view axis, degrees
  */
 export const ANIMATED_PROPERTIES = [
   "offsetX",
@@ -298,7 +305,14 @@ export const ANIMATED_PROPERTIES = [
   "cameraAzimuth",
   "cameraElevation",
   "cameraZoom",
-  "cameraFov"
+  "cameraFov",
+  "cameraPosX",
+  "cameraPosY",
+  "cameraPosZ",
+  "cameraTargetX",
+  "cameraTargetY",
+  "cameraTargetZ",
+  "cameraRoll"
 ] as const;
 
 export type AnimatedProperty = (typeof ANIMATED_PROPERTIES)[number];
@@ -344,7 +358,14 @@ export const ANIMATED_PROPERTY_FOLD: Record<
   cameraAzimuth: "add",
   cameraElevation: "add",
   cameraZoom: "multiply",
-  cameraFov: "add"
+  cameraFov: "add",
+  cameraPosX: "add",
+  cameraPosY: "add",
+  cameraPosZ: "add",
+  cameraTargetX: "add",
+  cameraTargetY: "add",
+  cameraTargetZ: "add",
+  cameraRoll: "add"
 };
 
 /**
@@ -387,5 +408,12 @@ export const ANIMATED_PROPERTY_PASS: Record<
   cameraAzimuth: "effects",
   cameraElevation: "effects",
   cameraZoom: "effects",
-  cameraFov: "effects"
+  cameraFov: "effects",
+  cameraPosX: "effects",
+  cameraPosY: "effects",
+  cameraPosZ: "effects",
+  cameraTargetX: "effects",
+  cameraTargetY: "effects",
+  cameraTargetZ: "effects",
+  cameraRoll: "effects"
 };

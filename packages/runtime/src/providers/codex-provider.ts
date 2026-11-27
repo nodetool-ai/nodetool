@@ -184,7 +184,11 @@ export class CodexProvider extends OpenAIProvider {
   constructor(secrets: { CODEX_ACCESS_TOKEN?: string }) {
     const token = secrets.CODEX_ACCESS_TOKEN;
     if (!token) {
-      throw new Error("CODEX_ACCESS_TOKEN is required");
+      throw new Error(
+        "Codex is not signed in (no CODEX_ACCESS_TOKEN). Connect your ChatGPT " +
+          "account under Settings > Providers. The nodetool command line also " +
+          "uses the Codex CLI login: run `codex login`."
+      );
     }
     const accountId = extractChatGptAccountId(token);
     const originator =
@@ -216,36 +220,50 @@ export class CodexProvider extends OpenAIProvider {
 
   /**
    * Return the account- and version-specific models served by Codex, minus
-   * the ones Codex itself hides from its picker. Use {@link CODEX_FALLBACK_MODELS}
-   * only when the live listing is unavailable or empty.
+   * the ones Codex itself hides from its picker. Throws when the live listing
+   * is unavailable or empty, so a caller choosing a default model can tell
+   * the account's catalog from {@link CODEX_FALLBACK_MODELS}.
+   */
+  async listAccountLanguageModels(): Promise<LanguageModel[]> {
+    const url = `${CODEX_BACKEND_BASE_URL}/models?client_version=${encodeURIComponent(codexClientVersion())}`;
+    const res = await fetch(url, {
+      headers: this.buildHeaders("application/json")
+    });
+    if (!res.ok) {
+      throw codexHttpError(`Codex model listing failed with HTTP ${res.status}`, res.status);
+    }
+    const payload = (await res.json()) as {
+      models?: Array<{
+        slug?: string;
+        display_name?: string;
+        visibility?: string;
+      }>;
+    };
+    const models = (payload.models ?? [])
+      .filter(
+        (m): m is { slug: string; display_name?: string } =>
+          typeof m.slug === "string" &&
+          m.slug.length > 0 &&
+          m.visibility !== "hide"
+      )
+      .map((m) => ({
+        id: m.slug,
+        name: m.display_name ?? m.slug,
+        provider: PROVIDER_IDS.CODEX
+      }));
+    if (models.length === 0) {
+      throw new Error("Codex listed no models for this account");
+    }
+    return models;
+  }
+
+  /**
+   * The account's live Codex catalog, or {@link CODEX_FALLBACK_MODELS} when
+   * the live listing is unavailable or empty.
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     try {
-      const url = `${CODEX_BACKEND_BASE_URL}/models?client_version=${encodeURIComponent(codexClientVersion())}`;
-      const res = await fetch(url, {
-        headers: this.buildHeaders("application/json")
-      });
-      if (!res.ok) return CODEX_FALLBACK_MODELS;
-      const payload = (await res.json()) as {
-        models?: Array<{
-          slug?: string;
-          display_name?: string;
-          visibility?: string;
-        }>;
-      };
-      const models = (payload.models ?? [])
-        .filter(
-          (m): m is { slug: string; display_name?: string } =>
-            typeof m.slug === "string" &&
-            m.slug.length > 0 &&
-            m.visibility !== "hide"
-        )
-        .map((m) => ({
-          id: m.slug,
-          name: m.display_name ?? m.slug,
-          provider: PROVIDER_IDS.CODEX
-        }));
-      return models.length > 0 ? models : CODEX_FALLBACK_MODELS;
+      return await this.listAccountLanguageModels();
     } catch {
       return CODEX_FALLBACK_MODELS;
     }

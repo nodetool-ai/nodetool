@@ -16,12 +16,12 @@
   },
   "screen_storyboard": {
     "entities": {
-      "pickTitle": "Valitse entiteetti",
+      "pickTitle": "Valitse referenssi",
       "done": "Valmis",
       "untitled": "Nimetön",
-      "searchPlaceholder": "Hae entiteettejä nimen, lajin tai tunnisteen mukaan",
-      "searchLabel": "Hae entiteettejä",
-      "kindLabel": "Entiteetin laji",
+      "searchPlaceholder": "Hae referenssejä nimen, lajin tai tunnisteen mukaan",
+      "searchLabel": "Hae referenssejä",
+      "kindLabel": "Referenssin laji",
       "kindFilters": {
         "all": "Kaikki",
         "characters": "Hahmot",
@@ -29,16 +29,16 @@
         "styles": "Tyylit",
         "props": "Rekvisiitta"
       },
-      "loading": "Ladataan entiteettejä",
-      "emptyTitle": "Ei vielä entiteettejä",
+      "loading": "Ladataan referenssejä",
+      "emptyTitle": "Ei vielä referenssejä",
       "emptyPickerDescription": "Luomasi hahmot, paikat, tyylit ja rekvisiitta näkyvät täällä.",
-      "newEntity": "Uusi entiteetti",
-      "noMatches": "Ei vastaavia entiteettejä",
+      "newEntity": "Uusi referenssi",
+      "noMatches": "Mikään referenssi ei vastaa",
       "noMatchesDescription": "Kokeile toista nimeä, lajia tai tunnistetta.",
-      "entitiesLabel": "Entiteetit",
+      "entitiesLabel": "Referenssit",
       "noImage": "Ei kuvaa",
-      "editEntity": "Muokkaa entiteettiä",
-      "removeEntity": "Poista entiteetti",
+      "editEntity": "Muokkaa referenssiä",
+      "removeEntity": "Poista referenssi",
       "save": "Tallenna",
       "create": "Luo",
       "image": "Kuva",
@@ -52,14 +52,14 @@
       },
       "name": "Nimi",
       "descriptor": "Kuvaus",
-      "descriptorHelp": "Miltä se näyttää, yhdellä lauseella. Jokainen tätä entiteettiä käyttävä kehote saa sen sanasta sanaan.",
+      "descriptorHelp": "Miltä se näyttää, yhdellä lauseella. Jokainen tätä referenssiä käyttävä kehote saa sen sanasta sanaan.",
       "voiceId": "Äänen tunnus (valinnainen)",
       "tags": "Tunnisteet (pilkuilla erotettuina)",
-      "panelEmptyDescription": "Merkitse kuva hahmoksi, paikaksi, tyyliksi tai rekvisiitaksi yllä olevalla +-painikkeella tai napsauta kuvaa kirjastossa hiiren oikealla painikkeella ja valitse Käytä entiteettinä.",
-      "libraryEmptyDescription": "Merkitse kuva hahmoksi, paikaksi, tyyliksi tai rekvisiitaksi, niin voit käyttää sitä uudelleen eri otoksissa. Napsauta kuvaa kirjastossa hiiren oikealla painikkeella ja valitse Käytä entiteettinä.",
-      "addEntity": "Lisää entiteetti",
+      "panelEmptyDescription": "Merkitse kuva hahmoksi, paikaksi, tyyliksi tai rekvisiitaksi yllä olevalla +-painikkeella tai napsauta kuvaa Kirjastossa hiiren oikealla ja valitse Käytä referenssinä.",
+      "libraryEmptyDescription": "Merkitse kuva hahmoksi, paikaksi, tyyliksi tai rekvisiitaksi, niin voit käyttää sitä useissa otoksissa. Napsauta Kirjastossa kuvaa hiiren oikealla ja valitse Käytä referenssinä.",
+      "addEntity": "Lisää referenssi",
       "librarySubtitle": "Uudelleenkäytettävät hahmot, paikat, tyylit ja rekvisiitta",
-      "backToEntities": "Takaisin entiteetteihin",
+      "backToEntities": "Takaisin referensseihin",
       "pickImageTitle": "Valitse viitekuva",
       "noImages": "Ei kuvia",
       "noImagesDescription": "Luo tai lataa kuva ensin."
@@ -191,7 +191,7 @@
     "sendMediaToWorkflowTooltip": "Lisää valittu media työnkulun kankaalle vakiosolmuina",
     "transformWithWorkflow": "Muunna työnkululla…",
     "transformWithWorkflowTooltip": "Käsittele tämä tiedosto jollakin työnkuluistasi",
-    "useAsEntity": "Käytä entiteettinä…",
+    "useAsEntity": "Käytä referenssinä…",
     "useAsEntityTooltip": "Merkitse tämä kuva hahmoksi, paikaksi, tyyliksi tai rekvisiitaksi, niin voit käyttää sitä uudelleen eri otoksissa",
     "editTimeline": "Muokkaa aikajanaa",
     "createTimelineFromVideo": "Luo aikajana videosta",
@@ -3001,7 +3001,7 @@
       }
     },
     "entity": {
-      "title": "Entiteetti",
+      "title": "Referenssi",
       "kinds": {
         "character": "hahmo",
         "location": "sijainti",
@@ -3009,51 +3009,51 @@
         "prop": "rekvisiitta"
       },
       "defaults": {
-        "untitledName": "Nimetön entiteetti",
+        "untitledName": "Nimetön referenssi",
         "untitledReferenceFile": "Nimeton.png"
       },
       "errors": {
         "canvasUnavailable": "Canvas 2D -konteksti ei ole käytettävissä",
         "blankImageFailed": "Tyhjän kuvan renderöinti epäonnistui",
-        "blankStart": "Tyhjää entiteettiä ei voitu aloittaa: {{detail}}",
-        "referenceRequired": "Valitse referenssikuva ennen entiteetin luomista.",
-        "createdEntityUnreadable": "Entiteettiä ei voitu lukea sen luomisen jälkeen."
+        "blankStart": "Tyhjää referenssiä ei voitu aloittaa: {{detail}}",
+        "referenceRequired": "Valitse kuva ennen referenssin luomista.",
+        "createdEntityUnreadable": "Referenssiä ei voitu lukea luomisen jälkeen."
       },
       "steps": {
         "details": {
           "label": "Tiedot",
           "primary": "Valitse referenssi",
           "blocked": {
-            "name": "Nimeä entiteetti",
+            "name": "Nimeä referenssi",
             "descriptor": "Kuvaile säilytettävät piirteet"
           },
           "pending": "Valmistellaan tyhjää referenssiä"
         },
         "reference": {
           "label": "Referenssi",
-          "primary": "Tarkista entiteetti",
+          "primary": "Tarkista referenssi",
           "blocked": {
-            "libraryError": "Entiteettikirjastoasi ei voitu tarkistaa",
-            "libraryLoading": "Ladataan entiteettikirjastoasi",
+            "libraryError": "Referenssikirjastoasi ei voitu tarkistaa",
+            "libraryLoading": "Ladataan referenssikirjastoasi",
             "reference": "Valitse referenssikuva"
           }
         },
         "review": {
           "label": "Tarkistus",
-          "primary": "Luo entiteetti",
-          "pending": "Luodaan entiteettiäsi",
+          "primary": "Luo referenssi",
+          "pending": "Luodaan referenssiä",
           "blocked": {
-            "libraryError": "Entiteettikirjastoasi ei voitu tarkistaa",
-            "libraryLoading": "Ladataan entiteettikirjastoasi",
+            "libraryError": "Referenssikirjastoasi ei voitu tarkistaa",
+            "libraryLoading": "Ladataan referenssikirjastoasi",
             "reference": "Palaa takaisin ja valitse referenssikuva",
-            "name": "Palaa takaisin ja nimeä entiteetti",
+            "name": "Palaa takaisin ja nimeä referenssi",
             "descriptor": "Palaa takaisin ja kuvaile säilytettävät piirteet"
           }
         }
       },
       "details": {
         "title": "Minkä pitäisi pysyä samana?",
-        "description": "Anna entiteetille pysyvä nimi ja kuvaus, jota generointikehotteet käyttävät uudelleen.",
+        "description": "Anna referenssille pysyvä nimi ja kuvaus, jota luontikehotteet käyttävät uudelleen.",
         "kinds": {
           "character": {
             "title": "Hahmo",
@@ -3073,10 +3073,10 @@
           }
         },
         "fields": {
-          "kind": "Entiteetin tyyppi",
+          "kind": "Referenssin tyyppi",
           "name": "Nimi",
           "descriptor": "Kuvaus",
-          "descriptorHelp": "Tämä teksti lisätään jokaiseen entiteettiä käyttävään kehotteeseen. Kuvaile vain pysyviä visuaalisia piirteitä.",
+          "descriptorHelp": "Tämä teksti lisätään jokaiseen referenssiä käyttävään kehotteeseen. Kuvaile vain pysyviä visuaalisia piirteitä.",
           "tagsOptional": "Tunnisteet (valinnainen)"
         },
         "placeholders": {
@@ -3098,7 +3098,7 @@
         "description": "Valitse selkein kuva piirteistä, jotka haluat tulevien generointien säilyttävän, tai luo sellainen tekoälyllä.",
         "imageCaption": "{{name}} – referenssi",
         "selectedCaption": "Valittu referenssi",
-        "selectedAlt": "Valittu entiteetin referenssi",
+        "selectedAlt": "Valittu referenssikuva",
         "assets": {
           "unavailable": "Aineistot eivät ole saatavilla",
           "loading": "Ladataan aineistoja",
@@ -3131,7 +3131,7 @@
         "errors": {
           "noImage": "Kuvamalli ei palauttanut referenssikuvaa.",
           "generationFailed": "Referenssikuvaa ei voitu generoida.",
-          "reportSummary": "Entiteetin referenssikuvan generointi epäonnistui"
+          "reportSummary": "Referenssikuvan luonti epäonnistui"
         },
         "prompt": {
           "template": "Referenssikuva kohteesta {{name}}. {{descriptor}} {{instruction}}",
@@ -3192,7 +3192,7 @@
         "clipTask": {
           "image_to_video": "Animoi pysäytyskuvat",
           "text_to_video": "Generoi kehotteista",
-          "reference_to_video": "Käytä entiteettireferenssejä"
+          "reference_to_video": "Käytä referenssejä"
         },
         "confirmWithCost": "{{verb}} · noin {{cost}}",
         "renderClip": "Renderöi leike",
@@ -3564,58 +3564,58 @@
       "entities": {
         "editOnlyModel": "{{model}} vain muokkaa kuvia, joten se ei voi piirtää referenssiä kuvauksen perusteella. Valitse malli, joka luo kuvia tekstistä.",
         "substituteModelHelper": "{{originalModel}} vain muokkaa kuvia, joten referensseihin käytetään mallia {{referenceModel}}. Ilme-vaiheen still-kuvissa käytetään edelleen mallia {{originalModel}}.",
-        "referenceModelHelper": "Käytetään vain puuttuviin entiteetteihin, jotka päätät luoda. Sama malli siirtyy Ilme-vaiheeseen.",
+        "referenceModelHelper": "Käytetään vain puuttuviin referensseihin, jotka päätät luoda. Sama malli siirtyy Look-vaiheeseen.",
         "priceUnknown": "Hinta tuntematon",
         "aboutPrice": "Noin {{price}}",
         "missingScreenplayOrModel": "Kuvakäsikirjoitus tarvitsee ensin käsikirjoituksen ja ohjaajamallin.",
-        "findFailedFallback": "Tarinasta ei löytynyt entiteettejä.",
+        "findFailedFallback": "Tarinasta ei löytynyt referenssejä.",
         "pickReferenceModelFirst": "Valitse ensin referenssikuvamalli.",
         "noReferenceImageReturned": "Kuvamalli ei palauttanut referenssikuvaa.",
-        "entitySaveFailed": "Entiteettiä ei voitu tallentaa.",
-        "entityCreateFailedFallback": "Entiteettiä ei voitu luoda.",
+        "entitySaveFailed": "Referenssiä ei voitu tallentaa.",
+        "entityCreateFailedFallback": "Referenssiä ei voitu luoda.",
         "title": "Pidä henkilöt ja paikat yhdenmukaisina",
         "description": "Valitse hahmot, paikat ja rekvisiitta, joiden pitää näyttää samalta kaikissa otoksissa.",
         "suggestedFromStory": "Ehdotettu tarinasi perusteella",
         "suggestionsDescription": "Etsi käsikirjoituksestasi toistuvia referenssejä. Luo vain ne, joita haluat käyttää.",
-        "findingEntities": "Etsitään entiteettejä",
+        "findingEntities": "Etsitään referenssejä",
         "refreshSuggestions": "Päivitä ehdotukset",
-        "findEntities": "Etsi entiteetit",
-        "cancelFinding": "Peruuta entiteettien etsintä",
+        "findEntities": "Etsi referenssejä",
+        "cancelFinding": "Peruuta referenssien haku",
         "cancel": "Peruuta",
         "noSuggestionsFound": "Käsikirjoituksestasi ei löytynyt toistuvia hahmoja, paikkoja tai rekvisiittaa.",
         "loadingEstimate": "Ladataan arviota…",
         "findEstimateResult": "Etsi käsikirjoituksesi hahmot, paikat ja rekvisiitta",
         "findEstimateNext": "Mitään ei luoda ennen kuin teet valinnan.",
-        "findFailureTitle": "Entiteettejä ei löytynyt",
-        "createFailureTitle": "Entiteettejä ei voitu luoda",
-        "findFailureSummary": "Kuvakäsikirjoituksen entiteettiehdotukset epäonnistuivat",
-        "createFailureSummary": "Kuvakäsikirjoituksen entiteettien luonti epäonnistui",
+        "findFailureTitle": "Referenssejä ei löytynyt",
+        "createFailureTitle": "Referenssejä ei voitu luoda",
+        "findFailureSummary": "Kuvakäsikirjoituksen referenssiehdotukset epäonnistuivat",
+        "createFailureSummary": "Kuvakäsikirjoituksen referenssien luonti epäonnistui",
         "referenceImageModel": "Referenssikuvamalli",
         "creatingEntity": "Luodaan {{name}}…",
         "useEntity": "Käytä {{name}}",
         "createEntity": "Luo {{name}}",
-        "libraryTitle": "Entiteettikirjastosi",
+        "libraryTitle": "Referenssikirjastosi",
         "selectedCount_one": "{{count}} valittu tähän kuvakäsikirjoitukseen",
         "selectedCount_other": "{{count}} valittu tähän kuvakäsikirjoitukseen",
-        "createFromImage": "Luo entiteetti kuvasta",
-        "loadingEntities": "Ladataan entiteettejä",
-        "loadFailedTitle": "Entiteettejäsi ei voitu ladata",
+        "createFromImage": "Luo referenssi kuvasta",
+        "loadingEntities": "Ladataan referenssejä",
+        "loadFailedTitle": "Referenssejäsi ei voitu ladata",
         "tryAgain": "Yritä uudelleen",
-        "loadFailureSummary": "Kuvakäsikirjoituksen entiteettikirjaston lataus epäonnistui",
-        "loadFailedFallback": "Entiteettikirjasto ei latautunut. Yritä uudelleen tai ohita tämä vaihe.",
-        "emptyTitle": "Ei vielä entiteettejä",
+        "loadFailureSummary": "Kuvakäsikirjoituksen referenssikirjaston lataus epäonnistui",
+        "loadFailedFallback": "Referenssikirjasto ei latautunut. Yritä uudelleen tai ohita tämä vaihe.",
+        "emptyTitle": "Ei vielä referenssejä",
         "emptyDescription": "Luo entiteetti luodusta tai ladatusta kuvasta tai ohita tämä vaihe.",
-        "searchPlaceholder": "Hae entiteettejä",
+        "searchPlaceholder": "Hae referenssejä",
         "selectedOnly": "Vain valitut",
-        "noEntitiesSelected": "Entiteettejä ei ole valittu",
-        "noMatchingEntities": "Ei vastaavia entiteettejä",
+        "noEntitiesSelected": "Ei valittuja referenssejä",
+        "noMatchingEntities": "Ei vastaavia referenssejä",
         "noSelectedDescription": "Selaa kirjastoasi ja valitse referenssit tähän kuvakäsikirjoitukseen.",
         "noMatchingDescription": "Kokeile toista nimeä tai muuta valintasuodatinta.",
         "viewReferenceImage": "Näytä entiteetin {{name}} referenssikuva",
         "selectEntity": "{{name}} · {{kind}}",
         "noDescription": "Ei kuvausta",
         "assignEachShot": "Määritä jokaiselle otokselle",
-        "assignDescription": "Poista entiteetti otoksista, joissa sen ei pitäisi näkyä.",
+        "assignDescription": "Poista referenssi otoksista, joissa sen ei pidä näkyä.",
         "shotNumber": "Otos {{number}}",
         "groups": {
           "characters": "Hahmot",
@@ -6326,7 +6326,7 @@
         "actionLabel": "Kopioi {{name}} toiseen projektiin",
         "title": "Kopioi {{name}}",
         "confirm": "Kopioi",
-        "description": "Viitatut aineistot, entiteetit ja tuetut dokumentit kopioidaan kohteeseen. Lähde pysyy ennallaan.",
+        "description": "Linkitetyt tiedostot, referenssit ja tuetut dokumentit kopioidaan kohteeseen. Lähde ei muutu.",
         "destinationProject": "Kohdeprojekti"
       },
       "documents": {
@@ -6371,7 +6371,7 @@
         "openChatError": "Keskustelua ei voitu avata: {{error}}",
         "startFlowError": "Kulkua {{flow}} ei voitu aloittaa: {{error}}",
         "flowNames": {
-          "entity": "entiteetti",
+          "entity": "referenssi",
           "storyboard": "kuvakäsikirjoitus",
           "video": "video",
           "script": "käsikirjoitus",
@@ -6382,9 +6382,9 @@
         },
         "attachedFileCount_one": "{{count}} liitetty tiedosto",
         "attachedFileCount_other": "{{count}} liitettyä tiedostoa",
-        "singleEntity": "entiteetti {{name}}",
-        "entityCount_one": "{{count}} entiteetti",
-        "entityCount_other": "{{count}} entiteettiä",
+        "singleEntity": "referenssi {{name}}",
+        "entityCount_one": "{{count}} referenssi",
+        "entityCount_other": "{{count}} referenssiä",
         "uncarriedContext": "Kulku {{flow}} alkaa kehotteestasi, joten {{items}} jäävät tälle näytölle. Lisää ne kulun omassa vaiheessa.",
         "documentNames": {
           "storyboard": "Uusi kuvakäsikirjoitus",
@@ -6394,11 +6394,11 @@
           "workflow": "Uusi työnkulku",
           "app": "Uusi sovellus",
           "game": "Uusi peli",
-          "entity": "Uusi entiteetti"
+          "entity": "Uusi referenssi"
         },
         "entryCards": {
           "entity": {
-            "title": "Entiteetti",
+            "title": "Referenssi",
             "description": "Luo uudelleenkäytettävä hahmo, paikka, tyyli tai rekvisiitta."
           },
           "storyboard": {
@@ -6461,13 +6461,13 @@
         "heading": "Mitä haluaisit luoda?",
         "intro": "Muuta idea kuviksi, videoiksi, sovelluksiksi ja työnkuluiksi. Kysy kysymys tai kuvaile, mitä tehdä.",
         "chatPromptLabel": "Keskustelun kehote",
-        "promptPlaceholder": "Kuvaile, mitä haluat luoda. Kirjoita / taidolle, @ tiedostolle tai entiteetille.",
+        "promptPlaceholder": "Kuvaile, mitä haluat luoda. Kirjoita / taidolle, @ tiedostolle tai referenssille.",
         "removeReference": "Poista {{name}}",
         "attachFiles": "Liitä tiedostoja",
         "attachedFileCountShort_one": "Tiedostot · {{count}}",
         "attachedFileCountShort_other": "Tiedostot · {{count}}",
-        "entitiesNone": "Entiteetit · ei yhtään",
-        "entitiesSelected": "Entiteetit · {{entities}}",
+        "entitiesNone": "Referenssit · ei yhtään",
+        "entitiesSelected": "Referenssit · {{entities}}",
         "selectedModel": "Malli · {{name}}",
         "selectModel": "Valitse malli",
         "sendToChat": "Lähetä keskusteluun",
@@ -6487,7 +6487,7 @@
         "blankDocumentDescription": "— avautuu irralliseksi välilehdeksi, minkään projektin ulkopuolelle",
         "browseExamples": "Selaa esimerkkejä",
         "tutorials": "Opetusohjelmat",
-        "entitiesDialogTitle": "Tämän projektin entiteetit",
+        "entitiesDialogTitle": "Tämän projektin referenssit",
         "blankStoryboard": "Tyhjä kuvakäsikirjoitus",
         "renderedExampleShots_one": "{{count}} otos, jo renderöity",
         "renderedExampleShots_other": "{{count}} otosta, jo renderöity",
@@ -6594,7 +6594,17 @@
           "script": "Tee käsikirjoitukseksi",
           "ask": "Kysy niistä",
           "askPrompt": "Katso liitetyt tiedostot ja ehdota, mitä voisin tehdä niistä."
-        }
+        },
+        "entitiesHint": "Hahmot, paikat, tyylit ja rekvisiitta, joita käytät uudelleen, jotta ne näyttävät samoilta jokaisessa kuvassa ja videossa.",
+        "goalHints": {
+          "chat": "Kysy kysymys tai mieti ideaa. Vastaus näkyy keskusteluna.",
+          "image": "Kuvaile kuva. Lähetä avaa kuvatyökalun tekstisi kanssa.",
+          "video": "Kuvaile lyhyt leike. Lähetä avaa videotyökalun tekstisi kanssa.",
+          "audio": "Kirjoita kuultava teksti. Lähetä avaa puhetyökalun, joka lukee sen ääneen."
+        },
+        "showAllWays": "Näytä kaikki aloitustavat",
+        "showAllWaysHint": "Studiot, taidot, valmiit esimerkit, projektisi ja tyhjät dokumentit",
+        "needHelp": "Uusi NodeToolissa? Katso opetusvideo tai avaa esimerkki, joka toimii sellaisenaan."
       }
     }
   },
@@ -6971,7 +6981,7 @@
         "title": "Vaihdetaanko kulkua?",
         "confirm": "Hylkää ja valitse",
         "cancel": "Säilytä tämä luonnos",
-        "description": "Kuvauksesi sekä viitteet ja entiteetit, joilla aloitit, siirtyvät seuraavaksi valitsemaasi kulkuun. Tämä {{flow}}-luonnos hylätään yhdessä kaiken muun tässä vaiheessa lisätyn kanssa, kuten luovan kontekstin, tuotujen tiedostojen ja sijoitetun median. Sille ei ole vielä generoitu mitään."
+        "description": "Briefisi sekä kuvat ja referenssit, joilla aloitit, siirtyvät seuraavaksi valitsemaasi prosessiin. Tämä {{flow}}-luonnos hylätään kaiken tässä vaiheessa lisätyn kanssa, kuten luovan kontekstin, tuotujen tiedostojen ja sijoitetun median. Sille ei ole vielä luotu mitään."
       }
     },
     "setupFooterField": {
@@ -7009,12 +7019,12 @@
     },
     "entityDetails": {
       "title": "Minkä pitäisi pysyä johdonmukaisena?",
-      "description": "Anna entiteetille pysyvä nimi ja kuvaus, jota generointikehotteet käyttävät uudelleen.",
+      "description": "Anna referenssille pysyvä nimi ja kuvaus, jota luontikehotteet käyttävät uudelleen.",
       "fields": {
-        "kind": "Entiteetin tyyppi",
+        "kind": "Referenssin tyyppi",
         "name": "Nimi",
         "descriptor": "Kuvaus",
-        "descriptorHelp": "Tämä teksti lisätään jokaiseen kehotteeseen, joka käyttää entiteettiä. Kuvaile vain pysyviä visuaalisia piirteitä.",
+        "descriptorHelp": "Tämä teksti lisätään jokaiseen referenssiä käyttävään kehotteeseen. Kuvaile vain pysyviä visuaalisia piirteitä.",
         "tagsOptional": "Tunnisteet (valinnainen)"
       },
       "placeholders": {
@@ -7110,9 +7120,9 @@
   },
   "pass3_5": {
     "entity": {
-      "title": "Entiteetti",
+      "title": "Referenssi",
       "defaults": {
-        "untitledName": "Nimetön entiteetti",
+        "untitledName": "Nimetön referenssi",
         "untitledReferenceFile": "Nimeton.png"
       },
       "kinds": {
@@ -7124,38 +7134,38 @@
       "errors": {
         "canvasUnavailable": "Tyhjää viitekuvaa ei voitu luoda, koska kangas ei ole käytettävissä.",
         "blankImageFailed": "Tyhjää viitekuvaa ei voitu renderöidä.",
-        "blankStart": "Tyhjää entiteettiä ei voitu aloittaa: {{detail}}",
-        "referenceRequired": "Valitse viitekuva ennen entiteetin luomista.",
-        "createdEntityUnreadable": "Entiteettiä ei voitu lukea sen luomisen jälkeen."
+        "blankStart": "Tyhjää referenssiä ei voitu aloittaa: {{detail}}",
+        "referenceRequired": "Valitse kuva ennen referenssin luomista.",
+        "createdEntityUnreadable": "Referenssiä ei voitu lukea luomisen jälkeen."
       },
       "steps": {
         "details": {
           "label": "Tiedot",
           "primary": "Valitse viitekuva",
           "blocked": {
-            "name": "Nimeä entiteetti",
+            "name": "Nimeä referenssi",
             "descriptor": "Kuvaile säilytettävät piirteet"
           },
           "pending": "Valmistellaan tyhjää viitekuvaa"
         },
         "reference": {
           "label": "Viitekuva",
-          "primary": "Tarkista entiteetti",
+          "primary": "Tarkista referenssi",
           "blocked": {
-            "libraryError": "Entiteettikirjastoasi ei voitu tarkistaa",
-            "libraryLoading": "Ladataan entiteettikirjastoasi",
+            "libraryError": "Referenssikirjastoasi ei voitu tarkistaa",
+            "libraryLoading": "Ladataan referenssikirjastoasi",
             "reference": "Valitse viitekuva"
           }
         },
         "review": {
           "label": "Tarkistus",
-          "primary": "Luo entiteetti",
-          "pending": "Luodaan entiteettiäsi",
+          "primary": "Luo referenssi",
+          "pending": "Luodaan referenssiä",
           "blocked": {
-            "libraryError": "Entiteettikirjastoasi ei voitu tarkistaa",
-            "libraryLoading": "Ladataan entiteettikirjastoasi",
+            "libraryError": "Referenssikirjastoasi ei voitu tarkistaa",
+            "libraryLoading": "Ladataan referenssikirjastoasi",
             "reference": "Palaa takaisin ja valitse viitekuva",
-            "name": "Palaa takaisin ja nimeä entiteetti",
+            "name": "Palaa takaisin ja nimeä referenssi",
             "descriptor": "Palaa takaisin ja kuvaile säilytettävät piirteet"
           }
         }
@@ -7165,7 +7175,7 @@
         "description": "Valitse kuva, joka näyttää selkeimmin piirteet, jotka haluat tulevien generointien säilyttävän, tai luo sellainen tekoälyllä.",
         "imageCaption": "{{name}} – viitekuva",
         "selectedCaption": "Valittu viitekuva",
-        "selectedAlt": "Valittu entiteetin viitekuva",
+        "selectedAlt": "Valittu referenssikuva",
         "assets": {
           "unavailable": "Aineistot eivät ole käytettävissä",
           "loading": "Ladataan aineistoja",
@@ -7191,7 +7201,7 @@
         "errors": {
           "noImage": "Kuvamalli ei palauttanut viitekuvaa.",
           "generationFailed": "Viitekuvaa ei voitu generoida.",
-          "reportSummary": "Entiteetin viitekuvan generointi epäonnistui"
+          "reportSummary": "Referenssikuvan luonti epäonnistui"
         },
         "prompt": {
           "template": "Viitekuva kohteesta {{name}}. {{descriptor}} {{instruction}}",
@@ -7244,12 +7254,12 @@
         }
       },
       "review": {
-        "title": "Tarkista entiteettisi",
-        "description": "Tämä viitekuva ja kuvaus ovat käytettävissä kaikkialla, minne entiteettejä voi lisätä.",
+        "title": "Tarkista referenssisi",
+        "description": "Tämä referenssi ja kuvaus ovat käytettävissä kaikkialla, missä referenssejä voi lisätä.",
         "imageCaption": "{{name}} – viitekuva",
         "imageAlt": "{{name}} – viitekuva",
         "tags": "Tunnisteet: {{tags}}",
-        "loadingLibrary": "Ladataan entiteettikirjastoasi…",
+        "loadingLibrary": "Ladataan referenssikirjastoasi…",
         "empty": {
           "title": "Ei vielä viitekuvaa",
           "description": "Palaa viitekuvavaiheeseen ja valitse tai generoi kuva."
@@ -7406,7 +7416,7 @@
         "uploadFailed": "Kuvan lataus epäonnistui",
         "promptContext": "Tuli kehotteesi mukana",
         "referenceImages": "Viitekuvat",
-        "entities": "Entiteetit",
+        "entities": "Referenssit",
         "referencesHelp": "Vaiheittainen kuvaus lukee nämä. Välitön generointi käyttää vain tekstiäsi.",
         "entitiesHelp": "Nämä pysyvät dokumentin mukana, kun määrität sitä.",
         "alternativesLabel": "Muita tapoja aloittaa"
@@ -7416,11 +7426,11 @@
         "downloadUnreadable": "Tiedostoa ei voitu lukea ({{status}}).",
         "variation": "Muunnelma {{number}}",
         "unrecordedFailure": "Tämä ei renderöitynyt eikä antanut syytä.",
-        "savingEntity": "Tallennetaan entiteetteihin…",
+        "savingEntity": "Tallennetaan referensseihin…",
         "opening": "Avataan…",
-        "savedEntity": "Tallennettu entiteetteihin.",
+        "savedEntity": "Tallennettu referensseihin.",
         "openedCanvas": "Avattu uudella solmukankaalla.",
-        "saveEntityFailed": "Entiteetteihin tallentaminen epäonnistui.",
+        "saveEntityFailed": "Referensseihin ei voitu tallentaa.",
         "openCanvasFailed": "Kangasta ei voitu avata.",
         "heading": "Valitse kuvasi",
         "intro": "Jokainen muunnelma säilyy dokumentissa, joten mitään renderöimääsi ei menetetä.",
@@ -7439,7 +7449,7 @@
           "failed": "Tämä epäonnistui"
         },
         "sketchEditor": "Luonnoseditori",
-        "saveToEntities": "Tallenna entiteetteihin",
+        "saveToEntities": "Tallenna referensseihin",
         "newNodeCanvas": "Uusi solmukangas",
         "imageToVideo": "Kuvasta videoksi",
         "retryVariation": "Yritä uudelleen: {{label}}",
@@ -7672,8 +7682,8 @@
       "sourceLineCount_other": "{{count}} riviä",
       "referenceCount_one": "{{count}} viite",
       "referenceCount_other": "{{count}} viitettä",
-      "entityCount_one": "{{count}} entiteetti",
-      "entityCount_other": "{{count}} entiteettiä"
+      "entityCount_one": "{{count}} referenssi",
+      "entityCount_other": "{{count}} referenssiä"
     },
     "review": {
       "addDirection": "Lisää ohje",
@@ -8070,14 +8080,14 @@
       "addOwnDisabledReason": "Omat tyylit lisätään taulua määritettäessä."
     },
     "entityStillModelWarning": {
-      "message": "Entiteeteillä on viitekuvia, mutta tämä malli ottaa vain tekstiä. Valitse kuvasta kuvaan -malli käyttääksesi niitä."
+      "message": "Referensseissä on kuvia, mutta tämä malli ottaa vain tekstiä. Valitse kuvasta kuvaan -malli käyttääksesi niitä."
     }
   },
   "screens4_13": {
     "storyboard": {
       "entityTiles": {
         "untitled": "Nimetön",
-        "chooseEntities": "Valitse entiteetit"
+        "chooseEntities": "Valitse referenssit"
       },
       "oneTake": {
         "title": "Yksi otto",
@@ -8092,7 +8102,7 @@
         "referenceStills": "Otosten stillkuvat",
         "referenceEntities": "Näyttelijät ja tapahtumapaikat",
         "referenceStillsHelp": "Kunkin otoksen stillkuva lukitsee sen rajauksen ja asennon. Paras rauhallisille otoksille.",
-        "referenceEntitiesHelp": "Entiteettien kuvat lukitsevat kuka ja missä. Otoksen teksti määrää rajauksen ja liikkeen. Paras toiminnalle.",
+        "referenceEntitiesHelp": "Referenssit määräävät kuka ja missä. Otoksen teksti määrää rajauksen ja liikkeen. Paras toimintaan.",
         "duration": "Kesto",
         "aspectRatio": "Kuvasuhde",
         "resolution": "Resoluutio",
@@ -8124,7 +8134,7 @@
         "blockers": {
           "addShot": "Lisää ensin otos tauluun.",
           "renderStill": "Renderöi stillkuva vähintään yhdelle otokselle.",
-          "addEntityImage": "Anna ensin jollekin taulun entiteetille viitekuva.",
+          "addEntityImage": "Anna ensin taululla olevalle referenssille kuva.",
           "noModel": "Videomallia ei ole valittu.",
           "imageLimit_one": "{{count}} kuva ylittää rajan {{limit}}. Poista {{removeCount}}.",
           "imageLimit_other": "{{count}} kuvaa ylittää rajan {{limit}}. Poista {{removeCount}}.",
@@ -8180,9 +8190,9 @@
         "shotStillAlt": "Otoksen stillkuva",
         "imageReference": "[Image {{number}}] ",
         "references": "Viitekuvat",
-        "referencesHelp": "Stillkuvat määräävät rajauksen ja asennon. Entiteettikuvat määräävät, kuka ja missä.",
+        "referencesHelp": "Pysäytyskuvat määräävät rajauksen ja asennon. Referenssit määräävät kuka ja missä.",
         "stills": "Stillkuvat",
-        "entities": "Entiteetit",
+        "entities": "Referenssit",
         "addEntity": "Lisää kirjastosta",
         "noStill": "Ei stillkuvaa",
         "noEntityImage": "Ei kuvaa",
@@ -8197,7 +8207,7 @@
           "differentScenes": "Tämän kohtausleikkeen otokset eivät ole enää samassa kohtauksessa.",
           "addShot": "Lisää ensin otos tauluun.",
           "renderStill": "Renderöi stillkuva vähintään yhdelle otokselle.",
-          "addEntityImage": "Anna ensin jollekin taulun entiteetille viitekuva.",
+          "addEntityImage": "Anna ensin taululla olevalle referenssille kuva.",
           "noReference": "Valitse vähintään yksi viitekuva.",
           "noVideoModel": "Videomallia ei ole valittu.",
           "imageLimit": "{{imageCount}} kuvaa ylittää rajan {{limit}}. Poista {{remove}}.",
@@ -8281,8 +8291,8 @@
       "shotEntitiesField": {
         "label": "Tässä otoksessa",
         "remove": "Poista {{name}} tästä otoksesta",
-        "empty": "Ei vielä entiteettejä. Valitse hahmo, tapahtumapaikka, tyyli tai rekvisiitta pitääksesi sen yhtenäisenä tässä otoksessa.",
-        "newEntity": "Uusi entiteetti"
+        "empty": "Ei vielä referenssejä. Valitse hahmo, paikka, tyyli tai rekvisiitta, jotta se pysyy samana tässä otoksessa.",
+        "newEntity": "Uusi referenssi"
       },
       "shotGraphicsEditor": {
         "title": "Grafiikka",
@@ -8298,7 +8308,7 @@
         "exactText": "Tarkka teksti: {{id}}",
         "protectedCopy": "Suojattu teksti tulee tuotannon syötteistä. Muokkaa sitä siellä.",
         "assetReference": "Aineistoviite: {{id}}",
-        "entity": "Entiteetti: {{id}}",
+        "entity": "Referenssi: {{id}}",
         "graphicNotes": "Grafiikkahuomiot: {{id}}",
         "defaultText": "Tekstisi",
         "addText": "Lisää teksti",
@@ -8396,7 +8406,7 @@
         "clipTask": {
           "image_to_video": "Animoi stillkuvat",
           "text_to_video": "Luo kehotteista",
-          "reference_to_video": "Käytä entiteettiviitteitä"
+          "reference_to_video": "Käytä referenssejä"
         }
       },
       "shotScript": {
@@ -8662,6 +8672,10 @@
       "loadingImages": "Ladataan kuvia",
       "noImages": "Ei kuvia",
       "noImagesDescription": "Luo tai lataa ensin kuva.",
+      "uploadImage": "Lataa kuva",
+      "uploading": "Ladataan…",
+      "uploadFailed": "Kuvaa ei ladattu. Yritä uudelleen.",
+      "noImagesUploadDescription": "Lataa siitä kuva tietokoneeltasi tai luo ensin kuva.",
       "pickImage": "Valitse kuva {{name}}",
       "closeDialog": "Sulje valintaikkuna",
       "noImage": "Ei kuvaa",
@@ -8672,11 +8686,11 @@
         "style": "Tyyli",
         "prop": "Rekvisiitta"
       },
-      "editEntity": "Muokkaa entiteettiä",
+      "editEntity": "Muokkaa referenssiä",
       "editEntityFor": "Muokkaa: {{name}}",
-      "removeEntity": "Poista entiteetti",
+      "removeEntity": "Poista referenssi",
       "removeEntityFor": "Poista: {{name}}",
-      "newEntity": "Uusi entiteetti",
+      "newEntity": "Uusi referenssi",
       "save": "Tallenna",
       "cancel": "Peruuta",
       "create": "Luo",
@@ -8685,33 +8699,33 @@
       "kind": "Tyyppi",
       "name": "Nimi",
       "descriptor": "Kuvaus",
-      "descriptorHelp": "Kuvaile sen ulkonäkö yhdellä lauseella. Jokainen tätä entiteettiä käyttävä kehote sisältää tämän tekstin täsmälleen kirjoitetussa muodossa.",
+      "descriptorHelp": "Kuvaile ulkonäkö yhdellä lauseella. Jokainen tätä referenssiä käyttävä kehote sisältää tekstin sellaisenaan.",
       "voiceId": "Äänen tunnus (valinnainen)",
       "tags": "Tunnisteet (pilkuilla erotettuna)",
-      "saveFailed": "Entiteettiä ei voitu tallentaa. Tarkista yhteys ja yritä uudelleen.",
-      "loadingEntities": "Ladataan entiteettejä",
-      "emptyTitle": "Ei vielä entiteettejä",
-      "libraryEmptyDescription": "Lisää kuva hahmona, tapahtumapaikkana, tyylinä tai rekvisiittana käyttääksesi sitä uudelleen eri otoksissa. Voit myös napsauttaa kuvaa hiiren oikealla painikkeella kirjastossa ja valita Käytä entiteettinä.",
-      "addEntity": "Lisää entiteetti",
-      "backToEntities": "Takaisin entiteetteihin",
-      "entitiesLabel": "Entiteetit",
+      "saveFailed": "Referenssiä ei voitu tallentaa. Tarkista yhteys ja yritä uudelleen.",
+      "loadingEntities": "Ladataan referenssejä",
+      "emptyTitle": "Ei vielä referenssejä",
+      "libraryEmptyDescription": "Lisää kuva hahmoksi, paikaksi, tyyliksi tai rekvisiitaksi, niin voit käyttää sitä useissa otoksissa. Voit myös napsauttaa kuvaa Kirjastossa hiiren oikealla ja valita Käytä referenssinä.",
+      "addEntity": "Lisää referenssi",
+      "backToEntities": "Takaisin referensseihin",
+      "entitiesLabel": "Referenssit",
       "librarySubtitle": "Uudelleenkäytettävät hahmot, tapahtumapaikat, tyylit ja rekvisiitat",
       "retakeImage": "Luo uusi"
     }
   },
   "screens4_23": {
     "entities": {
-      "newEntity": "Uusi entiteetti",
-      "loading": "Ladataan entiteettejä",
-      "emptyTitle": "Ei vielä entiteettejä",
-      "panelEmptyDescription": "Merkitse kuva hahmoksi, tapahtumapaikaksi, tyyliksi tai rekvisiitaksi yllä olevalla +-painikkeella, tai napsauta kuvaa hiiren oikealla painikkeella kirjastossa ja valitse Käytä entiteettinä.",
+      "newEntity": "Uusi referenssi",
+      "loading": "Ladataan referenssejä",
+      "emptyTitle": "Ei vielä referenssejä",
+      "panelEmptyDescription": "Merkitse kuva hahmoksi, paikaksi, tyyliksi tai rekvisiitaksi yllä olevalla +-painikkeella tai napsauta kuvaa Kirjastossa hiiren oikealla ja valitse Käytä referenssinä.",
       "emptyPickerDescription": "Luomasi hahmot, tapahtumapaikat, tyylit ja rekvisiitat näkyvät tässä.",
-      "noMatches": "Ei vastaavia entiteettejä",
+      "noMatches": "Mikään referenssi ei vastaa",
       "noMatchesDescription": "Kokeile toista nimeä, tyyppiä tai tunnistetta.",
       "untitled": "Nimetön",
-      "searchPlaceholder": "Hae entiteettejä nimen, tyypin tai tunnisteen mukaan",
-      "searchLabel": "Hae entiteettejä",
-      "kindLabel": "Entiteetin tyyppi",
+      "searchPlaceholder": "Hae referenssejä nimen, lajin tai tunnisteen mukaan",
+      "searchLabel": "Hae referenssejä",
+      "kindLabel": "Referenssin laji",
       "kindFilters": {
         "all": "Kaikki",
         "characters": "Hahmot",
@@ -8725,10 +8739,10 @@
         "style": "Tyyli",
         "prop": "Rekvisiitta"
       },
-      "entitiesLabel": "Entiteetit",
-      "selectedCount_one": "{{formattedCount}} entiteetti valittu",
-      "selectedCount_other": "{{formattedCount}} entiteettiä valittu",
-      "pickTitle": "Valitse entiteetti",
+      "entitiesLabel": "Referenssit",
+      "selectedCount_one": "{{formattedCount}} referenssi valittu",
+      "selectedCount_other": "{{formattedCount}} referenssiä valittu",
+      "pickTitle": "Valitse referenssi",
       "done": "Valmis"
     }
   },
@@ -9406,6 +9420,18 @@
         "gemini": {
           "description": "Käyttää Gemini-avaintasi. Vastaa tekstinä ja viittaa lukemiinsa sivuihin.",
           "keyLink": "Hanki Gemini API-avain"
+        },
+        "antigravity": {
+          "description": "Hakee Googlesta tämän koneen Antigravity-komentorivityökalulla. Avainta ei tarvita: kirjaudu sisään ajamalla agy kerran.",
+          "keyLink": "Ota Antigravity-komentorivityökalu käyttöön"
+        },
+        "codex": {
+          "description": "Hakee verkosta OpenAI:n haulla ChatGPT-kirjautumisellasi Codexiin. API-avainta ei tarvita.",
+          "keyLink": "Kirjaudu Codexiin kohdassa Mallit ja palveluntarjoajat"
+        },
+        "claude": {
+          "description": "Hakee verkosta tämän koneen Claude Code -komentorivityökalulla Claude-tilauksellasi. Avainta ei tarvita: kirjaudu sisään ajamalla claude kerran.",
+          "keyLink": "Ota Claude Code käyttöön"
         }
       }
     },
@@ -10129,9 +10155,9 @@
     "shotDesignFrame": {
       "ariaLabel": "Otoksen {{shot}} suunnitelman esikatselu",
       "errors": {
-        "entityAssetMismatch": "Entiteetin {{entityId}} aineisto ei vastaa valittua entiteettiä.",
-        "entitySourceMismatch": "Lähde-elementti {{elementId}} ei vastaa tätä entiteettiä.",
-        "missingEntityReference": "Entiteetti {{entityId}} puuttuu kuvakäsikirjoituksesta.",
+        "entityAssetMismatch": "Referenssin {{entityId}} tiedosto ei vastaa valittua referenssiä.",
+        "entitySourceMismatch": "Lähde-elementti {{elementId}} ei vastaa tätä referenssiä.",
+        "missingEntityReference": "Referenssi {{entityId}} puuttuu kuvakäsikirjoituksesta.",
         "unavailable": "Otoksen esikatselu ei ole saatavilla."
       },
       "pause": "Keskeytä esikatselu",
@@ -10214,7 +10240,7 @@
         "takes": "Otot"
       },
       "title": "Kohtaus {{scene}}, otos {{shot}}",
-      "untitledEntity": "Nimetön entiteetti"
+      "untitledEntity": "Nimetön referenssi"
     },
     "shotEditTable": {
       "camera": {
@@ -10857,8 +10883,8 @@
       "sketches": "Luonnokset",
       "timelines": "Aikajanat",
       "storyboards": "Kuvakäsikirjoitukset",
-      "entities": "Entiteetit",
-      "openEntitiesFullPage": "Avaa entiteetit koko sivulla",
+      "entities": "Referenssit",
+      "openEntitiesFullPage": "Avaa referenssit koko sivulle",
       "examples": "Esimerkit",
       "scripts": "Käsikirjoitukset",
       "jsScripts": "JS-skriptit",
@@ -10882,7 +10908,7 @@
         "sketches": "Luonnokset",
         "scripts": "Käsikirjoitukset",
         "storyboards": "Kuvakäsikirjoitukset",
-        "entities": "Entiteetit",
+        "entities": "Referenssit",
         "examples": "Esimerkit",
         "timelines": "Aikajanat",
         "jsScripts": "JS-skriptit",
@@ -11612,7 +11638,9 @@
         "directionalLight": "Suuntavalo",
         "pointLight": "Pistevalo",
         "spotLight": "Kohdevalo",
-        "empty": "Tyhjä objekti"
+        "empty": "Tyhjä objekti",
+        "figure": "Hahmo",
+        "camera": "Kamera"
       },
       "loading": {
         "saving": "Tallennetaan…",
@@ -11833,6 +11861,29 @@
       "decay": "Vaimeneminen",
       "angle": "Kulma",
       "penumbra": "Puolivarjo",
+      "figure": "Hahmo",
+      "figureBody": "Vartalo",
+      "figureBodies": {
+        "male": "Mies",
+        "female": "Nainen",
+        "child": "Lapsi"
+      },
+      "figurePose": "Asento",
+      "figurePoses": {
+        "stand": "Seisoo",
+        "sit": "Istuu",
+        "walk": "Kävelee",
+        "run": "Juoksee",
+        "lie": "Makaa"
+      },
+      "figureHeight": "Pituus",
+      "figureLabel": "Nimiö",
+      "figureEntity": "Roolihahmon tunnus",
+      "camera": "Kamera",
+      "cameraFov": "Näkökenttä",
+      "cameraAspect": "Kuvasuhde",
+      "cameraNear": "Lähi",
+      "cameraFar": "Kauko",
       "geometry": "Geometria",
       "material": "Materiaali",
       "slot": "Paikka",
@@ -13528,7 +13579,7 @@
         "selectModel": "Valitse malli",
         "attach": {
           "assetsTab": "Aineistot",
-          "entitiesTab": "Entiteetit",
+          "entitiesTab": "Referenssit",
           "documentsTab": "Dokumentit",
           "uploadTab": "Lataa",
           "tabsLabel": "Mitä lisätään",
@@ -14281,7 +14332,7 @@
         "creative": "Luovat dokumentit",
         "text": "Tekstitiedostot",
         "agents": "Agentit ja koodi",
-        "entities": "Entiteetit",
+        "entities": "Referenssit",
         "shared": "Jaettu minulle",
         "cloud": "Pilvi",
         "cloudShared": "Jaettu minulle"
@@ -14293,7 +14344,7 @@
         "script": "Käsikirjoitus",
         "storyboard": "Kuvakäsikirjoitus",
         "timeline": "Aikajana",
-        "entity": "Entiteetti",
+        "entity": "Referenssi",
         "jsscript": "JS-skripti",
         "game": "Peli",
         "text": "Tekstitiedosto"
@@ -14302,7 +14353,7 @@
       "deleteFailure": "Kohteen {{name}} poistaminen epäonnistui: {{error}}",
       "unknownError": "Tuntematon virhe",
       "deleteConfirmTitle": "Poistetaanko {{type}}?",
-      "deleteEntityDescription": "\"{{name}}\" ei ole enää entiteetti. Sen aineisto säilytetään.",
+      "deleteEntityDescription": "”{{name}}” ei ole enää referenssi. Sen tiedosto säilyy.",
       "deleteDescription": "\"{{name}}\" poistetaan pysyvästi.",
       "deleteAction": "Poista",
       "cancel": "Peruuta",
@@ -14382,8 +14433,8 @@
       "noRecentAssets": "Ei vielä tiedostoja. Liitä tai vedä tiedosto tähän.",
       "noAssetsMatch": "Mikään aineisto ei vastaa.",
       "noSavedAssets": "Ei vielä tallennettuja aineistoja.",
-      "noEntitiesMatch": "Ei vastaavia entiteettejä.",
-      "entities": "Entiteetit",
+      "noEntitiesMatch": "Mikään referenssi ei vastaa.",
+      "entities": "Referenssit",
       "assetSource": "Aineiston lähde",
       "rename": "Nimeä {{name}} uudelleen",
       "assetName": "Aineiston nimi",
@@ -15074,8 +15125,8 @@
       "error": "Virhe: {{error}}"
     },
     "entity": {
-      "add": "Lisää entiteetti",
-      "pick": "Valitse entiteetti",
+      "add": "Lisää referenssi",
+      "pick": "Valitse referenssi",
       "untitled": "Nimetön"
     },
     "collection": {
@@ -16145,7 +16196,7 @@
       "sketches": "Luonnokset",
       "scripts": "Käsikirjoitukset",
       "storyboards": "Kuvakäsikirjoitukset",
-      "entities": "Entiteetit",
+      "entities": "Referenssit",
       "examples": "Esimerkit",
       "timelines": "Aikajanat",
       "jsscripts": "JS-skriptit",
@@ -16280,7 +16331,7 @@
         "models": "Mallien hallinta",
         "packages": "Pakettien hallinta",
         "collections": "Kokoelmat",
-        "entities": "Entiteetit",
+        "entities": "Referenssit",
         "memory": "Muisti",
         "settings": "Asetukset",
         "effects": "Tehosteet",
@@ -17182,14 +17233,14 @@
   },
   "i18n-next62": {
     "scriptCastPanel": {
-      "noEntity": "Ei entiteettiä",
+      "noEntity": "Ei referenssiä",
       "noVoice": "Ei ääntä",
       "speakerName": "Puhujan nimi",
       "hideVoiceSettings": "Piilota ääniasetukset",
       "voiceSettings": "Ääniasetukset",
-      "linkedEntityMissing": "Linkitetty entiteetti puuttuu",
-      "linkedEntity": "Linkitetty entiteetti",
-      "linkedEntityNotFound": "Linkitettyä entiteettiä ei löydy — se on poistettu. Valitse toinen tai tyhjennä valinta.",
+      "linkedEntityMissing": "Linkitetty referenssi puuttuu",
+      "linkedEntity": "Linkitetty referenssi",
+      "linkedEntityNotFound": "Linkitettyä referenssiä ei löydy – se on poistettu. Valitse toinen tai tyhjennä kenttä.",
       "removeSpeaker": "Poista puhuja",
       "speakerDefaultName": "Puhuja {{count}}",
       "cast": "Roolitus",
@@ -17398,9 +17449,9 @@
         "imageLabel": "Kuva {{index}}",
         "noImages": "Lisää kuvia, joihin leike perustuu.",
         "addImage": "Lisää kuva",
-        "entitiesLabel": "Entiteetit",
+        "entitiesLabel": "Referenssit",
         "entitiesEmpty": "Valitse hahmo, paikka, tyyli tai rekvisiitta pitääksesi sen yhtenäisenä leikkeessä.",
-        "newEntity": "Uusi entiteetti",
+        "newEntity": "Uusi referenssi",
         "pickImageTitle": "Valitse viitekuva"
       },
       "transcript": {
@@ -20090,8 +20141,8 @@
   "lipsync": {
     "title": "Huulisynkronointi",
     "subtitle": "Anna kuvan puhua valitsemallasi äänellä.",
-    "entity": "Valitse entiteetti",
-    "entityImage": "Valitse entiteetti, jolla on tallennettu viitekuva, tai lataa kuva.",
+    "entity": "Valitse referenssi",
+    "entityImage": "Valitse referenssi, jolla on tallennettu kuva, tai lataa kuva.",
     "realPerson": "Tämä on oikea henkilö",
     "consent": "Minulla on tämän henkilön suostumus käyttää hänen kuvaansa tässä generoidussa videoleikkeessä.",
     "line": "Mitä henkilö sanoo?",
@@ -20591,7 +20642,7 @@
   "storyboardText": {
     "mode": "Teksti",
     "editorLabel": "Kuvakäsikirjoitus Markdown-tekstinä",
-    "hint": "Kirjoita # näytökselle, ## kohtaukselle, ### otokselle ja - **Motion:** kentälle. Kirjoita @ mainitaksesi entiteetin tai kuvan.",
+    "hint": "Kirjoita # näytökselle, ## kohtaukselle, ### otokselle ja - **Motion:** kentälle. Kirjoita @ mainitaksesi referenssin tai kuvan.",
     "issues": "Huomiota vaativat rivit: {{lines}}",
     "loading": "Ladataan tekstiä…",
     "warnings": {
@@ -20627,7 +20678,7 @@
       "instruction": "Pyyntö agentille",
       "send": "Lähetä agentille",
       "failed": "Pyyntö mallille epäonnistui.",
-      "context": "Lähetetty pyynnön mukana: koko kuvakäsikirjoitus, {{shots}} otosta ja kirjaston {{entities}} entiteettiä.",
+      "context": "Lähetetään pyynnön mukana: koko taulu, otokset ({{shots}}) ja kirjaston referenssit ({{entities}}).",
       "quick": {
         "tighten": "Tiivistä",
         "visual": "Visuaalisemmin",

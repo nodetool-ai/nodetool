@@ -2406,10 +2406,11 @@ export type ClipShapeStyle = z.infer<typeof clipShapeStyle>;
  * How a `model3d` clip frames its glTF. `orbit` frames the model's bounding
  * sphere in the vocabulary `nodetool.model3d.RenderToImage`, the Blender bake
  * and the model editor's pose already share; `scene` uses a camera the glTF
- * itself declares and ignores the orbit terms.
+ * itself declares and ignores the orbit terms. `free` places the camera in
+ * world space by `position`, `target`, `rollDeg` and `fovDeg`, with no fit.
  */
 export const clipModel3DCamera = z.object({
-  mode: z.enum(["orbit", "scene"]),
+  mode: z.enum(["orbit", "scene", "free"]),
   azimuthDeg: z.number(),
   elevationDeg: z.number(),
   fovDeg: z.number(),
@@ -2418,7 +2419,16 @@ export const clipModel3DCamera = z.object({
   /** Look-at offset from the bounding-sphere center, in world units. */
   targetOffset: z.tuple([z.number(), z.number(), z.number()]).optional(),
   /** `scene` mode: the glTF camera's name; the first camera when absent. */
-  sceneCameraName: z.string().optional()
+  sceneCameraName: z.string().optional(),
+  /** `free` mode: the camera eye in glTF world units. */
+  position: z.tuple([z.number(), z.number(), z.number()]).optional(),
+  /** `free` mode: the look-at point in glTF world units. */
+  target: z.tuple([z.number(), z.number(), z.number()]).optional(),
+  /**
+   * `free` mode: roll around the view axis in degrees. Positive turns the
+   * horizon clockwise in the picture.
+   */
+  rollDeg: z.number().optional()
 });
 export type ClipModel3DCamera = z.infer<typeof clipModel3DCamera>;
 

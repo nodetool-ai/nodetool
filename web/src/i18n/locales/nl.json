@@ -16,12 +16,12 @@
   },
   "screen_storyboard": {
     "entities": {
-      "pickTitle": "Kies een entiteit",
+      "pickTitle": "Kies een referentie",
       "done": "Klaar",
       "untitled": "Zonder titel",
-      "searchPlaceholder": "Zoek entiteiten op naam, soort of tag",
-      "searchLabel": "Zoek entiteiten",
-      "kindLabel": "Soort entiteit",
+      "searchPlaceholder": "Referenties zoeken op naam, soort of tag",
+      "searchLabel": "Referenties zoeken",
+      "kindLabel": "Soort referentie",
       "kindFilters": {
         "all": "Allemaal",
         "characters": "Karakters",
@@ -29,16 +29,16 @@
         "styles": "Stijlen",
         "props": "Rekwisieten"
       },
-      "loading": "Entiteiten laden",
-      "emptyTitle": "Nog geen entiteiten",
+      "loading": "Referenties laden",
+      "emptyTitle": "Nog geen referenties",
       "emptyPickerDescription": "Personages, locaties, stijlen en rekwisieten die je maakt, worden hier weergegeven.",
-      "newEntity": "Nieuwe entiteit",
-      "noMatches": "Er komen geen entiteiten overeen",
+      "newEntity": "Nieuwe referentie",
+      "noMatches": "Geen referenties gevonden",
       "noMatchesDescription": "Probeer een andere naam, soort of tag.",
-      "entitiesLabel": "Entiteiten",
+      "entitiesLabel": "Referenties",
       "noImage": "Geen afbeelding",
-      "editEntity": "Entiteit bewerken",
-      "removeEntity": "Entiteit verwijderen",
+      "editEntity": "Referentie bewerken",
+      "removeEntity": "Referentie verwijderen",
       "save": "Opslaan",
       "create": "Creëer",
       "image": "Afbeelding",
@@ -52,14 +52,14 @@
       },
       "name": "Naam",
       "descriptor": "Beschrijving",
-      "descriptorHelp": "Hoe het eruit ziet, in één zin. Elke prompt die deze entiteit gebruikt, krijgt deze woord voor woord.",
+      "descriptorHelp": "Hoe het eruitziet, in één zin. Elke prompt die deze referentie gebruikt, krijgt die woord voor woord.",
       "voiceId": "Spraak-ID (optioneel)",
       "tags": "Tags (door komma's gescheiden)",
-      "panelEmptyDescription": "Tag een afbeelding als personage, locatie, stijl of rekwisiet met de knop + hierboven, of klik met de rechtermuisknop op een afbeelding in de bibliotheek en kies Gebruiken als entiteit.",
-      "libraryEmptyDescription": "Tag een afbeelding als personage, locatie, stijl of rekwisiet om deze in verschillende foto's te hergebruiken. Klik in de bibliotheek met de rechtermuisknop op een afbeelding en kies Gebruiken als entiteit.",
-      "addEntity": "Voeg entiteit toe",
+      "panelEmptyDescription": "Markeer een afbeelding als personage, locatie, stijl of rekwisiet met de knop + hierboven, of klik in de Bibliotheek met rechts op een afbeelding en kies Gebruiken als referentie.",
+      "libraryEmptyDescription": "Markeer een afbeelding als personage, locatie, stijl of rekwisiet om die in meerdere shots te hergebruiken. Klik in de Bibliotheek met rechts op een afbeelding en kies Gebruiken als referentie.",
+      "addEntity": "Referentie toevoegen",
       "librarySubtitle": "Herbruikbare personages, locaties, stijlen en rekwisieten",
-      "backToEntities": "Terug naar entiteiten",
+      "backToEntities": "Terug naar referenties",
       "pickImageTitle": "Kies een referentieafbeelding",
       "noImages": "Geen afbeeldingen",
       "noImagesDescription": "Genereer of upload eerst een afbeelding."
@@ -191,7 +191,7 @@
     "sendMediaToWorkflowTooltip": "Voeg de geselecteerde media toe aan een workflowcanvas als constante knooppunten",
     "transformWithWorkflow": "Transformeer met workflow…",
     "transformWithWorkflowTooltip": "Voer dit bestand door een van uw workflows",
-    "useAsEntity": "Gebruiken als entiteit...",
+    "useAsEntity": "Gebruiken als referentie…",
     "useAsEntityTooltip": "Tag deze afbeelding als een personage, locatie, stijl of rekwisiet om deze in verschillende foto's te hergebruiken",
     "editTimeline": "Tijdlijn bewerken",
     "createTimelineFromVideo": "Maak een tijdlijn van video",
@@ -3001,7 +3001,7 @@
       }
     },
     "entity": {
-      "title": "Entiteit",
+      "title": "Referentie",
       "kinds": {
         "character": "karakter",
         "location": "locatie",
@@ -3009,51 +3009,51 @@
         "prop": "prop"
       },
       "defaults": {
-        "untitledName": "Naamloze entiteit",
+        "untitledName": "Naamloze referentie",
         "untitledReferenceFile": "Zonder titel.png"
       },
       "errors": {
         "canvasUnavailable": "Canvas 2D-context niet beschikbaar",
         "blankImageFailed": "Kan lege afbeelding niet weergeven",
-        "blankStart": "Kan geen lege entiteit starten: {{detail}}",
-        "referenceRequired": "Kies een referentieafbeelding voordat u de entiteit maakt.",
-        "createdEntityUnreadable": "De entiteit kon niet worden gelezen nadat deze was gemaakt."
+        "blankStart": "Kan geen lege referentie starten: {{detail}}",
+        "referenceRequired": "Kies een afbeelding voordat je de referentie maakt.",
+        "createdEntityUnreadable": "De referentie kon na het maken niet worden gelezen."
       },
       "steps": {
         "details": {
           "label": "Details",
           "primary": "Kies een referentie",
           "blocked": {
-            "name": "Geef de entiteit een naam",
+            "name": "Geef de referentie een naam",
             "descriptor": "Beschrijf de eigenschappen die behouden moeten blijven"
           },
           "pending": "Een blanco referentie voorbereiden"
         },
         "reference": {
           "label": "Referentie",
-          "primary": "Entiteit beoordelen",
+          "primary": "Referentie controleren",
           "blocked": {
-            "libraryError": "Kan uw entiteitsbibliotheek niet verifiëren",
-            "libraryLoading": "Uw entiteitsbibliotheek laden",
+            "libraryError": "Kan je referentiebibliotheek niet controleren",
+            "libraryLoading": "Je referentiebibliotheek wordt geladen",
             "reference": "Kies een referentieafbeelding"
           }
         },
         "review": {
           "label": "Beoordeling",
-          "primary": "Creëer een entiteit",
-          "pending": "Uw entiteit creëren",
+          "primary": "Referentie maken",
+          "pending": "Je referentie wordt gemaakt",
           "blocked": {
-            "libraryError": "Kan uw entiteitsbibliotheek niet verifiëren",
-            "libraryLoading": "Uw entiteitsbibliotheek laden",
+            "libraryError": "Kan je referentiebibliotheek niet controleren",
+            "libraryLoading": "Je referentiebibliotheek wordt geladen",
             "reference": "Ga terug en kies een referentieafbeelding",
-            "name": "Ga terug en geef de entiteit een naam",
+            "name": "Ga terug en geef de referentie een naam",
             "descriptor": "Ga terug en beschrijf de eigenschappen die u wilt behouden"
           }
         }
       },
       "details": {
         "title": "Wat moet consistent blijven?",
-        "description": "Geef de entiteit een stabiele naam en de aanwijzingen voor het genereren van beschrijvingen moeten opnieuw worden gebruikt.",
+        "description": "Geef de referentie een vaste naam en de beschrijving die generatieprompts moeten hergebruiken.",
         "kinds": {
           "character": {
             "title": "Karakter",
@@ -3073,10 +3073,10 @@
           }
         },
         "fields": {
-          "kind": "Entiteitstype",
+          "kind": "Referentietype",
           "name": "Naam",
           "descriptor": "Beschrijving",
-          "descriptorHelp": "Deze tekst wordt toegevoegd aan elke prompt die de entiteit gebruikt. Beschrijf alleen stabiele visuele kenmerken.",
+          "descriptorHelp": "Deze tekst wordt toegevoegd aan elke prompt die de referentie gebruikt. Beschrijf alleen vaste visuele kenmerken.",
           "tagsOptional": "Labels (optioneel)"
         },
         "placeholders": {
@@ -3098,7 +3098,7 @@
         "description": "Kies het duidelijkste beeld van de eigenschappen die toekomstige generaties moeten behouden, of creëer er een met AI.",
         "imageCaption": "{{name}} referentie",
         "selectedCaption": "Geselecteerde referentie",
-        "selectedAlt": "Geselecteerde entiteitsreferentie",
+        "selectedAlt": "Geselecteerde referentieafbeelding",
         "assets": {
           "unavailable": "Activa niet beschikbaar",
           "loading": "Activa laden",
@@ -3131,7 +3131,7 @@
         "errors": {
           "noImage": "Het afbeeldingsmodel heeft geen referentieafbeelding geretourneerd.",
           "generationFailed": "Het referentiebeeld kon niet worden gegenereerd.",
-          "reportSummary": "Het entiteitsreferentiebeeld kon niet worden gegenereerd"
+          "reportSummary": "Referentieafbeelding kon niet worden gegenereerd"
         },
         "prompt": {
           "template": "Een referentieafbeelding van {{name}}. {{descriptor}} {{instruction}}",
@@ -3192,7 +3192,7 @@
         "clipTask": {
           "image_to_video": "Animeer stills",
           "text_to_video": "Genereer op basis van aanwijzingen",
-          "reference_to_video": "Gebruik entiteitsreferenties"
+          "reference_to_video": "Referenties gebruiken"
         },
         "confirmWithCost": "{{verb}} · ongeveer {{cost}}",
         "renderClip": "Renderclip",
@@ -3564,58 +3564,58 @@
       "entities": {
         "editOnlyModel": "{{model}} bewerkt alleen afbeeldingen en kan dus geen referentie uit een beschrijving halen. Kies een model dat afbeeldingen van tekst maakt.",
         "substituteModelHelper": "{{originalModel}} bewerkt alleen afbeeldingen, dus referenties gebruiken {{referenceModel}}. Bij foto's in de Look-stap blijft {{originalModel}} behouden.",
-        "referenceModelHelper": "Wordt alleen gebruikt voor ontbrekende entiteiten die u wilt maken. Hetzelfde model wordt uitgevoerd in de Look-stap.",
+        "referenceModelHelper": "Alleen gebruikt voor ontbrekende referenties die je wilt maken. Hetzelfde model gaat mee naar de stap Look.",
         "priceUnknown": "Prijs onbekend",
         "aboutPrice": "Over {{price}}",
         "missingScreenplayOrModel": "Het storyboard heeft eerst een scenario en een regisseurmodel nodig.",
-        "findFailedFallback": "Kon geen entiteiten in het verhaal vinden.",
+        "findFailedFallback": "Kan geen referenties vinden in het verhaal.",
         "pickReferenceModelFirst": "Kies eerst een referentiebeeldmodel.",
         "noReferenceImageReturned": "Het afbeeldingsmodel heeft geen referentieafbeelding geretourneerd.",
-        "entitySaveFailed": "De entiteit kon niet worden opgeslagen.",
-        "entityCreateFailedFallback": "De entiteit kon niet worden gemaakt.",
+        "entitySaveFailed": "De referentie kon niet worden opgeslagen.",
+        "entityCreateFailedFallback": "De referentie kon niet worden gemaakt.",
         "title": "Houd mensen en plaatsen consistent",
         "description": "Kies de personages, plaatsen en rekwisieten die er bij alle opnames consistent uit moeten zien.",
         "suggestedFromStory": "Suggestie uit je verhaal",
         "suggestionsDescription": "Vind terugkerende referenties in uw scenario. Maak alleen degene die u wilt gebruiken.",
-        "findingEntities": "Entiteiten zoeken",
+        "findingEntities": "Referenties worden gezocht",
         "refreshSuggestions": "Suggesties vernieuwen",
-        "findEntities": "Vind entiteiten",
-        "cancelFinding": "Annuleer het zoeken naar entiteiten",
+        "findEntities": "Referenties zoeken",
+        "cancelFinding": "Zoeken naar referenties annuleren",
         "cancel": "Annuleer",
         "noSuggestionsFound": "Er zijn geen terugkerende personages, plaatsen of rekwisieten gevonden in je scenario.",
         "loadingEstimate": "Schatting laden…",
         "findEstimateResult": "Vind de personages, plaatsen en rekwisieten in je scenario",
         "findEstimateNext": "Er wordt niets gemaakt totdat u kiest.",
-        "findFailureTitle": "Kon geen entiteiten vinden",
-        "createFailureTitle": "Kan geen entiteiten maken",
-        "findFailureSummary": "Suggesties voor storyboard-entiteiten zijn mislukt",
-        "createFailureSummary": "Maken van storyboard-entiteit is mislukt",
+        "findFailureTitle": "Kan geen referenties vinden",
+        "createFailureTitle": "Kan referenties niet maken",
+        "findFailureSummary": "Suggesties voor storyboardreferenties mislukt",
+        "createFailureSummary": "Maken van storyboardreferenties mislukt",
         "referenceImageModel": "Referentiebeeldmodel",
         "creatingEntity": "{{name}} aanmaken…",
         "useEntity": "Gebruik {{name}}",
         "createEntity": "Maak {{name}} aan",
-        "libraryTitle": "Uw entiteitsbibliotheek",
+        "libraryTitle": "Je referentiebibliotheek",
         "selectedCount_one": "{{count}} geselecteerd voor dit storyboard",
         "selectedCount_other": "{{count}} geselecteerd voor dit storyboard",
-        "createFromImage": "Maak een entiteit van een afbeelding",
-        "loadingEntities": "Entiteiten laden",
-        "loadFailedTitle": "Kan uw entiteiten niet laden",
+        "createFromImage": "Referentie maken van een afbeelding",
+        "loadingEntities": "Referenties laden",
+        "loadFailedTitle": "Kan je referenties niet laden",
         "tryAgain": "Probeer het opnieuw",
-        "loadFailureSummary": "Storyboard-entiteitsbibliotheek kan niet worden geladen",
-        "loadFailedFallback": "De entiteitsbibliotheek is niet geladen. Probeer het opnieuw of sla deze stap over.",
-        "emptyTitle": "Nog geen entiteiten",
+        "loadFailureSummary": "Storyboardreferentiebibliotheek kon niet laden",
+        "loadFailedFallback": "De referentiebibliotheek is niet geladen. Probeer het opnieuw of sla deze stap over.",
+        "emptyTitle": "Nog geen referenties",
         "emptyDescription": "Maak er een op basis van een gegenereerde of geüploade afbeelding, of sla deze stap over.",
-        "searchPlaceholder": "Zoek entiteiten",
+        "searchPlaceholder": "Referenties zoeken",
         "selectedOnly": "Alleen geselecteerd",
-        "noEntitiesSelected": "Geen entiteiten geselecteerd",
-        "noMatchingEntities": "Geen overeenkomende entiteiten",
+        "noEntitiesSelected": "Geen referenties geselecteerd",
+        "noMatchingEntities": "Geen overeenkomende referenties",
         "noSelectedDescription": "Blader door uw bibliotheek om referenties voor dit storyboard te kiezen.",
         "noMatchingDescription": "Probeer een andere naam of wijzig het geselecteerde filter.",
         "viewReferenceImage": "Bekijk {{name}} referentieafbeelding",
         "selectEntity": "{{name}} · {{kind}}",
         "noDescription": "Geen beschrijving",
         "assignEachShot": "Wijs elk schot toe",
-        "assignDescription": "Verwijder een entiteit uit opnames waar deze niet mag verschijnen.",
+        "assignDescription": "Verwijder een referentie uit shots waarin die niet hoort.",
         "shotNumber": "Schot {{number}}",
         "groups": {
           "characters": "Karakters",
@@ -6326,7 +6326,7 @@
         "actionLabel": "Kopieer {{name}} naar een ander project",
         "title": "Kopieer {{name}}",
         "confirm": "Kopieer",
-        "description": "Activa, entiteiten en ondersteunde documenten waarnaar wordt verwezen, worden naar de bestemming gekopieerd. De bron blijft ongewijzigd.",
+        "description": "Gekoppelde assets, referenties en ondersteunde documenten worden naar de bestemming gekopieerd. De bron blijft ongewijzigd.",
         "destinationProject": "Bestemmingsproject"
       },
       "documents": {
@@ -6371,7 +6371,7 @@
         "openChatError": "Kan chat niet openen: {{error}}",
         "startFlowError": "Kan {{flow}}: {{error}} niet starten",
         "flowNames": {
-          "entity": "entiteit",
+          "entity": "referentie",
           "storyboard": "storyboard",
           "video": "filmpje",
           "script": "schrift",
@@ -6382,9 +6382,9 @@
         },
         "attachedFileCount_one": "{{count}} bijgevoegd bestand",
         "attachedFileCount_other": "{{count}} bijgevoegde bestanden",
-        "singleEntity": "de entiteit {{name}}",
-        "entityCount_one": "{{count}} entiteit",
-        "entityCount_other": "{{count}} entiteiten",
+        "singleEntity": "de referentie {{name}}",
+        "entityCount_one": "{{count}} referentie",
+        "entityCount_other": "{{count}} referenties",
         "uncarriedContext": "De {{flow}}-stroom begint vanaf uw prompt, dus {{items}} blijft op dit scherm. Voeg ze toe vanuit de eigen stap van de stroom.",
         "documentNames": {
           "storyboard": "Nieuw storyboard",
@@ -6394,11 +6394,11 @@
           "workflow": "Nieuwe werkstroom",
           "app": "Nieuwe app",
           "game": "Nieuw spel",
-          "entity": "Nieuwe entiteit"
+          "entity": "Nieuwe referentie"
         },
         "entryCards": {
           "entity": {
-            "title": "Entiteit",
+            "title": "Referentie",
             "description": "Creëer een herbruikbaar personage, plaats, stijl of rekwisiet."
           },
           "storyboard": {
@@ -6461,13 +6461,13 @@
         "heading": "Wat zou je willen creëren?",
         "intro": "Zet een idee om in afbeeldingen, video's, apps en workflows. Stel een vraag, of beschrijf wat je moet maken.",
         "chatPromptLabel": "Chatprompt",
-        "promptPlaceholder": "Beschrijf wat je wilt creëren. Typ / voor een vaardigheid, @ voor een bestand of entiteit.",
+        "promptPlaceholder": "Beschrijf wat je wilt maken. Typ / voor een skill, @ voor een bestand of referentie.",
         "removeReference": "{{name}} verwijderen",
         "attachFiles": "Bestanden bijvoegen",
         "attachedFileCountShort_one": "Bestanden · {{count}}",
         "attachedFileCountShort_other": "Bestanden · {{count}}",
-        "entitiesNone": "Entiteiten · geen",
-        "entitiesSelected": "Entiteiten · {{entities}}",
+        "entitiesNone": "Referenties · geen",
+        "entitiesSelected": "Referenties · {{entities}}",
         "selectedModel": "Model · {{name}}",
         "selectModel": "Selecteer een model",
         "sendToChat": "Verzenden om te chatten",
@@ -6487,7 +6487,7 @@
         "blankDocumentDescription": "— wordt geopend als een los tabblad, buiten elk project",
         "browseExamples": "Blader door voorbeelden",
         "tutorials": "Handleidingen",
-        "entitiesDialogTitle": "Entiteiten voor dit project",
+        "entitiesDialogTitle": "Referenties voor dit project",
         "blankStoryboard": "Leeg storyboard",
         "renderedExampleShots_one": "{{count}} opname, al weergegeven",
         "renderedExampleShots_other": "{{count}} opnamen, al weergegeven",
@@ -6594,7 +6594,17 @@
           "script": "Omzetten naar script",
           "ask": "Vragen erover stellen",
           "askPrompt": "Bekijk de bijgevoegde bestanden en stel voor wat ik ermee kan maken."
-        }
+        },
+        "entitiesHint": "Personages, plekken, stijlen en rekwisieten die je hergebruikt, zodat ze er in elke afbeelding en video hetzelfde uitzien.",
+        "goalHints": {
+          "chat": "Stel een vraag of werk een idee uit. Het antwoord verschijnt als chat.",
+          "image": "Beschrijf een afbeelding. Verzenden opent de afbeeldingmaker met je tekst.",
+          "video": "Beschrijf een korte clip. Verzenden opent de videomaker met je tekst.",
+          "audio": "Typ de tekst die je wilt horen. Verzenden opent de stemmaker, die hem voorleest."
+        },
+        "showAllWays": "Alle manieren om te beginnen tonen",
+        "showAllWaysHint": "Studio's, vaardigheden, kant-en-klare voorbeelden, je projecten en lege documenten",
+        "needHelp": "Nieuw bij NodeTool? Bekijk een tutorial of open een voorbeeld dat direct werkt."
       }
     }
   },
@@ -6971,7 +6981,7 @@
         "title": "Stroom veranderen?",
         "confirm": "Weggooien en kiezen",
         "cancel": "Bewaar dit ontwerp",
-        "description": "Uw opdracht, en de referenties en entiteiten waarmee u bent begonnen, gaan met u mee naar de volgende stroom die u kiest. Dit {{flow}}-concept wordt weggegooid en al het andere dat in deze stap wordt toegevoegd, zoals creatieve context, geïmporteerde bestanden en geplaatste media. Er is nog niets voor gegenereerd."
+        "description": "Je briefing, en de afbeeldingen en referenties waarmee je begon, gaan mee naar de flow die je hierna kiest. Dit {{flow}}-concept wordt weggegooid met alles wat in deze stap is toegevoegd, zoals creatieve context, geïmporteerde bestanden en geplaatste media. Er is nog niets voor gegenereerd."
       }
     },
     "setupFooterField": {
@@ -7009,12 +7019,12 @@
     },
     "entityDetails": {
       "title": "Wat moet consistent blijven?",
-      "description": "Geef de entiteit een stabiele naam en de aanwijzingen voor het genereren van beschrijvingen moeten opnieuw worden gebruikt.",
+      "description": "Geef de referentie een vaste naam en de beschrijving die generatieprompts moeten hergebruiken.",
       "fields": {
-        "kind": "Entiteitstype",
+        "kind": "Referentietype",
         "name": "Naam",
         "descriptor": "Beschrijving",
-        "descriptorHelp": "Deze tekst wordt toegevoegd aan elke prompt die de entiteit gebruikt. Beschrijf alleen stabiele visuele kenmerken.",
+        "descriptorHelp": "Deze tekst wordt toegevoegd aan elke prompt die de referentie gebruikt. Beschrijf alleen vaste visuele kenmerken.",
         "tagsOptional": "Labels (optioneel)"
       },
       "placeholders": {
@@ -7110,9 +7120,9 @@
   },
   "pass3_5": {
     "entity": {
-      "title": "Entiteit",
+      "title": "Referentie",
       "defaults": {
-        "untitledName": "Naamloze entiteit",
+        "untitledName": "Naamloze referentie",
         "untitledReferenceFile": "Zonder titel.png"
       },
       "kinds": {
@@ -7124,38 +7134,38 @@
       "errors": {
         "canvasUnavailable": "Er kon geen lege referentie worden gemaakt omdat het canvas niet beschikbaar is.",
         "blankImageFailed": "Het lege referentiebeeld kon niet worden weergegeven.",
-        "blankStart": "Kan geen lege entiteit starten: {{detail}}",
-        "referenceRequired": "Kies een referentieafbeelding voordat u de entiteit maakt.",
-        "createdEntityUnreadable": "De entiteit kon niet worden gelezen nadat deze was gemaakt."
+        "blankStart": "Kan geen lege referentie starten: {{detail}}",
+        "referenceRequired": "Kies een afbeelding voordat je de referentie maakt.",
+        "createdEntityUnreadable": "De referentie kon na het maken niet worden gelezen."
       },
       "steps": {
         "details": {
           "label": "Details",
           "primary": "Kies een referentie",
           "blocked": {
-            "name": "Geef de entiteit een naam",
+            "name": "Geef de referentie een naam",
             "descriptor": "Beschrijf de eigenschappen die behouden moeten blijven"
           },
           "pending": "Een blanco referentie voorbereiden"
         },
         "reference": {
           "label": "Referentie",
-          "primary": "Entiteit beoordelen",
+          "primary": "Referentie controleren",
           "blocked": {
-            "libraryError": "Kan uw entiteitsbibliotheek niet verifiëren",
-            "libraryLoading": "Uw entiteitsbibliotheek laden",
+            "libraryError": "Kan je referentiebibliotheek niet controleren",
+            "libraryLoading": "Je referentiebibliotheek wordt geladen",
             "reference": "Kies een referentieafbeelding"
           }
         },
         "review": {
           "label": "Beoordeling",
-          "primary": "Creëer een entiteit",
-          "pending": "Uw entiteit creëren",
+          "primary": "Referentie maken",
+          "pending": "Je referentie wordt gemaakt",
           "blocked": {
-            "libraryError": "Kan uw entiteitsbibliotheek niet verifiëren",
-            "libraryLoading": "Uw entiteitsbibliotheek laden",
+            "libraryError": "Kan je referentiebibliotheek niet controleren",
+            "libraryLoading": "Je referentiebibliotheek wordt geladen",
             "reference": "Ga terug en kies een referentieafbeelding",
-            "name": "Ga terug en geef de entiteit een naam",
+            "name": "Ga terug en geef de referentie een naam",
             "descriptor": "Ga terug en beschrijf de eigenschappen die u wilt behouden"
           }
         }
@@ -7165,7 +7175,7 @@
         "description": "Kies het duidelijkste beeld van de eigenschappen die toekomstige generaties moeten behouden, of creëer er een met AI.",
         "imageCaption": "{{name}} referentie",
         "selectedCaption": "Geselecteerde referentie",
-        "selectedAlt": "Geselecteerde entiteitsreferentie",
+        "selectedAlt": "Geselecteerde referentieafbeelding",
         "assets": {
           "unavailable": "Activa niet beschikbaar",
           "loading": "Activa laden",
@@ -7191,7 +7201,7 @@
         "errors": {
           "noImage": "Het afbeeldingsmodel heeft geen referentieafbeelding geretourneerd.",
           "generationFailed": "Het referentiebeeld kon niet worden gegenereerd.",
-          "reportSummary": "Het entiteitsreferentiebeeld kon niet worden gegenereerd"
+          "reportSummary": "Referentieafbeelding kon niet worden gegenereerd"
         },
         "prompt": {
           "template": "Een referentieafbeelding van {{name}}. {{descriptor}} {{instruction}}",
@@ -7244,12 +7254,12 @@
         }
       },
       "review": {
-        "title": "Controleer uw entiteit",
-        "description": "Deze referentie en descriptor zijn overal beschikbaar waar entiteiten kunnen worden toegevoegd.",
+        "title": "Controleer je referentie",
+        "description": "Deze referentie en beschrijving zijn overal beschikbaar waar referenties kunnen worden toegevoegd.",
         "imageCaption": "{{name}} referentie",
         "imageAlt": "{{name}} referentie",
         "tags": "Tags: {{tags}}",
-        "loadingLibrary": "Uw entiteitsbibliotheek laden...",
+        "loadingLibrary": "Je referentiebibliotheek wordt geladen…",
         "empty": {
           "title": "Nog geen referentieafbeelding",
           "description": "Ga terug naar de referentiestap en kies of genereer er een."
@@ -7406,7 +7416,7 @@
         "uploadFailed": "Uploaden van afbeelding mislukt",
         "promptContext": "Kwam met uw prompt",
         "referenceImages": "Referentie afbeeldingen",
-        "entities": "Entiteiten",
+        "entities": "Referenties",
         "referencesHelp": "In de stap-voor-stap-instructies worden deze gelezen. Meteen genereren gebruikt alleen uw tekst.",
         "entitiesHelp": "Deze blijven bij het document terwijl u het instelt.",
         "alternativesLabel": "Andere manieren om te beginnen"
@@ -7416,11 +7426,11 @@
         "downloadUnreadable": "Het bestand kon niet worden gelezen ({{status}}).",
         "variation": "Variatie {{number}}",
         "unrecordedFailure": "Deze werd niet weergegeven en gaf geen reden.",
-        "savingEntity": "Opslaan in entiteiten...",
+        "savingEntity": "Opslaan in referenties…",
         "opening": "Openen...",
-        "savedEntity": "Opgeslagen in entiteiten.",
+        "savedEntity": "Opgeslagen in referenties.",
         "openedCanvas": "Geopend in een nieuw knooppuntcanvas.",
-        "saveEntityFailed": "Kan niet opslaan in entiteiten.",
+        "saveEntityFailed": "Kan niet opslaan in referenties.",
         "openCanvasFailed": "Kon dat canvas niet openen.",
         "heading": "Kies je afbeelding",
         "intro": "Elke variatie blijft in het document staan, dus niets dat u heeft weergegeven, gaat verloren.",
@@ -7439,7 +7449,7 @@
           "failed": "Deze is mislukt"
         },
         "sketchEditor": "Schets-editor",
-        "saveToEntities": "Opslaan in entiteiten",
+        "saveToEntities": "Opslaan in referenties",
         "newNodeCanvas": "Nieuw knooppuntcanvas",
         "imageToVideo": "Afbeelding naar video",
         "retryVariation": "Probeer {{label}} opnieuw",
@@ -7672,8 +7682,8 @@
       "sourceLineCount_other": "{{count}} regels",
       "referenceCount_one": "{{count}} referentie",
       "referenceCount_other": "{{count}} referenties",
-      "entityCount_one": "{{count}} entiteit",
-      "entityCount_other": "{{count}} entiteiten"
+      "entityCount_one": "{{count}} referentie",
+      "entityCount_other": "{{count}} referenties"
     },
     "review": {
       "addDirection": "Richting toevoegen",
@@ -8070,14 +8080,14 @@
       "addOwnDisabledReason": "Aangepaste stijlen worden toegevoegd tijdens het opzetten van een bord."
     },
     "entityStillModelWarning": {
-      "message": "Entiteiten bevatten referentieafbeeldingen, maar dit model accepteert alleen tekst. Kies een afbeelding-naar-afbeelding-model om ze te gebruiken."
+      "message": "Referenties bevatten afbeeldingen, maar dit model neemt alleen tekst. Kies een beeld-naar-beeldmodel om ze te gebruiken."
     }
   },
   "screens4_13": {
     "storyboard": {
       "entityTiles": {
         "untitled": "Zonder titel",
-        "chooseEntities": "Kies entiteiten"
+        "chooseEntities": "Referenties kiezen"
       },
       "oneTake": {
         "title": "Eén opname",
@@ -8092,7 +8102,7 @@
         "referenceStills": "Stillevens gemaakt",
         "referenceEntities": "Cast en locaties",
         "referenceStillsHelp": "Elke opname bepaalt nog steeds de kadrering en pose. Het beste voor rustige opnamen.",
-        "referenceEntitiesHelp": "Entiteitsafbeeldingen leggen vast wie en waar. De opgenomen tekst bepaalt de kadrering en beweging. Beste voor actie.",
+        "referenceEntitiesHelp": "Referenties bepalen wie en waar. De shottekst bepaalt kader en beweging. Het best voor actie.",
         "duration": "Duur",
         "aspectRatio": "Beeldverhouding",
         "resolution": "Resolutie",
@@ -8124,7 +8134,7 @@
         "blockers": {
           "addShot": "Voeg eerst een schot toe aan het bord.",
           "renderStill": "Render een stilstaand beeld voor minimaal één opname.",
-          "addEntityImage": "Geef een entiteit op het bord eerst een referentieafbeelding.",
+          "addEntityImage": "Geef eerst een referentie op het bord een afbeelding.",
           "noModel": "Er is geen videomodel gekozen.",
           "imageLimit_one": "{{count}} afbeelding overschrijdt de limiet van {{limit}}. Verwijder {{removeCount}}.",
           "imageLimit_other": "{{count}} afbeeldingen overschrijden de limiet van {{limit}}. Verwijder {{removeCount}}.",
@@ -8180,9 +8190,9 @@
         "shotStillAlt": "Nog steeds geschoten",
         "imageReference": "[Afbeelding {{number}}] ",
         "references": "Referentie afbeeldingen",
-        "referencesHelp": "Stills fixeren de kadrering en pose. Entiteitsafbeeldingen leggen vast wie en waar.",
+        "referencesHelp": "Stills bepalen kader en pose. Referenties bepalen wie en waar.",
         "stills": "Stillevens",
-        "entities": "Entiteiten",
+        "entities": "Referenties",
         "addEntity": "Toevoegen uit bibliotheek",
         "noStill": "Nee nog steeds",
         "noEntityImage": "Geen afbeelding",
@@ -8197,7 +8207,7 @@
           "differentScenes": "De shots in dit scènefragment bevinden zich niet meer in één scène.",
           "addShot": "Voeg eerst een schot toe aan het bord.",
           "renderStill": "Render een stilstaand beeld voor minimaal één opname.",
-          "addEntityImage": "Geef een entiteit op het bord eerst een referentieafbeelding.",
+          "addEntityImage": "Geef eerst een referentie op het bord een afbeelding.",
           "noReference": "Kies ten minste één referentieafbeelding.",
           "noVideoModel": "Er is geen videomodel gekozen.",
           "imageLimit": "{{imageCount}} afbeeldingen overschrijden de limiet van {{limit}}. Verwijder {{remove}}.",
@@ -8281,8 +8291,8 @@
       "shotEntitiesField": {
         "label": "In deze opname",
         "remove": "Verwijder {{name}} uit deze opname",
-        "empty": "Nog geen entiteiten. Kies een personage, locatie, stijl of rekwisiet om het consistent te houden in deze opname.",
-        "newEntity": "Nieuwe entiteit"
+        "empty": "Nog geen referenties. Kies een personage, locatie, stijl of rekwisiet om die in deze shot gelijk te houden.",
+        "newEntity": "Nieuwe referentie"
       },
       "shotGraphicsEditor": {
         "title": "Grafisch",
@@ -8298,7 +8308,7 @@
         "exactText": "Exacte tekst: {{id}}",
         "protectedCopy": "De beveiligde kopie is afkomstig van de productie-inputs. Bewerk het daar.",
         "assetReference": "Itemreferentie: {{id}}",
-        "entity": "Entiteit: {{id}}",
+        "entity": "Referentie: {{id}}",
         "graphicNotes": "Grafische opmerkingen: {{id}}",
         "defaultText": "Jouw tekst",
         "addText": "Voeg tekst toe",
@@ -8396,7 +8406,7 @@
         "clipTask": {
           "image_to_video": "Animeer stills",
           "text_to_video": "Genereer op basis van aanwijzingen",
-          "reference_to_video": "Gebruik entiteitsreferenties"
+          "reference_to_video": "Referenties gebruiken"
         }
       },
       "shotScript": {
@@ -8662,6 +8672,10 @@
       "loadingImages": "Afbeeldingen laden",
       "noImages": "Geen afbeeldingen",
       "noImagesDescription": "Genereer of upload eerst een afbeelding.",
+      "uploadImage": "Afbeelding uploaden",
+      "uploading": "Uploaden…",
+      "uploadFailed": "De afbeelding is niet geüpload. Probeer het opnieuw.",
+      "noImagesUploadDescription": "Upload een afbeelding van je computer of genereer er eerst een.",
       "pickImage": "Kies afbeelding {{name}}",
       "closeDialog": "Dialoogvenster sluiten",
       "noImage": "Geen afbeelding",
@@ -8672,11 +8686,11 @@
         "style": "Stijl",
         "prop": "Prop"
       },
-      "editEntity": "Entiteit bewerken",
+      "editEntity": "Referentie bewerken",
       "editEntityFor": "Bewerk {{name}}",
-      "removeEntity": "Entiteit verwijderen",
+      "removeEntity": "Referentie verwijderen",
       "removeEntityFor": "{{name}} verwijderen",
-      "newEntity": "Nieuwe entiteit",
+      "newEntity": "Nieuwe referentie",
       "save": "Opslaan",
       "cancel": "Annuleer",
       "create": "Creëer",
@@ -8685,33 +8699,33 @@
       "kind": "Soort",
       "name": "Naam",
       "descriptor": "Beschrijving",
-      "descriptorHelp": "Beschrijf het uiterlijk ervan in een zin. Elke prompt die deze entiteit gebruikt, bevat deze tekst precies zoals geschreven.",
+      "descriptorHelp": "Beschrijf het uiterlijk in één zin. Elke prompt die deze referentie gebruikt, bevat deze tekst letterlijk.",
       "voiceId": "Spraak-ID (optioneel)",
       "tags": "Tags (door komma's gescheiden)",
-      "saveFailed": "Kan deze entiteit niet opslaan. Controleer uw verbinding en probeer het opnieuw.",
-      "loadingEntities": "Entiteiten laden",
-      "emptyTitle": "Nog geen entiteiten",
-      "libraryEmptyDescription": "Voeg een afbeelding toe als personage, locatie, stijl of rekwisiet om deze in verschillende opnames te hergebruiken. U kunt ook met de rechtermuisknop op een afbeelding in de bibliotheek klikken en Gebruiken als entiteit kiezen.",
-      "addEntity": "Voeg entiteit toe",
-      "backToEntities": "Terug naar entiteiten",
-      "entitiesLabel": "Entiteiten",
+      "saveFailed": "Kan deze referentie niet opslaan. Controleer je verbinding en probeer het opnieuw.",
+      "loadingEntities": "Referenties laden",
+      "emptyTitle": "Nog geen referenties",
+      "libraryEmptyDescription": "Voeg een afbeelding toe als personage, locatie, stijl of rekwisiet om die in meerdere shots te hergebruiken. Je kunt ook in de Bibliotheek met rechts op een afbeelding klikken en Gebruiken als referentie kiezen.",
+      "addEntity": "Referentie toevoegen",
+      "backToEntities": "Terug naar referenties",
+      "entitiesLabel": "Referenties",
       "librarySubtitle": "Herbruikbare personages, locaties, stijlen en rekwisieten",
       "retakeImage": "Genereer nieuw"
     }
   },
   "screens4_23": {
     "entities": {
-      "newEntity": "Nieuwe entiteit",
-      "loading": "Entiteiten laden",
-      "emptyTitle": "Nog geen entiteiten",
-      "panelEmptyDescription": "Tag een afbeelding als personage, locatie, stijl of rekwisiet met de knop + hierboven, of klik met de rechtermuisknop op een afbeelding in de bibliotheek en kies Gebruiken als entiteit.",
+      "newEntity": "Nieuwe referentie",
+      "loading": "Referenties laden",
+      "emptyTitle": "Nog geen referenties",
+      "panelEmptyDescription": "Markeer een afbeelding als personage, locatie, stijl of rekwisiet met de knop + hierboven, of klik in de Bibliotheek met rechts op een afbeelding en kies Gebruiken als referentie.",
       "emptyPickerDescription": "Personages, locaties, stijlen en rekwisieten die je maakt, worden hier weergegeven.",
-      "noMatches": "Er komen geen entiteiten overeen",
+      "noMatches": "Geen referenties gevonden",
       "noMatchesDescription": "Probeer een andere naam, soort of tag.",
       "untitled": "Zonder titel",
-      "searchPlaceholder": "Zoek entiteiten op naam, soort of tag",
-      "searchLabel": "Zoek entiteiten",
-      "kindLabel": "Soort entiteit",
+      "searchPlaceholder": "Referenties zoeken op naam, soort of tag",
+      "searchLabel": "Referenties zoeken",
+      "kindLabel": "Soort referentie",
       "kindFilters": {
         "all": "Allemaal",
         "characters": "Karakters",
@@ -8725,10 +8739,10 @@
         "style": "Stijl",
         "prop": "Prop"
       },
-      "entitiesLabel": "Entiteiten",
-      "selectedCount_one": "{{formattedCount}} entiteit geselecteerd",
-      "selectedCount_other": "{{formattedCount}} entiteiten geselecteerd",
-      "pickTitle": "Kies een entiteit",
+      "entitiesLabel": "Referenties",
+      "selectedCount_one": "{{formattedCount}} referentie geselecteerd",
+      "selectedCount_other": "{{formattedCount}} referenties geselecteerd",
+      "pickTitle": "Kies een referentie",
       "done": "Klaar"
     }
   },
@@ -9406,6 +9420,18 @@
         "gemini": {
           "description": "Hergebruikt uw Gemini-sleutel. Antwoordt in proza ​​en citeert de pagina's die het leest.",
           "keyLink": "Ontvang de Gemini API-sleutel"
+        },
+        "antigravity": {
+          "description": "Voert Google-zoekopdrachten uit via de Antigravity-CLI op deze computer. Geen sleutel nodig: meld je aan door agy één keer te starten.",
+          "keyLink": "Antigravity-CLI instellen"
+        },
+        "codex": {
+          "description": "Voert OpenAI-webzoekopdrachten uit met je ChatGPT-aanmelding voor Codex. Geen API-sleutel nodig.",
+          "keyLink": "Meld je aan bij Codex in Modellen en providers"
+        },
+        "claude": {
+          "description": "Zoekt op het web via de Claude Code-CLI op deze computer, met je Claude-abonnement. Geen sleutel nodig: meld je aan door claude één keer te starten.",
+          "keyLink": "Claude Code instellen"
         }
       }
     },
@@ -10129,9 +10155,9 @@
     "shotDesignFrame": {
       "ariaLabel": "Shot {{shot}} ontwerpvoorbeeld",
       "errors": {
-        "entityAssetMismatch": "Het activum voor entiteit {{entityId}} komt niet overeen met de geselecteerde entiteit.",
-        "entitySourceMismatch": "Bronelement {{elementId}} komt niet overeen met deze entiteit.",
-        "missingEntityReference": "Entiteit {{entityId}} ontbreekt op het storyboard.",
+        "entityAssetMismatch": "Het asset voor referentie {{entityId}} hoort niet bij de geselecteerde referentie.",
+        "entitySourceMismatch": "Bronelement {{elementId}} hoort niet bij deze referentie.",
+        "missingEntityReference": "Referentie {{entityId}} ontbreekt in het storyboard.",
         "unavailable": "Opnamevoorbeeld is niet beschikbaar."
       },
       "pause": "Voorbeeld pauzeren",
@@ -10214,7 +10240,7 @@
         "takes": "Neemt"
       },
       "title": "Scène {{scene}}, opname {{shot}}",
-      "untitledEntity": "Naamloze entiteit"
+      "untitledEntity": "Naamloze referentie"
     },
     "shotEditTable": {
       "camera": {
@@ -10857,8 +10883,8 @@
       "sketches": "Schetsen",
       "timelines": "Tijdlijnen",
       "storyboards": "Storyboards",
-      "entities": "Entiteiten",
-      "openEntitiesFullPage": "Open entiteiten op volledige pagina",
+      "entities": "Referenties",
+      "openEntitiesFullPage": "Referenties openen op volledige pagina",
       "examples": "Voorbeelden",
       "scripts": "Scripts",
       "jsScripts": "JS-scripts",
@@ -10882,7 +10908,7 @@
         "sketches": "Schetsen",
         "scripts": "Scripts",
         "storyboards": "Storyboards",
-        "entities": "Entiteiten",
+        "entities": "Referenties",
         "examples": "Voorbeelden",
         "timelines": "Tijdlijnen",
         "jsScripts": "JS-scripts",
@@ -11612,7 +11638,9 @@
         "directionalLight": "Richtbaar licht",
         "pointLight": "Puntlicht",
         "spotLight": "Vleklicht",
-        "empty": "Leeg voorwerp"
+        "empty": "Leeg voorwerp",
+        "figure": "Figuur",
+        "camera": "Camera"
       },
       "loading": {
         "saving": "Opslaan…",
@@ -11833,6 +11861,29 @@
       "decay": "Verval",
       "angle": "Hoek",
       "penumbra": "Halfschaduw",
+      "figure": "Figuur",
+      "figureBody": "Lichaam",
+      "figureBodies": {
+        "male": "Man",
+        "female": "Vrouw",
+        "child": "Kind"
+      },
+      "figurePose": "Houding",
+      "figurePoses": {
+        "stand": "Staan",
+        "sit": "Zitten",
+        "walk": "Lopen",
+        "run": "Rennen",
+        "lie": "Liggen"
+      },
+      "figureHeight": "Lengte",
+      "figureLabel": "Label",
+      "figureEntity": "Cast-entiteit-ID",
+      "camera": "Camera",
+      "cameraFov": "Gezichtsveld",
+      "cameraAspect": "Beeldverhouding",
+      "cameraNear": "Dichtbij",
+      "cameraFar": "Ver",
       "geometry": "Geometrie",
       "material": "Materiaal",
       "slot": "Sleuf",
@@ -13528,7 +13579,7 @@
         "selectModel": "Selecteer een model",
         "attach": {
           "assetsTab": "Activa",
-          "entitiesTab": "Entiteiten",
+          "entitiesTab": "Referenties",
           "documentsTab": "Documenten",
           "uploadTab": "Uploaden",
           "tabsLabel": "Wat toe te voegen",
@@ -14281,7 +14332,7 @@
         "creative": "Creatieve documenten",
         "text": "Tekstbestanden",
         "agents": "Agenten en code",
-        "entities": "Entiteiten",
+        "entities": "Referenties",
         "shared": "Gedeeld met mij",
         "cloud": "Cloud",
         "cloudShared": "Gedeeld met mij"
@@ -14293,7 +14344,7 @@
         "script": "Script",
         "storyboard": "Storyboard",
         "timeline": "Tijdlijn",
-        "entity": "Entiteit",
+        "entity": "Referentie",
         "jsscript": "JS-script",
         "game": "Spel",
         "text": "Tekstbestand"
@@ -14302,7 +14353,7 @@
       "deleteFailure": "Kon {{name}} niet verwijderen: {{error}}",
       "unknownError": "Onbekende fout",
       "deleteConfirmTitle": "{{type}} verwijderen?",
-      "deleteEntityDescription": "\"{{name}}\" zal niet langer een entiteit zijn. Het bezit ervan wordt bewaard.",
+      "deleteEntityDescription": "\"{{name}}\" is dan geen referentie meer. Het asset blijft bewaard.",
       "deleteDescription": "\"{{name}}\" wordt permanent verwijderd.",
       "deleteAction": "Verwijderen",
       "cancel": "Annuleer",
@@ -14382,8 +14433,8 @@
       "noRecentAssets": "Nog geen bestanden. Voeg er een toe of sleep er een naar binnen.",
       "noAssetsMatch": "Er komen geen items overeen.",
       "noSavedAssets": "Nog geen opgeslagen activa.",
-      "noEntitiesMatch": "Er komen geen entiteiten overeen.",
-      "entities": "Entiteiten",
+      "noEntitiesMatch": "Geen referenties gevonden.",
+      "entities": "Referenties",
       "assetSource": "Bron van item",
       "rename": "Hernoem {{name}}",
       "assetName": "Naam van item",
@@ -15074,8 +15125,8 @@
       "error": "Fout: {{error}}"
     },
     "entity": {
-      "add": "Voeg entiteit toe",
-      "pick": "Kies entiteit",
+      "add": "Referentie toevoegen",
+      "pick": "Referentie kiezen",
       "untitled": "Zonder titel"
     },
     "collection": {
@@ -16145,7 +16196,7 @@
       "sketches": "Schetsen",
       "scripts": "Scripts",
       "storyboards": "Storyboards",
-      "entities": "Entiteiten",
+      "entities": "Referenties",
       "examples": "Voorbeelden",
       "timelines": "Tijdlijnen",
       "jsscripts": "JS-scripts",
@@ -16280,7 +16331,7 @@
         "models": "Modelmanager",
         "packages": "Pakketbeheerder",
         "collections": "Collecties",
-        "entities": "Entiteiten",
+        "entities": "Referenties",
         "memory": "Geheugen",
         "settings": "Instellingen",
         "effects": "Effecten",
@@ -17182,14 +17233,14 @@
   },
   "i18n-next62": {
     "scriptCastPanel": {
-      "noEntity": "Geen entiteit",
+      "noEntity": "Geen referentie",
       "noVoice": "Geen stem",
       "speakerName": "Naam van spreker",
       "hideVoiceSettings": "Steminstellingen verbergen",
       "voiceSettings": "Steminstellingen",
-      "linkedEntityMissing": "Gekoppelde entiteit ontbreekt",
-      "linkedEntity": "Gekoppelde entiteit",
-      "linkedEntityNotFound": "Gekoppelde entiteit niet gevonden: deze is verwijderd. Kies een andere of wis deze.",
+      "linkedEntityMissing": "Gekoppelde referentie ontbreekt",
+      "linkedEntity": "Gekoppelde referentie",
+      "linkedEntityNotFound": "Gekoppelde referentie niet gevonden: die is verwijderd. Kies een andere of maak het veld leeg.",
       "removeSpeaker": "Luidspreker verwijderen",
       "speakerDefaultName": "Luidspreker {{count}}",
       "cast": "Gegoten",
@@ -17398,9 +17449,9 @@
         "imageLabel": "Afbeelding {{index}}",
         "noImages": "Voeg afbeeldingen toe om de clip te conditioneren.",
         "addImage": "Afbeelding toevoegen",
-        "entitiesLabel": "Entiteiten",
+        "entitiesLabel": "Referenties",
         "entitiesEmpty": "Kies een personage, locatie, stijl of rekwisiet om het consistent te houden in de clip.",
-        "newEntity": "Nieuwe entiteit",
+        "newEntity": "Nieuwe referentie",
         "pickImageTitle": "Kies een referentieafbeelding"
       },
       "transcript": {
@@ -20090,8 +20141,8 @@
   "lipsync": {
     "title": "Lipsynchronisatie",
     "subtitle": "Laat een foto spreken met een stem die jij kiest.",
-    "entity": "Kies een entiteit",
-    "entityImage": "Kies een entiteit met een opgeslagen referentieafbeelding of upload een afbeelding.",
+    "entity": "Kies een referentie",
+    "entityImage": "Kies een referentie met een opgeslagen afbeelding, of upload een afbeelding.",
     "realPerson": "Dit is een echt persoon",
     "consent": "Ik heb toestemming van deze persoon om zijn of haar afbeelding te gebruiken in deze gegenereerde clip.",
     "line": "Wat moeten ze zeggen?",
@@ -20591,7 +20642,7 @@
   "storyboardText": {
     "mode": "Tekst",
     "editorLabel": "Storyboard als Markdown-tekst",
-    "hint": "Typ # voor een akte, ## voor een scène, ### voor een shot en - **Motion:** voor een veld. Typ @ om een entiteit of afbeelding te noemen.",
+    "hint": "Typ # voor een akte, ## voor een scène, ### voor een shot en - **Motion:** voor een veld. Typ @ om een referentie of afbeelding te noemen.",
     "issues": "Regels die aandacht nodig hebben: {{lines}}",
     "loading": "Tekst laden…",
     "warnings": {
@@ -20627,7 +20678,7 @@
       "instruction": "Verzoek aan de agent",
       "send": "Naar de agent sturen",
       "failed": "Het verzoek aan het model is mislukt.",
-      "context": "Meegestuurd met het verzoek: het hele storyboard, {{shots}} shots en {{entities}} entiteiten uit de bibliotheek.",
+      "context": "Meegestuurd met het verzoek: het hele bord, {{shots}} shots en {{entities}} referenties uit de bibliotheek.",
       "quick": {
         "tighten": "Inkorten",
         "visual": "Beeldender",

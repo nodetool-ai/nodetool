@@ -41,6 +41,7 @@ export * from "./keyframes.js";
 export * from "./automation.js";
 export * from "./model3d.js";
 export * from "./model3dBake.js";
+export * from "./model3dCameraMoves.js";
 export * from "./sourceRate.js";
 export * from "./timeRemap.js";
 export * from "./generatedMatte.js";

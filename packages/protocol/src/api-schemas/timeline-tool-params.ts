@@ -887,17 +887,31 @@ export function resolveShapeArg(
 const model3dCameraParams = withFieldNotes(clipModel3DCamera, {
   mode:
     '"orbit" (default) frames the model\'s bounding sphere with the terms ' +
-    'below; "scene" uses a camera the glTF declares and ignores them.',
+    'below; "scene" uses a camera the glTF declares and ignores them; ' +
+    '"free" places the camera by position, target, rollDeg and fovDeg, with ' +
+    "no fit to the model, and ignores azimuthDeg, elevationDeg, zoom and " +
+    "targetOffset.",
   azimuthDeg: "Rotation around the model, degrees. 0 is front.",
   elevationDeg: "Height of the camera, degrees. 0 is level, 90 is overhead.",
-  fovDeg: "Vertical field of view, degrees. Lower is a longer lens.",
+  fovDeg:
+    "Vertical field of view, degrees. Lower is a longer lens. On a 24 mm " +
+    "tall sensor a 50 mm lens is about 27 and a 24 mm lens about 53.",
   zoom: "Distance multiplier on the auto-framed fit: above 1 moves closer.",
   targetOffset:
     "[x, y, z] offset of the look-at point from the bounding-sphere centre, " +
     "in the model's own units. Use it to frame a detail off-centre.",
   sceneCameraName:
     'mode "scene" only: the glTF camera to shoot through. The first one when ' +
-    "absent."
+    "absent.",
+  position:
+    'mode "free" only: [x, y, z] of the camera eye in the model\'s own ' +
+    "units, Y up. [0, 1.6, 5] when absent.",
+  target:
+    'mode "free" only: [x, y, z] of the point the camera looks at. ' +
+    "[0, 1, 0] when absent.",
+  rollDeg:
+    'mode "free" only: roll around the view axis, degrees. Positive turns ' +
+    "the horizon clockwise in the picture."
 }).strict();
 
 /** Which glTF animation a 3D clip plays, and how. */

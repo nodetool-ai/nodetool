@@ -38,6 +38,7 @@ import { ComposerAttachDialog } from "../chat/composer/ComposerAttachDialog";
 import { useModeProviderSetup } from "../chat/composer/useModeProviderSetup";
 import { useDragAndDrop } from "../chat/hooks/useDragAndDrop";
 import { parseAssetUri } from "../node_types/editing/promptComposer/promptTokens";
+import { MentionedEntities } from "../chat/composer/MentionedEntities";
 import type { ModelPickerHandle } from "../chat/composer/ModelChip";
 import type { MediaOption } from "../chat/composer/MediaOptionMenu";
 import type { DroppedFile } from "../chat/types/chat.types";
@@ -418,6 +419,9 @@ const CreatePromptBar = ({ promptRef, sessionId, requestTags, onSent }: CreatePr
         error={blocker === "no-prompt"}
         helperText={blocker === "no-prompt" ? t("create_view.blocker.noPrompt") : undefined}
       />
+      {/* An entity carried from Home or typed with "@" sits in the prompt as
+          its `entity://` token. The chips name it and remove it. */}
+      <MentionedEntities value={prompt} setValue={setPrompt} />
       <FlexRow gap={SPACING.xs} align="center" wrap sx={{ rowGap: SPACING.xs }}>
         <ModeChips mode={mode} openModelPickerRef={modelPickerRef} hideVariations />
         <OptionChip

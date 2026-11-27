@@ -26,7 +26,7 @@ import { processChat } from "@nodetool-ai/chat";
 import { initMigratedDb } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { type ProcessingMessage } from "@nodetool-ai/protocol";
-import { createProvider, buildConfiguredProviders, defaultModelFor } from "@nodetool-ai/cli-providers";
+import { createProvider, buildConfiguredProviders, resolveDefaultModel } from "@nodetool-ai/cli-providers";
 import { buildFullRegistry } from "@nodetool-ai/cli-execution/node-registry";
 import { buildCliToolbelt } from "../agent-toolbelt.js";
 import {
@@ -217,8 +217,8 @@ export function runPreferences(providerId: string, modelId: string, workspaceDir
 }
 
 /** The requested model, else the provider's default model. */
-export function resolveAgentModel(providerId: string, model: string | undefined): string {
-  const modelId = model ?? defaultModelFor(providerId);
+export async function resolveAgentModel(providerId: string, model: string | undefined): Promise<string> {
+  const modelId = model ?? (await resolveDefaultModel(providerId));
   if (!modelId) {
     throw new Error(
       `No model specified and ${providerId} has no default model. Use --model <id>. ` +
@@ -248,7 +248,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     throw new Error("No provider specified. Use --provider <id>.");
   }
   const providerId = normalizeProvider(opts.provider);
-  const modelId = resolveAgentModel(providerId, opts.model);
+  const modelId = await resolveAgentModel(providerId, opts.model);
   if (!opts.model) {
     process.stderr.write(`Using default model ${modelId} for ${providerId} (pass --model to change it).\n`);
   }

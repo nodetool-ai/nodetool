@@ -30,6 +30,28 @@ listScene(file.json); // one Mesh + one DirectionalLight
 serializeModel3D(file); // .gltf bytes, ready to store as an asset
 ```
 
+## Blockout figures and cameras
+
+`add_object` with kind `figure` adds a jointed mannequin built from plain nodes
+and simple meshes, so every glTF renderer draws it. One root node carries
+`extras.nodetool_figure` (`body`, `pose`, `height`, and the optional `entityId`
+and `label`). Fifteen joint nodes under it each carry
+`extras.nodetool_figure_part` and the mesh of the limb that hangs from the
+joint. A pose is a rotation per joint, and `set_figure` writes them. The figure
+stands on y = 0, faces +Z, and has its left side on +X. `listScene` reports it
+as one object of type `Figure`, and its joints do not resolve as targets.
+
+Kind `camera` adds a glTF perspective camera node. `lookAt` turns the node so
+its -Z axis faces a point, and `set_camera` changes the lens and the aim.
+
+```ts
+applyOperations(file, [
+  { op: "add_object", kind: "figure", name: "ana", body: "female", pose: "walk" },
+  { op: "add_object", kind: "camera", name: "cam_wide", position: [0, 1.5, 6], lookAt: [0, 1, 0] },
+  { op: "set_figure", target: "ana", pose: "sit" }
+]);
+```
+
 ## What it keeps
 
 An operation touches the nodes it names and nothing else: an imported model

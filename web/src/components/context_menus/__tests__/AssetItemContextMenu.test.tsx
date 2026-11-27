@@ -77,7 +77,7 @@ describe("AssetItemContextMenu — Use as entity (study-7)", () => {
     renderMenu([asset({ id: "image-1" })]);
 
     await userEvent.click(
-      screen.getByText("Use as entity…")
+      screen.getByText("Use as reference…")
     );
 
     const state = useEntityLibraryStore.getState();
@@ -91,14 +91,14 @@ describe("AssetItemContextMenu — Use as entity (study-7)", () => {
     renderMenu([asset({ content_type: "video/mp4" })]);
     expect(screen.getByText("Rename")).toBeInTheDocument();
     expect(
-      screen.queryByText("Use as entity…")
+      screen.queryByText("Use as reference…")
     ).not.toBeInTheDocument();
   });
 
   it("is not offered for several images", () => {
     renderMenu([asset({ id: "a" }), asset({ id: "b" })]);
     expect(
-      screen.queryByText("Use as entity…")
+      screen.queryByText("Use as reference…")
     ).not.toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe("AssetItemContextMenu — Use as entity (study-7)", () => {
     ]);
     expect(screen.getByText("Rename")).toBeInTheDocument();
     expect(
-      screen.queryByText("Use as entity…")
+      screen.queryByText("Use as reference…")
     ).not.toBeInTheDocument();
   });
 });

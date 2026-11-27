@@ -128,7 +128,7 @@ export const PATH_CHECKS = [
     steps: [{ label: "CI planning regressions", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/ci-plan.test.mjs"] }]
   },
   {
-    path: /^scripts\/(?:test-affected\.mjs|smoke-backend-bundle\.mjs|__tests__\/(?:test-affected|smoke-backend-bundle|desktop-release-recovery)\.test\.mjs)$/,
+    path: /^scripts\/(?:test-affected\.mjs|smoke-backend-bundle\.mjs|check-linux-isa-baseline\.mjs|__tests__\/(?:test-affected|smoke-backend-bundle|desktop-release-recovery|check-linux-isa-baseline)\.test\.mjs)$/,
     steps: [{ label: "script regressions", command: "npm", args: ["run", "test:scripts"] }]
   },
   {

@@ -622,3 +622,46 @@
   box-shadow: 0 30px 90px -32px rgba(2, 6, 23, 0.8),
     0 16px 40px -16px rgba(120, 53, 15, 0.45);
 }
+
+/*
+ * Chinese, Japanese and Korean text. Unlayered, so these rules win over the
+ * Tailwind utilities. Inter covers Latin; each script falls through to the
+ * system font readers there expect, so Han characters take the right regional
+ * forms. The font is set only on the element that carries the lang attribute
+ * (and on body when <html> carries it), so code blocks keep their mono font.
+ * Negative tracking crowds CJK glyphs, which already fill their em box.
+ * auto-phrase keeps Japanese words together where headings wrap (Chrome
+ * 119+). Balancing only helps where words stay whole, so Chinese is left out.
+ */
+html[lang^="zh"] body,
+[lang^="zh"]:not(html) {
+  font-family: var(--font-inter), "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC",
+    "Source Han Sans SC", sans-serif;
+}
+html[lang="ja"] body,
+[lang="ja"]:not(html) {
+  font-family: var(--font-inter), "Hiragino Kaku Gothic ProN", "Hiragino Sans",
+    "BIZ UDPGothic", Meiryo, "Yu Gothic UI", "Noto Sans JP", "Noto Sans CJK JP",
+    sans-serif;
+}
+html[lang="ko"] body,
+[lang="ko"]:not(html) {
+  font-family: var(--font-inter), "Apple SD Gothic Neo", "Malgun Gothic",
+    "Noto Sans KR", "Noto Sans CJK KR", sans-serif;
+}
+:lang(zh), :lang(ja), :lang(ko) {
+  line-break: strict;
+}
+:lang(ja) :is(h1, h2, h3) {
+  word-break: auto-phrase;
+}
+:lang(ko) {
+  word-break: keep-all;
+}
+:is(:lang(zh), :lang(ja), :lang(ko)) :is(.tracking-tight, .tracking-tighter) {
+  letter-spacing: normal;
+}
+:is(:lang(ja), :lang(ko)) :is(h1, h2, h3) {
+  text-wrap: balance;
+}

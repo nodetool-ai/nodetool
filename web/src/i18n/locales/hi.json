@@ -16,12 +16,12 @@
   },
   "screen_storyboard": {
     "entities": {
-      "pickTitle": "एक इकाई चुनें",
+      "pickTitle": "एक संदर्भ चुनें",
       "done": "पूर्ण",
       "untitled": "बिना शीर्षक",
-      "searchPlaceholder": "नाम, प्रकार, या टैग द्वारा खोजें संस्थाएं",
-      "searchLabel": "खोज संस्था",
-      "kindLabel": "इकाई",
+      "searchPlaceholder": "नाम, प्रकार या टैग से संदर्भ खोजें",
+      "searchLabel": "संदर्भ खोजें",
+      "kindLabel": "संदर्भ का प्रकार",
       "kindFilters": {
         "all": "सभी",
         "characters": "वर्ण",
@@ -29,16 +29,16 @@
         "styles": "शैलियाँ",
         "props": "प्रॉप्स"
       },
-      "loading": "लोड हो रहा है",
-      "emptyTitle": "अभी तक कोई संस्था नहीं है",
+      "loading": "संदर्भ लोड हो रहे हैं",
+      "emptyTitle": "अभी कोई संदर्भ नहीं",
       "emptyPickerDescription": "वर्ण, स्थान, शैलियों, और आप यहाँ दिखाने के लिए प्रचार करते हैं।",
-      "newEntity": "नई इकाई",
-      "noMatches": "कोई भी संस्था मैच नहीं",
+      "newEntity": "नया संदर्भ",
+      "noMatches": "कोई संदर्भ मेल नहीं खाता",
       "noMatchesDescription": "एक और नाम, तरह, या टैग आज़माएं।",
-      "entitiesLabel": "संस्था",
+      "entitiesLabel": "संदर्भ",
       "noImage": "कोई छवि नहीं",
-      "editEntity": "इकाई",
-      "removeEntity": "इकाई निकालें",
+      "editEntity": "संदर्भ संपादित करें",
+      "removeEntity": "संदर्भ हटाएँ",
       "save": "सहेजें",
       "create": "बनाएँ",
       "image": "चित्र",
@@ -52,14 +52,14 @@
       },
       "name": "नाम",
       "descriptor": "वर्णनकर्ता",
-      "descriptorHelp": "यह कैसे दिखता है, एक वाक्य में। हर संकेत जो इस इकाई का उपयोग करता है उसे शब्द के लिए शब्द मिलता है।",
+      "descriptorHelp": "यह कैसा दिखता है, एक वाक्य में। इस संदर्भ का इस्तेमाल करने वाले हर प्रॉम्प्ट को यह शब्दशः मिलता है।",
       "voiceId": "वॉयस आईडी (वैकल्पिक)",
       "tags": "टैग (comma-separated)",
-      "panelEmptyDescription": "एक छवि को चरित्र, स्थान, शैली या ऊपर + बटन के साथ सहारा के रूप में टैग करें, या लाइब्रेरी में एक छवि को राइट-क्लिक करें और इकाई के रूप में उपयोग करें चुनें।",
-      "libraryEmptyDescription": "एक छवि को एक चरित्र, स्थान, शैली या प्रोप के रूप में टैग करें ताकि यह पूरे शॉट्स में पुन: उपयोग किया जा सके। लाइब्रेरी में, एक छवि को राइट-क्लिक करें और इकाई के रूप में उपयोग करें।",
-      "addEntity": "इकाई जोड़ें",
+      "panelEmptyDescription": "ऊपर दिए + बटन से किसी छवि को पात्र, जगह, शैली या प्रॉप के रूप में टैग करें, या लाइब्रेरी में किसी छवि पर राइट-क्लिक करके संदर्भ के रूप में इस्तेमाल करें चुनें।",
+      "libraryEmptyDescription": "किसी छवि को पात्र, जगह, शैली या प्रॉप के रूप में टैग करें, ताकि उसे कई शॉट में दोबारा इस्तेमाल कर सकें। लाइब्रेरी में किसी छवि पर राइट-क्लिक करें और संदर्भ के रूप में इस्तेमाल करें चुनें।",
+      "addEntity": "संदर्भ जोड़ें",
       "librarySubtitle": "पुन: प्रयोज्य वर्ण, स्थान, शैली और props",
-      "backToEntities": "वापस संस्थाओं के लिए",
+      "backToEntities": "संदर्भों पर वापस जाएँ",
       "pickImageTitle": "एक संदर्भ छवि चुनें",
       "noImages": "कोई छवि नहीं",
       "noImagesDescription": "पहले छवि को उत्पन्न या अपलोड करें।"
@@ -191,7 +191,7 @@
     "sendMediaToWorkflowTooltip": "चयनित मीडिया को वर्कफ़्लो कैनवास में निरंतर नोड्स के रूप में जोड़ें",
     "transformWithWorkflow": "वर्कफ़्लो के साथ रूपांतरण ...",
     "transformWithWorkflowTooltip": "इस फाइल को अपने वर्कफ़्लो में से एक के माध्यम से चलाएं",
-    "useAsEntity": "इकाई के रूप में उपयोग करें ...",
+    "useAsEntity": "संदर्भ के रूप में इस्तेमाल करें…",
     "useAsEntityTooltip": "इस छवि को एक चरित्र, स्थान, शैली या प्रोप के रूप में टैग करें ताकि यह पूरे शॉट्स में पुन: उपयोग किया जा सके।",
     "editTimeline": "समयरेखा संपादित करें",
     "createTimelineFromVideo": "वीडियो से समयरेखा बनाएं",
@@ -3001,7 +3001,7 @@
       }
     },
     "entity": {
-      "title": "संस्था",
+      "title": "संदर्भ",
       "kinds": {
         "character": "चरित्र",
         "location": "स्थान",
@@ -3009,51 +3009,51 @@
         "prop": "सहारा"
       },
       "defaults": {
-        "untitledName": "Untitled इकाई",
+        "untitledName": "बिना नाम का संदर्भ",
         "untitledReferenceFile": "Untitled.png"
       },
       "errors": {
         "canvasUnavailable": "कैनवास 2D संदर्भ अनुपलब्ध",
         "blankImageFailed": "खाली छवि प्रस्तुत करने में विफल",
-        "blankStart": "एक खाली इकाई शुरू नहीं कर सकता: {{detail}}",
-        "referenceRequired": "इकाई बनाने से पहले एक संदर्भ छवि चुनें।",
-        "createdEntityUnreadable": "इसके बाद इकाई को पढ़ा नहीं जा सकता।"
+        "blankStart": "खाली संदर्भ शुरू नहीं हो सका: {{detail}}",
+        "referenceRequired": "संदर्भ बनाने से पहले एक छवि चुनें।",
+        "createdEntityUnreadable": "बनने के बाद संदर्भ पढ़ा नहीं जा सका।"
       },
       "steps": {
         "details": {
           "label": "विवरण",
           "primary": "एक संदर्भ चुनें",
           "blocked": {
-            "name": "नाम इकाई",
+            "name": "संदर्भ को नाम दें",
             "descriptor": "संरक्षित करने के लिए लक्षणों का वर्णन करें"
           },
           "pending": "एक रिक्त संदर्भ तैयार करना"
         },
         "reference": {
           "label": "संदर्भ",
-          "primary": "समीक्षा इकाई",
+          "primary": "संदर्भ जाँचें",
           "blocked": {
-            "libraryError": "अपनी इकाई पुस्तकालय को सत्यापित नहीं कर सका",
-            "libraryLoading": "अपनी इकाई पुस्तकालय लोड हो रहा है",
+            "libraryError": "आपकी संदर्भ लाइब्रेरी जाँची नहीं जा सकी",
+            "libraryLoading": "आपकी संदर्भ लाइब्रेरी लोड हो रही है",
             "reference": "एक संदर्भ छवि चुनें"
           }
         },
         "review": {
           "label": "समीक्षा",
-          "primary": "इकाई बनाएँ",
-          "pending": "अपनी इकाई बनाना",
+          "primary": "संदर्भ बनाएँ",
+          "pending": "आपका संदर्भ बन रहा है",
           "blocked": {
-            "libraryError": "अपनी इकाई पुस्तकालय को सत्यापित नहीं कर सका",
-            "libraryLoading": "अपनी इकाई पुस्तकालय लोड हो रहा है",
+            "libraryError": "आपकी संदर्भ लाइब्रेरी जाँची नहीं जा सकी",
+            "libraryLoading": "आपकी संदर्भ लाइब्रेरी लोड हो रही है",
             "reference": "वापस जाओ और एक संदर्भ छवि चुनें",
-            "name": "वापस जाओ और नाम इकाई",
+            "name": "वापस जाएँ और संदर्भ को नाम दें",
             "descriptor": "वापस जाओ और लक्षणों को संरक्षित करने के लिए वर्णन करें"
           }
         }
       },
       "details": {
         "title": "क्या रहना चाहिए?",
-        "description": "इकाई को एक स्थिर नाम दें और विवरण पीढ़ी के संकेत का पुन: उपयोग करना चाहिए।",
+        "description": "संदर्भ को एक स्थायी नाम और वह विवरण दें जिसे जनरेशन प्रॉम्प्ट दोबारा इस्तेमाल करें।",
         "kinds": {
           "character": {
             "title": "चरित्र",
@@ -3073,10 +3073,10 @@
           }
         },
         "fields": {
-          "kind": "इकाई प्रकार",
+          "kind": "संदर्भ टाइप",
           "name": "नाम",
           "descriptor": "वर्णनकर्ता",
-          "descriptorHelp": "यह पाठ प्रत्येक संकेत को जोड़ा जाता है जो इकाई का उपयोग करता है। केवल स्थिर दृश्य लक्षणों का वर्णन करें।",
+          "descriptorHelp": "यह पाठ संदर्भ का इस्तेमाल करने वाले हर प्रॉम्प्ट में जोड़ा जाता है। केवल स्थायी दिखावट की बातें लिखें।",
           "tagsOptional": "टैग (वैकल्पिक)"
         },
         "placeholders": {
@@ -3098,7 +3098,7 @@
         "description": "उन लक्षणों की स्पष्ट छवि चुनें जिन्हें आप भविष्य की पीढ़ियों को संरक्षित करना चाहते हैं, या एआई के साथ एक बनाना चाहते हैं।",
         "imageCaption": "{{name}} संदर्भ",
         "selectedCaption": "चयनित संदर्भ",
-        "selectedAlt": "चयनित इकाई संदर्भ",
+        "selectedAlt": "चुनी गई संदर्भ छवि",
         "assets": {
           "unavailable": "अनुपलब्ध परिसंपत्तियां",
           "loading": "संपत्ति लोड करना",
@@ -3131,7 +3131,7 @@
         "errors": {
           "noImage": "छवि मॉडल ने कोई संदर्भ छवि वापस नहीं की।",
           "generationFailed": "संदर्भ छवि उत्पन्न नहीं की जा सकती है।",
-          "reportSummary": "एंटिटी संदर्भ छवि उत्पन्न करने में विफल रही"
+          "reportSummary": "संदर्भ छवि नहीं बन सकी"
         },
         "prompt": {
           "template": "की एक संदर्भ छवि {{name}}A. {{descriptor}} {{instruction}}",
@@ -3192,7 +3192,7 @@
         "clipTask": {
           "image_to_video": "Animate stills",
           "text_to_video": "प्रॉम्प्ट से उत्पन्न",
-          "reference_to_video": "इकाई संदर्भ का उपयोग करें"
+          "reference_to_video": "संदर्भ इस्तेमाल करें"
         },
         "confirmWithCost": "{{verb}} · लगभग {{cost}}",
         "renderClip": "रेंडर क्लिप",
@@ -3564,58 +3564,58 @@
       "entities": {
         "editOnlyModel": "{{model}} केवल छवियों को संपादित करता है, इसलिए यह एक विवरण से एक संदर्भ नहीं खींच सकता है। एक मॉडल चुनें जो पाठ से छवियों को बनाता है।",
         "substituteModelHelper": "{{originalModel}} केवल छवियों को संपादित करता है, इसलिए संदर्भों का उपयोग करता है {{referenceModel}}The lasting of the lasting of the lasting of the lasting of the lasting of the lasting of {{originalModel}}A.",
-        "referenceModelHelper": "केवल उन लापता संस्थाओं के लिए जो आप बनाना चाहते हैं। वही मॉडल लुक स्टेप में होता है।",
+        "referenceModelHelper": "केवल उन छूटे हुए संदर्भों के लिए, जिन्हें आप बनाना चुनते हैं। यही मॉडल Look चरण में भी जाता है।",
         "priceUnknown": "अज्ञात",
         "aboutPrice": "के बारे में {{price}}",
         "missingScreenplayOrModel": "स्टोरीबोर्ड को पहले एक स्क्रीनप्ले और निदेशक मॉडल की आवश्यकता होती है।",
-        "findFailedFallback": "कहानी में कोई भी संस्था नहीं मिल पा सकती है।",
+        "findFailedFallback": "कहानी में संदर्भ नहीं मिले।",
         "pickReferenceModelFirst": "पहले एक संदर्भ छवि मॉडल चुनें।",
         "noReferenceImageReturned": "छवि मॉडल ने कोई संदर्भ छवि वापस नहीं की।",
-        "entitySaveFailed": "इकाई को बचाया नहीं जा सकता।",
-        "entityCreateFailedFallback": "इकाई नहीं बनाई जा सकती है।",
+        "entitySaveFailed": "संदर्भ सहेजा नहीं जा सका।",
+        "entityCreateFailedFallback": "संदर्भ नहीं बन सका।",
         "title": "लोगों और स्थानों को लगातार रखें",
         "description": "उन पात्रों, स्थानों और प्रस्तावों का चयन करें जिन्हें शॉट के पार सुसंगत दिखने की आवश्यकता है।",
         "suggestedFromStory": "अपनी कहानी से सुझाव दिया",
         "suggestionsDescription": "अपने स्क्रीनप्ले में आवर्ती संदर्भों का पता लगाएं। केवल वही बनाएं जो आप उपयोग करना चाहते हैं।",
-        "findingEntities": "खोज संस्था",
+        "findingEntities": "संदर्भ खोजे जा रहे हैं",
         "refreshSuggestions": "ताज़ा सुझाव",
-        "findEntities": "संस्थाएँ खोजें",
-        "cancelFinding": "निष्कर्ष निकालने की इकाई रद्द करना",
+        "findEntities": "संदर्भ खोजें",
+        "cancelFinding": "संदर्भ खोजना रद्द करें",
         "cancel": "रद्द करें",
         "noSuggestionsFound": "आपके स्क्रीनप्ले में कोई आवर्ती वर्ण, स्थान या प्रॉप्स नहीं पाए गए थे।",
         "loadingEstimate": "सम्पर्क करने का विवरण",
         "findEstimateResult": "अपने स्क्रीनप्ले में वर्ण, स्थान और प्रॉप्स खोजें",
         "findEstimateNext": "जब तक आप चुनते हैं तब तक कुछ भी नहीं बनाया जाता है।",
-        "findFailureTitle": "नहीं मिल सका",
-        "createFailureTitle": "नहीं बना सकता",
-        "findFailureSummary": "स्टोरीबोर्ड इकाई सुझाव विफल",
-        "createFailureSummary": "स्टोरीबोर्ड इकाई निर्माण विफल",
+        "findFailureTitle": "संदर्भ नहीं मिले",
+        "createFailureTitle": "संदर्भ नहीं बन सके",
+        "findFailureSummary": "स्टोरीबोर्ड संदर्भ सुझाव विफल रहे",
+        "createFailureSummary": "स्टोरीबोर्ड संदर्भ नहीं बन सके",
         "referenceImageModel": "संदर्भ छवि मॉडल",
         "creatingEntity": "बनाना {{name}}...... ...... ...... ...... ...... ...... ...... ...... ...... ...... ...... ......",
         "useEntity": "उपयोग {{name}}",
         "createEntity": "बनाएँ {{name}}",
-        "libraryTitle": "आपकी इकाई पुस्तकालय",
+        "libraryTitle": "आपकी संदर्भ लाइब्रेरी",
         "selectedCount_one": "{{count}} इस स्टोरीबोर्ड के लिए चुना गया",
         "selectedCount_other": "{{count}} इस स्टोरीबोर्ड के लिए चुना गया",
-        "createFromImage": "एक छवि से इकाई बनाएं",
-        "loadingEntities": "लोड हो रहा है",
-        "loadFailedTitle": "अपनी संस्थाओं को लोड नहीं कर सकता",
+        "createFromImage": "छवि से संदर्भ बनाएँ",
+        "loadingEntities": "संदर्भ लोड हो रहे हैं",
+        "loadFailedTitle": "आपके संदर्भ लोड नहीं हो सके",
         "tryAgain": "फिर कोशिश करें",
-        "loadFailureSummary": "स्टोरीबोर्ड इकाई पुस्तकालय लोड करने में विफल रहा",
-        "loadFailedFallback": "इकाई पुस्तकालय लोड नहीं किया गया था। फिर से कोशिश करें, या इस कदम को छोड़ दें।",
-        "emptyTitle": "अभी तक कोई संस्था नहीं है",
+        "loadFailureSummary": "स्टोरीबोर्ड संदर्भ लाइब्रेरी लोड नहीं हो सकी",
+        "loadFailedFallback": "संदर्भ लाइब्रेरी लोड नहीं हुई। फिर कोशिश करें, या यह चरण छोड़ दें।",
+        "emptyTitle": "अभी कोई संदर्भ नहीं",
         "emptyDescription": "एक उत्पन्न या अपलोड की गई छवि से एक बनाएं, या इस कदम को छोड़ दें।",
-        "searchPlaceholder": "खोज संस्था",
+        "searchPlaceholder": "संदर्भ खोजें",
         "selectedOnly": "केवल चयनित",
-        "noEntitiesSelected": "चयनित कोई संस्था नहीं",
-        "noMatchingEntities": "कोई मिलान करने वाली संस्था",
+        "noEntitiesSelected": "कोई संदर्भ नहीं चुना गया",
+        "noMatchingEntities": "कोई मेल खाता संदर्भ नहीं",
         "noSelectedDescription": "इस कहानी के लिए अपने पुस्तकालय को ब्राउज़ करें।",
         "noMatchingDescription": "दूसरे नाम की कोशिश करें या चयनित फिल्टर को बदल दें।",
         "viewReferenceImage": "देखें {{name}} संदर्भ छवि",
         "selectEntity": "{{name}} · · · · · · · · · · · · · · · · · · · · · · · · {{kind}}",
         "noDescription": "कोई विवरण नहीं",
         "assignEachShot": "प्रत्येक शॉट को असाइन करें",
-        "assignDescription": "एक इकाई को शॉट से निकालें जहां यह प्रकट नहीं होना चाहिए।",
+        "assignDescription": "जिन शॉट में संदर्भ नहीं दिखना चाहिए, वहाँ से उसे हटाएँ।",
         "shotNumber": "शॉट {{number}}",
         "groups": {
           "characters": "वर्ण",
@@ -6326,7 +6326,7 @@
         "actionLabel": "कॉपी करें {{name}} अन्य परियोजना",
         "title": "कॉपी करें {{name}}",
         "confirm": "कॉपी करें",
-        "description": "संदर्भित परिसंपत्तियां, संस्थाएं और समर्थित दस्तावेज गंतव्य में कॉपी किए जाते हैं। स्रोत अपरिवर्तित रहता है।",
+        "description": "जुड़े हुए एसेट, संदर्भ और समर्थित दस्तावेज़ गंतव्य में कॉपी किए जाते हैं। स्रोत नहीं बदलता।",
         "destinationProject": "गंतव्य परियोजना"
       },
       "documents": {
@@ -6371,7 +6371,7 @@
         "openChatError": "चैट नहीं खुल सकता: {{error}}",
         "startFlowError": "शुरू नहीं किया जा सकता {{flow}}: {{error}}",
         "flowNames": {
-          "entity": "इकाई",
+          "entity": "संदर्भ",
           "storyboard": "कहानी",
           "video": "वीडियो",
           "script": "स्क्रिप्ट",
@@ -6382,9 +6382,9 @@
         },
         "attachedFileCount_one": "{{count}} संलग्न फ़ाइल",
         "attachedFileCount_other": "{{count}} संलग्न फाइलें",
-        "singleEntity": "इकाई {{name}}",
-        "entityCount_one": "{{count}} इकाई",
-        "entityCount_other": "{{count}} संस्था",
+        "singleEntity": "संदर्भ {{name}}",
+        "entityCount_one": "{{count}} संदर्भ",
+        "entityCount_other": "{{count}} संदर्भ",
         "uncarriedContext": "The The The The The The The The The The The The The The The The The The The The The The The The {{flow}} प्रवाह आपके शीघ्र से शुरू होता है, इसलिए {{items}} इस स्क्रीन पर रहें। उन्हें प्रवाह के अपने चरण से जोड़ें।",
         "documentNames": {
           "storyboard": "न्यू स्टोरीबोर्ड",
@@ -6394,11 +6394,11 @@
           "workflow": "नया वर्कफ़्लो",
           "app": "नया ऐप",
           "game": "नया गेम",
-          "entity": "नई इकाई"
+          "entity": "नया संदर्भ"
         },
         "entryCards": {
           "entity": {
-            "title": "संस्था",
+            "title": "संदर्भ",
             "description": "एक पुन: प्रयोज्य चरित्र, स्थान, शैली, या प्रोप बनाएँ।"
           },
           "storyboard": {
@@ -6461,13 +6461,13 @@
         "heading": "क्या आप बनाना चाहते हैं?",
         "intro": "एक विचार को छवियों, वीडियो, ऐप्स और वर्कफ़्लो में बदल दें। एक सवाल पूछो, या वर्णन करें कि क्या करना है।",
         "chatPromptLabel": "चैट प्रॉम्प्ट",
-        "promptPlaceholder": "आप जो बनाना चाहते हैं उसका वर्णन करें। एक कौशल के लिए टाइप करें / एक फ़ाइल या इकाई के लिए @।",
+        "promptPlaceholder": "बताएँ कि आप क्या बनाना चाहते हैं। स्किल के लिए / और फ़ाइल या संदर्भ के लिए @ लिखें।",
         "removeReference": "निकालें {{name}}",
         "attachFiles": "फ़ाइलें संलग्न करें",
         "attachedFileCountShort_one": "फ़ाइल · {{count}}",
         "attachedFileCountShort_other": "फ़ाइल · {{count}}",
-        "entitiesNone": "कोई नहीं",
-        "entitiesSelected": "संस्थाएँ {{entities}}",
+        "entitiesNone": "संदर्भ · कोई नहीं",
+        "entitiesSelected": "संदर्भ · {{entities}}",
         "selectedModel": "मॉडल {{name}}",
         "selectModel": "एक मॉडल चुनें",
         "sendToChat": "चैट करने के लिए भेजें",
@@ -6487,7 +6487,7 @@
         "blankDocumentDescription": "- किसी भी परियोजना के बाहर एक ढीला टैब के रूप में खुलता है",
         "browseExamples": "उदाहरण ब्राउज़ करें",
         "tutorials": "ट्यूटोरियल",
-        "entitiesDialogTitle": "इस परियोजना के लिए सुविधाएं",
+        "entitiesDialogTitle": "इस प्रोजेक्ट के संदर्भ",
         "blankStoryboard": "रिक्त स्टोरीबोर्ड",
         "renderedExampleShots_one": "{{count}} शॉट, पहले से ही प्रस्तुत",
         "renderedExampleShots_other": "{{count}} शॉट्स, पहले से ही प्रस्तुत",
@@ -6594,7 +6594,17 @@
           "script": "स्क्रिप्ट में बदलें",
           "ask": "इनके बारे में पूछें",
           "askPrompt": "संलग्न फ़ाइलें देखो और सुझाओ कि इनसे क्या बनाया जा सकता है।"
-        }
+        },
+        "entitiesHint": "पात्र, जगहें, शैलियाँ और प्रॉप्स जिन्हें आप दोबारा इस्तेमाल करते हैं, ताकि वे हर तस्वीर और वीडियो में एक जैसे दिखें।",
+        "goalHints": {
+          "chat": "कोई सवाल पूछें या किसी विचार पर बात करें। जवाब चैट में दिखता है।",
+          "image": "एक तस्वीर का वर्णन करें। भेजें दबाने पर आपके शब्दों के साथ इमेज मेकर खुलता है।",
+          "video": "एक छोटी क्लिप का वर्णन करें। भेजें दबाने पर आपके शब्दों के साथ वीडियो मेकर खुलता है।",
+          "audio": "सुनने के लिए शब्द लिखें। भेजें दबाने पर वॉइस मेकर उन्हें पढ़कर सुनाता है।"
+        },
+        "showAllWays": "शुरू करने के सभी तरीके दिखाएँ",
+        "showAllWaysHint": "स्टूडियो, स्किल, तैयार उदाहरण, आपके प्रोजेक्ट और खाली दस्तावेज़",
+        "needHelp": "NodeTool में नए हैं? एक ट्यूटोरियल देखें, या ऐसा उदाहरण खोलें जो जैसा है वैसा चलता है।"
       }
     }
   },
@@ -6971,7 +6981,7 @@
         "title": "प्रवाह बदलें?",
         "confirm": "त्याग और चुनें",
         "cancel": "इस ड्राफ्ट को रखें",
-        "description": "आपका संक्षिप्त, और आपके द्वारा शुरू की गई संदर्भ और संस्थाएं, आप अगले प्रवाह के लिए आएंगी। {{flow}} ड्राफ्ट को इस कदम पर जोड़ा गया कुछ और के साथ छोड़ दिया गया है, जैसे रचनात्मक संदर्भ, आयातित फाइलें और रखे मीडिया। अभी तक इसके लिए कुछ भी उत्पन्न नहीं हुआ है।"
+        "description": "आपका ब्रीफ़, और जिन छवियों व संदर्भों से आपने शुरू किया, वे अगले चुने गए फ़्लो में साथ जाते हैं। यह {{flow}} ड्राफ़्ट इस चरण में जोड़ी गई हर चीज़ के साथ हटा दिया जाएगा, जैसे क्रिएटिव कॉन्टेक्स्ट, आयात की गई फ़ाइलें और रखा गया मीडिया। इसके लिए अभी कुछ भी नहीं बनाया गया है।"
       }
     },
     "setupFooterField": {
@@ -7009,12 +7019,12 @@
     },
     "entityDetails": {
       "title": "क्या रहना चाहिए?",
-      "description": "इकाई को एक स्थिर नाम दें और विवरण पीढ़ी के संकेत का पुन: उपयोग करना चाहिए।",
+      "description": "संदर्भ को एक स्थायी नाम और वह विवरण दें जिसे जनरेशन प्रॉम्प्ट दोबारा इस्तेमाल करें।",
       "fields": {
-        "kind": "इकाई प्रकार",
+        "kind": "संदर्भ टाइप",
         "name": "नाम",
         "descriptor": "वर्णनकर्ता",
-        "descriptorHelp": "यह पाठ प्रत्येक संकेत को जोड़ा जाता है जो इकाई का उपयोग करता है। केवल स्थिर दृश्य लक्षणों का वर्णन करें।",
+        "descriptorHelp": "यह पाठ संदर्भ का इस्तेमाल करने वाले हर प्रॉम्प्ट में जोड़ा जाता है। केवल स्थायी दिखावट की बातें लिखें।",
         "tagsOptional": "टैग (वैकल्पिक)"
       },
       "placeholders": {
@@ -7110,9 +7120,9 @@
   },
   "pass3_5": {
     "entity": {
-      "title": "संस्था",
+      "title": "संदर्भ",
       "defaults": {
-        "untitledName": "Untitled इकाई",
+        "untitledName": "बिना नाम का संदर्भ",
         "untitledReferenceFile": "Untitled.png"
       },
       "kinds": {
@@ -7124,38 +7134,38 @@
       "errors": {
         "canvasUnavailable": "एक खाली संदर्भ नहीं बनाया जा सकता क्योंकि कैनवास अनुपलब्ध है।",
         "blankImageFailed": "रिक्त संदर्भ छवि को प्रस्तुत नहीं किया जा सकता है।",
-        "blankStart": "एक खाली इकाई शुरू नहीं कर सकता: {{detail}}",
-        "referenceRequired": "इकाई बनाने से पहले एक संदर्भ छवि चुनें।",
-        "createdEntityUnreadable": "इसके बाद इकाई को पढ़ा नहीं जा सकता।"
+        "blankStart": "खाली संदर्भ शुरू नहीं हो सका: {{detail}}",
+        "referenceRequired": "संदर्भ बनाने से पहले एक छवि चुनें।",
+        "createdEntityUnreadable": "बनने के बाद संदर्भ पढ़ा नहीं जा सका।"
       },
       "steps": {
         "details": {
           "label": "विवरण",
           "primary": "एक संदर्भ चुनें",
           "blocked": {
-            "name": "नाम इकाई",
+            "name": "संदर्भ को नाम दें",
             "descriptor": "संरक्षित करने के लिए लक्षणों का वर्णन करें"
           },
           "pending": "एक रिक्त संदर्भ तैयार करना"
         },
         "reference": {
           "label": "संदर्भ",
-          "primary": "समीक्षा इकाई",
+          "primary": "संदर्भ जाँचें",
           "blocked": {
-            "libraryError": "अपनी इकाई पुस्तकालय को सत्यापित नहीं कर सका",
-            "libraryLoading": "अपनी इकाई पुस्तकालय लोड हो रहा है",
+            "libraryError": "आपकी संदर्भ लाइब्रेरी जाँची नहीं जा सकी",
+            "libraryLoading": "आपकी संदर्भ लाइब्रेरी लोड हो रही है",
             "reference": "एक संदर्भ छवि चुनें"
           }
         },
         "review": {
           "label": "समीक्षा",
-          "primary": "इकाई बनाएँ",
-          "pending": "अपनी इकाई बनाना",
+          "primary": "संदर्भ बनाएँ",
+          "pending": "आपका संदर्भ बन रहा है",
           "blocked": {
-            "libraryError": "अपनी इकाई पुस्तकालय को सत्यापित नहीं कर सका",
-            "libraryLoading": "अपनी इकाई पुस्तकालय लोड हो रहा है",
+            "libraryError": "आपकी संदर्भ लाइब्रेरी जाँची नहीं जा सकी",
+            "libraryLoading": "आपकी संदर्भ लाइब्रेरी लोड हो रही है",
             "reference": "वापस जाओ और एक संदर्भ छवि चुनें",
-            "name": "वापस जाओ और नाम इकाई",
+            "name": "वापस जाएँ और संदर्भ को नाम दें",
             "descriptor": "वापस जाओ और लक्षणों को संरक्षित करने के लिए वर्णन करें"
           }
         }
@@ -7165,7 +7175,7 @@
         "description": "उन लक्षणों की स्पष्ट छवि चुनें जिन्हें आप भविष्य की पीढ़ियों को संरक्षित करना चाहते हैं, या एआई के साथ एक बनाना चाहते हैं।",
         "imageCaption": "{{name}} संदर्भ",
         "selectedCaption": "चयनित संदर्भ",
-        "selectedAlt": "चयनित इकाई संदर्भ",
+        "selectedAlt": "चुनी गई संदर्भ छवि",
         "assets": {
           "unavailable": "अनुपलब्ध परिसंपत्तियां",
           "loading": "संपत्ति लोड करना",
@@ -7191,7 +7201,7 @@
         "errors": {
           "noImage": "छवि मॉडल ने कोई संदर्भ छवि वापस नहीं की।",
           "generationFailed": "संदर्भ छवि उत्पन्न नहीं की जा सकती है।",
-          "reportSummary": "एंटिटी संदर्भ छवि उत्पन्न करने में विफल रही"
+          "reportSummary": "संदर्भ छवि नहीं बन सकी"
         },
         "prompt": {
           "template": "की एक संदर्भ छवि {{name}}A. {{descriptor}} {{instruction}}",
@@ -7244,12 +7254,12 @@
         }
       },
       "review": {
-        "title": "अपनी इकाई की समीक्षा करें",
-        "description": "यह संदर्भ और प्रतिलेखक कहीं भी उपलब्ध होगा, कहीं भी संस्थाएं जुड़ सकती हैं।",
+        "title": "अपना संदर्भ जाँचें",
+        "description": "यह संदर्भ और इसका विवरण हर उस जगह उपलब्ध होंगे जहाँ संदर्भ जोड़े जा सकते हैं।",
         "imageCaption": "{{name}} संदर्भ",
         "imageAlt": "{{name}} संदर्भ",
         "tags": "टैग: {{tags}}",
-        "loadingLibrary": "अपनी इकाई पुस्तकालय लोड हो रहा है...",
+        "loadingLibrary": "आपकी संदर्भ लाइब्रेरी लोड हो रही है…",
         "empty": {
           "title": "अभी तक कोई संदर्भ छवि नहीं",
           "description": "वापस संदर्भ चरण में जाओ और चुनें या एक उत्पन्न करें।"
@@ -7406,7 +7416,7 @@
         "uploadFailed": "छवि अपलोड विफल",
         "promptContext": "अपने शीघ्र साथ कैम",
         "referenceImages": "संदर्भ छवि",
-        "entities": "संस्था",
+        "entities": "संदर्भ",
         "referencesHelp": "चरण-दर-चरण संक्षिप्त इन पढ़ने के बाद। अभी तक उत्पन्न होने से आपके टेक्स्ट का उपयोग केवल किया जाता है।",
         "entitiesHelp": "यह दस्तावेज़ के साथ रहने के लिए जैसा आपने इसे सेट किया था।",
         "alternativesLabel": "शुरू करने के लिए अन्य तरीके"
@@ -7416,11 +7426,11 @@
         "downloadUnreadable": "फ़ाइल को पढ़ा नहीं जा सकता ({{status}}).",
         "variation": "विविधता {{number}}",
         "unrecordedFailure": "यह कोई भी नहीं दिया, और कोई कारण नहीं दिया।",
-        "savingEntity": "बचत करने के लिए संस्थाओं...",
+        "savingEntity": "संदर्भों में सहेजा जा रहा है…",
         "opening": "उद्घाटन",
-        "savedEntity": "संस्थाओं को बचा लिया।",
+        "savedEntity": "संदर्भों में सहेजा गया।",
         "openedCanvas": "एक नए नोड कैनवास में खोला गया।",
-        "saveEntityFailed": "नहीं बचा सकता है।",
+        "saveEntityFailed": "संदर्भों में सहेजा नहीं जा सका।",
         "openCanvasFailed": "यह कैनवास नहीं खोल सकता।",
         "heading": "अपनी छवि चुनें",
         "intro": "हर भिन्नता दस्तावेज़ पर रहती है, इसलिए आपके द्वारा प्रस्तुत कुछ भी नहीं खोया जाता है।",
@@ -7439,7 +7449,7 @@
           "failed": "यह एक असफल"
         },
         "sketchEditor": "स्केच संपादक",
-        "saveToEntities": "संस्थाओं को बचाओ",
+        "saveToEntities": "संदर्भों में सहेजें",
         "newNodeCanvas": "नई नोड कैनवास",
         "imageToVideo": "वीडियो",
         "retryVariation": "कोशिश करो {{label}} फिर",
@@ -7672,8 +7682,8 @@
       "sourceLineCount_other": "{{count}} रेखा",
       "referenceCount_one": "{{count}} संदर्भ",
       "referenceCount_other": "{{count}} संदर्भ",
-      "entityCount_one": "{{count}} इकाई",
-      "entityCount_other": "{{count}} संस्था"
+      "entityCount_one": "{{count}} संदर्भ",
+      "entityCount_other": "{{count}} संदर्भ"
     },
     "review": {
       "addDirection": "दिशा जोड़ें",
@@ -8070,14 +8080,14 @@
       "addOwnDisabledReason": "एक बोर्ड की स्थापना करते समय कस्टम शैलियों को जोड़ा जाता है।"
     },
     "entityStillModelWarning": {
-      "message": "एंटिटीज़ संदर्भ छवियों को ले जाती है, लेकिन यह मॉडल केवल पाठ लेता है। उनका उपयोग करने के लिए एक छवि-से-image मॉडल चुनें।"
+      "message": "संदर्भों में छवियाँ होती हैं, पर यह मॉडल केवल टेक्स्ट लेता है। इन्हें इस्तेमाल करने के लिए इमेज-टू-इमेज मॉडल चुनें।"
     }
   },
   "screens4_13": {
     "storyboard": {
       "entityTiles": {
         "untitled": "बिना शीर्षक",
-        "chooseEntities": "संस्था चुनें"
+        "chooseEntities": "संदर्भ चुनें"
       },
       "oneTake": {
         "title": "एक लेना",
@@ -8092,7 +8102,7 @@
         "referenceStills": "शॉट",
         "referenceEntities": "कास्ट और स्थानों",
         "referenceStillsHelp": "प्रत्येक शॉट अभी भी अपने झांसे और मुद्रा को ठीक करता है। शांत शॉट्स के लिए सर्वश्रेष्ठ।",
-        "referenceEntitiesHelp": "एंटिटी इमेज किस और कहाँ तय करती है। शॉट टेक्स्ट फ़्रेमिंग और गति सेट करता है। कार्रवाई के लिए सर्वश्रेष्ठ।",
+        "referenceEntitiesHelp": "संदर्भ तय करते हैं कि कौन और कहाँ। शॉट का टेक्स्ट फ़्रेमिंग और गति तय करता है। एक्शन के लिए सबसे अच्छा।",
         "duration": "अवधि",
         "aspectRatio": "Aspect अनुपात",
         "resolution": "संकल्प",
@@ -8124,7 +8134,7 @@
         "blockers": {
           "addShot": "पहले बोर्ड में एक शॉट जोड़ें।",
           "renderStill": "कम से कम एक शॉट के लिए अभी भी एक गोली मार दी।",
-          "addEntityImage": "पहले एक संदर्भ छवि बोर्ड पर एक इकाई दें।",
+          "addEntityImage": "पहले बोर्ड पर किसी संदर्भ को एक छवि दें।",
           "noModel": "कोई वीडियो मॉडल चुना नहीं है।",
           "imageLimit_one": "{{count}} छवि की सीमा से अधिक है {{limit}}To remove the suffering of the suffering. {{removeCount}}A.",
           "imageLimit_other": "{{count}} चित्र की सीमा से अधिक है {{limit}}To remove the suffering of the suffering. {{removeCount}}A.",
@@ -8180,9 +8190,9 @@
         "shotStillAlt": "अभी भी शॉट",
         "imageReference": "[image] {{number}}] ",
         "references": "संदर्भ छवि",
-        "referencesHelp": "फिर भी फ्राइंग और पोज़ को ठीक करें। इकाई छवियाँ किस तरह और कहाँ तय करती हैं।",
+        "referencesHelp": "स्टिल फ़्रेमिंग और मुद्रा तय करते हैं। संदर्भ तय करते हैं कि कौन और कहाँ।",
         "stills": "स्थिर",
-        "entities": "संस्था",
+        "entities": "संदर्भ",
         "addEntity": "लाइब्रेरी से जोड़ें",
         "noStill": "अभी नहीं",
         "noEntityImage": "कोई छवि नहीं",
@@ -8197,7 +8207,7 @@
           "differentScenes": "इस दृश्य क्लिप में शॉट्स अब एक दृश्य में नहीं हैं।",
           "addShot": "पहले बोर्ड में एक शॉट जोड़ें।",
           "renderStill": "कम से कम एक शॉट के लिए अभी भी एक गोली मार दी।",
-          "addEntityImage": "पहले एक संदर्भ छवि बोर्ड पर एक इकाई दें।",
+          "addEntityImage": "पहले बोर्ड पर किसी संदर्भ को एक छवि दें।",
           "noReference": "कम से कम एक संदर्भ छवि चुनें।",
           "noVideoModel": "कोई वीडियो मॉडल चुना नहीं है।",
           "imageLimit": "{{imageCount}} चित्र की सीमा से अधिक है {{limit}}To remove the suffering of the suffering. {{remove}}A.",
@@ -8281,8 +8291,8 @@
       "shotEntitiesField": {
         "label": "इस शॉट में",
         "remove": "निकालें {{name}} इस शॉट से",
-        "empty": "अभी तक कोई संस्था नहीं है। इस शॉट में इसे सुसंगत रखने के लिए एक चरित्र, स्थान, शैली या प्रोप चुनें।",
-        "newEntity": "नई इकाई"
+        "empty": "अभी कोई संदर्भ नहीं। इस शॉट में एक जैसा रखने के लिए कोई पात्र, जगह, शैली या प्रॉप चुनें।",
+        "newEntity": "नया संदर्भ"
       },
       "shotGraphicsEditor": {
         "title": "ग्राफिक्स",
@@ -8298,7 +8308,7 @@
         "exactText": "सटीक पाठ: {{id}}",
         "protectedCopy": "संरक्षित प्रतिलिपि उत्पादन इनपुट से आती है। इसे संपादित करें।",
         "assetReference": "परिसंपत्ति संदर्भ: {{id}}",
-        "entity": "इकाई: {{id}}",
+        "entity": "संदर्भ: {{id}}",
         "graphicNotes": "ग्राफिक नोट्स: {{id}}",
         "defaultText": "आपका पाठ",
         "addText": "पाठ जोड़ें",
@@ -8396,7 +8406,7 @@
         "clipTask": {
           "image_to_video": "Animate stills",
           "text_to_video": "प्रॉम्प्ट से उत्पन्न",
-          "reference_to_video": "इकाई संदर्भ का उपयोग करें"
+          "reference_to_video": "संदर्भ इस्तेमाल करें"
         }
       },
       "shotScript": {
@@ -8662,6 +8672,10 @@
       "loadingImages": "चित्र लोड हो रहा है",
       "noImages": "कोई छवि नहीं",
       "noImagesDescription": "पहले छवि को उत्पन्न या अपलोड करें।",
+      "uploadImage": "तस्वीर अपलोड करें",
+      "uploading": "अपलोड हो रहा है…",
+      "uploadFailed": "तस्वीर अपलोड नहीं हुई। फिर से कोशिश करें।",
+      "noImagesUploadDescription": "अपने कंप्यूटर से उसकी तस्वीर अपलोड करें, या पहले एक बनाएँ।",
       "pickImage": "छवि चुनें {{name}}",
       "closeDialog": "संवाद बंद करें",
       "noImage": "कोई छवि नहीं",
@@ -8672,11 +8686,11 @@
         "style": "शैली",
         "prop": "प्रोप"
       },
-      "editEntity": "इकाई",
+      "editEntity": "संदर्भ संपादित करें",
       "editEntityFor": "संपादित करें {{name}}",
-      "removeEntity": "इकाई निकालें",
+      "removeEntity": "संदर्भ हटाएँ",
       "removeEntityFor": "निकालें {{name}}",
-      "newEntity": "नई इकाई",
+      "newEntity": "नया संदर्भ",
       "save": "सहेजें",
       "cancel": "रद्द करें",
       "create": "बनाएँ",
@@ -8685,33 +8699,33 @@
       "kind": "मेहरबान",
       "name": "नाम",
       "descriptor": "वर्णनकर्ता",
-      "descriptorHelp": "प्रत्येक संकेत जो इस इकाई का उपयोग करता है, इसमें इस पाठ को बिल्कुल लिखा गया है।",
+      "descriptorHelp": "इसका रूप एक वाक्य में बताएँ। इस संदर्भ का इस्तेमाल करने वाले हर प्रॉम्प्ट में यह पाठ ज्यों का त्यों जाता है।",
       "voiceId": "वॉयस आईडी (वैकल्पिक)",
       "tags": "टैग (comma-separated)",
-      "saveFailed": "इस इकाई को बचाने के लिए नहीं जा सकता।",
-      "loadingEntities": "लोड हो रहा है",
-      "emptyTitle": "अभी तक कोई संस्था नहीं है",
-      "libraryEmptyDescription": "एक छवि को एक चरित्र, स्थान, शैली या प्रोप के रूप में जोड़े ताकि यह पूरे शॉट्स में पुन: उपयोग किया जा सके। आप लाइब्रेरी में एक छवि को राइट-क्लिक भी कर सकते हैं और इकाई के रूप में उपयोग कर सकते हैं।",
-      "addEntity": "इकाई जोड़ें",
-      "backToEntities": "वापस संस्थाओं के लिए",
-      "entitiesLabel": "संस्था",
+      "saveFailed": "यह संदर्भ सहेजा नहीं जा सका। अपना कनेक्शन जाँचें और फिर कोशिश करें।",
+      "loadingEntities": "संदर्भ लोड हो रहे हैं",
+      "emptyTitle": "अभी कोई संदर्भ नहीं",
+      "libraryEmptyDescription": "किसी छवि को पात्र, जगह, शैली या प्रॉप के रूप में जोड़ें, ताकि उसे कई शॉट में दोबारा इस्तेमाल कर सकें। आप लाइब्रेरी में किसी छवि पर राइट-क्लिक करके संदर्भ के रूप में इस्तेमाल करें भी चुन सकते हैं।",
+      "addEntity": "संदर्भ जोड़ें",
+      "backToEntities": "संदर्भों पर वापस जाएँ",
+      "entitiesLabel": "संदर्भ",
       "librarySubtitle": "पुन: प्रयोज्य वर्ण, स्थान, शैली और props",
       "retakeImage": "नया"
     }
   },
   "screens4_23": {
     "entities": {
-      "newEntity": "नई इकाई",
-      "loading": "लोड हो रहा है",
-      "emptyTitle": "अभी तक कोई संस्था नहीं है",
-      "panelEmptyDescription": "एक छवि को चरित्र, स्थान, शैली या ऊपर + बटन के साथ सहारा के रूप में टैग करें, या लाइब्रेरी में एक छवि को राइट-क्लिक करें और इकाई के रूप में उपयोग करें चुनें।",
+      "newEntity": "नया संदर्भ",
+      "loading": "संदर्भ लोड हो रहे हैं",
+      "emptyTitle": "अभी कोई संदर्भ नहीं",
+      "panelEmptyDescription": "ऊपर दिए + बटन से किसी छवि को पात्र, जगह, शैली या प्रॉप के रूप में टैग करें, या लाइब्रेरी में किसी छवि पर राइट-क्लिक करके संदर्भ के रूप में इस्तेमाल करें चुनें।",
       "emptyPickerDescription": "वर्ण, स्थान, शैलियों, और आप यहाँ दिखाने के लिए प्रचार करते हैं।",
-      "noMatches": "कोई भी संस्था मैच नहीं",
+      "noMatches": "कोई संदर्भ मेल नहीं खाता",
       "noMatchesDescription": "एक और नाम, तरह, या टैग आज़माएं।",
       "untitled": "बिना शीर्षक",
-      "searchPlaceholder": "नाम, प्रकार, या टैग द्वारा खोजें संस्थाएं",
-      "searchLabel": "खोज संस्था",
-      "kindLabel": "इकाई",
+      "searchPlaceholder": "नाम, प्रकार या टैग से संदर्भ खोजें",
+      "searchLabel": "संदर्भ खोजें",
+      "kindLabel": "संदर्भ का प्रकार",
       "kindFilters": {
         "all": "सभी",
         "characters": "वर्ण",
@@ -8725,10 +8739,10 @@
         "style": "शैली",
         "prop": "प्रोप"
       },
-      "entitiesLabel": "संस्था",
-      "selectedCount_one": "{{formattedCount}} इकाई का चयन",
-      "selectedCount_other": "{{formattedCount}} चयनित संस्थाओं",
-      "pickTitle": "एक इकाई चुनें",
+      "entitiesLabel": "संदर्भ",
+      "selectedCount_one": "{{formattedCount}} संदर्भ चुना गया",
+      "selectedCount_other": "{{formattedCount}} संदर्भ चुने गए",
+      "pickTitle": "एक संदर्भ चुनें",
       "done": "पूर्ण"
     }
   },
@@ -9406,6 +9420,18 @@
         "gemini": {
           "description": "अपने मिथुन कुंजी का पुन: उपयोग करता है। इसका उत्तर पीछा करने और पढ़ने वाले पृष्ठों को उद्धृत करने में है।",
           "keyLink": "प्राप्त मिथुन एपीआई कुंजी"
+        },
+        "antigravity": {
+          "description": "इस मशीन पर Antigravity CLI से Google Search चलाता है। कोई कुंजी नहीं चाहिए: एक बार agy चलाकर साइन इन करें।",
+          "keyLink": "Antigravity CLI सेट अप करें"
+        },
+        "codex": {
+          "description": "Codex के लिए आपके ChatGPT साइन-इन पर OpenAI वेब खोज चलाता है। API कुंजी नहीं चाहिए।",
+          "keyLink": "मॉडल और प्रदाता में Codex में साइन इन करें"
+        },
+        "claude": {
+          "description": "इस मशीन पर Claude Code CLI से आपकी Claude सदस्यता पर वेब खोज चलाता है। कोई कुंजी नहीं चाहिए: एक बार claude चलाकर साइन इन करें।",
+          "keyLink": "Claude Code सेट अप करें"
         }
       }
     },
@@ -10129,9 +10155,9 @@
     "shotDesignFrame": {
       "ariaLabel": "शॉट {{shot}} डिजाइन पूर्वावलोकन",
       "errors": {
-        "entityAssetMismatch": "इकाई के लिए परिसंपत्ति {{entityId}} चयनित इकाई से मेल नहीं खाता है।",
-        "entitySourceMismatch": "स्रोत तत्व {{elementId}} इस इकाई से मेल नहीं खाता है।",
-        "missingEntityReference": "संस्था {{entityId}} कहानी से गायब है।",
+        "entityAssetMismatch": "संदर्भ {{entityId}} का एसेट चुने गए संदर्भ से मेल नहीं खाता।",
+        "entitySourceMismatch": "स्रोत तत्व {{elementId}} इस संदर्भ से मेल नहीं खाता।",
+        "missingEntityReference": "संदर्भ {{entityId}} स्टोरीबोर्ड में नहीं है।",
         "unavailable": "शॉट पूर्वावलोकन अनुपलब्ध है।"
       },
       "pause": "Pause पूर्वावलोकन",
@@ -10214,7 +10240,7 @@
         "takes": "लेना"
       },
       "title": "दृश्य {{scene}}, शॉट {{shot}}",
-      "untitledEntity": "Untitled इकाई"
+      "untitledEntity": "बिना नाम का संदर्भ"
     },
     "shotEditTable": {
       "camera": {
@@ -10857,8 +10883,8 @@
       "sketches": "स्केट",
       "timelines": "समयरेखा",
       "storyboards": "स्टोरीबोर्ड",
-      "entities": "संस्था",
-      "openEntitiesFullPage": "पूर्ण पृष्ठ पर खुली संस्थाएं",
+      "entities": "संदर्भ",
+      "openEntitiesFullPage": "संदर्भ पूरे पेज में खोलें",
       "examples": "उदाहरण",
       "scripts": "स्क्रिप्ट",
       "jsScripts": "जे एस लिपि",
@@ -10882,7 +10908,7 @@
         "sketches": "स्केट",
         "scripts": "स्क्रिप्ट",
         "storyboards": "स्टोरीबोर्ड",
-        "entities": "संस्था",
+        "entities": "संदर्भ",
         "examples": "उदाहरण",
         "timelines": "समयरेखा",
         "jsScripts": "जे एस लिपि",
@@ -11612,7 +11638,9 @@
         "directionalLight": "दिशात्मक प्रकाश",
         "pointLight": "प्वाइंट लाइट",
         "spotLight": "स्पॉट लाइट",
-        "empty": "खाली वस्तु"
+        "empty": "खाली वस्तु",
+        "figure": "आकृति",
+        "camera": "कैमरा"
       },
       "loading": {
         "saving": "बचत",
@@ -11833,6 +11861,29 @@
       "decay": "Decay",
       "angle": "कोण",
       "penumbra": "पेन्यूम्ब्रा",
+      "figure": "आकृति",
+      "figureBody": "शरीर",
+      "figureBodies": {
+        "male": "पुरुष",
+        "female": "महिला",
+        "child": "बच्चा"
+      },
+      "figurePose": "मुद्रा",
+      "figurePoses": {
+        "stand": "खड़ा",
+        "sit": "बैठा",
+        "walk": "चलता",
+        "run": "दौड़ता",
+        "lie": "लेटा"
+      },
+      "figureHeight": "ऊँचाई",
+      "figureLabel": "लेबल",
+      "figureEntity": "कास्ट एंटिटी ID",
+      "camera": "कैमरा",
+      "cameraFov": "दृश्य क्षेत्र",
+      "cameraAspect": "पक्षानुपात",
+      "cameraNear": "निकट",
+      "cameraFar": "दूर",
       "geometry": "ज्यामिति",
       "material": "सामग्री",
       "slot": "स्लॉट",
@@ -13528,7 +13579,7 @@
         "selectModel": "एक मॉडल चुनें",
         "attach": {
           "assetsTab": "संपत्ति",
-          "entitiesTab": "संस्था",
+          "entitiesTab": "संदर्भ",
           "documentsTab": "दस्तावेज़",
           "uploadTab": "अपलोड करें",
           "tabsLabel": "क्या जोड़ना है",
@@ -14281,7 +14332,7 @@
         "creative": "रचनात्मक दस्तावेज",
         "text": "पाठ्यपुस्तक",
         "agents": "एजेंट्स & कोड",
-        "entities": "संस्था",
+        "entities": "संदर्भ",
         "shared": "मेरे साथ साझा",
         "cloud": "क्लाउड",
         "cloudShared": "मेरे साथ साझा"
@@ -14293,7 +14344,7 @@
         "script": "स्क्रिप्ट",
         "storyboard": "स्टोरीबोर्ड",
         "timeline": "समयरेखा",
-        "entity": "संस्था",
+        "entity": "संदर्भ",
         "jsscript": "जे एस स्क्रिप्ट",
         "game": "खेल",
         "text": "पाठ फ़ाइल"
@@ -14302,7 +14353,7 @@
       "deleteFailure": "नष्ट नहीं कर सकता {{name}}: {{error}}",
       "unknownError": "अज्ञात त्रुटि",
       "deleteConfirmTitle": "हटाएँ {{type}}? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?",
-      "deleteEntityDescription": "\"{{name}}\"एक इकाई होने से रोक देगा। इसकी संपत्ति रखी गई है।",
+      "deleteEntityDescription": "\"{{name}}\" अब संदर्भ नहीं रहेगा। इसका एसेट रखा जाएगा।",
       "deleteDescription": "\"{{name}}\" स्थायी रूप से हटा दिया जाएगा।",
       "deleteAction": "हटाएँ",
       "cancel": "रद्द करें",
@@ -14382,8 +14433,8 @@
       "noRecentAssets": "अभी तक कोई फाइल नहीं है। एक में संलग्न या खींचें।",
       "noAssetsMatch": "कोई परिसंपत्ति मैच नहीं।",
       "noSavedAssets": "अभी तक कोई बचत नहीं है।",
-      "noEntitiesMatch": "कोई भी संस्था मैच नहीं करती है।",
-      "entities": "संस्था",
+      "noEntitiesMatch": "कोई संदर्भ मेल नहीं खाता।",
+      "entities": "संदर्भ",
       "assetSource": "परिसंपत्ति स्रोत",
       "rename": "नाम बदलें {{name}}",
       "assetName": "संपत्ति का नाम",
@@ -15074,8 +15125,8 @@
       "error": "त्रुटि: {{error}}"
     },
     "entity": {
-      "add": "इकाई जोड़ें",
-      "pick": "इकाई",
+      "add": "संदर्भ जोड़ें",
+      "pick": "संदर्भ चुनें",
       "untitled": "बिना शीर्षक"
     },
     "collection": {
@@ -16145,7 +16196,7 @@
       "sketches": "स्केट",
       "scripts": "स्क्रिप्ट",
       "storyboards": "स्टोरीबोर्ड",
-      "entities": "संस्था",
+      "entities": "संदर्भ",
       "examples": "उदाहरण",
       "timelines": "समयरेखा",
       "jsscripts": "जे एस लिपि",
@@ -16280,7 +16331,7 @@
         "models": "मॉडल मैनेजर",
         "packages": "पैकेज मैनेजर",
         "collections": "संग्रह",
-        "entities": "संस्था",
+        "entities": "संदर्भ",
         "memory": "स्मृति",
         "settings": "सेटिंग्स",
         "effects": "प्रभाव",
@@ -17182,14 +17233,14 @@
   },
   "i18n-next62": {
     "scriptCastPanel": {
-      "noEntity": "कोई इकाई नहीं",
+      "noEntity": "कोई संदर्भ नहीं",
       "noVoice": "कोई आवाज नहीं",
       "speakerName": "अध्यक्ष का नाम",
       "hideVoiceSettings": "आवाज सेटिंग्स छुपाएं",
       "voiceSettings": "आवाज सेटिंग्स",
-      "linkedEntityMissing": "लिंक्ड इकाई लापता",
-      "linkedEntity": "लिंक्ड इकाई",
-      "linkedEntityNotFound": "लिंक्ड इकाई नहीं मिली - इसे हटा दिया गया। एक और चुनें या इसे साफ़ करें।",
+      "linkedEntityMissing": "जुड़ा हुआ संदर्भ मौजूद नहीं है",
+      "linkedEntity": "जुड़ा हुआ संदर्भ",
+      "linkedEntityNotFound": "जुड़ा हुआ संदर्भ नहीं मिला — उसे हटा दिया गया था। कोई दूसरा चुनें या इसे खाली करें।",
       "removeSpeaker": "स्पीकर निकालें",
       "speakerDefaultName": "अध्यक्ष {{count}}",
       "cast": "कास्ट",
@@ -17398,9 +17449,9 @@
         "imageLabel": "चित्र {{index}}",
         "noImages": "इस क्लिप को कंडीशन करने के लिए छवियां जोड़ें।",
         "addImage": "छवि जोड़ें",
-        "entitiesLabel": "संस्था",
+        "entitiesLabel": "संदर्भ",
         "entitiesEmpty": "एक चरित्र, स्थान, शैली या प्रोप चुनें ताकि इसे क्लिप में सुसंगत रखा जा सके।",
-        "newEntity": "नई इकाई",
+        "newEntity": "नया संदर्भ",
         "pickImageTitle": "एक संदर्भ छवि चुनें"
       },
       "transcript": {
@@ -20090,8 +20141,8 @@
   "lipsync": {
     "title": "लिप्सिन",
     "subtitle": "एक तस्वीर को अपने द्वारा चुनी गई आवाज से बोलें।",
-    "entity": "एक इकाई चुनें",
-    "entityImage": "एक बचाया संदर्भ छवि के साथ एक इकाई का चयन करें, या एक तस्वीर अपलोड करें।",
+    "entity": "एक संदर्भ चुनें",
+    "entityImage": "सहेजी गई छवि वाला संदर्भ चुनें, या एक छवि अपलोड करें।",
     "realPerson": "यह एक वास्तविक व्यक्ति है",
     "consent": "मैं इस व्यक्ति की इस सहमति से इस उत्पन्न क्लिप में अपनी छवि का उपयोग करने के लिए सहमत हूँ।",
     "line": "क्या वे कहते हैं?",
@@ -20591,7 +20642,7 @@
   "storyboardText": {
     "mode": "टेक्स्ट",
     "editorLabel": "Markdown टेक्स्ट के रूप में स्टोरीबोर्ड",
-    "hint": "अंक के लिए #, दृश्य के लिए ##, शॉट के लिए ### और फ़ील्ड के लिए - **Motion:** टाइप करें। किसी एंटिटी या इमेज का उल्लेख करने के लिए @ टाइप करें।",
+    "hint": "अंक के लिए #, दृश्य के लिए ##, शॉट के लिए ### और फ़ील्ड के लिए - **Motion:** लिखें। किसी संदर्भ या छवि का ज़िक्र करने के लिए @ लिखें।",
     "issues": "ध्यान देने योग्य पंक्तियाँ: {{lines}}",
     "loading": "टेक्स्ट लोड हो रहा है…",
     "warnings": {
@@ -20627,7 +20678,7 @@
       "instruction": "एजेंट के लिए अनुरोध",
       "send": "एजेंट को भेजें",
       "failed": "मॉडल को भेजा गया अनुरोध विफल रहा।",
-      "context": "अनुरोध के साथ भेजा गया: पूरा स्टोरीबोर्ड, {{shots}} शॉट और लाइब्रेरी की {{entities}} एंटिटी।",
+      "context": "अनुरोध के साथ भेजा गया: पूरा बोर्ड, {{shots}} शॉट और लाइब्रेरी के {{entities}} संदर्भ।",
       "quick": {
         "tighten": "कसें",
         "visual": "अधिक दृश्यात्मक",

@@ -1,6 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
+// The Antigravity and Claude Code backends are configured when their CLI is
+// on this machine, which no secret controls. Report both missing so routing
+// is decided by the secrets each test sets, and no real CLI is started.
+vi.mock("../src/tools/serp-providers/antigravity-provider.js", async (load) => ({
+  ...(await load<object>()),
+  antigravitySearchAvailable: async () => false
+}));
+vi.mock("../src/tools/serp-providers/claude-provider.js", async (load) => ({
+  ...(await load<object>()),
+  claudeSearchAvailable: async () => false
+}));
+
 vi.mock("openai", () => ({
   OpenAI: class {
     responses = {

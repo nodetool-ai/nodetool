@@ -10,6 +10,8 @@ import {
 } from "./geometryParams";
 import { applyOpacity, toOpaqueHex } from "./PropertiesPanel";
 import type {
+  Model3DCameraInfo,
+  Model3DCameraPatch,
   Model3DGeometryInfo,
   Model3DLightInfo,
   Model3DLightPatch,
@@ -311,6 +313,113 @@ export const lightPatchCommand = (
     if (spot && penumbra !== undefined) {
       spot.penumbra = penumbra;
     }
+  });
+};
+
+export const describeCamera = (camera: THREE.Camera): Model3DCameraInfo => {
+  if (!(camera instanceof THREE.PerspectiveCamera)) {
+    return { projection: "orthographic" };
+  }
+  return {
+    projection: "perspective",
+    fovDeg: round(camera.fov),
+    aspectRatio: round(camera.aspect),
+    znear: camera.near,
+    zfar: camera.far
+  };
+};
+
+const finiteVec3 = (value: [number, number, number], field: string): THREE.Vector3 => {
+  if (value.length !== 3 || value.some((n) => !Number.isFinite(n))) {
+    throw new Error(`${field} must be three finite numbers, got [${value.join(", ")}].`);
+  }
+  return new THREE.Vector3(...value);
+};
+
+/**
+ * Change a camera's lens, move it, or turn it to face a point, and return
+ * the command that reverses it. `lookAt` is in world space.
+ */
+export const cameraPatchCommand = (
+  camera: THREE.Camera,
+  patch: Model3DCameraPatch
+): EditorCommand => {
+  const lens = camera instanceof THREE.PerspectiveCamera ? camera : null;
+  const changesLens =
+    patch.fovDeg !== undefined ||
+    patch.aspectRatio !== undefined ||
+    patch.znear !== undefined ||
+    patch.zfar !== undefined;
+  if (changesLens && !lens) {
+    throw new Error(
+      `${camera.name || camera.type} is not a perspective camera, so it has no field of view to set.`
+    );
+  }
+  const fov = patch.fovDeg === undefined ? undefined : inRange(patch.fovDeg, 1, 179, "fovDeg");
+  const positive = (value: number | undefined, field: string): number | undefined => {
+    if (value !== undefined && !(Number.isFinite(value) && value > 0)) {
+      throw new Error(`${field} must be a number above 0, got ${value}.`);
+    }
+    return value;
+  };
+  const aspect = positive(patch.aspectRatio, "aspectRatio");
+  const near = positive(patch.znear, "znear");
+  const far = positive(patch.zfar, "zfar");
+  if (lens && (far ?? lens.far) <= (near ?? lens.near)) {
+    throw new Error(`zfar (${far ?? lens.far}) must be greater than znear (${near ?? lens.near}).`);
+  }
+  const position = patch.position ? finiteVec3(patch.position, "position") : null;
+  const target = patch.lookAt ? finiteVec3(patch.lookAt, "lookAt") : null;
+  if (target) {
+    const eye = position
+      ? (camera.parent?.localToWorld(position.clone()) ?? position)
+      : camera.getWorldPosition(new THREE.Vector3());
+    if (eye.distanceTo(target) === 0) {
+      throw new Error(
+        `lookAt [${target.toArray().join(", ")}] is the camera's own position, so there is no direction to face.`
+      );
+    }
+  }
+
+  const capture = (): (() => void) => {
+    const saved = {
+      position: camera.position.clone(),
+      quaternion: camera.quaternion.clone(),
+      fov: lens?.fov,
+      aspect: lens?.aspect,
+      near: lens?.near,
+      far: lens?.far
+    };
+    return () => {
+      camera.position.copy(saved.position);
+      camera.quaternion.copy(saved.quaternion);
+      if (lens) {
+        lens.fov = saved.fov as number;
+        lens.aspect = saved.aspect as number;
+        lens.near = saved.near as number;
+        lens.far = saved.far as number;
+        lens.updateProjectionMatrix();
+      }
+      camera.updateMatrixWorld(true);
+    };
+  };
+
+  return snapshotCommand(`Edit camera ${camera.name || camera.type}`, capture, () => {
+    if (lens) {
+      lens.fov = fov ?? lens.fov;
+      lens.aspect = aspect ?? lens.aspect;
+      lens.near = near ?? lens.near;
+      lens.far = far ?? lens.far;
+      lens.updateProjectionMatrix();
+    }
+    if (position) {
+      camera.position.copy(position);
+    }
+    if (target) {
+      camera.updateWorldMatrix(true, false);
+      camera.lookAt(target);
+    }
+    camera.updateMatrixWorld(true);
   });
 };
 

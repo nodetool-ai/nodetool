@@ -24,7 +24,7 @@ export const PAGE_TAB_TITLES = {
   models: "Model manager",
   packages: "Package manager",
   collections: "Collections",
-  entities: "Entities",
+  entities: "References",
   lipsync: "Lipsync",
   effects: "Effects",
   memory: "Memory",

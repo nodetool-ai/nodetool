@@ -1602,7 +1602,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "web_search",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "e4946512515e",
+    contract: "bde144792395",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
@@ -1618,7 +1618,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "image_search",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "3c50d887acb1",
+    contract: "a020118f52f6",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
@@ -2857,7 +2857,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_model3d",
     module: "model3d",
     impl: "packages/agents/src/capabilities/model3d.ts",
-    contract: "4405bcfef4c1",
+    contract: "ad4e1b347025",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-model3d.test.ts",
@@ -2867,7 +2867,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_model3d",
     module: "model3d",
     impl: "packages/agents/src/capabilities/model3d.ts",
-    contract: "1cb386cf7cbd",
+    contract: "6e44de746984",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-model3d.test.ts",

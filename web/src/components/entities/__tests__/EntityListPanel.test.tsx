@@ -61,7 +61,7 @@ describe("EntityListPanel", () => {
   it("points at the + button when there is nothing to show", () => {
     mockUseEntities.mockReturnValue({ data: [], isLoading: false });
     renderWithTheme(<EntityListPanel projectId="default" />);
-    expect(screen.getByText("No entities yet")).toBeInTheDocument();
+    expect(screen.getByText("No references yet")).toBeInTheDocument();
   });
 
   it("removes an entity through the delete mutation", async () => {
@@ -76,7 +76,7 @@ describe("CreateEntityButton", () => {
   it("opens the asset picker", async () => {
     renderWithTheme(<CreateEntityButton projectId="project-a" />);
     expect(screen.queryByTestId("asset-picker")).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /new entity/i }));
+    await userEvent.click(screen.getByRole("button", { name: /new reference/i }));
     expect(screen.getByTestId("asset-picker")).toBeInTheDocument();
   });
 });

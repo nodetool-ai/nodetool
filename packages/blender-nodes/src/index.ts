@@ -34,6 +34,7 @@ export {
   blenderResultSchema
 } from "./job.js";
 export type {
+  BakeCameraMode,
   BakeCameraParams,
   BakeMode,
   BlenderEngine,

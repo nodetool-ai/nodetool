@@ -69,7 +69,10 @@ export type SerpProviderType =
   | "brave"
   | "apify"
   | "openai"
-  | "gemini";
+  | "gemini"
+  | "antigravity"
+  | "codex"
+  | "claude";
 
 interface SecretResolver {
   getSecret?: (key: string) => Promise<string | null>;
@@ -98,7 +101,16 @@ export const SERP_PROVIDER_SECRETS: Readonly<
   brave: ["BRAVE_API_KEY"],
   apify: ["APIFY_API_TOKEN", "APIFY_API_KEY"],
   openai: ["OPENAI_API_KEY"],
-  gemini: ["GEMINI_API_KEY"]
+  gemini: ["GEMINI_API_KEY"],
+  // Antigravity signs in through the `agy` CLI's own credential cache, so it
+  // needs no secret. `serpProviderConfigured` checks that the CLI starts.
+  antigravity: [],
+  // Codex runs on the user's ChatGPT sign-in. The host resolves (and
+  // refreshes) the OAuth bearer under this name; it is never an API key.
+  codex: ["CODEX_ACCESS_TOKEN"],
+  // Claude Code signs in through the `claude` CLI's own credential store.
+  // `serpProviderConfigured` checks that the CLI can be found.
+  claude: []
 };
 
 /**
@@ -119,11 +131,15 @@ export const SERP_PROVIDER_SEARCH_TYPES: Readonly<
   dataforseo: ["web"],
   brave: ["web", "images"],
   apify: ["web"],
-  // OpenAI and Gemini answer in prose and cite the pages they read; the
-  // citations are the result list. Neither has an image or news endpoint, so
-  // routing skips them for those types instead of answering with pages.
+  // OpenAI, Gemini, Antigravity, Codex and Claude Code answer in prose and
+  // cite the pages they read; the citations are the result list. None has an
+  // image or news endpoint, so routing skips them for those types instead of
+  // answering with pages.
   openai: ["web"],
-  gemini: ["web"]
+  gemini: ["web"],
+  antigravity: ["web"],
+  codex: ["web"],
+  claude: ["web"]
 };
 
 /**
@@ -133,11 +149,24 @@ export const SERP_PROVIDER_SEARCH_TYPES: Readonly<
  * what Apify's own docs call it and what the rest of NodeTool's Apify layer
  * reads, while `APIFY_API_KEY` is what this install shipped first. Either
  * satisfies it, so upgrading does not silently turn search off.
+ *
+ * Antigravity and Claude Code have no secret: each is configured when its
+ * CLI is there (`agy` starts, `claude` is found).
  */
 export async function serpProviderConfigured(
   type: SerpProviderType,
   resolver?: SecretResolver
 ): Promise<boolean> {
+  if (type === "antigravity") {
+    const { antigravitySearchAvailable } = await import(
+      "./antigravity-provider.js"
+    );
+    return antigravitySearchAvailable();
+  }
+  if (type === "claude") {
+    const { claudeSearchAvailable } = await import("./claude-provider.js");
+    return claudeSearchAvailable(await getSecret("CLAUDE_CLI_PATH", resolver));
+  }
   const names = SERP_PROVIDER_SECRETS[type];
   if (type === "apify") {
     for (const name of names) {
@@ -228,6 +257,31 @@ export async function createSerpProvider(
       );
     }
 
+    case "antigravity":
+      // No key: the search runs on the `agy` CLI's signed-in account, and a
+      // missing CLI or sign-in fails the search with the CLI's own remedy.
+      return new (await import("./antigravity-provider.js"))
+        .AntigravitySearchProvider();
+
+    case "codex": {
+      const token = await getSecret("CODEX_ACCESS_TOKEN", resolver);
+      if (!token) {
+        throw new Error(
+          "Codex web search needs a ChatGPT sign-in. Sign in to Codex in Settings → Models & Providers."
+        );
+      }
+      return (await import("./codex-provider.js")).CodexSearchProvider.fromToken(
+        token
+      );
+    }
+
+    case "claude":
+      // No key: the search runs on the `claude` CLI's signed-in subscription,
+      // and a missing CLI fails the search with the CLI's own remedy.
+      return new (await import("./claude-provider.js")).ClaudeSearchProvider({
+        cliPath: await getSecret("CLAUDE_CLI_PATH", resolver)
+      });
+
     default:
       throw new Error(
         `Unknown SERP provider: ${providerType}. Supported: ${Object.keys(
@@ -243,3 +297,7 @@ export { BraveProvider } from "./brave-provider.js";
 export { ApifyProvider } from "./apify-provider.js";
 export { OpenAiSearchProvider, OPENAI_SEARCH_MODEL } from "./openai-provider.js";
 export { GeminiSearchProvider, GEMINI_SEARCH_MODEL } from "./gemini-provider.js";
+export { AntigravitySearchProvider } from "./antigravity-provider.js";
+export { CodexSearchProvider } from "./codex-provider.js";
+export { ClaudeSearchProvider, CLAUDE_SEARCH_MODEL } from "./claude-provider.js";
+export type { ModelSearchAnswer, ModelSearchProvider } from "./model-search.js";

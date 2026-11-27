@@ -2,6 +2,8 @@ import { useEffect, type MutableRefObject } from "react";
 import * as THREE from "three";
 
 import {
+  cameraPatchCommand,
+  describeCamera,
   describeGeometry,
   describeLight,
   describeMaterial,
@@ -16,12 +18,19 @@ import {
   transformCommand
 } from "./editorCommands";
 import type { EditorCommand, EditorHistory } from "./editorHistory";
+import {
+  figureInfoOf,
+  figureMaterials,
+  figurePatchCommand,
+  isFigurePart
+} from "./figure";
 import type { PrimitiveKind } from "./objectFactory";
 import { OBJECT_ID_EXTRA } from "./sceneOps";
-import { isLightTarget } from "./sceneTree";
+import { isInternalObject, objectTypeOf } from "./sceneTree";
 import type { CameraRequestInput } from "./ViewportHelpers";
 import {
   setModel3DToolHandler,
+  type Model3DAddOptions,
   type Model3DHistoryResult,
   type Model3DObjectDetail,
   type Model3DSceneNode,
@@ -43,7 +52,11 @@ export interface Model3DAgentToolsOptions {
   beforeEdit: () => void;
   /** Re-render after a history step that pushed no command. */
   refresh: () => void;
-  addPrimitive: (kind: PrimitiveKind, name?: string) => THREE.Object3D;
+  addPrimitive: (
+    kind: PrimitiveKind,
+    name?: string,
+    options?: Model3DAddOptions
+  ) => THREE.Object3D;
   deleteObject: (object: THREE.Object3D) => void;
   duplicateObject: (object: THREE.Object3D) => THREE.Object3D | null;
   setVisible: (object: THREE.Object3D, visible: boolean) => void;
@@ -58,56 +71,75 @@ const toRadians = THREE.MathUtils.degToRad;
 /**
  * Find an object by uuid, then by the stable id the headless scene tools
  * list (`get_model3d`), then by exact name, then by case-insensitive name.
+ * A figure's joints do not match: the figure is the object.
  */
 export const findSceneObject = (
   root: THREE.Object3D,
   idOrName: string
 ): THREE.Object3D | null => {
   const byUuid = root.getObjectByProperty("uuid", idOrName);
-  if (byUuid) {
+  if (byUuid && !isFigurePart(byUuid)) {
     return byUuid;
   }
   const id = idOrName.trim();
   let byStoredId: THREE.Object3D | null = null;
   root.traverse((child) => {
-    if (!byStoredId && child !== root && child.userData[OBJECT_ID_EXTRA] === id) {
+    if (
+      !byStoredId &&
+      child !== root &&
+      !isFigurePart(child) &&
+      child.userData[OBJECT_ID_EXTRA] === id
+    ) {
       byStoredId = child;
     }
   });
   if (byStoredId) {
     return byStoredId;
   }
-  const byName = root.getObjectByName(idOrName);
-  if (byName) {
-    return byName;
-  }
   const lower = idOrName.trim().toLowerCase();
+  let exact: THREE.Object3D | null = null;
   let match: THREE.Object3D | null = null;
   root.traverse((child) => {
-    if (!match && child !== root && child.name.toLowerCase() === lower) {
+    if (child === root || isFigurePart(child)) {
+      return;
+    }
+    if (!exact && child.name === idOrName) {
+      exact = child;
+    }
+    if (!match && child.name.toLowerCase() === lower) {
       match = child;
     }
   });
-  return match;
+  return exact ?? match;
 };
 
 export const toSceneNode = (
   object: THREE.Object3D,
   root: THREE.Object3D
-): Model3DSceneNode => ({
-  uuid: object.uuid,
-  name: object.name || object.type,
-  type: object.type,
-  visible: object.visible,
-  position: [object.position.x, object.position.y, object.position.z],
-  rotation: [
-    toDegrees(object.rotation.x),
-    toDegrees(object.rotation.y),
-    toDegrees(object.rotation.z)
-  ],
-  scale: [object.scale.x, object.scale.y, object.scale.z],
-  parentUuid: object.parent && object.parent !== root ? object.parent.uuid : null
-});
+): Model3DSceneNode => {
+  const node: Model3DSceneNode = {
+    uuid: object.uuid,
+    name: object.name || objectTypeOf(object),
+    type: objectTypeOf(object),
+    visible: object.visible,
+    position: [object.position.x, object.position.y, object.position.z],
+    rotation: [
+      toDegrees(object.rotation.x),
+      toDegrees(object.rotation.y),
+      toDegrees(object.rotation.z)
+    ],
+    scale: [object.scale.x, object.scale.y, object.scale.z],
+    parentUuid: object.parent && object.parent !== root ? object.parent.uuid : null
+  };
+  const figure = figureInfoOf(object);
+  if (figure) {
+    node.figure = figure;
+  }
+  if (object instanceof THREE.Camera) {
+    node.camera = describeCamera(object);
+  }
+  return node;
+};
 
 export const toObjectDetail = (
   object: THREE.Object3D,
@@ -116,9 +148,12 @@ export const toObjectDetail = (
   const detail: Model3DObjectDetail = {
     ...toSceneNode(object, root),
     children: object.children
-      .filter((child) => !isLightTarget(child))
+      .filter((child) => !isInternalObject(child))
       .map((child) => child.name || child.uuid)
   };
+  if (figureInfoOf(object)) {
+    detail.materials = figureMaterials(object).map(describeMaterial);
+  }
   if (object instanceof THREE.Mesh) {
     detail.materials = materialsOf(object).map(describeMaterial);
     const geometry = describeGeometry(object);
@@ -198,7 +233,7 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
       listScene: () => {
         const nodes: Model3DSceneNode[] = [];
         root.traverse((child) => {
-          if (child !== root && !isLightTarget(child)) {
+          if (child !== root && !isInternalObject(child)) {
             nodes.push(node(child));
           }
         });
@@ -210,9 +245,24 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
         return object ? node(object) : null;
       },
       getObject: (idOrName) => detail(requireObject(idOrName)),
-      addPrimitive: (kind, name) => {
+      addPrimitive: (kind, name, addOptions) => {
         beforeEdit();
-        return node(addPrimitive(kind, name));
+        return node(addPrimitive(kind, name, addOptions));
+      },
+      setFigure: (idOrName, patch) => {
+        beforeEdit();
+        const object = requireObject(idOrName);
+        pushCommand(figurePatchCommand(object, patch));
+        return node(object);
+      },
+      setCamera: (idOrName, patch) => {
+        beforeEdit();
+        const object = requireObject(idOrName);
+        if (!(object instanceof THREE.Camera)) {
+          throw new Error(`${object.name || idOrName} is a ${object.type}, not a camera.`);
+        }
+        pushCommand(cameraPatchCommand(object, patch));
+        return node(object);
       },
       selectObject: (idOrName) => {
         if (!idOrName) {
@@ -305,6 +355,11 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
       },
       setMaterialColor: (idOrName, color) => {
         beforeEdit();
+        const target = requireObject(idOrName);
+        if (figureInfoOf(target)) {
+          pushCommand(figurePatchCommand(target, { color }));
+          return node(target);
+        }
         const mesh = requireMesh(idOrName);
         pushCommand(materialPatchCommand(mesh, { color }));
         return node(mesh);

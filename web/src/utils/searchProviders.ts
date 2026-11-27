@@ -11,7 +11,10 @@ export type SerpProviderId =
   | "dataforseo"
   | "apify"
   | "openai"
-  | "gemini";
+  | "gemini"
+  | "antigravity"
+  | "codex"
+  | "claude";
 
 interface SearchProviderConfig {
   id: SerpProviderId;
@@ -82,6 +85,33 @@ export const SEARCH_PROVIDER_CONFIGS: Record<SerpProviderId, SearchProviderConfi
     credentialFields: ["GEMINI_API_KEY"],
     getApiKeyUrl: "https://aistudio.google.com/app/apikey",
     getApiKeyLabel: "Get Gemini API key"
+  },
+  antigravity: {
+    id: "antigravity",
+    label: "Antigravity web search",
+    description:
+      "Runs Google Search through the Antigravity CLI on this machine. No key needed: sign in by running agy once.",
+    credentialFields: [],
+    getApiKeyUrl: "https://antigravity.google/docs/cli/headless/",
+    getApiKeyLabel: "Set up the Antigravity CLI"
+  },
+  codex: {
+    id: "codex",
+    label: "Codex web search",
+    description:
+      "Runs OpenAI web search on your ChatGPT sign-in for Codex. No API key needed.",
+    credentialFields: [],
+    getApiKeyUrl: "https://chatgpt.com/codex",
+    getApiKeyLabel: "Sign in to Codex in Models & Providers"
+  },
+  claude: {
+    id: "claude",
+    label: "Claude Code web search",
+    description:
+      "Runs web search through the Claude Code CLI on this machine, on your Claude subscription. No key needed: sign in by running claude once.",
+    credentialFields: [],
+    getApiKeyUrl: "https://docs.anthropic.com/en/docs/claude-code/setup",
+    getApiKeyLabel: "Set up Claude Code"
   }
 };
 

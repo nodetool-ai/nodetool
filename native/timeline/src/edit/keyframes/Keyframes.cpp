@@ -15,8 +15,10 @@
 
 namespace nt::keyframes {
 namespace {
-const QStringList allProperties{"opacity",       "scale",           "offsetX",    "offsetY",  "rotation",
-                                "cameraAzimuth", "cameraElevation", "cameraZoom", "cameraFov"};
+const QStringList allProperties{"opacity",       "scale",           "offsetX",       "offsetY",       "rotation",
+                                "cameraAzimuth", "cameraElevation", "cameraZoom",    "cameraFov",     "cameraPosX",
+                                "cameraPosY",    "cameraPosZ",      "cameraTargetX", "cameraTargetY", "cameraTargetZ",
+                                "cameraRoll"};
 QJsonObject merged(QJsonObject base, const QJsonObject& patch) {
     for (auto i = patch.begin(); i != patch.end(); ++i) {
         base.insert(i.key(), i.value());

@@ -9,7 +9,7 @@ Column {
     property var custom: ({curves:[]})
     property bool sourceAnchored: false
     readonly property bool baked: custom.code !== undefined
-    readonly property var properties: ["offsetX","offsetY","scale","scaleX","scaleY","rotation","rotationX","rotationY","opacity","wipeProgress","blur","brightness","saturation","contrast","hue","temperature","tint","positionX","positionY","anchorX","anchorY","trimStart","trimEnd","cameraAzimuth","cameraElevation","cameraZoom","cameraFov"]
+    readonly property var properties: ["offsetX","offsetY","scale","scaleX","scaleY","rotation","rotationX","rotationY","opacity","wipeProgress","blur","brightness","saturation","contrast","hue","temperature","tint","positionX","positionY","anchorX","anchorY","trimStart","trimEnd","cameraAzimuth","cameraElevation","cameraZoom","cameraFov","cameraPosX","cameraPosY","cameraPosZ","cameraTargetX","cameraTargetY","cameraTargetZ","cameraRoll"]
     function curveError(input) {
         const data = JSON.parse(JSON.stringify(input === undefined ? custom : input))
         const curves = data.curves ?? []
