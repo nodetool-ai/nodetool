@@ -147,6 +147,11 @@ jobs:
           echo "Findings: $FLAGS" >> $GITHUB_STEP_SUMMARY
           if [ "${FLAGS:-0}" -gt 0 ]; then echo "FLAGS_FOUND=1" >> $GITHUB_ENV; else echo "FLAGS_FOUND=0" >> $GITHUB_ENV; fi
 
+      - name: Rank impact signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/agent-impact.mjs "$RUNNER_TEMP/agent-impact.md"
+
       - name: Run Claude Code
         if: env.FLAGS_FOUND == '1'
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
@@ -157,7 +162,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing. Open the PR with the label agent:shipped-feature-inliner (gh pr create --label agent:shipped-feature-inliner). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
+            --append-system-prompt "Read .github/agent-routines.md before you pick a target and follow it: rank candidates by the signals in ${{ runner.temp }}/agent-impact.md, fix every instance of the theme in the module you choose, and start the PR body with an Impact section. Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing. Open the PR with the label agent:shipped-feature-inliner (gh pr create --label agent:shipped-feature-inliner). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Inline a Shipped Feature Flag
 
@@ -167,7 +172,8 @@ jobs:
             those never set, read in one place, are listed first. **Constants
             pinned to a boolean literal** — a gate whose value is in the source.
 
-            Pick **one** flag whose feature has fully shipped and remove it.
+            Pick the shipped feature whose flags guard the most dead code or sit
+            in a hot area, and remove every flag that gates it.
 
             ## Establish that it has shipped
             Answer each with a command, in the PR body:
@@ -200,7 +206,8 @@ jobs:
               `README.md`, `.env.example`.
 
             ## Rules
-            - One flag per PR. Maximum 20 files.
+            - One feature per PR, with every flag that gates it inlined. No file
+              cap.
             - Never inline a **kill switch** or a safety gate: rate limits, spend
               caps, SSRF and sandbox guards, `NODETOOL_TRUST_*`, auth mode. Those
               are configuration, not shipped features.
