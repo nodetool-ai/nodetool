@@ -2,7 +2,7 @@ import sys
 import unittest
 
 sys.dont_write_bytecode = True
-from check_perf import check, loads, ratchet, result_from, prior_budget
+from check_perf import check, loads, ratchet, result_from, prior_budget, update_budget
 from unittest.mock import patch
 import json
 import subprocess
@@ -11,6 +11,35 @@ from pathlib import Path
 
 
 class BudgetTest(unittest.TestCase):
+    def test_updates_merge_with_current_budget_and_publish_atomically(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'budget.json'
+            base = {'scenarios': {'scroll': {'objects': 10}, 'zoom': {'objects': 10}}}
+            path.write_text(json.dumps(base))
+            update_budget(path, 'scroll', {'objects': 4}, base)
+            update_budget(path, 'zoom', {'objects': 5}, base)
+            expected = {'scenarios': {'scroll': {'objects': 4}, 'zoom': {'objects': 5}}}
+            self.assertEqual(loads(path.read_text()), expected)
+            self.assertEqual(base['scenarios']['scroll']['objects'], 10)
+            with patch('check_perf.os.replace', side_effect=OSError('interrupted')):
+                with self.assertRaises(OSError):
+                    update_budget(path, 'scroll', {'objects': 3}, base)
+            self.assertEqual(loads(path.read_text()), expected)
+            with self.assertRaises(ValueError):
+                update_budget(path, 'scroll', {'objects': 6}, base)
+            self.assertEqual(loads(path.read_text()), expected)
+
+    def test_parallel_updates_keep_every_scenario(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'budget.json'
+            base = {'scenarios': {str(i): {'objects': 10} for i in range(16)}}
+            path.write_text(json.dumps(base))
+            with ThreadPoolExecutor(max_workers=8) as workers:
+                list(workers.map(lambda i: update_budget(path, str(i), {'objects': i % 10}, base), range(16)))
+            self.assertEqual(loads(path.read_text())['scenarios'],
+                             {str(i): {'objects': i % 10} for i in range(16)})
+
     def test_git_failures_are_not_adoption(self):
         def result(stdout=''):
             return subprocess.CompletedProcess([], 0, stdout=stdout)
@@ -58,6 +87,17 @@ class BudgetTest(unittest.TestCase):
             self.assertIn('11 exceeds 10', increase.stderr)
             write(budget, 10)
             self.assertEqual(run().returncode, 0)
+            write(budget, 9)
+            rejected = subprocess.run(command + ['--update'], capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertEqual(json.loads(budget.read_text())['scenarios']['playback']['objects'], 9)
+            write(budget, 10)
+            self.assertEqual(subprocess.run(command + ['--update'], capture_output=True).returncode, 0)
+            self.assertEqual(json.loads(budget.read_text())['scenarios']['playback']['objects'], 10)
+            write(budget, 11)
+            write(baseline, 11)
+            self.assertEqual(subprocess.run(command + ['--update'], capture_output=True).returncode, 0)
+            self.assertEqual(json.loads(budget.read_text())['scenarios']['playback']['objects'], 10)
 
     def test_scenario_schema(self):
         for scenarios in ({}, {'a': {'objects': 0}, 'b': {'objects': 0}}):

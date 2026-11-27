@@ -11,8 +11,8 @@ Ui.Surface {
     objectName: "timelineScriptPanel"
     property var timeline: null
     function openResource(id) { editor.openResource(id, "scripts") }
-    AssistController { id: documents; timeline: panel.timeline; documentOnly: true }
-    AssistController { id: picker; timeline: panel.timeline; documentOnly: true }
+    AssistController { id: documents; timeline: panel.timeline; documentOnly: true; linkedResourcesActive: panel.visible }
+    AssistController { id: picker; timeline: panel.timeline; documentOnly: true; linkedResourcesActive: panel.visible }
     StoryWorkspace { id: drafts; objectName: "scriptDrafts"; controller: documents }
     AssetBrowser { id: media; timeline: panel.timeline }
     StoryWorkspaceEditor {

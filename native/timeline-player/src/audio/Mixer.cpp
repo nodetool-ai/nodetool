@@ -1047,7 +1047,7 @@ void mixVoice(const VoicePlan& v, VoicePcm& src, double masterGain, bool dry,
                 r = src.linear[at + 1];
             }
         };
-        const auto fetchTap = [&](std::int64_t f, float& l, float& r) noexcept -> bool {
+        const auto fetchAvailable = [&](std::int64_t f, float& l, float& r) noexcept -> bool {
             if (src.ring) {
                 PcmRing& ring = *src.ring;
                 if (f < 0 || f >= ring.endFrame()) return false;
@@ -1061,6 +1061,22 @@ void mixVoice(const VoicePlan& v, VoicePcm& src, double masterGain, bool dry,
                 return true;
             }
             return false;
+        };
+        // Extend only physical source edges, never a temporarily missing ring wing.
+        // Reflect about the endpoint value to preserve DC and the slope at a zero crossing.
+        const std::int64_t sourceEnd = src.ring ? src.ring->endFrame() : src.linearFirst + src.linearCount;
+        const auto fetchTap = [&](std::int64_t f, float& l, float& r) noexcept -> bool {
+            if (f >= 0 && f < sourceEnd) { return fetchAvailable(f, l, r); }
+            if (sourceEnd <= 0) { return false; }
+            const std::int64_t edge = f < 0 ? 0 : sourceEnd - 1;
+            float edgeL = 0, edgeR = 0;
+            if (!fetchAvailable(edge, edgeL, edgeR)) { return false; }
+            const auto reflected = std::clamp(edge - (f - edge), std::int64_t{0}, sourceEnd - 1);
+            float reflectedL = 0, reflectedR = 0;
+            if (!fetchAvailable(reflected, reflectedL, reflectedR)) { return false; }
+            l = 2 * edgeL - reflectedL;
+            r = 2 * edgeR - reflectedR;
+            return true;
         };
         for (int i = 0; i < frames; ++i) {
             const double t = timelineMs0 + msPerFrame * i;
@@ -1077,11 +1093,11 @@ void mixVoice(const VoicePlan& v, VoicePcm& src, double masterGain, bool dry,
             const double into = intoFrames * 1000.0 / sampleRate;
             const double s = snap(v.sourceFrameAt(v.startMs + into, sampleRate));
             lastSource = s;
-            if (s < 0.0) continue;
+            if (s < 0.0 || s >= sourceEnd) { continue; }
             const auto f0 = static_cast<std::int64_t>(std::floor(s));
             const double frac = s - static_cast<double>(f0);
             double inL = 0.0, inR = 0.0;
-            if (!needVarispeed && frac == 0.0) {
+            if ((!needVarispeed && frac == 0.0) || s == 0.0 || s == sourceEnd - 1) {
                 float l0 = 0.0f, r0 = 0.0f;
                 fetchCore(f0, l0, r0);
                 inL = l0;

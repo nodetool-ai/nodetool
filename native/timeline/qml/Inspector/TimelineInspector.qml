@@ -56,7 +56,7 @@ Rectangle {
         onRowEdited: row => { if (root.gestures) root.gestures.keyframeRow = row }
     }
     readonly property var timelineModel: inspector.timeline
-    readonly property bool groupSelected: inspector.clip.mediaType === "group"
+    readonly property bool groupSelected: inspector.mediaType === "group"
     Flickable {
         id: viewport
         objectName: "inspectorViewport"
@@ -119,23 +119,23 @@ Rectangle {
             ClipIdentityCard {
                 objectName: "clipIdentityCard"
                 width: parent.width
-                visible: !!inspector.clip.id
-                name: inspector.clip.name || ""
+                visible: !!inspector.selectedClipId
+                name: inspector.clipName || ""
                 metadata: {
-                    const clip = inspector.clip
-                    if (!clip.id) return []
+                    const clip = inspector
+                    if (!clip.selectedClipId) return []
                     const type = clip.mediaType || ""
                     const parts = [type.charAt(0).toUpperCase()+type.slice(1),(clip.durationMs/1000).toFixed(clip.durationMs < 10000 ? 2 : 1)+"s"]
-                    if (clip.width && clip.height) parts.push(clip.width+"×"+clip.height)
+                    if (clip.clipWidth && clip.clipHeight) parts.push(clip.clipWidth+"×"+clip.clipHeight)
                     return parts
                 }
-                accentColor: TimelineVisuals.clipAccent(inspector.clip.mediaType || "video")
+                accentColor: TimelineVisuals.clipAccent(inspector.mediaType || "video")
             }
             // Keep section instances alive without a selection. Extension
             // sections own their selection logic, including a zero height.
             Column {
                 width: parent.width
-                visible: !!inspector.clip.id && !root.groupSelected
+                visible: !!inspector.selectedClipId && !root.groupSelected
                 spacing: Ui.Metrics.xs
                 Sections.RegisteredInspectorSections {
                     width: parent.width
@@ -146,7 +146,7 @@ Rectangle {
             }
             Sections.ClipGroupPanel {
                 width: parent.width
-                visible: !!inspector.clip.id && root.groupSelected
+                visible: !!inspector.selectedClipId && root.groupSelected
                 timelineModel: root.timelineModel
                 gestures: root.gestures
                 controller: inspector

@@ -296,7 +296,7 @@ TakeSwitcher* TakeInfo::switcherFor(TimelineModel* timeline) const {
     return timeline ? TakeSwitcher::attach(*timeline, m_cache) : nullptr;
 }
 
-QString TakeInfo::badge(const QVariantMap& clip) const {
-    if (clip.value(QStringLiteral("versions")).toList().size() < 2) { return {}; }
-    return takeBadge(QJsonObject::fromVariantMap(clip));
+QString TakeInfo::badge(TimelineModel* timeline, const QString& clipId) const {
+    const auto* clip = timeline ? timeline->findClip(clipId) : nullptr;
+    return clip ? takeBadge(clip->raw) : QString{};
 }

@@ -59,6 +59,19 @@ public:
         MediaSourceRole,
         InPointMsRole,
         SourceOutMsRole,
+        LabelColorRole,
+        LoopLengthMsRole,
+        SpeedMultiplierRole,
+        SpeedBakedRole,
+        HasEffectsRole,
+        HasAnimationsRole,
+        HasTimeRemapRole,
+        AudioRoleRole,
+        TakeBadgeRole,
+        ActiveTakeLabelRole,
+        HasActiveTakeRole,
+        ActiveTakeDriftingRole,
+
     };
 
     explicit LaneClipModel(QObject* parent = nullptr);

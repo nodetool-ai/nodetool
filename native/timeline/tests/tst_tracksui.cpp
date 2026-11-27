@@ -592,6 +592,64 @@ class TestTracksUi : public QObject {
     }
 
 private slots:
+    void emptyClipDoesNotLoadTrimGuide() {
+        load({1, 4}, 10, 0);
+        seed(10, 0);
+        auto* clip = itemNamed("clip-c-0-0");
+        QVERIFY(clip);
+        clip->setProperty("clipId", "");
+        QCoreApplication::processEvents();
+        QVERIFY(!itemNamed("trimSourceGuide-"));
+    }
+
+    void trimOverlayRetainsClipIdentity() {
+        load({1, 4}, 10, 0);
+        seed(10, 0);
+        QTRY_VERIFY(itemNamed("trimEditMarks-c-0-0"));
+    }
+
+    void moveDoesNotNotifyTrimOrRubberBand() {
+        load({1, 4}, 10, 0);
+        seed(10, 0);
+        QSignalSpy trim(controller(), &ClipGestureController::trimSourceRangeChanged);
+        QSignalSpy band(controller(), &ClipGestureController::rubberBandChanged);
+        const auto from = clipPoint("c-0-2", 30);
+        drag(from, from + QPoint(40, 0), 6);
+        QCOMPARE(trim.count(), 0);
+        QCOMPARE(band.count(), 0);
+        QVERIFY(controller()->trimSourceClipId().isEmpty());
+    }
+
+    void laneExposesOnlyScalarPresentationRoles() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 1}));
+        LaneClipModel lane;
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        QSignalSpy updates(&lane, &QAbstractItemModel::dataChanged);
+        auto clip = doc.findClip("c-0-0")->raw;
+        clip.insert("labelColor", "#123456");
+        clip.insert("loopLengthMs", 400);
+        clip.insert("speedMultiplier", 2);
+        clip.insert("speedBaked", true);
+        clip.insert("effects", QJsonArray{QJsonObject{{"id", "fx"}, {"type", "blur"}}});
+        clip.insert("status", "queued");
+        QVERIFY(doc.patchClips({clip}));
+        QCOMPARE(updates.count(), 1);
+        QVERIFY(updates.first().at(2).value<QList<int>>().isEmpty());
+        const auto row = lane.index(0);
+        QCOMPARE(lane.data(row, LaneClipModel::StatusRole).toString(), QString("queued"));
+        QCOMPARE(lane.data(row, LaneClipModel::LabelColorRole).toString(), QString("#123456"));
+        QCOMPARE(lane.data(row, LaneClipModel::LoopLengthMsRole).toDouble(), 400.0);
+        QCOMPARE(lane.data(row, LaneClipModel::SpeedMultiplierRole).toDouble(), 2.0);
+        QVERIFY(lane.data(row, LaneClipModel::SpeedBakedRole).toBool());
+        QVERIFY(lane.data(row, LaneClipModel::HasEffectsRole).toBool());
+        for (const auto role : lane.roleNames().keys()) {
+            const auto value = lane.data(row, role);
+            QVERIFY(value.metaType() != QMetaType::fromType<QVariantMap>());
+            QVERIFY(value.metaType() != QMetaType::fromType<QVariantList>());
+        }
+    }
     void cleanup() { unload(); }
 
     // ── Drag cost bench ──
@@ -1023,6 +1081,7 @@ private slots:
         QTest::mousePress(view.get(), Qt::LeftButton, {}, from);
         QTest::mouseMove(view.get(), from + QPoint(50, 0));
         QCOMPARE(clipJson("c-0-0").value("durationMs").toDouble(), 800.0);
+        QCOMPARE(controller()->trimSourceClipId(), QString("c-0-0"));
         const auto feedback = controller()->property("trimSourceRange").toMap();
         QCOMPARE(feedback.value("startMs").toDouble(), -200.0);
         QCOMPARE(feedback.value("endMs").toDouble(), 800.0);

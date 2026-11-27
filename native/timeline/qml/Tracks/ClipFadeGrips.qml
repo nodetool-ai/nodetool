@@ -13,7 +13,7 @@ Item {
     property ClipGestureController gestures: null
     property TimelineViewState viewState: null
     readonly property real msPerPx: viewState ? viewState.msPerPx : 10
-    ClipInteractionState { id: interaction; gestures: root.gestures; clipId: root.clip.id || "" }
+    ClipInteractionState { id: interaction; gestures: root.gestures; clipId: root.clip.clipId || "" }
     readonly property bool selected: interaction.selected
     readonly property bool locked: !!clip.locked || !!(body && body.locked)
     readonly property ClipBody body: {
@@ -29,10 +29,10 @@ Item {
         id: shapeMenu
         active: false
         sourceComponent: ClipFadeShapeMenu {
-            objectName: "clipFadeShapeMenu-" + root.clip.id
+            objectName: "clipFadeShapeMenu-" + root.clip.clipId
             parent: root
             timeline: root.timeline
-            clipId: root.clip.id || ""
+            clipId: root.clip.clipId || ""
             current: Fades.parseClipFadeShape(edge === "in" ? root.clip.fadeInShape : root.clip.fadeOutShape)
         }
     }
@@ -45,7 +45,7 @@ Item {
             readonly property real lengthMs: (edge === "in" ? root.clip.fadeInMs : root.clip.fadeOutMs) || 0
             readonly property real offsetPx: Math.min(lengthMs / root.msPerPx, root.width)
             readonly property real centerX: Math.min(Math.max(edge === "in" ? offsetPx : root.width - offsetPx, 4.5), root.width - 4.5)
-            objectName: "fadeGrip-" + edge + "-" + root.clip.id
+            objectName: "fadeGrip-" + edge + "-" + root.clip.clipId
             x: centerX - width / 2
             y: 0
             width: 9
@@ -66,14 +66,14 @@ Item {
                 event.accepted = false
                 if (root.locked || (event.key !== Qt.Key_Left && event.key !== Qt.Key_Right)) return
                 event.accepted = true
-                if (!keyEnd.running) edits.beginFade(root.clip.id, edge)
+                if (!keyEnd.running) edits.beginFade(root.clip.clipId, edge)
                 edits.previewFade(Fades.keyFadeMs(root.clip, edge, event.key === Qt.Key_Left ? "ArrowLeft" : "ArrowRight", !!(event.modifiers & Qt.ShiftModifier)))
                 keyEnd.restart()
             }
             onActiveFocusChanged: if (!activeFocus && keyEnd.running) { keyEnd.stop(); edits.finishFade() }
             MouseArea {
                 id: pointer
-                objectName: "fadePointer-" + grip.edge + "-" + root.clip.id
+                objectName: "fadePointer-" + grip.edge + "-" + root.clip.clipId
                 property bool playheadPassthrough: true
                 property bool takesTrimPress: true
                 property real startX: 0
@@ -98,7 +98,7 @@ Item {
                     }
                     startX = mapToItem(null, mouse.x, mouse.y).x
                     startMs = grip.lengthMs
-                    edits.beginFade(root.clip.id, grip.edge)
+                    edits.beginFade(root.clip.clipId, grip.edge)
                 }
                 onPositionChanged: mouse => {
                     if (!pressed || pressedButtons !== Qt.LeftButton || root.locked) return

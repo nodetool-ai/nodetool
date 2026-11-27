@@ -51,14 +51,14 @@ Rectangle {
         clipId: root.selection.length === 1 ? root.selection[0] : ""
         onRowEdited: row => { if (root.gestures) root.gestures.keyframeRow = row }
     }
-    readonly property string mediaType: inspector.clip.mediaType || ""
-    readonly property bool hasPicture: !!inspector.clip.id && mediaType !== "audio" && mediaType !== "midi"
+    readonly property string mediaType: inspector.mediaType || ""
+    readonly property bool hasPicture: !!inspector.selectedClipId && mediaType !== "audio" && mediaType !== "midi"
     Ui.EmptyState {
         objectName: "motionPanelEmpty"
         anchors.centerIn: parent
         visible: !root.hasPicture
         maxTextWidth: Math.min(root.width - Ui.Metrics.xxl, Ui.Metrics.dialogCompactWidth)
-        title: root.selection.length > 1 ? "Several clips selected" : inspector.clip.id ? "This clip has no picture" : "No clip selected"
+        title: root.selection.length > 1 ? "Several clips selected" : inspector.selectedClipId ? "This clip has no picture" : "No clip selected"
         message: root.selection.length > 1 ? "Select one clip to animate it." : "Select a video, image or text clip on the timeline to animate it."
     }
     Flickable {

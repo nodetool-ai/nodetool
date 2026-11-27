@@ -14,8 +14,19 @@ import NodeTool.UiPrimitives as Ui
 
 Item {
     id: body
-    // JSON data from the document, controller, or shared JavaScript API.
-    property var clipData: ({})
+    property string clipId
+    property double startMs: 0
+    property string labelColor
+    property double speedMultiplier: 1
+    property bool speedBaked
+    property bool hasAnimations
+    property bool hasTimeRemap
+    property string audioRole
+    property string status
+    property string takeBadge
+    property string activeTakeLabel
+    property bool hasActiveTake
+    property bool activeTakeDrifting
     property TimelineModel timeline: null
     property ClipGestureController gestures: null
     property string name
@@ -36,8 +47,9 @@ Item {
     property string mediaSource
     property double inPointMs: 0
     property double sourceOutMs: 0
-    readonly property double loopLengthMs: clipData.loopLengthMs > 0 && clipData.loopLengthMs < durationMs ? clipData.loopLengthMs : 0
-    readonly property double sourceRate: clipData.speedBaked ? 1 : (clipData.speedMultiplier ?? 1)
+    property double loopLengthMs: 0
+    readonly property double repeatLengthMs: loopLengthMs > 0 && loopLengthMs < durationMs ? loopLengthMs : 0
+    readonly property double sourceRate: speedBaked ? 1 : Math.max(0.0001, speedMultiplier)
     // The body's x in the lanes content and the view: the pictures draw only
     // the part near the viewport.
     property double contentX: 0
@@ -49,13 +61,13 @@ Item {
 
     readonly property color accent: TimelineVisuals.clipAccent(mediaType)
     // The clip's colour label: a CSS colour, or empty.
-    readonly property string clipLabel: clipData.labelColor ?? ""
+    readonly property string clipLabel: labelColor
     readonly property int radius: 1
     readonly property color baseColor: clipLabel !== "" ? clipLabel : TimelineVisuals.clipFill(mediaType)
     // The muted name band; the body under it is a darker tint.
     readonly property color fill: TimelineVisuals.regionBand(baseColor)
     readonly property color bodyFill: TimelineVisuals.regionBody(baseColor)
-    readonly property bool hasEffects: (clipData.effects || []).length > 0
+    property bool hasEffects: false
     // COMPACT_THRESHOLD_PX, MIN_TRIM_HANDLE_CLIP_WIDTH_PX (8 * 2 + 12)
     readonly property bool showDuration: width >= 96
     readonly property bool showTrimHandles: width >= 28
@@ -127,8 +139,8 @@ Item {
             objectName: "waveform"
             source: body.mediaSource
             inPointMs: body.inPointMs
-            outPointMs: body.inPointMs + body.durationMs * (body.loopLengthMs > 0 ? body.sourceRate : 1)
-            repeatSourceMs: body.loopLengthMs * body.sourceRate
+            outPointMs: body.inPointMs + body.durationMs * (body.repeatLengthMs > 0 ? body.sourceRate : 1)
+            repeatSourceMs: body.repeatLengthMs * body.sourceRate
             color: TimelineVisuals.regionContent(body.baseColor)
             contentX: body.contentX
             viewState: body.viewState
@@ -142,8 +154,8 @@ Item {
             GroupBracket {
                 id: groupBracket
                 objectName: "groupBracket-" + clipId
-                clipId: body.clipData.id ?? ""
-                startMs: body.clipData.startMs ?? 0
+                clipId: body.clipId
+                startMs: body.startMs
                 durationMs: body.durationMs
                 widthPx: body.width
                 // JSON data from the document, controller, or shared JavaScript API.
@@ -159,7 +171,7 @@ Item {
     }
 
     Loader {
-        active: (body.clipData.animations || []).length > 0
+        active: body.hasAnimations
         anchors.fill: parent
         z: TimelineMetrics.clipOverlayLayer
         sourceComponent: Item {
@@ -167,7 +179,7 @@ Item {
                 id: keyframeEdits
                 timeline: body.timeline
                 clock: body.gestures ? body.gestures.clock : null
-                clipId: body.clipData.id ?? ""
+                clipId: body.clipId
             }
             KeyframeClipDiamonds {
                 id: keyframeDiamonds
@@ -175,16 +187,16 @@ Item {
                     return keyframeDiamonds.childAt(point.x, point.y) !== null
                 }
                 anchors.fill: parent
-                clipId: body.clipData.id ?? ""
+                clipId: body.clipId
                 durationMs: body.durationMs
                 msPerPx: body.msPerPx
-                timesMs: keyframeEdits.clip.animations ? keyframeEdits.rowState("").times : []
+                timesMs: keyframeEdits.hasAnimations ? keyframeEdits.rowState("").times : []
                 locked: body.locked
                 formatTime: ms => TimelineFormat.clipDuration(ms)
                 onSeek: relativeMs => keyframeEdits.seek(relativeMs)
                 onMove: (fromMs, toMs) => {
                     const frameMs = 1000 / Math.max(1, body.timeline.fps)
-                    const startMs = body.clipData.startMs ?? 0
+                    const startMs = body.startMs
                     const absoluteMs = Math.round((startMs + toMs) / frameMs) * frameMs
                     const relativeMs = Math.max(0, Math.min(body.durationMs, absoluteMs - startMs))
                     keyframeEdits.write({action: "move", fromMs, toMs: relativeMs})
@@ -219,15 +231,15 @@ Item {
 
     Loader {
         id: repeatLoader
-        active: body.loopLengthMs > 0
+        active: body.repeatLengthMs > 0
         x: active ? Math.max(0, (body.viewState ? body.viewState.scrollLeftPx : 0) - body.contentX) : 0
         width: active ? Math.max(0, Math.min(body.width - x, body.viewState ? body.viewState.viewportWidthPx : body.width)) : 0
         height: body.height
         sourceComponent: Canvas {
             id: repeats
-            objectName: "musicLoopRepeats-" + (body.clipData.id || "")
-            visible: body.loopLengthMs > 0
-            readonly property double periodPx: body.loopLengthMs / body.msPerPx
+            objectName: "musicLoopRepeats-" + body.clipId
+            visible: body.repeatLengthMs > 0
+            readonly property double periodPx: body.repeatLengthMs / body.msPerPx
             readonly property color repeatFill: Qt.alpha(TimelineVisuals.loopRepeatFill, 0.34)
             readonly property color notchInk: TimelineVisuals.clipText
             readonly property color seamInk: Qt.alpha(TimelineVisuals.clipText, 0.45)
@@ -321,7 +333,7 @@ Item {
             TransitionController { id: transitionEdits; model: body.timeline }
             MouseArea {
                 id: transitionGrip
-                objectName: "clip-transition-handle-" + (body.clipData.id ?? "")
+                objectName: "clip-transition-handle-" + (body.clipId)
                 readonly property string label: "Transition length"
                 property real startX: 0
                 property real startMs: 0
@@ -341,7 +353,7 @@ Item {
                     startX = mapToItem(body, mouse.x, mouse.y).x
                     startMs = body.transitionMs
                     wantedMs = startMs
-                    transitionEdits.beginGesture("setTransitionDuration", {clipId: body.clipData.id, durationMs: startMs})
+                    transitionEdits.beginGesture("setTransitionDuration", {clipId: body.clipId, durationMs: startMs})
                 }
                 onPositionChanged: mouse => {
                     if (!pressed) return
@@ -440,7 +452,7 @@ Item {
         anchors.fill: parent
         slot: "clipBody"
         overlay: true
-        slotProperties: ({ clip: body.clipData, timeline: body.timeline,
+        slotProperties: ({ clip: body, timeline: body.timeline,
                            gestures: body.gestures, viewState: body.viewState })
     }
 

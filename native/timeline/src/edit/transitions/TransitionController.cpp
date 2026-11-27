@@ -17,9 +17,7 @@ void TransitionController::setModel(TimelineModel* model) {
     }
     emit modelChanged(); emit documentChanged();
 }
-QVariantMap TransitionController::document() const {
-    return m_model ? m_model->timeline().raw.toVariantMap() : QVariantMap{};
-}
+
 QJsonObject TransitionController::withSourceCaps(QJsonObject payload) const {
     QJsonObject caps;
     if (m_model) {

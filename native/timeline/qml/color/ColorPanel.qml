@@ -164,7 +164,7 @@ Rectangle {
         spacing: Ui.Metrics.md
         Ui.Text {
             width: parent.width
-            text: root.selection.length > 1 ? "Several clips selected" : inspector.clip.id ? "This clip has no picture" : "No clip selected"
+            text: root.selection.length > 1 ? "Several clips selected" : inspector.selectedClipId ? "This clip has no picture" : "No clip selected"
             horizontalAlignment: Text.AlignHCenter
             role: Ui.Typography.SansLabel
         }
@@ -207,7 +207,7 @@ Rectangle {
                     width: parent.width - fxButton.width - parent.spacing
                     anchors.verticalCenter: parent.verticalCenter
                     // Clip scope: the grade belongs to this clip instance only.
-                    text: inspector.clip.name || inspector.clip.id || ""
+                    text: inspector.clipName || inspector.selectedClipId || ""
                     elide: Text.ElideRight
                     role: Ui.Typography.SansLabel
                     tone: root.fxOn ? Ui.Text.Primary : Ui.Text.Secondary
