@@ -9360,6 +9360,14 @@
         "antigravity": {
           "description": "Lance des recherches Google via la CLI Antigravity de cette machine. Aucune clé requise : connecte-toi en lançant agy une fois.",
           "keyLink": "Configurer la CLI Antigravity"
+        },
+        "codex": {
+          "description": "Lance la recherche web d'OpenAI avec ta connexion ChatGPT pour Codex. Aucune clé d'API requise.",
+          "keyLink": "Se connecter à Codex dans Modèles et fournisseurs"
+        },
+        "claude": {
+          "description": "Recherche sur le web via la CLI Claude Code de cette machine, avec ton abonnement Claude. Aucune clé requise : connecte-toi en lançant claude une fois.",
+          "keyLink": "Configurer Claude Code"
         }
       }
     },

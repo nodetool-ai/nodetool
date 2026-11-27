@@ -9216,6 +9216,14 @@
         "antigravity": {
           "description": "Kör Google-sökningar via Antigravity-CLI:t på den här datorn. Ingen nyckel behövs: logga in genom att köra agy en gång.",
           "keyLink": "Konfigurera Antigravity-CLI:t"
+        },
+        "codex": {
+          "description": "Kör OpenAI:s webbsökning med din ChatGPT-inloggning för Codex. Ingen API-nyckel behövs.",
+          "keyLink": "Logga in på Codex under Modeller och leverantörer"
+        },
+        "claude": {
+          "description": "Söker på webben via Claude Code-CLI:t på den här datorn, med ditt Claude-abonnemang. Ingen nyckel behövs: logga in genom att köra claude en gång.",
+          "keyLink": "Konfigurera Claude Code"
         }
       }
     },

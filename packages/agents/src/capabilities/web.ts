@@ -41,6 +41,7 @@ import {
   createSerpProvider,
   serpProviderConfigured
 } from "../tools/serp-providers/index.js";
+import { isModelSearchProvider } from "../tools/serp-providers/model-search.js";
 import type {
   CapabilityExport,
   CapabilityImpl,
@@ -347,8 +348,8 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
     /**
      * Append a model-backed backend's citations to its prose answer.
      *
-     * OpenAI, Gemini and Antigravity answer a search with an argument rather
-     * than a result list, and the pages behind it are the only way a reader
+     * OpenAI, Gemini, Antigravity, Codex and Claude Code answer a search with
+     * an argument rather than a result list, and the pages behind it are the only way a reader
      * can check one. All are read into the same `{title, url}` shape by their
      * provider, so one formatter serves them and the domain filters still
      * apply.
@@ -409,6 +410,33 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
             snippet: r.snippet ?? null
           }))
         );
+      }
+    });
+
+    /**
+     * A model-backed SERP provider: a model with a search tool, answering in
+     * prose and citing the pages behind it. Built through the SERP factory,
+     * which resolves its sign-in, and printed with its sources appended.
+     */
+    const modelSearchBackend = (
+      name: "antigravity" | "codex" | "claude",
+      requires: string
+    ): SearchBackend => ({
+      name,
+      requires,
+      supports: new Set<SearchType>(SERP_PROVIDER_SEARCH_TYPES[name]),
+      isConfigured: (ctx) => serpProviderConfigured(name, ctx),
+      run: async (ctx) => {
+        const client = await createSerpProvider(name, ctx);
+        if (!isModelSearchProvider(client)) {
+          throw new Error(
+            `${WEB_SEARCH_TOOL_NAME}: backend "${name}" does not answer in prose.`
+          );
+        }
+        const answer = await client.answer(effectiveQuery, {
+          signal: ctx.signal ?? undefined
+        });
+        return withSources(answer.text, answer.citations);
       }
     });
 
@@ -618,21 +646,18 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
           return withSources(text, result.sources);
         }
       },
-      {
-        name: "antigravity",
-        requires: "the Antigravity CLI (agy), installed and signed in",
-        supports: new Set<SearchType>(SERP_PROVIDER_SEARCH_TYPES.antigravity),
-        isConfigured: (ctx) => serpProviderConfigured("antigravity", ctx),
-        run: async (ctx) => {
-          const { AntigravitySearchProvider } =
-            await import("../tools/serp-providers/antigravity-provider.js");
-          const answer = await new AntigravitySearchProvider().answer(
-            effectiveQuery,
-            { signal: ctx.signal ?? undefined }
-          );
-          return withSources(answer.text, answer.citations);
-        }
-      }
+      modelSearchBackend(
+        "antigravity",
+        "the Antigravity CLI (agy), installed and signed in"
+      ),
+      modelSearchBackend(
+        "codex",
+        "a ChatGPT sign-in for Codex (CODEX_ACCESS_TOKEN)"
+      ),
+      modelSearchBackend(
+        "claude",
+        "the Claude Code CLI (claude), installed and signed in"
+      )
     ];
 
     return runFirstConfiguredBackend(

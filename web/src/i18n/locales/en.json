@@ -9216,6 +9216,14 @@
         "antigravity": {
           "description": "Runs Google Search through the Antigravity CLI on this machine. No key needed: sign in by running agy once.",
           "keyLink": "Set up the Antigravity CLI"
+        },
+        "codex": {
+          "description": "Runs OpenAI web search on your ChatGPT sign-in for Codex. No API key needed.",
+          "keyLink": "Sign in to Codex in Models & Providers"
+        },
+        "claude": {
+          "description": "Runs web search through the Claude Code CLI on this machine, on your Claude subscription. No key needed: sign in by running claude once.",
+          "keyLink": "Set up Claude Code"
         }
       }
     },

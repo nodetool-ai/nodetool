@@ -9360,6 +9360,14 @@
         "antigravity": {
           "description": "Faz pesquisas no Google pela CLI do Antigravity nesta máquina. Não precisa de chave: entre executando agy uma vez.",
           "keyLink": "Configurar a CLI do Antigravity"
+        },
+        "codex": {
+          "description": "Faz pesquisas na web da OpenAI com o seu login do ChatGPT para o Codex. Não precisa de chave de API.",
+          "keyLink": "Entrar no Codex em Modelos e provedores"
+        },
+        "claude": {
+          "description": "Pesquisa na web pela CLI do Claude Code nesta máquina, com a sua assinatura do Claude. Não precisa de chave: entre executando claude uma vez.",
+          "keyLink": "Configurar o Claude Code"
         }
       }
     },

@@ -1093,7 +1093,8 @@ const nodetool = (() => {
        * Search the web. \`web_search\` routes across the configured backends
        * host-side; \`opts.provider\` pins one — "default", "serpapi",
        * "dataforseo", "brave", "apify", "openai", "google" (grounded/Gemini),
-       * "antigravity" (the agy CLI's Google Search).
+       * "antigravity" (the agy CLI's Google Search), "codex" (ChatGPT
+       * sign-in), "claude" (the Claude Code CLI).
        */
       search: (query, opts) =>
         __need("web_search")(
@@ -1110,7 +1111,7 @@ const nodetool = (() => {
        * Image results: title, page link, original image URL, thumbnail URL.
        * Routes across the same backends as \`search\`/\`news\`, minus the two
        * that answer with prose instead of results (openai, google/gemini,
-       * antigravity).
+       * antigravity, codex, claude).
        */
       images: (query, opts) =>
         __need("image_search")(__webArgs(opts, {}, "query", query)),

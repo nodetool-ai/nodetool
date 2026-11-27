@@ -9504,6 +9504,14 @@
         "antigravity": {
           "description": "Выполняет поиск Google через Antigravity CLI на этом компьютере. Ключ не нужен: войдите, один раз запустив agy.",
           "keyLink": "Настроить Antigravity CLI"
+        },
+        "codex": {
+          "description": "Выполняет веб-поиск OpenAI через ваш вход в ChatGPT для Codex. Ключ API не нужен.",
+          "keyLink": "Войти в Codex в разделе «Модели и провайдеры»"
+        },
+        "claude": {
+          "description": "Ищет в интернете через Claude Code CLI на этом компьютере по вашей подписке Claude. Ключ не нужен: войдите, один раз запустив claude.",
+          "keyLink": "Настроить Claude Code"
         }
       }
     },

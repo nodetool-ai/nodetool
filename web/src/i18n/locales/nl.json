@@ -9216,6 +9216,14 @@
         "antigravity": {
           "description": "Voert Google-zoekopdrachten uit via de Antigravity-CLI op deze computer. Geen sleutel nodig: meld je aan door agy één keer te starten.",
           "keyLink": "Antigravity-CLI instellen"
+        },
+        "codex": {
+          "description": "Voert OpenAI-webzoekopdrachten uit met je ChatGPT-aanmelding voor Codex. Geen API-sleutel nodig.",
+          "keyLink": "Meld je aan bij Codex in Modellen en providers"
+        },
+        "claude": {
+          "description": "Zoekt op het web via de Claude Code-CLI op deze computer, met je Claude-abonnement. Geen sleutel nodig: meld je aan door claude één keer te starten.",
+          "keyLink": "Claude Code instellen"
         }
       }
     },

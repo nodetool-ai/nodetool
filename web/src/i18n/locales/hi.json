@@ -9216,6 +9216,14 @@
         "antigravity": {
           "description": "इस मशीन पर Antigravity CLI से Google Search चलाता है। कोई कुंजी नहीं चाहिए: एक बार agy चलाकर साइन इन करें।",
           "keyLink": "Antigravity CLI सेट अप करें"
+        },
+        "codex": {
+          "description": "Codex के लिए आपके ChatGPT साइन-इन पर OpenAI वेब खोज चलाता है। API कुंजी नहीं चाहिए।",
+          "keyLink": "मॉडल और प्रदाता में Codex में साइन इन करें"
+        },
+        "claude": {
+          "description": "इस मशीन पर Claude Code CLI से आपकी Claude सदस्यता पर वेब खोज चलाता है। कोई कुंजी नहीं चाहिए: एक बार claude चलाकर साइन इन करें।",
+          "keyLink": "Claude Code सेट अप करें"
         }
       }
     },

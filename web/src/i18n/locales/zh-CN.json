@@ -9216,6 +9216,14 @@
         "antigravity": {
           "description": "通过本机的 Antigravity CLI 运行 Google 搜索。无需密钥：运行一次 agy 即可登录。",
           "keyLink": "设置 Antigravity CLI"
+        },
+        "codex": {
+          "description": "使用你为 Codex 登录的 ChatGPT 账号运行 OpenAI 网页搜索。无需 API 密钥。",
+          "keyLink": "在“模型与提供商”中登录 Codex"
+        },
+        "claude": {
+          "description": "通过本机的 Claude Code CLI，用你的 Claude 订阅进行网页搜索。无需密钥：运行一次 claude 即可登录。",
+          "keyLink": "设置 Claude Code"
         }
       }
     },

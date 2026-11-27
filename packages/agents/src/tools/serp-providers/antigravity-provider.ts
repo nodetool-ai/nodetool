@@ -10,6 +10,7 @@
  */
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
+import type { ModelSearchAnswer } from "./model-search.js";
 
 /** The part of `AntigravityProvider` a search needs. */
 export interface AntigravitySearchClient {
@@ -25,11 +26,7 @@ export interface AntigravitySearchClient {
 }
 
 /** One Antigravity answer, with the pages behind it. */
-export interface AntigravitySearchAnswer {
-  text: string;
-  citations: SearchResult[];
-  raw: unknown;
-}
+export type AntigravitySearchAnswer = ModelSearchAnswer;
 
 async function defaultClient(): Promise<AntigravitySearchClient> {
   const { AntigravityProvider } = await import("@nodetool-ai/runtime");
