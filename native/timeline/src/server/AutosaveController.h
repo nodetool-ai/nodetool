@@ -112,6 +112,18 @@ struct SaveResult {
     QString recoveryError;  // a recovery or conflict file that could not be written
 };
 
+// What a manual save returns to QML, the menus and the assistant.
+struct SaveDocumentResult {
+    Q_GADGET
+    Q_PROPERTY(bool ok MEMBER ok)
+    Q_PROPERTY(QString error MEMBER error)
+    Q_PROPERTY(bool conflict MEMBER conflict)
+public:
+    bool ok = false;
+    QString error;
+    bool conflict = false;
+};
+
 // The document part of a raw sequence: everything but the sequence-row fields.
 QJsonObject documentForSave(const QJsonObject& rawSequence);
 
@@ -180,7 +192,7 @@ public:
 
     // Saves now, dirty or not. Blocks until the server answers.
     SaveResult saveNow();
-    Q_INVOKABLE QVariantMap saveDocument();
+    Q_INVOKABLE nt::server::SaveDocumentResult saveDocument();
     // Before the app quits: saves pending edits within `timeoutMs` of elapsed
     // time. Returns true when the server holds the current document; otherwise
     // the current document is in `<id>.recovery.json` (or `<id>.local.json` on

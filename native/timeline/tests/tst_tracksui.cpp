@@ -3560,10 +3560,10 @@ private slots:
         QTRY_VERIFY(!model.readOnly());
         rig.drafts.rejectWrites = true;
         QVERIFY(model.applyEdit("setProjectSettings", QJsonObject{{"fps", 24}, {"width", 1920}, {"height", 1080}}));
-        QVERIFY(!saver.saveDocument().value("ok").toBool());
+        QVERIFY(!saver.saveDocument().ok);
         QVERIFY(!saver.error().isEmpty());
         rig.drafts.rejectWrites = false;
-        QVERIFY(saver.saveDocument().value("ok").toBool());
+        QVERIFY(saver.saveDocument().ok);
         QVERIFY(saver.error().isEmpty());
     }
 
@@ -3574,7 +3574,7 @@ private slots:
         nt::account::CloudTimelineSaver saver(model, rig.session, rig.options());
         QTRY_VERIFY(!model.readOnly());
         model.close();
-        QVERIFY(!saver.saveDocument().value("ok").toBool());
+        QVERIFY(!saver.saveDocument().ok);
     }
 
     // Review F1: every change of the undo stack reaches the cloud document,
@@ -3600,12 +3600,12 @@ private slots:
         QCOMPARE(fpsOf(document->content()), 24);
 
         // Manual Save persists the last edit without waiting for the draft tick.
-        QVERIFY(saver->saveDocument().value("ok").toBool());
+        QVERIFY(saver->saveDocument().ok);
         const auto savedRows = rig.drafts.list({}, {}).drafts;
         QCOMPARE(savedRows.size(), std::size_t(1));
         QCOMPARE(fpsOf(QString::fromStdString(savedRows[0].draft)), 24);
         model.setReadOnly(true);
-        QVERIFY(!saver->saveDocument().value("ok").toBool());
+        QVERIFY(!saver->saveDocument().ok);
         // Closing right after the change keeps it on this computer.
         saver.reset();
         const auto rows = rig.drafts.list({}, {}).drafts;

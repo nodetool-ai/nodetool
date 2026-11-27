@@ -58,7 +58,7 @@ public:
     // Attaches the initial AutosaveController when serverSaveTarget() is set.
     void attachInitialServer(const QString& baseUpdatedAt);
 
-    Q_INVOKABLE QVariantMap saveDocument();
+    Q_INVOKABLE nt::server::SaveDocumentResult saveDocument();
 
     QObject* autosave() const { return m_autosave.get(); }
     AutosaveController* autosaveController() const { return m_autosave.get(); }

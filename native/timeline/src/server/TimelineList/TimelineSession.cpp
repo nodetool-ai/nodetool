@@ -44,9 +44,9 @@ bool TimelineSession::canSave() const {
     return !m_model.timeline().raw.isEmpty() && !m_model.readOnly() && !m_switching && (m_autosave || m_flushLocal);
 }
 
-QVariantMap TimelineSession::saveDocument() {
+SaveDocumentResult TimelineSession::saveDocument() {
     if (!canSave()) {
-        return {{"ok", false}, {"error", QStringLiteral("Open a writable document first.")}};
+        return {.ok = false, .error = QStringLiteral("Open a writable document first.")};
     }
     if (m_autosave) {
         return m_autosave->saveDocument();
@@ -57,7 +57,7 @@ QVariantMap TimelineSession::saveDocument() {
         error = m_localSaveError ? m_localSaveError() : QString();
         if (error.isEmpty()) { error = QStringLiteral("Could not save the local document."); }
     }
-    return {{"ok", ok}, {"error", error}};
+    return {.ok = ok, .error = error};
 }
 
 void TimelineSession::setWindow(QQuickWindow* window) {
