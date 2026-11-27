@@ -196,6 +196,63 @@ Read the source page when a rule needs more detail.
 45. Measure timing in an offscreen test: set `QT_QPA_PLATFORM=offscreen` and
     `QSG_RENDER_LOOP=basic`, time the action with `QElapsedTimer`, and assert
     a budget. Also assert the item count of the panel, because it is stable
-    across machines.
+    across machines. The timeline harness is `tst_timeline_perf`; see
+    [its README](../timeline/tests/measure/README.md).
+
+46. Gate a performance budget on counters, not on time. Counters are stable
+    across machines: object and delegate creations, C++ to QML crossings,
+    payload bytes, rows notified and signal emissions. Report times, but do
+    not fail a test on them. Store budgets in a file that accepts only lower
+    values, and prove that the gate fails on a deliberate regression.
+47. Do not read the frame times of the software backend
+    (`QT_QUICK_BACKEND=software`) as the result for the GPU. They include
+    CPU rasterization. Use them to compare before and after only.
+48. Do not start a headless profiler run with `-qmljsdebugger=...,block`
+    unless a client attaches. The process waits forever.
+49. Make a measurement hook cost one relaxed atomic check when measurement is
+    off. Do not build payloads, strings or JSON for a counter that nobody
+    reads.
+
+## Edits and change notification
+
+50. Do not use one coarse signal, such as `timelineChanged`, as the change
+    notification for the whole document. Each listener derives its state
+    again, and this fan-out costs more than the edit itself. Return a change
+    set from each edit (changed IDs, roles and structural flags) and emit
+    `dataChanged` only for those rows and roles. Do not add new connections
+    to a coarse signal.
+51. Parse each changed entity once for each edit. Do not compare or parse
+    unchanged entities.
+52. Do not put large arrays, such as notes, controllers or versions, in an
+    entity map that QML reads. Expose typed scalar properties or model roles.
+    One map read can copy megabytes.
+53. Keep a gesture, such as a note drag or a clip drag, as typed overlay
+    state in C++. Commit one patch on release. Do not write a full array,
+    such as a `setNotes` list, for a drag. Register the patch as a named edit
+    with a JSON payload, so agents and headless tools use the same edit.
+54. Key a cache on every input that its output reads. If a key cannot be
+    complete, drop the cache. A stale cache is a correctness defect, not a
+    performance trade-off.
+55. Use an index for hit tests and range queries over dense content, such as
+    an interval index for notes. Do not scan every item for each pointer
+    event.
+
+## Menus and lazy content
+
+56. Build menu rows only while the menu is open, and release them on close.
+    A closed menu creates no items. When the target of an open shared menu
+    is deleted or scrolls away, close the menu.
+57. Do not decode an image that is hidden or not laid out. Bucket
+    `sourceSize` to steps, such as 128 physical pixels, so that a dock
+    resize does not decode on each frame.
+58. A test that uses a row of a virtualized view must scroll to it first,
+    with `positionViewAtIndex`. Do not expect a delegate for a row that is
+    not visible.
+
+## Typing
+
+59. Untyped QML (`property var`, unqualified lookups) costs less than the
+    items above. Type the files that run on hot paths, but do not run a
+    project to type all files for performance.
 
 Run `npm run check:native-performance` to check per-file debt in `native/*/qml` and `native/*/src`, or `npm run check:native-performance -- --update` to save lower baseline counts.
