@@ -25,8 +25,12 @@ profile_file=${MACOS_PROVISIONING_PROFILE:-}
 access_group=${MACOS_KEYCHAIN_ACCESS_GROUP:-}
 entitlements="$(cd "$(dirname "$0")/../../.." && pwd)/electron/entitlements.mac.plist"
 tmp_entitlements=""
+# An if, not "test && rm": the EXIT trap's last status becomes the script's
+# exit status, so a false test would fail a signing run that succeeded.
 cleanup() {
-    [[ -n "$tmp_entitlements" && -f "$tmp_entitlements" ]] && rm -f "$tmp_entitlements"
+    if [[ -n "$tmp_entitlements" && -f "$tmp_entitlements" ]]; then
+        rm -f "$tmp_entitlements"
+    fi
 }
 trap cleanup EXIT
 if [[ -n "$profile_file" ]]; then
