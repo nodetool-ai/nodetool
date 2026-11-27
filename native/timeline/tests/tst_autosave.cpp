@@ -1329,8 +1329,8 @@ private slots:
         make();
         m_save->externalChanged("deleted", {}, {}, false);
         const auto result = m_save->saveDocument();
-        QVERIFY(!result.value("ok").toBool());
-        QVERIFY(result.value("conflict").toBool());
+        QVERIFY(!result.ok);
+        QVERIFY(result.conflict);
     }
 
     void conflictKeepsTheLocalDocument() {
