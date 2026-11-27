@@ -13,6 +13,7 @@
  */
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
+import { searchByAnswer } from "./model-search.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -179,11 +180,7 @@ export class GeminiSearchProvider implements SerpProvider {
     query: string,
     options?: SearchOptions
   ): Promise<SearchResult[]> {
-    const { citations } = await this.answer(query);
-    const numResults = options?.numResults;
-    return numResults === undefined
-      ? citations
-      : citations.slice(0, numResults);
+    return searchByAnswer(this, query, options?.numResults);
   }
 
   async searchRaw(query: string): Promise<unknown> {

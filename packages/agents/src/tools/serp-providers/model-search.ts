@@ -22,6 +22,19 @@ export interface ModelSearchProvider {
   ): Promise<ModelSearchAnswer>;
 }
 
+/**
+ * The cited pages of one answer as a ranked result list. The model search
+ * tools take no result count, so `numResults` truncates what came back.
+ */
+export async function searchByAnswer(
+  provider: { answer(query: string): Promise<{ citations: SearchResult[] }> },
+  query: string,
+  numResults?: number
+): Promise<SearchResult[]> {
+  const { citations } = await provider.answer(query);
+  return numResults === undefined ? citations : citations.slice(0, numResults);
+}
+
 /** Whether `provider` answers in prose as well as returning results. */
 export function isModelSearchProvider(
   provider: unknown

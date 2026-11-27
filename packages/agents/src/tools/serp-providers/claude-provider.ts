@@ -10,7 +10,11 @@
  */
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
-import { linksInAnswer, type ModelSearchAnswer } from "./model-search.js";
+import {
+  linksInAnswer,
+  searchByAnswer,
+  type ModelSearchAnswer
+} from "./model-search.js";
 
 /** The model the search runs on: the CLI resolves the alias. */
 export const CLAUDE_SEARCH_MODEL = "sonnet";
@@ -131,10 +135,11 @@ export class ClaudeSearchProvider implements SerpProvider {
    * The pages the answer used as a ranked result list. The search tool takes
    * no result count, so `numResults` truncates what came back.
    */
-  async search(query: string, options?: SearchOptions): Promise<SearchResult[]> {
-    const { citations } = await this.answer(query);
-    const n = options?.numResults;
-    return n === undefined ? citations : citations.slice(0, n);
+  async search(
+    query: string,
+    options?: SearchOptions
+  ): Promise<SearchResult[]> {
+    return searchByAnswer(this, query, options?.numResults);
   }
 
   async searchRaw(query: string): Promise<unknown> {
