@@ -23,6 +23,9 @@ const pathLib = getNodeBuiltinSync<PathApi>("node:path");
 const osLib = getNodeBuiltinSync<OsApi>("node:os");
 const urlLib = getNodeBuiltinSync<UrlApi>("node:url");
 
+/** The environment variables a path resolver reads. */
+export type PathEnv = Readonly<Record<string, string | undefined>>;
+
 function notOnNode(name: string): never {
   throw new Error(
     `paths.${name}() is Node-only and not available in this runtime`
@@ -44,17 +47,18 @@ const fileURLToPath = (url: string | URL): string =>
  * - Windows:  %APPDATA%\nodetool          (e.g. C:\Users\<name>\AppData\Roaming\nodetool)
  * - macOS/Linux: $XDG_DATA_HOME/nodetool  (fallback: ~/.local/share/nodetool)
  */
-export function getNodetoolDataDir(): string {
+export function getNodetoolDataDir(overrides?: PathEnv): string {
   if (!IS_NODE) return notOnNode("getNodetoolDataDir");
+  const env = overrides ?? process.env;
   if (process.platform === "win32") {
     return join(
-      process.env["APPDATA"] ?? join(homedir(), "AppData", "Roaming"),
+      env["APPDATA"] ?? join(homedir(), "AppData", "Roaming"),
       "nodetool"
     );
   }
   // macOS and Linux: use XDG standard to match Python side
   return join(
-    process.env["XDG_DATA_HOME"] ?? join(homedir(), ".local", "share"),
+    env["XDG_DATA_HOME"] ?? join(homedir(), ".local", "share"),
     "nodetool"
   );
 }
@@ -70,8 +74,8 @@ function normalizeWindowsDrivePath(value: string): string {
   return value;
 }
 
-function assertNoDatabaseOverrideConflict(): void {
-  if (process.env["DB_PATH"]?.trim() && process.env["DATABASE_URL"]?.trim()) {
+function assertNoDatabaseOverrideConflict(env: PathEnv = process.env): void {
+  if (env["DB_PATH"]?.trim() && env["DATABASE_URL"]?.trim()) {
     throw new Error(
       "DB_PATH and DATABASE_URL are both set. Use only one database configuration variable."
     );
@@ -97,8 +101,8 @@ export function getPostgresDatabaseUrl(): string | undefined {
  * - sqlite:./nodetool.sqlite3
  * - sqlite:///absolute/path/nodetool.sqlite3
  */
-function getDatabaseUrlDbPath(): string | undefined {
-  const raw = process.env["DATABASE_URL"]?.trim();
+function getDatabaseUrlDbPath(env: PathEnv): string | undefined {
+  const raw = env["DATABASE_URL"]?.trim();
   if (!raw) {
     return undefined;
   }
@@ -132,13 +136,17 @@ function getDatabaseUrlDbPath(): string | undefined {
   return undefined;
 }
 
-/** Default path for the main SQLite database. Override with DB_PATH or DATABASE_URL. */
-export function getDefaultDbPath(): string {
-  assertNoDatabaseOverrideConflict();
+/**
+ * Default path for the main SQLite database. Override with DB_PATH or DATABASE_URL.
+ * Pass `env` to resolve it for an environment other than `process.env`.
+ */
+export function getDefaultDbPath(overrides?: PathEnv): string {
+  const env = overrides ?? process.env;
+  assertNoDatabaseOverrideConflict(env);
   return (
-    process.env["DB_PATH"] ??
-    getDatabaseUrlDbPath() ??
-    join(getNodetoolDataDir(), "nodetool.sqlite3")
+    env["DB_PATH"] ??
+    getDatabaseUrlDbPath(env) ??
+    join(getNodetoolDataDir(env), "nodetool.sqlite3")
   );
 }
 

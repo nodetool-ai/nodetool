@@ -49,10 +49,7 @@ export class Thread extends DBModel {
 
   /** Find a thread by id, scoped to the user. */
   static async find(userId: string, threadId: string): Promise<Thread | null> {
-    const thread = await Thread.get<Thread>(threadId);
-    if (!thread) return null;
-    if (thread.user_id === userId) return thread;
-    return null;
+    return Thread.getForUser<Thread>(userId, threadId);
   }
 
   /**

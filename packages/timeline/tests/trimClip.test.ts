@@ -215,6 +215,11 @@ describe("trimClip on clips with no source clock", () => {
       "cannot extend before source start"
     );
   });
+
+  it("refuses non-finite deltaMs instead of producing NaN timings", () => {
+    expect(() => trimClip(makeBaseClip(), "end", Number.NaN)).toThrow();
+    expect(() => trimClip(makeBaseClip(), "start", Number.POSITIVE_INFINITY)).toThrow();
+  });
 });
 
 describe("trimClip caption words", () => {

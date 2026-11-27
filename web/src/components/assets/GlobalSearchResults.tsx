@@ -144,6 +144,13 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap",
       userSelect: "none"
     },
+    ".result-item-match": {
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.grey[200],
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
     ".result-item-details": {
       display: "flex",
       alignItems: "center",
@@ -524,6 +531,20 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                       </span>
                     )}
                   </div>
+
+                  {asset.match && asset.match.field !== "title" && (
+                    <div
+                      className="global-search-result-match result-item-match"
+                      data-testid="global-search-result-match"
+                    >
+                      {asset.match.snippet
+                        ? t("librarySearch.matchedIn", {
+                            field: t(`librarySearch.field.${asset.match.field}`),
+                            snippet: asset.match.snippet
+                          })
+                        : t(`librarySearch.field.${asset.match.field}`)}
+                    </div>
+                  )}
 
                   {showDetails && (
                     <div className="global-search-result-details result-item-details">

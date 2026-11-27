@@ -71,14 +71,24 @@ export async function resolveComfyTarget(
   );
 }
 
+function sanitizeTargetUrl(raw: string): string {
+  try {
+    const parsed = new URL(raw);
+    const path = parsed.pathname === "/" ? "" : stripTrailingSlashes(parsed.pathname);
+    return `${parsed.origin}${path}`;
+  } catch {
+    return raw.split(/[?#]/, 1)[0];
+  }
+}
+
 /** The target's name for logs and errors. It never includes a credential. */
 export function describeComfyTarget(target: ComfyTarget): string {
   switch (target.kind) {
     case "cloud":
       return "Comfy Cloud";
     case "server":
-      return `the ComfyUI server at ${target.url}`;
+      return `the ComfyUI server at ${sanitizeTargetUrl(target.url)}`;
     case "worker":
-      return `the ComfyUI worker at ${target.url}`;
+      return `the ComfyUI worker at ${sanitizeTargetUrl(target.url)}`;
   }
 }

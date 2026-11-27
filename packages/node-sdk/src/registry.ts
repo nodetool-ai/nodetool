@@ -218,9 +218,13 @@ export class NodeRegistry {
       let dynamicValues = descriptor.dynamic_properties;
       if (descriptor.dynamic_inputs && !dynamicValues) {
         const declaredNames = new Set(entry.declared.map((property) => property.name));
-        dynamicValues = Object.fromEntries(Object.keys(descriptor.dynamic_inputs)
-          .filter((name) => !declaredNames.has(name))
-          .map((name) => [name, properties[name]]));
+        dynamicValues = Object.fromEntries(
+          Object.keys(descriptor.dynamic_inputs)
+            .filter(
+              (name) => !declaredNames.has(name) && Object.hasOwn(properties, name)
+            )
+            .map((name) => [name, properties[name]])
+        );
       }
       return validateNodeProperties(entry.declared, properties, {
         connectedHandles,

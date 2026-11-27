@@ -16,9 +16,16 @@ import { marketing } from "./pages/marketing";
 import { recipes } from "./pages/recipes";
 import { adLibrary } from "./pages/adLibrary";
 import { comfyui } from "./pages/comfyui";
+import { demo } from "./pages/demo";
+import { cloud } from "./pages/cloud";
+import { nodeBasedAi } from "./pages/nodeBasedAi";
+import { aiImageEditor } from "./pages/aiImageEditor";
+import { gamedev } from "./pages/gamedev";
+import { aiGameEngines } from "./pages/aiGameEngines";
+import { figmaWeave } from "./pages/figmaWeave";
 
 export const ZH_PAGES: Record<string, LocalizedPageContent> = Object.fromEntries(
-  [studio, agents, nodeBasedWorkflows, aiVideoEditor, storyboards, mcp, models, download, pricing, marketing, recipes, adLibrary, comfyui].map(
+  [studio, agents, nodeBasedWorkflows, aiVideoEditor, storyboards, mcp, models, download, pricing, marketing, recipes, adLibrary, comfyui, demo, cloud, nodeBasedAi, aiImageEditor, gamedev, aiGameEngines, figmaWeave].map(
     (page) => [page.route, page]
   )
 );

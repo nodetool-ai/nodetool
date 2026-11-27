@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AgentNode, DirectorNode } from "@nodetool-ai/base-nodes";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { BaseNode, NodeRegistry, prop } from "@nodetool-ai/node-sdk";
 import {
   ProcessingContext,
   generateStructured,
@@ -82,6 +82,47 @@ describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () 
         shot_count: 3
       });
       expect(resolvedProviders).toEqual([model?.provider || "openai"]);
+    });
+    it("selects the fake catalog's image and video models a template leaves empty", async () => {
+      class PickModels extends BaseNode {
+        static readonly nodeType = "test.fake.PickModels";
+        static readonly title = "Pick Models";
+        static readonly description = "Returns the models it was given";
+        static readonly metadataOutputTypes = { image: "dict", video: "dict" };
+
+        @prop({ type: "image_model", default: {} })
+        declare image_model: Record<string, unknown>;
+
+        @prop({ type: "video_model", default: {} })
+        declare video_model: Record<string, unknown>;
+
+        async process(): Promise<Record<string, unknown>> {
+          return { image: this.image_model, video: this.video_model };
+        }
+      }
+      const registry = new NodeRegistry();
+      registry.register(PickModels);
+      const empty = { provider: "", id: "", name: "" };
+      const properties = {
+        image_model: { type: "image_model", ...empty },
+        video_model: { type: "video_model", ...empty }
+      };
+      const executor = createFakeExecutorResolver(() => registry)({
+        id: "pick",
+        type: PickModels.nodeType,
+        properties
+      });
+
+      const result = await executor.process(
+        properties,
+        new ProcessingContext({ jobId: "fake-models" })
+      );
+
+      expect(result.image).toMatchObject({ provider: "openai", id: "test-image-model" });
+      expect(result.video).toMatchObject({ provider: "openai", id: "test-video-model" });
+      const catalog = new FakeProvider({}, "openai");
+      expect((await catalog.getAvailableImageModels()).map((m) => m.id)).toContain("test-image-model");
+      expect((await catalog.getAvailableVideoModels()).map((m) => m.id)).toContain("test-video-model");
     });
     it("runs an Agent with the host's fake provider instead of faking its media slots", async () => {
       const registry = new NodeRegistry();

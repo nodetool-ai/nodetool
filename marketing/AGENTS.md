@@ -175,6 +175,10 @@ set in `src/data/languagePages.ts` and pair with the home page.
   a route file under `src/app/<locale>/`. Pass `languageAlternates(route)` as
   the English page's `alternates.languages`. `tests/e2e/zh-pages.spec.ts` and
   `tests/e2e/ja-ko-pages.spec.ts` check all four.
+- Chinese and Japanese have more translated routes than Korean
+  (`SECOND_PAGES` in `routes.ts`). The `demo` section kind renders the
+  timeline or node editor demo with translated words around it. The editor
+  inside the frame stays English.
 - Translate published English copy. Read prices and counts through the
   `{token}` placeholders in `LocalizedPage.tsx`, never as typed numbers.
 - Chinese pages only: lead provider lines with DeepSeek, Qwen (DashScope) and GLM, and reuse the

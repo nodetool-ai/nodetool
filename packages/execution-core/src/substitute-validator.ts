@@ -61,13 +61,13 @@ export async function validateSubstituteOutputs(
   // legitimately emit a subset (an `If` emits one branch); a model-authored
   // repair does not get that latitude.
   for (const slot of Object.keys(declared)) {
-    if (outputs[slot] === undefined) {
+    if (!Object.hasOwn(outputs, slot) || outputs[slot] === undefined) {
       issues.push(`output "${slot}" is declared by this node but missing`);
     }
   }
 
   for (const [slot, value] of Object.entries(outputs)) {
-    const type = declared[slot];
+    const type = Object.hasOwn(declared, slot) ? declared[slot] : undefined;
     if (type === undefined) {
       issues.push(`output "${slot}" is not declared by this node`);
       continue;

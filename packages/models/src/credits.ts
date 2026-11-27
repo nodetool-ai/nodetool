@@ -251,14 +251,15 @@ export async function grantCredits(
   kind: "topup" | "adjustment",
   description?: string
 ): Promise<void> {
-  if (!Number.isFinite(delta) || delta === 0) {
+  const whole = Math.trunc(delta);
+  if (!Number.isFinite(delta) || whole === 0) {
     throw new Error("Credit delta must be a non-zero number.");
   }
   const db = getPortableDb();
   await db.insert(creditLedger).values({
     id: createTimeOrderedUuid(),
     user_id: userId,
-    delta: Math.trunc(delta),
+    delta: whole,
     kind,
     description: description ?? null,
     period_key: null,
@@ -328,6 +329,9 @@ export async function checkCredits(
   estimatedUsd: number,
   models: readonly string[] = []
 ): Promise<CreditDecision> {
+  if (!Number.isFinite(estimatedUsd) || estimatedUsd < 0) {
+    throw new Error("Estimated USD must be a non-negative finite number.");
+  }
   const status = await creditStatus(userId);
   const refused = models.find((model) => !isCreditModelAllowed(model));
   if (refused !== undefined) {

@@ -4,6 +4,7 @@ import type { ComfyObjectInfo } from "@nodetool-ai/protocol";
 import {
   COMFY_NODES,
   ComfyCloudGraphNode,
+  describeComfyTarget,
   type ComfyJob,
   type ComfyLiveFrame,
   type ComfyOutput,
@@ -223,5 +224,93 @@ describe("ComfyCloudGraphNode", () => {
     });
     await expect(node.process(context)).rejects.toThrow("Connect the Output to a Save node");
     expect(node.submitted).toHaveLength(0);
+  });
+
+  it("cancels the job when the consumer exits genProcess early", async () => {
+    let canceled = 0;
+    const slowJob: ComfyJob = {
+      id: "job-early",
+      status: "running",
+      outputs: [],
+      error: null,
+      async *events(): AsyncGenerator<ComfyRunEvent, void, void> {
+        yield { kind: "outputReady", output };
+        await new Promise(() => {});
+      },
+      refresh: async () => slowJob,
+      cancel: async () => {
+        canceled += 1;
+        return slowJob;
+      }
+    };
+    const { node, context } = setup(slowJob);
+    const gen = node.genProcess(context);
+    const first = await gen.next();
+    expect(first.done).toBe(false);
+
+    await gen.return(undefined);
+    expect(canceled).toBe(1);
+    expect(node.liveClosed).toBe(true);
+  });
+
+  it("closes a worker transport if input loading fails before submit", async () => {
+    let transportClosed = false;
+    class WorkerFailNode extends ComfyCloudGraphNode {
+      protected loadWorkerObjectInfo(): Promise<ComfyObjectInfo> {
+        return Promise.resolve(INFO);
+      }
+      protected async openWorkerTransport(): Promise<ComfyTransport> {
+        return {
+          submit: async () => {
+            throw new Error("should not submit");
+          },
+          assetFromBytes: () => ({}),
+          close: () => {
+            transportClosed = true;
+          }
+        };
+      }
+    }
+    const node = new WorkerFailNode();
+    (node as unknown as { assign: (p: Record<string, unknown>) => void }).assign({
+      nodes: [
+        { id: "make", type: "comfy.EmptyImage", properties: { width: 64, height: 64 } },
+        { id: "save", type: "comfy.SaveImage", properties: { filename_prefix: "t", images: null } }
+      ],
+      edges: [{ source: "make", sourceHandle: "IMAGE", target: "save", targetHandle: "images" }],
+      timeout: 60
+    });
+    // Missing asset triggers applyComfyInputs error before transport.submit().
+    (node as unknown as { setDynamic: (k: string, v: unknown) => void }).setDynamic(
+      "make:width",
+      { type: "image", asset_id: "b".repeat(32) }
+    );
+    const context = {
+      postMessage: () => {},
+      getSecret: async (key: string) =>
+        key === "COMFY_TARGET"
+          ? "worker"
+          : key === "COMFY_WORKER_URL"
+            ? "ws://127.0.0.1:7777/ws"
+            : null
+    } as unknown as ProcessingContext;
+
+    await expect(node.process(context)).rejects.toThrow(/could not read/i);
+    expect(transportClosed).toBe(true);
+  });
+
+  it("strips credentials and query tokens in describeComfyTarget", () => {
+    expect(
+      describeComfyTarget({
+        kind: "server",
+        url: "https://alice:s3cr3t@comfy.example.com:8188/sub?token=abc#frag"
+      })
+    ).toBe("the ComfyUI server at https://comfy.example.com:8188/sub");
+    expect(
+      describeComfyTarget({
+        kind: "worker",
+        url: "wss://user:pw@worker.example.com/ws?token=xyz"
+      })
+    ).toBe("the ComfyUI worker at wss://worker.example.com/ws");
   });
 });

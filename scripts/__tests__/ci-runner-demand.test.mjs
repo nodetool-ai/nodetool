@@ -34,7 +34,8 @@ function selectLegs(plan, { skipTests = false } = {}) {
     const legs = (key) =>
       new Map(JSON.parse(lines.find((l) => l.startsWith(`${key}=`)).slice(key.length + 1)).include.map((leg) => [leg.check, leg]));
     const builtLegs = JSON.parse(lines.find((l) => l.startsWith("built=")).slice("built=".length)).include;
-    return { static: legs("static"), built: legs("built"), builtLegs, step };
+    const builtAny = lines.find((l) => l.startsWith("built-any=")).slice("built-any=".length);
+    return { static: legs("static"), built: legs("built"), builtLegs, builtAny, step };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -44,7 +45,8 @@ const FULL_PLAN = {
   full: true, web: "full", electron: true, mobile: true, packages_websocket: true, packages_agents: true,
   packages_nodes: true, packages_core: true, packages_cli: true, packages_engine: true, packages_game: true,
   integration: true, workflow_runner_e2e: true,
-  tsc6: true, docker: true, blender: true, node_catalog: true, turbo_affected: false
+  tsc6: true, docker: true, blender: true, node_catalog: true, typecheck: true, harness_gate: true,
+  turbo_affected: false
 };
 
 /** Evaluate the `cancel-in-progress` expression for one event name. */
@@ -220,6 +222,28 @@ describe("Test workflow runner demand", { timeout: 30_000 }, () => {
     expect(appTests({ ...FULL_PLAN, electron: false, mobile: true })).toBe(true);
     expect(appTests(FULL_PLAN, { skipTests: true })).toBe(false);
     expect(selectLegs(FULL_PLAN).step.env.SKIP_TESTS).toBe("${{ inputs.skip-tests }}");
+  });
+
+  it("starts no build for a plan that selects no built leg", () => {
+    const none = Object.fromEntries(Object.keys(FULL_PLAN).map((key) => [key, false]));
+    const nativeOnly = { ...none, web: "none" };
+    const { built, static: staticLegs, builtAny } = selectLegs(nativeOnly);
+    expect(built.size).toBe(0);
+    expect(builtAny).toBe("false");
+    // Lint runs on every diff with code.
+    expect([...staticLegs.keys()]).toEqual(["lint"]);
+    expect(selectLegs(FULL_PLAN).builtAny).toBe("true");
+    // The harness gate alone still needs the build.
+    const gateOnly = selectLegs({ ...nativeOnly, harness_gate: true });
+    expect([...gateOnly.built.keys()]).toEqual(["harness-gate"]);
+    expect(gateOnly.builtAny).toBe("true");
+    // skip-tests passes --include-suites, which the plan's predicate ignores.
+    expect([...selectLegs(nativeOnly, { skipTests: true }).built.keys()]).toEqual(["harness-gate"]);
+
+    const jobs = yaml.load(read(".github/workflows/quality-checks.yml")).jobs;
+    expect(jobs.build.needs).toContain("changes");
+    expect(jobs.build.if).toBe("${{ needs.changes.outputs.built-any == 'true' }}");
+    expect(jobs.built.if).toBe("${{ needs.changes.outputs.built-any == 'true' }}");
   });
 
   it("splits the serial agents suite across three runners with vitest shards", () => {

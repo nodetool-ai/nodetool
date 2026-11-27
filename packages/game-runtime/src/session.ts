@@ -44,6 +44,8 @@ export interface GameSessionOptions {
    * warning appears in the script logs. The default, `fail`, stops the step with an error. See `GameScriptOptions.overrun`.
    */
   readonly scriptOverrun?: "fail" | "skip";
+  /** A test run: scripts read `input.test` and failing `assert` commands fail the step. See `GameScriptOptions.test`. */
+  readonly test?: boolean;
 }
 
 /** Physics counts for one tick, reported only with `recordTimings`. They never enter snapshots, events or replay state. */
@@ -669,7 +671,7 @@ export async function createScriptedGameSession(
   const validation = validateGame(document);
   if (!validation.valid || !validation.document) throw new Error(`Invalid game: ${validation.errors.join("; ")}`);
   if (!hasGameScripts(validation.document)) return createGameSession(validation.document, seed, savedSnapshot, eventSink, options);
-  const runner = await prepareGameScripts(validation.document, { overrun: options.scriptOverrun });
+  const runner = await prepareGameScripts(validation.document, { overrun: options.scriptOverrun, test: options.test });
   try {
     return createGameSessionWithRunner(validation.document, seed, savedSnapshot, eventSink, runner, options);
   } catch (error) {

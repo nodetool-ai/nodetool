@@ -292,8 +292,8 @@ export class Script extends DBModel {
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     return changingAccess([{ kind: "script", id }], async () => {
-      const row = await Script.findById(id);
-      if (!row || row.user_id !== userId) return false;
+      const row = await Script.getForUser<Script>(userId, id);
+      if (!row) return false;
       await row.delete();
       await removeDocumentSharing("script", row.id);
       return true;

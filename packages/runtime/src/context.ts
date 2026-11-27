@@ -41,6 +41,8 @@ import {
 } from "./invocation-account.js";
 import { VariableChannel } from "./variable-channel.js";
 import { loadMediaRefBytes } from "./media-ref-bytes.js";
+import { privateMediaFetchAllowed } from "./external-media-fetch.js";
+import { safeFetch } from "./providers/safe-url.js";
 import {
   requestVideoToAudio,
   VIDEO_TO_AUDIO_TASK,
@@ -2285,6 +2287,31 @@ export class ProcessingContext implements RuntimeNodeContext {
     return null;
   }
 
+  private isOwnProjectStorageRoute(uri: string): boolean {
+    const stripped = uri.replace(/^\/?api\/storage\//i, "");
+    if (stripped === uri) {
+      return false;
+    }
+    const clean = stripped.split(/[?#]/, 1)[0] ?? "";
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(clean);
+    } catch {
+      return false;
+    }
+    const projectId = this.projectId?.trim() || "default";
+    const expectedPrefix = `projects/${projectId}/`;
+    if (!decoded.startsWith(expectedPrefix)) {
+      return false;
+    }
+    const rest = decoded.slice(expectedPrefix.length);
+    return (
+      rest.length > 0 &&
+      !rest.includes("\\") &&
+      !rest.split("/").some((segment) => segment === "..")
+    );
+  }
+
   /**
    * Resolve an `asset://<id>[.ext]` reference (or bare id / storage URI) to its
    * raw bytes.
@@ -2406,15 +2433,34 @@ export class ProcessingContext implements RuntimeNodeContext {
       }
       if (/^https?:\/\//.test(trimmed)) {
         try {
-          const bytes = await this.downloadFile(trimmed, {
-            retry: { maxRetries: 1, backoffMs: 200 }
-          });
+          let bytes: Uint8Array;
+          if (privateMediaFetchAllowed()) {
+            bytes = await this.downloadFile(trimmed, {
+              retry: { maxRetries: 1, backoffMs: 200 }
+            });
+          } else {
+            const response = await safeFetch(
+              trimmed,
+              undefined,
+              undefined,
+              (input, init) =>
+                this._fetch(
+                  typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url,
+                  init
+                )
+            );
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status} ${response.statusText}`);
+            }
+            bytes = new Uint8Array(await response.arrayBuffer());
+          }
           attempts.push(`downloaded: ${trimmed}`);
           return { bytes, attempts };
         } catch (error) {
           attempts.push(
             `http error: ${trimmed} (${error instanceof Error ? error.message : String(error)})`
           );
+          return { bytes: null, attempts };
         }
       }
     }
@@ -2440,7 +2486,7 @@ export class ProcessingContext implements RuntimeNodeContext {
       if (asset) {
         assetRowFound = true;
         idCandidates = assetFileNameCandidates(asset.id, asset.content_type);
-      } else if (options?.requireOwnedAsset) {
+      } else if (options?.requireOwnedAsset && !this.isOwnProjectStorageRoute(trimmed)) {
         attempts.push(`asset unavailable or not owned: ${trimmed}`);
         return { bytes: null, attempts };
       }
@@ -2559,7 +2605,9 @@ export class ProcessingContext implements RuntimeNodeContext {
   async assetToSandbox(assetId: string, path: string): Promise<string> {
     const outputPath = this.resolveSandboxFilePath(path);
     await this.assertOwnSandboxFile(outputPath, path);
-    const { bytes, attempts } = await this.resolveAssetBytes(assetId);
+    const { bytes, attempts } = await this.resolveAssetBytes(assetId, {
+      requireOwnedAsset: true
+    });
 
     if (!bytes) {
       const details =
@@ -3081,7 +3129,13 @@ export class ProcessingContext implements RuntimeNodeContext {
         uri.startsWith("/api/storage/") ||
         uri.startsWith("api/storage/"))
     ) {
-      const { bytes } = await this.resolveAssetBytes(uri);
+      const isTempRoute =
+        uri.startsWith("/api/storage/temp/") ||
+        uri.startsWith("api/storage/temp/");
+      const { bytes } = await this.resolveAssetBytes(
+        uri,
+        isTempRoute ? undefined : { requireOwnedAsset: true }
+      );
       if (bytes) return bytes;
     }
     // No usable uri but an asset_id is present: resolve directly by id.
@@ -3089,7 +3143,9 @@ export class ProcessingContext implements RuntimeNodeContext {
     // storage adapter (which the early `!this.storage` return used to preclude).
     const assetId = asset.asset_id;
     if (isNonEmptyString(assetId)) {
-      const { bytes } = await this.resolveAssetBytes(`asset://${assetId}`);
+      const { bytes } = await this.resolveAssetBytes(`asset://${assetId}`, {
+        requireOwnedAsset: true
+      });
       if (bytes) return bytes;
     }
     return null;

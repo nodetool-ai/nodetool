@@ -57,6 +57,8 @@ export interface GameSession3DOptions {
    * warning appears in the script logs. The default, `fail`, stops the step with an error. See `GameScriptOptions.overrun`.
    */
   readonly scriptOverrun?: "fail" | "skip";
+  /** A test run: scripts read `input.test` and failing `assert` commands fail the step. See `GameScriptOptions.test`. */
+  readonly test?: boolean;
   readonly signal?: AbortSignal;
   readonly eventSink?: (event: GameEvent3D) => void;
   readonly resolveCollider?: (
@@ -259,7 +261,7 @@ export async function createGameSession3D(
         prefab.entities.some((entity) => entity.behaviors.some((behavior) => behavior.kind === "script"))
       )
     ) {
-      runner = await prepareGameScripts3D(document, { overrun: options.scriptOverrun });
+      runner = await prepareGameScripts3D(document, { overrun: options.scriptOverrun, test: options.test });
     }
     options.signal?.throwIfAborted();
     if (saved?.pendingCommands.length) throw new Error("Committed snapshots cannot contain unapplied commands");

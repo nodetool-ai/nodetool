@@ -77,6 +77,7 @@ import {
   type TimelineTrack
 } from "@nodetool-ai/timeline";
 import { tagAsNode, tagAsServer } from "@nodetool-ai/nodes-utils";
+import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -415,6 +416,13 @@ function audioEffectStepsNamed(
         `${tag("highshelf", "_hi")}=f=${biquadHz(effect.highFreq)}:g=${effect.highGainDb}:t=s:w=1`
       ];
     case "filter": {
+      if (
+        effect.mode !== "lowpass" &&
+        effect.mode !== "highpass" &&
+        effect.mode !== "bandpass"
+      ) {
+        return [];
+      }
       const q =
         effect.mode === "bandpass"
           ? Math.max(0.0001, effect.q)
@@ -840,7 +848,10 @@ class MidiFiles {
       instrument,
       sampleRate: MIDI_SAMPLE_RATE
     });
-    const file = path.join(this.workDir, `midi_${clip.id}.wav`);
+    const safeId = /^[A-Za-z0-9_-]{1,128}$/.test(clip.id)
+      ? clip.id
+      : createHash("sha256").update(clip.id).digest("hex").slice(0, 24);
+    const file = path.join(this.workDir, `midi_${safeId}.wav`);
     await fs.writeFile(file, encodeWavPcm16(mono, MIDI_SAMPLE_RATE));
     return file;
   }

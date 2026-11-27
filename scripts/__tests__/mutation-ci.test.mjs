@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 import { belongsToShard } from "../../packages/mutator/dist/shards.js";
-import { aggregate, createPlan, executePartition, createPartitions, mutantWorkers, resolveBase, TARGETS } from "../mutation-ci.mjs";
+import { aggregate, createJobs, createPlan, executeJob, executePartition, createPartitions, mutantWorkers, resolveBase, TARGETS } from "../mutation-ci.mjs";
 
 const helper = fileURLToPath(new URL("../mutation-ci.mjs", import.meta.url));
 let resultDirectory;
@@ -43,7 +43,8 @@ beforeAll(() => {
   git("add", ".");
   git("-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-qm", "add functions");
   plan = createPlan(root, base);
-  expect(plan.version).toBe(2);
+  expect(plan.version).toBe(3);
+  expect(plan.jobs).toEqual(plan.partitions.map(({ id }) => ({ id, partitions: [id] })));
   expect(plan.partitions.length).toBeGreaterThan(3);
   expect(plan.selectedIds).toHaveLength(21);
   const batch = plan.partitions.filter((partition) => partition.file.endsWith("batch.mjs"));
@@ -54,8 +55,8 @@ beforeAll(() => {
   put(path, plan);
   resultDirectory = join(root, ".metrics/results");
   outputs = plan.partitions.map(({ id }) => join(resultDirectory, `mutation-result-partition-${id}`));
-  for (const [offset, output] of outputs.entries()) {
-    execFileSync(process.execPath, [helper, "run", path, String(plan.partitions[offset].id), output], { cwd: root, encoding: "utf8" });
+  for (const job of plan.jobs) {
+    execFileSync(process.execPath, [helper, "run-job", path, String(job.id), resultDirectory], { cwd: root, encoding: "utf8" });
   }
 }, 180_000);
 
@@ -114,9 +115,10 @@ describe("mutation CI exact union", { timeout: 60_000 }, () => {
     }
   });
 
-  it("rejects invalid partition requests before executing mutations", async () => {
+  it("rejects invalid partition and job requests before executing mutations", async () => {
     for (const id of [0, 99, 1.5, "1", NaN, Infinity, { index: 1, count: 8 }]) {
       await expect(executePartition(root, plan, id, join(root, ".metrics/invalid-partition"))).rejects.toThrow();
+      await expect(executeJob(root, plan, id, join(root, ".metrics/invalid-job"))).rejects.toThrow(/job ID/);
     }
   });
 
@@ -222,12 +224,16 @@ describe("mutation CI exact union", { timeout: 60_000 }, () => {
       (value) => { value.files.push(value.files[0]); },
       (value) => { value.partitions.pop(); },
       (value) => { value.partitions.push(value.partitions[0]); },
-      (value) => { value.partitions[0].file = "packages/agents/src/unknown.mjs"; }
+      (value) => { value.partitions[0].file = "packages/agents/src/unknown.mjs"; },
+      (value) => { value.jobs.pop(); },
+      (value) => { value.jobs[0].partitions = []; },
+      (value) => { value.jobs[1].partitions.push(value.jobs[0].partitions[0]); }
     ]) {
       const invalid = structuredClone(plan);
       alter(invalid);
       expect(() => aggregate(root, invalid, outputs)).toThrow(/Frozen/);
       await expect(executePartition(root, invalid, 1, join(root, ".metrics/rejected-plan"))).rejects.toThrow(/Frozen/);
+      await expect(executeJob(root, invalid, 1, join(root, ".metrics/rejected-job"))).rejects.toThrow(/Frozen/);
     }
   });
 
@@ -236,8 +242,10 @@ describe("mutation CI exact union", { timeout: 60_000 }, () => {
     expect(empty.files).toEqual([]);
     expect(empty.selectedIds).toEqual([]);
     expect(empty.partitions).toEqual([{ id: 1, file: null, shard: null, assignedIds: [] }]);
-    const output = join(root, ".metrics/empty-result");
-    await executePartition(root, empty, 1, output);
+    expect(empty.jobs).toEqual([{ id: 1, partitions: [1] }]);
+    const results = join(root, ".metrics/empty-results");
+    await executeJob(root, empty, 1, results);
+    const output = join(results, "mutation-result-partition-1");
     expect(json(join(output, "receipt.json"))).toMatchObject({ code: 0, complete: true, completed: [] });
     const result = aggregate(root, empty, [output]);
     expect(result.snapshots).toEqual([]);
@@ -256,8 +264,8 @@ describe("mutation CI exact union", { timeout: 60_000 }, () => {
         return [line.slice(0, separator), line.slice(separator + 1)];
       }));
       expect(values.head).toBe(plan.head);
-      expect(JSON.parse(values.matrix)).toEqual({ partition: json(file).partitions.map((item) => item.id) });
-      expect(JSON.parse(values.matrix).partition.length).toBeGreaterThan(0);
+      expect(JSON.parse(values.matrix)).toEqual({ job: json(file).jobs.map((item) => item.id) });
+      expect(JSON.parse(values.matrix).job.length).toBeGreaterThan(0);
     }
   });
 
@@ -290,6 +298,7 @@ describe("bounded source partitions", () => {
     const before = structuredClone(captured);
     const partitions = createPartitions(captured.files);
     expect(partitions).toHaveLength(78);
+    expect(createJobs(partitions)).toEqual(partitions.map(({ id }) => ({ id, partitions: [id] })));
     expect(captured.selectedIds).toHaveLength(926);
     expect(partitions.flatMap((item) => item.assignedIds).sort()).toEqual([...captured.selectedIds].sort());
     expect(new Set(partitions.flatMap((item) => item.assignedIds)).size).toBe(926);
@@ -322,15 +331,43 @@ describe("bounded source partitions", () => {
     expect(partitions.filter((item) => belongsToShard(foundButUnchanged, item.shard))).toHaveLength(1);
   });
 
-  it("preserves zero-selected files and rejects oversized or duplicate manifests", () => {
+  it("preserves zero-selected files and rejects duplicate manifests", () => {
     expect(createPartitions([{ file: "packages/agents/src/empty.ts", selectedIds: [] }]))
       .toEqual([{ id: 1, file: "packages/agents/src/empty.ts", shard: { index: 1, count: 1 }, assignedIds: [] }]);
     const files = Array.from({ length: 257 }, (_, index) => ({ file: `packages/agents/src/file${index}.ts`, selectedIds: [] }));
-    expect(() => createPartitions(files)).toThrow(/256-job/);
-    expect(() => createPartitions([{ file: "packages/runtime/src/large.ts", selectedIds: Array.from({ length: 20000 }, (_, index) => `site-${index}`) }]))
-      .toThrow(/256-job/);
+    expect(createPartitions(files)).toHaveLength(257);
     expect(() => createPartitions([files[0], files[0]])).toThrow(/duplicate/);
     expect(() => createPartitions([{ ...files[0], selectedIds: ["same", "same"] }])).toThrow(/duplicate/);
+  });
+
+  // A failed day widens the next window, so the selection can outgrow one
+  // partition per matrix job. Such a plan failed on 2026-11-16 and every day after.
+  it("runs every partition of an over-limit selection in at most 256 matrix jobs", () => {
+    const ids = (prefix, count) => Array.from({ length: count }, (_, index) => `${prefix}-${index}`);
+    const files = [
+      ...Array.from({ length: 300 }, (_, index) => ({ file: `packages/agents/src/file${index}.ts`, selectedIds: ids(`agents${index}`, index % 3 === 0 ? 20 : 5) })),
+      ...Array.from({ length: 40 }, (_, index) => ({ file: `packages/runtime/src/empty${index}.ts`, selectedIds: [] })),
+      { file: "packages/runtime/src/large.ts", selectedIds: ids("runtime", 20000) }
+    ];
+    const partitions = createPartitions(files);
+    expect(partitions.length).toBeGreaterThan(256);
+    expect(partitions.flatMap((item) => item.assignedIds).sort()).toEqual(files.flatMap((file) => file.selectedIds).sort());
+    const jobs = createJobs(partitions);
+    expect(jobs).toHaveLength(256);
+    expect(jobs.map((job) => job.id)).toEqual(Array.from({ length: 256 }, (_, index) => index + 1));
+    expect(jobs.every((job) => job.partitions.length > 0)).toBe(true);
+    expect(jobs.flatMap((job) => job.partitions).sort((a, b) => a - b)).toEqual(partitions.map((item) => item.id));
+    expect(createJobs(structuredClone(partitions))).toEqual(jobs);
+    // Each job's share of the per-job site budget differs from the lightest
+    // job's by at most one partition.
+    const budget = (id) => {
+      const partition = partitions[id - 1];
+      return partition.assignedIds.length / (partition.file.startsWith("packages/agents/") ? 16 : 64);
+    };
+    const loads = jobs.map((job) => job.partitions.reduce((sum, id) => sum + budget(id), 0));
+    expect(Math.max(...loads) - Math.min(...loads)).toBeLessThanOrEqual(Math.max(...partitions.map((item) => budget(item.id))));
+    const counts = jobs.map((job) => job.partitions.length);
+    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(Math.ceil(partitions.length / 256) + 1);
   });
 });
 
@@ -340,8 +377,15 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
   const jobs = workflow.jobs;
   expect(jobs["mutate-changed"].strategy).toEqual({ "fail-fast": false, "max-parallel": 32, matrix: "${{ fromJSON(needs.plan.outputs.matrix) }}" });
   expect(jobs.plan.outputs.matrix).toBe("${{ steps.plan.outputs.matrix }}");
-  expect(jobs["mutate-changed"].steps.find((step) => step.name === "Mutate every assigned changed-function site").run)
-    .toBe('node scripts/mutation-ci.mjs run .metrics/mutation-ci/plan.json "$PARTITION" ".metrics/mutation-ci/partition-$PARTITION"');
+  const mutateStep = jobs["mutate-changed"].steps.find((step) => step.name === "Mutate every assigned changed-function site");
+  expect(mutateStep.env).toEqual({ JOB: "${{ matrix.job }}" });
+  expect(mutateStep.run).toBe('node scripts/mutation-ci.mjs run-job .metrics/mutation-ci/plan.json "$JOB" .metrics/mutation-ci/results');
+  const uploads = jobs["mutate-changed"].steps.filter((step) => step.uses?.startsWith("actions/upload-artifact@"));
+  expect(uploads.map((step) => step.with.name)).toEqual([
+    "mutation-evidence-job-${{ matrix.job }}-attempt-${{ github.run_attempt }}",
+    "mutation-result-job-${{ matrix.job }}"
+  ]);
+  expect(uploads.every((step) => step.with.path === ".metrics/mutation-ci/results" && step.if === "always()")).toBe(true);
   const aggregateCommand = jobs["mutation-complete"].steps.find((step) => step.name === "Verify the exact union and report survivors").run;
   expect(aggregateCommand.trim().split(/\s+/)).toEqual([
     "node", "scripts/mutation-ci.mjs", "aggregate", ".metrics/mutation-ci/plan.json",
@@ -351,7 +395,7 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
   expect(jobs["ci-image"].uses).toBe("./.github/workflows/ci-image.yml");
   for (const [name, job] of Object.entries(jobs)) {
     if (name === "ci-image") { continue; }
-    expect(job["timeout-minutes"]).toBe(job === jobs["mutate-changed"] ? 180 : 45);
+    expect(job["timeout-minutes"]).toBe(job === jobs["mutate-changed"] ? 360 : 45);
     const checkout = job.steps.find((step) => step.uses?.startsWith("actions/checkout@"));
     expect(checkout.with["fetch-depth"]).toBe(0);
     expect(checkout.with.filter).toBe("blob:none");
@@ -438,25 +482,31 @@ it("prepares sandboxed Chromium before mutation baselines execute browser tests"
 });
 
 
-it("downloads one partition into its canonical result directory without flattening it", () => {
+it("merges every job's partition directories into the canonical result directory", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
   const steps = workflow.jobs["mutation-complete"].steps;
-  const single = steps.find((step) => step.name === "Download one partition result");
-  const multiple = steps.find((step) => step.name === "Download partition results");
-  expect(single).toBeDefined();
-  expect(single.if).toBe("${{ !fromJSON(needs.plan.outputs.matrix).partition[1] }}");
-  expect(single.with).toEqual({
-    name: "mutation-result-partition-${{ fromJSON(needs.plan.outputs.matrix).partition[0] }}",
-    path: ".metrics/mutation-ci/results/mutation-result-partition-${{ fromJSON(needs.plan.outputs.matrix).partition[0] }}"
-  });
-  expect(multiple).toBeDefined();
-  expect(multiple.if).toBe("${{ fromJSON(needs.plan.outputs.matrix).partition[1] }}");
-  expect(multiple.uses).toBe(single.uses);
-  expect(multiple.with).toEqual({
-    pattern: "mutation-result-partition-*", path: ".metrics/mutation-ci/results"
-  });
-  expect(steps.indexOf(single)).toBeLessThan(steps.findIndex((step) => step.name === "Verify the exact union and report survivors"));
-  expect(steps.indexOf(multiple)).toBeLessThan(steps.findIndex((step) => step.name === "Verify the exact union and report survivors"));
+  const downloads = steps.filter((step) => step.uses?.startsWith("actions/download-artifact@"));
+  expect(downloads.map((step) => step.with)).toEqual([
+    { name: "mutation-plan", path: ".metrics/mutation-ci" },
+    { pattern: "mutation-result-job-*", path: ".metrics/mutation-ci/results", "merge-multiple": true }
+  ]);
+  expect(downloads.every((step) => step.if === undefined)).toBe(true);
+  expect(steps.indexOf(downloads[1])).toBeLessThan(steps.findIndex((step) => step.name === "Verify the exact union and report survivors"));
+});
+
+// Container jobs run steps with `sh` unless told otherwise, and dash rejects
+// the bash arrays in the mutator step (run 45188483538).
+it("runs the weekly mutator steps with bash inside the CI container", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-testing.yaml", import.meta.url), "utf8"));
+  const job = workflow.jobs.mutate;
+  expect(job.container).toBeDefined();
+  expect(job.defaults).toEqual({ run: { shell: "bash" } });
+  const scripts = job.steps.filter((step) => step.run !== undefined);
+  expect(scripts.map((step) => step.name)).toEqual(["Check whether this leg was requested", "Run nodetool-mutator"]);
+  for (const step of scripts) {
+    expect(step.shell).toBeUndefined();
+    expect(spawnSync("bash", ["-n", "-c", step.run]).status).toBe(0);
+  }
 });
 
 it("runs as many agents mutants at once as the runner's memory holds", () => {

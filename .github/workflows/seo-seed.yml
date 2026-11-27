@@ -10,7 +10,7 @@ name: SEO Showcase Seed
 #     inputs, "Resolve run parameters" rotates one image template by ISO week.
 #
 # Required repo secrets:
-#   CLAUDE_CODE_OAUTH_TOKEN  prompt writing (seed.ts, via the Claude Agent SDK)
+#   CLAUDE_CODE_OAUTH_TOKEN  prompt writing (seed.ts, via the Claude Code CLI)
 #   FAL_API_KEY              image/video rendering (seed.ts)
 #   CLOUDFLARE_API_TOKEN   R2 upload (wrangler) — same token marketing-ci uses
 #   CLOUDFLARE_ACCOUNT_ID  R2 account (wrangler)
@@ -119,6 +119,14 @@ jobs:
       - name: Install marketing dependencies
         working-directory: marketing
         run: npm ci
+
+      - name: Install Claude Code CLI
+        # seed.ts writes prompts through the Claude Agent provider, which runs
+        # the installed `claude` executable from PATH and authenticates with
+        # CLAUDE_CODE_OAUTH_TOKEN. See docs/AGENTS.md#claude-agent-provider.
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.326
+          claude --version
 
       - name: Seed batches
         working-directory: marketing

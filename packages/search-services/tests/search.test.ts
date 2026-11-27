@@ -238,11 +238,12 @@ describe("search tables on postgres", () => {
     const connection = getDatabase();
     if (connection.dialect !== "postgres") throw new Error("expected postgres");
     const result = await connection.db.execute(
-      sql`SELECT relname, relrowsecurity FROM pg_class WHERE relname IN ('nodetool_search_items', 'nodetool_search_chunks') ORDER BY relname`
+      sql`SELECT relname, relrowsecurity FROM pg_class WHERE relname IN ('nodetool_search_items', 'nodetool_search_chunks', 'nodetool_search_leases') ORDER BY relname`
     );
     expect(result.rows).toEqual([
       { relname: "nodetool_search_chunks", relrowsecurity: true },
-      { relname: "nodetool_search_items", relrowsecurity: true }
+      { relname: "nodetool_search_items", relrowsecurity: true },
+      { relname: "nodetool_search_leases", relrowsecurity: true }
     ]);
   });
 });

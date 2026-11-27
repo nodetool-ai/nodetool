@@ -257,8 +257,16 @@ async function loadBoardEntities(
   return loaded.filter((entity): entity is Entity => !!entity);
 }
 
+/**
+ * Plan options from a node's model override. Both stills and clips compile a
+ * shot's look and camera presets, so both carry the preset catalog.
+ */
 function modelOverrides(model: ModelSelectionLike): ShotRenderPlanOptions {
-  const options: ShotRenderPlanOptions = {};
+  const options: ShotRenderPlanOptions = {
+    presetCatalog: loadCatalog(() => loadPackageAssetJson(
+      { pkg: "@nodetool-ai/presets", path: "preset-catalog.json" }, import.meta.url
+    ))
+  };
   if (model.provider && model.provider !== "empty") {
     options.provider = model.provider;
   }
@@ -1263,9 +1271,6 @@ export class RenderClipsNode extends BaseNode {
     const script = await loadLinkedScript(ctx, doc);
     const options: ShotRenderPlanOptions = {
       ...modelOverrides(this.video_model),
-      presetCatalog: loadCatalog(() => loadPackageAssetJson(
-        { pkg: "@nodetool-ai/presets", path: "preset-catalog.json" }, import.meta.url
-      )),
       scriptLines: scriptLinesById(script?.document.sections ?? [])
     };
     const plans = planShotRenders(doc, entities, "clip", targets, options);

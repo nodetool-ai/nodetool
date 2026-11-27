@@ -19,6 +19,7 @@ import type { Mutable } from "./mutable.js";
 
 import {
   isCallable,
+  isFiniteNumber,
   isNonEmptyString,
   isNumber,
   isRecord,
@@ -453,7 +454,10 @@ export const parseApplicationBundle = (
   value: unknown
 ): ApplicationBundle | null => {
   if (!isRecord(value)) return null;
-  const schemaVersion = isNumber(value.schemaVersion)
+  if (isNumber(value.schemaVersion) && !Number.isFinite(value.schemaVersion)) {
+    return null;
+  }
+  const schemaVersion = isFiniteNumber(value.schemaVersion)
     ? value.schemaVersion
     : APPLICATION_BUNDLE_SCHEMA_VERSION;
   if (schemaVersion > APPLICATION_BUNDLE_SCHEMA_VERSION) return null;

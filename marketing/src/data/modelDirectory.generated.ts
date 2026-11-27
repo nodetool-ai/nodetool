@@ -12458,7 +12458,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "embedding",
-    "total": 42,
+    "total": 43,
     "providers": [
       {
         "provider": "replicate",
@@ -12562,6 +12562,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "voyage-multilingual-2",
             "name": "Voyage Multilingual 2"
+          },
+          {
+            "id": "voyage-multimodal-3",
+            "name": "Voyage Multimodal 3"
           }
         ]
       },

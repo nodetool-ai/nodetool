@@ -8,7 +8,16 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { Asset, ImageDocument, JsScript, ModelObserver, Project, TimelineSequence, Workflow, initTestDb } from "@nodetool-ai/models";
 import { emptyJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import { runIndexerPass, setAssetBytesReader, stopLibraryIndexWrites } from "@nodetool-ai/search-services";
+import {
+  runImageEmbedPass,
+  reconcileLibraryIndex,
+  runIndexerPass,
+  setAssetBytesReader,
+  setLibraryEmbedder,
+  setLibraryVectorProvider,
+  stopLibraryIndexWrites
+} from "@nodetool-ai/search-services";
+import { SqliteVecProvider } from "@nodetool-ai/vectorstore";
 import { OPEN_WITH, SEARCH_CAPABILITIES, module as searchModule } from "../src/capabilities/search.js";
 import { UNGATED, createCapabilityRun, toolFromCapability } from "../src/capabilities/index.js";
 import { capabilityCategoryFor, capabilityModuleIssues, loadCapabilityModule } from "../src/capabilities/registry.js";
@@ -93,6 +102,36 @@ describe("search capability module", () => {
     expect(result.notice).toContain("not instructions");
   });
 
+  it("says a picture matched by itself, with an empty snippet", async () => {
+    // One dimension per concept: a text or picture scores where it names it.
+    const vector = (text: string): number[] => [/dog|puppy/.test(text) ? 1 : 0, /sea|beach/.test(text) ? 1 : 0, 0.05];
+    const vectors = new SqliteVecProvider({ dbPath: ":memory:" });
+    process.env.NODETOOL_SEARCH_IMAGE_EMBEDDING_MODEL = "fake:clip";
+    setLibraryVectorProvider(vectors);
+    setLibraryEmbedder({
+      embed: async (texts) => texts.map(vector),
+      embedImages: async (images) => images.map((image) => vector(new TextDecoder().decode(image.bytes)))
+    });
+    setAssetBytesReader(async () => new TextEncoder().encode("a puppy on the grass"));
+    try {
+      const photo = (await Asset.create({ user_id: USER, name: "IMG_0001.png", content_type: "image/png" })) as Asset;
+      stopLibraryIndexWrites();
+      await reconcileLibraryIndex();
+      await runIndexerPass();
+      await runImageEmbedPass();
+      // Index writes are stopped, so the index keeps the asset in `default`, not Personal.
+      const result = await call(SEARCH_CAPABILITIES, "search", { query: "dog", scope: "all" });
+      const hits = result.hits as Array<{ id: string; matches: unknown[] }>;
+      expect(hits.map((hit) => hit.id)).toEqual([photo.id]);
+      expect(hits[0]!.matches).toEqual([{ field: "image", snippet: "", locator: null }]);
+    } finally {
+      setLibraryEmbedder(null);
+      setLibraryVectorProvider(null);
+      vectors.close();
+      delete process.env.NODETOOL_SEARCH_IMAGE_EMBEDDING_MODEL;
+    }
+  });
+
   it("filters by kind and lists newest first for an empty query", async () => {
     await Asset.create({ user_id: USER, name: "a.png", content_type: "image/png" });
     await Asset.create({ user_id: USER, name: "b.wav", content_type: "audio/wav" });
@@ -141,6 +180,11 @@ describe("search capability module", () => {
   it("refuses a missing id with a message, not a throw", async () => {
     const read = await call(SEARCH_CAPABILITIES, "search_read", { id: "0123456789ab" });
     expect(read.error).toMatch(/No library item/);
+  });
+
+  it("answers similar_to for an unknown item with a message, not a throw", async () => {
+    const result = await call(SEARCH_CAPABILITIES, "search", { similar_to: "0123456789ab" });
+    expect(result.error).toMatch(/No library item/);
   });
 });
 

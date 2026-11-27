@@ -1031,7 +1031,7 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
       if (
         renames &&
         isString(edge.targetHandle) &&
-        edge.targetHandle in renames
+        Object.hasOwn(renames, edge.targetHandle)
       ) {
         return { ...edge, targetHandle: renames[edge.targetHandle] };
       }

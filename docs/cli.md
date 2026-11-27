@@ -1418,6 +1418,8 @@ recording is a JSON array of `{ "pressed": ["right"] }` frames, one per tick.
 nodetool game validate game.json
 nodetool game simulate game.json --ticks 120 --inputs inputs.json --expect-score 1 --expect-win
 nodetool game simulate game.json --ticks 120 --inputs inputs.json --assertions assertions.json --verify-replay
+nodetool game simulate game.json --ticks 3600 --bot 0.25 --bot-file bot.js --seeds 8 --expect-max-score 1 --max-session-ticks 2400
+nodetool game simulate game.json --ticks 3600 --bot hold --end-event lose --max-session-ticks 3600
 nodetool game capture game.json --ticks 120 --inputs inputs.json --out frame.png
 nodetool game capture game.json --ticks 120 --out frame.png --backend webgpu
 nodetool game build game.json --out game-build --assets-dir game-assets
@@ -1431,8 +1433,8 @@ nodetool game perf game.json --inputs route.json --seconds 10 --fail-on-budget
 **Subcommands and options:**
 
 - `game validate <game_file>` — `--json`.
-- `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--saves <file>`, `--json`.
-- `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--fail-on-budget` (3D only: exit 1 when the frame exceeds a draw call, triangle or particle budget), `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
+- `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--saves <file>`, `--param <name=value>` (repeatable, `entity:name=value` for one entity), `--scene <id>`, `--json`. A simulation is a test run: scripts read `input.test`, a failing `assert` command ends it with `scriptFailure`, and the JSON report lists script `log` lines under `logs`. See [Test-mode scripts](developer/game-testing.md#test-mode-scripts). A bot run or seed sweep (2D only) adds `--bot <idle|hold|mash|random|skill>`, `--bot-file <file>`, `--seeds <count>`, `--end-event <event>` (repeatable), `--max-session-ticks <ticks>`, `--expect-no-win`, `--expect-min-score <score>` and `--expect-max-score <score>`. See [Bots and seed sweeps](developer/game-testing.md#bots-and-seed-sweeps).
+- `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--fail-on-budget` (3D only: exit 1 when the frame exceeds a draw call, triangle or particle budget), `--param <name=value>`, `--scene <id>`, `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
 - `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--target <web|tauri|expo>` (default `web`), `--json`. `--target tauri` writes a [Tauri](https://tauri.app) desktop app project: the web player in `dist/` and a native shell in `src-tauri/`. It accepts `--name <name>`, `--identifier <reverse-dns>`, `--app-version <MAJOR.MINOR.PATCH>`, `--icon <png|jpeg|webp>`, and `--compile`, which runs `cargo build --release` and reports the executable path. Run `npm install && npm run build` in the project for installers. `--target expo` writes an [Expo](https://expo.dev) project for iOS and Android that shows the game in a WebView, with the whole game in one offline page at `assets/game/game.html`. It accepts `--name`, `--identifier`, `--app-version`, `--icon`, and `--orientation <default|portrait|landscape>`. Run `npm install && npx expo start` in the project to play it in Expo Go.
 - `game smoke <directory>` — `--json`. Serves an exported build in headless Chromium with outside network access blocked, renders 300 scripted frames, and checks tick progress. Console errors, page errors, failed requests, and stalled ticks return a nonzero exit status. Install Chromium with `npx playwright install chromium`.
 - `game bench <game_file>` — `--ticks <count>` (default `1200`), `--warmup <count>` (default `300`), `--seed <integer>`, `--inputs <file>` (a route from tick 0, warmup included, so the bench measures play instead of an idle game), `--assets-dir <directory>`, `--fail-on-budget`, `--json`. Runs the simulation headless and reports p50/p95/p99 of `tickMs`, `scriptMs` and each system, physics counts, and sampled allocation bytes. `budget.limits.tickMs` is `performance.budgets.tickMs` (default 4 ms). `--fail-on-budget` exits 1 when the tick p95 exceeds it.
@@ -1760,7 +1762,9 @@ nodetool storage refresh-cache-control
 
 ### `nodetool collections`
 
-Manage the RAG vector-store collections behind semantic search. Runs in-process
+Manage the RAG vector-store collections that workflows index and query. The
+collections library search keeps for itself are hidden here (see
+[`nodetool search`](#nodetool-search)). Runs in-process
 against the default vector provider — sqlite-vec unless
 `NODETOOL_VECTOR_PROVIDER` points elsewhere — so no server has to be running.
 
@@ -1794,6 +1798,42 @@ nodetool collections delete my_docs --yes
 
 Re-indexing the same file replaces its chunks rather than adding a second copy,
 so an `index` run is safe to repeat after a document changes.
+
+### `nodetool search`
+
+Search the library index and manage it, in process against the local database.
+Library search covers assets, workflows and every other document. It is not a
+collection you create. See [Search services](https://github.com/nodetool-ai/nodetool/blob/main/packages/search-services/README.md).
+
+**Subcommands:**
+
+- `query <text...>` — search by words and, when set up, by meaning.
+  `--kinds image,document`, `--project <id>`, `--mode auto|keyword|semantic`,
+  `--limit <n>`. `--similar-to <id>` ranks items by nearness in meaning to
+  that item instead of matching text.
+- `read <id>` — an item's passages, or the passage at `--locator '<json>'` with
+  `--before` and `--after` neighbours.
+- `status` — items by state, passages with vectors, the embedding model and its
+  collections, and the image model with its image counts.
+- `setup [--model <provider:model>] [--off] [--image-model <provider:model|off>]`
+  — turn search by meaning on. The default model is
+  `transformers_js:Xenova/all-MiniLM-L6-v2`, which runs locally. A hosted model
+  receives the passage text. `--image-model` also embeds the images
+  themselves with a model that shares a space with its text, such as
+  `transformers_js:Xenova/clip-vit-base-patch32`. A hosted image model
+  receives the image files.
+- `rebuild [--vectors]` — extract and embed every item again, or only embed.
+- `indexer [--once]` — run the indexer in this process, or until the queue is
+  empty.
+
+Every subcommand takes `--json`.
+
+```bash
+nodetool search setup
+nodetool search indexer --once
+nodetool search query "fox in the snow" --kinds image
+nodetool search status --json
+```
 
 ## Spend Tracking
 
@@ -1954,8 +1994,19 @@ Agents reach the same record through `list_generations`, `get_generation`,
 ### `nodetool secrets`
 
 Manage encrypted secrets. With a token (`--token` or `NODETOOL_API_TOKEN`) the
-commands call the server. Without one they use the local store in
-`NODETOOL_DATA_DIR`, which needs `SECRETS_MASTER_KEY` to write.
+commands call the server. Without one they use the local store, which needs
+`SECRETS_MASTER_KEY` to write. The local store is the database every run reads
+(`nodetool node run`, chat, the desktop app): `DB_PATH`, a SQLite
+`DATABASE_URL`, or `nodetool.sqlite3` in the NodeTool data directory
+(`~/.local/share/nodetool` on macOS and Linux, `%APPDATA%\nodetool` on
+Windows). `nodetool info` prints its path.
+
+Earlier releases kept local secrets in `nodetool.db` under
+`NODETOOL_DATA_DIR` (default `./nodetool-data`), which runs never read. The
+first local secret command copies those secrets into the shared store and
+prints what it copied. It checks `NODETOOL_DATA_DIR`, or `./nodetool-data` and
+`~/nodetool-data` when that is unset. A key the shared store already holds
+keeps its value, and the old database is left in place.
 
 **Subcommands:** `list`, `set` (alias `store`). `get` requires the `cli-workflow` feature.
 

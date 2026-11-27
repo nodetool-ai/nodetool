@@ -27,7 +27,9 @@ export const TRIGGER_KIND_BY_NODE_TYPE: Readonly<Record<string, TriggerKind>> =
     "nodetool.triggers.IntervalTrigger": "schedule",
     [CRON_TRIGGER_NODE_TYPE]: "schedule",
     "nodetool.triggers.FileWatchTrigger": "file_watch",
-    "nodetool.triggers.ManualTrigger": "manual"
+    "nodetool.triggers.ManualTrigger": "manual",
+    // Polls a mailbox on the schedule. See websocket/src/triggers/poll.ts.
+    "lib.mail.EmailTrigger": "schedule"
   };
 
 /** Node types that compile to a `trigger_registrations` row when a workflow

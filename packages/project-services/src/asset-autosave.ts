@@ -4,7 +4,10 @@ import {
 } from "@nodetool-ai/execution";
 import { createLogger } from "@nodetool-ai/config";
 import {
+  CLOUD_PROFILE_ENV,
+  NODE_ENV_VAR,
   buildAssetGenerationMetadata,
+  isCloudProfileActive,
   isRawRgbaImage
 } from "@nodetool-ai/protocol";
 import { encodeRawRgbaToPng, fetchExternalMedia } from "@nodetool-ai/runtime";
@@ -240,6 +243,18 @@ async function readBytesFromUri(uri: string): Promise<Uint8Array | null> {
   if (!uri) return null;
   try {
     if (uri.startsWith("file://")) {
+      if (
+        typeof process !== "undefined" &&
+        isCloudProfileActive(
+          process.env[CLOUD_PROFILE_ENV],
+          process.env[NODE_ENV_VAR]
+        )
+      ) {
+        log.warn("readBytesFromUri refused file:// URI under cloud profile", {
+          uri
+        });
+        return null;
+      }
       const { readFile } = await import("node:fs/promises");
       const { fileURLToPath } = await import("node:url");
       return new Uint8Array(await readFile(fileURLToPath(uri)));

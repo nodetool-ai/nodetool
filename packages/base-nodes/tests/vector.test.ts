@@ -38,6 +38,7 @@ const { mockCollection, mockProvider, ollamaGenerateMock } = vi.hoisted(() => {
 
 vi.mock("@nodetool-ai/vectorstore", () => ({
   getDefaultVectorProvider: vi.fn(() => mockProvider),
+  isManagedCollection: vi.fn(() => false),
   OllamaEmbeddingFunction: vi.fn().mockImplementation(function () {
     this.generate = ollamaGenerateMock;
   })

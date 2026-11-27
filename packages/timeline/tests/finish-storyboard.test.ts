@@ -256,6 +256,30 @@ describe("Storyboard finishing", () => {
     expect(materializeStoryboard({ ...args, motionDesign: { transitions: [{ from_shot_id: "hook", to_shot_id: "cta", direction: "crossfade" }] } }).validation.some((issue) => issue.elementId === "$transition")).toBe(true);
   });
 
+  it("records continuity-synced transforms in baseline so later leader moves do not trigger false manual conflicts", () => {
+    const args = input();
+    const second = structuredClone(args.shots[0]);
+    second.id = "cta";
+    second.index = 1;
+    // Give the second shot a different default layout (via a frame box) so continuity
+    // genuinely rewrites cta's product transform to match hook's on the first run.
+    const ctaProductEl = second.graphics!.elements.find((element) => element.id === "product")!;
+    ctaProductEl.frame = { box: [0.1, 0.2, 0.4, 0.4], fit: "contain" };
+    args.shots.push(second);
+    const motionDesign = { continuities: [{ id: "product", shot_ids: ["hook", "cta"], direction: "continue" }] };
+    const first = materializeStoryboard({ ...args, motionDesign });
+    expect(first.validation).toEqual([]);
+
+    // User moves the leader (hook/product) without touching cta/product.
+    const hookProduct = first.document.clips.find((clip) => clip.storyboardShotId === "hook" && clip.storyboardElementId === "product")!;
+    hookProduct.transform!.position.x = 75;
+
+    const rerun = materializeStoryboard({ ...args, motionDesign, current: first.document });
+    expect(rerun.validation).toEqual([]);
+    const ctaProduct = rerun.document.clips.find((clip) => clip.storyboardShotId === "cta" && clip.storyboardElementId === "product")!;
+    expect(ctaProduct.transform!.position.x).toBe(75);
+  });
+
   it("uses rendered rect backgrounds and rejects unknown geometry", () => {
     const args = input();
     const first = materializeStoryboard(args);

@@ -201,6 +201,12 @@ export interface GameScriptOptions {
    * outcome depends on timing, so a session that skipped one may not replay identically.
    */
   readonly overrun?: "fail" | "skip";
+  /**
+   * A test run, such as `nodetool game simulate`. Scripts read `input.test` as true, and a failing `assert` command
+   * fails the call. In play `input.test` is absent and `assert` commands are dropped. Scripts may branch on the flag,
+   * so a test run replays identically only as another test run.
+   */
+  readonly test?: boolean;
 }
 
 /** Only proven input-only functions may retain their context between calls. */
@@ -369,6 +375,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
 ): Promise<IsolatedScriptRunner<Call, Input, Command>> {
   const callClock = options.callClock ?? defaultScriptCallClock;
   const skipOverruns = options.overrun === "skip";
+  const testRun = options.test === true;
   const budgetScale = scriptBudgetScale();
   let envelope = envelopeSchemas.get(commandSchema);
   if (envelope === undefined) {
@@ -453,7 +460,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       })(JSON.stringify),
       ((defineProperty, parse, synchronousResult${hooks ? ", dispatch" : ""}) => (data, getWorld, rngState, worldText) => {
         ${persistent ? "" : "data = JSON.parse(data);"}${reusable ? "reseed(rngState);" : ""}
-        const payload = ${payloadExpression};
+        const payload = ${payloadExpression};${testRun ? `
+        defineProperty(payload, "test", { value: true, writable: true, enumerable: true, configurable: true });` : ""}
         ${persistent ? `defineProperty(payload, "world", {
           enumerable: true, configurable: true, get: getWorld,
           set(value) { defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); }
@@ -822,7 +830,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
     };
     // A failed batch carries the lines its calls logged before the failure.
     const execute = (calls: readonly Call[], input: Input, rngState: number, world: readonly ScriptWorldEntity[] | undefined, batchMs: number): Batch => {
-      const logs = new GameScriptLogCollector(input.tick);
+      const logs = new GameScriptLogCollector(input.tick, testRun);
       try { return executeBatch(calls, input, rngState, world, batchMs, logs, new GameScriptSaveCollector(input.tick)); }
       catch (error) { throw withGameScriptLogs(error, logs.entries()); }
     };

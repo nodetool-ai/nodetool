@@ -24,7 +24,8 @@ describe("VoyageProvider model list", () => {
       "voyage-code-3",
       "voyage-finance-2",
       "voyage-law-2",
-      "voyage-multilingual-2"
+      "voyage-multilingual-2",
+      "voyage-multimodal-3"
     ]);
     for (const m of models) {
       expect(m.provider).toBe("voyage");

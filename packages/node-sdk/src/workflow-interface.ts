@@ -95,10 +95,13 @@ function nodeProperties(
 }
 
 function cloneType(type: TypeMetadata): TypeMetadata {
+  const rawArgs = Array.isArray(type.type_args) ? type.type_args : [];
   const cloned: TypeMetadata = {
     type: type.type,
     optional: type.optional ?? false,
-    type_args: (type.type_args ?? []).map(cloneType),
+    type_args: rawArgs
+      .filter((arg): arg is TypeMetadata => isRecord(arg) && isString(arg.type))
+      .map(cloneType),
     type_name: type.type_name ?? null
   };
   if (type.values !== undefined) {
@@ -112,7 +115,9 @@ function anyType(): TypeMetadata {
 }
 
 function dedicatedOutputType(nodeType: string): TypeMetadata | null {
-  const type = DEDICATED_OUTPUT_TYPES[nodeType];
+  const type = Object.hasOwn(DEDICATED_OUTPUT_TYPES, nodeType)
+    ? DEDICATED_OUTPUT_TYPES[nodeType]
+    : undefined;
   return type
     ? { type, optional: false, type_args: [], type_name: null }
     : null;
@@ -229,7 +234,8 @@ function outputTypeForNode(
   registry: WorkflowInterfaceRegistry
 ): { type: TypeMetadata; stream: boolean } | null {
   const dynamic = record(node.dynamic_outputs);
-  const dynamicType = record(dynamic?.[handle]);
+  const dynamicType =
+    dynamic && Object.hasOwn(dynamic, handle) ? record(dynamic[handle]) : null;
   if (dynamicType && isString(dynamicType.type)) {
     return {
       type: cloneType({
@@ -295,8 +301,11 @@ function resolveOutputSourceType(
   if (resolved) return resolved;
 
   const sourceType = isString(source.type) ? source.type : "";
+  const dynamicOutputs = record(source.dynamic_outputs);
   const hasDynamicHandle =
-    record(record(source.dynamic_outputs)?.[handle]) !== null;
+    dynamicOutputs !== null &&
+    Object.hasOwn(dynamicOutputs, handle) &&
+    record(dynamicOutputs[handle]) !== null;
   const sourceMetadata = registry.resolveMetadata(sourceType);
   const packUnavailable = !hasDynamicHandle && !sourceMetadata;
   diagnostics.push({

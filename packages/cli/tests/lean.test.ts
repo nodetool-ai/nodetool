@@ -165,14 +165,14 @@ describe("lean execution CLI", () => {
   it("lists remote models through the SDK using only the selected tenant secret", async () => {
     const directory = await mkdtemp(join(tmpdir(), "nodetool-lean-models-"));
     const masterKey = "fixture-key".repeat(8);
-    const repository = createSqliteRepository(join(directory, "nodetool.db"));
+    const repository = createSqliteRepository(join(directory, "nodetool.sqlite3"));
     try {
       await repository.put("secrets", "bob", { key: "OPENAI_API_KEY", encrypted_value: encrypt(masterKey, "bob", "unrelated") });
       await repository.put("secrets", "alice", { key: "OPENAI_API_KEY", encrypted_value: encrypt(masterKey, "alice", "fixture-private-key") });
       await repository.close();
       const stdout: string[] = [];
       const calls: Array<{ url: string; authorization: string | null }> = [];
-      await createProgram({ env: { NODETOOL_USER_ID: "alice", NODETOOL_DATA_DIR: directory, SECRETS_MASTER_KEY: masterKey }, stdout: text => stdout.push(text), fetch: async (input, init) => {
+      await createProgram({ env: { NODETOOL_USER_ID: "alice", DB_PATH: join(directory, "nodetool.sqlite3"), NODETOOL_DATA_DIR: directory, SECRETS_MASTER_KEY: masterKey }, stdout: text => stdout.push(text), fetch: async (input, init) => {
         calls.push({ url: String(input), authorization: new Headers(init?.headers).get("authorization") });
         return Response.json({ object: "list", data: [{ id: "fixture-model", object: "model", created: 123, owned_by: "fixture-owner" }] });
       } }).parseAsync(["node", "nodetool", "models", "list", "--provider", "openai"]);
@@ -222,7 +222,7 @@ describe("lean execution CLI", () => {
         `data: ${JSON.stringify({ id: "c", object: "chat.completion.chunk", created: 1, model: "m", choices: [], usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 } })}`,
         "data: [DONE]", ""
       ].join("\n\n");
-      await createProgram({ env: { OPENAI_API_KEY: "env-key", NODETOOL_DATA_DIR: directory }, stdout: text => stdout.push(text), fetch: async (_input, init) => {
+      await createProgram({ env: { OPENAI_API_KEY: "env-key", DB_PATH: join(directory, "nodetool.sqlite3"), NODETOOL_DATA_DIR: directory }, stdout: text => stdout.push(text), fetch: async (_input, init) => {
         calls.push({ authorization: new Headers(init?.headers).get("authorization"), body: JSON.parse(String(init?.body)) });
         return new Response(sse, { headers: { "content-type": "text/event-stream" } });
       } }).parseAsync(["node", "nodetool", "text", "hi", "--system", "be brief", "--json"]);
@@ -235,18 +235,18 @@ describe("lean execution CLI", () => {
   it("explains how to supply an API key when none is configured", async () => {
     const directory = await mkdtemp(join(tmpdir(), "nodetool-lean-nokey-"));
     try {
-      await expect(createProgram({ env: { NODETOOL_DATA_DIR: directory } }).parseAsync(["node", "nodetool", "text", "hi"])).rejects.toThrow("export OPENAI_API_KEY");
+      await expect(createProgram({ env: { DB_PATH: join(directory, "nodetool.sqlite3"), NODETOOL_DATA_DIR: directory } }).parseAsync(["node", "nodetool", "text", "hi"])).rejects.toThrow("export OPENAI_API_KEY");
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it("prefers the stored tenant secret over the environment key", async () => {
     const directory = await mkdtemp(join(tmpdir(), "nodetool-lean-stored-"));
     const masterKey = "0123456789abcdef0123456789abcdef";
     try {
-      const repository = createSqliteRepository(join(directory, "nodetool.db"));
+      const repository = createSqliteRepository(join(directory, "nodetool.sqlite3"));
       await repository.put("secrets", "1", { key: "OPENAI_API_KEY", description: "", encrypted_value: encrypt(masterKey, "1", "stored-key") });
       await repository.close();
       const seen: Array<string | null> = [];
-      await createProgram({ env: { OPENAI_API_KEY: "env-key", SECRETS_MASTER_KEY: masterKey, NODETOOL_DATA_DIR: directory }, stdout: () => {}, fetch: async (_input, init) => {
+      await createProgram({ env: { OPENAI_API_KEY: "env-key", SECRETS_MASTER_KEY: masterKey, DB_PATH: join(directory, "nodetool.sqlite3"), NODETOOL_DATA_DIR: directory }, stdout: () => {}, fetch: async (_input, init) => {
         seen.push(new Headers(init?.headers).get("authorization"));
         return Response.json({ object: "list", data: [] });
       } }).parseAsync(["node", "nodetool", "models", "list"]);

@@ -564,6 +564,19 @@ describe("RenderStillsNode", () => {
     expect(h.generations).toHaveLength(1);
   });
 
+  it("compiles a board look into each still", async () => {
+    seedBoard(h, "tpl", boardDocument({ look_preset_ids: ["look.bleach-bypass"] }));
+    const node = new RenderStillsNode();
+    node.assign({ storyboard: writable("tpl") });
+
+    const result = await node.process(h.context);
+
+    expect(result.rendered).toEqual(["shot-1", "shot-2"]);
+    expect(
+      h.boards.get("tpl")?.document.shots[0].keyframe?.render_inputs?.look_preset_ids
+    ).toEqual(["look.bleach-bypass"]);
+  });
+
   it("names find_model when neither the board nor the node sets one", async () => {
     seedBoard(h, "tpl", boardDocument({ imageModel: null }));
     const node = new RenderStillsNode();

@@ -333,6 +333,37 @@ describe("nested flex containers round-trip through a composition", () => {
     // the nested container's internal layout survived the copy too.
     expect(bBoxAfter.x).toBeCloseTo(aBoxAfter.x + aBoxAfter.width + 10);
   });
+
+  it("refuses prototype-polluting and invalid array parameter paths", () => {
+    const protoComp = lowerThird();
+    protoComp.params = {
+      evil: { type: "string", default: "pwned", path: "/0/__proto__/pollutedByCompTest" }
+    };
+    expect(validateCompositionParams(protoComp)).not.toEqual([]);
+    expect(() =>
+      instantiateComposition(protoComp, { startMs: 0, params: { evil: "pwned" } })
+    ).toThrow();
+    expect(({} as Record<string, unknown>).pollutedByCompTest).toBeUndefined();
+
+    const ctorComp = lowerThird();
+    ctorComp.params = {
+      evil: { type: "string", default: "pwned", path: "/0/constructor/prototype/pollutedByCompTest" }
+    };
+    expect(validateCompositionParams(ctorComp)).not.toEqual([]);
+    expect(() =>
+      instantiateComposition(ctorComp, { startMs: 0, params: { evil: "pwned" } })
+    ).toThrow();
+    expect(({} as Record<string, unknown>).pollutedByCompTest).toBeUndefined();
+
+    const badArrayComp = lowerThird();
+    badArrayComp.params = {
+      bad: { type: "string", default: "x", path: "/0/versions/999" }
+    };
+    expect(validateCompositionParams(badArrayComp)).not.toEqual([]);
+    expect(() =>
+      instantiateComposition(badArrayComp, { startMs: 0, params: { bad: "x" } })
+    ).toThrow();
+  });
 });
 
 function find(clips: readonly TimelineClip[], id: string): TimelineClip {

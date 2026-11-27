@@ -107,6 +107,14 @@ describe("comfyEntryToMetadata", () => {
     expect(md.properties[1].values).toEqual(["auto", "mp4"]);
   });
 
+  it("treats inherited Object.prototype key names as Comfy socket types, not primitives", () => {
+    const md = comfyEntryToMetadata("CustomNode", {
+      input: { required: { weird: ["toString", {}] } },
+      output: []
+    });
+    expect(md.properties[0]?.type.type).toBe("comfy.toString");
+  });
+
   it("compiles dynamic combo defaults with their full paths while preserving ordinary inputs", () => {
     const entry = {
       ...INFO.SaveVideo,

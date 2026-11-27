@@ -31,7 +31,7 @@ import {
   type VectorQuery,
   type VectorRecord
 } from "./provider.js";
-import type { EmbeddingFunction } from "./sqlite-vec-store.js";
+import { PARTITION_KEY_METADATA_KEY, type EmbeddingFunction } from "./sqlite-vec-store.js";
 
 // ---------------------------------------------------------------------------
 // Options
@@ -150,6 +150,18 @@ function coerceScalar(v: unknown): string | number | boolean | null {
 // ---------------------------------------------------------------------------
 // pgvector encoding — pgvector's input format is the string '[1,2,3]'.
 // ---------------------------------------------------------------------------
+
+/** PostgREST returns a pgvector column as its text form, `[1,2,3]`. */
+function decodePgVector(value: unknown): number[] | null {
+  if (Array.isArray(value)) return value.map(Number);
+  if (typeof value !== "string" || !value.startsWith("[")) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(Number) : null;
+  } catch {
+    return null;
+  }
+}
 
 function encodePgVector(embedding: readonly number[]): string {
   if (embedding.length === 0) {
@@ -308,11 +320,12 @@ class SupabaseCollectionAdapter implements VectorCollection {
     ids?: string[];
     limit?: number;
     offset?: number;
+    includeEmbeddings?: boolean;
   }): Promise<VectorRecord[]> {
     const client = this.provider.getClient();
     let q = client
       .from(this.provider.recordsTable)
-      .select("id, document, uri, metadata")
+      .select(opts?.includeEmbeddings ? "id, document, uri, metadata, embedding" : "id, document, uri, metadata")
       .eq("collection", this.state.name)
       .order("id");
     if (opts?.ids && opts.ids.length > 0) {
@@ -327,12 +340,29 @@ class SupabaseCollectionAdapter implements VectorCollection {
     if (error) {
       throw new Error(`Supabase: ${error.message}`);
     }
-    return (data ?? []).map((r) => ({
-      id: r.id as string,
-      document: (r.document as string | null) ?? null,
-      uri: (r.uri as string | null) ?? null,
-      metadata: toRecordMetadata(r.metadata)
-    }));
+    return (data ?? []).map((r) => {
+      const record: VectorRecord = {
+        id: r.id as string,
+        document: (r.document as string | null) ?? null,
+        uri: (r.uri as string | null) ?? null,
+        metadata: toRecordMetadata(r.metadata)
+      };
+      if (opts?.includeEmbeddings) record.embedding = decodePgVector(r.embedding);
+      return record;
+    });
+  }
+
+  /** The metadata filter with the partition key's value added, when a partition is named. */
+  private withPartition(
+    metadata: SplitFilter["metadata"],
+    partition: string | undefined
+  ): SplitFilter["metadata"] {
+    if (partition === undefined) return metadata;
+    const key = this.state.metadata[PARTITION_KEY_METADATA_KEY];
+    if (typeof key !== "string" || !key) {
+      throw new Error(`Collection '${this.state.name}' has no partition key.`);
+    }
+    return { ...(metadata ?? {}), [key]: partition };
   }
 
   async query(query: VectorQuery): Promise<VectorMatch[]> {
@@ -352,7 +382,7 @@ class SupabaseCollectionAdapter implements VectorCollection {
         p_collection: this.state.name,
         p_query_embedding: encodePgVector(queryEmbedding),
         p_match_count: topK,
-        p_metadata_filter: split.metadata,
+        p_metadata_filter: this.withPartition(split.metadata, query.partition),
         p_document_match: split.documentMatch
       });
       if (error) {
@@ -565,7 +595,9 @@ export class SupabaseProvider implements VectorProvider {
     opts: CreateCollectionOptions
   ): Promise<VectorCollection> {
     const metric = opts.metric ?? "cosine";
-    const metadata = opts.metadata ?? {};
+    const metadata: CollectionMetadata = opts.partitionKey
+      ? { ...(opts.metadata ?? {}), [PARTITION_KEY_METADATA_KEY]: opts.partitionKey }
+      : (opts.metadata ?? {});
     const dimension = opts.dimension ?? null;
 
     const client = this.getClient();

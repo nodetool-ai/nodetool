@@ -46,6 +46,7 @@ jest.mock("../../../hooks/useSelectionActions", () => ({ useSelectionActions: ()
 jest.mock("@xyflow/react", () => ({ useReactFlow: () => ({}) }));
 jest.mock("../../../trpc/client", () => ({ trpcClient: { workflows: { get: { query: jest.fn() } } } }));
 jest.mock("../GlobalCommandGroups", () => ({ __esModule: true, default: () => null, SwitchTabCommands: () => null }));
+jest.mock("../LibrarySearchCommands", () => ({ __esModule: true, default: () => null }));
 jest.mock("../../ui_primitives", () => ({ Dialog: ({ children, open }: React.PropsWithChildren<{ open: boolean }>) => open ? <div role="dialog">{children}</div> : null }));
 
 function Location(): React.ReactElement {

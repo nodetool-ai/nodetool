@@ -136,4 +136,31 @@ describe("Premiere XML import", () => {
   it("rejects a document that is not xmeml", () => {
     expect(() => readPremiereXml("<fcpxml/>")).toThrow("Not a Final Cut Pro XML");
   });
+
+  it("handles empty or non-positive timebase/dimensions without NaN/Infinity and ignores prototype entity names", () => {
+    const xml = `<?xml version="1.0"?><xmeml version="5"><sequence id="s">
+      <name>&toString; &amp; &constructor;</name>
+      <rate><timebase></timebase><ntsc>FALSE</ntsc></rate>
+      <media><video>
+        <format><samplecharacteristics><width>0</width><height>-10</height></samplecharacteristics></format>
+        <track><clipitem id="a"><name>A</name><start>0</start><end>30</end><in>0</in><out>30</out>
+          <file id="f1"><pathurl>a.mov</pathurl><duration>30</duration><media><video/></media></file>
+        </clipitem></track>
+      </video></media>
+    </sequence></xmeml>`;
+    const read = readPremiereXml(xml);
+    expect(read.name).toBe("&toString; & &constructor;");
+    expect(read.fps).toBe(30);
+    expect(Number.isFinite(read.frameMs) && read.frameMs > 0).toBe(true);
+    expect(read.width).toBe(1920);
+    expect(read.height).toBe(1080);
+
+    const zeroTimebase = readPremiereXml(xml.replace("<timebase></timebase>", "<timebase>0</timebase>"));
+    expect(zeroTimebase.fps).toBe(30);
+    expect(Number.isFinite(zeroTimebase.frameMs) && zeroTimebase.frameMs > 0).toBe(true);
+
+    const imported = premiereToTimeline(zeroTimebase, { resolveFile: (file) => file.id });
+    expect(imported.clips[0]!.startMs).toBe(0);
+    expect(imported.clips[0]!.durationMs).toBe(1000);
+  });
 });

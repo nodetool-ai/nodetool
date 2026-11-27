@@ -987,6 +987,9 @@ export class ChatTurnHandler {
     if (await Thread.get(threadId)) {
       throw new Error("Thread not found");
     }
+    if (projectId && projectId !== "default") {
+      await Project.requireOwned(userId, projectId);
+    }
     const thread = await Thread.create({
       id: threadId,
       user_id: userId,
@@ -1868,11 +1871,38 @@ export class ChatTurnHandler {
       return;
     }
 
+    // Route to media generation when the client requests a text-to-image or
+    // text-to-video turn. Resolve the media payload before spend admission so
+    // a media override (`media_generation.provider` / `media_generation.model`)
+    // is checked against the user's credits and model whitelist instead of the
+    // top-level chat selection.
+    const mediaGeneration = isObjectLike(data.media_generation)
+      ? (data.media_generation as Record<string, unknown>)
+      : null;
+    const mediaTurn =
+      mediaGeneration !== null &&
+      isString(mediaGeneration.mode) &&
+      mediaGeneration.mode !== "chat";
+
     // The managed provider spends NodeTool's own keys against the user's
     // credits. Every other managed entry point admits against the balance and
-    // the operator's model whitelist first, and so does a chat turn.
-    if (providerId === "nodetool") {
-      const decision = await admitSpend(userId, 0, [model]);
+    // the operator's model whitelist first, and so does a chat or media turn.
+    const effectiveProviderId =
+      mediaTurn &&
+      mediaGeneration &&
+      isString(mediaGeneration.provider) &&
+      mediaGeneration.provider.length > 0
+        ? mediaGeneration.provider
+        : providerId;
+    const effectiveModel =
+      mediaTurn &&
+      mediaGeneration &&
+      isString(mediaGeneration.model) &&
+      mediaGeneration.model.length > 0
+        ? mediaGeneration.model
+        : model;
+    if (effectiveProviderId === "nodetool") {
+      const decision = await admitSpend(userId, 0, [effectiveModel]);
       if (!decision.allowed) {
         await settleRegisteredRunTrace(rootContext, "failed", decision.reason);
         await this.session.send({
@@ -1897,19 +1927,6 @@ export class ChatTurnHandler {
       await this.handleWorkflowMessage(data, turnMessage.id, requestSeq, signal);
       return;
     }
-
-    // Route to media generation when the client requests a text-to-image or
-    // text-to-video turn. The composer attaches a `media_generation` field
-    // with mode + params; when mode is a media mode we invoke the provider's
-    // textToImage / textToVideo instead of a regular LLM round and return an
-    // assistant message containing MessageImageContent / MessageVideoContent.
-    const mediaGeneration = isObjectLike(data.media_generation)
-      ? (data.media_generation as Record<string, unknown>)
-      : null;
-    const mediaTurn =
-      mediaGeneration !== null &&
-      isString(mediaGeneration.mode) &&
-      mediaGeneration.mode !== "chat";
 
     // A self-hosted server's admin can cap each user's spend on the server's
     // keys. A turn on a provider key the user saved never counts.
@@ -3950,10 +3967,10 @@ export class ChatTurnHandler {
       });
 
       if (mode === "image") {
-        const variations = Math.max(
-          1,
-          Math.min(Number(mediaGeneration.variations ?? 1), 8)
-        );
+        const rawVariations = Number(mediaGeneration.variations ?? 1);
+        const variations = Number.isFinite(rawVariations)
+          ? Math.max(1, Math.min(Math.trunc(rawVariations), 8))
+          : 1;
         const width = isNumber(mediaGeneration.width)
           ? mediaGeneration.width
           : undefined;
@@ -4437,10 +4454,10 @@ export class ChatTurnHandler {
         });
 
         if (mode === "image_edit") {
-          const variations = Math.max(
-            1,
-            Math.min(Number(mediaGeneration.variations ?? 1), 8)
-          );
+          const rawVariations = Number(mediaGeneration.variations ?? 1);
+          const variations = Number.isFinite(rawVariations)
+            ? Math.max(1, Math.min(Math.trunc(rawVariations), 8))
+            : 1;
           const targetWidth = isNumber(mediaGeneration.width)
             ? (mediaGeneration.width as number)
             : undefined;

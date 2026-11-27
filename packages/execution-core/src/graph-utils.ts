@@ -159,14 +159,17 @@ export function getInputTypeString(
   handle: string
 ): string | undefined {
   if (!node) return undefined;
-  const fromPropertyTypes = node.propertyTypes?.[handle];
+  const fromPropertyTypes =
+    node.propertyTypes && Object.hasOwn(node.propertyTypes, handle)
+      ? node.propertyTypes[handle]
+      : undefined;
   if (fromPropertyTypes) return fromPropertyTypes;
   // A declared dynamic slot is typed; an undeclared one stays undefined so
   // typesCompatible() keeps treating it as `any`.
   const fromSlot = getDynamicSlotTypeString(node, handle);
   if (fromSlot) return fromSlot;
   const props = node.properties;
-  if (props) {
+  if (props && Object.hasOwn(props, handle)) {
     const val = props[handle];
     if (isObjectValue(val) && "type" in val) {
       const t = val.type;

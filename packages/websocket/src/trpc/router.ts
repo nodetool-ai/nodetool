@@ -10,6 +10,7 @@ import { codeGenRouter } from "./routers/code-gen.js";
 import { segmentationRouter } from "./routers/segmentation.js";
 import { collectionsRouter } from "./routers/collections.js";
 import { costsRouter } from "./routers/costs.js";
+import { searchRouter } from "./routers/search.js";
 import { customProvidersRouter } from "./routers/custom-providers.js";
 import { externalMcpRouter } from "./routers/external-mcp.js";
 import { creditsRouter } from "./routers/credits.js";
@@ -67,6 +68,7 @@ type AppRouterRecord = {
   segmentation: typeof segmentationRouter;
   collections: typeof collectionsRouter;
   costs: typeof costsRouter;
+  search: typeof searchRouter;
   credits: typeof creditsRouter;
   customProviders: typeof customProvidersRouter;
   documents: typeof documentsRouter;
@@ -128,6 +130,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   segmentation: segmentationRouter,
   collections: collectionsRouter,
   costs: costsRouter,
+  search: searchRouter,
   credits: creditsRouter,
   customProviders: customProvidersRouter,
   documents: documentsRouter,

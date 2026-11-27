@@ -248,4 +248,30 @@ describe("parseWithTypeCoercion — unrecognized keys name what the schema takes
       expect(error).toBeInstanceOf(z.ZodError);
     }
   });
+
+  it("does not leak Object.prototype methods from remedies on inherited key names", () => {
+    const withRemedy = withKeyRemedies(
+      z.object({ target: z.string() }).strict(),
+      { trackId: "Use target instead." }
+    );
+    try {
+      parseWithTypeCoercion(withRemedy, { target: "ok", toString: "bad" });
+      throw new Error("expected a refusal");
+    } catch (error) {
+      const message = (error as z.ZodError).issues
+        .map((issue) => issue.message)
+        .join(" ");
+      expect(message).not.toContain("native code");
+      expect(message).not.toContain("function toString");
+    }
+  });
+
+  it("does not mutate object prototype when cloning payloads containing __proto__", () => {
+    const passthroughSchema = z.object({ count: z.number() }).passthrough();
+    const raw = JSON.parse('{"__proto__":{"polluted":true},"count":"42"}');
+    const result = parseWithTypeCoercion(passthroughSchema, raw) as Record<string, unknown>;
+    expect(result.count).toBe(42);
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+    expect((result as { polluted?: boolean }).polluted).toBeUndefined();
+  });
 });

@@ -470,7 +470,7 @@ export type BridgeFrame = z.infer<typeof bridgeFrameSchema>;
 export function getBridgeFrameSchema(
   type: string | undefined
 ): z.ZodTypeAny | undefined {
-  if (!type) return undefined;
+  if (!type || !Object.hasOwn(bridgeFrameSchemas, type)) return undefined;
   return (bridgeFrameSchemas as Record<string, z.ZodTypeAny>)[type];
 }
 

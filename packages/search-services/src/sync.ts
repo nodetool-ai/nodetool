@@ -18,7 +18,7 @@ import {
   type DatabaseConnection,
   type DBModel
 } from "@nodetool-ai/models";
-import { SEARCH_RESOURCE_TYPES, type SearchResourceType } from "@nodetool-ai/protocol";
+import { SEARCH_RESOURCE_TYPES } from "@nodetool-ai/protocol";
 import { EXTRACTOR_VERSION } from "./extract.js";
 import {
   deleteIndexedItem,
@@ -26,7 +26,14 @@ import {
   writeIndexedItem,
   writeExcludedItem
 } from "./index-writer.js";
-import { extractSources, listSourceVersions, RESOURCE_TYPE_BY_MODEL } from "./sources.js";
+import { listProjectFiles } from "./project-files.js";
+import {
+  extractSources,
+  listSourceVersions,
+  liveProjectIds,
+  RESOURCE_TYPE_BY_MODEL,
+  type TableResourceType
+} from "./sources.js";
 
 const log = createLogger("nodetool.search.sync");
 
@@ -61,7 +68,7 @@ export function wakeLibraryIndexer(): void {
 
 /** Bring the items of some source rows up to date. Rows that are gone lose their items. */
 async function syncRows(
-  resourceType: SearchResourceType,
+  resourceType: TableResourceType,
   userId: string,
   rows: ReadonlyArray<{ id: string }>,
   result: ReconcileResult,
@@ -99,6 +106,7 @@ export async function reconcileLibraryIndex(
   const result = emptyResult();
   const db = getPortableDb();
   for (const resourceType of SEARCH_RESOURCE_TYPES) {
+    if (resourceType === "project_file") continue;
     const sources = await listSourceVersions(resourceType, options.userId);
     const items = await db
       .select({
@@ -145,14 +153,103 @@ export async function reconcileLibraryIndex(
       }
     }
   }
+  await reconcileProjectFiles(options.userId, result);
   if (result.pending > 0) wakeIndexer?.();
   return result;
+}
+
+/**
+ * Bring the items of project folder files up to date (F13). Runs only where a
+ * folder source is installed. Items of a project whose folder could not be
+ * read are kept, so a disconnected drive does not empty the index.
+ */
+async function reconcileProjectFiles(userId: string | undefined, result: ReconcileResult): Promise<void> {
+  await removeProjectFilesOfGoneProjects(userId, result);
+  const listed = await listProjectFiles(userId);
+  if (!listed) return;
+  const items = await getPortableDb()
+    .select({
+      id: searchItems.id,
+      user_id: searchItems.user_id,
+      project_id: searchItems.project_id,
+      resource_id: searchItems.resource_id,
+      source_version: searchItems.source_version,
+      extractor_version: searchItems.extractor_version
+    })
+    .from(searchItems)
+    .where(
+      and(
+        eq(searchItems.resource_type, "project_file"),
+        userId ? eq(searchItems.user_id, userId) : undefined
+      )
+    );
+  const orphans: string[] = [];
+  const current = new Set<string>();
+  for (const item of items) {
+    const key = `${item.user_id}\u0000${item.resource_id}`;
+    const file = listed.files.get(key);
+    if (!file) {
+      if (listed.reachable.has(`${item.user_id}\u0000${item.project_id}`)) orphans.push(item.id);
+      continue;
+    }
+    if (item.source_version === file.sourceVersion && item.extractor_version === EXTRACTOR_VERSION) {
+      current.add(key);
+    }
+  }
+  await deleteItemsById(orphans);
+  result.removed += orphans.length;
+  // A source may still list a project deleted since: its files are not indexed.
+  const projectsByUser = new Map<string, Set<string>>();
+  for (const file of listed.files.values()) {
+    const set = projectsByUser.get(file.userId) ?? new Set<string>();
+    set.add(file.projectId);
+    projectsByUser.set(file.userId, set);
+  }
+  const liveByUser = new Map<string, Set<string>>();
+  for (const [owner, projectIds] of projectsByUser) {
+    liveByUser.set(owner, await liveProjectIds(owner, [...projectIds]));
+  }
+  for (const [key, file] of listed.files) {
+    if (current.has(key) || !liveByUser.get(file.userId)?.has(file.projectId)) continue;
+    const written = await writeIndexedItem(file);
+    result.indexed += 1;
+    if (written.pending) result.pending += 1;
+  }
+}
+
+/**
+ * Remove the folder-file items of projects that are deleted or gone. Runs in
+ * every host, with or without a folder source: a deleted project's folder is
+ * never listed again, so the listing alone would keep its items forever.
+ */
+async function removeProjectFilesOfGoneProjects(
+  userId: string | undefined,
+  result: ReconcileResult
+): Promise<void> {
+  const items = await getPortableDb()
+    .select({ id: searchItems.id, user_id: searchItems.user_id, project_id: searchItems.project_id })
+    .from(searchItems)
+    .where(
+      and(
+        eq(searchItems.resource_type, "project_file"),
+        userId ? eq(searchItems.user_id, userId) : undefined
+      )
+    );
+  const byUser = new Map<string, typeof items>();
+  for (const item of items) byUser.set(item.user_id, [...(byUser.get(item.user_id) ?? []), item]);
+  const gone: string[] = [];
+  for (const [owner, owned] of byUser) {
+    const live = await liveProjectIds(owner, owned.map((item) => item.project_id));
+    for (const item of owned) if (!live.has(item.project_id)) gone.push(item.id);
+  }
+  await deleteItemsById(gone);
+  result.removed += gone.length;
 }
 
 // ── Inline writes ────────────────────────────────────────────────────
 
 interface PendingWrite {
-  resourceType: SearchResourceType;
+  resourceType: TableResourceType;
   userId: string;
   id: string;
   deleted: boolean;

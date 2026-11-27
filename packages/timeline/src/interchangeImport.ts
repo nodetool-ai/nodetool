@@ -37,7 +37,7 @@ function decodeEntities(value: string): string {
       const code = entity[1] === "x" || entity[1] === "X" ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
       return Number.isFinite(code) && code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
     }
-    return ENTITIES[entity] ?? match;
+    return Object.hasOwn(ENTITIES, entity) ? ENTITIES[entity]! : match;
   });
 }
 
@@ -156,8 +156,10 @@ function textOf(element: XmlElement | undefined, ...names: string[]): string | u
 }
 
 function numberOf(element: XmlElement | undefined, ...names: string[]): number | undefined {
-  const value = Number(textOf(element, ...names));
-  return textOf(element, ...names) !== undefined && Number.isFinite(value) ? value : undefined;
+  const text = textOf(element, ...names);
+  if (text === undefined || text === "") return undefined;
+  const value = Number(text);
+  return Number.isFinite(value) ? value : undefined;
 }
 
 function isTrue(value: string | undefined, fallback: boolean): boolean {
@@ -311,7 +313,8 @@ export function readPremiereXml(xml: string): PremiereSequence {
   const sequence = [...descendants(xmeml)].find((element) => element.name === "sequence" && child(element, "media"));
   if (!sequence) throw new Error("The XML holds no sequence.");
 
-  const timebase = numberOf(sequence, "rate", "timebase") ?? 30;
+  const rawTimebase = numberOf(sequence, "rate", "timebase");
+  const timebase = rawTimebase !== undefined && rawTimebase > 0 ? rawTimebase : 30;
   const ntsc = isTrue(textOf(sequence, "rate", "ntsc"), false);
   const fps = ntsc ? Number(((timebase * 1000) / 1001).toFixed(3)) : timebase;
   const frameMs = (1000 * (ntsc ? 1001 : 1000)) / (timebase * 1000);
@@ -453,12 +456,14 @@ export function readPremiereXml(xml: string): PremiereSequence {
       return imported;
     });
 
+  const rawWidth = numberOf(format, "width");
+  const rawHeight = numberOf(format, "height");
   const usedFileIds = new Set(clips.map((clip) => clip.fileId));
   return {
     name: textOf(sequence, "name") || "Imported sequence",
     fps,
-    width: numberOf(format, "width") ?? 1920,
-    height: numberOf(format, "height") ?? 1080,
+    width: rawWidth !== undefined && rawWidth > 0 ? rawWidth : 1920,
+    height: rawHeight !== undefined && rawHeight > 0 ? rawHeight : 1080,
     videoTracks,
     audioTracks,
     clips,

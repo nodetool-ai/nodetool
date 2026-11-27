@@ -1637,6 +1637,36 @@ export async function claimAppRun(
   return rows.length === 1;
 }
 
+async function resolveDeletedAppRunId(
+  userId: string,
+  id: string
+): Promise<string | null> {
+  const c = getDatabase();
+  const t = c.schema.applicationInvocations;
+  const condition = and(
+    scopedId(userId, id, t),
+    isNull(t.instance_id),
+    isNotNull(t.application_id),
+    eq(t.content_expired, 1)
+  );
+  const rows =
+    c.dialect === "sqlite"
+      ? await c.db
+          .select({ id: c.schema.applicationInvocations.id })
+          .from(c.schema.applicationInvocations)
+          .where(condition)
+          .limit(2)
+      : await c.db
+          .select({ id: c.schema.applicationInvocations.id })
+          .from(c.schema.applicationInvocations)
+          .where(condition)
+          .limit(2);
+  if (rows.length > 1) {
+    throw new AppRunError("conflict", "Ambiguous app run id");
+  }
+  return rows[0]?.id ?? null;
+}
+
 /** Internal terminal accounting for a saved run whose history was deleted. */
 export async function settleDeletedAppRunBilling(
   userId: string,
@@ -1648,10 +1678,14 @@ export async function settleDeletedAppRunBilling(
       throw new AppRunError("invalid_input", "Invalid app run cost");
     }
   }
+  const resolvedId = await resolveDeletedAppRunId(userId, id);
+  if (!resolvedId) {
+    return false;
+  }
   const c = getDatabase();
   const t = c.schema.applicationInvocations;
   const condition = and(
-    eq(t.id, id),
+    eq(t.id, resolvedId),
     eq(t.user_id, userId),
     isNull(t.instance_id),
     isNotNull(t.application_id),
@@ -1683,7 +1717,7 @@ export async function settleDeletedAppRunBilling(
   if (rows.length === 0) {
     return false;
   }
-  await reconcileAppRunCost(userId, id);
+  await reconcileAppRunCost(userId, resolvedId);
   return true;
 }
 
@@ -1694,9 +1728,12 @@ export async function reconcileAppRunCost(
   additionalKnownCost?: number
 ): Promise<AppRunRecord | null> {
   const run = await getAppRun(userId, id);
+  const resolvedId = run?.id ?? (await resolveDeletedAppRunId(userId, id));
+  if (!resolvedId) {
+    return null;
+  }
   const c = getDatabase();
   const t = c.schema.applicationInvocations;
-  const resolvedId = run?.id ?? id;
   const scope = and(
     eq(t.user_id, userId),
     eq(t.id, resolvedId),

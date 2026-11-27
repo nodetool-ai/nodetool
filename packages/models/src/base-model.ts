@@ -246,6 +246,48 @@ export abstract class DBModel {
   }
 
   /**
+   * Look up a row by full id or exact 12-character prefix within one owner's
+   * scope, so another tenant's colliding prefix never causes an ambiguity
+   * error or leaks existence.
+   */
+  static async getForUser<T extends DBModel>(
+    this: ModelConstructor<T>,
+    userId: string,
+    key: string
+  ): Promise<T | null> {
+    const db = getPortableDb();
+    const table = this.table as DrizzleTable;
+    const pkCol = getTableColumn(table, this.primaryKey);
+    const userCol = getTableColumn(table, "user_id");
+    const rows = await db
+      .select()
+      .from(table)
+      .where(and(eq(userCol, userId), eq(pkCol, key)))
+      .limit(1);
+    const row = rows[0];
+    if (row) return new this(row as Record<string, unknown>) as T;
+    if (
+      this.primaryKey !== "id" ||
+      typeof key !== "string" ||
+      !isShortResourceId(key)
+    ) {
+      return null;
+    }
+    const matches = await db
+      .select()
+      .from(table)
+      .where(and(eq(userCol, userId), like(pkCol, `${key}%`)))
+      .limit(2);
+    if (matches.length > 1) {
+      throw new Error(
+        `short id "${key}" matches more than one row; use the full id`
+      );
+    }
+    const match = matches[0];
+    return match ? (new this(match as Record<string, unknown>) as T) : null;
+  }
+
+  /**
    * Inserts this row only while its key is free, and returns whether it did.
    * `create` and `save` are upserts, so a caller that must not take over a
    * row another writer holds uses this instead: a concurrent insert of the

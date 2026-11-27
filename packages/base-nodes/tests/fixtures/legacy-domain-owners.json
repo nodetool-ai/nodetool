@@ -496,6 +496,11 @@
     "lib.wan2gp.ListModels",
     "messaging.discord.DiscordBotTrigger",
     "messaging.telegram.TelegramBotTrigger",
+    "lib.mail.GmailSearch",
+    "lib.mail.AddLabel",
+    "lib.mail.MoveToArchive",
+    "lib.mail.SendEmail",
+    "lib.mail.EmailTrigger",
     "lib.mcp.CallMcpTool"
   ]
 }

@@ -62,8 +62,10 @@ For several users, set `NODETOOL_TOKENS` to a JSON object that maps each token
 (at least 32 characters) to a user ID. Port 7777 is also the desktop app's
 port; pass `--port` when it is running.
 
-`NODETOOL_DATA_DIR` selects the SQLite, assets and workspace directory. It
-defaults to `./nodetool-data`. Client commands use `NODETOOL_API_URL` and
+`NODETOOL_DATA_DIR` selects the server's SQLite, assets and workspace
+directory. It defaults to `./nodetool-data`. Local secret commands without a
+token use the database every run reads instead, as described in
+[`nodetool secrets`](../../docs/cli.md#nodetool-secrets). Client commands use `NODETOOL_API_URL` and
 `NODETOOL_API_TOKEN`, or the global `--api-url` and `--token` options. The
 server accepts only explicitly configured bearer tokens.
 

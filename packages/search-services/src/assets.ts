@@ -59,6 +59,8 @@ export async function searchAssets(
     userId,
     query,
     kinds: ASSET_SEARCH_KINDS,
+    // Folder files have document kinds too, but they are not assets.
+    resourceTypes: ["asset"],
     filter,
     cursor: options.cursor ?? null
   };

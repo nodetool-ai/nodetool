@@ -533,6 +533,22 @@ describe("SupabaseProvider — record operations", () => {
     );
   });
 
+  it("query maps a partition to a metadata filter on the partition key", async () => {
+    fake.on((c) => c.table === "nodetool_vec_collections" && c.op === "insert", {
+      data: null,
+      error: null
+    });
+    fake.on((c) => c.rpc === "nodetool_vec_match", { data: [], error: null });
+    const col = await provider.createCollection({ name: "library", partitionKey: "project_id" });
+    expect(col.metadata).toMatchObject({ partition_key: "project_id" });
+    await col.query({ embedding: [1, 2, 3], partition: "p1", filter: { kind: "x" } });
+    const rpc = fake.find((c) => c.rpc === "nodetool_vec_match");
+    expect((rpc.args as { p_metadata_filter: unknown }).p_metadata_filter).toEqual({
+      kind: "x",
+      project_id: "p1"
+    });
+  });
+
   it("query rejects $or and rich operators loudly", async () => {
     fake.on((c) => c.rpc === "nodetool_vec_match", { data: [], error: null });
     const col = await provider.getCollection({ name: "docs" });
@@ -625,6 +641,26 @@ describe("SupabaseProvider — record operations", () => {
     );
     expect(sel.filters).toContainEqual(["eq", "collection", "docs"]);
     expect(sel.filters).toContainEqual(["in", "id", ["1"]]);
+  });
+
+  it("get decodes stored vectors when asked for them", async () => {
+    fake.on(
+      (c) =>
+        c.table === "nodetool_vec_records" &&
+        c.op === "select" &&
+        c.filters.some(([op]) => op === "in"),
+      {
+        data: [{ id: "1", document: null, uri: null, metadata: {}, embedding: "[0.5,-0.25,1]" }],
+        error: null
+      }
+    );
+    const col = await provider.getCollection({ name: "docs" });
+    const [record] = await col.get({ ids: ["1"], includeEmbeddings: true });
+    expect(record.embedding).toEqual([0.5, -0.25, 1]);
+    const sel = fake.find(
+      (c) => c.table === "nodetool_vec_records" && c.op === "select" && c.filters.some(([op]) => op === "in")
+    );
+    expect(sel.args).toBe("id, document, uri, metadata, embedding");
   });
 
   it("count uses a head-only select with exact count", async () => {

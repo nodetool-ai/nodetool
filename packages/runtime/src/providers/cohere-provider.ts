@@ -5,10 +5,12 @@
  * API docs: https://docs.cohere.com/reference/embed
  */
 
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { BaseProvider, type EmbeddingImage, type ProviderCapability } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import type { EmbeddingModel, Message, ProviderStreamItem } from "./types.js";
 import {
+  imageDataUri,
+  normalizeEmbeddingImages,
   normalizeEmbeddingTexts,
   postEmbeddingRequest
 } from "./embedding-http.js";
@@ -137,6 +139,40 @@ export class CohereProvider extends BaseProvider {
       body.output_dimension = args.dimensions;
     }
 
+    return this.embed(body);
+  }
+
+  /**
+   * Embed images with `embed-v4.0`, in the space of its text embeddings. Each
+   * image is its own input, so each gets its own vector.
+   */
+  override async generateImageEmbedding(args: {
+    images: EmbeddingImage[];
+    model: string;
+    dimensions?: number;
+  }): Promise<number[][]> {
+    if (!this.apiKey) {
+      throw new Error("COHERE_API_KEY is not configured");
+    }
+    const model = args.model || "embed-v4.0";
+    if (!model.startsWith("embed-v4")) {
+      throw new Error(`Cohere model ${model} does not embed images in the space of its text. Use embed-v4.0.`);
+    }
+    const body: Record<string, unknown> = {
+      model,
+      inputs: normalizeEmbeddingImages(args.images).map((image) => ({
+        content: [{ type: "image_url", image_url: { url: imageDataUri(image) } }]
+      })),
+      input_type: this.inputType,
+      embedding_types: ["float"]
+    };
+    if (args.dimensions) {
+      body.output_dimension = args.dimensions;
+    }
+    return this.embed(body);
+  }
+
+  private async embed(body: Record<string, unknown>): Promise<number[][]> {
     const data = await postEmbeddingRequest<{
       embeddings?: { float?: number[][] } | number[][];
     }>({

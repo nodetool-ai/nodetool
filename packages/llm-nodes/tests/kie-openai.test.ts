@@ -153,11 +153,16 @@ describe("EmbeddingNode", () => {
 // ── WebSearchNode ──────────────────────────────────────────────────────────
 
 describe("WebSearchNode", () => {
-  it("returns content from chat completion response", async () => {
+  it("returns the output_text of a Responses API message", async () => {
     const node = new WebSearchNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        choices: [{ message: { content: "search result text" } }]
+        output: [
+          {
+            type: "message",
+            content: [{ type: "output_text", text: "search result text", annotations: [] }]
+          }
+        ]
       })
     );
 
@@ -170,7 +175,7 @@ describe("WebSearchNode", () => {
     expect(result.output).toBe("search result text");
   });
 
-  it("returns JSON string when no choices", async () => {
+  it("returns JSON string when there is no output", async () => {
     const node = new WebSearchNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({ some: "data" }));
 

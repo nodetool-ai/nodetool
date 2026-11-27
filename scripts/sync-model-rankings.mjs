@@ -244,6 +244,35 @@ export function buildRankings({
   };
 }
 
+/**
+ * Why a run produced no ranked route, in words that tell an upstream failure
+ * (every leaderboard failed to load: a revoked key, a moved endpoint) from a
+ * matching regression (rows loaded, none reached a route).
+ */
+export function emptyArtifactMessage(report) {
+  const loaded = report.tasks.filter((task) => !task.error);
+  if (loaded.length === 0) {
+    const reasons = report.tasks.map((task) => `  ${task.task}: ${task.error}`);
+    return [
+      "Every leaderboard failed to load — refusing to write an empty artifact:",
+      ...reasons
+    ].join("\n");
+  }
+  const rows = loaded.reduce((sum, task) => sum + task.rows, 0);
+  return `${rows} leaderboard row(s) loaded from ${loaded.length} leaderboard(s), but none matched a provider route — refusing to write an empty artifact`;
+}
+
+/** The message of a failed fetch, with the network cause undici hides behind "fetch failed". */
+function describeFetchError(err) {
+  if (!(err instanceof Error)) return String(err);
+  const cause = err.cause;
+  if (cause instanceof Error) {
+    const code = "code" in cause && cause.code ? `${cause.code} ` : "";
+    return `${err.message} (${code}${cause.message})`;
+  }
+  return err.message;
+}
+
 /** Fetch one leaderboard, retrying transient failures the way the price sync does. */
 async function fetchLeaderboard(board, { apiKey, attempts = 3 } = {}) {
   const url = leaderboardUrl(board.path);
@@ -258,8 +287,22 @@ async function fetchLeaderboard(board, { apiKey, attempts = 3 } = {}) {
         },
         signal: AbortSignal.timeout(30_000)
       });
-      if (!res.ok) throw new Error(`GET ${url} → HTTP ${res.status}`);
-      return await res.json();
+      if (!res.ok) {
+        const body = (await res.text().catch(() => "")).replace(/\s+/g, " ").trim();
+        throw new Error(
+          `GET ${url} → HTTP ${res.status}${body ? `: ${body.slice(0, 200)}` : ""}`
+        );
+      }
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error(
+          `GET ${url} → HTTP ${res.status} with a non-JSON body (${
+            res.headers.get("content-type") ?? "no content-type"
+          }): ${text.replace(/\s+/g, " ").trim().slice(0, 200)}`
+        );
+      }
     } catch (err) {
       lastError = err;
       if (attempt < attempts) {
@@ -287,7 +330,7 @@ async function loadLeaderboards({ apiKey, fromDir }) {
         task: board.task,
         rows: [],
         dropped: [],
-        error: `fetch-failed: ${err instanceof Error ? err.message : err}`
+        error: `fetch-failed: ${describeFetchError(err)}`
       });
       continue;
     }
@@ -403,18 +446,18 @@ async function main() {
     nowIso: new Date().toISOString()
   });
 
-  if (Object.keys(artifact.models).length === 0) {
-    throw new Error(
-      "No leaderboard row matched a provider route — refusing to write an empty artifact"
-    );
-  }
-
+  // The report is written and printed before the empty-artifact check, so a
+  // failed run still says which leaderboards failed to load and why.
   if (args.report) {
     mkdirSync(dirname(args.report), { recursive: true });
     writeFileSync(args.report, `${JSON.stringify(report, null, 2)}\n`);
   }
 
   printReport(report);
+
+  if (Object.keys(artifact.models).length === 0) {
+    throw new Error(emptyArtifactMessage(report));
+  }
 
   const serialized = `${JSON.stringify(artifact, null, 2)}\n`;
   const current = readJson(args.out) === null ? null : readFileSync(args.out, "utf8");

@@ -37,10 +37,21 @@ const KEY_PAGES = [
     "/alternatives/comfyui",
   ] as const;
 
+/** Next pages by search traffic and navigation, in Chinese and Japanese only. */
+const SECOND_PAGES = [
+    "/demo",
+    "/cloud",
+    "/node-based-ai",
+    "/ai-image-editor",
+    "/gamedev",
+    "/gamedev/ai-game-engines",
+    "/alternatives/figma-weave",
+  ] as const;
+
 /** English routes with a translated page, per locale, in nav order. */
 export const TRANSLATED_ROUTES: Record<Locale, readonly string[]> = {
-  zh: KEY_PAGES,
-  ja: KEY_PAGES,
+  zh: [...KEY_PAGES, ...SECOND_PAGES],
+  ja: [...KEY_PAGES, ...SECOND_PAGES],
   ko: KEY_PAGES,
 };
 

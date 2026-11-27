@@ -19,7 +19,11 @@ import { templateEntries, type TemplateEntry } from "./templates";
 export type LandingKind = "use-case" | "persona";
 
 /** A shared body section to render under the hero, in order. */
-export type LandingSection = "features" | "use-cases" | "local-demo";
+export type LandingSection =
+  | "features"
+  | "use-cases"
+  | "local-demo"
+  | "node-editor-demo";
 
 interface LandingEntry extends PageEntry {
   slug: string;
@@ -229,7 +233,7 @@ export const landingEntries: LandingEntry[] = [
       "Update checks and analytics stay off until you turn them on",
       "Hosted models only on the nodes where you pick one",
     ],
-    sections: ["local-demo"],
+    sections: ["local-demo", "node-editor-demo"],
     faqs: [
       {
         q: "Can one workflow mix local and hosted models?",

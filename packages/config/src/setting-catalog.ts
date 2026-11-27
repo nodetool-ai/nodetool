@@ -379,6 +379,50 @@ s(
   ["true", "false"]
 );
 
+// Library search (docs/plans/library-search.md, D26 and D27). The group is
+// not "Search": that one holds the web-search providers.
+s(
+  "NODETOOL_SEARCH_SEMANTIC",
+  "Library Search",
+  "Search the library by meaning as well as by words. Needs an embedding model.",
+  ["on", "off"]
+);
+s(
+  "NODETOOL_SEARCH_EMBEDDING_PROVIDER",
+  "Library Search",
+  "Provider of the embedding model for library search, such as transformers_js for the local model or openai."
+);
+s(
+  "NODETOOL_SEARCH_EMBEDDING_MODEL",
+  "Library Search",
+  "Embedding model for library search, such as Xenova/all-MiniLM-L6-v2. Changing it rebuilds the index in the background."
+);
+s(
+  "NODETOOL_SEARCH_EXCLUDED_PROJECTS",
+  "Library Search",
+  "Comma-separated project ids whose text is never sent to an embedding model. Their items stay findable by words."
+);
+s(
+  "NODETOOL_SEARCH_DAILY_SPEND_LIMIT",
+  "Library Search",
+  "Most US dollars hosted models for library search may cost in one day: embeddings, captions and transcripts together. Empty means no limit."
+);
+s(
+  "NODETOOL_SEARCH_CAPTION_MODEL",
+  "Library Search",
+  "Model that describes images without a prompt so library search finds them by what they show, as provider:model, such as openai:gpt-4o-mini. Empty turns captions off."
+);
+s(
+  "NODETOOL_SEARCH_TRANSCRIPT_MODEL",
+  "Library Search",
+  "Speech-to-text model that transcribes audio and video for library search, as provider:model, such as openai:whisper-1. Empty turns transcripts off."
+);
+s(
+  "NODETOOL_SEARCH_IMAGE_EMBEDDING_MODEL",
+  "Library Search",
+  "Model that embeds the images themselves, so a text search and similar items match what a picture shows without a caption. It must embed text into the same space, as provider:model: transformers_js:Xenova/clip-vit-base-patch32 runs locally; jina:jina-clip-v2, voyage:voyage-multimodal-3 and cohere:embed-v4.0 send image files to the provider. Empty turns image vectors off."
+);
+
 // Search
 s(
   "SERP_PROVIDER",
@@ -644,6 +688,16 @@ sec(
   "GOOGLE_VERTEX_API_KEY",
   "Gemini (Google Cloud)",
   "Vertex AI API key (express mode, or a Google Cloud API key bound to a service account), used instead of a service account key."
+);
+sec(
+  "GOOGLE_MAIL_USER",
+  "Google Mail",
+  "Gmail address the lib.mail nodes (Gmail Search, Add Label, Move To Archive) sign in with."
+);
+sec(
+  "GOOGLE_APP_PASSWORD",
+  "Google Mail",
+  "Google app password for the lib.mail nodes. Needs 2-step verification on the account. Create one at https://myaccount.google.com/apppasswords"
 );
 sec(
   "HF_TOKEN",

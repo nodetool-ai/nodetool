@@ -9403,7 +9403,8 @@
         "provider-options": "Opciones de proveedor",
         "observability": "Observabilidad",
         "data-and-storage": "Datos y almacenamiento",
-        "other": "Otro"
+        "other": "Otro",
+        "library-search": "Búsqueda en la biblioteca"
       },
       "credentials": {
         "genericButton": "Obtenga su clave API",
@@ -21670,6 +21671,65 @@
       "scriptMissing": "Guion no encontrado: {{name}}",
       "scriptEmpty": "Este guion aún no tiene líneas.",
       "openScript": "Abrir guion"
+    },
+    "sidePanel": {
+      "tabs": "Panel lateral",
+      "chat": "Chat de IA",
+      "structure": "Estructura"
+    },
+    "outline": {
+      "source": "Estructura de",
+      "current": "Actual",
+      "snapshot": "Instantánea",
+      "label": "Estructura del documento",
+      "snapshotLabel": "Estructura de la instantánea",
+      "emptyTitle": "Sin encabezados",
+      "emptyBody": "Empieza una línea con #, ## o ### para añadir un encabezado. Los encabezados aparecen aquí para que puedas saltar a ellos.",
+      "snapshotEmptyBody": "Esta instantánea no tiene encabezados.",
+      "noSnapshotBody": "Selecciona una instantánea para ver su estructura."
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Nombre",
+      "prompt": "Prompt",
+      "description": "Descripción",
+      "body": "Texto",
+      "caption": "Pie de foto",
+      "transcript": "Transcripción",
+      "image": "Coincide por la propia imagen"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Biblioteca",
+      "indexing": "Indexando la biblioteca: {{ready}} de {{total}} elementos listos",
+      "embedding": "Fragmentos pendientes de incrustar para la búsqueda por significado: {{count}}",
+      "noMatch": "Nada en tu biblioteca coincide con «{{query}}». Se buscó en todos los proyectos.",
+      "failed": "La búsqueda en la biblioteca falló. Faltan los resultados de tu biblioteca."
+    },
+    "setup": {
+      "heading": "Búsqueda por significado",
+      "description": "Encuentra elementos por lo que muestran o dicen, no solo por sus palabras. El modelo local se ejecuta en este equipo, así que tu contenido se queda aquí.",
+      "local": "Descargar el modelo local ({{size}} MB)",
+      "provider": "Usar un modelo de un proveedor",
+      "providerNote": "Fragmentos que se enviarán al proveedor que elijas: {{count}}",
+      "notNow": "Ahora no"
+    },
+    "status": {
+      "loadFailed": "No se pudo leer el estado de la búsqueda en la biblioteca.",
+      "items": "{{ready}} de {{total}} elementos indexados",
+      "pending": "Pendientes de indexar: {{count}}",
+      "failed": "No se pudieron indexar: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "La búsqueda por significado usa {{model}}.",
+      "semanticOff": "La búsqueda por significado está desactivada. La búsqueda por palabras funciona sin ella.",
+      "vectors": "{{embedded}} de {{total}} fragmentos incrustados",
+      "rebuildingVectors": "El nuevo modelo está incrustando la biblioteca. La búsqueda usa el modelo anterior hasta que termine.",
+      "images": "Las imágenes se incrustan con {{model}}: {{embedded}} listas, {{remaining}} pendientes.",
+      "turnOff": "Desactivar la búsqueda por significado",
+      "embedAgain": "Incrustar de nuevo",
+      "rebuild": "Reconstruir el índice",
+      "providerHint": "Para usar un modelo de un proveedor, indica el proveedor y el modelo arriba. Fragmentos enviados a ese proveedor: {{count}}"
     }
   }
 }

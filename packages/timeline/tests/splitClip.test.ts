@@ -239,4 +239,10 @@ describe("splitClip on a midi clip", () => {
     expect(left.durationMs).toBe(400);
     expect(right.durationMs).toBe(600);
   });
+
+  it("refuses non-finite split times instead of producing NaN clips", () => {
+    const clip = midiClip();
+    expect(() => splitClip(clip, Number.NaN)).toThrow();
+    expect(() => splitClip(clip, Number.POSITIVE_INFINITY)).toThrow();
+  });
 });

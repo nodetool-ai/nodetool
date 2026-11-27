@@ -2,6 +2,7 @@
  * Leg selection for the quality gate. A leg left off here never runs in CI,
  * so each rule is pinned against a synthetic package graph.
  */
+import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +11,8 @@ import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 
 import { computeAffected } from "../../packages/cli-harness/src/affected/affected.ts";
+import * as changedFiles from "../../packages/cli-harness/src/harness/changed-files.ts";
+import * as registry from "../../packages/cli-harness/src/harness/registry.ts";
 import {
   NODE_CATALOG_MANIFESTS,
   NODE_CATALOG_PACKAGES,
@@ -17,6 +20,8 @@ import {
   buildCiPlan,
   deferToQueue,
   fullCiPlan,
+  harnessGateNeeded,
+  lockfileWorkspaces,
   shardOf
 } from "../ci-plan.mjs";
 import { MOBILE_DEPS } from "../test-affected.mjs";
@@ -82,7 +87,8 @@ const PACKAGES = [
   { name: "mobile", dir: "mobile", internalDeps: MOBILE_DEPS }
 ];
 
-const plan = (files) => buildCiPlan(files, PACKAGES, computeAffected);
+const gateNeeded = (files) => harnessGateNeeded(files, registry, changedFiles);
+const plan = (files) => buildCiPlan(files, PACKAGES, computeAffected, gateNeeded);
 
 describe("buildCiPlan", () => {
   it("runs only web's related tests for a web/src-only change", () => {
@@ -105,6 +111,9 @@ describe("buildCiPlan", () => {
       docker: false,
       blender: false,
       node_catalog: false,
+      // The registry maps web/src only to the expensive `debug` selfcheck,
+      // which the gate skips without --expensive.
+      harness_gate: false,
       turbo_affected: true
     });
   });
@@ -222,7 +231,7 @@ describe("buildCiPlan", () => {
 
   it("runs the docker leg only when the image's own inputs change", () => {
     expect(plan(["packages/image-nodes/src/index.ts"]).docker).toBe(false);
-    expect(plan(["Dockerfile"])).toEqual(fullCiPlan());
+    expect(plan(["Dockerfile"])).toEqual({ ...fullCiPlan(), harness_gate: gateNeeded(["Dockerfile"]) });
     expect(plan(["scripts/docker-smoke.mjs"]).docker).toBe(true);
   });
 
@@ -290,6 +299,117 @@ describe("buildCiPlan", () => {
   it("keeps --affected when every changed file sits in a workspace directory", () => {
     expect(plan(["packages/agents/src/index.ts"]).turbo_affected).toBe(true);
     expect(plan(["packages/agents/src/index.ts", "docs/index.md"]).turbo_affected).toBe(true);
+  });
+
+  it("skips typecheck for a native-only diff", () => {
+    for (const file of [
+      "native/timeline/src/edit/Timeline.cpp",
+      "native/timeline-player/src/Player.cpp",
+      "native/node-editor/src/ui/EditorWindow.cpp"
+    ]) {
+      const p = plan([file]);
+      expect(p.full, file).toBe(false);
+      expect(p.typecheck, file).toBe(false);
+    }
+    // No selfcheck covers the player, and C++ is not gate-relevant code.
+    expect(plan(["native/timeline-player/src/Player.cpp"]).harness_gate).toBe(false);
+    // The native UI design check covers the timeline sources.
+    expect(plan(["native/timeline/src/edit/Timeline.cpp"]).harness_gate).toBe(true);
+  });
+
+  it("keeps the harness gate for native code a selfcheck covers", () => {
+    const p = plan(["native/graph-runner/guest/host/agents.mjs"]);
+    expect(p.typecheck).toBe(false);
+    expect(p.harness_gate).toBe(true);
+  });
+
+  it("leaves lint-only and tooling-only files to the lint leg and the harness gate", () => {
+    for (const file of [
+      ".oxlintrc.anti-slop-enforced.json",
+      ".agents/skills/finetune-chat-model/scripts/compare.py",
+      "scripts/finetune/train.py"
+    ]) {
+      const p = plan([file]);
+      expect(p.full, file).toBe(false);
+      expect(p.typecheck, file).toBe(false);
+    }
+    for (const file of ["scripts/crap-score.mjs", "scripts/__tests__/crap-score.test.mjs"]) {
+      const p = plan([file]);
+      expect(p.full, file).toBe(false);
+      expect(p.typecheck, file).toBe(false);
+      // `repo-scripts` runs `npm run test:scripts`.
+      expect(p.harness_gate, file).toBe(true);
+    }
+  });
+
+  it("keeps typecheck for a script outside TYPECHECK_FREE", () => {
+    expect(plan(["scripts/validate-examples.mjs"]).typecheck).toBe(true);
+    expect(plan(["packages/storage/src/index.ts"]).typecheck).toBe(true);
+    expect(fullCiPlan().typecheck).toBe(true);
+  });
+
+  it("runs the harness gate whenever it would run a check or fail", () => {
+    // A global gate file selects every selfcheck.
+    expect(plan(["package-lock.json"]).harness_gate).toBe(true);
+    // The gate compares the capability table with the base.
+    expect(gateNeeded(["packages/cli-harness/src/harness/capability-table.ts"])).toBe(true);
+    // A code file no surface claims fails the gate.
+    expect(gateNeeded(["unclaimed-dir/tool.mjs"])).toBe(true);
+    // A cheap selfcheck covers the workflow-execution surface.
+    expect(gateNeeded(["packages/kernel/src/index.ts"])).toBe(true);
+    // Prose selects nothing.
+    expect(gateNeeded(["docs/index.md"])).toBe(false);
+    // Without a predicate the gate always runs.
+    expect(buildCiPlan(["web/src/a.ts"], PACKAGES, computeAffected).harness_gate).toBe(true);
+  });
+
+  it("scopes a lockfile change to the workspaces whose tree it reaches", () => {
+    const lock = (versions) => ({
+      lockfileVersion: 3,
+      packages: {
+        "": { name: "root", workspaces: ["packages/storage", "packages/websocket", "web"], devDependencies: { vitest: "^5" } },
+        "node_modules/vitest": { version: versions.vitest ?? "5.1.0" },
+        "packages/storage": { name: "@nodetool-ai/storage", dependencies: { sharp: "^1" } },
+        "packages/websocket": { name: "@nodetool-ai/websocket", dependencies: { "@nodetool-ai/storage": "*", fastify: "^5" } },
+        web: { name: "nodetool", dependencies: { react: "^19" } },
+        "node_modules/@nodetool-ai/storage": { resolved: "packages/storage", link: true },
+        "node_modules/sharp": { version: versions.sharp ?? "1.0.0", dependencies: { "detect-libc": "^2" } },
+        "node_modules/detect-libc": { version: versions.libc ?? "2.0.0" },
+        "packages/websocket/node_modules/fastify": { version: versions.fastify ?? "5.0.0" },
+        "node_modules/react": { version: "19.0.0" }
+      }
+    });
+    const dirs = ["packages/storage", "packages/websocket", "web"];
+    // A transitive dependency of storage only, not websocket through the link.
+    expect(lockfileWorkspaces(lock({}), lock({ libc: "2.0.1" }), dirs)).toEqual(["packages/storage"]);
+    // A nested install resolves for its own workspace.
+    expect(lockfileWorkspaces(lock({}), lock({ fastify: "5.0.1" }), dirs)).toEqual(["packages/websocket"]);
+    // The root's dev tools run every suite.
+    expect(lockfileWorkspaces(lock({}), lock({ vitest: "5.2.0" }), dirs)).toBeNull();
+    expect(lockfileWorkspaces(null, lock({}), dirs)).toBeNull();
+    // An entry no tree reaches selects nothing.
+    const extra = lock({});
+    extra.packages["node_modules/unused"] = { version: "1.0.0" };
+    expect(lockfileWorkspaces(lock({}), extra, dirs)).toEqual([]);
+
+    const scoped = buildCiPlan(
+      ["package-lock.json", "packages/storage/package.json"],
+      PACKAGES,
+      computeAffected,
+      gateNeeded,
+      ["packages/storage"]
+    );
+    expect(scoped.full).toBe(false);
+    expect(scoped.packages_core).toBe(true);
+    expect(scoped.packages_websocket).toBe(true);
+    expect(scoped.packages_nodes).toBe(false);
+    expect(scoped.turbo_affected).toBe(false);
+    // The image and the TypeScript 6 build read the lockfile itself.
+    expect(scoped.docker).toBe(true);
+    expect(scoped.tsc6).toBe(true);
+    // Without a scope the lockfile runs everything.
+    expect(plan(["package-lock.json"]).full).toBe(true);
+    expect(buildCiPlan(["package-lock.json"], PACKAGES, computeAffected, gateNeeded, null).full).toBe(true);
   });
 
   it("selects nothing for documentation outside every workspace", () => {
@@ -436,6 +556,23 @@ describe("deferToQueue", () => {
     expect(p.integration).toBe(false);
     expect(deferToQueue(p).deferred_to_queue).toEqual(["node_catalog"]);
     expect(deferToQueue(plan(["web/src/components/Foo.tsx"])).deferred_to_queue).toEqual([]);
+  });
+
+  it("loads the harness registry from source under plain Node", () => {
+    // The `changes` job runs the planner with no install: Node strips the
+    // registry's types, and the planner's resolve hook maps its `.js`
+    // imports to the `.ts` sources. A registry Node cannot strip fails here
+    // instead of turning every CI run into a full one.
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: REPO_ROOT, encoding: "utf8" }).trim();
+    const out = execFileSync(process.execPath, ["scripts/ci-plan.mjs", "plan", "--base", head, "--head", head], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      env: { ...process.env, GITHUB_OUTPUT: "" }
+    });
+    const planned = JSON.parse(out.slice(out.indexOf("{")));
+    expect(planned.full).toBe(false);
+    expect(planned.harness_gate).toBe(false);
+    expect(planned.typecheck).toBe(false);
   });
 
   it("is applied by the plan command only with --defer-to-queue", async () => {

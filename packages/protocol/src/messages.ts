@@ -1217,6 +1217,12 @@ export function isProcessingMessage(
 // Utility functions
 // ---------------------------------------------------------------------------
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!isRecord(value)) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
 /**
  * Recursively sanitize memory:// URIs from a message payload.
  * Replaces any string starting with "memory://" with an empty string.
@@ -1229,10 +1235,20 @@ export function sanitizeMemoryUris<T>(value: T): T {
   if (Array.isArray(value)) {
     return value.map(sanitizeMemoryUris) as T;
   }
-  if (isRecord(value)) {
+  if (isPlainObject(value)) {
     const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      result[k] = sanitizeMemoryUris(v);
+    for (const [k, v] of Object.entries(value)) {
+      const sanitized = sanitizeMemoryUris(v);
+      if (k === "__proto__") {
+        Object.defineProperty(result, k, {
+          value: sanitized,
+          enumerable: true,
+          writable: true,
+          configurable: true
+        });
+      } else {
+        result[k] = sanitized;
+      }
     }
     return result as T;
   }

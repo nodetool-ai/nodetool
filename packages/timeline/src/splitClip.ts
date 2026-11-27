@@ -393,7 +393,7 @@ export function splitClip(
   assertNotTimeRemapped(clip, "splitClip");
 
   const clipEndMs = clip.startMs + clip.durationMs;
-  if (atMs <= clip.startMs || atMs >= clipEndMs) {
+  if (!Number.isFinite(atMs) || atMs <= clip.startMs || atMs >= clipEndMs) {
     throw new Error("splitClip requires startMs < atMs < startMs + durationMs");
   }
 
