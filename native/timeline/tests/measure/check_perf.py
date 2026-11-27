@@ -75,7 +75,10 @@ def ratchet(budget, base, allow_new=False):
     if not previous <= current or (current != previous and not allow_new):
         raise ValueError('Budget scenario schema changed')
     for scenario, ceilings in base['scenarios'].items():
-        check(budget['scenarios'][scenario], ceilings)
+        # New counters start at zero. Existing counters retain their ceilings.
+        current = budget['scenarios'][scenario]
+        added = current.keys() - ceilings.keys()
+        check(current, dict(ceilings, **{name: 0 for name in added}))
 
 
 def result_from(stdout):

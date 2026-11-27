@@ -12,7 +12,8 @@
       "objectCreations": 0,
       "payloadBytes": 0,
       "sourceSignals": 0,
-      "timelineSignals": 0
+      "timelineSignals": 0,
+      "valueTypeWriteBacks": 0
     },
     "scroll": {
       "clipSignals": 0,
@@ -25,7 +26,8 @@
       "objectCreations": 46651,
       "payloadBytes": 0,
       "sourceSignals": 0,
-      "timelineSignals": 0
+      "timelineSignals": 0,
+      "valueTypeWriteBacks": 0
     },
     "zoom": {
       "clipSignals": 0,
@@ -38,7 +40,8 @@
       "objectCreations": 2264,
       "payloadBytes": 0,
       "sourceSignals": 0,
-      "timelineSignals": 0
+      "timelineSignals": 0,
+      "valueTypeWriteBacks": 0
     },
     "clip_drag": {
       "clipSignals": 10,
@@ -51,7 +54,8 @@
       "objectCreations": 672,
       "payloadBytes": 308328,
       "sourceSignals": 11,
-      "timelineSignals": 10
+      "timelineSignals": 10,
+      "valueTypeWriteBacks": 0
     },
     "note_drag": {
       "clipSignals": 0,
@@ -64,7 +68,8 @@
       "objectCreations": 0,
       "payloadBytes": 0,
       "sourceSignals": 1,
-      "timelineSignals": 0
+      "timelineSignals": 0,
+      "valueTypeWriteBacks": 0
     },
     "model_change": {
       "clipSignals": 32,
@@ -77,7 +82,8 @@
       "objectCreations": 51059,
       "payloadBytes": 3156852,
       "sourceSignals": 46,
-      "timelineSignals": 32
+      "timelineSignals": 32,
+      "valueTypeWriteBacks": 0
     },
     "agent": {
       "clipSignals": 32,
@@ -90,7 +96,8 @@
       "objectCreations": 51059,
       "payloadBytes": 3156852,
       "sourceSignals": 46,
-      "timelineSignals": 32
+      "timelineSignals": 32,
+      "valueTypeWriteBacks": 0
     },
     "note_patch": {
       "clipSignals": 0,
@@ -103,7 +110,8 @@
       "objectCreations": 0,
       "payloadBytes": 10283776,
       "sourceSignals": 40,
-      "timelineSignals": 0
+      "timelineSignals": 0,
+      "valueTypeWriteBacks": 0
     },
     "agent_note_patch": {
       "clipSignals": 0,
@@ -116,7 +124,8 @@
       "objectCreations": 0,
       "payloadBytes": 10283776,
       "sourceSignals": 40,
-      "timelineSignals": 0
+      "timelineSignals": 0,
+      "valueTypeWriteBacks": 0
     }
   }
 }

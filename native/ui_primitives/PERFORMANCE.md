@@ -255,4 +255,11 @@ Read the source page when a rule needs more detail.
     items above. Type the files that run on hot paths, but do not run a
     project to type all files for performance.
 
+60. Do not read a `QList<T>` property by index in a loop. Each access reads
+    and copies the full list again. For n items, the loop does O(n²) work.
+    Use model roles, or a count and an `at(i)` query.
+61. A field write to a value-type property writes the full value through its
+    setter. It notifies every binding that reads the property. Change a local
+    copy, then write the value once.
+
 Run `npm run check:native-performance` to check per-file debt in `native/*/qml` and `native/*/src`, or `npm run check:native-performance -- --update` to save lower baseline counts.

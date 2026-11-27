@@ -45,6 +45,12 @@ Counters have these boundaries:
   `payloadBytes` sums compact UTF-8 JSON payload sizes at those boundaries.
   It measures logical transfer volume, not physical allocator copies. Size
   caching avoids serializing an unchanged payload repeatedly in the recorder.
+- `valueTypeWriteBacks` counts whole `Q_GADGET` property writes from QML,
+  including field assignments and whole-value assignments. Interceptors forward
+  each write to its setter once. The observer covers writable gadget properties
+  in the editor and model trees present when the measured workload starts.
+  Properties with an existing interceptor are excluded. The selfcheck writes a
+  gadget field in QML and checks one counter increment and one C++ setter call.
 - `jsonParses` counts edit validation and document-replacement parser calls.
   Startup parsing is excluded. Signal counters cover model clip, timeline,
   marker and source notifications. `dataChangedRows` sums emitted row ranges
@@ -75,5 +81,5 @@ so it is not GPU execution time. No profiler TCP port or localhost is needed.
 and ceilings above the version in `origin/main`. Its first introduction has
 no earlier budget and requires explicit `--allow-new-budget`. Git failures
 fail closed. `--base-budget` uses an explicit reviewed baseline instead of git.
-There is no automatic budget update. The checker tests exercise deliberate
+New counters must start with a zero ceiling. There is no automatic budget update. The checker tests exercise deliberate
 increases, missing counters and invalid negative counts.

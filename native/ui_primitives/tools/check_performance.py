@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Ratchet native Qt Quick performance debt against per-file counts.
 
-R2 counts scans across each QML file, not just delegates. R3 includes one-shot
-APIs and R5 includes static drawing. K11 only checks explicit inline delegate
+R6 conservatively covers every Q_OBJECT class, including types exposed through
+registration or QObject properties without QML_ELEMENT. QVector also counts.
+QStringList is excluded. R2 counts scans across each QML file, not just delegates.
+R3 includes one-shot APIs and R5 includes static drawing. K11 only checks explicit inline delegate
 roots with required properties before any nested object. Existing cases are
 grandfathered by counts. Test directories and test_/tst_ files are excluded.
 --update only lowers allowances. Increases always fail, including in new files.
@@ -22,11 +24,24 @@ RULES = {
     'R4': (34, 'context property calls'),
     'R5-canvas': (38, 'Canvas items'),
     'R5-painted': (38, 'QQuickPaintedItem subclasses'),
+    'R6': (60, 'QList/QVector properties on QML QObject classes'),
     'K11': (16, 'inline required-property delegate without ComponentBehavior: Bound'),
 }
 # Mask comments and literals before matching, preserving whitespace boundaries.
 OPAQUE = re.compile(r'R"(?P<delimiter>[^ ()\\\t\r\n]{0,16})\([\s\S]*?\)(?P=delimiter)"|//[^\n]*|/\*[\s\S]*?\*/|"(?:\\[\s\S]|[^"\\])*"|\'(?:\\[\s\S]|[^\'\\])*\'|`(?:\\[\s\S]|[^`\\])*`')
+BRACES = re.compile(r'[{}]')
 DOCUMENT = r'(?:QVariantList|QVariantMap|QJsonArray|QJsonObject)\b'
+
+
+def class_bodies(text):
+    for declaration in re.finditer(r'\b(?:class|struct)\s+\w+[^;{}]*\{', text):
+        start = declaration.end()
+        depth = 1
+        for brace in BRACES.finditer(text, start):
+            depth += 1 if brace.group() == '{' else -1
+            if depth == 0:
+                yield text[start:brace.start()]
+                break
 
 
 def counts(text, suffix):
@@ -46,6 +61,12 @@ def counts(text, suffix):
         result['R5-painted'] = len(re.findall(
             r'\b(?:class|struct)\s+\w+[^;{}]*:\s*[^;{}]*\bQQuickPaintedItem\b', text))
     if suffix in {'.cpp', '.cc', '.cxx', '.h', '.hpp', '.hh', '.hxx'}:
+        # Q_OBJECT includes registered, inherited and anonymously exposed objects.
+        # Q_GADGET records are value types, not QObject properties.
+        for body in class_bodies(text):
+            if re.search(r'\bQ_OBJECT\b', body):
+                result['R6'] += len(re.findall(
+                    r'\bQ_PROPERTY\s*\(\s*(?:const\s+)?(?:QList|QVector)\s*<', body))
         result['R4'] = len(re.findall(r'\bsetContextProperty\s*\(', text))
     return {rule: value for rule, value in result.items() if value}
 

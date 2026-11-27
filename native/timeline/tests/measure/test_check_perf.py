@@ -174,6 +174,16 @@ class BudgetTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             check({'objects': 11}, {'objects': 10})
 
+    def test_new_write_back_counter_starts_at_zero(self):
+        base = {'scenarios': {'clip_drag': {'objects': 10}}}
+        budget = {'scenarios': {'clip_drag': {'objects': 10, 'valueTypeWriteBacks': 0}}}
+        ratchet(budget, base)
+        with self.assertRaises(ValueError):
+            check({'valueTypeWriteBacks': 1}, {'valueTypeWriteBacks': 0})
+        budget['scenarios']['clip_drag']['valueTypeWriteBacks'] = 1
+        with self.assertRaises(ValueError):
+            ratchet(budget, base)
+
     def test_reject_missing_counter(self):
         with self.assertRaises(ValueError):
             check({}, {'objects': 10})

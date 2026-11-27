@@ -1,6 +1,7 @@
 #include "measure/StressDocument.h"
 #include "DockLayoutStore.h"
 #include "measure/ObjectCreations.h"
+#include "measure/ValueWriteBacks.h"
 #include "measure/OffscreenRhi.h"
 #include "preview/hw/HwWindow.h"
 #include <QAbstractItemModel>
@@ -34,6 +35,7 @@
 #include <QPointingDevice>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QQmlExpression>
 #include <QQuickItem>
 #include <QQuickStyle>
 #include <QQuickWindow>
@@ -63,6 +65,21 @@
 #include <string>
 #include <tuple>
 #include <vector>
+
+// UI thread only. A real gadget setter proves that field writes reach C++.
+class ValueWriteProbe : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(NoteDragValue value READ value WRITE setValue NOTIFY valueChanged)
+public:
+    using QObject::QObject;
+    NoteDragValue value() const { return m_value; }
+    void setValue(const NoteDragValue& value) { m_value = value; ++setterCalls; emit valueChanged(); }
+    int setterCalls = 0;
+signals:
+    void valueChanged();
+private:
+    NoteDragValue m_value;
+};
 
 namespace {
 
@@ -222,6 +239,19 @@ int measurementChecks() {
         children.push_back(std::move(child));
     }
     if (creations.objects - before != 5000) { return 28; }
+    qmlRegisterType<ValueWriteProbe>("VC1", 1, 0, "ValueWriteProbe");
+    QQmlComponent probe(&engine);
+    probe.setData("import VC1; ValueWriteProbe {}", QUrl());
+    std::unique_ptr<QObject> probeObject(probe.create());
+    if (!probeObject) { return 29; }
+    ValueWriteBacks writeBacks;
+    writeBacks.observe(*probeObject);
+    QQmlExpression fieldWrite(qmlContext(probeObject.get()), probeObject.get(), "value.pitch = 3");
+    fieldWrite.evaluate();
+    const bool invoked = !fieldWrite.hasError();
+    if (!invoked || writeBacks.writes != 1
+        || qobject_cast<ValueWriteProbe*>(probeObject.get())->value().pitch != 3
+        || qobject_cast<ValueWriteProbe*>(probeObject.get())->setterCalls != 1) { return 30; }
     std::printf("measurement checks passed\n");
     return 0;
 }
@@ -596,6 +626,9 @@ int main(int argc, char* argv[]) try {
         }
     }
 
+    ValueWriteBacks valueWriteBacks;
+    valueWriteBacks.observe(*root);
+    valueWriteBacks.observe(model);
     QJsonObject phases, crossingSites;
     QJsonObject counters{{"jsonParses", 0}, {"crossings", 0}, {"payloadBytes", 0},
         {"timelineSignals", 0}, {"clipSignals", 0}, {"markerSignals", 0}, {"sourceSignals", 0}, {"dataChangedRows", 0}};
@@ -884,6 +917,7 @@ int main(int argc, char* argv[]) try {
         counters["delegateCreations"] = creations.delegates;
         counters["menuItemCreations"] = creations.menus;
         counters["menuCreationRanges"] = menuCreationRanges;
+        counters["valueTypeWriteBacks"] = valueWriteBacks.writes;
         out["counters"] = counters;
         QJsonObject profJson{
             {QStringLiteral("uniqueSites"), static_cast<int>(siteMap.size())},
@@ -926,6 +960,7 @@ int main(int argc, char* argv[]) try {
     counters["menuItemCreations"] = creations.menus;
     // Profiler-only creation ranges are diagnostic, outside the work gate.
     counters.remove("menuCreationRanges");
+    counters["valueTypeWriteBacks"] = valueWriteBacks.writes;
     out["counters"] = counters;
     if (!profOutPath.isEmpty() && !enableProfile) {
         QFile output(profOutPath);
@@ -946,3 +981,5 @@ int main(int argc, char* argv[]) try {
     std::fprintf(stderr, "measurement failed: %s\n", error.what());
     return 2;
 }
+
+#include "tst_timeline_perf.moc"

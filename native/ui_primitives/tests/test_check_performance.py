@@ -19,6 +19,9 @@ class PerformanceTests(unittest.TestCase):
 
     def test_each_rule_rejects_planted_debt_then_passes_after_removal(self):
         samples = [
+            ('R6', '.hpp', 'class Bad : public QObject { Q_OBJECT QML_ELEMENT Q_PROPERTY(QVector<int> values READ values) };'),
+            ('R6', '.cpp', 'class Bad : public QObject { Q_OBJECT QML_ELEMENT Q_PROPERTY(QList<int> values READ values) };'),
+            ('R6', '.h', 'class Bad : public QObject { Q_OBJECT QML_ELEMENT Q_PROPERTY(QList<int> values READ values) };'),
             ('K11', '.qml', 'ListView { delegate: Item { required property int index } }'),
             ('R1', '.qml', 'Item { property var values: [] }'),
             ('R2', '.qml', 'Item { property int n: values.indexOf(1) }'),
@@ -82,6 +85,22 @@ class PerformanceTests(unittest.TestCase):
         '''
         self.assertEqual(check_performance.counts(text, '.h'), {})
         self.assertEqual(check_performance.counts(text, '.qml'), {})
+
+    def test_list_properties_only_count_on_qobjects(self):
+        source = """
+        struct Record { Q_GADGET Q_PROPERTY(QList<int> values MEMBER values) };
+        class Model : public QObject {
+            Q_OBJECT
+            QML_ELEMENT
+            void nested() { if (true) { run(); } }
+            Q_PROPERTY(const QList<QPair<int, int>>& values READ values)
+            Q_PROPERTY(QVector<int> vector READ vector)
+            Q_PROPERTY(QStringList strings READ strings)
+            // Q_PROPERTY(QList<int> ignored READ ignored)
+            Q_INVOKABLE QList<int> query() const;
+        };
+        """
+        self.assertEqual(check_performance.counts(source, '.h'), {'R6': 2})
 
     def test_inline_delegate_debt_counts_each_delegate(self):
         delegate = 'delegate: Item { required property int index }'
