@@ -36,7 +36,10 @@ import {
 } from "./useModelsByProvider";
 import { useModelAvailability } from "./useModelAvailability";
 import { recommendedModelKey } from "./useRecommendedModelKeys";
-import { useDefaultLanguageModelKeys } from "./useDefaultLanguageModelKeys";
+import {
+  FREE_TEXT_MODEL_KEY,
+  useDefaultLanguageModelKeys
+} from "./useDefaultLanguageModelKeys";
 
 type Seedable = {
   provider?: string | null;
@@ -72,6 +75,27 @@ export const pickSeedModel = <T extends Seedable>(
     }
   }
   return null;
+};
+
+/**
+ * True for a saved default on OpenRouter's free router that this account can
+ * no longer run. Cloud accounts were seeded onto it while the server's
+ * OpenRouter key served everyone. That key is now withheld from users and the
+ * free model is `nodetool/free`, so the old default is picked again.
+ */
+export const isStaleFreeDefault = <T extends Seedable>(
+  saved: Pick<DefaultModel, "provider" | "id"> | null | undefined,
+  models: readonly T[],
+  isAvailable: (model: T) => boolean
+): boolean => {
+  if (!saved || recommendedModelKey(saved.provider, saved.id) !== FREE_TEXT_MODEL_KEY) {
+    return false;
+  }
+  return !models.some(
+    (m) =>
+      recommendedModelKey(m.provider ?? "", m.id) === FREE_TEXT_MODEL_KEY &&
+      isAvailable(m)
+  );
 };
 
 const toDefault = (
@@ -114,7 +138,14 @@ export const useSeedDefaultModels = (): void => {
     const preferences = useModelPreferencesStore.getState();
     let seeded = false;
 
-    if (!preferences.defaults["language_model"]) {
+    if (
+      !preferences.defaults["language_model"] ||
+      isStaleFreeDefault(
+        preferences.defaults["language_model"],
+        language.models,
+        (m: LanguageModel) => getAvailability(m).available
+      )
+    ) {
       const pick = pickSeedModel(
         language.models,
         (m: LanguageModel) => getAvailability(m).available,
@@ -160,9 +191,16 @@ export const useSeedDefaultModels = (): void => {
     workflowManager
   ]);
 
-  // The chat starts on the Settings default instead of an empty choice.
+  // The chat starts on the Settings default instead of an empty choice. A chat
+  // left on the retired server-funded free router follows the default too.
   useEffect(() => {
-    if (languageDefault && !isModelSelected(selectedModel)) {
+    const onRetiredFree =
+      isModelSelected(selectedModel) &&
+      recommendedModelKey(selectedModel?.provider, selectedModel?.id) ===
+        FREE_TEXT_MODEL_KEY &&
+      recommendedModelKey(languageDefault?.provider, languageDefault?.id) !==
+        FREE_TEXT_MODEL_KEY;
+    if (languageDefault && (!isModelSelected(selectedModel) || onRetiredFree)) {
       setSelectedModel({
         type: "language_model",
         provider: languageDefault.provider,

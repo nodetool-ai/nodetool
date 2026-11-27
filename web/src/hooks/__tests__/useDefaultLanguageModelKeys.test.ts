@@ -1,6 +1,7 @@
 import type { SecretResponse } from "../../stores/ApiTypes";
 import {
   FREE_TEXT_MODEL_KEY,
+  MANAGED_FREE_TEXT_MODEL_KEY,
   defaultLanguageModelKeys,
   hasOwnLanguageKey
 } from "../useDefaultLanguageModelKeys";
@@ -53,11 +54,16 @@ describe("hasOwnLanguageKey", () => {
 describe("defaultLanguageModelKeys", () => {
   const recommended = ["anthropic:claude-sonnet-5", FREE_TEXT_MODEL_KEY];
 
-  it("puts the free router first when the user has no key", () => {
+  it("puts the managed free model, then the free router, first when the user has no key", () => {
     expect(defaultLanguageModelKeys(recommended, false)).toEqual([
+      MANAGED_FREE_TEXT_MODEL_KEY,
       FREE_TEXT_MODEL_KEY,
       "anthropic:claude-sonnet-5"
     ]);
+  });
+
+  it("routes the managed free model through the nodetool provider", () => {
+    expect(MANAGED_FREE_TEXT_MODEL_KEY).toBe("nodetool:nodetool/free");
   });
 
   it("keeps the recommended order for a user with a key", () => {

@@ -4,7 +4,10 @@
  * Every model in the curated catalog (`NODETOOL_MODELS` in
  * `@nodetool-ai/protocol`) names a delegate provider + model; this provider
  * runs the delegate on *platform-owned* keys (`NODETOOL_PLATFORM_FAL_KEY`,
- * `NODETOOL_PLATFORM_ANTHROPIC_KEY`) rather than the user's. That split is
+ * `NODETOOL_PLATFORM_ANTHROPIC_KEY`, `NODETOOL_PLATFORM_OPENROUTER_KEY`)
+ * rather than the user's. On the cloud profile this is the only way the
+ * operator funds a user's call: provider keys in the server's environment are
+ * withheld from users (`mayUseServerCredential` in `@nodetool-ai/config`). That split is
  * the whole billing model: calls through `nodetool` are metered against the
  * user's credit balance server-side, while BYOK providers keep running on the
  * user's own keys, unmetered.
@@ -47,11 +50,27 @@ import type {
 import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
 import { FalProvider } from "./fal-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
+import { OpenRouterProvider } from "./openrouter-provider.js";
 
 const PLATFORM_KEYS: Record<string, string> = {
   fal_ai: "NODETOOL_PLATFORM_FAL_KEY",
-  anthropic: "NODETOOL_PLATFORM_ANTHROPIC_KEY"
+  anthropic: "NODETOOL_PLATFORM_ANTHROPIC_KEY",
+  openrouter: "NODETOOL_PLATFORM_OPENROUTER_KEY"
 };
+
+/** A delegate provider, constructed on its platform key. */
+function platformDelegate(provider: string, key: string): BaseProvider {
+  switch (provider) {
+    case "fal_ai":
+      return new FalProvider({ FAL_API_KEY: key });
+    case "anthropic":
+      return new AnthropicProvider({ ANTHROPIC_API_KEY: key });
+    case "openrouter":
+      return new OpenRouterProvider({ OPENROUTER_API_KEY: key });
+    default:
+      throw new Error(`No platform delegate for provider "${provider}".`);
+  }
+}
 
 export class NodetoolProvider extends BaseProvider {
   private secrets: Record<string, unknown>;
@@ -116,10 +135,7 @@ export class NodetoolProvider extends BaseProvider {
           `(missing ${PLATFORM_KEYS[delegate.provider]}).`
       );
     }
-    const provider =
-      delegate.provider === "fal_ai"
-        ? new FalProvider({ FAL_API_KEY: key })
-        : new AnthropicProvider({ ANTHROPIC_API_KEY: key });
+    const provider = platformDelegate(delegate.provider, key);
     return { provider, model: delegate.model };
   }
 

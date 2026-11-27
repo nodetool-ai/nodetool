@@ -6,6 +6,8 @@ vi.mock("node:child_process", async (orig) => ({
   execFile: execFileMock
 }));
 import { setMasterKey } from "@nodetool-ai/security";
+import { isCloudProfileActive } from "@nodetool-ai/protocol";
+import { isCloudProfileEnv, registerUserCredentialKey } from "@nodetool-ai/config";
 import { initTestDb } from "../src/db.js";
 import { Secret } from "../src/secret.js";
 import { Setting } from "../src/setting.js";
@@ -38,6 +40,56 @@ describe("secret-helper", () => {
     it("returns env value when DB has no row", async () => {
       process.env.TEST_ENV_SECRET = "from-env";
       expect(await getSecret("TEST_ENV_SECRET", "user-1")).toBe("from-env");
+    });
+
+    describe("provider credentials on the cloud profile", () => {
+      const KEY = "LEAK_TEST_PROVIDER_API_KEY";
+      beforeEach(() => {
+        registerUserCredentialKey(KEY);
+        process.env[KEY] = "server-key";
+      });
+      afterEach(() => {
+        delete process.env[KEY];
+        delete process.env.NODETOOL_NODE_PROFILE;
+      });
+
+      it("withholds the server's key from a user who saved none", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        expect(await getSecret(KEY, "user-1")).toBeNull();
+        expect(await hasSecret(KEY, "user-1")).toBe(false);
+      });
+
+      it("still serves the user's own saved key", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        await Secret.upsert({ userId: "user-1", key: KEY, value: "user-key" });
+        expect(await getSecret(KEY, "user-1")).toBe("user-key");
+      });
+
+      it("falls back to the server's key off the cloud profile", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "full";
+        expect(await getSecret(KEY, "user-1")).toBe("server-key");
+      });
+
+      it("keeps the environment fallback for keys nothing registered", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        process.env.TEST_ENV_SECRET = "from-env";
+        expect(await getSecret("TEST_ENV_SECRET", "user-1")).toBe("from-env");
+      });
+
+      it("detects the cloud profile exactly as the protocol does", () => {
+        for (const [profile, env] of [
+          [undefined, undefined],
+          [undefined, "production"],
+          ["cloud", undefined],
+          ["full", "production"],
+          ["", "production"],
+          ["other", undefined]
+        ] as const) {
+          expect(
+            isCloudProfileEnv({ NODETOOL_NODE_PROFILE: profile, NODETOOL_ENV: env })
+          ).toBe(isCloudProfileActive(profile, env));
+        }
+      });
     });
 
     it("returns default when neither DB nor env has it", async () => {

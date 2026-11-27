@@ -735,7 +735,8 @@ registerBuiltinProvider(
   {},
   {
     NODETOOL_PLATFORM_FAL_KEY: "",
-    NODETOOL_PLATFORM_ANTHROPIC_KEY: ""
+    NODETOOL_PLATFORM_ANTHROPIC_KEY: "",
+    NODETOOL_PLATFORM_OPENROUTER_KEY: ""
   }
 );
 registerBuiltinProvider(PROVIDER_IDS.KIE, KieProvider, { KIE_API_KEY: "" });

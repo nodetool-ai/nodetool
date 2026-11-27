@@ -65,8 +65,16 @@ async function importHidden(specifier) {
   return typeof load === "function" ? await load() : null;
 }
 
+// The guest runs one owner's graph and never serves the cloud's users, so a
+// credential the host passes in its environment is always usable, as on a
+// desktop server. The server-side policy lives in @nodetool-ai/config.
+function registerUserCredentialKey() {}
+const mayUseServerCredential = () => true;
+
 module.exports = {
   importHidden,
+  registerUserCredentialKey,
+  mayUseServerCredential,
   importOptionalModule: importHidden,
   importNodeBuiltin: async (name) => getNodeBuiltinSync(name),
   getEnv: (key) => guestEnv()[key],
