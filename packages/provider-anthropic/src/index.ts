@@ -26,7 +26,7 @@ export class AnthropicTextProvider implements TextProvider {
       apiKey: options.apiKey,
       maxRetries: 0,
       fetch: async (input, init) => {
-        const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        const url = input instanceof Request ? input.url : String(input);
         return safeFetch(url, init, 5, transport);
       }
     };
@@ -92,13 +92,19 @@ const installedFeature: ServerFeature<InstalledAnthropicFeatureHost> = {
 
 export default installedFeature;
 
+type AnthropicProviderSource = TextProvider | ((userId: string) => TextProvider | Promise<TextProvider>);
+
+function isProviderFactory(source: AnthropicProviderSource): source is Exclude<AnthropicProviderSource, TextProvider> {
+  return typeof source === "function";
+}
+
 export interface AnthropicFeatureHost {
   readonly execution: { readonly register: (definition: CoreNodeDefinition) => void };
 }
 
 /** Register the text node only when this installed feature is explicitly configured. */
 export function createAnthropicFeature(
-  provider: TextProvider | ((userId: string) => TextProvider | Promise<TextProvider>)
+  provider: AnthropicProviderSource
 ): ServerFeature<AnthropicFeatureHost> {
   return {
     descriptor: { id: "provider-anthropic", apiVersion: 1, capabilities: ["provider:anthropic"], nodeTypes: ["anthropic.text.ChatComplete"] },
@@ -108,8 +114,8 @@ export function createAnthropicFeature(
         create: (_node, request) => ({
           process: async () => { throw new Error("Remote text nodes require streaming execution"); },
           async *genProcess(inputs, context) {
-            const selected = typeof provider === "function" ? await provider(request.userId) : provider;
-            const model = typeof inputs.model === "object" && inputs.model !== null && "id" in inputs.model ? String(inputs.model.id) : String(inputs.model ?? "");
+            const selected = isProviderFactory(provider) ? await provider(request.userId) : provider;
+            const model = inputs.model instanceof Object && "id" in inputs.model ? String(inputs.model.id) : String(inputs.model ?? "");
             let output = "";
             for await (const chunk of selected.stream({ model, messages: [{ role: "user", content: String(inputs.prompt ?? inputs.text ?? "") }], signal: context?.signal ?? request.signal })) {
               if (!chunk.done) {
