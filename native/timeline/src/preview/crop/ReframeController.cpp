@@ -35,9 +35,7 @@ void ReframeController::refresh() {
         emit mediaTracksChanged();
     }
 }
-QVariantMap ReframeController::document() const {
-    return m_model ? m_model->timeline().raw.toVariantMap() : QVariantMap{};
-}
+
 bool ReframeController::apply(const QString& action, const QJsonObject& payload) {
     finishGesture();
     return m_model && m_model->applyEdit(action, payload);

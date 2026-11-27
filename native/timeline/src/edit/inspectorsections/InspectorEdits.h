@@ -8,8 +8,6 @@ class InspectorEdits : public QObject {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* model READ model WRITE setModel NOTIFY modelChanged)
-    // The whole document as a map. Each read converts every clip: a section binds a narrow property below instead.
-    Q_PROPERTY(QVariantMap document READ document NOTIFY documentChanged)
     Q_PROPERTY(int documentReadCount READ documentReadCount)
     // While false, the narrow properties below hold their last value and no model change reaches them.
     Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
@@ -22,7 +20,6 @@ public:
     explicit InspectorEdits(QObject* parent = nullptr) : QObject(parent) {}
     TimelineModel* model() const { return m_model; }
     void setModel(TimelineModel* model);
-    QVariantMap document() const;
     int documentReadCount() const { return m_documentReadCount; }
     bool active() const { return m_active; }
     void setActive(bool active);

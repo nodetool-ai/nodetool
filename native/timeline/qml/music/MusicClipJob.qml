@@ -23,28 +23,18 @@ Item {
     // Only music clips ask for the timeline's job module.
     readonly property bool musicClip: clip.audioRole === "music" || clip.status === "queued"
     readonly property var jobs: musicClip && timeline ? MusicJobsRegistry.forTimeline(timeline) : null
-    readonly property var job: jobs ? jobs.clipJobs[clip.id] : undefined
+    readonly property var job: jobs ? jobs.clipJobs[clip.clipId] : undefined
     readonly property bool placeholder: clip.status === "queued"
-    readonly property var bands: jobs ? jobs.bands.filter(band => band.clipId === clip.id) : []
-    readonly property var activeTake: {
-        const versions = clip.versions || []
-        let byAsset = null
-        for (const take of versions) {
-            if (take.id === clip.activeTakeId && take.assetId === clip.currentAssetId) return take
-            if (!byAsset && take.assetId === clip.currentAssetId) byAsset = take
-        }
-        return byAsset
-    }
-    readonly property bool takeHeader: musicClip && !placeholder && !!activeTake
-    readonly property string takeCount: takeHeader ? TakeInfo.badge(clip) : ""
-    readonly property bool selected: !!gestures && gestures.selection.indexOf(clip.id) >= 0
+    readonly property var bands: jobs ? jobs.bands.filter(band => band.clipId === clip.clipId) : []
+    readonly property bool takeHeader: musicClip && !placeholder && clip.hasActiveTake
+    readonly property string takeCount: takeHeader ? clip.takeBadge : ""
+    readonly property bool selected: !!gestures && gestures.selection.indexOf(clip.clipId) >= 0
     // ClipBody's tint under the name band, so the header covers the clip's own name and duration.
     readonly property color bandFill: {
         const fill = clip.labelColor ? clip.labelColor : TimelineVisuals.clipFill(clip.mediaType || "audio")
         return selected ? Qt.lighter(fill, 1.18) : fill
     }
-    readonly property bool drifting: !!activeTake && !!activeTake.musicGeneration && !!activeTake.musicGeneration.alignment
-        && activeTake.musicGeneration.alignment.drifting === true
+    readonly property bool drifting: clip.activeTakeDrifting
 
     function stateText(state) {
         switch (state) {
@@ -83,7 +73,7 @@ Item {
 
     // The placeholder: hatched, its job and its state (GN-7).
     Hatch {
-        objectName: "musicPlaceholder-" + root.clip.id
+        objectName: "musicPlaceholder-" + root.clip.clipId
         visible: root.placeholder
         anchors.fill: parent
         anchors.topMargin: Ui.Metrics.xl
@@ -101,7 +91,7 @@ Item {
             domainColor: TimelineVisuals.clipText
         }
         Ui.Text {
-            objectName: "musicPlaceholderState-" + root.clip.id
+            objectName: "musicPlaceholderState-" + root.clip.clipId
             width: parent.width
             text: root.job ? root.stateText(root.job.state) : qsTr("Result undone · redo to restore")
             elide: Text.ElideRight
@@ -112,7 +102,7 @@ Item {
 
     // The name band of a music clip: the active take, its count and drift.
     Rectangle {
-        objectName: "musicTakeHeader-" + root.clip.id
+        objectName: "musicTakeHeader-" + root.clip.clipId
         visible: root.takeHeader
         x: Ui.Metrics.border
         y: Ui.Metrics.border
@@ -125,14 +115,14 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Ui.Metrics.xs
             Ui.Text {
-                objectName: "musicTakeLabel-" + root.clip.id
+                objectName: "musicTakeLabel-" + root.clip.clipId
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.activeTake ? root.activeTake.label || root.clip.name || "" : ""
+                text: root.clip.hasActiveTake ? root.clip.activeTakeLabel || root.clip.name || "" : ""
                 role: Ui.Typography.SansCaption
                 domainColor: TimelineVisuals.clipText
             }
             Rectangle {
-                objectName: "musicTakeCount-" + root.clip.id
+                objectName: "musicTakeCount-" + root.clip.clipId
                 visible: root.takeCount !== ""
                 anchors.verticalCenter: parent.verticalCenter
                 width: countLabel.implicitWidth + 2 * Ui.Metrics.xs
@@ -151,7 +141,7 @@ Item {
                 }
             }
             Rectangle {
-                objectName: "musicDrift-" + root.clip.id
+                objectName: "musicDrift-" + root.clip.clipId
                 visible: root.drifting
                 anchors.verticalCenter: parent.verticalCenter
                 width: driftLabel.implicitWidth + 2 * Ui.Metrics.xs

@@ -1016,7 +1016,7 @@ void ClipGestureController::updateTrimFeedback(const EditDoc& doc, const QJsonOb
                               {"edge", g.edge}, {"limitReason", reason}};
     if (feedback != m_trimSourceRange) {
         m_trimSourceRange = feedback;
-        emit gestureChanged();
+        emit trimSourceRangeChanged();
     }
 }
 
@@ -1093,6 +1093,7 @@ void ClipGestureController::updateMarquee() {
     for (const auto& c : g.before) { clips.push_back(c.toObject()); }
     setSelection(nt::edit::clipboard::marqueeSelection(clips, g.bandRows, left * m_view->msPerPx(),
                     (left + width) * m_view->msPerPx(), top, top + height, g.selectionAtStart));
+    emit rubberBandChanged();
     emit gestureChanged();
 }
 
@@ -1433,10 +1434,10 @@ void ClipGestureController::dropGesture() {
     clearLive();
     if (m_gesture.kind.isEmpty()) return;
     m_gesture = Gesture{};
-    m_trimSourceRange.clear();
+    if (!m_trimSourceRange.isEmpty()) { m_trimSourceRange.clear(); emit trimSourceRangeChanged(); }
     m_trackDropY = -1;
     m_trackOrder.clear();
-    m_rubberBand.clear();
+    if (!m_rubberBand.isEmpty()) { m_rubberBand.clear(); emit rubberBandChanged(); }
     setSnapGuide(-1);
     if (window() && window()->mouseGrabberItem() == this) ungrabMouse();
     emit gestureChanged();
@@ -1469,7 +1470,7 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
     }
     Gesture g = m_gesture;
     m_gesture = Gesture{};
-    m_trimSourceRange.clear();
+    if (!m_trimSourceRange.isEmpty()) { m_trimSourceRange.clear(); emit trimSourceRangeChanged(); }
     if (g.kind == u"range") {
         if (window() && window()->mouseGrabberItem() == this) { ungrabMouse(); }
         if (g.rangeHeld) {
@@ -1503,7 +1504,7 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
     }
     if (g.kind == u"marquee") {
         const bool click = !g.dragging || m_rubberBand.value("width").toDouble() <= nt::ui::DRAG_THRESHOLD_PX;
-        m_rubberBand.clear();
+        if (!m_rubberBand.isEmpty()) { m_rubberBand.clear(); emit rubberBandChanged(); }
         if (completed && click && !g.additiveSelection && !lockedTrackIds(editDoc()).contains(g.clipId)) {
             const auto gap = findGap(editDoc().clips, g.clipId, g.laneStart.x() * m_view->msPerPx());
             if (gap) {

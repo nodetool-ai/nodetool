@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run isolated stress scenarios. Gate work counters, report wall time only."""
 import argparse
+import tempfile
 import json
 import os
 from pathlib import Path
@@ -59,6 +60,34 @@ def prior_budget(path, allow_new):
                                 check=True, capture_output=True, text=True).stdout)
 
 
+def update_budget(path, scenario, counters, base):
+    # Lock a stable sibling inode: replacing the budget changes its own inode.
+    with path.with_suffix(path.suffix + '.lock').open('a') as lock:
+        if os.name == 'nt':
+            import msvcrt
+            lock.seek(0)
+            msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        budget = loads(path.read_text())
+        if base is not None:
+            ratchet(budget, base)
+        check(counters, budget['scenarios'][scenario])
+        budget['scenarios'][scenario] = counters
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, delete=False) as output:
+                temporary = Path(output.name)
+                output.write(json.dumps(budget, indent=2) + '\n')
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(temporary, path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--binary', required=True)
@@ -66,6 +95,7 @@ def main():
     parser.add_argument('--budget', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--agent', action='store_true')
+    parser.add_argument('--update', action='store_true', help='Lower this scenario to measured counters without raising a ceiling')
     parser.add_argument('--record', action='store_true', help='Print counters without enforcing ceilings')
     parser.add_argument('--base-budget', type=Path, help='Use an explicit reviewed baseline instead of git')
     parser.add_argument('--allow-new-budget', action='store_true', help='Explicit initial adoption when the path is absent from origin/main')
@@ -99,10 +129,13 @@ def main():
         return result_from(result.stdout)
 
     actual = run(False)
-    if not args.record:
-        check(actual['counters'], budget['scenarios']['agent' if args.agent else args.scenario])
+    scenario = 'agent' if args.agent else args.scenario
+    if args.update or not args.record:
+        check(actual['counters'], budget['scenarios'][scenario])
     profile = run(True)
     actual['profileSummary'] = profile.get('profileSummary', {})
+    if args.update:
+        update_budget(args.budget, scenario, actual['counters'], base)
     print(json.dumps(actual, indent=2))
 
 

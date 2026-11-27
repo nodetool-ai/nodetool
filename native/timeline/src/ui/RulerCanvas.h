@@ -7,14 +7,17 @@
 // `paintCount` lets a test check that.
 
 #include "model/TimelineModel.h"
+#include "wiring/RulerProviders.h"
 #include <QJsonValue>
 #include <QPointer>
 #include <QColor>
 #include <QFont>
 #include <QQuickPaintedItem>
 #include <QVariantList>
+#include <vector>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+// UI thread only.
 class RulerCanvas : public QQuickPaintedItem {
     Q_OBJECT
     QML_ELEMENT
@@ -48,6 +51,7 @@ public:
     QString gridDivision() const { return m_gridDivision; }
     void setGridDivision(const QString& division);
     QVariantList ticks() const;
+    std::vector<nt::wiring::RulerTick> typedTicks() const;
     double msPerPx() const { return m_msPerPx; }
     void setMsPerPx(double v);
     double scrollLeftPx() const { return m_scrollLeftPx; }

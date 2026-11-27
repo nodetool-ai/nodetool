@@ -3,6 +3,7 @@
 #include "scene/Animation.h"
 #include <QJsonDocument>
 #include <QRegularExpression>
+#include <algorithm>
 #include <array>
 #include <cmath>
 
@@ -29,9 +30,7 @@ void SpeedController::setModel(TimelineModel* model) {
     emit modelChanged();
     emit documentChanged();
 }
-QVariantMap SpeedController::document() const {
-    return m_model ? m_model->timeline().raw.toVariantMap() : QVariantMap{};
-}
+
 bool SpeedController::apply(const QString& action, const QJsonObject& payload) {
     return m_model && m_model->applyEdit(action, payload);
 }
@@ -124,4 +123,13 @@ QVariant SpeedController::parseDuration(const QString& text, double fps, double 
     }
     const double ms = std::floor(total * 1000 / std::max(1.0, fps) + 0.5);
     return std::max(0.0, sign == 0 ? ms : currentMs + sign * ms);
+}
+
+double SpeedController::clipDurationMs(const QString& id) const {
+    const auto* clip = m_model ? m_model->findClip(id) : nullptr;
+    return clip ? clip->durationMs : 0.0;
+}
+double SpeedController::clipSourceRate(const QString& id) const {
+    const auto* clip = m_model ? m_model->findClip(id) : nullptr;
+    return clip && !clip->speedBaked ? std::max(0.0001, clip->speedMultiplier) : 1.0;
 }

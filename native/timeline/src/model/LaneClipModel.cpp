@@ -3,6 +3,7 @@
 #include "model/TimelineModel.h"
 #include "ui/TimelineViewState.h"
 
+#include "takes/TakeSwitch.h"
 #include <algorithm>
 #include <limits>
 #include <unordered_set>
@@ -210,7 +211,29 @@ int LaneClipModel::rowCount(const QModelIndex& parent) const {
 QVariant LaneClipModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || index.row() < 0 || index.row() >= rowCount()) return {};
     const nt::Clip& c = *m_rows[static_cast<size_t>(index.row())];
+    const auto activeTake = [&c] {
+        QJsonObject byAsset;
+        for (const auto& value : c.raw.value("versions").toArray()) {
+            const auto take = value.toObject();
+            if (take.value("assetId") != c.raw.value("currentAssetId")) { continue; }
+            if (take.value("id") == c.raw.value("activeTakeId")) { return take; }
+            if (byAsset.isEmpty()) { byAsset = take; }
+        }
+        return byAsset;
+    };
     switch (role) {
+    case TakeBadgeRole: return nt::takes::takeBadge(c.raw);
+    case ActiveTakeLabelRole: return activeTake().value("label").toString();
+    case HasActiveTakeRole: return !activeTake().isEmpty();
+    case ActiveTakeDriftingRole: return activeTake().value("musicGeneration").toObject().value("alignment").toObject().value("drifting").toBool();
+    case LabelColorRole: return c.raw.value("labelColor").toString();
+    case LoopLengthMsRole: return c.raw.value("loopLengthMs").toDouble();
+    case SpeedMultiplierRole: return c.speedMultiplier;
+    case SpeedBakedRole: return c.speedBaked;
+    case HasEffectsRole: return !c.raw.value("effects").toArray().isEmpty();
+    case HasAnimationsRole: return !c.raw.value("animations").toArray().isEmpty();
+    case HasTimeRemapRole: return c.raw.value("timeRemap").isObject();
+    case AudioRoleRole: return c.raw.value("audioRole").toString();
     case ClipIdRole: return QString::fromStdString(c.id);
     case NameRole: return QString::fromStdString(c.name);
     case StartMsRole: return c.startMs;
@@ -241,6 +264,18 @@ QVariant LaneClipModel::data(const QModelIndex& index, int role) const {
 
 QHash<int, QByteArray> LaneClipModel::roleNames() const {
     return {
+        {LabelColorRole, "labelColor"},
+        {LoopLengthMsRole, "loopLengthMs"},
+        {SpeedMultiplierRole, "speedMultiplier"},
+        {SpeedBakedRole, "speedBaked"},
+        {HasEffectsRole, "hasEffects"},
+        {HasAnimationsRole, "hasAnimations"},
+        {HasTimeRemapRole, "hasTimeRemap"},
+        {AudioRoleRole, "audioRole"},
+        {TakeBadgeRole, "takeBadge"},
+        {ActiveTakeLabelRole, "activeTakeLabel"},
+        {HasActiveTakeRole, "hasActiveTake"},
+        {ActiveTakeDriftingRole, "activeTakeDrifting"},
         {ClipIdRole, "clipId"},
         {NameRole, "name"},
         {StartMsRole, "startMs"},

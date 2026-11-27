@@ -7,7 +7,9 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
 - Panels: `nt::app::registerPanel({slot, id, url, order, title})`, or
   `// nt-panel: slot=clipBody id=myPanel order=10 title="My panel"`.
   Slots accept `[a-z][A-Za-z0-9]*`. Refused registrations warn with the panel ID.
-- `clipBody`: receives the raw `clip` map, `timeline`, `gestures`, and `viewState`.
+- `clipBody`: receives the `ClipBody` presentation object as `clip`, plus `timeline`,
+  `gestures`, and `viewState`. Read `clip.clipId` for identity and its typed scalar
+  properties for presentation. The object is borrowed and lives with its delegate.
   The item fills each clip body. Put pointer targets on the grips you draw.
 - `toolbar`: receives `timeline`, `gestures`, `viewState`, and `compact`, after Snap.
   Set the item's implicit width and height for the horizontal layout.

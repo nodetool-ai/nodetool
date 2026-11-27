@@ -23,6 +23,29 @@ static nt::Timeline fixture() {
 class TestKeyframes : public QObject {
     Q_OBJECT
   private slots:
+    void inspectorCrossingExcludesDenseArrays() {
+        TimelineModel model;
+        auto doc = fixture();
+        auto clips = doc.raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("notes", QJsonArray{QJsonObject{{"pitch", 60}}});
+        clip.insert("controllers", QJsonArray{QJsonObject{{"value", 0.5}}});
+        clip.insert("versions", QJsonArray{QJsonObject{{"id", "take"}}});
+        clips[0] = clip;
+        doc.raw.insert("clips", clips);
+        QVERIFY(model.settleDocument(doc.raw));
+        ClipInspectorController inspector;
+        inspector.setTimeline(&model);
+        inspector.setClipId("c");
+        QCOMPARE(inspector.selectedClipId(), QString("c"));
+        QCOMPARE(inspector.clipName(), QString("Picture"));
+        QCOMPARE(inspector.durationMs(), 2000.0);
+        const auto fields = inspector.clip();
+        for (const auto* field : {"notes", "controllers", "versions"}) {
+            QVERIFY(!fields.contains(field));
+            QVERIFY(model.findClip("c")->raw.contains(field));
+        }
+    }
     void nullAnimationEasingKeepsLinearGraphFallback() {
         auto parsed = nt::parseTimelineJson(R"({"name":"Null easing","fps":30,"width":640,"height":360,
             "tracks":[{"id":"v","type":"video"}],"clips":[{"id":"c","trackId":"v","mediaType":"image",

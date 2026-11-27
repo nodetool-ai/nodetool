@@ -122,14 +122,13 @@ void RulerCanvas::paint(QPainter* painter) {
     int labels = 0;
     // The canvas strokes a 1 px line centred on the x, so it covers half a
     // pixel on each side; the same line here.
-    for (const auto& value : ticks()) {
-        const auto tick = value.toMap();
-        const bool isMajor = tick.value("major").toBool();
-        const double px = tick.value("timeMs").toDouble() / m_msPerPx - m_scrollLeftPx;
+    for (const auto& tick : typedTicks()) {
+        const bool isMajor = tick.major;
+        const double px = tick.timeMs / m_msPerPx - m_scrollLeftPx;
         painter->setPen(tickPen);
         // As in Premiere: short minor ticks and taller major ticks at the bottom.
         painter->drawLine(QPointF(px, h), QPointF(px, isMajor ? h * 0.7 : h * 0.84));
-        const auto label = tick.value("label").toString();
+        const auto label = tick.label;
         if (label.isEmpty()) { continue; }
         painter->setPen(m_text);
         const double textX = m_rulerMode == u"timecode"
@@ -193,8 +192,8 @@ void RulerCanvas::setGridDivision(const QString& division) {
     changedValue();
 }
 
-QVariantList RulerCanvas::ticks() const {
-    QVariantList result;
+std::vector<nt::wiring::RulerTick> RulerCanvas::typedTicks() const {
+    std::vector<nt::wiring::RulerTick> result;
     if (width() <= 0 || m_msPerPx <= 0) { return result; }
     nt::wiring::RulerRequest request;
     request.msPerPx = m_msPerPx;
@@ -205,6 +204,14 @@ QVariantList RulerCanvas::ticks() const {
     if (m_timeline) { request.document = m_timeline->timeline().raw; }
     for (const auto& tick : nt::wiring::rulerTicks(m_rulerMode, request)) {
         if (!std::isfinite(tick.timeMs) || tick.timeMs < request.fromMs || tick.timeMs > request.toMs) { continue; }
+        result.push_back(tick);
+    }
+    return result;
+}
+
+QVariantList RulerCanvas::ticks() const {
+    QVariantList result;
+    for (const auto& tick : typedTicks()) {
         result.append(QVariantMap{{"timeMs", tick.timeMs}, {"major", tick.major}, {"label", tick.label}});
     }
     return result;

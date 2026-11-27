@@ -11,8 +11,11 @@ Ui.Surface {
     objectName: "timelineStoryboardPanel"
     property var timeline: null
     function openResource(id) { editor.openResource(id, "storyboards") }
-    AssistController { id: documents; timeline: panel.timeline; documentOnly: true }
-    AssistController { id: picker; timeline: panel.timeline; documentOnly: true }
+    onVisibleChanged: if (visible) Qt.callLater(() => {
+        if (panel.visible && panel.timeline && editor.unlinked) editor.loadLinked()
+    })
+    AssistController { id: documents; timeline: panel.timeline; documentOnly: true; linkedResourcesActive: panel.visible }
+    AssistController { id: picker; timeline: panel.timeline; documentOnly: true; linkedResourcesActive: panel.visible }
     StoryWorkspace { id: drafts; objectName: "storyboardDrafts"; controller: documents }
     AssetBrowser { id: media; timeline: panel.timeline }
     StoryWorkspaceEditor {

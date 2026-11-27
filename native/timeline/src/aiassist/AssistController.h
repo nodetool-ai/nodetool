@@ -25,6 +25,7 @@ class AssistController : public nt::assets::TimelineMediaConsumer {
     // True after a call found no server. Panels show this as a state, not as an error.
     Q_PROPERTY(bool offline READ offline NOTIFY changed)
     Q_PROPERTY(bool documentOnly MEMBER m_documentOnly)
+    Q_PROPERTY(bool linkedResourcesActive READ linkedResourcesActive WRITE setLinkedResourcesActive NOTIFY changed)
 public:
     using MediaResolver = std::function<nt::Clip(const QJsonObject&)>;
     void setMediaResolver(MediaResolver resolver) { m_mediaResolver = std::move(resolver); }
@@ -82,6 +83,12 @@ public:
     // the scripts and storyboards that clips on this timeline link.
     Q_INVOKABLE QString draftScope() const;
     Q_INVOKABLE QVariantList linkedResources() const;
+    bool linkedResourcesActive() const { return m_linkedResourcesActive; }
+    void setLinkedResourcesActive(bool active) {
+        if (active == m_linkedResourcesActive) { return; }
+        m_linkedResourcesActive = active;
+        emit changed();
+    }
     // Merges fields into one line or speaker of the open script and saves it.
     Q_INVOKABLE bool scriptOnTimeline() const;
     Q_INVOKABLE bool updateScriptLine(const QString& lineId, const QJsonObject& fields);
@@ -99,6 +106,7 @@ private:
     bool m_busy = false;
     bool m_offline = false;
     bool m_documentOnly = false;
+    bool m_linkedResourcesActive = true;
     // native-rules #1: std::shared_ptr atomic flag shared with a worker, no justification comment
     std::shared_ptr<std::atomic_bool> m_cancelled;
     QString m_error;

@@ -68,9 +68,9 @@ Rectangle {
         controller: inspector
     }
     readonly property var clipData: { const revision = inspector.revision; return inspector.clip }
-    readonly property bool hasClip: !!clipData.id
-    readonly property real clipStartMs: clipData.startMs || 0
-    readonly property real durationMs: Math.max(1, clipData.durationMs || 0)
+    readonly property bool hasClip: inspector.selectedClipId !== ""
+    readonly property real clipStartMs: inspector.startMs
+    readonly property real durationMs: Math.max(1, inspector.durationMs)
     readonly property real fps: inspector.timeline ? inspector.timeline.fps : 30
     readonly property bool locked: inspector.locked
 

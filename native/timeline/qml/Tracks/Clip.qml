@@ -31,6 +31,20 @@ Item {
     required property double inPointMs
     required property double sourceOutMs
 
+    required property string labelColor
+    required property double loopLengthMs
+    required property double speedMultiplier
+    required property bool speedBaked
+    required property bool hasEffects
+    required property bool hasAnimations
+    required property bool hasTimeRemap
+    required property string audioRole
+    required property string status
+
+    required property string takeBadge
+    required property string activeTakeLabel
+    required property bool hasActiveTake
+    required property bool activeTakeDrifting
     property double laneHeight: TimelineMetrics.trackHeight
     property bool trackLocked: false
     property bool mutedTrack: false
@@ -64,17 +78,24 @@ Item {
     z: underGesture ? TimelineMetrics.clipBodyLayer : Ui.Metrics.layerContent
     opacity: mutedTrack ? 0.5 : 1
 
-    // JSON data from the document, controller, or shared JavaScript API.
-    property var clipData: gestures ? gestures.clipData(clipId) : ({})
-    Connections {
-        target: clipItem.gestures ? clipItem.gestures.timeline : null
-        function onClipsChanged() { if (clipItem.gestures.clipTouched(clipItem.clipId)) clipItem.clipData = clipItem.gestures.clipData(clipItem.clipId) }
-    }
-
     ClipBody {
         id: clipBody
         z: TimelineMetrics.clipBodyLayer
-        clipData: clipItem.clipData
+        takeBadge: clipItem.takeBadge
+        activeTakeLabel: clipItem.activeTakeLabel
+        hasActiveTake: clipItem.hasActiveTake
+        activeTakeDrifting: clipItem.activeTakeDrifting
+        clipId: clipItem.clipId
+        startMs: clipItem.startMs
+        labelColor: clipItem.labelColor
+        loopLengthMs: clipItem.loopLengthMs
+        speedMultiplier: clipItem.speedMultiplier
+        speedBaked: clipItem.speedBaked
+        hasEffects: clipItem.hasEffects
+        hasAnimations: clipItem.hasAnimations
+        hasTimeRemap: clipItem.hasTimeRemap
+        audioRole: clipItem.audioRole
+        status: clipItem.status
         timeline: clipItem.gestures ? clipItem.gestures.timeline : null
         gestures: clipItem.gestures
         anchors.fill: parent
@@ -113,7 +134,7 @@ Item {
     HoverHandler { id: hover }
 
     Loader {
-        active: !!clipItem.gestures && clipItem.gestures.trimSourceRange.clipId === clipItem.clipId
+        active: clipItem.clipId !== "" && !!clipItem.gestures && clipItem.gestures.trimSourceClipId === clipItem.clipId
         z: TimelineMetrics.trimHandleLayer
         sourceComponent: Item {
             id: sourceGuide
@@ -256,7 +277,7 @@ Item {
                 if (clipItem.gestures && !clipItem.selected) clipItem.gestures.selection = [clipItem.clipId]
                 if (!clipItem.clipMenu) clipItem.clipMenu = clipMenuComponent.createObject(clipItem)
                 const clock = clipItem.gestures ? clipItem.gestures.clock : null
-                clipItem.clipMenu.context = { clipId: clipItem.clipId, clip: clipItem.clipData,
+                clipItem.clipMenu.context = { clipId: clipItem.clipId, clip: clipItem.gestures ? clipItem.gestures.clipData(clipItem.clipId) : ({}),
                                      clipIds: clipItem.gestures ? clipItem.gestures.selection.slice() : [clipItem.clipId], mediaType: clipItem.mediaType,
                                      selectedIds: clipItem.gestures ? clipItem.gestures.selection : [],
                                      playheadMs: clock ? clock.time : 0,
@@ -327,7 +348,7 @@ Item {
         hoverEnabled: true
         visible: clipItem.trimHandles && !!clipItem.gestures && clipItem.gestures.keymapContext === "music"
             && clipItem.gestures.activeTool === "select" && !clipItem.interactionLocked
-            && ["audio", "midi"].includes(clipItem.mediaType) && !clipItem.clipData.timeRemap
+            && ["audio", "midi"].includes(clipItem.mediaType) && !clipItem.hasTimeRemap
         cursorShape: Qt.SizeHorCursor
         acceptedButtons: Qt.LeftButton
         // The grip shows on a hovered or selected clip and stays a hit target otherwise.

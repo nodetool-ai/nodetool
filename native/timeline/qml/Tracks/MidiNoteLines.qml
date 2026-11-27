@@ -34,9 +34,9 @@ Item {
         width: root.width
         height: Math.max(0, root.height - y)
         sourceComponent: MidiNoteLinesItem {
-            objectName: "midiNoteLines-" + root.clip.id
+            objectName: "midiNoteLines-" + root.clip.clipId
             timeline: root.timeline
-            clipId: root.clip.id || ""
+            clipId: root.clip.clipId || ""
             msPerPx: root.viewState ? root.viewState.msPerPx : 10
             visibleFromPx: Math.floor((root.scrollLeft - root.bodyX - root.step) / root.step) * root.step
             visibleToPx: Math.ceil((root.scrollLeft + root.viewportWidth - root.bodyX + root.step) / root.step) * root.step

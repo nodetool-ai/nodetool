@@ -48,18 +48,18 @@ Rectangle {
         clock: root.editor && root.visible ? root.editor.clock : null
         clipId: root.selection.length === 1 ? root.selection[0] : ""
     }
-    readonly property string mediaType: inspector.clip.mediaType || ""
+    readonly property string mediaType: inspector.mediaType || ""
     // Follow object and Smart reframe apply to any clip with a picture.
-    readonly property bool hasPicture: !!inspector.clip.id && mediaType !== "audio" && mediaType !== "midi"
+    readonly property bool hasPicture: !!inspector.selectedClipId && mediaType !== "audio" && mediaType !== "midi"
     readonly property bool hasTools: section.eligible || hasPicture
     Ui.EmptyState {
         objectName: "aiPanelEmpty"
         anchors.centerIn: parent
         visible: !root.hasTools
         maxTextWidth: Math.min(root.width - Ui.Metrics.xxl, Ui.Metrics.dialogCompactWidth)
-        title: root.selection.length > 1 ? "Several clips selected" : inspector.clip.id ? "No AI tools for this clip" : "No clip selected"
+        title: root.selection.length > 1 ? "Several clips selected" : inspector.selectedClipId ? "No AI tools for this clip" : "No clip selected"
         message: root.selection.length > 1 ? "Select one clip to generate from it."
-            : inspector.clip.id ? "Select a video or image clip, or a generated audio clip." : "Select a clip on the timeline to generate from it or edit it with AI."
+            : inspector.selectedClipId ? "Select a video or image clip, or a generated audio clip." : "Select a clip on the timeline to generate from it or edit it with AI."
     }
     Flickable {
         id: viewport

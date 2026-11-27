@@ -92,9 +92,10 @@ class ClipGestureController : public QQuickItem {
     // Goes up when the live list of a move changes (liveStartMs).
     Q_PROPERTY(int liveRevision READ liveRevision NOTIFY liveChanged)
     Q_PROPERTY(double trackDropY READ trackDropY NOTIFY gestureChanged)
-    Q_PROPERTY(QVariantMap rubberBand READ rubberBand NOTIFY gestureChanged)
+    Q_PROPERTY(QVariantMap rubberBand READ rubberBand NOTIFY rubberBandChanged)
     Q_PROPERTY(QVariantMap selectedGap READ selectedGap NOTIFY selectionChanged)
-    Q_PROPERTY(QVariantMap trimSourceRange READ trimSourceRange NOTIFY gestureChanged)
+    Q_PROPERTY(QString trimSourceClipId READ trimSourceClipId NOTIFY trimSourceRangeChanged)
+    Q_PROPERTY(QVariantMap trimSourceRange READ trimSourceRange NOTIFY trimSourceRangeChanged)
     Q_PROPERTY(QVariantMap toolPreview READ toolPreview NOTIFY toolPreviewChanged)
     // The edge E and the keyboard trims act on: {clipId, edge}, or empty.
     Q_PROPERTY(QVariantMap selectedEdit READ selectedEdit NOTIFY selectionChanged)
@@ -158,6 +159,7 @@ public:
     double trackDropY() const { return m_trackDropY; }
     QVariantMap rubberBand() const { return m_rubberBand; }
     QVariantMap selectedGap() const { return m_selectedGap; }
+    QString trimSourceClipId() const { return m_trimSourceRange.value("clipId").toString(); }
     QVariantMap trimSourceRange() const { return m_trimSourceRange; }
     QVariantMap toolPreview() const { return m_toolPreview; }
     Q_INVOKABLE QVariantMap toolPreviewForClip(const QString& id) const { return m_toolPreview.value("clipId").toString()==id || m_toolPreview.value("clipIds").toStringList().contains(id) ? m_toolPreview : QVariantMap{}; }
@@ -239,6 +241,8 @@ signals:
     void selectionChanged();
     void optionsChanged();
     void gestureChanged();
+    void trimSourceRangeChanged();
+    void rubberBandChanged();
     void liveChanged();
     void snapGuideChanged();
     void toolPreviewChanged();

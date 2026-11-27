@@ -16,6 +16,14 @@ class ClipInspectorController : public QObject {
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(PlaybackClock* clock READ clock WRITE setClock NOTIFY playheadChanged)
     Q_PROPERTY(QString clipId READ clipId WRITE setClipId NOTIFY changed)
+    Q_PROPERTY(QString selectedClipId READ selectedClipId NOTIFY changed)
+    Q_PROPERTY(QString clipName READ clipName NOTIFY changed)
+    Q_PROPERTY(QString mediaType READ mediaType NOTIFY changed)
+    Q_PROPERTY(double startMs READ startMs NOTIFY changed)
+    Q_PROPERTY(double durationMs READ durationMs NOTIFY changed)
+    Q_PROPERTY(double clipWidth READ clipWidth NOTIFY changed)
+    Q_PROPERTY(double clipHeight READ clipHeight NOTIFY changed)
+    Q_PROPERTY(bool hasAnimations READ hasAnimations NOTIFY changed)
     Q_PROPERTY(QVariantMap clip READ clip NOTIFY changed)
     // Changes with `clip`, for a binding that must rerun on an edit but needs no copy of the clip.
     Q_PROPERTY(int revision READ revision NOTIFY changed)
@@ -35,6 +43,14 @@ class ClipInspectorController : public QObject {
     void setTimeline(TimelineModel* model);
     void setClock(PlaybackClock* clock);
     void setClipId(const QString& id);
+    QString selectedClipId() const { return m_clip.value("id").toString(); }
+    QString clipName() const { return m_clip.value("name").toString(); }
+    QString mediaType() const { return m_clip.value("mediaType").toString(); }
+    double startMs() const { return m_clip.value("startMs").toDouble(); }
+    double durationMs() const { return m_clip.value("durationMs").toDouble(); }
+    double clipWidth() const { return m_clip.value("width").toDouble(); }
+    double clipHeight() const { return m_clip.value("height").toDouble(); }
+    bool hasAnimations() const { return !m_clip.value("animations").toArray().isEmpty(); }
     QVariantMap clip() const;
     int revision() const { return m_revision; }
     int preparedRowCount() const { return m_preparedRowCount; }

@@ -590,8 +590,7 @@
     "R1": 5
   },
   "native/timeline/qml/Inspector/SpeedDurationDialog.qml": {
-    "R1": 4,
-    "R2": 1
+    "R1": 3
   },
   "native/timeline/qml/Inspector/SpeedTimeRemap.qml": {
     "R1": 7
@@ -680,10 +679,10 @@
     "R1": 1
   },
   "native/timeline/qml/Tracks/Clip.qml": {
-    "R1": 3
+    "R1": 2
   },
   "native/timeline/qml/Tracks/ClipBody.qml": {
-    "R1": 3,
+    "R1": 2,
     "R5-canvas": 1
   },
   "native/timeline/qml/Tracks/ClipFadeGrips.qml": {
@@ -1024,7 +1023,7 @@
     "R1": 4
   },
   "native/timeline/qml/music/MusicClipJob.qml": {
-    "R1": 9,
+    "R1": 8,
     "R2": 2
   },
   "native/timeline/qml/music/MusicContextBracket.qml": {
@@ -1351,7 +1350,7 @@
     "R1": 4
   },
   "native/timeline/src/edit/inspectorsections/InspectorEdits.h": {
-    "R3": 2
+    "R3": 1
   },
   "native/timeline/src/edit/inspectorsections/InspectorSectionRegistry.h": {
     "R3": 1
@@ -1376,13 +1375,7 @@
   "native/timeline/src/edit/sourceEdit/SourceViewerState.h": {
     "R3": 3
   },
-  "native/timeline/src/edit/speed/SpeedController.h": {
-    "R3": 1
-  },
   "native/timeline/src/edit/tracks/TrackHeaderActions.h": {
-    "R3": 1
-  },
-  "native/timeline/src/edit/transitions/TransitionController.h": {
     "R3": 1
   },
   "native/timeline/src/edit/trim/TrimMode.h": {
@@ -1463,7 +1456,7 @@
     "R3": 1
   },
   "native/timeline/src/preview/crop/ReframeController.h": {
-    "R3": 3
+    "R3": 2
   },
   "native/timeline/src/preview/gizmo/TransformGizmoController.h": {
     "R3": 2,

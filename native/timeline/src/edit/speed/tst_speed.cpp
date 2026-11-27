@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "edit/clipboard/ClipboardOps.h"
 #include "SpeedController.h"
 #include "SpeedOperations.h"
@@ -62,6 +63,64 @@ QJsonObject keyframe(double t, double source, const QString& easing = {}) {
 class TestSpeed : public QObject {
     Q_OBJECT
   private slots:
+    void hiddenStoryboardDiscoversItsLinkWhenShown() {
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(document());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        auto clip = model.findClip("c")->raw;
+        clip.insert("storyboardBoardId", "board");
+        QVERIFY(model.patchClips({clip}));
+        TestAssetCacheRoot cache;
+        QQmlEngine engine;
+        cache.install(engine);
+        QQmlComponent component(&engine);
+        component.setData("import NodeTool.Timeline; StoryboardPanel { visible: false }", QUrl());
+        auto panel = std::unique_ptr<QObject>(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)}}));
+        QVERIFY2(panel, qPrintable(component.errorString()));
+        auto* editor = findItem(qobject_cast<QQuickItem*>(panel.get()), "storyWorkspaceEditor");
+        QVERIFY(editor);
+        QQuickWindow window;
+        window.resize(640, 480);
+        qobject_cast<QQuickItem*>(panel.get())->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QTRY_VERIFY(editor->property("unlinked").toBool());
+        panel->setProperty("visible", true);
+        QTRY_VERIFY(!editor->property("unlinked").toBool());
+    }
+    void waveformSourceRateStaysPositive() {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData("import NodeTool.Timeline; ClipBody { speedMultiplier: 0 }", QUrl());
+        auto body = std::unique_ptr<QObject>(component.create());
+        QVERIFY2(body, qPrintable(component.errorString()));
+        QCOMPARE(body->property("sourceRate").toDouble(), 0.0001);
+        body->setProperty("speedMultiplier", -2);
+        QCOMPARE(body->property("sourceRate").toDouble(), 0.0001);
+        body->setProperty("speedBaked", true);
+        QCOMPARE(body->property("sourceRate").toDouble(), 1.0);
+    }
+    void timingQueriesStayNarrowAndFollowEdits() {
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(document());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        SpeedController controller;
+        controller.setModel(&model);
+        const auto id = QString::fromStdString(model.timeline().clips.front().id);
+        auto clip = model.findClip(id)->raw;
+        clip.insert("speedMultiplier", 2);
+        QVERIFY(model.patchClips({clip}));
+        QCOMPARE(controller.clipDurationMs(id), model.findClip(id)->durationMs);
+        QCOMPARE(controller.clipSourceRate(id), 2.0);
+        clip.insert("speedBaked", true);
+        QVERIFY(model.patchClips({clip}));
+        QCOMPARE(controller.clipSourceRate(id), 1.0);
+        QCOMPARE(controller.clipDurationMs("missing"), 0.0);
+        QCOMPARE(controller.clipSourceRate("missing"), 1.0);
+        QVERIFY(controller.metaObject()->indexOfProperty("document") < 0);
+    }
     void dialogEnterAppliesTheActiveDraft_data() {
         QTest::addColumn<QString>("field");
         QTest::addColumn<QString>("draft");
@@ -205,6 +264,42 @@ class TestSpeed : public QObject {
         for (int i = 0; i < 1000; ++i) {
             QCOMPARE(output[2 * i], i >= 250 && i < 500 ? 0.5f : 0.0f);
             QCOMPARE(output[2 * i + 1], output[2 * i]);
+        }
+    }
+    void sourceEdgeKeepsDcForRingAndOffline() {
+        auto parsed = nt::parseTimelineJson(document());
+        QVERIFY(parsed.timeline);
+        auto& timeline = *parsed.timeline;
+        timeline.clips.resize(1);
+        auto& clip = timeline.clips[0];
+        clip.startMs = clip.inPointMs = 0;
+        clip.durationMs = 4;
+        clip.speedMultiplier = 2;
+        std::array<float, 256> input;
+        input.fill(0.5f);
+        for (int first : {0, 124}) {
+            clip.inPointMs = first;
+            const auto plan = nt::audio::buildMixPlan(timeline);
+            nt::audio::PcmRing ring(256, 0);
+            QCOMPARE(ring.write(input.data(), 128), 128);
+            ring.markEnd(128);
+            for (bool streaming : {false, true}) {
+                nt::audio::VoicePcm pcm;
+                if (streaming) {
+                    pcm.ring = &ring;
+                } else {
+                    pcm.linear = input.data();
+                    pcm.linearCount = 128;
+                }
+                std::array<float, 8> output{};
+                nt::audio::MixStats stats;
+                nt::audio::mixBlock(plan, &pcm, 1000, 0, 1, 4, output.data(), stats);
+                for (int i = 0; i < 4; ++i) {
+                    QCOMPARE(output[2 * i], first + 2 * i < 128 ? 0.5f : 0.0f);
+                    QCOMPARE(output[2 * i + 1], output[2 * i]);
+                }
+                QCOMPARE(stats.underruns, 0);
+            }
         }
     }
     void speedShiftsPitch() {

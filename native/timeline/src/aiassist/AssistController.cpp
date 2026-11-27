@@ -556,7 +556,7 @@ QString AssistController::draftScope() const {
 }
 QVariantList AssistController::linkedResources() const {
     QVariantList result;
-    if (!m_model) { return result; }
+    if (!m_linkedResourcesActive || !m_model) { return result; }
     QSet<QString> seen;
     for (const auto& value : m_model->timeline().raw.value("clips").toArray()) {
         const auto clip = value.toObject();
