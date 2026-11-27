@@ -9350,6 +9350,14 @@
         "antigravity": {
           "description": "Esegue ricerche Google tramite la CLI di Antigravity su questo computer. Nessuna chiave: accedi eseguendo agy una volta.",
           "keyLink": "Configura la CLI di Antigravity"
+        },
+        "codex": {
+          "description": "Esegue la ricerca web di OpenAI con il tuo accesso ChatGPT per Codex. Nessuna chiave API.",
+          "keyLink": "Accedi a Codex in Modelli e provider"
+        },
+        "claude": {
+          "description": "Cerca sul web tramite la CLI di Claude Code su questo computer, con il tuo abbonamento Claude. Nessuna chiave: accedi eseguendo claude una volta.",
+          "keyLink": "Configura Claude Code"
         }
       }
     },

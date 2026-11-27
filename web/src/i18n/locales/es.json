@@ -9350,6 +9350,14 @@
         "antigravity": {
           "description": "Ejecuta búsquedas de Google con la CLI de Antigravity en este equipo. No necesita clave: inicia sesión ejecutando agy una vez.",
           "keyLink": "Configurar la CLI de Antigravity"
+        },
+        "codex": {
+          "description": "Ejecuta la búsqueda web de OpenAI con tu inicio de sesión de ChatGPT para Codex. No necesita clave de API.",
+          "keyLink": "Inicia sesión en Codex en Modelos y proveedores"
+        },
+        "claude": {
+          "description": "Busca en la web con la CLI de Claude Code en este equipo, con tu suscripción de Claude. No necesita clave: inicia sesión ejecutando claude una vez.",
+          "keyLink": "Configurar Claude Code"
         }
       }
     },

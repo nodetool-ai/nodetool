@@ -70,6 +70,7 @@ async function fetchHttpOrNull(uri) {
 
 export { isToolCall, isProviderStop } from "guest-real:@nodetool-ai/runtime/providers/types.js";
 export { generateStructured } from "guest-real:@nodetool-ai/runtime/providers/structured-output.js";
+export { runNativeWebSearch } from "guest-real:@nodetool-ai/runtime/providers/native-web-search.js";
 export { parseWithTypeCoercion } from "@nodetool-ai/protocol/zod-schema";
 export { budgetFromContext, createRunBudget } from "guest-real:@nodetool-ai/runtime/turn-budget.js";
 export { BaseProvider } from "guest-real:@nodetool-ai/runtime/providers/base-provider.js";

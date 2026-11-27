@@ -9206,6 +9206,14 @@
         "antigravity": {
           "description": "Führt Google-Suchen über die Antigravity-CLI auf diesem Rechner aus. Kein Schlüssel nötig: Melde dich an, indem du agy einmal startest.",
           "keyLink": "Antigravity-CLI einrichten"
+        },
+        "codex": {
+          "description": "Führt die OpenAI-Websuche mit deiner ChatGPT-Anmeldung für Codex aus. Kein API-Schlüssel nötig.",
+          "keyLink": "Unter Modelle & Anbieter bei Codex anmelden"
+        },
+        "claude": {
+          "description": "Sucht im Web über die Claude-Code-CLI auf diesem Rechner, mit deinem Claude-Abo. Kein Schlüssel nötig: Melde dich an, indem du claude einmal startest.",
+          "keyLink": "Claude Code einrichten"
         }
       }
     },

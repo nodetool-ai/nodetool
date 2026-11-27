@@ -84,7 +84,7 @@ describe("the SERP provider set", () => {
 
   it("names every supported provider when asked for an unknown one", async () => {
     await expect(createSerpProvider("bing", anySecret)).rejects.toThrow(
-      /Supported: .*openai, gemini, antigravity/
+      /Supported: .*openai, gemini, antigravity, codex, claude/
     );
   });
 });

@@ -9206,6 +9206,14 @@
         "antigravity": {
           "description": "このマシンの Antigravity CLI で Google 検索を実行します。キーは不要です。agy を一度実行してサインインしてください。",
           "keyLink": "Antigravity CLI をセットアップ"
+        },
+        "codex": {
+          "description": "Codex 用の ChatGPT サインインで OpenAI のウェブ検索を実行します。API キーは不要です。",
+          "keyLink": "モデルとプロバイダーで Codex にサインイン"
+        },
+        "claude": {
+          "description": "このマシンの Claude Code CLI で、Claude のサブスクリプションを使ってウェブ検索します。キーは不要です。claude を一度実行してサインインしてください。",
+          "keyLink": "Claude Code をセットアップ"
         }
       }
     },

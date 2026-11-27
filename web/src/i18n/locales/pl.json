@@ -9494,6 +9494,14 @@
         "antigravity": {
           "description": "Wyszukuje w Google przez Antigravity CLI na tym komputerze. Klucz nie jest potrzebny: zaloguj się, uruchamiając raz agy.",
           "keyLink": "Skonfiguruj Antigravity CLI"
+        },
+        "codex": {
+          "description": "Wyszukuje w sieci przez OpenAI, korzystając z logowania ChatGPT do Codex. Klucz API nie jest potrzebny.",
+          "keyLink": "Zaloguj się do Codex w Modele i dostawcy"
+        },
+        "claude": {
+          "description": "Wyszukuje w sieci przez Claude Code CLI na tym komputerze, w ramach subskrypcji Claude. Klucz nie jest potrzebny: zaloguj się, uruchamiając raz claude.",
+          "keyLink": "Skonfiguruj Claude Code"
         }
       }
     },

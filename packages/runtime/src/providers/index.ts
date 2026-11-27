@@ -611,6 +611,11 @@ export type {
   ASRResult
 } from "./types.js";
 export {
+  runNativeWebSearch,
+  type NativeWebSearchResult,
+  type NativeWebSource
+} from "./native-web-search.js";
+export {
   applyEntityReferences,
   injectEntityDescriptors
 } from "./entity-references.js";

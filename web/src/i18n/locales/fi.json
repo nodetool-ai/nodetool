@@ -9206,6 +9206,14 @@
         "antigravity": {
           "description": "Hakee Googlesta tämän koneen Antigravity-komentorivityökalulla. Avainta ei tarvita: kirjaudu sisään ajamalla agy kerran.",
           "keyLink": "Ota Antigravity-komentorivityökalu käyttöön"
+        },
+        "codex": {
+          "description": "Hakee verkosta OpenAI:n haulla ChatGPT-kirjautumisellasi Codexiin. API-avainta ei tarvita.",
+          "keyLink": "Kirjaudu Codexiin kohdassa Mallit ja palveluntarjoajat"
+        },
+        "claude": {
+          "description": "Hakee verkosta tämän koneen Claude Code -komentorivityökalulla Claude-tilauksellasi. Avainta ei tarvita: kirjaudu sisään ajamalla claude kerran.",
+          "keyLink": "Ota Claude Code käyttöön"
         }
       }
     },

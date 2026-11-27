@@ -9206,6 +9206,14 @@
         "antigravity": {
           "description": "이 컴퓨터의 Antigravity CLI로 Google 검색을 실행합니다. 키가 필요 없습니다. agy를 한 번 실행해 로그인하세요.",
           "keyLink": "Antigravity CLI 설정"
+        },
+        "codex": {
+          "description": "Codex용 ChatGPT 로그인으로 OpenAI 웹 검색을 실행합니다. API 키가 필요 없습니다.",
+          "keyLink": "모델 및 공급자에서 Codex에 로그인"
+        },
+        "claude": {
+          "description": "이 컴퓨터의 Claude Code CLI로 Claude 구독을 사용해 웹을 검색합니다. 키가 필요 없습니다. claude를 한 번 실행해 로그인하세요.",
+          "keyLink": "Claude Code 설정"
         }
       }
     },
