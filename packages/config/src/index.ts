@@ -15,6 +15,8 @@ export {
   resetEnvironment
 } from "./environment.js";
 
+export { parseEnvFile, type EnvPairs } from "./env-file.js";
+
 export { getByteLimitEnv } from "./byte-limits.js";
 
 export {

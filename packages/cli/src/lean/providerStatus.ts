@@ -70,7 +70,7 @@ export const KEYED_PROVIDERS: readonly ProviderCredential[] = [
 ];
 
 /** Names a vendor's own SDK reads, accepted like the runtime registry does. */
-const CREDENTIAL_ALIASES: Readonly<Record<string, readonly string[]>> = { FAL_API_KEY: ["FAL_KEY"] };
+export const CREDENTIAL_ALIASES: Readonly<Record<string, readonly string[]>> = { FAL_API_KEY: ["FAL_KEY"] };
 
 /** Providers that an installed pack registers, keyed by pack id. */
 const PACK_PROVIDERS: readonly { readonly id: string; readonly name: string; readonly pack: string }[] = [

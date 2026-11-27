@@ -235,7 +235,7 @@ describe("lean execution CLI", () => {
   it("explains how to supply an API key when none is configured", async () => {
     const directory = await mkdtemp(join(tmpdir(), "nodetool-lean-nokey-"));
     try {
-      await expect(createProgram({ env: { DB_PATH: join(directory, "nodetool.sqlite3"), NODETOOL_DATA_DIR: directory } }).parseAsync(["node", "nodetool", "text", "hi"])).rejects.toThrow("export OPENAI_API_KEY");
+      await expect(createProgram({ env: { DB_PATH: join(directory, "nodetool.sqlite3"), NODETOOL_DATA_DIR: directory } }).parseAsync(["node", "nodetool", "text", "hi"])).rejects.toThrow(/OPENAI_API_KEY is not set: .*add OPENAI_API_KEY=\.\.\. to \.\/\.env/);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it("prefers the stored tenant secret over the environment key", async () => {

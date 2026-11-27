@@ -16,6 +16,11 @@ import {
   resetKeytarLoader
 } from "../src/master-key.js";
 
+const HEADLESS_HINT =
+  "On a machine without a keychain (a headless server or container), set SECRETS_MASTER_KEY instead: " +
+  "export it, or add it to ~/.nodetool/.env, which the nodetool CLI loads at startup. " +
+  "`nodetool env check` shows where each variable comes from.";
+
 describe("keychain access errors", () => {
   beforeEach(() => {
     clearMasterKeyCache();
@@ -41,7 +46,8 @@ describe("keychain access errors", () => {
     expect((error as Error).name).toBe("KeychainAccessError");
     expect((error as Error).message).toBe(
       "Unable to read master key from system keychain: Keychain locked. " +
-        "Allow NodeTool access to the system keychain when prompted."
+        "Allow NodeTool access to the system keychain when prompted. " +
+        HEADLESS_HINT
     );
   });
 
@@ -57,7 +63,8 @@ describe("keychain access errors", () => {
     expect(error).toBeInstanceOf(KeychainAccessError);
     expect((error as Error).message).toBe(
       "Unable to store master key in system keychain: Access denied. " +
-        "Allow NodeTool access to the system keychain when prompted."
+        "Allow NodeTool access to the system keychain when prompted. " +
+        HEADLESS_HINT
     );
   });
 });
