@@ -59,7 +59,9 @@ import {
 } from "@nodetool-ai/timeline";
 import type {
   TimelineOpBakeModel3DRequest,
-  TimelineOpBakeModel3DResult
+  TimelineOpBakeModel3DResult,
+  TimelineOpRenderModel3DReferenceRequest,
+  TimelineOpRenderModel3DReferenceResult
 } from "@nodetool-ai/timeline/ops";
 import {
   applyTimelineOp,
@@ -280,6 +282,11 @@ export type TimelineModel3DBaker = (
   request: TimelineOpBakeModel3DRequest
 ) => Promise<TimelineOpBakeModel3DResult>;
 
+/** Renders one 3D clip's span as a grey reference video and stores it. */
+export type TimelineModel3DReferenceRenderer = (
+  request: TimelineOpRenderModel3DReferenceRequest
+) => Promise<TimelineOpRenderModel3DReferenceResult>;
+
 /** Case-supplied starting point for a run. */
 export interface TimelineBridgeInitialState {
   fps?: number;
@@ -322,6 +329,12 @@ export interface TimelineBridgeInitialState {
    * rather than stamping a bake nothing produced.
    */
   bakeModel3DClip?: TimelineModel3DBaker;
+  /**
+   * Render `ui_timeline_render_model3d_reference` in the headless 3D host and
+   * store the video. Without one the op reports that this surface has no
+   * renderer.
+   */
+  renderModel3DReference?: TimelineModel3DReferenceRenderer;
   /**
    * Resolve a composition for `ui_timeline_insert_composition`, and report the
    * ids this host offers so a bad one can name the alternatives. Without one
@@ -582,6 +595,7 @@ export function createTimelineToolBridge(
   const resolveAsset = initial.resolveAsset;
   const bakeAnimation = initial.bakeAnimation;
   const bakeModel3DClip = initial.bakeModel3DClip;
+  const renderModel3DReference = initial.renderModel3DReference;
   const loadComposition = initial.loadComposition;
   const retargetFormat = initial.retargetFormat;
   const generateTransition = initial.generateTransition;
@@ -1235,6 +1249,7 @@ export function createTimelineToolBridge(
     decodeClipAudio: initial.decodeClipAudio,
     bakeAnimation,
     bakeModel3DClip,
+    renderModel3DReference,
     loadComposition,
     parseSvgPath,
     stepPatternLibrary:
@@ -1325,8 +1340,16 @@ export function createTimelineToolBridge(
       editOp("set_model3d_style", args)
     ),
 
+    sharedTool("ui_timeline_apply_model3d_camera_move", async (args) =>
+      editOp("apply_model3d_camera_move", args)
+    ),
+
     sharedTool("ui_timeline_bake_model3d_clip", async (args) =>
       editOp("bake_model3d_clip", args)
+    ),
+
+    sharedTool("ui_timeline_render_model3d_reference", async (args) =>
+      editOp("render_model3d_reference", args)
     ),
 
     sharedTool("ui_timeline_generate_clip", async (args) =>

@@ -167,7 +167,8 @@ export const MODEL3D_CAMERA_MOVE_SAMPLES = 24;
 
 const DEG = Math.PI / 180;
 /** A dolly never reaches the target: the eye stops at 5% of the distance. */
-const MAX_DOLLY_FRACTION = 0.95;
+export const MODEL3D_MAX_DOLLY_FRACTION = 0.95;
+const MAX_DOLLY_FRACTION = MODEL3D_MAX_DOLLY_FRACTION;
 const MAX_TILT_ELEVATION_DEG = 89;
 const MIN_FOV_DEG = 1;
 const MAX_FOV_DEG = 170;

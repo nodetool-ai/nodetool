@@ -154,6 +154,11 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Rank impact signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/agent-impact.mjs "$RUNNER_TEMP/agent-impact.md"
+
       - name: Run Claude Code
         if: env.FLAKES_FOUND == '1'
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
@@ -164,7 +169,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing. Open the PR with the label agent:flaky-test-fixer (gh pr create --label agent:flaky-test-fixer). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
+            --append-system-prompt "Read .github/agent-routines.md before you pick a target and follow it: rank candidates by the signals in ${{ runner.temp }}/agent-impact.md, fix every instance of the theme in the module you choose, and start the PR body with an Impact section. Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing. Open the PR with the label agent:flaky-test-fixer (gh pr create --label agent:flaky-test-fixer). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Root-Cause a Flaky Test
 
@@ -175,7 +180,10 @@ jobs:
               randomized order (`jest --randomize`,
               `vitest --sequence.shuffle`).
 
-            Pick **one** flaky test and fix what makes it non-deterministic.
+            Pick the flake that costs CI the most (the most retried runs in
+            `ci-flakes.log`) and fix what makes it non-deterministic. When other
+            flakes share that cause, such as one store nobody resets or one
+            shared port, fix all of them in this PR.
 
             ## Reproduce it first
             A flake you cannot reproduce is a flake you cannot claim to have
@@ -224,7 +232,8 @@ jobs:
             fix the product code and say so — that race reaches users too.
 
             ## Rules
-            - One flake per PR. Maximum 8 files.
+            - One cause of flakiness per PR, with every test it breaks fixed.
+              No file cap.
             - Show the failure rate before and after, from an actual loop.
             - Do not touch CI workflow files.
 

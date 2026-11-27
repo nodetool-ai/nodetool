@@ -30,6 +30,7 @@ import type {
 import type { ActiveLayer } from "@nodetool-ai/timeline/scene";
 import type {
   Model3DRenderFrame,
+  Model3DRenderPass,
   Model3DSessionOptions
 } from "@nodetool-ai/video-nodes/nodes/model3d/render3d-core";
 
@@ -116,6 +117,8 @@ export interface Model3DPrerendererOptions {
   /** Pixel size of each rendered layer — the frame's, as a raster layer's is. */
   width: number;
   height: number;
+  /** What every frame of the pass draws. `beauty` when absent. */
+  pass?: Model3DRenderPass;
   /** The pass's asset reader, so a GLB is fetched once for the whole pass. */
   loadAsset: (assetId: string) => Promise<Uint8Array | null>;
 }
@@ -147,12 +150,17 @@ export class Model3DPrerenderer {
       group = { assetId, options: session, frames: [], keys: [] };
       this.groups.set(id, group);
     }
-    group.frames.push({
+    const frame: Model3DRenderFrame = {
       timeSec,
       camera,
       width: this.options.width,
       height: this.options.height
-    });
+    };
+    // Left off a beauty frame so the request is the one it always was.
+    if (this.options.pass && this.options.pass !== "beauty") {
+      frame.pass = this.options.pass;
+    }
+    group.frames.push(frame);
     group.keys.push(key);
   }
 

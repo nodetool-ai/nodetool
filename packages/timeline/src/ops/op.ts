@@ -20,6 +20,8 @@ import type {
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import type { ClipFadeShape } from "../audioFade.js";
 import type { ClipModel3DStylePatch } from "../authoredStyles.js";
+import type { Model3DCameraMoveId } from "../model3dCameraMoves.js";
+import type { Model3DReferencePass } from "../model3dReference.js";
 import type {
   ClipAudioEffect,
   ClipCrop,
@@ -140,6 +142,27 @@ export interface SetModel3DStyleOp {
   op: "set_model3d_style";
   target: string;
   patch: ClipModel3DStylePatch;
+  /**
+   * Clip-relative time. When set, the camera pose in the patch is written as
+   * keyframes of the free camera at this time and the resting pose stays.
+   */
+  keyAtMs?: number;
+  /** With `keyAtMs`: easing of the segment that arrives at the key. */
+  keyEasing?: string;
+}
+
+/** Key a camera move preset onto a 3D clip's free camera. */
+export interface ApplyModel3DCameraMoveOp {
+  op: "apply_model3d_camera_move";
+  target: string;
+  move: Model3DCameraMoveId;
+  /** In the move's unit. The move's default when absent. */
+  amount?: number;
+  /** Clip-relative start. 0 when absent. */
+  startMs?: number;
+  /** Length of the move. The rest of the clip when absent. */
+  durationMs?: number;
+  easing?: string;
 }
 
 /**
@@ -153,6 +176,18 @@ export interface SetModel3DStyleOp {
 export interface BakeModel3DClipOp {
   op: "bake_model3d_clip";
   target: string;
+}
+
+/**
+ * Render a 3D clip's span as a grey reference video and store it on the clip
+ * (Blockout 3D). The reference is what a video model follows when a linked
+ * storyboard shot is generated. It is never drawn on the timeline.
+ */
+export interface RenderModel3DReferenceOp {
+  op: "render_model3d_reference";
+  target: string;
+  /** What each frame draws. `clay` when absent. */
+  pass?: Model3DReferencePass;
 }
 
 export type AddGroupOp = { op: "add_group" } & AddGroupParams;
@@ -604,7 +639,9 @@ export type TimelineOp =
   | AddShapeClipOp
   | AddModel3DClipOp
   | SetModel3DStyleOp
+  | ApplyModel3DCameraMoveOp
   | BakeModel3DClipOp
+  | RenderModel3DReferenceOp
   | AddGroupOp
   | GenerateClipOp
   | SplitClipOp
@@ -697,7 +734,9 @@ export const TIMELINE_OP_NAMES = [
   "add_shape_clip",
   "add_model3d_clip",
   "set_model3d_style",
+  "apply_model3d_camera_move",
   "bake_model3d_clip",
+  "render_model3d_reference",
   "add_group",
   "generate_clip",
   "split_clip",

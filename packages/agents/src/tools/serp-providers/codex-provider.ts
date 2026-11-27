@@ -9,7 +9,7 @@
  */
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
-import type { ModelSearchAnswer } from "./model-search.js";
+import { searchByAnswer, type ModelSearchAnswer } from "./model-search.js";
 
 /** The part of `CodexProvider` a search needs. */
 export interface CodexSearchClient {
@@ -56,10 +56,11 @@ export class CodexSearchProvider implements SerpProvider {
    * The cited pages as a ranked result list. The search tool takes no result
    * count, so `numResults` truncates what came back.
    */
-  async search(query: string, options?: SearchOptions): Promise<SearchResult[]> {
-    const { citations } = await this.answer(query);
-    const n = options?.numResults;
-    return n === undefined ? citations : citations.slice(0, n);
+  async search(
+    query: string,
+    options?: SearchOptions
+  ): Promise<SearchResult[]> {
+    return searchByAnswer(this, query, options?.numResults);
   }
 
   async searchRaw(query: string): Promise<unknown> {

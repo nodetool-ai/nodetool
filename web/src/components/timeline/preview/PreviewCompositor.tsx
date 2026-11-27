@@ -635,6 +635,23 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     model3dSource.revive();
     return () => model3dSource.dispose();
   }, [model3dSource]);
+  // A set saved from the model editor keeps its asset id, so the pool has to
+  // be told to load the model again.
+  const seenModel3dRevisions = useRef(assetRevisions);
+  useEffect(() => {
+    const previous = seenModel3dRevisions.current;
+    seenModel3dRevisions.current = assetRevisions;
+    let changed = false;
+    for (const [assetId, revision] of Object.entries(assetRevisions)) {
+      if (previous[assetId] !== revision) {
+        model3dSource.invalidateAsset(assetId);
+        changed = true;
+      }
+    }
+    if (changed) {
+      setModel3dVersion((v) => v + 1);
+    }
+  }, [assetRevisions, model3dSource]);
 
   /**
    * The pose an orbit gesture is mid-way through, before it is written to the

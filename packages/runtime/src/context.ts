@@ -312,6 +312,8 @@ export type ProviderCapability =
   | "render_model3d"
   /** A timeline 3D clip rendered to video through Blender (design §D6). */
   | "bake_model3d_clip"
+  /** A timeline 3D clip's span rendered as a grey reference video (Blockout 3D). */
+  | "render_model3d_reference"
   /**
    * Subject/object tracking through a clip's source (P0 AI Video, Phase 2):
    * an initial box plus a direction in, samples of the subject's position out

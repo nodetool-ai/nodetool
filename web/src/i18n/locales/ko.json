@@ -2831,7 +2831,11 @@
         "rotation": "회전",
         "orbit": "궤도",
         "fieldOfView": "시야",
-        "zoom": "줌"
+        "zoom": "줌",
+        "cameraPosition": "위치",
+        "cameraTarget": "타깃",
+        "cameraLens": "렌즈",
+        "cameraRoll": "롤"
       },
       "inputs": {
         "opacity": "불투명도",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "카메라 방위각",
         "cameraElevation": "카메라 고도",
         "cameraFieldOfView": "카메라 시야",
-        "cameraZoom": "카메라 줌"
+        "cameraZoom": "카메라 줌",
+        "cameraPositionX": "카메라 위치 X",
+        "cameraPositionY": "카메라 위치 Y",
+        "cameraPositionZ": "카메라 위치 Z",
+        "cameraTargetX": "카메라 타깃 X",
+        "cameraTargetY": "카메라 타깃 Y",
+        "cameraTargetZ": "카메라 타깃 Z",
+        "cameraLens": "카메라 렌즈(밀리미터)",
+        "cameraRoll": "카메라 롤(도)"
       },
       "easing": {
         "linear": "선형",
@@ -5682,7 +5694,35 @@
           "bakeFailed": "3D 클립 굽기에 실패했습니다.",
           "loadingModel": "모델 로드 중…",
           "unavailable": "이용 불가",
-          "missingName": "{{name}}(누락)"
+          "missingName": "{{name}}(누락)",
+          "free": "자유",
+          "keyCamera": "카메라 키 설정",
+          "keyCameraHelp": "재생 헤드 위치에서 모든 카메라 채널에 키프레임을 추가합니다",
+          "cameraMove": "카메라 무브",
+          "addCameraMove": "카메라 무브 추가",
+          "move": "무브",
+          "moveAmount": "양",
+          "moveDuration": "길이",
+          "moveAmountDegrees": "양은 각도입니다.",
+          "moveAmountDistance": "양은 카메라에서 타깃까지 거리의 비율입니다.",
+          "moveAmountFactor": "양은 초점 거리에 곱하는 배율입니다.",
+          "moveStartsAt": "무브는 {{time}}에서 시작합니다.",
+          "applyMove": "무브 추가",
+          "freeCameraHelp": "미리보기에서 Alt를 누른 채 드래그하면 궤도를 돌고, Shift를 더하면 옆으로 이동하고, 스크롤하면 앞뒤로 이동하며, 스크롤할 때 Ctrl을 더하면 렌즈가 바뀝니다.",
+          "editSet": "세트 편집",
+          "editSetHelp": "이 클립의 3D 모델을 모델 편집기에서 엽니다",
+          "moves": {
+            "pan": "팬",
+            "tilt": "틸트",
+            "orbit": "오비트",
+            "pushIn": "푸시 인",
+            "truck": "트럭",
+            "crane": "크레인",
+            "pedestal": "페데스탈",
+            "zoom": "줌",
+            "dollyZoom": "달리 줌",
+            "dutch": "더치 앵글"
+          }
         },
         "reframe": {
           "title": "스마트 리프레임",
@@ -12926,7 +12966,10 @@
       "speechTextPrompt": "말할 텍스트를 입력하고 Enter 키를 누르세요…",
       "templates": "템플릿",
       "upload3dAsset": "먼저 {{formats}} 에셋을 업로드하세요.",
-      "useOutput": "{{name}} 출력 사용"
+      "useOutput": "{{name}} 출력 사용",
+      "blockoutSet": "블록아웃 세트",
+      "blockoutSetDescription": "빈 3D 세트를 만들고 자유 카메라로 촬영합니다",
+      "addBlockoutSet": "블록아웃 세트 클립 추가"
     },
     "preview": {
       "autoQuality": "자동({{quality}})",
@@ -17045,7 +17088,8 @@
         "Keyframes & source": "키프레임 및 소스",
         "Zoom & view": "확대/축소 및 보기",
         "Workspaces": "작업공간",
-        "History": "기록"
+        "History": "기록",
+        "3D camera (3D clip selected)": "3D 카메라(3D 클립 선택 시)"
       },
       "rows": {
         "selectTool": "도구 선택",
@@ -17196,7 +17240,12 @@
         "panelScript": "스크립트로 이동",
         "panelStoryboard": "스토리보드로 이동",
         "nextPanel": "다음 패널로 이동",
-        "prevPanel": "이전 패널로 이동"
+        "prevPanel": "이전 패널로 이동",
+        "keyCamera": "재생 헤드 위치에서 자유 3D 카메라 키 설정",
+        "camera3dOrbit": "카메라 궤도 회전",
+        "camera3dTruck": "자유 카메라와 타깃을 옆으로 이동",
+        "camera3dDolly": "카메라를 앞뒤로 이동",
+        "camera3dLens": "자유 카메라의 렌즈 변경"
       }
     },
     "vst": {
@@ -21463,6 +21512,60 @@
       "embedAgain": "다시 임베딩",
       "rebuild": "색인 다시 만들기",
       "providerHint": "프로바이더 모델을 쓰려면 위에서 프로바이더와 모델을 설정하세요. 해당 프로바이더로 보낼 구절: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "클레이",
+        "hint": "고정 조명으로 음영을 준 회색 형태. 모델이 카메라와 배치를 따르고 모든 표면을 만들어 냅니다"
+      },
+      "depth": {
+        "label": "깊이",
+        "hint": "카메라로부터의 거리만. 모델이 모든 표면을 만들어 냅니다"
+      },
+      "normal": {
+        "label": "노멀",
+        "hint": "표면 방향만. 모델이 형태를 유지하고 재질을 만들어 냅니다"
+      }
+    },
+    "reference": {
+      "label": "레퍼런스",
+      "pass": "레퍼런스 패스",
+      "render": "레퍼런스 렌더링",
+      "renderAgain": "다시 렌더링",
+      "cancel": "취소",
+      "cancelProgress": "취소 ({{done}}/{{total}})",
+      "play": "레퍼런스 재생",
+      "hide": "레퍼런스 숨기기",
+      "stale": "레퍼런스가 오래되었습니다",
+      "playerLabel": "블록아웃 레퍼런스",
+      "failed": "레퍼런스 렌더링 실패"
+    },
+    "shot": {
+      "label": "샷",
+      "pickerLabel": "이 블록아웃이 배치하는 샷",
+      "none": "연결되지 않음",
+      "elsewhere": "타임라인의 다른 위치에 있는 샷",
+      "noCandidates": "이 클립과 겹치는 샷 클립이 없습니다. 연결하려면 샷의 클립 아래에 배치하세요.",
+      "help": "연결된 샷의 테이크는 이 클립의 레퍼런스로 생성됩니다."
+    },
+    "shotPanel": {
+      "title": "블록아웃",
+      "clip": "블록아웃 클립",
+      "none": "없음",
+      "noCandidates": "블록아웃으로 사용하려면 이 샷의 클립 아래에 3D 클립을 배치하세요.",
+      "help": "다음 테이크는 연결된 3D 클립의 카메라와 배치를 따릅니다.",
+      "camera": "카메라: {{move}}",
+      "selectClip": "클립 선택",
+      "selectClipTooltip": "타임라인에서 블록아웃 클립 선택",
+      "takeStale": "이전 블록아웃으로 만든 테이크",
+      "rendering": "블록아웃 레퍼런스 렌더링 중",
+      "renderingProgress": "블록아웃 레퍼런스 렌더링 중 ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "블록아웃의 레퍼런스 영상이 프롬프트와 함께 이 모델로 전송됩니다. 없거나 오래된 경우 먼저 렌더링됩니다.",
+      "promptOnly": "이 모델은 레퍼런스 영상을 받지 않습니다. 회색 렌더는 전송되지 않으며, 카메라 움직임이 프롬프트에 텍스트로 추가됩니다: {{move}}"
     }
   }
 }

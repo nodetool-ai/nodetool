@@ -194,6 +194,14 @@ describe("physical-key matching (macOS and US layouts)", () => {
     ).toBe("nextKeyframe");
   });
 
+  it("fires Option+C as key camera in both presets", () => {
+    for (const preset of TIMELINE_KEYBOARD_PRESETS) {
+      expect(
+        resolveTimelineAction(ev("ç", { altKey: true, code: "KeyC" }), preset)
+      ).toBe("keyCamera");
+    }
+  });
+
   it("fires Final Cut Shift+, and Option+, from their physical key", () => {
     expect(
       resolveTimelineAction(ev("<", { shiftKey: true, code: "Comma" }), "fcp")

@@ -7,6 +7,8 @@
  *   - Takes: every rendered take of the shot. Picking one makes it the shot's
  *     clip, and the cut follows (`useLinkedShotTakes`). `New take` renders
  *     another with a model picked in the same dialog the board uses.
+ *   - Blockout: the 3D clip that stages the shot (`ShotBlockoutSection`). Its
+ *     grey reference render goes to the video model with the next take.
  *   - Shot: the shot form (`TimelineShotForm`), the fields a take renders from.
  *   - Derived shot: a new shot referenced on frames of this clip
  *     (`DerivedShotSection`), on a new track above it.
@@ -25,6 +27,7 @@ import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import CallSplitOutlinedIcon from "@mui/icons-material/CallSplitOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
+import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 
 import {
   useTimelineStore,
@@ -65,6 +68,8 @@ import {
 import { usePersistedFold } from "../Inspector/usePersistedFold";
 import TimelineShotForm from "./TimelineShotForm";
 import DerivedShotSection from "./DerivedShotSection";
+import ShotBlockoutSection from "./ShotBlockoutSection";
+import { useShotBlockout } from "../../../hooks/timeline/useShotBlockout";
 
 /** Whether a clip plays a storyboard shot's take. */
 export const isShotClip = (
@@ -132,6 +137,11 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
   const [takesOpen, setTakesOpen] = usePersistedFold("shot-takes", true);
   const [formOpen, setFormOpen] = usePersistedFold("shot-form", true);
   const [deriveOpen, setDeriveOpen] = usePersistedFold("shot-derive", false);
+  const [blockoutOpen, setBlockoutOpen] = usePersistedFold(
+    "shot-blockout",
+    true
+  );
+  const blockout = useShotBlockout(boardId, shot.id);
   const [renderStep, setRenderStep] = useState<ShotRenderStep | null>(null);
 
   const generating = isShotGenerating(shot);
@@ -255,6 +265,31 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
           </FlexColumn>
         </CollapsibleSection>
 
+        {clip.mediaType === "video" && (
+          <>
+            <InspectorDivider />
+            <CollapsibleSection
+              title={
+                <InspectorSectionTitle
+                  title={t("blockout3d.shotPanel.title")}
+                  icon={<ViewInArOutlinedIcon />}
+                />
+              }
+              open={blockoutOpen}
+              onToggle={setBlockoutOpen}
+            >
+              <FlexColumn sx={{ py: SPACING.sm }}>
+                <ShotBlockoutSection
+                  clip={clip}
+                  boardId={boardId}
+                  shot={shot}
+                  blockout={blockout}
+                />
+              </FlexColumn>
+            </CollapsibleSection>
+          </>
+        )}
+
         <InspectorDivider />
 
         <CollapsibleSection
@@ -298,6 +333,7 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
           shot={shot}
           step={renderStep}
           onClose={closeRender}
+          blockout={blockout ?? undefined}
         />
       )}
     </ScrollArea>

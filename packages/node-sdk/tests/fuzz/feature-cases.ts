@@ -102,6 +102,19 @@ const META: Record<string, Partial<NodeMetadata>> = {
     properties: [prop("next", "str"), prop("condition", "bool")] as never,
     outputs: [{ name: "output", type: { type: "str" } }] as never
   },
+  "nodetool.control.ForEach": {
+    properties: [prop("input_list", "list")] as never,
+    outputs: [{ name: "output", type: { type: "str" } }] as never
+  },
+  "nodetool.control.Collect": {
+    is_streaming_input: true,
+    properties: [prop("input_item", "str")] as never,
+    outputs: [{ name: "output", type: { type: "list" } }] as never
+  },
+  "nodetool.output.Output": {
+    properties: [prop("value", "str")] as never,
+    outputs: [] as never
+  },
   "nodetool.workflows.base_node.Comment": {
     properties: [] as never,
     outputs: [] as never
@@ -467,6 +480,36 @@ export const FEATURE_GRAPHS: readonly SeedGraph[] = [
         edge("l2", "src", "output", "wiredCode", "code"),
         edge("l3", "linked", "out", "sink", "prompt"),
         edge("l4", "linked", "__output__", "sink", "negative")
+      ]
+    }
+  },
+  {
+    id: "stream-into-output",
+    graph: {
+      nodes: [
+        node("each", "nodetool.control.ForEach"),
+        node("each2", "nodetool.control.ForEach"),
+        node("relay", "feat.Dyn"),
+        node("relayB", "feat.Dyn"),
+        node("collect", "nodetool.control.Collect"),
+        node("direct", "nodetool.output.Output"),
+        node("viaRelay", "nodetool.output.Output"),
+        node("collected", "nodetool.output.Output"),
+        node("unrelated", "nodetool.output.Output"),
+        node("ghost", "nodetool.output.Output")
+      ],
+      edges: [
+        edge("s1", "each", "output", "direct", "value"),
+        edge("s2", "each", "output", "relay", "a"),
+        edge("s3", "relay", "output", "viaRelay", "value"),
+        edge("s4", "each", "output", "relayB", "a"),
+        edge("s5", "relayB", "output", "viaRelay", "value"),
+        edge("s6", "each", "output", "collect", "input_item"),
+        edge("s7", "collect", "output", "collected", "value"),
+        edge("s8", "each2", "output", "direct", "value"),
+        edge("s9", "relay", "output", "each", "input_list"),
+        edge("s10", "", "output", "ghost", "value"),
+        edge("s11", "each", "output", "", "value")
       ]
     }
   }

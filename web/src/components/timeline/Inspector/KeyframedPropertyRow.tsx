@@ -74,7 +74,11 @@ type RowLabelKey =
   | "i18n-cont-inspector-02.keyframes.properties.rotation"
   | "i18n-cont-inspector-02.keyframes.properties.orbit"
   | "i18n-cont-inspector-02.keyframes.properties.fieldOfView"
-  | "i18n-cont-inspector-02.keyframes.properties.zoom";
+  | "i18n-cont-inspector-02.keyframes.properties.zoom"
+  | "i18n-cont-inspector-02.keyframes.properties.cameraPosition"
+  | "i18n-cont-inspector-02.keyframes.properties.cameraTarget"
+  | "i18n-cont-inspector-02.keyframes.properties.cameraLens"
+  | "i18n-cont-inspector-02.keyframes.properties.cameraRoll";
 
 const ROW_LABEL_KEYS: Readonly<Record<string, RowLabelKey>> = {
   opacity: "i18n-cont-inspector-02.keyframes.properties.opacity",
@@ -83,7 +87,11 @@ const ROW_LABEL_KEYS: Readonly<Record<string, RowLabelKey>> = {
   rotation: "i18n-cont-inspector-02.keyframes.properties.rotation",
   cameraOrbit: "i18n-cont-inspector-02.keyframes.properties.orbit",
   cameraFov: "i18n-cont-inspector-02.keyframes.properties.fieldOfView",
-  cameraZoom: "i18n-cont-inspector-02.keyframes.properties.zoom"
+  cameraZoom: "i18n-cont-inspector-02.keyframes.properties.zoom",
+  cameraPosition: "i18n-cont-inspector-02.keyframes.properties.cameraPosition",
+  cameraTarget: "i18n-cont-inspector-02.keyframes.properties.cameraTarget",
+  cameraLens: "i18n-cont-inspector-02.keyframes.properties.cameraLens",
+  cameraRoll: "i18n-cont-inspector-02.keyframes.properties.cameraRoll"
 } as const;
 
 type InputLabelKey =
@@ -96,7 +104,15 @@ type InputLabelKey =
   | "i18n-cont-inspector-02.keyframes.inputs.cameraAzimuth"
   | "i18n-cont-inspector-02.keyframes.inputs.cameraElevation"
   | "i18n-cont-inspector-02.keyframes.inputs.cameraFieldOfView"
-  | "i18n-cont-inspector-02.keyframes.inputs.cameraZoom";
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraZoom"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraPositionX"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraPositionY"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraPositionZ"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraTargetX"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraTargetY"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraTargetZ"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraLens"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraRoll";
 
 const INPUT_LABEL_KEYS: Readonly<Record<string, InputLabelKey>> = {
   Opacity: "i18n-cont-inspector-02.keyframes.inputs.opacity",
@@ -108,7 +124,15 @@ const INPUT_LABEL_KEYS: Readonly<Record<string, InputLabelKey>> = {
   "Camera azimuth": "i18n-cont-inspector-02.keyframes.inputs.cameraAzimuth",
   "Camera elevation": "i18n-cont-inspector-02.keyframes.inputs.cameraElevation",
   "Camera field of view": "i18n-cont-inspector-02.keyframes.inputs.cameraFieldOfView",
-  "Camera zoom": "i18n-cont-inspector-02.keyframes.inputs.cameraZoom"
+  "Camera zoom": "i18n-cont-inspector-02.keyframes.inputs.cameraZoom",
+  "Camera position X": "i18n-cont-inspector-02.keyframes.inputs.cameraPositionX",
+  "Camera position Y": "i18n-cont-inspector-02.keyframes.inputs.cameraPositionY",
+  "Camera position Z": "i18n-cont-inspector-02.keyframes.inputs.cameraPositionZ",
+  "Camera target X": "i18n-cont-inspector-02.keyframes.inputs.cameraTargetX",
+  "Camera target Y": "i18n-cont-inspector-02.keyframes.inputs.cameraTargetY",
+  "Camera target Z": "i18n-cont-inspector-02.keyframes.inputs.cameraTargetZ",
+  "Camera lens": "i18n-cont-inspector-02.keyframes.inputs.cameraLens",
+  "Camera roll": "i18n-cont-inspector-02.keyframes.inputs.cameraRoll"
 } as const;
 
 /** Pointer travel (px) before a press on a diamond becomes a drag. */
@@ -401,14 +425,18 @@ interface InputProps {
 }
 
 const KeyframedInput: React.FC<InputProps> = memo(
-  ({ clip, input, atMs, disabled, onCommit }) => {
+  ({ clip, row, input, atMs, disabled, onCommit }) => {
     const { t } = useTranslation();
     const scale = input.displayScale ?? 1;
-    const value = inputValueAt(clip, input, atMs) * scale;
+    const stored = inputValueAt(clip, input, atMs);
+    const value = input.display
+      ? input.display.toDisplay(stored)
+      : stored * scale;
     const handleCommit = useCallback(
       (raw: string) => {
         const n = parseFiniteNumber(raw);
-        if (n !== null) onCommit(input, n / scale);
+        if (n === null) return;
+        onCommit(input, input.display ? input.display.fromDisplay(n) : n / scale);
       },
       [input, onCommit, scale]
     );
@@ -416,7 +444,7 @@ const KeyframedInput: React.FC<InputProps> = memo(
       <InspectorPillInput
         value={value.toFixed(input.decimals)}
         unit={input.unit}
-        minWidth={64}
+        minWidth={row.inputs.length > 2 ? 48 : 64}
         scrub={input.scrub}
         onCommit={handleCommit}
         disabled={disabled}

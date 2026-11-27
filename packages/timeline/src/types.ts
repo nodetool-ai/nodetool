@@ -398,6 +398,18 @@ export interface ClipModel3DStyle {
    * it stale and the live 3D layer draws again.
    */
   bake?: { assetId: string; dependencyHash: string };
+  /**
+   * A grey render of this clip's span, kept as a video asset that a video
+   * model follows when a storyboard shot is generated (Blockout 3D). It is
+   * never drawn on the timeline. `dependencyHash` is
+   * `computeModel3DReferenceHash` at render time, so an edit to the set, the
+   * camera or the span marks it stale.
+   */
+  reference?: {
+    assetId: string;
+    dependencyHash: string;
+    pass: "clay" | "depth" | "normal";
+  };
 }
 
 /**

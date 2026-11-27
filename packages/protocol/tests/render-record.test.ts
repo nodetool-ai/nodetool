@@ -5,6 +5,7 @@ import { productionRequirement } from "../src/production-authoring.js";
 import {
   currentRenderInputs,
   entityConditioningHash,
+  isBlockoutTakeStale,
   isVersionStale,
   shotStaleness,
   stampRenderInputs,
@@ -521,5 +522,68 @@ describe("camera preset freshness", () => {
     const version = { type: "video" as const, asset_id: "v1", render_inputs: stampRenderInputs(currentRenderInputs(target, BOARD, "clip")) };
     expect(isVersionStale(version, target, BOARD)).toBe(false);
     expect(isVersionStale(version, { ...target, camera: { preset_ids: ["camera.dolly-in", "camera.steadicam"] } }, BOARD)).toBe(true);
+  });
+});
+
+describe("blockout provenance", () => {
+  const HASH = "0123456789abcdef";
+  const boardWithBlockout: BoardRenderContext = {
+    ...BOARD,
+    blockout_reference_hash: HASH
+  };
+
+  it("records the blockout hash on a clip render and never on a still", () => {
+    const shot = makeShot();
+    expect(
+      currentRenderInputs(shot, boardWithBlockout, "clip").blockout_reference_hash
+    ).toBe(HASH);
+    expect(
+      currentRenderInputs(shot, boardWithBlockout, "keyframe")
+        .blockout_reference_hash
+    ).toBeUndefined();
+    expect(
+      currentRenderInputs(shot, BOARD, "clip").blockout_reference_hash
+    ).toBeUndefined();
+  });
+
+  it("marks a take out of date only when its recorded blockout hash differs", () => {
+    const shot = makeShot();
+    const take = {
+      type: "video" as const,
+      asset_id: "asset-clip-blockout",
+      render_inputs: stampRenderInputs(
+        currentRenderInputs(shot, boardWithBlockout, "clip")
+      )
+    };
+    expect(isBlockoutTakeStale(take, HASH)).toBe(false);
+    expect(isBlockoutTakeStale(take, "fedcba9876543210")).toBe(true);
+    // The blockout was unlinked: nothing to be out of date against.
+    expect(isBlockoutTakeStale(take, undefined)).toBe(false);
+  });
+
+  it("never marks a take that was not generated from a blockout", () => {
+    const shot = makeShot();
+    const plain = {
+      type: "video" as const,
+      asset_id: "asset-clip-plain",
+      render_inputs: stampRenderInputs(currentRenderInputs(shot, BOARD, "clip"))
+    };
+    expect(isBlockoutTakeStale(plain, HASH)).toBe(false);
+    expect(isBlockoutTakeStale({ type: "video", asset_id: "upload" }, HASH)).toBe(
+      false
+    );
+    expect(isBlockoutTakeStale(null, HASH)).toBe(false);
+  });
+
+  it("leaves storyboard staleness alone, which has no timeline to compare", () => {
+    const shot = makeShot();
+    const take = {
+      type: "video" as const,
+      asset_id: "asset-clip-blockout",
+      render_inputs: stampRenderInputs(
+        currentRenderInputs(shot, boardWithBlockout, "clip")
+      )
+    };
+    expect(isVersionStale(take, shot, BOARD)).toBe(false);
   });
 });

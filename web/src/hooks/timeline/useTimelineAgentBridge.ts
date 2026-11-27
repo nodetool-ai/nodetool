@@ -122,6 +122,7 @@ import { getAssetUrl } from "../../utils/assetHelpers";
 import { persistAdaptedTimeline } from "./useCreateFormatAdaptation";
 import { decodeAssetAudio } from "./useDetectClipBeats";
 import { useModel3DBake } from "./useModel3DBake";
+import { useBlockoutReference } from "./useBlockoutReference";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 
 const KIND_TO_MODEL_KIND = {
@@ -786,6 +787,7 @@ export const useTimelineAgentBridge = (
   const playback = useTimelinePlaybackStoreApi();
   const { start: startDirectGen, startEdit } = useTimelineDirectGenJob();
   const { bakeClip } = useModel3DBake();
+  const { renderReferenceAsset } = useBlockoutReference();
 
   const handler = useMemo<TimelineAgentHandler>(() => {
     const stateOf = (): TimelineOpState => {
@@ -889,6 +891,10 @@ export const useTimelineAgentBridge = (
           },
           stepPatternLibrary: createBrowserStepPatternLibrary(),
           pluginHost: createBrowserPluginHost(),
+          // The browser renders a Blockout reference itself, through the
+          // three.js session the preview uses.
+          renderModel3DReference: (request) =>
+            renderReferenceAsset(request.clip, request.sequence, request.pass),
           ...opContextOverrides
         };
         if (
@@ -2008,6 +2014,7 @@ export const useTimelineAgentBridge = (
     startDirectGen,
     startEdit,
     bakeClip,
+    renderReferenceAsset,
     sequenceId,
     opContextOverrides
   ]);

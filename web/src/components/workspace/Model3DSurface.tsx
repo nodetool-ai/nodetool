@@ -6,6 +6,7 @@ import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { useAssetById } from "../../serverState/useAssetById";
 import { useAssetStore } from "../../stores/AssetStore";
+import { useAssetRevisionStore } from "../../stores/AssetRevisionStore";
 import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
@@ -199,6 +200,9 @@ const Model3DSurface = ({ refId, mode, active, tab }: Model3DSurfaceProps) => {
         drafts.setSaving(documentTabId, false);
       }
       invalidateQueries(["asset", asset.id]);
+      // The bytes changed under the same id: timeline clips drawing this
+      // model load it again.
+      useAssetRevisionStore.getState().bump(asset.id);
       if (asset.parent_id) {
         invalidateQueries(["assets", { parent_id: asset.parent_id }]);
       }

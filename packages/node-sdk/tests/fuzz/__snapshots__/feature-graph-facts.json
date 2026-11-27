@@ -611,5 +611,14 @@
     "version": 1
    }
   ]
+ },
+ {
+  "id": "stream-into-output",
+  "models": [],
+  "providers": [],
+  "sites": [],
+  "missing": [],
+  "silent": [],
+  "links": []
  }
 ]

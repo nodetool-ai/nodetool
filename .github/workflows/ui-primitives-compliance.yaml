@@ -8,9 +8,8 @@ name: UI Primitives & Design Tokens
 #      sizes, or off-grid spacing. Use SPACING / TYPOGRAPHY / BORDER_RADIUS /
 #      MOTION / Z_INDEX.
 #
-# There is a large existing backlog, so this migrates a small, verified batch
-# per run rather than trying to fix everything at once. Reporting + a focused
-# PR — it never auto-merges.
+# There is a large existing backlog, so each run migrates one whole feature
+# directory, the one users see most, and opens a PR. It never auto-merges.
 
 on:
   schedule:
@@ -93,6 +92,11 @@ jobs:
 
           echo "DS_ISSUES=$ISSUES" >> $GITHUB_ENV
 
+      - name: Rank impact signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/agent-impact.mjs "$RUNNER_TEMP/agent-impact.md"
+
       - name: Run Claude Code
         if: env.DS_ISSUES == '1'
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
@@ -103,7 +107,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing. Open the PR with the label agent:ui-primitives-compliance (gh pr create --label agent:ui-primitives-compliance). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
+            --append-system-prompt "Read .github/agent-routines.md before you pick a target and follow it: rank candidates by the signals in ${{ runner.temp }}/agent-impact.md, fix every instance of the theme in the module you choose, and start the PR body with an Impact section. Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing. Open the PR with the label agent:ui-primitives-compliance (gh pr create --label agent:ui-primitives-compliance). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Migrate to UI Primitives & Design Tokens
 
@@ -138,13 +142,13 @@ jobs:
             - Do not touch `ui_primitives/` or `editor_ui/` internals (they are
               allowed to use raw MUI).
             - Do not touch CI workflow files.
-            - Keep changes focused — maximum 10 files per PR. Pick a coherent
-              batch (e.g. one feature directory) so review is easy.
+            - Migrate one feature directory completely per PR: every raw MUI
+              import and design-token violation in it. No file cap.
 
             ## Before starting
             - Run `gh pr list --state open --limit 20` — skip if a primitives/design
               PR is already open.
-            - Pick 5-10 files with the most violations or in one area.
+            - Pick the feature directory users see most, ranked by impact.
 
             ## Verification
             After changes, all checks must still pass:

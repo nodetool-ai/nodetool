@@ -15,6 +15,7 @@
  */
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
+import { searchByAnswer } from "./model-search.js";
 
 /**
  * The reasoning model that runs the `web_search` tool, at its default effort.
@@ -204,11 +205,7 @@ export class OpenAiSearchProvider implements SerpProvider {
     query: string,
     options?: SearchOptions
   ): Promise<SearchResult[]> {
-    const { citations } = await this.answer(query);
-    const numResults = options?.numResults;
-    return numResults === undefined
-      ? citations
-      : citations.slice(0, numResults);
+    return searchByAnswer(this, query, options?.numResults);
   }
 
   async searchRaw(query: string): Promise<unknown> {

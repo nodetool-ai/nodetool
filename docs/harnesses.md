@@ -848,6 +848,38 @@ Two fields on a 3D layer's report say what the pixels do not:
   times `animation.speed`. It is not the timeline time, so a trimmed or retimed
   clip's animation is readable from the report.
 
+`pass` picks what a 3D layer draws: `beauty` (default, the clip's own
+lighting), `clay` (one grey matte material under a fixed light), `depth` or
+`normal`. Only the 3D renderer has passes. With any pass but `beauty`, every
+other layer draws as usual and is reported as a `render_pass_not_applied`
+degradation, and a baked 3D clip is drawn live so the pass applies to it. A
+3D layer's report carries the `pass` it drew. Several `times_ms` with
+`pass: "clay"` and `sheet: true` give one contact sheet of a blockout.
+
+A blockout is a `model3d` clip with a `free` camera. `edit_timeline` sets and
+keys that camera with `set_model3d_style` (`keyAtMs`, lens as `focalLengthMm`
+or `fovDeg`), keys a move preset with `apply_model3d_camera_move`, and renders
+the grey reference video with `render_model3d_reference`. The
+`timeline-model3d` harness runs
+`packages/agents/tests/timeline-blockout-path.test.ts`, which drives set,
+free camera, moves and clay frames in one pass. The design is
+[Blockout 3D](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/blockout-3d.md).
+
+`render_model3d_reference` takes `target` and an optional `pass` (`clay`,
+`depth` or `normal`, default `clay`). The server draws the clip's span through
+the headless three.js host with a fixed light on an opaque neutral background,
+whatever lighting and background the clip has, encodes the frames to H.264 MP4
+in process, stores the video as an asset and writes
+`model3dStyle.reference` (`assetId`, `dependencyHash`, `pass`). The result
+carries `reference`, `referenceRendered` and `cameraMove`, a sentence that
+describes the keyed move. A reference whose hash still matches the clip is
+returned without a render. The browser tool
+`ui_timeline_render_model3d_reference` runs the same op and renders in the
+page. From a shell, `nodetool timeline reference <timeline_id> <clip>` runs it
+against the local database ([CLI flags](cli.md#nodetool-timeline-reference-timeline_id-clip)).
+Its suite is `packages/agents/tests/capabilities-timeline-reference.test.ts`,
+which reads frames back out of the stored video.
+
 A clip whose bake is still current draws as a video layer instead, which the
 decoder seeks by clip-local time; a hash that no longer matches puts the live
 3D layer back. The pre-pass is
