@@ -243,7 +243,7 @@ it("keeps the consolidated document tree and utility views in the mobile tab row
       "Chats",
       "Files",
       "Library",
-      "Entities",
+      "References",
       "Examples",
       "More"
     ]
@@ -403,7 +403,7 @@ it("lists the active project's entities from the rail", async () => {
   const user = userEvent.setup();
   renderPanel();
 
-  await user.click(screen.getByLabelText("Entities"));
+  await user.click(screen.getByLabelText("References"));
   expect(screen.getByTestId("entity-list")).toHaveAttribute(
     "data-project-id",
     "project-a"

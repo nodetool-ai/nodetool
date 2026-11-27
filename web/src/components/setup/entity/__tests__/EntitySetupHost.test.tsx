@@ -159,12 +159,12 @@ describe("EntitySetupHost", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     );
-    await user.click(screen.getByRole("button", { name: "Review entity" }));
+    await user.click(screen.getByRole("button", { name: "Review reference" }));
 
     expect(
-      screen.getByRole("heading", { name: "Review your entity" })
+      screen.getByRole("heading", { name: "Review your reference" })
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Create entity" }));
+    await user.click(screen.getByRole("button", { name: "Create reference" }));
 
     await waitFor(() =>
       expect(updateAsset).toHaveBeenCalledWith(
@@ -213,13 +213,13 @@ describe("EntitySetupHost", () => {
     await user.click(
       screen.getByRole("button", { name: "Choose a reference" })
     );
-    await user.click(screen.getByRole("button", { name: "Review entity" }));
+    await user.click(screen.getByRole("button", { name: "Review reference" }));
     getAsset.mockReset();
     getAsset.mockResolvedValueOnce(claimedAsset);
-    await user.click(screen.getByRole("button", { name: "Create entity" }));
+    await user.click(screen.getByRole("button", { name: "Create reference" }));
 
     expect(
-      await screen.findByText("That image is already used by another entity.")
+      await screen.findByText("That image is already used by another reference.")
     ).toBeInTheDocument();
     expect(updateAsset).not.toHaveBeenCalled();
     expect(assignDocument).not.toHaveBeenCalled();
@@ -273,8 +273,8 @@ describe("EntitySetupHost", () => {
       await screen.findByTestId("entity-reference-preview")
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Review entity" }));
-    await user.click(screen.getByRole("button", { name: "Create entity" }));
+    await user.click(screen.getByRole("button", { name: "Review reference" }));
+    await user.click(screen.getByRole("button", { name: "Create reference" }));
 
     await waitFor(() =>
       expect(updateAsset).toHaveBeenCalledWith(
@@ -392,13 +392,13 @@ describe("EntitySetupHost", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     );
-    await user.click(screen.getByRole("button", { name: "Review entity" }));
+    await user.click(screen.getByRole("button", { name: "Review reference" }));
 
     first.unmount();
     renderHost();
 
     expect(
-      screen.getByRole("heading", { name: "Review your entity" })
+      screen.getByRole("heading", { name: "Review your reference" })
     ).toBeInTheDocument();
     expect(screen.getByText("Nova")).toBeInTheDocument();
     expect(screen.getByText(/Tags: hero, space/)).toBeInTheDocument();
@@ -429,7 +429,7 @@ describe("EntitySetupHost", () => {
       expect(mockCreateAsset).toHaveBeenCalledWith(expect.any(File))
     );
     expect(
-      screen.getByRole("heading", { name: "Review your entity" })
+      screen.getByRole("heading", { name: "Review your reference" })
     ).toBeInTheDocument();
     expect(mockAddNotification).not.toHaveBeenCalled();
   });
@@ -459,10 +459,10 @@ describe("EntitySetupHost", () => {
     await user.click(screen.getByText("Start with a blank reference"));
 
     expect(
-      await screen.findByRole("heading", { name: "Review your entity" })
+      await screen.findByRole("heading", { name: "Review your reference" })
     ).toBeInTheDocument();
     expect(screen.queryByText("A reusable visual entity.")).toBeNull();
-    expect(screen.getByRole("button", { name: "Create entity" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Create reference" })).toBeDisabled();
     expect(
       screen.getByText("Go back and describe the traits to preserve")
     ).toBeInTheDocument();
@@ -563,9 +563,9 @@ describe("EntitySetupHost", () => {
       screen.getByRole("button", { name: "Choose a reference" })
     );
     await user.click(
-      await screen.findByRole("button", { name: "Review entity" })
+      await screen.findByRole("button", { name: "Review reference" })
     );
-    await user.click(screen.getByRole("button", { name: "Create entity" }));
+    await user.click(screen.getByRole("button", { name: "Create reference" }));
     await waitFor(() => expect(updateAsset).toHaveBeenCalled());
 
     expect(
@@ -591,7 +591,7 @@ describe("EntitySetupHost", () => {
     expect(
       await screen.findByText("No reference image yet")
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create entity" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Create reference" })).toBeDisabled();
   });
 
   describe("a draft keyed by a guided tab", () => {

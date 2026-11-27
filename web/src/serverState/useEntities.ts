@@ -218,7 +218,7 @@ export function useSaveEntity(): UseMutationResult<
         id: input.assetId
       });
       if (input.createOnly && readEntityMarker(asset.metadata)) {
-        throw new Error("That image is already used by another entity.");
+        throw new Error("That image is already used by another reference.");
       }
       const marker: EntityMarker = {
         kind: input.kind,

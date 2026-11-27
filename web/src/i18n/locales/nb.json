@@ -16,12 +16,12 @@
   },
   "screen_storyboard": {
     "entities": {
-      "pickTitle": "Velg en enhet",
+      "pickTitle": "Velg en referanse",
       "done": "Ferdig",
       "untitled": "Uten tittel",
-      "searchPlaceholder": "Søk etter enheter etter navn, type eller merke",
-      "searchLabel": "Søk på enheter",
-      "kindLabel": "Enhetstype",
+      "searchPlaceholder": "Søk i referanser etter navn, sort eller merke",
+      "searchLabel": "Søk i referanser",
+      "kindLabel": "Referansesort",
       "kindFilters": {
         "all": "Alle",
         "characters": "Karakterer",
@@ -29,16 +29,16 @@
         "styles": "Stiler",
         "props": "Rekvisitter"
       },
-      "loading": "Laster enheter",
-      "emptyTitle": "Ingen enheter ennå",
+      "loading": "Laster inn referanser",
+      "emptyTitle": "Ingen referanser ennå",
       "emptyPickerDescription": "Karakterer, steder, stiler og rekvisitter du lager, vises her.",
-      "newEntity": "Ny enhet",
-      "noMatches": "Ingen enheter samsvarer",
+      "newEntity": "Ny referanse",
+      "noMatches": "Ingen referanser samsvarer",
       "noMatchesDescription": "Prøv et annet navn, type eller merke.",
-      "entitiesLabel": "Enheter",
+      "entitiesLabel": "Referanser",
       "noImage": "Ingen bilde",
-      "editEntity": "Rediger enhet",
-      "removeEntity": "Fjern enhet",
+      "editEntity": "Rediger referanse",
+      "removeEntity": "Fjern referanse",
       "save": "Lagre",
       "create": "Opprett",
       "image": "Bilde",
@@ -52,14 +52,14 @@
       },
       "name": "Navn",
       "descriptor": "Beskrivelse",
-      "descriptorHelp": "Hvordan det ser ut, i en setning. Hver prompt som bruker denne enheten får det ord for ord.",
+      "descriptorHelp": "Hvordan den ser ut, i én setning. Hver prompt som bruker denne referansen, får den ordrett.",
       "voiceId": "Stemme-ID (valgfritt)",
       "tags": "Tagger (kommaseparert)",
-      "panelEmptyDescription": "Merk et bilde som et tegn, sted, stil eller rekvisitt med +-knappen ovenfor, eller høyreklikk på et bilde i biblioteket og velg Bruk som enhet.",
-      "libraryEmptyDescription": "Merk et bilde som en karakter, plassering, stil eller rekvisitt for å gjenbruke det på tvers av bilder. Høyreklikk et bilde i biblioteket og velg Bruk som enhet.",
-      "addEntity": "Legg til enhet",
+      "panelEmptyDescription": "Merk et bilde som karakter, sted, stil eller rekvisitt med +-knappen over, eller høyreklikk på et bilde i Biblioteket og velg Bruk som referanse.",
+      "libraryEmptyDescription": "Merk et bilde som karakter, sted, stil eller rekvisitt for å bruke det på nytt i flere opptak. Høyreklikk på et bilde i Biblioteket og velg Bruk som referanse.",
+      "addEntity": "Legg til referanse",
       "librarySubtitle": "Gjenbrukbare karakterer, steder, stiler og rekvisitter",
-      "backToEntities": "Tilbake til enheter",
+      "backToEntities": "Tilbake til referanser",
       "pickImageTitle": "Velg et referansebilde",
       "noImages": "Ingen bilder",
       "noImagesDescription": "Generer eller last opp et bilde først."
@@ -191,7 +191,7 @@
     "sendMediaToWorkflowTooltip": "Legg til det valgte mediet til et arbeidsflytlerret som konstante noder",
     "transformWithWorkflow": "Transformer med arbeidsflyt...",
     "transformWithWorkflowTooltip": "Kjør denne filen gjennom en av arbeidsflytene dine",
-    "useAsEntity": "Bruk som enhet...",
+    "useAsEntity": "Bruk som referanse…",
     "useAsEntityTooltip": "Merk dette bildet som en karakter, plassering, stil eller rekvisitt for å gjenbruke det på tvers av bilder",
     "editTimeline": "Rediger tidslinjen",
     "createTimelineFromVideo": "Lag tidslinje fra video",
@@ -3001,7 +3001,7 @@
       }
     },
     "entity": {
-      "title": "Entitet",
+      "title": "Referanse",
       "kinds": {
         "character": "karakter",
         "location": "plassering",
@@ -3009,51 +3009,51 @@
         "prop": "prop"
       },
       "defaults": {
-        "untitledName": "Entitet uten navn",
+        "untitledName": "Referanse uten navn",
         "untitledReferenceFile": "Untitled.png"
       },
       "errors": {
         "canvasUnavailable": "Canvas 2D-kontekst utilgjengelig",
         "blankImageFailed": "Kunne ikke gjengi et tomt bilde",
-        "blankStart": "Kunne ikke starte en tom enhet: {{detail}}",
-        "referenceRequired": "Velg et referansebilde før du oppretter enheten.",
-        "createdEntityUnreadable": "Enheten kunne ikke leses etter at den ble opprettet."
+        "blankStart": "Kunne ikke starte en tom referanse: {{detail}}",
+        "referenceRequired": "Velg et bilde før du lager referansen.",
+        "createdEntityUnreadable": "Referansen kunne ikke leses etter at den ble laget."
       },
       "steps": {
         "details": {
           "label": "Detaljer",
           "primary": "Velg en referanse",
           "blocked": {
-            "name": "Navngi enheten",
+            "name": "Gi referansen et navn",
             "descriptor": "Beskriv egenskapene som skal bevares"
           },
           "pending": "Forbereder en tom referanse"
         },
         "reference": {
           "label": "Referanse",
-          "primary": "Vurderingsenhet",
+          "primary": "Se over referanse",
           "blocked": {
-            "libraryError": "Kunne ikke bekrefte enhetsbiblioteket ditt",
-            "libraryLoading": "Laster inn enhetsbiblioteket ditt",
+            "libraryError": "Kunne ikke kontrollere referansebiblioteket ditt",
+            "libraryLoading": "Laster inn referansebiblioteket ditt",
             "reference": "Velg et referansebilde"
           }
         },
         "review": {
           "label": "Gjennomgå",
-          "primary": "Opprett entitet",
-          "pending": "Opprette din enhet",
+          "primary": "Lag referanse",
+          "pending": "Lager referansen din",
           "blocked": {
-            "libraryError": "Kunne ikke bekrefte enhetsbiblioteket ditt",
-            "libraryLoading": "Laster inn enhetsbiblioteket ditt",
+            "libraryError": "Kunne ikke kontrollere referansebiblioteket ditt",
+            "libraryLoading": "Laster inn referansebiblioteket ditt",
             "reference": "Gå tilbake og velg et referansebilde",
-            "name": "Gå tilbake og navngi enheten",
+            "name": "Gå tilbake og gi referansen et navn",
             "descriptor": "Gå tilbake og beskriv egenskapene som skal bevares"
           }
         }
       },
       "details": {
         "title": "Hva bør være konsekvent?",
-        "description": "Gi enheten et stabilt navn, og beskrivelsesgenereringen bør gjenbrukes.",
+        "description": "Gi referansen et fast navn og beskrivelsen som genereringsprompter skal gjenbruke.",
         "kinds": {
           "character": {
             "title": "Karakter",
@@ -3073,10 +3073,10 @@
           }
         },
         "fields": {
-          "kind": "Enhetstype",
+          "kind": "Referansetype",
           "name": "Navn",
           "descriptor": "Beskrivelse",
-          "descriptorHelp": "Denne teksten legges til hver ledetekst som bruker enheten. Beskriv kun stabile visuelle trekk.",
+          "descriptorHelp": "Denne teksten legges til i hver prompt som bruker referansen. Beskriv bare faste visuelle trekk.",
           "tagsOptional": "Tagger (valgfritt)"
         },
         "placeholders": {
@@ -3098,7 +3098,7 @@
         "description": "Velg det klareste bildet av egenskapene du vil at fremtidige generasjoner skal bevare, eller lag et med AI.",
         "imageCaption": "{{name}} referanse",
         "selectedCaption": "Valgt referanse",
-        "selectedAlt": "Valgt enhetsreferanse",
+        "selectedAlt": "Valgt referansebilde",
         "assets": {
           "unavailable": "Eiendeler er utilgjengelige",
           "loading": "Laster inn eiendeler",
@@ -3131,7 +3131,7 @@
         "errors": {
           "noImage": "Bildemodellen returnerte ikke noe referansebilde.",
           "generationFailed": "Referansebildet kunne ikke genereres.",
-          "reportSummary": "Enhetsreferansebilde kunne ikke genereres"
+          "reportSummary": "Referansebildet kunne ikke genereres"
         },
         "prompt": {
           "template": "Et referansebilde av {{name}}. {{descriptor}} {{instruction}}",
@@ -3192,7 +3192,7 @@
         "clipTask": {
           "image_to_video": "Animer stillbilder",
           "text_to_video": "Generer fra ledetekster",
-          "reference_to_video": "Bruk enhetsreferanser"
+          "reference_to_video": "Bruk referanser"
         },
         "confirmWithCost": "{{verb}} · omtrent {{cost}}",
         "renderClip": "Gjengi klipp",
@@ -3564,58 +3564,58 @@
       "entities": {
         "editOnlyModel": "{{model}} redigerer kun bilder, så den kan ikke trekke en referanse fra en beskrivelse. Velg en modell som lager bilder fra tekst.",
         "substituteModelHelper": "{{originalModel}} redigerer kun bilder, så referanser bruker {{referenceModel}}. Stillbilder i Look-trinnet beholder {{originalModel}}.",
-        "referenceModelHelper": "Brukes kun for manglende enheter du velger å opprette. Den samme modellen går inn i Look-trinnet.",
+        "referenceModelHelper": "Brukes bare for manglende referanser du velger å lage. Samme modell følger med til Look-steget.",
         "priceUnknown": "Pris ukjent",
         "aboutPrice": "Om {{price}}",
         "missingScreenplayOrModel": "Storyboardet trenger et manus og regissørmodell først.",
-        "findFailedFallback": "Kunne ikke finne enheter i historien.",
+        "findFailedFallback": "Fant ingen referanser i historien.",
         "pickReferenceModelFirst": "Velg en referansebildemodell først.",
         "noReferenceImageReturned": "Bildemodellen returnerte ikke noe referansebilde.",
-        "entitySaveFailed": "Enheten kunne ikke lagres.",
-        "entityCreateFailedFallback": "Enheten kunne ikke opprettes.",
+        "entitySaveFailed": "Referansen kunne ikke lagres.",
+        "entityCreateFailedFallback": "Referansen kunne ikke lages.",
         "title": "Hold personer og steder konsekvente",
         "description": "Velg karakterene, stedene og rekvisittene som må se konsistente ut på tvers av bilder.",
         "suggestedFromStory": "Foreslått fra historien din",
         "suggestionsDescription": "Finn tilbakevendende referanser i manuset ditt. Lag bare de du vil bruke.",
-        "findingEntities": "Finne enheter",
+        "findingEntities": "Leter etter referanser",
         "refreshSuggestions": "Oppdater forslag",
-        "findEntities": "Finn enheter",
-        "cancelFinding": "Avbryt å finne enheter",
+        "findEntities": "Finn referanser",
+        "cancelFinding": "Avbryt søket etter referanser",
         "cancel": "Avbryt",
         "noSuggestionsFound": "Ingen gjentakende karakterer, steder eller rekvisitter ble funnet i manuset ditt.",
         "loadingEstimate": "Laster inn anslag …",
         "findEstimateResult": "Finn karakterene, stedene og rekvisittene i manuset ditt",
         "findEstimateNext": "Ingenting skapes før du velger.",
-        "findFailureTitle": "Kunne ikke finne enheter",
-        "createFailureTitle": "Kunne ikke opprette enheter",
-        "findFailureSummary": "Storyboard-enhetsforslag mislyktes",
-        "createFailureSummary": "Oppretting av storyboard-enhet mislyktes",
+        "findFailureTitle": "Fant ingen referanser",
+        "createFailureTitle": "Kunne ikke lage referanser",
+        "findFailureSummary": "Forslag til storyboard-referanser mislyktes",
+        "createFailureSummary": "Kunne ikke lage storyboard-referanser",
         "referenceImageModel": "Referansebildemodell",
         "creatingEntity": "Oppretter {{name}}...",
         "useEntity": "Bruk {{name}}",
         "createEntity": "Opprett {{name}}",
-        "libraryTitle": "Entitetsbiblioteket ditt",
+        "libraryTitle": "Referansebiblioteket ditt",
         "selectedCount_one": "{{count}} valgt for dette storyboardet",
         "selectedCount_other": "{{count}} valgt for dette storyboardet",
-        "createFromImage": "Lag entitet fra et bilde",
-        "loadingEntities": "Laster enheter",
-        "loadFailedTitle": "Kunne ikke laste inn enhetene dine",
+        "createFromImage": "Lag referanse fra et bilde",
+        "loadingEntities": "Laster inn referanser",
+        "loadFailedTitle": "Kunne ikke laste inn referansene dine",
         "tryAgain": "Prøv igjen",
-        "loadFailureSummary": "Storyboard-enhetsbiblioteket kunne ikke lastes inn",
-        "loadFailedFallback": "Entitetsbiblioteket ble ikke lastet inn. Prøv igjen, eller hopp over dette trinnet.",
-        "emptyTitle": "Ingen enheter ennå",
+        "loadFailureSummary": "Referansebiblioteket for storyboardet kunne ikke lastes inn",
+        "loadFailedFallback": "Referansebiblioteket ble ikke lastet inn. Prøv igjen, eller hopp over dette steget.",
+        "emptyTitle": "Ingen referanser ennå",
         "emptyDescription": "Lag et fra et generert eller opplastet bilde, eller hopp over dette trinnet.",
-        "searchPlaceholder": "Søk på enheter",
+        "searchPlaceholder": "Søk i referanser",
         "selectedOnly": "Kun valgt",
-        "noEntitiesSelected": "Ingen enheter er valgt",
-        "noMatchingEntities": "Ingen samsvarende enheter",
+        "noEntitiesSelected": "Ingen referanser valgt",
+        "noMatchingEntities": "Ingen samsvarende referanser",
         "noSelectedDescription": "Bla gjennom biblioteket ditt for å velge referanser for dette storyboardet.",
         "noMatchingDescription": "Prøv et annet navn eller endre det valgte filteret.",
         "viewReferenceImage": "Vis {{name}} referansebilde",
         "selectEntity": "{{name}} · {{kind}}",
         "noDescription": "Ingen beskrivelse",
         "assignEachShot": "Tilordne hvert skudd",
-        "assignDescription": "Fjern en enhet fra bilder der den ikke skal vises.",
+        "assignDescription": "Fjern en referanse fra opptak der den ikke skal være med.",
         "shotNumber": "Skudd {{number}}",
         "groups": {
           "characters": "Karakterer",
@@ -6122,7 +6122,7 @@
         "actionLabel": "Kopier {{name}} til et annet prosjekt",
         "title": "Kopier {{name}}",
         "confirm": "Kopier",
-        "description": "Refererte eiendeler, enheter og støttede dokumenter kopieres til destinasjonen. Kilden forblir uendret.",
+        "description": "Koblede ressurser, referanser og støttede dokumenter kopieres til målet. Kilden endres ikke.",
         "destinationProject": "Destinasjonsprosjekt"
       },
       "documents": {
@@ -6167,7 +6167,7 @@
         "openChatError": "Kunne ikke åpne chat: {{error}}",
         "startFlowError": "Kunne ikke starte {{flow}}: {{error}}",
         "flowNames": {
-          "entity": "enhet",
+          "entity": "referanse",
           "storyboard": "storyboard",
           "video": "video",
           "script": "manus",
@@ -6178,9 +6178,9 @@
         },
         "attachedFileCount_one": "{{count}} vedlagt fil",
         "attachedFileCount_other": "{{count}} vedlagte filer",
-        "singleEntity": "enheten {{name}}",
-        "entityCount_one": "{{count}} enhet",
-        "entityCount_other": "{{count}} enheter",
+        "singleEntity": "referansen {{name}}",
+        "entityCount_one": "{{count}} referanse",
+        "entityCount_other": "{{count}} referanser",
         "uncarriedContext": "{{flow}}-flyten starter fra ledeteksten din, så {{items}} blir på denne skjermen. Legg dem til fra flytens eget trinn.",
         "documentNames": {
           "storyboard": "Nytt storyboard",
@@ -6190,11 +6190,11 @@
           "workflow": "Ny arbeidsflyt",
           "app": "Ny app",
           "game": "Nytt spill",
-          "entity": "Ny enhet"
+          "entity": "Ny referanse"
         },
         "entryCards": {
           "entity": {
-            "title": "Entitet",
+            "title": "Referanse",
             "description": "Lag en gjenbrukbar karakter, sted, stil eller rekvisitt."
           },
           "storyboard": {
@@ -6257,13 +6257,13 @@
         "heading": "Hva vil du lage?",
         "intro": "Gjør en idé om til bilder, videoer, apper og arbeidsflyter. Still et spørsmål, eller beskriv hva du skal lage.",
         "chatPromptLabel": "Chat-forespørsel",
-        "promptPlaceholder": "Beskriv hva du vil lage. Skriv / for en ferdighet, @ for en fil eller enhet.",
+        "promptPlaceholder": "Beskriv hva du vil lage. Skriv / for en ferdighet, @ for en fil eller referanse.",
         "removeReference": "Fjern {{name}}",
         "attachFiles": "Legg ved filer",
         "attachedFileCountShort_one": "Filer · {{count}}",
         "attachedFileCountShort_other": "Filer · {{count}}",
-        "entitiesNone": "Enheter · ingen",
-        "entitiesSelected": "Entiteter · {{entities}}",
+        "entitiesNone": "Referanser · ingen",
+        "entitiesSelected": "Referanser · {{entities}}",
         "selectedModel": "Modell · {{name}}",
         "selectModel": "Velg en modell",
         "sendToChat": "Send til chat",
@@ -6283,7 +6283,7 @@
         "blankDocumentDescription": "— åpnes som en løs flik, utenfor ethvert prosjekt",
         "browseExamples": "Bla gjennom eksempler",
         "tutorials": "Veiledninger",
-        "entitiesDialogTitle": "Enheter for dette prosjektet",
+        "entitiesDialogTitle": "Referanser for dette prosjektet",
         "blankStoryboard": "Blank storyboard",
         "renderedExampleShots_one": "{{count}} skudd, allerede gjengitt",
         "renderedExampleShots_other": "{{count}} skudd, allerede gjengitt",
@@ -6777,7 +6777,7 @@
         "title": "Endre flyt?",
         "confirm": "Kast og velg",
         "cancel": "Behold dette utkastet",
-        "description": "Kortet ditt, og referansene og enhetene du startet med, kommer med deg til flyten du velger neste gang. Dette {{flow}}-utkastet forkastes med alt annet lagt til på dette trinnet, for eksempel kreativ kontekst, importerte filer og plasserte medier. Det er ikke generert noe for det ennå."
+        "description": "Briefen din, og bildene og referansene du startet med, blir med til flyten du velger etterpå. Dette {{flow}}-utkastet forkastes sammen med alt som ble lagt til i dette steget, som kreativ kontekst, importerte filer og plassert media. Ingenting er generert for det ennå."
       }
     },
     "setupFooterField": {
@@ -6815,12 +6815,12 @@
     },
     "entityDetails": {
       "title": "Hva bør være konsekvent?",
-      "description": "Gi enheten et stabilt navn, og beskrivelsesgenereringen bør gjenbrukes.",
+      "description": "Gi referansen et fast navn og beskrivelsen som genereringsprompter skal gjenbruke.",
       "fields": {
-        "kind": "Enhetstype",
+        "kind": "Referansetype",
         "name": "Navn",
         "descriptor": "Beskrivelse",
-        "descriptorHelp": "Denne teksten legges til hver ledetekst som bruker enheten. Beskriv kun stabile visuelle trekk.",
+        "descriptorHelp": "Denne teksten legges til i hver prompt som bruker referansen. Beskriv bare faste visuelle trekk.",
         "tagsOptional": "Tagger (valgfritt)"
       },
       "placeholders": {
@@ -6916,9 +6916,9 @@
   },
   "pass3_5": {
     "entity": {
-      "title": "Entitet",
+      "title": "Referanse",
       "defaults": {
-        "untitledName": "Entitet uten navn",
+        "untitledName": "Referanse uten navn",
         "untitledReferenceFile": "Untitled.png"
       },
       "kinds": {
@@ -6930,38 +6930,38 @@
       "errors": {
         "canvasUnavailable": "En tom referanse kunne ikke opprettes fordi lerretet er utilgjengelig.",
         "blankImageFailed": "Det tomme referansebildet kunne ikke gjengis.",
-        "blankStart": "Kunne ikke starte en tom enhet: {{detail}}",
-        "referenceRequired": "Velg et referansebilde før du oppretter enheten.",
-        "createdEntityUnreadable": "Enheten kunne ikke leses etter at den ble opprettet."
+        "blankStart": "Kunne ikke starte en tom referanse: {{detail}}",
+        "referenceRequired": "Velg et bilde før du lager referansen.",
+        "createdEntityUnreadable": "Referansen kunne ikke leses etter at den ble laget."
       },
       "steps": {
         "details": {
           "label": "Detaljer",
           "primary": "Velg en referanse",
           "blocked": {
-            "name": "Navngi enheten",
+            "name": "Gi referansen et navn",
             "descriptor": "Beskriv egenskapene som skal bevares"
           },
           "pending": "Forbereder en tom referanse"
         },
         "reference": {
           "label": "Referanse",
-          "primary": "Vurderingsenhet",
+          "primary": "Se over referanse",
           "blocked": {
-            "libraryError": "Kunne ikke bekrefte enhetsbiblioteket ditt",
-            "libraryLoading": "Laster inn enhetsbiblioteket ditt",
+            "libraryError": "Kunne ikke kontrollere referansebiblioteket ditt",
+            "libraryLoading": "Laster inn referansebiblioteket ditt",
             "reference": "Velg et referansebilde"
           }
         },
         "review": {
           "label": "Gjennomgå",
-          "primary": "Opprett entitet",
-          "pending": "Opprette din enhet",
+          "primary": "Lag referanse",
+          "pending": "Lager referansen din",
           "blocked": {
-            "libraryError": "Kunne ikke bekrefte enhetsbiblioteket ditt",
-            "libraryLoading": "Laster inn enhetsbiblioteket ditt",
+            "libraryError": "Kunne ikke kontrollere referansebiblioteket ditt",
+            "libraryLoading": "Laster inn referansebiblioteket ditt",
             "reference": "Gå tilbake og velg et referansebilde",
-            "name": "Gå tilbake og navngi enheten",
+            "name": "Gå tilbake og gi referansen et navn",
             "descriptor": "Gå tilbake og beskriv egenskapene som skal bevares"
           }
         }
@@ -6971,7 +6971,7 @@
         "description": "Velg det klareste bildet av egenskapene du vil at fremtidige generasjoner skal bevare, eller lag et med AI.",
         "imageCaption": "{{name}} referanse",
         "selectedCaption": "Valgt referanse",
-        "selectedAlt": "Valgt enhetsreferanse",
+        "selectedAlt": "Valgt referansebilde",
         "assets": {
           "unavailable": "Eiendeler er utilgjengelige",
           "loading": "Laster inn eiendeler",
@@ -6997,7 +6997,7 @@
         "errors": {
           "noImage": "Bildemodellen returnerte ikke noe referansebilde.",
           "generationFailed": "Referansebildet kunne ikke genereres.",
-          "reportSummary": "Enhetsreferansebilde kunne ikke genereres"
+          "reportSummary": "Referansebildet kunne ikke genereres"
         },
         "prompt": {
           "template": "Et referansebilde av {{name}}. {{descriptor}} {{instruction}}",
@@ -7050,12 +7050,12 @@
         }
       },
       "review": {
-        "title": "Gå gjennom enheten din",
-        "description": "Denne referansen og beskrivelsen vil være tilgjengelig hvor som helst enheter kan legges til.",
+        "title": "Se over referansen din",
+        "description": "Denne referansen og beskrivelsen blir tilgjengelige overalt der referanser kan legges til.",
         "imageCaption": "{{name}} referanse",
         "imageAlt": "{{name}} referanse",
         "tags": "Tags: {{tags}}",
-        "loadingLibrary": "Laster inn enhetsbiblioteket ditt …",
+        "loadingLibrary": "Laster inn referansebiblioteket ditt…",
         "empty": {
           "title": "Ingen referansebilde ennå",
           "description": "Gå tilbake til referansetrinnet og velg eller generer en."
@@ -7212,7 +7212,7 @@
         "uploadFailed": "Bildeopplasting mislyktes",
         "promptContext": "Kom med forespørselen din",
         "referenceImages": "Referansebilder",
-        "entities": "Enheter",
+        "entities": "Referanser",
         "referencesHelp": "Trinn-for-steg-briefen leser disse. Generering med en gang bruker kun teksten din.",
         "entitiesHelp": "Disse blir med dokumentet mens du setter det opp.",
         "alternativesLabel": "Andre måter å starte på"
@@ -7222,11 +7222,11 @@
         "downloadUnreadable": "Filen kunne ikke leses ({{status}}).",
         "variation": "Variasjon {{number}}",
         "unrecordedFailure": "Denne gjengav ikke, og ga ingen grunn.",
-        "savingEntity": "Lagrer til enheter …",
+        "savingEntity": "Lagrer til referanser…",
         "opening": "Åpner …",
-        "savedEntity": "Lagret til enheter.",
+        "savedEntity": "Lagret til referanser.",
         "openedCanvas": "Åpnet i et nytt nodelerret.",
-        "saveEntityFailed": "Kunne ikke lagre til enheter.",
+        "saveEntityFailed": "Kunne ikke lagre til referanser.",
         "openCanvasFailed": "Kunne ikke åpne det lerretet.",
         "heading": "Velg bildet ditt",
         "intro": "Hver variant forblir på dokumentet, så ingenting du har gjengitt går tapt.",
@@ -7245,7 +7245,7 @@
           "failed": "Denne mislyktes"
         },
         "sketchEditor": "Skisseredigering",
-        "saveToEntities": "Lagre til enheter",
+        "saveToEntities": "Lagre til referanser",
         "newNodeCanvas": "Nytt nodelerret",
         "imageToVideo": "Bilde til video",
         "retryVariation": "Prøv {{label}} igjen",
@@ -7478,8 +7478,8 @@
       "sourceLineCount_other": "{{count}} linjer",
       "referenceCount_one": "{{count}} referanse",
       "referenceCount_other": "{{count}} referanser",
-      "entityCount_one": "{{count}} enhet",
-      "entityCount_other": "{{count}} enheter"
+      "entityCount_one": "{{count}} referanse",
+      "entityCount_other": "{{count}} referanser"
     },
     "review": {
       "addDirection": "Legg til retning",
@@ -7876,14 +7876,14 @@
       "addOwnDisabledReason": "Egendefinerte stiler legges til mens du setter opp et brett."
     },
     "entityStillModelWarning": {
-      "message": "Enheter har referansebilder, men denne modellen tar bare tekst. Velg en bilde-til-bilde-modell for å bruke dem."
+      "message": "Referanser har bilder, men denne modellen tar bare tekst. Velg en bilde-til-bilde-modell for å bruke dem."
     }
   },
   "screens4_13": {
     "storyboard": {
       "entityTiles": {
         "untitled": "Uten tittel",
-        "chooseEntities": "Velg enheter"
+        "chooseEntities": "Velg referanser"
       },
       "oneTake": {
         "title": "Ett ta",
@@ -7898,7 +7898,7 @@
         "referenceStills": "Skutt stillbilder",
         "referenceEntities": "Rollebesetning og lokasjoner",
         "referenceStillsHelp": "Hvert skudd fikser fortsatt innramming og positur. Best for rolige bilder.",
-        "referenceEntitiesHelp": "Enhetsbilder fikser hvem og hvor. Bildeteksten setter innramming og bevegelse. Best for handling.",
+        "referenceEntitiesHelp": "Referanser bestemmer hvem og hvor. Opptaksteksten bestemmer utsnitt og bevegelse. Best for action.",
         "duration": "Varighet",
         "aspectRatio": "Sideforhold",
         "resolution": "Oppløsning",
@@ -7930,7 +7930,7 @@
         "blockers": {
           "addShot": "Legg til et skudd på brettet først.",
           "renderStill": "Gjengi en stillbilde for minst ett skudd.",
-          "addEntityImage": "Gi en enhet på tavlen et referansebilde først.",
+          "addEntityImage": "Gi først en referanse på tavlen et bilde.",
           "noModel": "Ingen videomodell er valgt.",
           "imageLimit_one": "{{count}} bildet er over grensen på {{limit}}. Fjern {{removeCount}}.",
           "imageLimit_other": "{{count}} bilder er over grensen på {{limit}}. Fjern {{removeCount}}.",
@@ -7986,9 +7986,9 @@
         "shotStillAlt": "Stille skutt",
         "imageReference": "[Bilde {{number}}] ",
         "references": "Referansebilder",
-        "referencesHelp": "Stillbilder fikser innramming og posering. Enhetsbilder fikser hvem og hvor.",
+        "referencesHelp": "Stillbilder bestemmer utsnitt og positur. Referanser bestemmer hvem og hvor.",
         "stills": "Stillbilder",
-        "entities": "Enheter",
+        "entities": "Referanser",
         "addEntity": "Legg til fra biblioteket",
         "noStill": "Nei fortsatt",
         "noEntityImage": "Ingen bilde",
@@ -8003,7 +8003,7 @@
           "differentScenes": "Bildene i dette sceneklippet er ikke lenger i én scene.",
           "addShot": "Legg til et skudd på brettet først.",
           "renderStill": "Gjengi en stillbilde for minst ett skudd.",
-          "addEntityImage": "Gi en enhet på tavlen et referansebilde først.",
+          "addEntityImage": "Gi først en referanse på tavlen et bilde.",
           "noReference": "Velg minst ett referansebilde.",
           "noVideoModel": "Ingen videomodell er valgt.",
           "imageLimit": "{{imageCount}} bilder er over grensen på {{limit}}. Fjern {{remove}}.",
@@ -8087,8 +8087,8 @@
       "shotEntitiesField": {
         "label": "I dette bildet",
         "remove": "Fjern {{name}} fra dette bildet",
-        "empty": "Ingen enheter ennå. Velg en karakter, plassering, stil eller rekvisitt for å holde det konsekvent i dette bildet.",
-        "newEntity": "Ny enhet"
+        "empty": "Ingen referanser ennå. Velg en karakter, et sted, en stil eller en rekvisitt for å holde den lik i dette opptaket.",
+        "newEntity": "Ny referanse"
       },
       "shotGraphicsEditor": {
         "title": "Grafikk",
@@ -8104,7 +8104,7 @@
         "exactText": "Nøyaktig tekst: {{id}}",
         "protectedCopy": "Beskyttet kopi kommer fra produksjonsinnsatsene. Rediger den der.",
         "assetReference": "Eiendelsreferanse: {{id}}",
-        "entity": "Entitet: {{id}}",
+        "entity": "Referanse: {{id}}",
         "graphicNotes": "Grafiske notater: {{id}}",
         "defaultText": "Teksten din",
         "addText": "Legg til tekst",
@@ -8202,7 +8202,7 @@
         "clipTask": {
           "image_to_video": "Animer stillbilder",
           "text_to_video": "Generer fra ledetekster",
-          "reference_to_video": "Bruk enhetsreferanser"
+          "reference_to_video": "Bruk referanser"
         }
       },
       "shotScript": {
@@ -8468,6 +8468,10 @@
       "loadingImages": "Laster inn bilder",
       "noImages": "Ingen bilder",
       "noImagesDescription": "Generer eller last opp et bilde først.",
+      "uploadImage": "Last opp et bilde",
+      "uploading": "Laster opp…",
+      "uploadFailed": "Bildet ble ikke lastet opp. Prøv igjen.",
+      "noImagesUploadDescription": "Last opp et bilde fra datamaskinen, eller lag ett først.",
       "pickImage": "Velg bilde {{name}}",
       "closeDialog": "Lukk dialog",
       "noImage": "Ingen bilde",
@@ -8478,11 +8482,11 @@
         "style": "Stil",
         "prop": "Prop"
       },
-      "editEntity": "Rediger enhet",
+      "editEntity": "Rediger referanse",
       "editEntityFor": "Rediger {{name}}",
-      "removeEntity": "Fjern enhet",
+      "removeEntity": "Fjern referanse",
       "removeEntityFor": "Fjern {{name}}",
-      "newEntity": "Ny enhet",
+      "newEntity": "Ny referanse",
       "save": "Lagre",
       "cancel": "Avbryt",
       "create": "Opprett",
@@ -8491,33 +8495,33 @@
       "kind": "Snill",
       "name": "Navn",
       "descriptor": "Beskrivelse",
-      "descriptorHelp": "Beskriv utseendet i en setning. Hver forespørsel som bruker denne enheten inkluderer denne teksten nøyaktig slik den er skrevet.",
+      "descriptorHelp": "Beskriv utseendet i én setning. Hver prompt som bruker denne referansen, tar med teksten ordrett.",
       "voiceId": "Stemme-ID (valgfritt)",
       "tags": "Tagger (kommaseparert)",
-      "saveFailed": "Kunne ikke lagre denne enheten. Sjekk tilkoblingen og prøv igjen.",
-      "loadingEntities": "Laster enheter",
-      "emptyTitle": "Ingen enheter ennå",
-      "libraryEmptyDescription": "Legg til et bilde som en karakter, plassering, stil eller rekvisitt for å gjenbruke det på tvers av bilder. Du kan også høyreklikke på et bilde i biblioteket og velge Bruk som enhet.",
-      "addEntity": "Legg til enhet",
-      "backToEntities": "Tilbake til enheter",
-      "entitiesLabel": "Enheter",
+      "saveFailed": "Kunne ikke lagre denne referansen. Sjekk tilkoblingen og prøv igjen.",
+      "loadingEntities": "Laster inn referanser",
+      "emptyTitle": "Ingen referanser ennå",
+      "libraryEmptyDescription": "Legg til et bilde som karakter, sted, stil eller rekvisitt for å bruke det på nytt i flere opptak. Du kan også høyreklikke på et bilde i Biblioteket og velge Bruk som referanse.",
+      "addEntity": "Legg til referanse",
+      "backToEntities": "Tilbake til referanser",
+      "entitiesLabel": "Referanser",
       "librarySubtitle": "Gjenbrukbare karakterer, steder, stiler og rekvisitter",
       "retakeImage": "Generer nytt"
     }
   },
   "screens4_23": {
     "entities": {
-      "newEntity": "Ny enhet",
-      "loading": "Laster enheter",
-      "emptyTitle": "Ingen enheter ennå",
-      "panelEmptyDescription": "Merk et bilde som et tegn, sted, stil eller rekvisitt med +-knappen ovenfor, eller høyreklikk på et bilde i biblioteket og velg Bruk som enhet.",
+      "newEntity": "Ny referanse",
+      "loading": "Laster inn referanser",
+      "emptyTitle": "Ingen referanser ennå",
+      "panelEmptyDescription": "Merk et bilde som karakter, sted, stil eller rekvisitt med +-knappen over, eller høyreklikk på et bilde i Biblioteket og velg Bruk som referanse.",
       "emptyPickerDescription": "Karakterer, steder, stiler og rekvisitter du lager, vises her.",
-      "noMatches": "Ingen enheter samsvarer",
+      "noMatches": "Ingen referanser samsvarer",
       "noMatchesDescription": "Prøv et annet navn, type eller merke.",
       "untitled": "Uten tittel",
-      "searchPlaceholder": "Søk etter enheter etter navn, type eller merke",
-      "searchLabel": "Søk på enheter",
-      "kindLabel": "Enhetstype",
+      "searchPlaceholder": "Søk i referanser etter navn, sort eller merke",
+      "searchLabel": "Søk i referanser",
+      "kindLabel": "Referansesort",
       "kindFilters": {
         "all": "Alle",
         "characters": "Karakterer",
@@ -8531,10 +8535,10 @@
         "style": "Stil",
         "prop": "Prop"
       },
-      "entitiesLabel": "Enheter",
-      "selectedCount_one": "{{formattedCount}} enhet valgt",
-      "selectedCount_other": "{{formattedCount}} enheter valgt",
-      "pickTitle": "Velg en enhet",
+      "entitiesLabel": "Referanser",
+      "selectedCount_one": "{{formattedCount}} referanse valgt",
+      "selectedCount_other": "{{formattedCount}} referanser valgt",
+      "pickTitle": "Velg en referanse",
       "done": "Ferdig"
     }
   },
@@ -9947,9 +9951,9 @@
     "shotDesignFrame": {
       "ariaLabel": "Skutt {{shot}} design forhåndsvisning",
       "errors": {
-        "entityAssetMismatch": "Eiendelen for enheten {{entityId}} samsvarer ikke med den valgte enheten.",
-        "entitySourceMismatch": "Kildeelementet {{elementId}} samsvarer ikke med denne enheten.",
-        "missingEntityReference": "Entitet {{entityId}} mangler fra storyboardet.",
+        "entityAssetMismatch": "Ressursen for referanse {{entityId}} hører ikke til den valgte referansen.",
+        "entitySourceMismatch": "Kildeelementet {{elementId}} hører ikke til denne referansen.",
+        "missingEntityReference": "Referanse {{entityId}} mangler i storyboardet.",
         "unavailable": "Forhåndsvisning av bildet er utilgjengelig."
       },
       "pause": "Sett forhåndsvisningen på pause",
@@ -10032,7 +10036,7 @@
         "takes": "Tar"
       },
       "title": "Scene {{scene}}, opptak {{shot}}",
-      "untitledEntity": "Entitet uten navn"
+      "untitledEntity": "Referanse uten navn"
     },
     "shotEditTable": {
       "camera": {
@@ -10675,8 +10679,8 @@
       "sketches": "Skisser",
       "timelines": "Tidslinjer",
       "storyboards": "Storyboards",
-      "entities": "Enheter",
-      "openEntitiesFullPage": "Åpne enheter på helside",
+      "entities": "Referanser",
+      "openEntitiesFullPage": "Åpne referanser på hel side",
       "examples": "Eksempler",
       "scripts": "Skript",
       "jsScripts": "JS-skript",
@@ -10700,7 +10704,7 @@
         "sketches": "Skisser",
         "scripts": "Skript",
         "storyboards": "Storyboards",
-        "entities": "Enheter",
+        "entities": "Referanser",
         "examples": "Eksempler",
         "timelines": "Tidslinjer",
         "jsScripts": "JS-skript",
@@ -13371,7 +13375,7 @@
         "selectModel": "Velg en modell",
         "attach": {
           "assetsTab": "Eiendeler",
-          "entitiesTab": "Enheter",
+          "entitiesTab": "Referanser",
           "documentsTab": "Dokumenter",
           "uploadTab": "Last opp",
           "tabsLabel": "Hva du skal legge til",
@@ -14124,7 +14128,7 @@
         "creative": "Kreative dokumenter",
         "text": "Tekstfiler",
         "agents": "Agenter og kode",
-        "entities": "Enheter",
+        "entities": "Referanser",
         "shared": "Delt med meg",
         "cloud": "Sky",
         "cloudShared": "Delt med meg"
@@ -14136,7 +14140,7 @@
         "script": "Manus",
         "storyboard": "Storyboard",
         "timeline": "Tidslinje",
-        "entity": "Entitet",
+        "entity": "Referanse",
         "jsscript": "JS-skript",
         "game": "Spill",
         "text": "Tekstfil"
@@ -14145,7 +14149,7 @@
       "deleteFailure": "Kunne ikke slette {{name}}: {{error}}",
       "unknownError": "Ukjent feil",
       "deleteConfirmTitle": "Vil du slette {{type}}?",
-      "deleteEntityDescription": "\"{{name}}\" slutter å være en enhet. Dens eiendel beholdes.",
+      "deleteEntityDescription": "«{{name}}» er ikke lenger en referanse. Ressursen beholdes.",
       "deleteDescription": "\"{{name}}\" vil bli permanent slettet.",
       "deleteAction": "Slett",
       "cancel": "Avbryt",
@@ -14225,8 +14229,8 @@
       "noRecentAssets": "Ingen filer ennå. Fest eller dra en inn.",
       "noAssetsMatch": "Ingen eiendeler samsvarer.",
       "noSavedAssets": "Ingen lagrede ressurser ennå.",
-      "noEntitiesMatch": "Ingen enheter samsvarer.",
-      "entities": "Enheter",
+      "noEntitiesMatch": "Ingen referanser samsvarer.",
+      "entities": "Referanser",
       "assetSource": "Eiendelskilde",
       "rename": "Gi nytt navn til {{name}}",
       "assetName": "Eiendelsnavn",
@@ -14917,8 +14921,8 @@
       "error": "Feil: {{error}}"
     },
     "entity": {
-      "add": "Legg til enhet",
-      "pick": "Velg enhet",
+      "add": "Legg til referanse",
+      "pick": "Velg referanse",
       "untitled": "Uten tittel"
     },
     "collection": {
@@ -15988,7 +15992,7 @@
       "sketches": "Skisser",
       "scripts": "Skript",
       "storyboards": "Storyboards",
-      "entities": "Enheter",
+      "entities": "Referanser",
       "examples": "Eksempler",
       "timelines": "Tidslinjer",
       "jsscripts": "JS-skript",
@@ -16123,7 +16127,7 @@
         "models": "Modellsjef",
         "packages": "Pakkeansvarlig",
         "collections": "Samlinger",
-        "entities": "Enheter",
+        "entities": "Referanser",
         "memory": "Minne",
         "settings": "Innstillinger",
         "effects": "Effekter",
@@ -17025,14 +17029,14 @@
   },
   "i18n-next62": {
     "scriptCastPanel": {
-      "noEntity": "Ingen enhet",
+      "noEntity": "Ingen referanse",
       "noVoice": "Ingen stemme",
       "speakerName": "Navn på høyttaler",
       "hideVoiceSettings": "Skjul stemmeinnstillinger",
       "voiceSettings": "Stemmeinnstillinger",
-      "linkedEntityMissing": "Koblet enhet mangler",
-      "linkedEntity": "Tilknyttet enhet",
-      "linkedEntityNotFound": "Den tilknyttede enheten ble ikke funnet – den ble fjernet. Velg en annen eller fjern den.",
+      "linkedEntityMissing": "Koblet referanse mangler",
+      "linkedEntity": "Koblet referanse",
+      "linkedEntityNotFound": "Fant ikke koblet referanse – den er fjernet. Velg en annen eller tøm feltet.",
       "removeSpeaker": "Fjern høyttaleren",
       "speakerDefaultName": "Høyttaler {{count}}",
       "cast": "Cast",
@@ -17241,9 +17245,9 @@
         "imageLabel": "Bilde {{index}}",
         "noImages": "Legg til bilder for å tilpasse klippet.",
         "addImage": "Legg til bilde",
-        "entitiesLabel": "Enheter",
+        "entitiesLabel": "Referanser",
         "entitiesEmpty": "Velg en karakter, plassering, stil eller rekvisitt for å holde det konsistent i klippet.",
-        "newEntity": "Ny enhet",
+        "newEntity": "Ny referanse",
         "pickImageTitle": "Velg et referansebilde"
       },
       "transcript": {
@@ -19903,8 +19907,8 @@
   "lipsync": {
     "title": "Lipsync",
     "subtitle": "Få et bilde til å snakke med en stemme du velger.",
-    "entity": "Velg en enhet",
-    "entityImage": "Velg en enhet med et lagret referansebilde, eller last opp et bilde.",
+    "entity": "Velg en referanse",
+    "entityImage": "Velg en referanse med et lagret bilde, eller last opp et bilde.",
     "realPerson": "Dette er en ekte person",
     "consent": "Jeg har denne personens samtykke til å bruke bildet deres i dette genererte klippet.",
     "line": "Hva skal de si?",
@@ -20404,7 +20408,7 @@
   "storyboardText": {
     "mode": "Tekst",
     "editorLabel": "Storyboard som Markdown-tekst",
-    "hint": "Skriv # for en akt, ## for en scene, ### for et bilde og - **Motion:** for et felt. Skriv @ for å nevne en entitet eller et bilde.",
+    "hint": "Skriv # for en akt, ## for en scene, ### for et opptak og - **Motion:** for et felt. Skriv @ for å nevne en referanse eller et bilde.",
     "issues": "Linjer som trenger oppmerksomhet: {{lines}}",
     "loading": "Laster teksten…",
     "warnings": {
@@ -20440,7 +20444,7 @@
       "instruction": "Forespørsel til agenten",
       "send": "Send til agenten",
       "failed": "Forespørselen til modellen mislyktes.",
-      "context": "Sendt med forespørselen: hele storyboardet, {{shots}} opptak og {{entities}} entiteter fra biblioteket.",
+      "context": "Sendt med forespørselen: hele tavlen, {{shots}} opptak og {{entities}} referanser fra biblioteket.",
       "quick": {
         "tighten": "Stram inn",
         "visual": "Mer visuelt",

@@ -61,7 +61,7 @@ export const UNTITLED_DOCUMENT_NAMES: Record<DocumentTreeLeafType, string> = {
   script: "Untitled script",
   storyboard: "Untitled storyboard",
   timeline: "Untitled video",
-  entity: "Untitled entity",
+  entity: "Untitled reference",
   jsscript: "Untitled JS script",
   game: "Untitled game",
   text: "Untitled text file"
@@ -74,7 +74,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentTreeLeafType, string> = {
   script: "Script",
   storyboard: "Storyboard",
   timeline: "Timeline",
-  entity: "Entity",
+  entity: "Reference",
   jsscript: "JS script",
   game: "Game",
   text: "Text file"
@@ -104,7 +104,7 @@ const GROUPS: readonly {
   },
   { id: "text", label: "Text files", types: ["text"] },
   { id: "agents", label: "Agents & code", types: ["jsscript"] },
-  { id: "entities", label: "Entities", types: ["entity"] }
+  { id: "entities", label: "References", types: ["entity"] }
 ];
 
 /**

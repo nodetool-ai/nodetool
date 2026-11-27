@@ -26,6 +26,13 @@ jest.mock("../../../trpc/client", () => ({
   }
 }));
 
+const mockCreateAsset = jest.fn();
+jest.mock("../../../stores/AssetStore", () => ({
+  useAssetStore: {
+    getState: () => ({ createAsset: mockCreateAsset })
+  }
+}));
+
 import EntityAssetPickerDialog from "../EntityAssetPickerDialog";
 
 const PROJECT_A = "project-a";
@@ -131,5 +138,60 @@ describe("EntityAssetPickerDialog in a named project", () => {
       await screen.findByRole("button", { name: /Library fox/ })
     ).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Personal" })).not.toBeInTheDocument();
+  });
+});
+
+// UX research study 23: with nothing in the library, the picker was a dead
+// end for a person holding a photo of their cat.
+describe("EntityAssetPickerDialog upload", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSearch.mockResolvedValue({ assets: [] });
+    useWorkspaceTabsStore.setState({
+      activeProjectId: PERSONAL,
+      personalProjectId: PERSONAL
+    });
+  });
+
+  it("uploads a picture into the project and picks it", async () => {
+    mockCreateAsset.mockResolvedValue(image("up-1", "miso.jpg"));
+    const onPick = jest.fn();
+    const { container } = renderPicker(onPick);
+
+    expect(
+      await screen.findByText("Upload a picture of it from your computer, or generate one first.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Upload a picture/ })).toBeInTheDocument();
+    const input = container.ownerDocument.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    const file = new File(["cat"], "miso.jpg", { type: "image/jpeg" });
+    await userEvent.upload(input, file);
+
+    await waitFor(() => expect(onPick).toHaveBeenCalledWith("up-1"));
+    expect(mockCreateAsset).toHaveBeenCalledWith(
+      file,
+      undefined,
+      undefined,
+      undefined,
+      "file",
+      PERSONAL
+    );
+  });
+
+  it("reports a failed upload and picks nothing", async () => {
+    mockCreateAsset.mockRejectedValue(new Error("disk full"));
+    const onPick = jest.fn();
+    const { container } = renderPicker(onPick);
+    await screen.findByRole("button", { name: /Upload a picture/ });
+    const input = container.ownerDocument.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    await userEvent.upload(input, new File(["cat"], "miso.jpg", { type: "image/jpeg" }));
+
+    expect(
+      await screen.findByText("The picture was not uploaded. Try again.")
+    ).toBeInTheDocument();
+    expect(onPick).not.toHaveBeenCalled();
   });
 });

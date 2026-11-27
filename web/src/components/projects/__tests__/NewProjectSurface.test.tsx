@@ -821,12 +821,12 @@ describe("NewProjectSurface", () => {
       screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
-    await userEvent.click(screen.getByRole("button", { name: "Entities · none" }));
+    await userEvent.click(screen.getByRole("button", { name: "References · none" }));
     await userEvent.click(screen.getByText("Aurora lamp"));
     await userEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: /^Entities for this project/ })
+        screen.queryByRole("dialog", { name: /^References for this project/ })
       ).not.toBeInTheDocument()
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -986,7 +986,7 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(addNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("so 1 attached file stay")
+          content: expect.stringContaining("Left on this screen: 1 attached file.")
         })
       )
     );
@@ -1163,7 +1163,7 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(addNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("2 attached files stay")
+          content: expect.stringContaining("Left on this screen: 2 attached files.")
         })
       )
     );
@@ -1396,7 +1396,7 @@ describe("NewProjectSurface", () => {
   });
 
   // Study 17: newcomers met about ninety choices on Home and could not name
-  // "Entities · none" (study-17-I4) or tell Studios from examples (I5).
+  // "References · none" (study-17-I4) or tell Studios from examples (I5).
   // Before a first result, Home keeps the starters, the prompt, the kinds and
   // the creation cards, and folds the rest behind one button.
   it("folds the secondary ways to start until the first result", async () => {
@@ -1406,7 +1406,7 @@ describe("NewProjectSurface", () => {
     expect(screen.queryByRole("group", { name: "Start from a skill" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Studios" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("current-project-documents")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Entities · none/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^References · none/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "New project" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Workflow$/ })).not.toBeInTheDocument();
     // Help stays in view: what the picked kind does, and where to learn.
@@ -1418,21 +1418,24 @@ describe("NewProjectSurface", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Image" }));
     expect(
-      screen.getByText("Describe a picture. Send opens the image maker with your words filled in.")
+      // The chip's tooltip repeats the line while the pointer rests on it.
+      screen.getByText("Describe a picture. Send opens the image maker with your words filled in.", {
+        selector: "[aria-live='polite']"
+      })
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Show all ways to start" }));
     expect(screen.getByRole("group", { name: "Start from a skill" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Studios" })).toBeInTheDocument();
     expect(screen.getByTestId("current-project-documents")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Entities · none/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^References · none/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "New project" })).toBeInTheDocument();
   });
 
   it("keeps the entities pill on a first run once an entity exists", () => {
     useOnboardingStore.setState({ firstResult: false });
     renderSurface();
-    expect(screen.getByRole("button", { name: /^Entities · none/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^References · none/ })).toBeInTheDocument();
   });
 
   it("shows the checklist until onboarding is done", () => {
@@ -1729,15 +1732,20 @@ describe("NewProjectSurface", () => {
     expect(screen.getByRole("button", { name: "Files · 1" })).toBeInTheDocument();
   });
 
-  it("writes an entity picked from `@` into the prompt as its token", async () => {
+  // UX research study 23: the raw `entity://e1` token read as broken text,
+  // and only the pill reached the picture maker.
+  it("writes an entity picked from `@` by name and adds it to the pill", async () => {
     renderSurface();
     const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     await userEvent.type(prompt, "A spot lit by @auro");
 
-    const menu = await screen.findByRole("listbox", { name: "Entities" });
+    const menu = await screen.findByRole("listbox", { name: "References" });
     await userEvent.click(within(menu).getByText("Aurora lamp"));
 
-    expect(prompt).toHaveValue("A spot lit by entity://e1 ");
+    expect(prompt).toHaveValue("A spot lit by Aurora lamp ");
+    expect(
+      screen.getByRole("button", { name: /· Aurora lamp/ })
+    ).toBeInTheDocument();
   });
 
   // The composer opens chat; the guided cards open their own flows.
@@ -1943,7 +1951,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
     for (const title of [
-      "Entity",
+      "Reference",
       "Storyboard",
       "Video",
       "Script",
@@ -1994,7 +2002,7 @@ describe("NewProjectSurface", () => {
   });
 
   it.each([
-    ["Entity", () => openTab],
+    ["Reference", () => openTab],
     ["Video", () => openCreateSession],
     ["Script", () => createScript],
     ["Image", () => openCreateSession],
@@ -2025,7 +2033,7 @@ describe("NewProjectSurface", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: /^Entity Create a reusable character/
+        name: /^Reference Create a reusable character/
       })
     );
 
@@ -2569,12 +2577,12 @@ describe("NewProjectSurface", () => {
       new File(["image bytes"], "lamp.png", { type: "image/png" })
     );
     await screen.findByRole("button", { name: "Files · 1" });
-    await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
+    await user.click(screen.getByRole("button", { name: /^References · none/ }));
     await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
     await user.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: /^Entities for this project/ })
+        screen.queryByRole("dialog", { name: /^References for this project/ })
       ).not.toBeInTheDocument()
     );
     await user.click(
@@ -2590,7 +2598,7 @@ describe("NewProjectSurface", () => {
       await screen.findByRole("button", { name: "Files · 1" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /^Entities · Aurora lamp/ })
+      screen.getByRole("button", { name: /^References · Aurora lamp/ })
     ).toBeInTheDocument();
   });
 
@@ -2600,13 +2608,13 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     await user.click(
-      screen.getByRole("button", { name: /^Entities · none/ })
+      screen.getByRole("button", { name: /^References · none/ })
     );
     await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
     await user.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: /^Entities for this project/ })
+        screen.queryByRole("dialog", { name: /^References for this project/ })
       ).not.toBeInTheDocument()
     );
 
@@ -2629,12 +2637,12 @@ describe("NewProjectSurface", () => {
   it("opens the video generation tab when entities are picked on Home", async () => {
     const user = userEvent.setup();
     renderSurface();
-    await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
+    await user.click(screen.getByRole("button", { name: /^References · none/ }));
     await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
     await user.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: /^Entities for this project/ })
+        screen.queryByRole("dialog", { name: /^References for this project/ })
       ).not.toBeInTheDocument()
     );
 
@@ -2650,12 +2658,14 @@ describe("NewProjectSurface", () => {
         expect.objectContaining({ mode: "video" })
       )
     );
-    // Create sends no entity mentions yet, so the picked entity is named as
-    // left behind.
-    await waitFor(() =>
-      expect(addNotification).toHaveBeenCalledWith(
-        expect.objectContaining({ content: expect.stringContaining("Aurora lamp") })
-      )
+    // Create carries the picked entity as its token, which the server
+    // expands when the take is generated (UX research study 23).
+    expect(openCreateSession).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ prompt: expect.stringContaining("entity://e1") })
+    );
+    expect(addNotification).not.toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining("Aurora lamp") })
     );
   });
 
@@ -2715,7 +2725,7 @@ it("leads with five creation types and reveals the others on request", async () 
     }
     expect(within(cards).queryByRole("button", { name: /^Read aloud/ })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /^Explore all creation types/ }));
-    for (const title of ["Script", "Read aloud", "Game", "Entity", "3D model"]) {
+    for (const title of ["Script", "Read aloud", "Game", "Reference", "3D model"]) {
       expect(
         within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
       ).toBeInTheDocument();

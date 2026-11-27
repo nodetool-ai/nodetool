@@ -27,7 +27,7 @@ jest.mock("../../entities/EntityPicker", () => ({
   )
 }));
 
-// Creating an entity picks an image, then describes it. Each dialog stands in
+// Creating a reference picks an image, then describes it. Each dialog stands in
 // as one button that completes its step.
 jest.mock("../../entities/EntityAssetPickerDialog", () => ({
   __esModule: true,
@@ -141,7 +141,7 @@ describe("ShotEntitiesField", () => {
   it("creates an entity and adds it to the board and the shot", async () => {
     seed(["mark"], ["mark"]);
     renderField([mark], ["mark"]);
-    await userEvent.click(screen.getByRole("button", { name: "New entity" }));
+    await userEvent.click(screen.getByRole("button", { name: "New reference" }));
     await userEvent.click(screen.getByRole("button", { name: "Pick image" }));
     await userEvent.click(screen.getByRole("button", { name: "Save entity" }));
 
@@ -156,7 +156,7 @@ describe("ShotEntitiesField", () => {
     seed(["mark"], ["mark"]);
     renderField([mark], ["mark"], true);
     expect(
-      screen.queryByRole("button", { name: "New entity" })
+      screen.queryByRole("button", { name: "New reference" })
     ).not.toBeInTheDocument();
   });
 
@@ -164,7 +164,7 @@ describe("ShotEntitiesField", () => {
     seed(["mark"], ["mark"]);
     renderField([mark], ["mark"]);
     await userEvent.click(
-      screen.getByRole("button", { name: /Choose entities/ })
+      screen.getByRole("button", { name: /Choose references/ })
     );
     await userEvent.click(
       await screen.findByRole("button", { name: "Pick Exotic Bazaar" })
@@ -180,6 +180,6 @@ describe("ShotEntitiesField", () => {
     seed(["mark"], ["mark"]);
     renderField([mark], ["mark"], true);
     expect(screen.queryByRole("button", { name: /Remove/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Choose entities/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Choose references/ })).toBeNull();
   });
 });

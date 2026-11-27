@@ -70,6 +70,7 @@ participant can close and open again. The setup is in
 | `sort-photos` | You have three photos: two from a beach trip and one from a forest walk. Put them into this app so that the two beach photos are kept together on their own, apart from the forest photo, under a name you choose. | empty | 20 | Grouping your own files under a name |
 | `write-note` | You need to tell your landlord that the heater in your flat has stopped working. Write the note here, make its first line stand out from the rest, then close it and open it again. | empty | 25 | Writing and formatting your own text |
 | `same-character` | You will make several pictures of your ginger cat, Miso, and want the same cat in every one. Using your photo of Miso, set the app up so it knows what Miso looks like. | empty | 25 | Setting up a recurring subject |
+| `use-character` | Someone here already set up a detective called Marta, so the app always draws her the same way. Have the app make a new picture of Marta standing on a beach, until you see the picture. | seeded-demo | 30 | Using a saved subject in a new picture |
 | `make-3d` | You want a simple table in 3D: a flat top on four legs. Build it here by hand, then turn it so you can see it from underneath. | empty | 40 | Building a 3D object by hand |
 | `find-thing` | Someone here worked on plans for releasing the next version of a product. You do not know whether it was a conversation, a document or something else. Find it and open it. | seeded-demo | 15 | Finding something by search |
 | `build-blank` | You want a small process here that takes two words you type and shows them as one line, the first word followed by the second. Build it yourself, step by step, without asking the app to build it for you. Then run it until you see the line. | empty | 40 | Building a graph on an empty canvas |
@@ -148,6 +149,7 @@ studies the choice and not the setup.
 | `sort-photos` | Both beach photos inside one named folder (or another named group), and the forest photo outside it. | Whether the new folder was on screen after it was made, and whether it used a folder or a project. | [organize](../../agentic-qa/references/protocols/library.md#organize) |
 | `write-note` | A text file whose first line is bold or a heading, reopened after its tab was closed. | Whether it previewed before saving, how it made the heading, and which list it reopened from. | [copy-edit](../../agentic-qa/references/protocols/library.md#copy-edit) |
 | `same-character` | An entity named Miso with the photo as its reference image, visible in the library. | Whether it went to the composer's entity picker, the rail's Entities page, or the chat. | [image](../../agentic-qa/references/protocols/library.md#image) |
+| `use-character` | A generated picture whose request carried the Marta entity is on screen. | Whether it picked Marta from `@`, the Entities pill, the rail's Entities page, or typed her name, and whether the picture maker kept her. | [image](../../agentic-qa/references/protocols/library.md#image) |
 | `make-3d` | A 3D model with a top and four legs, viewed from below. | Whether it found the duplicate, and whether a moved part left the view. | [app-first-use](../../agentic-qa/references/protocols/first-use.md#app-first-use) |
 | `find-thing` | The conversation "Plan our v2 product launch" is open. | Which list or search it tried first, and how it read an empty search result. | [chat-find](../../agentic-qa/references/protocols/chat.md#chat-find) |
 | `build-blank` | A workflow built on the canvas, without the assistant or a guided flow, that joins two typed texts, run with the joined line visible. | Where new nodes landed, how it found the joining node, and whether it wired or typed values in. | [automation](../../agentic-qa/references/protocols/workflows.md#automation) |
@@ -227,6 +229,12 @@ top and one leg: a full table needs about 70 at three actions per number,
 so judge it on the route and the stalls, or give it 70. `find-thing` is
 answered by the Chats list in the seeded account, so it says little about
 search unless the account holds more conversations than one list shows.
+
+Study 23 found that `use-character` takes about 27 actions, so give it 30.
+In `seeded-demo` the Entities panel and the `@` menu stay empty for about
+30 seconds after the first load (study-23-D1), which cost two of four
+sessions the task. Judge the route only after that defect is fixed, or wait
+30 seconds and reload before the session starts.
 
 Study 9 found that `build-blank` takes 17 to 39 actions, so give it 40.
 `change-instructions` and `reconnect` take 6 to 10 from home, and the rest of

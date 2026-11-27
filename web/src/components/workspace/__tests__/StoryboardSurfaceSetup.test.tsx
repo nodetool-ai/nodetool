@@ -224,7 +224,7 @@ describe("StoryboardSurface setup stages", () => {
   it.each([
     ["idea", "Write shots"],
     ["genre", "Generate screenplay"],
-    ["review", "Set up entities"],
+    ["review", "Set up references"],
     ["entities", "Choose the look"],
     ["look", "Generate your storyboard"]
   ] as const)("mounts the %s step, not the board", (stage, primary) => {

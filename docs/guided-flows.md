@@ -2,19 +2,19 @@
 layout: page
 title: "Guided Creation Flows"
 permalink: /guided-flows
-description: "Start a workflow, app, entity, storyboard, video, script, or game from a short guided sequence of steps."
+description: "Start a workflow, app, reference, storyboard, video, script, or game from a short guided sequence of steps."
 ---
 
-A guided flow is a short sequence of steps that ends in a document you keep editing. You describe what you want, review the proposal, and only then does the flow call paid models. Progress is saved on the document the flow creates, so a reload or a second window resumes at the same step. The **Image** and **Read aloud** cards are not guided flows. They open a new Create tab. For the Storyboard, Video, and Script flows, see [AI Video Production](ai-video-production.md). For reusable characters, places, styles, and props, see [Entities](entities.md).
+A guided flow is a short sequence of steps that ends in a document you keep editing. You describe what you want, review the proposal, and only then does the flow call paid models. Progress is saved on the document the flow creates, so a reload or a second window resumes at the same step. The **Image** and **Read aloud** cards are not guided flows. They open a new Create tab. For the Storyboard, Video, and Script flows, see [AI Video Production](ai-video-production.md). For reusable characters, places, styles, and props, see [References](entities.md).
 
-> **Runs:** locally or cloud, depending on the models you pick. **Needs:** a connected language model, plus an image model for Entity and Storyboard. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** the render or build step calls the chosen model at provider rates. The footer shows an estimate when it can be measured. The App build is capped at $2.00.
+> **Runs:** locally or cloud, depending on the models you pick. **Needs:** a connected language model, plus an image model for Reference and Storyboard. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** the render or build step calls the chosen model at provider rates. The footer shows an estimate when it can be measured. The App build is capped at $2.00.
 {: .callout-note}
 
 | Flow | What it makes | Steps |
 |------|---------------|-------|
 | [Workflow](#workflow) | A graph, checked and run once | Idea, Plan, Build |
 | [App](#app) | A mini app with the workflow behind its button, test-run | Idea, Design, Build |
-| [Entity](#entity) | A reusable character, location, style, or prop | Details, Reference, Review |
+| [Reference](#reference) | A reusable character, location, style, or prop | Details, Reference, Review |
 | [Storyboard](#storyboard-video-and-script) | A rendered board of shots | See [AI Video Production](ai-video-production.md) |
 | [Video](#storyboard-video-and-script) | A cut on the timeline, no board | See [AI Video Production](ai-video-production.md) |
 | [Script](#storyboard-video-and-script) | Voiced lines ready to place | See [AI Video Production](ai-video-production.md) |
@@ -24,15 +24,15 @@ A guided flow is a short sequence of steps that ends in a document you keep edit
 
 ## Start a flow
 
-**From the new-project screen.** The flow cards are **Create video**, **Create storyboard**, **Create app**, and **Create workflow**. **Explore all creation types** adds **Script**, **Game**, and **Entity**. **Create image**, and **Read aloud** under **Explore all creation types**, open a Create tab instead. Text typed in the prompt box is not sent to a flow unless you click its card.
+**From the new-project screen.** The flow cards are **Create video**, **Create storyboard**, **Create app**, and **Create workflow**. **Explore all creation types** adds **Script**, **Game**, and **Reference**. **Create image**, and **Read aloud** under **Explore all creation types**, open a Create tab instead. Text typed in the prompt box is not sent to a flow unless you click its card.
 
 **From the tab bar.** The **+ New** menu lists flows under **Guided flows**. Each choice creates an untitled document in the selected project and opens it as a tab, except **App**, which opens its flow and creates the app only when the build succeeds. A failed start shows the notification "Could not start the guided flow".
 
 **From the Games examples.** The **Games** tab under the flows has **Make a game**, which starts the Game flow.
 
-**From the Entities page.** **Add entity** runs the Entity flow in place.
+**From the References page.** **Add reference** runs the Reference flow in place.
 
-When a step's primary button is disabled, a line beside it says why, for example when a required field is empty. Where a step spends money, the cost estimate sits beside the button. Step 1 of the Workflow and Entity flows has **Other ways to start**, which skips the flow. Flows opened from the new-project screen also show **Change flow** on step 1, which asks for confirmation before it discards the draft.
+When a step's primary button is disabled, a line beside it says why, for example when a required field is empty. Where a step spends money, the cost estimate sits beside the button. Step 1 of the Workflow and Reference flows has **Other ways to start**, which skips the flow. Flows opened from the new-project screen also show **Change flow** on step 1, which asks for confirmation before it discards the draft.
 
 ## Workflow
 
@@ -90,35 +90,35 @@ When the build finishes, the canvas opens with a checklist: **Graph built** (wit
 - **Create Mini App** for App with a form. See [Mini Apps](mini-apps.md)
 - **Add a trigger** for On a trigger. It opens the trigger-node picker. See [Triggers](triggers.md)
 
-## Entity
+## Reference
 
-The reference image keeps the entity consistent across prompts. See [Entities](entities.md).
+The reference image keeps the reference consistent across prompts. See [References](entities.md).
 
 ### Step 1: Details
 
-1. Choose the entity type: **Character**, **Location**, **Style**, or **Prop**.
+1. Choose the reference type: **Character**, **Location**, **Style**, or **Prop**.
 2. Enter a **Name**. The placeholder is "Nova".
-3. Enter a **Descriptor**. This text is added to every prompt that uses the entity, so describe only stable visual traits.
+3. Enter a **Descriptor**. This text is added to every prompt that uses the reference, so describe only stable visual traits.
 4. Optionally enter **Tags (optional)** as a comma-separated list.
 
-The name and descriptor are required. **Start with a blank reference** under **Other ways to start** makes a plain white 1024 x 1024 image, fills an empty name with "Untitled entity" and an empty descriptor with "A reusable visual entity.", and jumps to the review. Otherwise continue with **Choose a reference**.
+The name and descriptor are required. **Start with a blank reference** under **Other ways to start** makes a plain white 1024 x 1024 image, fills an empty name with "Untitled reference" and an empty descriptor with "A reusable visual reference.", and jumps to the review. Otherwise continue with **Choose a reference**.
 
 ### Step 2: Reference
 
-- **Choose from assets** opens the asset picker. After a pick the button reads **Change reference**. Images that are already entities are not offered.
-- **Generate with AI** opens **Generate a reference image**. Choose a view for the entity type, edit the **Prompt**, pick an **Image model**, and choose **Generate reference**. The image is made at 1K resolution and selected for you.
+- **Choose from assets** opens the asset picker. After a pick the button reads **Change reference**. Images that are already references are not offered.
+- **Generate with AI** opens **Generate a reference image**. Choose a view for the reference type, edit the **Prompt**, pick an **Image model**, and choose **Generate reference**. The image is made at 1K resolution and selected for you.
 
-Continue with **Review entity**.
+Continue with **Review reference**.
 
 ### Step 3: Review
 
-**Create entity** saves it. If you leave before this step, the draft is kept and restored when you return.
+**Create reference** saves it. If you leave before this step, the draft is kept and restored when you return.
 
 ## Storyboard, Video, and Script
 
 [AI Video Production](ai-video-production.md) documents all three, with their steps and review screens.
 
-- **Storyboard** takes a sentence to a rendered board in four steps. You review the screenplay, assign entities, choose the look, then render stills and clips.
+- **Storyboard** takes a sentence to a rendered board in four steps. You review the screenplay, assign references, choose the look, then render stills and clips.
 - **Video** takes a sentence to a cut on the timeline with no board. Each beat stays a separate clip. Start it from **Create video** on the new-project screen or the Studio home. **Video** in the **+ New** menu opens a Create tab instead.
 - **Script** takes a topic to voiced lines. You write or import the script, add production context, assign speakers and voices, and can create a linked storyboard from it.
 
