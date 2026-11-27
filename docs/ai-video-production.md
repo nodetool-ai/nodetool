@@ -20,7 +20,7 @@ Reference-based shots need a video model that accepts references. On-camera perf
 |---|---|---|
 | 1. Script | Write dialogue and narration, cast voices, generate speech takes | [Script Editor](script-editor.md) |
 | 2. Storyboard | Direct each shot, render stills, generate clips | [Storyboard Editor](storyboard-editor.md) |
-| 3. Entities | Save characters, locations, styles, and props once so they stay consistent across shots | [Entities](entities.md) |
+| 3. References | Save characters, locations, styles, and props once so they stay consistent across shots | [References](entities.md) |
 | 4. Creative Agent | Ask the assistant to plan, generate, and revise across all of these | [Creative Agent](creative-agent.md) |
 | 5. Video Editor | Trim, mix, caption, and export the accepted clips on the timeline | [Video Editor](video-editor.md) |
 
@@ -77,7 +77,7 @@ The result opens in the timeline, where each beat remains a separate clip.
    duration before rendering.
 3. Set the editorial purpose, visual treatment, speech mode, production
    direction, and requested takes for each shot.
-4. In **Entities**, assign reusable characters and other references to the
+4. In **References**, assign reusable characters and other references to the
    shots that need them.
 5. In **Look**, choose the aspect ratio, art style, still model, and video
    model. **Add your own style** can build a look from one to three reference
@@ -93,7 +93,7 @@ The result opens in the timeline, where each beat remains a separate clip.
    claim rules. These notes travel with the script without changing its words.
 3. Assign speakers and voices, then generate the speech takes you want to use.
 4. Create a storyboard from the script when you want visual shots. The linked
-   storyboard keeps the script lines, speakers, entities, voices, and selected
+   storyboard keeps the script lines, speakers, references, voices, and selected
    speech takes.
 5. Add or confirm visual references in the storyboard before generating clips.
 
@@ -126,7 +126,7 @@ The assistant can run an on-camera performance when the visible performer must
 match the recorded line. It needs all of the following:
 
 - the exact speech take or recorded audio,
-- a character entity with a character reference,
+- a character reference with a character reference,
 - a source face video for the performance,
 - an audio-driven or lip-sync model available through a connected provider,
 - enough time in the shot for the complete speech take.

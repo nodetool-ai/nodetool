@@ -6,7 +6,7 @@ description: "Brief to finished cut: the Director writes a screenplay, the story
 image: /assets/creative-agent/storyboard-surface.png
 ---
 
-A Director agent turns a brief into a screenplay on a [storyboard](storyboard-editor.md). The flow is Brief, Direct, Stills, Clips, Timeline. You can run each step from the storyboard, or ask the assistant in chat to do it. For how Script, Storyboard, Entities, and Timeline fit together, see [AI Video Production](ai-video-production.md).
+A Director agent turns a brief into a screenplay on a [storyboard](storyboard-editor.md). The flow is Brief, Direct, Stills, Clips, Timeline. You can run each step from the storyboard, or ask the assistant in chat to do it. For how Script, Storyboard, References, and Timeline fit together, see [AI Video Production](ai-video-production.md).
 
 > **Runs:** locally or cloud, depending on the models you pick. **Needs:** a text model for the Director and an image and video model for renders. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** stills and clips on paid providers are billed at provider rates. The Director call is billed when its text model is paid. Local models cost nothing per render.
 {: .callout-note}
@@ -41,7 +41,7 @@ Builders driving this from code or MCP: see [Creative Agent Tools](developer/cre
 
 ## Start from a shipped board
 
-**New → New storyboard…** (under **Blank documents**) opens a list with **Blank storyboard** and the example boards that ship with the install. The **Storyboard** entry under **Guided flows** in the same menu walks you through four steps (Idea, Story, Entities, Look) and ends on the rendered board. An example board arrives finished: every shot has its action text, still, and clip. It opens immediately without duplicating media files. Regenerating a shot replaces the shipped render on that card only.
+**New → New storyboard…** (under **Blank documents**) opens a list with **Blank storyboard** and the example boards that ship with the install. The **Storyboard** entry under **Guided flows** in the same menu walks you through four steps (Idea, Story, References, Look) and ends on the rendered board. An example board arrives finished: every shot has its action text, still, and clip. It opens immediately without duplicating media files. Regenerating a shot replaces the shipped render on that card only.
 
 ## Direct: brief in, screenplay out
 
@@ -63,17 +63,17 @@ Timeline playback and export mix audio clips, so the shot-audio clips carry a vi
 
 Every assembled clip stays linked to its shot. Selecting a new clip take afterward replaces the clip in the saved timeline. **Rebuild linked timeline…** replaces every clip the storyboard owns, including trims, and keeps tracks and clips you added yourself.
 
-## Entities: reusable ingredients
+## References: reusable ingredients
 
-<img src="{{ '/assets/creative-agent/entity-library.png' | relative_url }}" alt="Entity library with a character, location, style, and prop">
+<img src="{{ '/assets/creative-agent/entity-library.png' | relative_url }}" alt="Reference library with a character, location, style, and prop">
 
-An entity is an image asset tagged with a kind (character, location, style, prop), a name, and a descriptor, which is pasted verbatim into every prompt that names it. See [Entities](entities.md) for creating and editing them.
+A reference is an image asset tagged with a kind (character, location, style, prop), a name, and a descriptor, which is pasted verbatim into every prompt that names it. See [References](entities.md) for creating and editing them.
 
-<img src="{{ '/assets/screenshots/storyboard-board.png' | relative_url }}" alt="Storyboard board with Board settings open: the Entities field carrying four entity chips, over the shot grid">
+<img src="{{ '/assets/screenshots/storyboard-board.png' | relative_url }}" alt="Storyboard board with Board settings open: the References field carrying four reference chips, over the shot grid">
 
-On a storyboard, the **Entities** field under **Board settings** pins a cast to the board: styles and locations season every shot's still and clip prompt, while characters and props activate on the shots that mention them by name. Open a shot with **Edit** and the board's entities show as chips. Click one to include or exclude it for that shot. The **Direct** run also hands the cast to the screenplay model so shots reference entities by their exact names.
+On a storyboard, the **References** field under **Board settings** pins a cast to the board: styles and locations season every shot's still and clip prompt, while characters and props activate on the shots that mention them by name. Open a shot with **Edit** and the board's references show as chips. Click one to include or exclude it for that shot. The **Direct** run also hands the cast to the screenplay model so shots name references by their exact names.
 
-Typing `@` in the chat composer or the workflow editor's Prompt node lists entities first. A picked entity carries its descriptor and reference image into the generation.
+Typing `@` in the chat composer or the workflow editor's Prompt node lists references first. A picked reference carries its descriptor and reference image into the generation.
 
 ## Cost governance
 

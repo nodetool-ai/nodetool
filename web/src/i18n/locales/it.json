@@ -16,12 +16,12 @@
   },
   "screen_storyboard": {
     "entities": {
-      "pickTitle": "Scegli un'entità",
+      "pickTitle": "Scegli un riferimento",
       "done": "Fatto",
       "untitled": "Senza titolo",
-      "searchPlaceholder": "Cerca entità per nome, tipo o tag",
-      "searchLabel": "Cerca entità",
-      "kindLabel": "Tipo di entità",
+      "searchPlaceholder": "Cerca riferimenti per nome, genere o tag",
+      "searchLabel": "Cerca riferimenti",
+      "kindLabel": "Genere di riferimento",
       "kindFilters": {
         "all": "Tutto",
         "characters": "Personaggi",
@@ -29,16 +29,16 @@
         "styles": "Stili",
         "props": "Oggetti di scena"
       },
-      "loading": "Caricamento entità",
-      "emptyTitle": "Nessuna entità ancora",
+      "loading": "Caricamento dei riferimenti",
+      "emptyTitle": "Ancora nessun riferimento",
       "emptyPickerDescription": "I personaggi, i luoghi, gli stili e gli oggetti di scena che crei vengono visualizzati qui.",
-      "newEntity": "Nuova entità",
-      "noMatches": "Nessuna entità corrisponde",
+      "newEntity": "Nuovo riferimento",
+      "noMatches": "Nessun riferimento corrisponde",
       "noMatchesDescription": "Prova un altro nome, tipo o tag.",
-      "entitiesLabel": "Entità",
+      "entitiesLabel": "Riferimenti",
       "noImage": "Nessuna immagine",
-      "editEntity": "Modifica entità",
-      "removeEntity": "Rimuovi entità",
+      "editEntity": "Modifica riferimento",
+      "removeEntity": "Rimuovi riferimento",
       "save": "Salva",
       "create": "Crea",
       "image": "Immagine",
@@ -52,14 +52,14 @@
       },
       "name": "Nome",
       "descriptor": "Descrittore",
-      "descriptorHelp": "Come appare, in una frase. Ogni prompt che utilizza questa entità la interpreta parola per parola.",
+      "descriptorHelp": "Il suo aspetto, in una frase. Ogni prompt che usa questo riferimento lo riceve parola per parola.",
       "voiceId": "ID vocale (facoltativo)",
       "tags": "Tag (separati da virgole)",
-      "panelEmptyDescription": "Tagga un'immagine come personaggio, posizione, stile o oggetto con il pulsante + in alto oppure fai clic con il pulsante destro del mouse su un'immagine nella Libreria e scegli Usa come entità.",
-      "libraryEmptyDescription": "Tagga un'immagine come personaggio, luogo, stile o oggetto per riutilizzarla negli scatti. Nella Libreria, fai clic con il pulsante destro del mouse su un'immagine e scegli Usa come entità.",
-      "addEntity": "Aggiungi entità",
+      "panelEmptyDescription": "Contrassegna un'immagine come personaggio, luogo, stile o oggetto con il pulsante + qui sopra, oppure fai clic destro su un'immagine nella Libreria e scegli Usa come riferimento.",
+      "libraryEmptyDescription": "Contrassegna un'immagine come personaggio, luogo, stile o oggetto per riutilizzarla tra le inquadrature. Nella Libreria, fai clic destro su un'immagine e scegli Usa come riferimento.",
+      "addEntity": "Aggiungi riferimento",
       "librarySubtitle": "Personaggi, posizioni, stili e oggetti di scena riutilizzabili",
-      "backToEntities": "Torniamo alle entità",
+      "backToEntities": "Torna ai riferimenti",
       "pickImageTitle": "Scegli un'immagine di riferimento",
       "noImages": "Nessuna immagine",
       "noImagesDescription": "Genera o carica prima un'immagine."
@@ -191,7 +191,7 @@
     "sendMediaToWorkflowTooltip": "Aggiungi i media selezionati all'area del flusso di lavoro come nodi costanti",
     "transformWithWorkflow": "Trasforma con il flusso di lavoro…",
     "transformWithWorkflowTooltip": "Esegui questo file attraverso uno dei tuoi flussi di lavoro",
-    "useAsEntity": "Utilizza come entità...",
+    "useAsEntity": "Usa come riferimento…",
     "useAsEntityTooltip": "Tagga questa immagine come personaggio, luogo, stile o oggetto di scena per riutilizzarla negli scatti",
     "editTimeline": "Modifica sequenza temporale",
     "createTimelineFromVideo": "Crea sequenza temporale dal video",
@@ -3030,7 +3030,7 @@
       }
     },
     "entity": {
-      "title": "Entità",
+      "title": "Riferimento",
       "kinds": {
         "character": "carattere",
         "location": "posizione",
@@ -3038,51 +3038,51 @@
         "prop": "prop"
       },
       "defaults": {
-        "untitledName": "Entità senza titolo",
+        "untitledName": "Riferimento senza titolo",
         "untitledReferenceFile": "Senza titolo.png"
       },
       "errors": {
         "canvasUnavailable": "Contesto 2D Canvas non disponibile",
         "blankImageFailed": "Impossibile eseguire il rendering dell'immagine vuota",
-        "blankStart": "Impossibile avviare un'entità vuota: {{detail}}",
-        "referenceRequired": "Scegli un'immagine di riferimento prima di creare l'entità.",
-        "createdEntityUnreadable": "Non è stato possibile leggere l'entità dopo la creazione."
+        "blankStart": "Impossibile avviare un riferimento vuoto: {{detail}}",
+        "referenceRequired": "Scegli un'immagine prima di creare il riferimento.",
+        "createdEntityUnreadable": "Impossibile leggere il riferimento dopo la creazione."
       },
       "steps": {
         "details": {
           "label": "Dettagli",
           "primary": "Scegli un riferimento",
           "blocked": {
-            "name": "Assegna un nome all'entità",
+            "name": "Dai un nome al riferimento",
             "descriptor": "Descrivere le caratteristiche da preservare"
           },
           "pending": "Preparazione di un riferimento vuoto"
         },
         "reference": {
           "label": "Riferimento",
-          "primary": "Entità di revisione",
+          "primary": "Rivedi riferimento",
           "blocked": {
-            "libraryError": "Impossibile verificare la libreria delle entità",
-            "libraryLoading": "Caricamento della libreria di entità",
+            "libraryError": "Impossibile verificare la tua libreria di riferimenti",
+            "libraryLoading": "Caricamento della tua libreria di riferimenti",
             "reference": "Scegli un'immagine di riferimento"
           }
         },
         "review": {
           "label": "Recensione",
-          "primary": "Crea entità",
-          "pending": "Creazione della tua entità",
+          "primary": "Crea riferimento",
+          "pending": "Creazione del riferimento",
           "blocked": {
-            "libraryError": "Impossibile verificare la libreria delle entità",
-            "libraryLoading": "Caricamento della libreria di entità",
+            "libraryError": "Impossibile verificare la tua libreria di riferimenti",
+            "libraryLoading": "Caricamento della tua libreria di riferimenti",
             "reference": "Torna indietro e scegli un'immagine di riferimento",
-            "name": "Torna indietro e dai un nome all'entità",
+            "name": "Torna indietro e dai un nome al riferimento",
             "descriptor": "Torna indietro e descrivi i tratti da preservare"
           }
         }
       },
       "details": {
         "title": "Cosa dovrebbe rimanere coerente?",
-        "description": "Assegna all'entità un nome stabile e le richieste di generazione della descrizione dovrebbero essere riutilizzate.",
+        "description": "Dai al riferimento un nome stabile e la descrizione che i prompt di generazione devono riutilizzare.",
         "kinds": {
           "character": {
             "title": "Carattere",
@@ -3102,10 +3102,10 @@
           }
         },
         "fields": {
-          "kind": "Tipo di entità",
+          "kind": "Tipo di riferimento",
           "name": "Nome",
           "descriptor": "Descrittore",
-          "descriptorHelp": "Questo testo viene aggiunto a ogni prompt che utilizza l'entità. Descrivi solo tratti visivi stabili.",
+          "descriptorHelp": "Questo testo viene aggiunto a ogni prompt che usa il riferimento. Descrivi solo tratti visivi stabili.",
           "tagsOptional": "Tag (facoltativo)"
         },
         "placeholders": {
@@ -3127,7 +3127,7 @@
         "description": "Scegli l'immagine più chiara delle caratteristiche che desideri che le generazioni future preservino o creane una con l'intelligenza artificiale.",
         "imageCaption": "{{name}} riferimento",
         "selectedCaption": "Riferimento selezionato",
-        "selectedAlt": "Riferimento all'entità selezionata",
+        "selectedAlt": "Immagine di riferimento selezionata",
         "assets": {
           "unavailable": "Risorse non disponibili",
           "loading": "Caricamento risorse",
@@ -3160,7 +3160,7 @@
         "errors": {
           "noImage": "Il modello di immagine non ha restituito alcuna immagine di riferimento.",
           "generationFailed": "Impossibile generare l'immagine di riferimento.",
-          "reportSummary": "Impossibile generare l'immagine di riferimento dell'entità"
+          "reportSummary": "Impossibile generare l'immagine di riferimento"
         },
         "prompt": {
           "template": "Un'immagine di riferimento di {{name}}. {{descriptor}} {{instruction}}",
@@ -3221,7 +3221,7 @@
         "clipTask": {
           "image_to_video": "Animare le immagini fisse",
           "text_to_video": "Generare dai prompt",
-          "reference_to_video": "Utilizza riferimenti a entità"
+          "reference_to_video": "Usa riferimenti"
         },
         "confirmWithCost": "{{verb}} · circa {{cost}}",
         "renderClip": "Rendering della clip",
@@ -3594,58 +3594,58 @@
       "entities": {
         "editOnlyModel": "{{model}} modifica solo le immagini, quindi non può trarre un riferimento da una descrizione. Scegli un modello che crei immagini dal testo.",
         "substituteModelHelper": "{{originalModel}} modifica solo le immagini, quindi i riferimenti utilizzano {{referenceModel}}. Le immagini fisse nel passaggio Guarda mantengono {{originalModel}}.",
-        "referenceModelHelper": "Utilizzato solo per le entità mancanti che scegli di creare. Lo stesso modello prosegue nella fase Guarda.",
+        "referenceModelHelper": "Usato solo per i riferimenti mancanti che scegli di creare. Lo stesso modello passa al passaggio Look.",
         "priceUnknown": "Prezzo sconosciuto",
         "aboutPrice": "Informazioni su {{price}}",
         "missingScreenplayOrModel": "Lo storyboard necessita prima di una sceneggiatura e di un modello di regista.",
-        "findFailedFallback": "Impossibile trovare entità nella storia.",
+        "findFailedFallback": "Impossibile trovare riferimenti nella storia.",
         "pickReferenceModelFirst": "Scegli prima un modello di immagine di riferimento.",
         "noReferenceImageReturned": "Il modello di immagine non ha restituito alcuna immagine di riferimento.",
-        "entitySaveFailed": "Impossibile salvare l'entità.",
-        "entityCreateFailedFallback": "Impossibile creare l'entità.",
+        "entitySaveFailed": "Impossibile salvare il riferimento.",
+        "entityCreateFailedFallback": "Impossibile creare il riferimento.",
         "title": "Mantieni persone e luoghi coerenti",
         "description": "Scegli i personaggi, i luoghi e gli oggetti di scena che devono apparire coerenti in tutte le inquadrature.",
         "suggestedFromStory": "Suggerito dalla tua storia",
         "suggestionsDescription": "Trova riferimenti ricorrenti nella tua sceneggiatura. Crea solo quelli che desideri utilizzare.",
-        "findingEntities": "Trovare entità",
+        "findingEntities": "Ricerca dei riferimenti",
         "refreshSuggestions": "Aggiorna suggerimenti",
-        "findEntities": "Trova entità",
-        "cancelFinding": "Annulla la ricerca di entità",
+        "findEntities": "Trova riferimenti",
+        "cancelFinding": "Annulla la ricerca dei riferimenti",
         "cancel": "Annulla",
         "noSuggestionsFound": "Nella tua sceneggiatura non sono stati trovati personaggi, luoghi o oggetti di scena ricorrenti.",
         "loadingEstimate": "Caricamento preventivo...",
         "findEstimateResult": "Trova i personaggi, i luoghi e gli oggetti di scena nella tua sceneggiatura",
         "findEstimateNext": "Niente viene creato finché non scegli tu.",
-        "findFailureTitle": "Impossibile trovare entità",
-        "createFailureTitle": "Impossibile creare entità",
-        "findFailureSummary": "Suggerimenti per le entità dello storyboard non riusciti",
-        "createFailureSummary": "Creazione dell'entità dello storyboard non riuscita",
+        "findFailureTitle": "Impossibile trovare riferimenti",
+        "createFailureTitle": "Impossibile creare i riferimenti",
+        "findFailureSummary": "Suggerimenti di riferimenti dello storyboard non riusciti",
+        "createFailureSummary": "Creazione dei riferimenti dello storyboard non riuscita",
         "referenceImageModel": "Modello di immagine di riferimento",
         "creatingEntity": "Creazione di {{name}}…",
         "useEntity": "Utilizza {{name}}",
         "createEntity": "Crea {{name}}",
-        "libraryTitle": "La tua libreria di entità",
+        "libraryTitle": "La tua libreria di riferimenti",
         "selectedCount_one": "{{count}} selezionato per questo storyboard",
         "selectedCount_other": "{{count}} selezionato per questo storyboard",
-        "createFromImage": "Crea entità da un'immagine",
-        "loadingEntities": "Caricamento entità",
-        "loadFailedTitle": "Impossibile caricare le tue entità",
+        "createFromImage": "Crea riferimento da un'immagine",
+        "loadingEntities": "Caricamento dei riferimenti",
+        "loadFailedTitle": "Impossibile caricare i tuoi riferimenti",
         "tryAgain": "Riprova",
-        "loadFailureSummary": "Impossibile caricare la libreria di entità dello storyboard",
-        "loadFailedFallback": "La libreria di entità non è stata caricata. Riprova o salta questo passaggio.",
-        "emptyTitle": "Nessuna entità ancora",
+        "loadFailureSummary": "Impossibile caricare la libreria di riferimenti dello storyboard",
+        "loadFailedFallback": "La libreria di riferimenti non si è caricata. Riprova o salta questo passaggio.",
+        "emptyTitle": "Ancora nessun riferimento",
         "emptyDescription": "Creane uno da un'immagine generata o caricata oppure salta questo passaggio.",
-        "searchPlaceholder": "Cerca entità",
+        "searchPlaceholder": "Cerca riferimenti",
         "selectedOnly": "Solo selezionato",
-        "noEntitiesSelected": "Nessuna entità selezionata",
-        "noMatchingEntities": "Nessuna entità corrispondente",
+        "noEntitiesSelected": "Nessun riferimento selezionato",
+        "noMatchingEntities": "Nessun riferimento corrispondente",
         "noSelectedDescription": "Sfoglia la tua libreria per scegliere i riferimenti per questo storyboard.",
         "noMatchingDescription": "Prova un altro nome o modifica il filtro selezionato.",
         "viewReferenceImage": "Visualizza l'immagine di riferimento {{name}}",
         "selectEntity": "{{name}} · {{kind}}",
         "noDescription": "Nessuna descrizione",
         "assignEachShot": "Assegna ogni scatto",
-        "assignDescription": "Rimuovi un'entità dalle riprese in cui non dovrebbe apparire.",
+        "assignDescription": "Rimuovi un riferimento dalle inquadrature in cui non deve comparire.",
         "shotNumber": "Tiro {{number}}",
         "groups": {
           "characters": "Personaggi",
@@ -6200,7 +6200,7 @@
         "actionLabel": "Copia {{name}} in un altro progetto",
         "title": "Copia {{name}}",
         "confirm": "Copia",
-        "description": "Le risorse, le entità e i documenti supportati a cui si fa riferimento vengono copiati nella destinazione. La fonte rimane invariata.",
+        "description": "Gli asset collegati, i riferimenti e i documenti supportati vengono copiati nella destinazione. La sorgente resta invariata.",
         "destinationProject": "Progetto di destinazione"
       },
       "documents": {
@@ -6246,7 +6246,7 @@
         "openChatError": "Impossibile aprire la chat: {{error}}",
         "startFlowError": "Impossibile avviare {{flow}}: {{error}}",
         "flowNames": {
-          "entity": "entità",
+          "entity": "riferimento",
           "storyboard": "storyboard",
           "video": "video",
           "script": "sceneggiatura",
@@ -6257,9 +6257,9 @@
         },
         "attachedFileCount_one": "{{count}} file allegato",
         "attachedFileCount_other": "{{count}} file allegati",
-        "singleEntity": "l'entità {{name}}",
-        "entityCount_one": "{{count}} entità",
-        "entityCount_other": "{{count}} entità",
+        "singleEntity": "il riferimento {{name}}",
+        "entityCount_one": "{{count}} riferimento",
+        "entityCount_other": "{{count}} riferimenti",
         "uncarriedContext": "Il flusso {{flow}} inizia dal tuo prompt, quindi {{items}} rimani su questa schermata. Aggiungili dal passaggio del flusso.",
         "documentNames": {
           "storyboard": "Nuovo storyboard",
@@ -6269,11 +6269,11 @@
           "workflow": "Nuovo flusso di lavoro",
           "app": "Nuova applicazione",
           "game": "Nuovo gioco",
-          "entity": "Nuova entità"
+          "entity": "Nuovo riferimento"
         },
         "entryCards": {
           "entity": {
-            "title": "Entità",
+            "title": "Riferimento",
             "description": "Crea un personaggio, un luogo, uno stile o un oggetto riutilizzabile."
           },
           "storyboard": {
@@ -6338,13 +6338,13 @@
         "heading": "Cosa ti piacerebbe creare?",
         "intro": "Trasforma un'idea in immagini, video, app e flussi di lavoro. Fai una domanda o descrivi cosa fare.",
         "chatPromptLabel": "Richiesta di chat",
-        "promptPlaceholder": "Descrivi cosa vuoi creare. Digita / per una competenza, @ per un file o un'entità.",
+        "promptPlaceholder": "Descrivi cosa vuoi creare. Digita / per una skill, @ per un file o un riferimento.",
         "removeReference": "Rimuovi {{name}}",
         "attachFiles": "Allega file",
         "attachedFileCountShort_one": "File · {{count}}",
         "attachedFileCountShort_other": "File · {{count}}",
-        "entitiesNone": "Entità · nessuna",
-        "entitiesSelected": "Entità · {{entities}}",
+        "entitiesNone": "Riferimenti · nessuno",
+        "entitiesSelected": "Riferimenti · {{entities}}",
         "selectedModel": "Modello · {{name}}",
         "selectModel": "Seleziona un modello",
         "sendToChat": "Invia in chat",
@@ -6364,7 +6364,7 @@
         "blankDocumentDescription": "- si apre come una scheda separata, al di fuori di qualsiasi progetto",
         "browseExamples": "Sfoglia gli esempi",
         "tutorials": "Tutorial",
-        "entitiesDialogTitle": "Entità per questo progetto",
+        "entitiesDialogTitle": "Riferimenti di questo progetto",
         "blankStoryboard": "Storyboard vuoto",
         "renderedExampleShots_one": "{{count}} scatto, già renderizzato",
         "renderedExampleShots_other": "{{count}} scatti, già renderizzati",
@@ -6456,7 +6456,7 @@
           }
         },
         "attachedFileCount_many": "{{count}} file allegati",
-        "entityCount_many": "{{count}} entità",
+        "entityCount_many": "{{count}} riferimenti",
         "attachedFileCountShort_many": "File · {{count}}",
         "moreStarters_many": "{{count}} altro",
         "renderedExampleShots_many": "{{count}} scatti, già renderizzati",
@@ -6876,7 +6876,7 @@
         "title": "Cambiare flusso?",
         "confirm": "Scarta e scegli",
         "cancel": "Conserva questa bozza",
-        "description": "Il tuo brief, i riferimenti e le entità con cui hai iniziato ti accompagnano nel flusso che sceglierai successivamente. Questa bozza {{flow}} viene eliminata insieme a qualsiasi altra cosa aggiunta in questo passaggio, come contesto creativo, file importati e contenuti multimediali inseriti. Non è stato ancora generato nulla per questo."
+        "description": "Il tuo brief, e le immagini e i riferimenti con cui hai iniziato, ti seguono nel flusso che scegli dopo. Questa bozza di {{flow}} viene scartata con tutto ciò che è stato aggiunto in questo passaggio, come contesto creativo, file importati e media inseriti. Per ora non è stato generato nulla."
       }
     },
     "setupFooterField": {
@@ -6914,12 +6914,12 @@
     },
     "entityDetails": {
       "title": "Cosa dovrebbe rimanere coerente?",
-      "description": "Assegna all'entità un nome stabile e le richieste di generazione della descrizione dovrebbero essere riutilizzate.",
+      "description": "Dai al riferimento un nome stabile e la descrizione che i prompt di generazione devono riutilizzare.",
       "fields": {
-        "kind": "Tipo di entità",
+        "kind": "Tipo di riferimento",
         "name": "Nome",
         "descriptor": "Descrittore",
-        "descriptorHelp": "Questo testo viene aggiunto a ogni prompt che utilizza l'entità. Descrivi solo tratti visivi stabili.",
+        "descriptorHelp": "Questo testo viene aggiunto a ogni prompt che usa il riferimento. Descrivi solo tratti visivi stabili.",
         "tagsOptional": "Tag (facoltativo)"
       },
       "placeholders": {
@@ -7016,9 +7016,9 @@
   },
   "pass3_5": {
     "entity": {
-      "title": "Entità",
+      "title": "Riferimento",
       "defaults": {
-        "untitledName": "Entità senza titolo",
+        "untitledName": "Riferimento senza titolo",
         "untitledReferenceFile": "Senza titolo.png"
       },
       "kinds": {
@@ -7030,38 +7030,38 @@
       "errors": {
         "canvasUnavailable": "Non è stato possibile creare un riferimento vuoto perché l'area di disegno non è disponibile.",
         "blankImageFailed": "Impossibile eseguire il rendering dell'immagine di riferimento vuota.",
-        "blankStart": "Impossibile avviare un'entità vuota: {{detail}}",
-        "referenceRequired": "Scegli un'immagine di riferimento prima di creare l'entità.",
-        "createdEntityUnreadable": "Non è stato possibile leggere l'entità dopo la creazione."
+        "blankStart": "Impossibile avviare un riferimento vuoto: {{detail}}",
+        "referenceRequired": "Scegli un'immagine prima di creare il riferimento.",
+        "createdEntityUnreadable": "Impossibile leggere il riferimento dopo la creazione."
       },
       "steps": {
         "details": {
           "label": "Dettagli",
           "primary": "Scegli un riferimento",
           "blocked": {
-            "name": "Assegna un nome all'entità",
+            "name": "Dai un nome al riferimento",
             "descriptor": "Descrivere le caratteristiche da preservare"
           },
           "pending": "Preparazione di un riferimento vuoto"
         },
         "reference": {
           "label": "Riferimento",
-          "primary": "Entità di revisione",
+          "primary": "Rivedi riferimento",
           "blocked": {
-            "libraryError": "Impossibile verificare la libreria delle entità",
-            "libraryLoading": "Caricamento della libreria di entità",
+            "libraryError": "Impossibile verificare la tua libreria di riferimenti",
+            "libraryLoading": "Caricamento della tua libreria di riferimenti",
             "reference": "Scegli un'immagine di riferimento"
           }
         },
         "review": {
           "label": "Recensione",
-          "primary": "Crea entità",
-          "pending": "Creazione della tua entità",
+          "primary": "Crea riferimento",
+          "pending": "Creazione del riferimento",
           "blocked": {
-            "libraryError": "Impossibile verificare la libreria delle entità",
-            "libraryLoading": "Caricamento della libreria di entità",
+            "libraryError": "Impossibile verificare la tua libreria di riferimenti",
+            "libraryLoading": "Caricamento della tua libreria di riferimenti",
             "reference": "Torna indietro e scegli un'immagine di riferimento",
-            "name": "Torna indietro e dai un nome all'entità",
+            "name": "Torna indietro e dai un nome al riferimento",
             "descriptor": "Torna indietro e descrivi i tratti da preservare"
           }
         }
@@ -7071,7 +7071,7 @@
         "description": "Scegli l'immagine più chiara delle caratteristiche che desideri che le generazioni future preservino o creane una con l'intelligenza artificiale.",
         "imageCaption": "{{name}} riferimento",
         "selectedCaption": "Riferimento selezionato",
-        "selectedAlt": "Riferimento all'entità selezionata",
+        "selectedAlt": "Immagine di riferimento selezionata",
         "assets": {
           "unavailable": "Risorse non disponibili",
           "loading": "Caricamento risorse",
@@ -7097,7 +7097,7 @@
         "errors": {
           "noImage": "Il modello di immagine non ha restituito alcuna immagine di riferimento.",
           "generationFailed": "Impossibile generare l'immagine di riferimento.",
-          "reportSummary": "Impossibile generare l'immagine di riferimento dell'entità"
+          "reportSummary": "Impossibile generare l'immagine di riferimento"
         },
         "prompt": {
           "template": "Un'immagine di riferimento di {{name}}. {{descriptor}} {{instruction}}",
@@ -7150,12 +7150,12 @@
         }
       },
       "review": {
-        "title": "Controlla la tua entità",
-        "description": "Questo riferimento e descrittore saranno disponibili ovunque sia possibile aggiungere entità.",
+        "title": "Rivedi il tuo riferimento",
+        "description": "Questo riferimento e la sua descrizione saranno disponibili ovunque si possano aggiungere riferimenti.",
         "imageCaption": "{{name}} riferimento",
         "imageAlt": "{{name}} riferimento",
         "tags": "Tag: {{tags}}",
-        "loadingLibrary": "Caricamento della libreria di entità…",
+        "loadingLibrary": "Caricamento della tua libreria di riferimenti…",
         "empty": {
           "title": "Nessuna immagine di riferimento ancora",
           "description": "Torna al passaggio di riferimento e scegline o generane uno."
@@ -7313,7 +7313,7 @@
         "uploadFailed": "Caricamento immagine non riuscito",
         "promptContext": "Sono venuto con il tuo suggerimento",
         "referenceImages": "Immagini di riferimento",
-        "entities": "Entità",
+        "entities": "Riferimenti",
         "referencesHelp": "Il brief passo passo li legge. La generazione immediata utilizza solo il tuo testo.",
         "entitiesHelp": "Questi rimangono con il documento mentre lo configuri.",
         "alternativesLabel": "Altri modi per iniziare"
@@ -7323,11 +7323,11 @@
         "downloadUnreadable": "Impossibile leggere il file ({{status}}).",
         "variation": "Variazione {{number}}",
         "unrecordedFailure": "Questo non ha reso e non ha fornito alcuna motivazione.",
-        "savingEntity": "Salvataggio nelle entità…",
+        "savingEntity": "Salvataggio nei riferimenti…",
         "opening": "Apertura…",
-        "savedEntity": "Salvato nelle entità.",
+        "savedEntity": "Salvato nei riferimenti.",
         "openedCanvas": "Aperto in una nuova tela del nodo.",
-        "saveEntityFailed": "Impossibile salvare nelle entità.",
+        "saveEntityFailed": "Impossibile salvare nei riferimenti.",
         "openCanvasFailed": "Impossibile aprire quella tela.",
         "heading": "Scegli la tua immagine",
         "intro": "Ogni variazione rimane nel documento, quindi nulla di ciò che hai renderizzato va perso.",
@@ -7346,7 +7346,7 @@
           "failed": "Questo ha fallito"
         },
         "sketchEditor": "Editor di schizzi",
-        "saveToEntities": "Salva su entità",
+        "saveToEntities": "Salva nei riferimenti",
         "newNodeCanvas": "Nuova tela del nodo",
         "imageToVideo": "Immagine in video",
         "retryVariation": "Prova di nuovo {{label}}",
@@ -7580,11 +7580,11 @@
       "sourceLineCount_other": "{{count}} righe",
       "referenceCount_one": "{{count}} riferimento",
       "referenceCount_other": "{{count}} riferimenti",
-      "entityCount_one": "{{count}} entità",
-      "entityCount_other": "{{count}} entità",
+      "entityCount_one": "{{count}} riferimento",
+      "entityCount_other": "{{count}} riferimenti",
       "sourceLineCount_many": "{{count}} righe",
       "referenceCount_many": "{{count}} riferimenti",
-      "entityCount_many": "{{count}} entità"
+      "entityCount_many": "{{count}} riferimenti"
     },
     "review": {
       "addDirection": "Aggiungi direzione",
@@ -7994,14 +7994,14 @@
       "addOwnDisabledReason": "Gli stili personalizzati vengono aggiunti durante la configurazione di una bacheca."
     },
     "entityStillModelWarning": {
-      "message": "Le entità portano immagini di riferimento, ma questo modello accetta solo testo. Scegli un modello da immagine a immagine per utilizzarli."
+      "message": "I riferimenti contengono immagini, ma questo modello accetta solo testo. Scegli un modello da immagine a immagine per usarli."
     }
   },
   "screens4_13": {
     "storyboard": {
       "entityTiles": {
         "untitled": "Senza titolo",
-        "chooseEntities": "Scegli le entità"
+        "chooseEntities": "Scegli riferimenti"
       },
       "oneTake": {
         "title": "Una ripresa",
@@ -8016,7 +8016,7 @@
         "referenceStills": "Foto scattate",
         "referenceEntities": "Cast e location",
         "referenceStillsHelp": "Ogni scatto fissa ancora l'inquadratura e la posa. Ideale per scatti tranquilli.",
-        "referenceEntitiesHelp": "Le immagini delle entità fissano chi e dove. Il testo della ripresa definisce l'inquadratura e il movimento. Il meglio per l'azione.",
+        "referenceEntitiesHelp": "I riferimenti fissano chi e dove. Il testo dell'inquadratura fissa taglio e movimento. Ideale per l'azione.",
         "duration": "Durata",
         "aspectRatio": "Proporzioni",
         "resolution": "Risoluzione",
@@ -8048,7 +8048,7 @@
         "blockers": {
           "addShot": "Aggiungi prima un colpo al tabellone.",
           "renderStill": "Eseguire il rendering di un'immagine fissa per almeno uno scatto.",
-          "addEntityImage": "Dai prima a un'entità sul tabellone un'immagine di riferimento.",
+          "addEntityImage": "Prima dai un'immagine a un riferimento sulla tavola.",
           "noModel": "Nessun modello video scelto.",
           "imageLimit_one": "L'immagine {{count}} supera il limite di {{limit}}. Rimuovi {{removeCount}}.",
           "imageLimit_other": "Le immagini {{count}} superano il limite di {{limit}}. Rimuovi {{removeCount}}.",
@@ -8109,9 +8109,9 @@
         "shotStillAlt": "Sparato ancora",
         "imageReference": "[Immagine {{number}}] ",
         "references": "Immagini di riferimento",
-        "referencesHelp": "Le foto correggono l'inquadratura e la posa. Le immagini delle entità fissano chi e dove.",
+        "referencesHelp": "I fotogrammi fissano taglio e posa. I riferimenti fissano chi e dove.",
         "stills": "Alambicchi",
-        "entities": "Entità",
+        "entities": "Riferimenti",
         "addEntity": "Aggiungi dalla libreria",
         "noStill": "No ancora",
         "noEntityImage": "Nessuna immagine",
@@ -8126,7 +8126,7 @@
           "differentScenes": "Le riprese in questa clip di scena non sono più in una scena.",
           "addShot": "Aggiungi prima un colpo al tabellone.",
           "renderStill": "Eseguire il rendering di un'immagine fissa per almeno uno scatto.",
-          "addEntityImage": "Dai prima a un'entità sul tabellone un'immagine di riferimento.",
+          "addEntityImage": "Prima dai un'immagine a un riferimento sulla tavola.",
           "noReference": "Scegli almeno un'immagine di riferimento.",
           "noVideoModel": "Nessun modello video scelto.",
           "imageLimit": "Le immagini {{imageCount}} superano il limite di {{limit}}. Rimuovi {{remove}}.",
@@ -8213,8 +8213,8 @@
       "shotEntitiesField": {
         "label": "In questo scatto",
         "remove": "Rimuovi {{name}} da questa ripresa",
-        "empty": "Nessuna entità ancora. Scegli un personaggio, un luogo, uno stile o un oggetto di scena per mantenerlo coerente in questa ripresa.",
-        "newEntity": "Nuova entità"
+        "empty": "Ancora nessun riferimento. Scegli un personaggio, un luogo, uno stile o un oggetto per mantenerlo uguale in questa inquadratura.",
+        "newEntity": "Nuovo riferimento"
       },
       "shotGraphicsEditor": {
         "title": "Grafica",
@@ -8230,7 +8230,7 @@
         "exactText": "Testo esatto: {{id}}",
         "protectedCopy": "La copia protetta proviene dagli input di produzione. Modificalo lì.",
         "assetReference": "Riferimento risorsa: {{id}}",
-        "entity": "Entità: {{id}}",
+        "entity": "Riferimento: {{id}}",
         "graphicNotes": "Note grafiche: {{id}}",
         "defaultText": "Il tuo testo",
         "addText": "Aggiungi testo",
@@ -8329,7 +8329,7 @@
         "clipTask": {
           "image_to_video": "Animare le immagini fisse",
           "text_to_video": "Generare dai prompt",
-          "reference_to_video": "Utilizza riferimenti a entità"
+          "reference_to_video": "Usa riferimenti"
         }
       },
       "shotScript": {
@@ -8612,11 +8612,11 @@
         "style": "Stile",
         "prop": "Prop"
       },
-      "editEntity": "Modifica entità",
+      "editEntity": "Modifica riferimento",
       "editEntityFor": "Modifica {{name}}",
-      "removeEntity": "Rimuovi entità",
+      "removeEntity": "Rimuovi riferimento",
       "removeEntityFor": "Rimuovi {{name}}",
-      "newEntity": "Nuova entità",
+      "newEntity": "Nuovo riferimento",
       "save": "Salva",
       "cancel": "Annulla",
       "create": "Crea",
@@ -8625,33 +8625,33 @@
       "kind": "Gentile",
       "name": "Nome",
       "descriptor": "Descrittore",
-      "descriptorHelp": "Descrivi il suo aspetto in una frase. Ogni prompt che utilizza questa entità include questo testo esattamente come scritto.",
+      "descriptorHelp": "Descrivi il suo aspetto in una frase. Ogni prompt che usa questo riferimento include questo testo così com'è.",
       "voiceId": "ID vocale (facoltativo)",
       "tags": "Tag (separati da virgole)",
-      "saveFailed": "Impossibile salvare questa entità. Controlla la connessione e riprova.",
-      "loadingEntities": "Caricamento entità",
-      "emptyTitle": "Nessuna entità ancora",
-      "libraryEmptyDescription": "Aggiungi un'immagine come personaggio, luogo, stile o oggetto di scena per riutilizzarla nelle riprese. Puoi anche fare clic con il pulsante destro del mouse su un'immagine nella Libreria e scegliere Usa come entità.",
-      "addEntity": "Aggiungi entità",
-      "backToEntities": "Torniamo alle entità",
-      "entitiesLabel": "Entità",
+      "saveFailed": "Impossibile salvare questo riferimento. Controlla la connessione e riprova.",
+      "loadingEntities": "Caricamento dei riferimenti",
+      "emptyTitle": "Ancora nessun riferimento",
+      "libraryEmptyDescription": "Aggiungi un'immagine come personaggio, luogo, stile o oggetto per riutilizzarla tra le inquadrature. Puoi anche fare clic destro su un'immagine nella Libreria e scegliere Usa come riferimento.",
+      "addEntity": "Aggiungi riferimento",
+      "backToEntities": "Torna ai riferimenti",
+      "entitiesLabel": "Riferimenti",
       "librarySubtitle": "Personaggi, posizioni, stili e oggetti di scena riutilizzabili",
       "retakeImage": "Genera nuovo"
     }
   },
   "screens4_23": {
     "entities": {
-      "newEntity": "Nuova entità",
-      "loading": "Caricamento entità",
-      "emptyTitle": "Nessuna entità ancora",
-      "panelEmptyDescription": "Tagga un'immagine come personaggio, posizione, stile o oggetto con il pulsante + in alto oppure fai clic con il pulsante destro del mouse su un'immagine nella Libreria e scegli Usa come entità.",
+      "newEntity": "Nuovo riferimento",
+      "loading": "Caricamento dei riferimenti",
+      "emptyTitle": "Ancora nessun riferimento",
+      "panelEmptyDescription": "Contrassegna un'immagine come personaggio, luogo, stile o oggetto con il pulsante + qui sopra, oppure fai clic destro su un'immagine nella Libreria e scegli Usa come riferimento.",
       "emptyPickerDescription": "I personaggi, i luoghi, gli stili e gli oggetti di scena che crei vengono visualizzati qui.",
-      "noMatches": "Nessuna entità corrisponde",
+      "noMatches": "Nessun riferimento corrisponde",
       "noMatchesDescription": "Prova un altro nome, tipo o tag.",
       "untitled": "Senza titolo",
-      "searchPlaceholder": "Cerca entità per nome, tipo o tag",
-      "searchLabel": "Cerca entità",
-      "kindLabel": "Tipo di entità",
+      "searchPlaceholder": "Cerca riferimenti per nome, genere o tag",
+      "searchLabel": "Cerca riferimenti",
+      "kindLabel": "Genere di riferimento",
       "kindFilters": {
         "all": "Tutto",
         "characters": "Personaggi",
@@ -8665,12 +8665,12 @@
         "style": "Stile",
         "prop": "Prop"
       },
-      "entitiesLabel": "Entità",
-      "selectedCount_one": "{{formattedCount}} entità selezionata",
-      "selectedCount_other": "{{formattedCount}} entità selezionate",
-      "pickTitle": "Scegli un'entità",
+      "entitiesLabel": "Riferimenti",
+      "selectedCount_one": "{{formattedCount}} riferimento selezionato",
+      "selectedCount_other": "{{formattedCount}} riferimenti selezionati",
+      "pickTitle": "Scegli un riferimento",
       "done": "Fatto",
-      "selectedCount_many": "{{formattedCount}} entità selezionate"
+      "selectedCount_many": "{{formattedCount}} riferimenti selezionati"
     }
   },
   "screens4_24": {
@@ -10104,9 +10104,9 @@
     "shotDesignFrame": {
       "ariaLabel": "Anteprima del progetto girato {{shot}}",
       "errors": {
-        "entityAssetMismatch": "La risorsa per l'entità {{entityId}} non corrisponde all'entità selezionata.",
-        "entitySourceMismatch": "L'elemento di origine {{elementId}} non corrisponde a questa entità.",
-        "missingEntityReference": "L'entità {{entityId}} manca nello storyboard.",
+        "entityAssetMismatch": "L'asset del riferimento {{entityId}} non corrisponde al riferimento selezionato.",
+        "entitySourceMismatch": "L'elemento sorgente {{elementId}} non corrisponde a questo riferimento.",
+        "missingEntityReference": "Il riferimento {{entityId}} manca dallo storyboard.",
         "unavailable": "L'anteprima dello scatto non è disponibile."
       },
       "pause": "Metti in pausa l'anteprima",
@@ -10189,7 +10189,7 @@
         "takes": "Prende"
       },
       "title": "Scena {{scene}}, ripresa {{shot}}",
-      "untitledEntity": "Entità senza titolo"
+      "untitledEntity": "Riferimento senza titolo"
     },
     "shotEditTable": {
       "camera": {
@@ -10839,8 +10839,8 @@
       "sketches": "Schizzi",
       "timelines": "Cronologia",
       "storyboards": "Storyboard",
-      "entities": "Entità",
-      "openEntitiesFullPage": "Apri le entità a pagina intera",
+      "entities": "Riferimenti",
+      "openEntitiesFullPage": "Apri i riferimenti a pagina intera",
       "examples": "Esempi",
       "scripts": "Script",
       "jsScripts": "Script JS",
@@ -10864,7 +10864,7 @@
         "sketches": "Schizzi",
         "scripts": "Script",
         "storyboards": "Storyboard",
-        "entities": "Entità",
+        "entities": "Riferimenti",
         "examples": "Esempi",
         "timelines": "Cronologia",
         "jsScripts": "Script JS",
@@ -13561,7 +13561,7 @@
         "selectModel": "Seleziona un modello",
         "attach": {
           "assetsTab": "Beni",
-          "entitiesTab": "Entità",
+          "entitiesTab": "Riferimenti",
           "documentsTab": "Documenti",
           "uploadTab": "Carica",
           "tabsLabel": "Cosa aggiungere",
@@ -14342,7 +14342,7 @@
         "creative": "Documenti creativi",
         "text": "File di testo",
         "agents": "Agenti e codice",
-        "entities": "Entità",
+        "entities": "Riferimenti",
         "shared": "Condiviso con me",
         "cloud": "Cloud",
         "cloudShared": "Condiviso con me"
@@ -14354,7 +14354,7 @@
         "script": "Copione",
         "storyboard": "Storyboard",
         "timeline": "Cronologia",
-        "entity": "Entità",
+        "entity": "Riferimento",
         "jsscript": "Scrittura JS",
         "game": "Gioco",
         "text": "File di testo"
@@ -14363,7 +14363,7 @@
       "deleteFailure": "Impossibile eliminare {{name}}: {{error}}",
       "unknownError": "Errore sconosciuto",
       "deleteConfirmTitle": "Eliminare {{type}}?",
-      "deleteEntityDescription": "\"{{name}}\" smetterà di essere un'entità. Il suo patrimonio viene mantenuto.",
+      "deleteEntityDescription": "\"{{name}}\" non sarà più un riferimento. Il suo asset viene mantenuto.",
       "deleteDescription": "\"{{name}}\" verrà eliminato definitivamente.",
       "deleteAction": "Elimina",
       "cancel": "Annulla",
@@ -14445,8 +14445,8 @@
       "noRecentAssets": "Nessun file ancora. Allega o trascinane uno.",
       "noAssetsMatch": "Nessuna risorsa corrisponde.",
       "noSavedAssets": "Nessuna risorsa salvata ancora.",
-      "noEntitiesMatch": "Nessuna entità corrisponde.",
-      "entities": "Entità",
+      "noEntitiesMatch": "Nessun riferimento corrisponde.",
+      "entities": "Riferimenti",
       "assetSource": "Origine risorsa",
       "rename": "Rinomina {{name}}",
       "assetName": "Nome della risorsa",
@@ -15154,8 +15154,8 @@
       "error": "Errore: {{error}}"
     },
     "entity": {
-      "add": "Aggiungi entità",
-      "pick": "Scegli l'entità",
+      "add": "Aggiungi riferimento",
+      "pick": "Scegli riferimento",
       "untitled": "Senza titolo"
     },
     "collection": {
@@ -16239,7 +16239,7 @@
       "sketches": "Schizzi",
       "scripts": "Script",
       "storyboards": "Storyboard",
-      "entities": "Entità",
+      "entities": "Riferimenti",
       "examples": "Esempi",
       "timelines": "Cronologia",
       "jsscripts": "Script JS",
@@ -16378,7 +16378,7 @@
         "models": "Responsabile modello",
         "packages": "Gestore dei pacchetti",
         "collections": "Collezioni",
-        "entities": "Entità",
+        "entities": "Riferimenti",
         "memory": "Memoria",
         "settings": "Impostazioni",
         "effects": "Effetti",
@@ -17293,14 +17293,14 @@
   },
   "i18n-next62": {
     "scriptCastPanel": {
-      "noEntity": "Nessuna entità",
+      "noEntity": "Nessun riferimento",
       "noVoice": "Nessuna voce",
       "speakerName": "Nome dell'oratore",
       "hideVoiceSettings": "Nascondi le impostazioni vocali",
       "voiceSettings": "Impostazioni vocali",
-      "linkedEntityMissing": "Entità collegata mancante",
-      "linkedEntity": "Entità collegata",
-      "linkedEntityNotFound": "Entità collegata non trovata: è stata rimossa. Scegline un altro o cancellalo.",
+      "linkedEntityMissing": "Riferimento collegato mancante",
+      "linkedEntity": "Riferimento collegato",
+      "linkedEntityNotFound": "Riferimento collegato non trovato: è stato rimosso. Scegline un altro o svuota il campo.",
       "removeSpeaker": "Rimuovere l'altoparlante",
       "speakerDefaultName": "Altoparlante {{count}}",
       "cast": "Cast",
@@ -17513,9 +17513,9 @@
         "imageLabel": "Immagine {{index}}",
         "noImages": "Aggiungi immagini per condizionare la clip.",
         "addImage": "Aggiungi immagine",
-        "entitiesLabel": "Entità",
+        "entitiesLabel": "Riferimenti",
         "entitiesEmpty": "Scegli un personaggio, una posizione, uno stile o un oggetto di scena per mantenerlo coerente nella clip.",
-        "newEntity": "Nuova entità",
+        "newEntity": "Nuovo riferimento",
         "pickImageTitle": "Scegli un'immagine di riferimento"
       },
       "transcript": {
@@ -20190,8 +20190,8 @@
   "lipsync": {
     "title": "Lipsync",
     "subtitle": "Fai parlare un'immagine con la voce che scegli.",
-    "entity": "Scegli un'entità",
-    "entityImage": "Scegli un'entità con un'immagine di riferimento salvata o carica un'immagine.",
+    "entity": "Scegli un riferimento",
+    "entityImage": "Scegli un riferimento con un'immagine salvata, oppure carica un'immagine.",
     "realPerson": "Questa è una persona reale",
     "consent": "Ho il consenso di questa persona per utilizzare la sua immagine in questa clip generata.",
     "line": "Cosa dovrebbero dire?",
@@ -20691,7 +20691,7 @@
   "storyboardText": {
     "mode": "Testo",
     "editorLabel": "Storyboard come testo Markdown",
-    "hint": "Digita # per un atto, ## per una scena, ### per un'inquadratura e - **Motion:** per un campo. Digita @ per menzionare un'entità o un'immagine.",
+    "hint": "Digita # per un atto, ## per una scena, ### per un'inquadratura e - **Motion:** per un campo. Digita @ per citare un riferimento o un'immagine.",
     "issues": "Righe da controllare: {{lines}}",
     "loading": "Caricamento del testo…",
     "warnings": {
@@ -20727,7 +20727,7 @@
       "instruction": "Richiesta all'agente",
       "send": "Invia all'agente",
       "failed": "La richiesta al modello non è riuscita.",
-      "context": "Inviato con la richiesta: tutto lo storyboard, {{shots}} inquadrature e {{entities}} entità della libreria.",
+      "context": "Inviato con la richiesta: tutta la tavola, {{shots}} inquadrature e {{entities}} riferimenti della libreria.",
       "quick": {
         "tighten": "Asciuga",
         "visual": "Più visivo",

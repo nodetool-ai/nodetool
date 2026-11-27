@@ -177,7 +177,7 @@ const LEFT_PANEL_CATEGORY_BY_ID: Readonly<
   },
   entities: {
     id: "entities",
-    label: "Entities",
+    label: "References",
     description:
       "Reusable characters, locations, styles, and props for prompts and shots.",
     docsTopic: "storyboards",

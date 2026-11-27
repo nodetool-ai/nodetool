@@ -152,8 +152,8 @@ The unit of NodeTool's hosted balance. Credits are spent only by calls through t
 ### Director
 The agent in the Creative Agent pipeline that turns a brief into a typed screenplay of scenes and shots. See [Creative Agent](creative-agent.md).
 
-### Entity
-A reusable character, location, style, or prop that you define once and cast into shots so it stays consistent. See [Entities](entities.md).
+### Reference
+A reusable character, location, style, or prop that you define once and cast into shots so it stays consistent. Earlier versions called it an entity. See [References](entities.md).
 
 ### MCP (Model Context Protocol)
 An open protocol for giving an agent tools. NodeTool runs as an MCP server, so Claude Code, Codex, Cursor, and other clients can use workflows, assets, and editors. See [MCP Server](mcp-server.md).

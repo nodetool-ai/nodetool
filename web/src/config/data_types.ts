@@ -198,9 +198,9 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   },
   {
     value: "entity",
-    label: "Entity",
+    label: "Reference",
     description:
-      "A character, location, style or prop from the entity library, injected into prompts to hold a look consistent across shots.",
+      "A character, location, style or prop from the reference library, injected into prompts to hold a look consistent across shots.",
     color: colour("texture"),
     textColor: "var(--palette-action-active)",
     name: "",

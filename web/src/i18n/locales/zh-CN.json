@@ -16,12 +16,12 @@
   },
   "screen_storyboard": {
     "entities": {
-      "pickTitle": "选择实体",
+      "pickTitle": "选择参考",
       "done": "完成",
       "untitled": "未命名",
-      "searchPlaceholder": "按名称、类型或标签搜索实体",
-      "searchLabel": "搜索实体",
-      "kindLabel": "实体类型",
+      "searchPlaceholder": "按名称、类别或标签搜索参考",
+      "searchLabel": "搜索参考",
+      "kindLabel": "参考类别",
       "kindFilters": {
         "all": "全部",
         "characters": "角色",
@@ -29,16 +29,16 @@
         "styles": "风格",
         "props": "道具"
       },
-      "loading": "正在加载实体",
-      "emptyTitle": "暂无实体",
+      "loading": "正在加载参考",
+      "emptyTitle": "还没有参考",
       "emptyPickerDescription": "你创建的角色、地点、风格和道具会显示在这里。",
-      "newEntity": "新建实体",
-      "noMatches": "没有匹配的实体",
+      "newEntity": "新建参考",
+      "noMatches": "没有匹配的参考",
       "noMatchesDescription": "请尝试其他名称、类型或标签。",
-      "entitiesLabel": "实体",
+      "entitiesLabel": "参考",
       "noImage": "没有图片",
-      "editEntity": "编辑实体",
-      "removeEntity": "移除实体",
+      "editEntity": "编辑参考",
+      "removeEntity": "移除参考",
       "save": "保存",
       "create": "创建",
       "image": "图片",
@@ -52,14 +52,14 @@
       },
       "name": "名称",
       "descriptor": "描述",
-      "descriptorHelp": "用一句话描述外观。每个使用此实体的提示词都会原样包含这段描述。",
+      "descriptorHelp": "用一句话写它的外观。使用此参考的每条提示词都会逐字包含它。",
       "voiceId": "语音 ID（可选）",
       "tags": "标签（以逗号分隔）",
-      "panelEmptyDescription": "点击上方的 + 按钮，或在素材库中右键点击图片并选择“用作实体”，将图片标记为角色、地点、风格或道具。",
-      "libraryEmptyDescription": "将图片标记为角色、地点、风格或道具，即可在不同镜头中重复使用。在素材库中右键点击图片并选择“用作实体”。",
-      "addEntity": "添加实体",
+      "panelEmptyDescription": "用上方的 + 按钮把图片标记为角色、地点、风格或道具，或在素材库中右键点击图片，选择“用作参考”。",
+      "libraryEmptyDescription": "把图片标记为角色、地点、风格或道具，即可在多个镜头中重复使用。在素材库中右键点击图片，选择“用作参考”。",
+      "addEntity": "添加参考",
       "librarySubtitle": "可重复使用的角色、地点、风格和道具",
-      "backToEntities": "返回实体列表",
+      "backToEntities": "返回参考",
       "pickImageTitle": "选择参考图片",
       "noImages": "没有图片",
       "noImagesDescription": "请先生成或上传图片。"
@@ -191,7 +191,7 @@
     "sendMediaToWorkflowTooltip": "将所选媒体作为常量节点添加到工作流画布",
     "transformWithWorkflow": "用工作流转换…",
     "transformWithWorkflowTooltip": "用你的某个工作流处理此文件",
-    "useAsEntity": "用作实体…",
+    "useAsEntity": "用作参考…",
     "useAsEntityTooltip": "将此图像标记为角色、地点、风格或道具，以便在不同镜头中重复使用",
     "editTimeline": "编辑时间线",
     "createTimelineFromVideo": "从视频创建时间线",
@@ -3001,7 +3001,7 @@
       }
     },
     "entity": {
-      "title": "实体",
+      "title": "参考",
       "kinds": {
         "character": "角色",
         "location": "地点",
@@ -3009,51 +3009,51 @@
         "prop": "道具"
       },
       "defaults": {
-        "untitledName": "未命名实体",
+        "untitledName": "未命名参考",
         "untitledReferenceFile": "未命名.png"
       },
       "errors": {
         "canvasUnavailable": "无法使用 Canvas 2D 上下文",
         "blankImageFailed": "无法生成空白图像",
-        "blankStart": "无法开始创建空白实体：{{detail}}",
-        "referenceRequired": "请先选择参考图像，再创建实体。",
-        "createdEntityUnreadable": "实体已创建，但无法读取。"
+        "blankStart": "无法新建空白参考：{{detail}}",
+        "referenceRequired": "创建参考前请先选择一张图片。",
+        "createdEntityUnreadable": "参考创建后无法读取。"
       },
       "steps": {
         "details": {
           "label": "详情",
           "primary": "选择参考图像",
           "blocked": {
-            "name": "请为实体命名",
+            "name": "为参考命名",
             "descriptor": "请描述需要保留的特征"
           },
           "pending": "正在准备空白参考图像"
         },
         "reference": {
           "label": "参考图像",
-          "primary": "检查实体",
+          "primary": "检查参考",
           "blocked": {
-            "libraryError": "无法验证实体库",
-            "libraryLoading": "正在加载实体库",
+            "libraryError": "无法验证你的参考库",
+            "libraryLoading": "正在加载你的参考库",
             "reference": "请选择参考图像"
           }
         },
         "review": {
           "label": "检查",
-          "primary": "创建实体",
-          "pending": "正在创建实体",
+          "primary": "创建参考",
+          "pending": "正在创建参考",
           "blocked": {
-            "libraryError": "返回并重试验证实体库",
-            "libraryLoading": "正在加载实体库",
+            "libraryError": "无法验证你的参考库",
+            "libraryLoading": "正在加载你的参考库",
             "reference": "返回并选择参考图像",
-            "name": "返回并为实体命名",
+            "name": "返回并为参考命名",
             "descriptor": "返回并描述需要保留的特征"
           }
         }
       },
       "details": {
         "title": "哪些特征需要保持一致？",
-        "description": "为实体设置一个固定名称，以便后续生成提示词重复使用这段描述。",
+        "description": "为参考取一个固定的名称，并写下生成提示词要重复使用的描述。",
         "kinds": {
           "character": {
             "title": "角色",
@@ -3073,10 +3073,10 @@
           }
         },
         "fields": {
-          "kind": "实体类型",
+          "kind": "参考类型",
           "name": "名称",
           "descriptor": "描述",
-          "descriptorHelp": "这段文字会添加到使用此实体的每条提示词中。请只描述稳定的视觉特征。",
+          "descriptorHelp": "这段文字会添加到使用此参考的每条提示词中。只描述稳定的外观特征。",
           "tagsOptional": "标签（可选）"
         },
         "placeholders": {
@@ -3098,7 +3098,7 @@
         "description": "选择最能体现你希望后续生成保留特征的图像，也可以使用 AI 创建图像。",
         "imageCaption": "{{name}}的参考图像",
         "selectedCaption": "已选参考图像",
-        "selectedAlt": "已选实体参考图像",
+        "selectedAlt": "已选的参考图",
         "assets": {
           "unavailable": "素材不可用",
           "loading": "正在加载素材",
@@ -3131,7 +3131,7 @@
         "errors": {
           "noImage": "图像模型未返回参考图像。",
           "generationFailed": "无法生成参考图像。",
-          "reportSummary": "实体参考图像生成失败"
+          "reportSummary": "参考图生成失败"
         },
         "prompt": {
           "template": "为{{name}}生成参考图像。{{descriptor}} {{instruction}}",
@@ -3192,7 +3192,7 @@
         "clipTask": {
           "image_to_video": "为静帧添加动画",
           "text_to_video": "根据提示词生成",
-          "reference_to_video": "使用实体参考图"
+          "reference_to_video": "使用参考"
         },
         "confirmWithCost": "{{verb}} · 约 {{cost}}",
         "renderClip": "渲染片段",
@@ -3564,58 +3564,58 @@
       "entities": {
         "editOnlyModel": "{{model}} 只能编辑图片，无法根据描述绘制参考图。请选择可以根据文本生成图片的模型。",
         "substituteModelHelper": "{{originalModel}} 只能编辑图片，因此参考图将使用 {{referenceModel}}。构图步骤中的静帧仍使用 {{originalModel}}。",
-        "referenceModelHelper": "此模型仅用于创建你选择补充的实体参考图。在构图步骤中也会使用此模型。",
+        "referenceModelHelper": "仅用于你选择创建的缺失参考。同一模型会沿用到 Look 步骤。",
         "priceUnknown": "价格未知",
         "aboutPrice": "约 {{price}}",
         "missingScreenplayOrModel": "请先为故事板添加剧本并选择导演模型。",
-        "findFailedFallback": "未能从故事中找到实体。",
+        "findFailedFallback": "未能在故事中找到参考。",
         "pickReferenceModelFirst": "请先选择参考图片模型。",
         "noReferenceImageReturned": "图片模型没有返回参考图。",
-        "entitySaveFailed": "无法保存实体。",
-        "entityCreateFailedFallback": "无法创建实体。",
+        "entitySaveFailed": "无法保存参考。",
+        "entityCreateFailedFallback": "无法创建参考。",
         "title": "保持人物和地点的形象一致",
         "description": "选择需要在各个镜头中保持形象一致的人物、地点和道具。",
         "suggestedFromStory": "从故事中推荐",
         "suggestionsDescription": "从剧本中查找反复出现的参考对象。只创建你想使用的对象。",
-        "findingEntities": "正在查找实体",
+        "findingEntities": "正在查找参考",
         "refreshSuggestions": "刷新推荐",
-        "findEntities": "查找实体",
-        "cancelFinding": "取消查找实体",
+        "findEntities": "查找参考",
+        "cancelFinding": "取消查找参考",
         "cancel": "取消",
         "noSuggestionsFound": "剧本中没有找到反复出现的人物、地点或道具。",
         "loadingEstimate": "正在加载费用估算…",
         "findEstimateResult": "查找剧本中的人物、地点和道具",
         "findEstimateNext": "只有在你选择后才会创建实体。",
-        "findFailureTitle": "无法查找实体",
-        "createFailureTitle": "无法创建实体",
-        "findFailureSummary": "故事板实体推荐失败",
-        "createFailureSummary": "故事板实体创建失败",
+        "findFailureTitle": "无法找到参考",
+        "createFailureTitle": "无法创建参考",
+        "findFailureSummary": "故事板参考建议获取失败",
+        "createFailureSummary": "故事板参考创建失败",
         "referenceImageModel": "参考图片模型",
         "creatingEntity": "正在创建{{name}}…",
         "useEntity": "使用{{name}}",
         "createEntity": "创建{{name}}",
-        "libraryTitle": "你的实体库",
+        "libraryTitle": "你的参考库",
         "selectedCount_one": "已为此故事板选择 {{count}} 项",
         "selectedCount_other": "已为此故事板选择 {{count}} 项",
-        "createFromImage": "从图片创建实体",
-        "loadingEntities": "正在加载实体",
-        "loadFailedTitle": "无法加载实体",
+        "createFromImage": "从图片创建参考",
+        "loadingEntities": "正在加载参考",
+        "loadFailedTitle": "无法加载你的参考",
         "tryAgain": "重试",
-        "loadFailureSummary": "故事板实体库加载失败",
-        "loadFailedFallback": "实体库未能加载。请重试或跳过此步骤。",
-        "emptyTitle": "还没有实体",
+        "loadFailureSummary": "故事板参考库加载失败",
+        "loadFailedFallback": "参考库未能加载。请重试，或跳过此步骤。",
+        "emptyTitle": "还没有参考",
         "emptyDescription": "从生成或上传的图片创建实体，或跳过此步骤。",
-        "searchPlaceholder": "搜索实体",
+        "searchPlaceholder": "搜索参考",
         "selectedOnly": "仅显示已选项",
-        "noEntitiesSelected": "未选择实体",
-        "noMatchingEntities": "没有匹配的实体",
+        "noEntitiesSelected": "未选择参考",
+        "noMatchingEntities": "没有匹配的参考",
         "noSelectedDescription": "浏览实体库，为此故事板选择参考对象。",
         "noMatchingDescription": "尝试其他名称或更改筛选条件。",
         "viewReferenceImage": "查看{{name}}的参考图片",
         "selectEntity": "{{name}} · {{kind}}",
         "noDescription": "没有描述",
         "assignEachShot": "为每个镜头分配实体",
-        "assignDescription": "从不应出现该实体的镜头中移除它。",
+        "assignDescription": "从不该出现它的镜头中移除参考。",
         "shotNumber": "镜头 {{number}}",
         "groups": {
           "characters": "人物",
@@ -6122,7 +6122,7 @@
         "actionLabel": "将 {{name}} 复制到其他项目",
         "title": "复制 {{name}}",
         "confirm": "复制",
-        "description": "引用的素材、实体和受支持的文档会复制到目标项目。源文档不会更改。",
+        "description": "关联的素材、参考和受支持的文档会复制到目标位置。源内容保持不变。",
         "destinationProject": "目标项目"
       },
       "documents": {
@@ -6167,7 +6167,7 @@
         "openChatError": "无法打开聊天：{{error}}",
         "startFlowError": "无法启动{{flow}}：{{error}}",
         "flowNames": {
-          "entity": "实体",
+          "entity": "参考",
           "storyboard": "故事板",
           "video": "视频",
           "script": "脚本",
@@ -6178,9 +6178,9 @@
         },
         "attachedFileCount_one": "{{count}} 个附加文件",
         "attachedFileCount_other": "{{count}} 个附加文件",
-        "singleEntity": "实体 {{name}}",
-        "entityCount_one": "{{count}} 个实体",
-        "entityCount_other": "{{count}} 个实体",
+        "singleEntity": "参考 {{name}}",
+        "entityCount_one": "{{count}} 个参考",
+        "entityCount_other": "{{count}} 个参考",
         "uncarriedContext": "{{flow}}流程将从你的提示开始，因此{{items}}会保留在此页面。请在流程自己的步骤中添加它们。",
         "documentNames": {
           "storyboard": "新建故事板",
@@ -6190,11 +6190,11 @@
           "workflow": "新建工作流",
           "app": "新建应用",
           "game": "新建游戏",
-          "entity": "新建实体"
+          "entity": "新建参考"
         },
         "entryCards": {
           "entity": {
-            "title": "实体",
+            "title": "参考",
             "description": "创建可重复使用的角色、地点、风格或道具。"
           },
           "storyboard": {
@@ -6257,13 +6257,13 @@
         "heading": "你想创建什么？",
         "intro": "把想法变成图像、视频、应用和工作流。提出问题，或描述要做的东西。",
         "chatPromptLabel": "聊天提示",
-        "promptPlaceholder": "描述你想创建的内容。输入 / 选择技能，输入 @ 选择文件或实体。",
+        "promptPlaceholder": "描述你想创作的内容。输入 / 使用技能，输入 @ 引用文件或参考。",
         "removeReference": "移除 {{name}}",
         "attachFiles": "附加文件",
         "attachedFileCountShort_one": "文件 · {{count}}",
         "attachedFileCountShort_other": "文件 · {{count}}",
-        "entitiesNone": "实体 · 无",
-        "entitiesSelected": "实体 · {{entities}}",
+        "entitiesNone": "参考 · 无",
+        "entitiesSelected": "参考 · {{entities}}",
         "selectedModel": "模型 · {{name}}",
         "selectModel": "选择模型",
         "sendToChat": "发送到聊天",
@@ -6283,7 +6283,7 @@
         "blankDocumentDescription": "— 将作为独立标签页打开，不属于任何项目",
         "browseExamples": "浏览示例",
         "tutorials": "教程",
-        "entitiesDialogTitle": "此项目的实体",
+        "entitiesDialogTitle": "此项目的参考",
         "blankStoryboard": "空白故事板",
         "renderedExampleShots_one": "已渲染 {{count}} 个镜头",
         "renderedExampleShots_other": "已渲染 {{count}} 个镜头",
@@ -6777,7 +6777,7 @@
         "title": "更改流程？",
         "confirm": "丢弃并选择",
         "cancel": "保留此草稿",
-        "description": "你的描述，以及最初添加的参考资料和实体，会随你一起进入接下来选择的流程。此{{flow}}草稿以及在此步骤中添加的其他内容（例如创作背景、导入的文件和放置的媒体）都会被丢弃。目前尚未为其生成任何内容。"
+        "description": "你的简报，以及你开始时使用的图片和参考，会带到你接下来选择的流程中。这个 {{flow}} 草稿会连同此步骤中添加的所有内容一起丢弃，例如创意背景、导入的文件和放置的媒体。目前还没有为它生成任何内容。"
       }
     },
     "setupFooterField": {
@@ -6815,12 +6815,12 @@
     },
     "entityDetails": {
       "title": "哪些内容应该保持一致？",
-      "description": "为实体提供一个固定名称，以及生成提示词可以重复使用的描述。",
+      "description": "为参考取一个固定的名称，并写下生成提示词要重复使用的描述。",
       "fields": {
-        "kind": "实体类型",
+        "kind": "参考类型",
         "name": "名称",
         "descriptor": "描述",
-        "descriptorHelp": "使用该实体的每条提示词都会包含此文本。请只描述稳定的视觉特征。",
+        "descriptorHelp": "这段文字会添加到使用此参考的每条提示词中。只描述稳定的外观特征。",
         "tagsOptional": "标签（可选）"
       },
       "placeholders": {
@@ -6916,9 +6916,9 @@
   },
   "pass3_5": {
     "entity": {
-      "title": "实体",
+      "title": "参考",
       "defaults": {
-        "untitledName": "未命名实体",
+        "untitledName": "未命名参考",
         "untitledReferenceFile": "未命名.png"
       },
       "kinds": {
@@ -6930,38 +6930,38 @@
       "errors": {
         "canvasUnavailable": "画布不可用，无法创建空白参考图。",
         "blankImageFailed": "无法生成空白参考图。",
-        "blankStart": "无法开始创建空白实体：{{detail}}",
-        "referenceRequired": "创建实体前，请先选择参考图。",
-        "createdEntityUnreadable": "实体已创建，但无法读取。"
+        "blankStart": "无法新建空白参考：{{detail}}",
+        "referenceRequired": "创建参考前请先选择一张图片。",
+        "createdEntityUnreadable": "参考创建后无法读取。"
       },
       "steps": {
         "details": {
           "label": "详情",
           "primary": "选择参考图",
           "blocked": {
-            "name": "为实体命名",
+            "name": "为参考命名",
             "descriptor": "描述需要保留的特征"
           },
           "pending": "正在准备空白参考图"
         },
         "reference": {
           "label": "参考图",
-          "primary": "检查实体",
+          "primary": "检查参考",
           "blocked": {
-            "libraryError": "无法验证实体库",
-            "libraryLoading": "正在加载实体库",
+            "libraryError": "无法验证你的参考库",
+            "libraryLoading": "正在加载你的参考库",
             "reference": "选择一张参考图"
           }
         },
         "review": {
           "label": "检查",
-          "primary": "创建实体",
-          "pending": "正在创建实体",
+          "primary": "创建参考",
+          "pending": "正在创建参考",
           "blocked": {
-            "libraryError": "无法验证实体库",
-            "libraryLoading": "正在加载实体库",
+            "libraryError": "无法验证你的参考库",
+            "libraryLoading": "正在加载你的参考库",
             "reference": "返回并选择一张参考图",
-            "name": "返回并为实体命名",
+            "name": "返回并为参考命名",
             "descriptor": "返回并描述需要保留的特征"
           }
         }
@@ -6971,7 +6971,7 @@
         "description": "选择一张最清楚展现你希望后续生成保留的特征的图片，或使用 AI 创建图片。",
         "imageCaption": "{{name}}参考图",
         "selectedCaption": "已选参考图",
-        "selectedAlt": "已选实体参考图",
+        "selectedAlt": "已选的参考图",
         "assets": {
           "unavailable": "素材不可用",
           "loading": "正在加载素材",
@@ -6997,7 +6997,7 @@
         "errors": {
           "noImage": "图像模型未返回参考图。",
           "generationFailed": "无法生成参考图。",
-          "reportSummary": "实体参考图生成失败"
+          "reportSummary": "参考图生成失败"
         },
         "prompt": {
           "template": "{{name}}的参考图。{{descriptor}} {{instruction}}",
@@ -7050,12 +7050,12 @@
         }
       },
       "review": {
-        "title": "检查实体",
-        "description": "添加实体的任意位置都可以使用这张参考图和这段描述。",
+        "title": "检查你的参考",
+        "description": "此参考及其描述可在所有能添加参考的地方使用。",
         "imageCaption": "{{name}}参考图",
         "imageAlt": "{{name}}参考图",
         "tags": "标签：{{tags}}",
-        "loadingLibrary": "正在加载实体库…",
+        "loadingLibrary": "正在加载你的参考库…",
         "empty": {
           "title": "尚无参考图",
           "description": "返回参考图步骤，选择或生成一张图片。"
@@ -7212,7 +7212,7 @@
         "uploadFailed": "图片上传失败",
         "promptContext": "随提示一同提供",
         "referenceImages": "参考图片",
-        "entities": "实体",
+        "entities": "参考",
         "referencesHelp": "逐步完善时会参考这些图片。直接生成只使用你的文字。",
         "entitiesHelp": "设置期间，这些实体会保留在文档中。",
         "alternativesLabel": "其他开始方式"
@@ -7222,11 +7222,11 @@
         "downloadUnreadable": "无法读取文件（{{status}}）。",
         "variation": "变体 {{number}}",
         "unrecordedFailure": "此变体未能生成，也没有提供原因。",
-        "savingEntity": "正在保存到实体…",
+        "savingEntity": "正在保存到参考…",
         "opening": "正在打开…",
-        "savedEntity": "已保存到实体。",
+        "savedEntity": "已保存到参考。",
         "openedCanvas": "已在新的节点画布中打开。",
-        "saveEntityFailed": "无法保存到实体。",
+        "saveEntityFailed": "无法保存到参考。",
         "openCanvasFailed": "无法打开该画布。",
         "heading": "选择你的图片",
         "intro": "所有变体都会保留在文档中，不会丢失已生成的内容。",
@@ -7245,7 +7245,7 @@
           "failed": "此变体失败"
         },
         "sketchEditor": "草图编辑器",
-        "saveToEntities": "保存到实体",
+        "saveToEntities": "保存到参考",
         "newNodeCanvas": "新建节点画布",
         "imageToVideo": "图片转视频",
         "retryVariation": "重试{{label}}",
@@ -7478,8 +7478,8 @@
       "sourceLineCount_other": "{{count}} 行",
       "referenceCount_one": "{{count}} 个参考资料",
       "referenceCount_other": "{{count}} 个参考资料",
-      "entityCount_one": "{{count}} 个实体",
-      "entityCount_other": "{{count}} 个实体"
+      "entityCount_one": "{{count}} 个参考",
+      "entityCount_other": "{{count}} 个参考"
     },
     "review": {
       "addDirection": "添加表演提示",
@@ -7876,14 +7876,14 @@
       "addOwnDisabledReason": "请在设置故事板时添加自定义风格。"
     },
     "entityStillModelWarning": {
-      "message": "实体包含参考图像，但此模型仅接受文本。请选择图生图模型以使用这些参考图像。"
+      "message": "参考带有图片，但此模型只接受文本。请选择图生图模型来使用它们。"
     }
   },
   "screens4_13": {
     "storyboard": {
       "entityTiles": {
         "untitled": "未命名",
-        "chooseEntities": "选择实体"
+        "chooseEntities": "选择参考"
       },
       "oneTake": {
         "title": "一镜到底",
@@ -7898,7 +7898,7 @@
         "referenceStills": "镜头静帧",
         "referenceEntities": "角色与场景",
         "referenceStillsHelp": "每个镜头的静帧决定其构图和姿态。适合平稳的镜头。",
-        "referenceEntitiesHelp": "实体图片决定人物和地点，镜头文字决定构图和运动。适合动作镜头。",
+        "referenceEntitiesHelp": "参考决定人物和地点，镜头文字决定构图和运动。最适合动作镜头。",
         "duration": "时长",
         "aspectRatio": "宽高比",
         "resolution": "分辨率",
@@ -7927,7 +7927,7 @@
         "blockers": {
           "addShot": "请先向故事板添加镜头。",
           "renderStill": "请至少为一个镜头渲染静帧。",
-          "addEntityImage": "请先为故事板上的一个实体添加参考图。",
+          "addEntityImage": "请先为故事板上的参考添加图片。",
           "noModel": "尚未选择视频模型。",
           "imageLimit_other": "{{count}} 张图片超过上限 {{limit}} 张。请移除 {{removeCount}} 张。",
           "durationUnavailable": "{{model}} 不支持 {{duration}} 的片段。请选择以下时长之一：{{options}}。",
@@ -7982,9 +7982,9 @@
         "shotStillAlt": "镜头静帧",
         "imageReference": "[Image {{number}}] ",
         "references": "参考图像",
-        "referencesHelp": "静帧决定构图和姿势。实体图像决定人物和地点。",
+        "referencesHelp": "静帧决定构图和姿势，参考决定人物和地点。",
         "stills": "静帧",
-        "entities": "实体",
+        "entities": "参考",
         "addEntity": "从资料库添加",
         "noStill": "无静帧",
         "noEntityImage": "无图像",
@@ -7999,7 +7999,7 @@
           "differentScenes": "此场景片段中的镜头已不再属于同一场景。",
           "addShot": "请先向故事板添加镜头。",
           "renderStill": "请至少渲染一个镜头的静帧。",
-          "addEntityImage": "请先为故事板上的一个实体添加参考图。",
+          "addEntityImage": "请先为故事板上的参考添加图片。",
           "noReference": "请至少选择一张参考图像。",
           "noVideoModel": "尚未选择视频模型。",
           "imageLimit": "{{imageCount}} 张图片超过了 {{limit}} 张的上限。请移除 {{remove}} 张。",
@@ -8087,8 +8087,8 @@
       "shotEntitiesField": {
         "label": "此镜头中的实体",
         "remove": "从此镜头中移除{{name}}",
-        "empty": "还没有实体。选择角色、地点、风格或道具，让它在此镜头中保持一致。",
-        "newEntity": "新建实体"
+        "empty": "还没有参考。选择一个角色、地点、风格或道具，让它在这个镜头中保持一致。",
+        "newEntity": "新建参考"
       },
       "shotGraphicsEditor": {
         "title": "图形元素",
@@ -8104,7 +8104,7 @@
         "exactText": "精确文本：{{id}}",
         "protectedCopy": "受保护的文案来自制作输入。请在那里编辑。",
         "assetReference": "素材引用：{{id}}",
-        "entity": "实体：{{id}}",
+        "entity": "参考：{{id}}",
         "graphicNotes": "图形备注：{{id}}",
         "defaultText": "你的文本",
         "addText": "添加文本",
@@ -8202,7 +8202,7 @@
         "clipTask": {
           "image_to_video": "为静帧添加动画",
           "text_to_video": "根据提示词生成",
-          "reference_to_video": "使用实体参考图"
+          "reference_to_video": "使用参考"
         }
       },
       "shotScript": {
@@ -8478,11 +8478,11 @@
         "style": "风格",
         "prop": "道具"
       },
-      "editEntity": "编辑实体",
+      "editEntity": "编辑参考",
       "editEntityFor": "编辑 {{name}}",
-      "removeEntity": "移除实体",
+      "removeEntity": "移除参考",
       "removeEntityFor": "移除 {{name}}",
-      "newEntity": "新建实体",
+      "newEntity": "新建参考",
       "save": "保存",
       "cancel": "取消",
       "create": "创建",
@@ -8491,33 +8491,33 @@
       "kind": "类型",
       "name": "名称",
       "descriptor": "描述",
-      "descriptorHelp": "用一句话描述它的外观。每个使用此实体的提示词都会原样包含这段文字。",
+      "descriptorHelp": "用一句话描述它的外观。使用此参考的每条提示词都会原样包含这段文字。",
       "voiceId": "语音 ID（可选）",
       "tags": "标签（以逗号分隔）",
-      "saveFailed": "无法保存此实体。请检查网络连接后重试。",
-      "loadingEntities": "正在加载实体",
-      "emptyTitle": "暂无实体",
-      "libraryEmptyDescription": "添加一张图片并将其设为角色、地点、风格或道具，即可在不同镜头中重复使用。你也可以在素材库中右键点击图片并选择“用作实体”。",
-      "addEntity": "添加实体",
-      "backToEntities": "返回实体列表",
-      "entitiesLabel": "实体",
+      "saveFailed": "无法保存此参考。请检查网络连接后重试。",
+      "loadingEntities": "正在加载参考",
+      "emptyTitle": "还没有参考",
+      "libraryEmptyDescription": "把图片添加为角色、地点、风格或道具，即可在多个镜头中重复使用。也可以在素材库中右键点击图片，选择“用作参考”。",
+      "addEntity": "添加参考",
+      "backToEntities": "返回参考",
+      "entitiesLabel": "参考",
       "librarySubtitle": "可重复使用的角色、地点、风格和道具",
       "retakeImage": "重新生成"
     }
   },
   "screens4_23": {
     "entities": {
-      "newEntity": "新建实体",
-      "loading": "正在加载实体",
-      "emptyTitle": "还没有实体",
-      "panelEmptyDescription": "点击上方的 + 按钮，将图片标记为角色、地点、风格或道具；也可以在素材库中右键点击图片并选择“用作实体”。",
+      "newEntity": "新建参考",
+      "loading": "正在加载参考",
+      "emptyTitle": "还没有参考",
+      "panelEmptyDescription": "用上方的 + 按钮把图片标记为角色、地点、风格或道具，或在素材库中右键点击图片，选择“用作参考”。",
       "emptyPickerDescription": "创建的角色、地点、风格和道具会显示在这里。",
-      "noMatches": "没有匹配的实体",
+      "noMatches": "没有匹配的参考",
       "noMatchesDescription": "请尝试其他名称、类型或标签。",
       "untitled": "未命名",
-      "searchPlaceholder": "按名称、类型或标签搜索实体",
-      "searchLabel": "搜索实体",
-      "kindLabel": "实体类型",
+      "searchPlaceholder": "按名称、类别或标签搜索参考",
+      "searchLabel": "搜索参考",
+      "kindLabel": "参考类别",
       "kindFilters": {
         "all": "全部",
         "characters": "角色",
@@ -8531,10 +8531,10 @@
         "style": "风格",
         "prop": "道具"
       },
-      "entitiesLabel": "实体",
-      "selectedCount_one": "已选择 {{formattedCount}} 个实体",
-      "selectedCount_other": "已选择 {{formattedCount}} 个实体",
-      "pickTitle": "选择实体",
+      "entitiesLabel": "参考",
+      "selectedCount_one": "已选 {{formattedCount}} 个参考",
+      "selectedCount_other": "已选 {{formattedCount}} 个参考",
+      "pickTitle": "选择参考",
       "done": "完成"
     }
   },
@@ -9947,9 +9947,9 @@
     "shotDesignFrame": {
       "ariaLabel": "第 {{shot}} 镜头设计预览",
       "errors": {
-        "entityAssetMismatch": "实体 {{entityId}} 的素材与所选实体不匹配。",
-        "entitySourceMismatch": "源元素 {{elementId}} 与此实体不匹配。",
-        "missingEntityReference": "故事板中缺少实体 {{entityId}}。",
+        "entityAssetMismatch": "参考 {{entityId}} 的素材与所选参考不匹配。",
+        "entitySourceMismatch": "源元素 {{elementId}} 与此参考不匹配。",
+        "missingEntityReference": "故事板中缺少参考 {{entityId}}。",
         "unavailable": "镜头预览不可用。"
       },
       "pause": "暂停预览",
@@ -10032,7 +10032,7 @@
         "takes": "版本"
       },
       "title": "场景 {{scene}}，镜头 {{shot}}",
-      "untitledEntity": "未命名实体"
+      "untitledEntity": "未命名参考"
     },
     "shotEditTable": {
       "camera": {
@@ -10675,8 +10675,8 @@
       "sketches": "草图",
       "timelines": "时间线",
       "storyboards": "故事板",
-      "entities": "实体",
-      "openEntitiesFullPage": "在完整页面中打开实体",
+      "entities": "参考",
+      "openEntitiesFullPage": "在整页中打开参考",
       "examples": "示例",
       "scripts": "脚本",
       "jsScripts": "JS 脚本",
@@ -10700,7 +10700,7 @@
         "sketches": "草图",
         "scripts": "脚本",
         "storyboards": "故事板",
-        "entities": "实体",
+        "entities": "参考",
         "examples": "示例",
         "timelines": "时间线",
         "jsScripts": "JS 脚本",
@@ -13346,7 +13346,7 @@
         "selectModel": "选择模型",
         "attach": {
           "assetsTab": "素材",
-          "entitiesTab": "实体",
+          "entitiesTab": "参考",
           "documentsTab": "文档",
           "uploadTab": "上传",
           "tabsLabel": "要添加的内容",
@@ -14099,7 +14099,7 @@
         "creative": "创意文档",
         "text": "文本文件",
         "agents": "智能体和代码",
-        "entities": "实体",
+        "entities": "参考",
         "shared": "与我共享",
         "cloud": "云端",
         "cloudShared": "与我共享"
@@ -14111,7 +14111,7 @@
         "script": "脚本",
         "storyboard": "故事板",
         "timeline": "时间线",
-        "entity": "实体",
+        "entity": "参考",
         "jsscript": "JS 脚本",
         "game": "游戏",
         "text": "文本文件"
@@ -14120,7 +14120,7 @@
       "deleteFailure": "无法删除 {{name}}：{{error}}",
       "unknownError": "未知错误",
       "deleteConfirmTitle": "删除{{type}}？",
-      "deleteEntityDescription": "“{{name}}”将不再是实体，但其素材会保留。",
+      "deleteEntityDescription": "“{{name}}”将不再是参考。其素材会保留。",
       "deleteDescription": "“{{name}}”将被永久删除。",
       "deleteAction": "删除",
       "cancel": "取消",
@@ -14200,8 +14200,8 @@
       "noRecentAssets": "还没有文件。附加或拖入一个文件。",
       "noAssetsMatch": "没有匹配的素材。",
       "noSavedAssets": "尚未保存素材。",
-      "noEntitiesMatch": "没有匹配的实体。",
-      "entities": "实体",
+      "noEntitiesMatch": "没有匹配的参考。",
+      "entities": "参考",
       "assetSource": "素材来源",
       "rename": "重命名 {{name}}",
       "assetName": "素材名称",
@@ -14892,8 +14892,8 @@
       "error": "错误：{{error}}"
     },
     "entity": {
-      "add": "添加实体",
-      "pick": "选择实体",
+      "add": "添加参考",
+      "pick": "选择参考",
       "untitled": "未命名"
     },
     "collection": {
@@ -15963,7 +15963,7 @@
       "sketches": "草图",
       "scripts": "脚本",
       "storyboards": "故事板",
-      "entities": "实体",
+      "entities": "参考",
       "examples": "示例",
       "timelines": "时间线",
       "jsscripts": "JS 脚本",
@@ -16098,7 +16098,7 @@
         "models": "模型管理器",
         "packages": "包管理器",
         "collections": "集合",
-        "entities": "实体",
+        "entities": "参考",
         "memory": "记忆",
         "settings": "设置",
         "effects": "特效",
@@ -17000,14 +17000,14 @@
   },
   "i18n-next62": {
     "scriptCastPanel": {
-      "noEntity": "无实体",
+      "noEntity": "无参考",
       "noVoice": "无声音",
       "speakerName": "说话人名称",
       "hideVoiceSettings": "隐藏声音设置",
       "voiceSettings": "声音设置",
-      "linkedEntityMissing": "关联实体缺失",
-      "linkedEntity": "关联实体",
-      "linkedEntityNotFound": "找不到关联实体，可能已被移除。请选择其他实体或清除关联。",
+      "linkedEntityMissing": "关联的参考缺失",
+      "linkedEntity": "关联的参考",
+      "linkedEntityNotFound": "找不到关联的参考，它已被删除。请另选一个或清空。",
       "removeSpeaker": "移除说话人",
       "speakerDefaultName": "说话人 {{count}}",
       "cast": "演员",
@@ -17216,9 +17216,9 @@
         "imageLabel": "图像 {{index}}",
         "noImages": "添加图像来控制片段内容。",
         "addImage": "添加图像",
-        "entitiesLabel": "实体",
+        "entitiesLabel": "参考",
         "entitiesEmpty": "选择角色、地点、风格或道具，让它在片段中保持一致。",
-        "newEntity": "新建实体",
+        "newEntity": "新建参考",
         "pickImageTitle": "选择参考图像"
       },
       "transcript": {
@@ -19878,8 +19878,8 @@
   "lipsync": {
     "title": "口型同步",
     "subtitle": "让图片用你选择的声音说话。",
-    "entity": "选择实体",
-    "entityImage": "请选择带有已保存参考图的实体，或上传图片。",
+    "entity": "选择参考",
+    "entityImage": "选择一个已保存图片的参考，或上传一张图片。",
     "realPerson": "这是真实人物",
     "consent": "我已获得此人的同意，可以在这段生成的视频中使用其肖像。",
     "line": "人物要说什么？",
@@ -20379,7 +20379,7 @@
   "storyboardText": {
     "mode": "文本",
     "editorLabel": "Markdown 文本形式的故事板",
-    "hint": "输入 # 表示幕，## 表示场景，### 表示镜头，- **Motion:** 表示字段。输入 @ 提及实体或图片。",
+    "hint": "输入 # 表示幕，## 表示场景，### 表示镜头，- **Motion:** 表示字段。输入 @ 提及参考或图片。",
     "issues": "需要处理的行：{{lines}}",
     "loading": "正在加载文本…",
     "warnings": {
@@ -20415,7 +20415,7 @@
       "instruction": "对智能体的请求",
       "send": "发送给智能体",
       "failed": "向模型发送的请求失败。",
-      "context": "随请求一起发送：整个故事板、{{shots}} 个镜头和资料库中的 {{entities}} 个实体。",
+      "context": "随请求发送：整个故事板、{{shots}} 个镜头，以及参考库中的 {{entities}} 个参考。",
       "quick": {
         "tighten": "精简",
         "visual": "更具画面感",

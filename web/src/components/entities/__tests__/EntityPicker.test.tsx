@@ -38,7 +38,7 @@ describe("EntityPicker — creating from the picker (study-7-I2)", () => {
     const onCreateStarted = jest.fn();
     renderPicker(onCreateStarted);
 
-    await userEvent.click(screen.getByRole("button", { name: "New entity" }));
+    await userEvent.click(screen.getByRole("button", { name: "New reference" }));
 
     expect(useEntityLibraryStore.getState().createRequested).toBe(true);
     expect(openPageTab).toHaveBeenCalledWith("entities");
@@ -53,18 +53,18 @@ describe("EntityPicker — creating from the picker (study-7-I2)", () => {
 
     await userEvent.type(screen.getByRole("textbox"), "Miso");
 
-    expect(screen.getByText("No entities match")).toBeInTheDocument();
+    expect(screen.getByText("No references match")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "New entity" })
+      screen.getByRole("button", { name: "New reference" })
     ).toBeInTheDocument();
   });
 
   it("offers no create action when the host does not ask for one", () => {
     renderPicker();
 
-    expect(screen.getByText("No entities yet")).toBeInTheDocument();
+    expect(screen.getByText("No references yet")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "New entity" })
+      screen.queryByRole("button", { name: "New reference" })
     ).not.toBeInTheDocument();
   });
 });

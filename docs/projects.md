@@ -46,14 +46,14 @@ Click a card to open the project. The dashed **Start a project** card does the s
 
 ![Start a project](assets/screenshots/project-new.png)
 
-1. Describe the work in the prompt. Type `/` to pick a skill, or `@` to attach an asset or an entity.
-2. Optionally add **Reference images** and pick **Entities** from your library, which the agent can then use.
+1. Describe the work in the prompt. Type `/` to pick a skill, or `@` to attach an asset or a reference.
+2. Optionally add **Reference images** and pick **References** from your library, which the agent can then use.
 3. Pick a model with **Select a model**. If no language model is connected, NodeTool opens provider setup first.
 4. Click **Send to chat**.
 
 A starter is a skill: the saved instructions a chat turn loads when it reads `/<name>`. The pills under the prompt list skills NodeTool ships, such as `product-commercial` and `short-film`, and [skills you wrote](skills.md). Skills you used on earlier projects come first, and the rest fold behind a **N more** pill. Picking a pill writes `/<name>` into the prompt, and deleting the command from the prompt clears the pill. You can also start with no skill, and then the prompt is the whole ask.
 
-Send to chat opens a chat tab in the active project. The agent plans the documents the work needs and builds them. See [Global Chat](global-chat.md) for how chat tabs work and [Entities](entities.md) for the library.
+Send to chat opens a chat tab in the active project. The agent plans the documents the work needs and builds them. See [Global Chat](global-chat.md) for how chat tabs work and [References](entities.md) for the library.
 
 The estimate line, for example `est. $3.10–$5.80 · from 2 past projects · provider rates, no markup`, appears next to the send button once at least two of your own past projects of the same kind finished with fully priced spend of $1 or more and a cut with clips. Until then there is no estimate.
 {: .callout-note}
@@ -74,7 +74,7 @@ Documents that belong to no project appear under **Not in a project** at the bot
 
 ## Copy a document to another project
 
-On a document card, **Copy** opens a dialog with a **Destination project** field. The copy brings the referenced assets, entities, and supported documents with it, and the source stays unchanged. Workflows are listed but cannot be copied this way.
+On a document card, **Copy** opens a dialog with a **Destination project** field. The copy brings the referenced assets, references, and supported documents with it, and the source stays unchanged. Workflows are listed but cannot be copied this way.
 
 ## Export and import a project
 
