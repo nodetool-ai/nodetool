@@ -46,6 +46,9 @@ const SECOND_PAGES = [
     "/gamedev",
     "/gamedev/ai-game-engines",
     "/alternatives/figma-weave",
+    "/alternatives/lm-studio",
+    "/alternatives/flora",
+    "/use-cases/movie-poster",
   ] as const;
 
 /** English routes with a translated page, per locale, in nav order. */

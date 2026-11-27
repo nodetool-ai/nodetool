@@ -203,6 +203,7 @@ jobs:
           path: .release-tools
           sparse-checkout: |
             scripts/smoke-backend-bundle.mjs
+            scripts/check-linux-isa-baseline.mjs
             .github/scripts/with-window-manager.sh
           sparse-checkout-cone-mode: false
 
@@ -284,6 +285,16 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
           flatpak install --user -y flathub org.electronjs.Electron2.BaseApp//24.08
+
+      # The runner's compiler emitted x86-64-v3 code (AVX2, BMI2, FMA) without
+      # being asked to, so v0.8.18 failed on older CPUs (#7950). Every native
+      # build in this job reads these flags: node-gyp during npm ci and
+      # afterPack, and CMake for the VST host and the account helper.
+      - name: Pin the x86-64 baseline for native builds (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "CFLAGS=-march=x86-64 -mtune=generic" >> "$GITHUB_ENV"
+          echo "CXXFLAGS=-march=x86-64 -mtune=generic" >> "$GITHUB_ENV"
 
       - name: Configure node-gyp Python path
         shell: bash
@@ -728,6 +739,12 @@ jobs:
             exit 1
           fi
           mv "${manifests[0]}" "${manifests[0]%.yml}-${{ matrix.arch }}.yml"
+
+      # The AppImage and the Flatpak both pack linux-unpacked. Fail before
+      # upload if any of it needs more than an x86-64-v2 CPU (#7950).
+      - name: Check the Linux x64 CPU baseline
+        if: matrix.os == 'ubuntu-latest'
+        run: node .release-tools/scripts/check-linux-isa-baseline.mjs electron/dist/linux-unpacked/resources
 
       # See the Windows step above. The x64 macOS app is cross-built on an
       # arm64 runner, and its bundled Node can't run natively there, so only

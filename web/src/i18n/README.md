@@ -29,7 +29,7 @@ the localized READMEs and the marketing pages under `/ko`, `/ja`, and `/zh`:
 | Timeline | 타임라인 | タイムライン | 时间线 |
 | Storyboard | 스토리보드 | 絵コンテ | 故事板 |
 | Asset | 에셋 | アセット | 素材 |
-| Entity | 엔터티 | エンティティ | 实体 |
+| Reference (an entity in code) | 레퍼런스 | リファレンス | 参考 |
 | Provider | 프로바이더 | プロバイダー | 服务商 |
 | Skill | 스킬 | スキル | 技能 |
 | Secret | 시크릿 | シークレット | 密钥 |

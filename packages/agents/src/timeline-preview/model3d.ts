@@ -96,6 +96,9 @@ function frameKey(camera: ClipModel3DCamera, timeSec: number): string {
     camera.zoom,
     camera.targetOffset?.join(",") ?? "",
     camera.sceneCameraName ?? "",
+    camera.position?.join(",") ?? "",
+    camera.target?.join(",") ?? "",
+    camera.rollDeg ?? "",
     timeSec
   ].join("|");
 }

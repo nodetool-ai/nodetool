@@ -46,6 +46,23 @@ describe("createPrimitive", () => {
     expect(direction.distanceTo(towardOrigin)).toBeLessThan(1e-6);
   });
 
+  it("creates a figure as one group of jointed meshes", () => {
+    const figure = createPrimitive("figure", { figure: { body: "child", pose: "sit" } });
+    expect(figure).toBeInstanceOf(THREE.Group);
+    expect(figure.userData.nodetool_figure).toEqual({ body: "child", pose: "sit", height: 1.2 });
+    expect(figure.children).toHaveLength(1);
+    expect(figure.children[0].userData.nodetool_figure_part).toBe("pelvis");
+  });
+
+  it("creates a perspective camera that looks down -Z from eye height", () => {
+    const camera = createPrimitive("camera") as THREE.PerspectiveCamera;
+    expect(camera).toBeInstanceOf(THREE.PerspectiveCamera);
+    expect(camera.fov).toBe(40);
+    expect(camera.aspect).toBeCloseTo(16 / 9);
+    expect(camera.position.toArray()).toEqual([0, 1.6, 5]);
+    expect(camera.getWorldDirection(new THREE.Vector3()).z).toBeCloseTo(-1);
+  });
+
   it("has a human label for every primitive kind", () => {
     const kinds: PrimitiveKind[] = [
       "box",
@@ -54,7 +71,9 @@ describe("createPrimitive", () => {
       "cylinder",
       "torus",
       "directionalLight",
-      "pointLight"
+      "pointLight",
+      "figure",
+      "camera"
     ];
     for (const kind of kinds) {
       expect(PRIMITIVE_LABELS[kind]).toBeTruthy();

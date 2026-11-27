@@ -407,7 +407,8 @@ A glTF asset on a `video` or `overlay` track is a clip with
 `mediaType: "model3d"`. The model sits in `currentAssetId`, where an image clip
 keeps its image, so replace, versions, thumbnails and the dependency hash work
 unchanged. Everything the timeline adds is `model3dStyle`: the camera (orbit
-terms, or a glTF camera by name), which glTF animation plays and how fast,
+terms, a glTF camera by name, or a free camera), which glTF animation plays and
+how fast,
 lighting preset and intensity, background, and the bake once one exists.
 `DEFAULT_MODEL3D_STYLE` in `@nodetool-ai/timeline` is what a dropped model
 starts with.
@@ -419,6 +420,51 @@ on top. Four animated channels (`cameraAzimuth`, `cameraElevation`,
 other channel; on a clip that is not 3D they are ignored. The `orbit` preset
 drives `cameraAzimuth`, which is what makes a turntable one `animate_clip`
 call.
+
+### Free camera
+
+`camera.mode: "free"` places the camera in world space and does not fit the
+model. It reads four fields:
+
+| Field | Meaning | Default |
+| --- | --- | --- |
+| `position` | Camera eye, glTF world units | `[0, 1.6, 5]` |
+| `target` | Look-at point, glTF world units | `[0, 1, 0]` |
+| `rollDeg` | Roll around the view axis. Positive turns the horizon clockwise in the picture | `0` |
+| `fovDeg` | Vertical field of view | required |
+
+Free mode ignores `azimuthDeg`, `elevationDeg`, `zoom` and `targetOffset`, but
+the clip keeps them, so switching back to `orbit` restores the old pose.
+`orbitCameraToFree` converts an orbit camera to the free camera that draws the
+same picture. It needs the model's bounding sphere and the picture's aspect.
+
+Seven additive channels drive the free camera: `cameraPosX`, `cameraPosY`,
+`cameraPosZ`, `cameraTargetX`, `cameraTargetY`, `cameraTargetZ` and
+`cameraRoll`. `cameraFov` is its lens. `model3dCameraPropertiesFor(mode)` lists
+the channels a mode reads. `focalLengthMmToFovDeg` and `fovDegToFocalLengthMm`
+convert between a lens in millimetres and `fovDeg` on a 24 mm tall sensor.
+
+`MODEL3D_CAMERA_MOVES` lists ten move presets: pan, tilt, orbit, push in,
+truck, crane, pedestal, zoom, dolly zoom and dutch.
+`applyModel3DCameraMove(clip, move, options)` writes one into the clip's
+keyframe animation, starting from the camera the keyframes give at the start of
+the move. Angles are in degrees, distances are fractions of the distance from
+the eye to the target, and zoom is a factor on the focal length.
+
+### Render passes
+
+A render session draws one of four passes per frame, chosen by the host through
+`Model3DRenderFrame.pass`. The pass is not stored on the clip.
+
+| Pass | Picture |
+| --- | --- |
+| `beauty` | The model's own materials. The default |
+| `clay` | Every mesh in one mid-grey matte material, under the clip's lighting |
+| `depth` | Linear distance from the camera. Near is white, far is black, and the range spans the model's bounding box as seen from the camera |
+| `normal` | View-space normals as RGB |
+
+`Model3DLayerSource.frame(layer, anim, size, pass)` takes the pass in the
+browser. `renderGlbFramesHeadless` takes it on each frame on the server.
 
 ### Live rendering
 

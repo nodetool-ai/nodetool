@@ -19,7 +19,9 @@
  * (see `generateImageViaAcp`). It runs in a dedicated empty scratch directory, never the
  * server's working directory, because headless runs auto-allow file reads and
  * writes inside the active workspace. Shell commands stay soft-denied: the
- * provider never passes `--dangerously-skip-permissions`.
+ * provider never passes `--dangerously-skip-permissions`. Web searches
+ * (`webSearch`) are one `stream-json` turn on the default agent, in their own
+ * empty scratch directory, that must run the CLI's `search_web` tool.
  */
 
 import {
@@ -93,6 +95,58 @@ export const ACP_TOOL_TURN_ARGS = [
  */
 const IMAGE_SCRATCH_NAME = "nodetool-antigravity-image";
 
+/**
+ * Web searches run in their own empty scratch directory, so the CLI's file
+ * tools see nothing of the server or of chat turns.
+ */
+const SEARCH_SCRATCH_NAME = "nodetool-antigravity-search";
+
+/** How long one web search may run before it is stopped. */
+const SEARCH_TIMEOUT_MS = 180_000;
+
+/** The CLI's built-in Google Search tool. */
+export const AGY_WEB_SEARCH_TOOL = "search_web";
+
+/** The structured output a web search must return, passed as `--json-schema`. */
+export const WEB_SEARCH_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    answer: {
+      type: "string",
+      description: "What the pages the search returned say about the query."
+    },
+    results: {
+      type: "array",
+      description: "Each page the answer relied on, most relevant first.",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          url: { type: "string" },
+          snippet: { type: "string" }
+        },
+        required: ["title", "url", "snippet"]
+      }
+    }
+  },
+  required: ["answer", "results"]
+} as const;
+
+/** One page an Antigravity web search relied on. */
+export interface AntigravitySearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+/** One Antigravity web search: the prose answer and the pages behind it. */
+export interface AntigravityWebSearch {
+  answer: string;
+  results: AntigravitySearchResult[];
+  /** The `result` event as the CLI sent it. */
+  raw: unknown;
+}
+
 /** How long a finished run may take to exit before it is stopped. */
 const RESULT_EXIT_GRACE_MS = 30_000;
 
@@ -107,6 +161,8 @@ const cliEventSchema = z.object({
   event: lenient(z.string()),
   conversation_id: lenient(z.string()),
   step_type: lenient(z.string()),
+  tool_name: lenient(z.string()),
+  tool_info: lenient(z.object({ name: lenient(z.string()) })),
   text_delta: lenient(z.string()),
   status: lenient(z.string()),
   response: lenient(z.string()),
@@ -124,6 +180,20 @@ const cliEventSchema = z.object({
   )
 });
 type CliEvent = z.infer<typeof cliEventSchema>;
+
+/** The fields of a web search's structured output this provider reads. */
+const webSearchOutputSchema = z.object({
+  answer: z.string().catch(""),
+  results: z
+    .array(
+      z.object({
+        title: lenient(z.string()),
+        url: lenient(z.string()),
+        snippet: lenient(z.string())
+      })
+    )
+    .catch([])
+});
 
 /** One spawned `agy` process: its stdout lines and how it ended. */
 export interface AntigravityCliRun {
@@ -402,6 +472,116 @@ export class AntigravityProvider extends AcpCliProvider {
     return run.bytes;
   }
 
+  /**
+   * Search the web with the CLI's built-in Google Search tool.
+   *
+   * Runs one headless turn on the CLI's default agent in an empty scratch
+   * directory, with a `--json-schema` that makes the final result an answer
+   * plus the pages it relied on. A run in which no `search_web` step ran is
+   * an error: its "results" would be the model's memory, not a search.
+   */
+  async webSearch(
+    query: string,
+    options: { signal?: AbortSignal } = {}
+  ): Promise<AntigravityWebSearch> {
+    const text = query.trim();
+    if (!text) throw new AntigravityCliError("The search query cannot be empty.");
+    const timeout = AbortSignal.timeout(SEARCH_TIMEOUT_MS);
+    const signal = options.signal
+      ? AbortSignal.any([options.signal, timeout])
+      : timeout;
+    const cliArgs = [
+      "--input-format",
+      "stream-json",
+      "--output-format",
+      "stream-json",
+      "--disable-slash-commands",
+      "--json-schema",
+      JSON.stringify(WEB_SEARCH_OUTPUT_SCHEMA)
+    ];
+    const prompt = buildWebSearchPrompt(text);
+    this.recordRequestPayload({ args: cliArgs, prompt });
+    const run = await this.runCli(cliArgs, {
+      stdin: `${JSON.stringify({ event: "user", message: { content: prompt } })}\n`,
+      cwd: await scratchWorkspace(SEARCH_SCRATCH_NAME),
+      signal
+    });
+    const onAbort = () => run.kill();
+    signal.addEventListener("abort", onAbort, { once: true });
+
+    const toolNames: string[] = [];
+    let result: CliEvent | null = null;
+    try {
+      for await (const line of run.lines) {
+        const event = parseEvent(line);
+        if (!event) continue;
+        if (event.event === "step_update" && event.step_type === "tool") {
+          const name = event.tool_name ?? event.tool_info?.name;
+          if (name && !toolNames.includes(name)) toolNames.push(name);
+          continue;
+        }
+        if (event.event === "result") {
+          result = event;
+          break;
+        }
+      }
+    } finally {
+      signal.removeEventListener("abort", onAbort);
+      if (result) {
+        setTimeout(() => run.kill(), RESULT_EXIT_GRACE_MS).unref?.();
+      } else {
+        run.kill();
+      }
+    }
+
+    if (!result) {
+      if (timeout.aborted) {
+        throw new AntigravityCliError(
+          `Antigravity web search timed out after ${SEARCH_TIMEOUT_MS / 1000} s`
+        );
+      }
+      options.signal?.throwIfAborted();
+      const { code, stderr } = await run.exit;
+      throw cliFailure(`agy exited (${code ?? "signal"}) without a result`, stderr);
+    }
+    if (result.status !== "SUCCESS") {
+      const error = result.error;
+      const detail = isString(error) ? error : (error?.message ?? "");
+      throw cliFailure(`agy returned ${result.status ?? "no status"}`, detail);
+    }
+    if (!toolNames.includes(AGY_WEB_SEARCH_TOOL)) {
+      // A soft-denied tool leaves its notice on stderr, which names the remedy.
+      const { stderr } = await Promise.race([
+        run.exit,
+        new Promise<{ stderr: string }>((resolve) =>
+          setTimeout(() => resolve({ stderr: "" }), 1_000).unref?.()
+        )
+      ]);
+      const ran = toolNames.length ? toolNames.join(", ") : "no tools";
+      throw new AntigravityCliError(
+        `agy answered without running ${AGY_WEB_SEARCH_TOOL} (ran ${ran})` +
+          (stderr.trim() ? `: ${stderr.trim()}` : "")
+      );
+    }
+
+    const output = webSearchOutputSchema.safeParse(result.structured_output);
+    if (!output.success) {
+      throw new AntigravityCliError("agy returned no structured search results");
+    }
+    const results: AntigravitySearchResult[] = [];
+    for (const item of output.data.results) {
+      const url = item.url?.trim();
+      if (!url || !/^https?:\/\//i.test(url)) continue;
+      if (results.some((r) => r.url === url)) continue;
+      results.push({
+        title: item.title?.trim() || url,
+        url,
+        snippet: item.snippet?.trim() ?? ""
+      });
+    }
+    return { answer: output.data.answer.trim(), results, raw: result };
+  }
+
   /** Run one `agy` turn and translate its event stream into stream items. */
   private async *runTurn(plan: {
     prompt: string;
@@ -558,6 +738,19 @@ export class AntigravityProvider extends AcpCliProvider {
       toolCalls: toolCalls.length ? toolCalls : null
     };
   }
+}
+
+/** The prompt for one web search. */
+export function buildWebSearchPrompt(query: string): string {
+  return [
+    `Search the web for the query below with your ${AGY_WEB_SEARCH_TOOL} tool. Do not use any other tool.`,
+    "Answer only from the pages the search returned.",
+    "In `answer`, summarise what those pages say about the query.",
+    "In `results`, list each page you used, most relevant first, with its exact URL, its title and a one or two sentence snippet from it.",
+    "Never list a URL the search did not return.",
+    "",
+    `Query: ${query}`
+  ].join("\n");
 }
 
 /** The `agy` flags for one headless turn. */

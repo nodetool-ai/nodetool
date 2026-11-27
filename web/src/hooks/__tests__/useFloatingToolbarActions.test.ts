@@ -16,6 +16,7 @@ import { useRunWarningStore } from "../../stores/RunWarningStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSearchProviderCalloutStore } from "../../stores/SearchProviderCalloutStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useProviderOnboardingStore } from "../../stores/ProviderOnboardingStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { selectFrom } from "../../__mocks__/fixtures";
 import type {
@@ -60,6 +61,11 @@ jest.mock("../useAutosave");
 jest.mock("../../stores/NodeMenuStore");
 jest.mock("../../stores/BottomPanelStore");
 jest.mock("../../stores/MiniMapStore");
+
+let mockLanguageReadiness = { ready: true, loading: false };
+jest.mock("../useHasConfiguredProvider", () => ({
+  useLanguageProviderReadiness: () => mockLanguageReadiness
+}));
 
 const mockUseWebsocketRunner = useWebsocketRunner as jest.MockedFunction<
   typeof useWebsocketRunner
@@ -307,6 +313,43 @@ describe("useFloatingToolbarActions", () => {
         })
       ]);
       useMetadataStore.getState().setMetadata({});
+    });
+
+    // UX research study 23: with no language model at all, the model menu
+    // only led on to the connect dialog.
+    it("opens the connect dialog when no provider can fill the missing model", async () => {
+      mockLanguageReadiness = { ready: false, loading: false };
+      useNotificationStore.getState().clearNotifications();
+      useProviderOnboardingStore.getState().dismiss();
+      useMetadataStore.getState().setMetadata({
+        "nodetool.agents.Agent": {
+          node_type: "nodetool.agents.Agent",
+          title: "Agent",
+          properties: [
+            { name: "model", type: { type: "language_model", type_args: [] } }
+          ]
+        } as unknown as NodeMetadata
+      });
+      mockNodeStoreWith([
+        {
+          ...searchNode,
+          data: { ...searchNode.data, properties: { model: {} } }
+        }
+      ]);
+
+      const { result } = renderHook(() => useFloatingToolbarActions());
+      await act(async () => {
+        await result.current.handleRun();
+      });
+
+      expect(mockRun).not.toHaveBeenCalled();
+      expect(useProviderOnboardingStore.getState()).toEqual(
+        expect.objectContaining({ open: true, capability: "generate_message" })
+      );
+      expect(useNotificationStore.getState().notifications).toEqual([]);
+      useProviderOnboardingStore.getState().dismiss();
+      useMetadataStore.getState().setMetadata({});
+      mockLanguageReadiness = { ready: true, loading: false };
     });
 
     it("runs normally when the search provider is configured", async () => {

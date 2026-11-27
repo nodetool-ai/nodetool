@@ -69,15 +69,15 @@ export function useStoryboardDesignSources(
         const asset = await load(id);
         const entity = assetToEntity(asset);
         if (!entity) {
-          throw new Error(`Entity ${id} is unavailable or is not an entity.`);
+          throw new Error(`Reference ${id} is unavailable or is not a reference.`);
         }
         const referenceId = entity.reference_images?.[0]?.asset_id;
         if (!referenceId) {
-          throw new Error(`Entity ${id} needs a reference image before its design frame can be reviewed.`);
+          throw new Error(`Reference ${id} needs an image before its design frame can be reviewed.`);
         }
         const reference = await load(referenceId);
         if (!reference.content_type.startsWith("image/")) {
-          throw new Error(`Entity ${id} needs an image reference.`);
+          throw new Error(`Reference ${id} needs an image.`);
         }
         entitiesByReference[id] = {
           ...entity,

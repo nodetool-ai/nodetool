@@ -9,6 +9,7 @@ import {
   formatEstimate,
   invokedStarter,
   projectNameFromPrompt,
+  promptWithEntities,
   rankStarters,
   starterDescription,
   starterLabel,
@@ -100,6 +101,21 @@ describe("starterLabel", () => {
     expect(starterLabel("music_video_treatment")).toBe(
       "Music video treatment"
     );
+  });
+});
+
+describe("promptWithEntities", () => {
+  it("adds each picked entity as a token on its own last line", () => {
+    expect(promptWithEntities("Marta on a beach", ["e1", "e2"])).toBe(
+      "Marta on a beach\n\nentity://e1 entity://e2"
+    );
+  });
+
+  it("leaves a prompt alone when it already mentions the entity or none is picked", () => {
+    expect(promptWithEntities("entity://e1 on a beach", ["e1"])).toBe(
+      "entity://e1 on a beach"
+    );
+    expect(promptWithEntities("A beach", [])).toBe("A beach");
   });
 });
 

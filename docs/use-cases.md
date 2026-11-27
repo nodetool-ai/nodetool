@@ -16,7 +16,7 @@ See [Costs & Credits]({{ '/costs-and-credits' | relative_url }}).
 
 Launch films, product spots, lifestyle mockups, and listing images built from
 your real product photos and pages. Add the product as an
-[entity]({{ '/entities' | relative_url }}) once, and every shot uses its
+[reference]({{ '/entities' | relative_url }}) once, and every shot uses its
 reference image. A campaign keeps the same cast across stills and several cuts,
 and your brand colors and copy can be filled in from your website.
 
@@ -37,7 +37,7 @@ Start from the [video and ad recipes]({{ '/cookbook' | relative_url }}#video-and
 ## Film, trailers, and narrative
 
 Stories boarded shot by shot, with stills approved before any video renders.
-Characters and locations are entities, so they look the same in every shot.
+Characters and locations are references, so they look the same in every shot.
 A trailer can start from a one-line pitch, and a music video from a treatment.
 The [Storyboard Editor]({{ '/storyboard-editor' | relative_url }}) covers
 boarding and redoing a single shot by note.

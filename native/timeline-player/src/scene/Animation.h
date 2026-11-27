@@ -30,7 +30,8 @@ bool isKnownEasing(const std::string& id);
 enum class Channel {
     OffsetX, OffsetY, Scale, ScaleX, ScaleY, Rotation, RotationX, RotationY, Opacity, WipeProgress, Blur,
     Brightness, Saturation, Contrast, Hue, Temperature, Tint, PositionX, PositionY, AnchorX, AnchorY,
-    TrimStart, TrimEnd, CameraAzimuth, CameraElevation, CameraZoom, CameraFov
+    TrimStart, TrimEnd, CameraAzimuth, CameraElevation, CameraZoom, CameraFov, CameraPosX, CameraPosY, CameraPosZ,
+    CameraTargetX, CameraTargetY, CameraTargetZ, CameraRoll
 };
 std::optional<Channel> channelFromName(const QString& name);
 
@@ -73,6 +74,8 @@ struct AnimationSample {
     double offsetX = 0, offsetY = 0, scale = 1, scaleX = 1, scaleY = 1, rotation = 0, rotationX = 0, rotationY = 0;
     double opacity = 1, blur = 0, brightness = 0, saturation = 1, contrast = 1, hue = 0, temperature = 0, tint = 0;
     double cameraAzimuth = 0, cameraElevation = 0, cameraZoom = 1, cameraFov = 0;
+    double cameraPosX = 0, cameraPosY = 0, cameraPosZ = 0, cameraTargetX = 0, cameraTargetY = 0, cameraTargetZ = 0;
+    double cameraRoll = 0;
     std::optional<double> positionX, positionY, anchorX, anchorY, trimStart, trimEnd;
     std::optional<WipeMask> mask;
     bool replaced = false;  // a replace channel fired (`replacedBy` set)

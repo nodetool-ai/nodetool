@@ -8,6 +8,8 @@ const makeMockHandler = (): Model3DToolHandler => ({
   listScene: jest.fn(),
   getSelected: jest.fn(),
   addPrimitive: jest.fn(),
+  setFigure: jest.fn(),
+  setCamera: jest.fn(),
   selectObject: jest.fn(),
   deleteObject: jest.fn(),
   setTransform: jest.fn(),

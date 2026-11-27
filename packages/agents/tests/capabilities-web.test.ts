@@ -31,6 +31,47 @@ import type {
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { Tool } from "../src/tools/base-tool.js";
 
+/**
+ * The Antigravity backend is configured when the `agy` CLI starts, which no
+ * secret controls. Replace it so routing never spawns a real CLI here: it is
+ * unavailable unless a test says otherwise.
+ */
+const antigravity = vi.hoisted(() => ({
+  available: false,
+  answer: vi.fn()
+}));
+vi.mock("../src/tools/serp-providers/antigravity-provider.js", () => ({
+  antigravitySearchAvailable: async () => antigravity.available,
+  AntigravitySearchProvider: class {
+    answer = antigravity.answer;
+  }
+}));
+
+const claude = vi.hoisted(() => ({
+  available: false,
+  answer: vi.fn(),
+  cliPath: undefined as string | null | undefined
+}));
+vi.mock("../src/tools/serp-providers/claude-provider.js", async (load) => ({
+  ...(await load<object>()),
+  claudeSearchAvailable: async () => claude.available,
+  ClaudeSearchProvider: class {
+    answer = claude.answer;
+    constructor(options: { cliPath?: string | null }) {
+      claude.cliPath = options.cliPath;
+    }
+  }
+}));
+const codex = vi.hoisted(() => ({ answer: vi.fn(), token: "" }));
+vi.mock("../src/tools/serp-providers/codex-provider.js", () => ({
+  CodexSearchProvider: {
+    fromToken: async (token: string) => {
+      codex.token = token;
+      return { answer: codex.answer };
+    }
+  }
+}));
+
 const gate: CapabilityGate = {
   mode: "auto",
   sessionAllow: new Set<string>(),
@@ -69,11 +110,20 @@ const BACKEND_ENV_KEYS = [
   "BRAVE_API_KEY",
   "APIFY_API_TOKEN",
   "APIFY_API_KEY",
+  "CLAUDE_CLI_PATH",
+  "CODEX_ACCESS_TOKEN",
   "BROWSER_URL"
 ] as const;
 const envStash: Record<string, string | undefined> = {};
 
 beforeEach(() => {
+  antigravity.available = false;
+  antigravity.answer.mockReset();
+  claude.available = false;
+  claude.answer.mockReset();
+  claude.cliPath = undefined;
+  codex.answer.mockReset();
+  codex.token = "";
   for (const key of BACKEND_ENV_KEYS) {
     envStash[key] = process.env[key];
     delete process.env[key];
@@ -232,6 +282,94 @@ describe("behaviour through toolFromCapability", () => {
     expect(result).not.toContain("bad.example");
   });
 
+  it("appends the pages the antigravity backend searched, filtered", async () => {
+    antigravity.available = true;
+    antigravity.answer.mockResolvedValue({
+      text: "Otters are mustelids.",
+      citations: [
+        { title: "Otters", url: "https://good.example/otters", snippet: "", position: 1 },
+        { title: "Spam", url: "https://bad.example/otters", snippet: "", position: 2 }
+      ],
+      raw: {}
+    });
+
+    const tool = asTool(byName("web_search"));
+    const result = String(
+      await tool.process(makeContext(), {
+        query: "otters",
+        blocked_domains: ["bad.example"]
+      })
+    );
+
+    expect(antigravity.answer).toHaveBeenCalledWith("otters", {
+      signal: undefined
+    });
+    expect(result).toContain("Otters are mustelids.");
+    expect(result).toContain("1. Otters\n   https://good.example/otters");
+    expect(result).not.toContain("bad.example");
+  });
+
+  it("routes to the codex backend on a ChatGPT sign-in", async () => {
+    codex.answer.mockResolvedValue({
+      text: "Otters are mustelids.",
+      citations: [
+        { title: "Otters", url: "https://good.example/otters", snippet: "", position: 1 }
+      ],
+      raw: {}
+    });
+
+    const tool = asTool(byName("web_search"));
+    const result = String(
+      await tool.process(makeContext({ CODEX_ACCESS_TOKEN: "oauth-token" }), {
+        query: "otters"
+      })
+    );
+
+    expect(codex.token).toBe("oauth-token");
+    expect(codex.answer).toHaveBeenCalledWith("otters", { signal: undefined });
+    expect(result).toContain("Otters are mustelids.");
+    expect(result).toContain("1. Otters\n   https://good.example/otters");
+  });
+
+  it("routes to the claude backend with the configured CLI path", async () => {
+    claude.available = true;
+    claude.answer.mockResolvedValue({
+      text: "Otters are mustelids.",
+      citations: [
+        { title: "Otters", url: "https://good.example/otters", snippet: "", position: 1 },
+        { title: "Spam", url: "https://bad.example/otters", snippet: "", position: 2 }
+      ],
+      raw: {}
+    });
+
+    const tool = asTool(byName("web_search"));
+    const result = String(
+      await tool.process(makeContext({ CLAUDE_CLI_PATH: "/opt/claude" }), {
+        query: "otters",
+        backend: "claude",
+        blocked_domains: ["bad.example"]
+      })
+    );
+
+    expect(claude.cliPath).toBe("/opt/claude");
+    expect(result).toContain("1. Otters\n   https://good.example/otters");
+    expect(result).not.toContain("bad.example");
+  });
+
+  it("names the ChatGPT sign-in when the pinned codex backend is missing", async () => {
+    const tool = asTool(byName("web_search"));
+    await expect(
+      tool.process(makeContext(), { query: "otters", backend: "codex" })
+    ).rejects.toThrow(/"codex" is not configured .*ChatGPT sign-in/);
+  });
+
+  it("names the Antigravity CLI when the pinned antigravity backend is missing", async () => {
+    const tool = asTool(byName("web_search"));
+    await expect(
+      tool.process(makeContext(), { query: "otters", backend: "antigravity" })
+    ).rejects.toThrow(/"antigravity" is not configured .*Antigravity CLI/);
+  });
+
   it("appends the pages the openai backend cited", async () => {
     const create = vi.fn().mockResolvedValue({
       output: [
@@ -303,6 +441,24 @@ describe("behaviour through toolFromCapability", () => {
     });
     expect(String(result)).toContain('unknown search_type "videos"');
   });
+
+  it.each(["antigravity", "codex", "claude"])(
+    "image_search refuses the web-only %s backend",
+    async (backend) => {
+      antigravity.available = true;
+      claude.available = true;
+      const tool = asTool(byName("image_search"));
+      await expect(
+        tool.process(makeContext({ CODEX_ACCESS_TOKEN: "t" }), {
+          query: "otters",
+          backend
+        })
+      ).rejects.toThrow(/does not support search_type "images"/);
+      expect(antigravity.answer).not.toHaveBeenCalled();
+      expect(claude.answer).not.toHaveBeenCalled();
+      expect(codex.answer).not.toHaveBeenCalled();
+    }
+  );
 
   it("image_search always searches images regardless of caller input", async () => {
     const context = makeContext();

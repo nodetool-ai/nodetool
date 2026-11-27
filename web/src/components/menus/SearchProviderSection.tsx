@@ -76,6 +76,12 @@ const SearchProviderSection = memo(function SearchProviderSection({
         return t("screens4_6.searchProvider.providers.openai.description");
       case "gemini":
         return t("screens4_6.searchProvider.providers.gemini.description");
+      case "antigravity":
+        return t("screens4_6.searchProvider.providers.antigravity.description");
+      case "codex":
+        return t("screens4_6.searchProvider.providers.codex.description");
+      case "claude":
+        return t("screens4_6.searchProvider.providers.claude.description");
     }
   })();
   const providerKeyLinkLabel = (() => {
@@ -92,6 +98,12 @@ const SearchProviderSection = memo(function SearchProviderSection({
         return t("screens4_6.searchProvider.providers.openai.keyLink");
       case "gemini":
         return t("screens4_6.searchProvider.providers.gemini.keyLink");
+      case "antigravity":
+        return t("screens4_6.searchProvider.providers.antigravity.keyLink");
+      case "codex":
+        return t("screens4_6.searchProvider.providers.codex.keyLink");
+      case "claude":
+        return t("screens4_6.searchProvider.providers.claude.keyLink");
     }
   })();
 
@@ -128,7 +140,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
 
   if (
     !matchesSearch(
-      "search provider serp brave serpapi dataforseo apify",
+      "search provider serp brave serpapi dataforseo apify antigravity codex claude",
       search
     )
   ) {

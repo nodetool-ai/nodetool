@@ -203,6 +203,36 @@ export function transformPoint(m: readonly number[], p: Vec3): Vec3 {
   ];
 }
 
+/**
+ * The rotation that aims a node's -Z axis from `eye` at `target` with +Y up:
+ * the way a glTF camera or light looks. Null when the two points coincide.
+ */
+export function lookAtQuaternion(eye: Vec3, target: Vec3): Quat | null {
+  let z: number[] = [eye[0] - target[0], eye[1] - target[1], eye[2] - target[2]];
+  const distance = Math.hypot(z[0], z[1], z[2]);
+  if (!(distance > 0) || !Number.isFinite(distance)) {
+    return null;
+  }
+  z = z.map((value) => value / distance);
+  // Looking straight up or down leaves no horizon to level against, so the
+  // view is tipped a hair off the pole, as three.js does.
+  if (Math.abs(z[1]) > 0.999999) {
+    z[2] += 0.0001;
+    const length = Math.hypot(z[0], z[1], z[2]);
+    z = z.map((value) => value / length);
+  }
+  let x = cross([0, 1, 0], z);
+  const xLength = Math.hypot(x[0], x[1], x[2]);
+  x = x.map((value) => value / xLength);
+  const y = cross(z, x);
+  return decomposeMatrix([
+    x[0], x[1], x[2], 0,
+    y[0], y[1], y[2], 0,
+    z[0], z[1], z[2], 0,
+    0, 0, 0, 1
+  ]).rotation;
+}
+
 const srgbToLinear = (channel: number): number =>
   channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
 

@@ -9,7 +9,10 @@
  */
 
 import { describe, expect, it, jest } from "@jest/globals";
-import { DEFAULT_MODEL3D_STYLE } from "@nodetool-ai/timeline";
+import {
+  DEFAULT_MODEL3D_STYLE,
+  IDENTITY_MODEL3D_CAMERA_CHANNELS
+} from "@nodetool-ai/timeline";
 import type {
   ClipModel3DStyle,
   Model3DCameraChannels
@@ -25,12 +28,7 @@ import {
 
 const SIZE = { width: 320, height: 180 };
 
-const STILL: Model3DCameraChannels = {
-  cameraAzimuth: 0,
-  cameraElevation: 0,
-  cameraZoom: 1,
-  cameraFov: 0
-};
+const STILL: Model3DCameraChannels = IDENTITY_MODEL3D_CAMERA_CHANNELS;
 
 interface FakeSession extends Model3DRenderSession {
   render: jest.Mock<Model3DRenderSession["render"]>;
@@ -147,6 +145,18 @@ describe("Model3DLayerSource", () => {
     });
   });
 
+  it("draws the beauty pass unless the host asks for another", async () => {
+    const { source, sessions } = makeSource();
+    source.acquire(layer("clip-a"));
+    await settle();
+
+    source.frame(layer("clip-a"), STILL, SIZE);
+    source.frame(layer("clip-a"), STILL, SIZE, "depth");
+
+    expect(sessions[0].render.mock.calls[0][0].pass).toBeUndefined();
+    expect(sessions[0].render.mock.calls[1][0].pass).toBe("depth");
+  });
+
   it("folds the animated camera channels onto the clip's pose", async () => {
     const { source, sessions } = makeSource();
     source.acquire(layer("clip-a"));
@@ -155,6 +165,7 @@ describe("Model3DLayerSource", () => {
     source.frame(
       layer("clip-a"),
       {
+        ...STILL,
         cameraAzimuth: 90,
         cameraElevation: -5,
         cameraZoom: 2,

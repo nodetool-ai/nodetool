@@ -178,6 +178,75 @@ describe("model3d capability module", () => {
 });
 
 describe("model3d capabilities against the database", () => {
+  it("blocks out a set with figures and a named camera", async () => {
+    const { context } = makeContext();
+    const run = runWith(context);
+
+    const created = (await run.invoke("create_model3d", {
+      name: "set",
+      ops: [
+        {
+          op: "add_object",
+          kind: "figure",
+          name: "Ana",
+          body: "female",
+          pose: "walk",
+          position: [1, 0, 0],
+          entityId: "ent_ana",
+          label: "Ana"
+        },
+        {
+          op: "add_object",
+          kind: "camera",
+          name: "cam_wide",
+          position: [0, 1.5, 6],
+          lookAt: [1, 1, 0],
+          fovDeg: 35
+        },
+        { op: "add_object", kind: "directionalLight" }
+      ]
+    })) as { model_id: string };
+
+    const scene = (await run.invoke("get_model3d", {
+      model_id: created.model_id
+    })) as { objects: Array<SceneObject & Record<string, unknown>> };
+    // A figure lists as one object, not as its fifteen joints.
+    expect(scene.objects.map((o) => [o.name, o.type])).toEqual([
+      ["Ana", "Figure"],
+      ["cam_wide", "PerspectiveCamera"],
+      ["Directional Light", "DirectionalLight"]
+    ]);
+    expect(scene.objects[0]["figure"]).toEqual({
+      body: "female",
+      pose: "walk",
+      height: 1.65,
+      entityId: "ent_ana",
+      label: "Ana"
+    });
+    expect(scene.objects[1]["camera"]).toMatchObject({ projection: "perspective", fovDeg: 35 });
+
+    const edited = (await run.invoke("edit_model3d", {
+      model_id: created.model_id,
+      ops: [
+        { op: "set_figure", target: "Ana", pose: "sit" },
+        { op: "set_camera", target: "cam_wide", fovDeg: 24, lookAt: [1, 0.8, 0] }
+      ]
+    })) as {
+      objects: Array<SceneObject & Record<string, unknown>>;
+      validation: { ok: boolean };
+    };
+    expect(edited.validation).toMatchObject({ ok: true });
+    expect(edited.objects[0]["figure"]).toMatchObject({ pose: "sit", entityId: "ent_ana" });
+    expect(edited.objects[1]["camera"]).toMatchObject({ fovDeg: 24 });
+
+    expect(
+      await run.invoke("edit_model3d", {
+        model_id: created.model_id,
+        ops: [{ op: "set_figure", target: "Ana", pose: "fly" }]
+      })
+    ).toMatchObject({ error: expect.stringMatching(/stand, sit, walk, run, lie/) });
+  });
+
   it("builds, reads, edits and re-reads a scene with no editor open", async () => {
     const { context, bytesOf } = makeContext();
     const run = runWith(context);

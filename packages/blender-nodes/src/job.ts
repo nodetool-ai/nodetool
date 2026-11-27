@@ -22,6 +22,12 @@ export const jobFileNameSchema = z
   .regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
 
 export type CameraMode = "auto" | "scene" | "orbit";
+
+/**
+ * A bake frame's camera mode: the node's three plus `free`, a camera placed in
+ * world space by `position`, `target`, `roll` and `fov` with no fit.
+ */
+export type BakeCameraMode = CameraMode | "free";
 export type BlenderEngine = "eevee" | "cycles";
 export type LightingPreset = "studio" | "soft" | "flat";
 export type RenderPass = "color" | "depth" | "normal" | "mask";
@@ -64,17 +70,25 @@ export interface RenderPassesParams extends CameraParams {
 
 /**
  * One frame's camera in a sampled render (design §D6). `CameraParams` plus the
- * two things a timeline clip's camera carries that the DTO did not: which glTF
- * camera `scene` mode renders through, and where the orbit looks.
+ * things a timeline clip's camera carries that the DTO did not: which glTF
+ * camera `scene` mode renders through, where the orbit looks, and the free
+ * camera's pose.
  */
-export interface BakeCameraParams extends CameraParams {
+export interface BakeCameraParams extends Omit<CameraParams, "camera_mode"> {
+  camera_mode: BakeCameraMode;
   /** `scene` mode: the glTF camera by name; the first one when absent. */
   scene_camera_name?: string;
   /** Look-at offset from the bounding-sphere center, in world units. */
   target_offset?: [number, number, number];
+  /** `free` mode: the camera eye in glTF world units, Y up. */
+  position?: [number, number, number];
+  /** `free` mode: the look-at point in glTF world units, Y up. */
+  target?: [number, number, number];
+  /** `free` mode: roll in degrees. Positive turns the horizon clockwise. */
+  roll?: number;
 }
 
-export interface RenderAnimationParams extends CameraParams {
+export interface RenderAnimationParams extends BakeCameraParams {
   width: number;
   height: number;
   /** First frame in the glTF timeline (`round(t * fps)` per animation channel). */

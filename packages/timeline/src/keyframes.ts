@@ -22,7 +22,7 @@ import { MODEL3D_CAMERA_PROPERTIES } from "./model3d.js";
 import type { TimelineClip } from "./types.js";
 
 /**
- * Every property the keyframe inspector can offer. The four camera channels
+ * Every property the keyframe inspector can offer. The camera channels
  * only mean anything on a `model3d` clip — keyed on any other, they render
  * nothing, the way `wipeProgress` does without a mask — so a UI walks
  * {@link keyframePropertiesFor} rather than this list.
@@ -223,6 +223,37 @@ export function removeKeyframe(
         : c
     )
   );
+}
+
+/**
+ * Replace `property`'s keyframes between the first and the last of `keys`
+ * with `keys`. Keyframes outside that span stay. Each key may carry the easing
+ * of the segment that arrives at it.
+ */
+export function replaceKeyframeSpan(
+  clip: TimelineClip,
+  property: AnimatedProperty,
+  keys: readonly { atMs: number; value: number; easing?: string }[]
+): ClipAnimation[] {
+  if (keys.length === 0) return clip.animations ?? [];
+  const tolerance = keyTimeTolerance(clip.durationMs);
+  const placed = keys
+    .map((key) =>
+      key.easing === undefined
+        ? { t: toT(clip, key.atMs), value: key.value }
+        : { t: toT(clip, key.atMs), value: key.value, easing: key.easing }
+    )
+    .sort((a, b) => a.t - b.t);
+  const from = placed[0].t - tolerance;
+  const to = placed[placed.length - 1].t + tolerance;
+  return withCurves(clip, (curves) => {
+    const others = curves.filter((c) => c.property !== property);
+    const kept = (
+      curves.find((c) => c.property === property)?.keyframes ?? []
+    ).filter((kf) => kf.t < from || kf.t > to);
+    const keyframes = [...kept, ...placed].sort((a, b) => a.t - b.t);
+    return [...others, { property, keyframes }];
+  });
 }
 
 type KeyframeCurve = CustomClipAnimation["curves"][number];

@@ -67,7 +67,7 @@ second adds to the first or throws it away.
 
 | Fold | Channels | Identity | Result |
 |---|---|---|---|
-| add | `offsetX`, `offsetY`, `rotation` (radians), `rotationX`, `rotationY` (deg), `blur` (px), `brightness` (−1..1), `hue` (deg), `temperature`, `tint`, `cameraAzimuth`, `cameraElevation`, `cameraFov` (deg, 3D clips only) | 0 | Values sum |
+| add | `offsetX`, `offsetY`, `rotation` (radians), `rotationX`, `rotationY` (deg), `blur` (px), `brightness` (−1..1), `hue` (deg), `temperature`, `tint`, `cameraAzimuth`, `cameraElevation`, `cameraFov` (deg, 3D clips only), `cameraPosX`, `cameraPosY`, `cameraPosZ`, `cameraTargetX`, `cameraTargetY`, `cameraTargetZ` (world units), `cameraRoll` (deg), the last seven on a 3D clip whose camera mode is `free` | 0 | Values sum |
 | multiply | `scale`, `scaleX`, `scaleY`, `opacity` (0..1), `saturation` (0..4), `contrast` (0..4), `cameraZoom` (3D clips only) | 1 | Values multiply |
 | min | `wipeProgress` (0..1) | 1 | The tightest wipe wins |
 | replace | `positionX`, `positionY` (canvas px), `anchorX`, `anchorY` (0..1), `trimStart`, `trimEnd` (0..1) | none | The last animation in document order wins; the other is discarded |

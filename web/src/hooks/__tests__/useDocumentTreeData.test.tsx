@@ -86,7 +86,7 @@ describe("useDocumentTreeData", () => {
         "Text files",
         ["Notes.md (Text file)", "Untitled text file (Text file)"]
       ],
-      ["entities", "Entities", ["Keeper (Entity)"]]
+      ["entities", "References", ["Keeper (Reference)"]]
     ]);
   });
 

@@ -28,7 +28,8 @@ import type { PermissionMode } from "@nodetool-ai/agents";
 import {
   buildConfiguredProviders,
   defaultModelFor,
-  KNOWN_PROVIDERS
+  KNOWN_PROVIDERS,
+  resolveDefaultModel
 } from "@nodetool-ai/cli-providers";
 import { initDb, migrateSqliteDb } from "@nodetool-ai/models";
 import { initMasterKey, isKeychainBackendMissing } from "@nodetool-ai/security";
@@ -214,11 +215,20 @@ await installLocalModelInterfaces();
 const settings = await loadSettings();
 
 const provider = opts.provider ?? settings.provider;
-const model =
-  opts.model ??
-  (opts.provider
-    ? (defaultModelFor(opts.provider) ?? settings.model)
-    : settings.model);
+// A remote server (--url) resolves its own providers, so only a local run
+// asks the provider for an account-specific default (Codex).
+let model = opts.model ?? settings.model;
+if (!opts.model && opts.provider) {
+  try {
+    model =
+      (opts.url
+        ? defaultModelFor(opts.provider)
+        : await resolveDefaultModel(opts.provider)) ?? settings.model;
+  } catch (err) {
+    process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+    process.exit(1);
+  }
+}
 
 // `--agent` and the persisted `agentMode` setting are deprecated no-ops —
 // every chat session now runs the unified LLM-with-tools loop, and the

@@ -18,7 +18,9 @@ export const PRIMITIVE_KINDS = [
   "cylinder",
   "torus",
   "directionalLight",
-  "pointLight"
+  "pointLight",
+  "figure",
+  "camera"
 ] as const;
 
 export type PrimitiveKind = (typeof PRIMITIVE_KINDS)[number];
@@ -43,7 +45,9 @@ export const PRIMITIVE_LABELS: Record<PrimitiveKind, string> = {
   cylinder: "Cylinder",
   torus: "Torus",
   directionalLight: "Directional Light",
-  pointLight: "Point Light"
+  pointLight: "Point Light",
+  figure: "Figure",
+  camera: "Camera"
 };
 
 export interface Geometry {
@@ -74,7 +78,11 @@ export const PRIMITIVE_DEFAULTS: Record<PrimitiveKind, PrimitiveDefaults> = {
   cylinder: ORIGIN,
   torus: ORIGIN,
   directionalLight: { ...ORIGIN, position: [2, 3, 2] },
-  pointLight: { ...ORIGIN, position: [0, 2, 0] }
+  pointLight: { ...ORIGIN, position: [0, 2, 0] },
+  // A figure's origin is on the ground under its pelvis.
+  figure: ORIGIN,
+  // Eye height, a few steps back from the origin, looking down -Z at it.
+  camera: { ...ORIGIN, position: [0, 1.6, 5] }
 };
 
 interface Builder {
@@ -271,4 +279,75 @@ export function buildPrimitiveGeometry(kind: MeshKind): Geometry {
     case "torus":
       return torus();
   }
+}
+
+/** A parametrized shape, for callers that need other dimensions than the defaults. */
+export type ShapeSpec =
+  | { shape: "box"; size: Vec3 }
+  | { shape: "sphere"; radius: number; widthSegments?: number; heightSegments?: number }
+  | {
+      shape: "cylinder";
+      radiusTop: number;
+      radiusBottom: number;
+      height: number;
+      radialSegments?: number;
+    };
+
+/** Build one shape, centered on its own origin. */
+export function buildShapeGeometry(spec: ShapeSpec): Geometry {
+  switch (spec.shape) {
+    case "box":
+      return box(spec.size[0], spec.size[1], spec.size[2]);
+    case "sphere":
+      return sphere(spec.radius, spec.widthSegments, spec.heightSegments);
+    case "cylinder":
+      return cylinder(spec.radiusTop, spec.radiusBottom, spec.height, spec.radialSegments);
+  }
+}
+
+/**
+ * Scale a geometry per axis, then move it. Normals are divided by the scale
+ * and renormalized, which keeps them perpendicular to a squashed surface.
+ */
+export function transformGeometry(
+  geometry: Geometry,
+  scale: Vec3 = [1, 1, 1],
+  translation: Vec3 = [0, 0, 0]
+): Geometry {
+  const positions = new Float32Array(geometry.positions.length);
+  const normals = new Float32Array(geometry.normals.length);
+  for (let i = 0; i < positions.length; i += 3) {
+    const normal: Vec3 = [0, 0, 0];
+    for (let axis = 0; axis < 3; axis += 1) {
+      positions[i + axis] = geometry.positions[i + axis] * scale[axis] + translation[axis];
+      normal[axis] = scale[axis] === 0 ? 0 : geometry.normals[i + axis] / scale[axis];
+    }
+    const length = Math.hypot(normal[0], normal[1], normal[2]) || 1;
+    normals[i] = normal[0] / length;
+    normals[i + 1] = normal[1] / length;
+    normals[i + 2] = normal[2] / length;
+  }
+  return { positions, normals, indices: new Uint32Array(geometry.indices) };
+}
+
+/** Join geometries into one indexed triangle list. */
+export function mergeGeometries(geometries: readonly Geometry[]): Geometry {
+  const vertexCount = geometries.reduce((sum, g) => sum + g.positions.length, 0);
+  const indexCount = geometries.reduce((sum, g) => sum + g.indices.length, 0);
+  const positions = new Float32Array(vertexCount);
+  const normals = new Float32Array(vertexCount);
+  const indices = new Uint32Array(indexCount);
+  let vertexOffset = 0;
+  let indexOffset = 0;
+  for (const geometry of geometries) {
+    positions.set(geometry.positions, vertexOffset);
+    normals.set(geometry.normals, vertexOffset);
+    const base = vertexOffset / 3;
+    for (let i = 0; i < geometry.indices.length; i += 1) {
+      indices[indexOffset + i] = geometry.indices[i] + base;
+    }
+    vertexOffset += geometry.positions.length;
+    indexOffset += geometry.indices.length;
+  }
+  return { positions, normals, indices };
 }

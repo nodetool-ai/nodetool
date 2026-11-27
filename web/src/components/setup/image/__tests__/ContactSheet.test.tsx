@@ -140,7 +140,7 @@ describe("actions on a variation that has not rendered", () => {
     );
     for (const name of [
       "Sketch editor",
-      "Save to entities",
+      "Save to references",
       "New node canvas",
       "Image to video",
       "Regenerate",
@@ -432,7 +432,7 @@ describe("ContactSheet Pick (criterion 5)", () => {
     );
     expect(onMakeMore).toHaveBeenCalled();
     await userEvent.click(
-      screen.getAllByRole("button", { name: "Save to entities" })[3]
+      screen.getAllByRole("button", { name: "Save to references" })[3]
     );
     expect(onSaveToLibrary).toHaveBeenCalledWith(layerIds[3]);
     await userEvent.click(

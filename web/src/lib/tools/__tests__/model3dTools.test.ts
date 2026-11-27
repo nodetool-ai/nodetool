@@ -26,6 +26,8 @@ const createMockHandler = (): jest.Mocked<Model3DToolHandler> => ({
   listScene: jest.fn(),
   getSelected: jest.fn(),
   addPrimitive: jest.fn(),
+  setFigure: jest.fn(),
+  setCamera: jest.fn(),
   selectObject: jest.fn(),
   deleteObject: jest.fn(),
   setTransform: jest.fn(),
@@ -71,6 +73,8 @@ describe("ui_3d_* tools", () => {
         "ui_3d_set_parent",
         "ui_3d_set_material",
         "ui_3d_set_light",
+        "ui_3d_set_figure",
+        "ui_3d_set_camera",
         "ui_3d_set_geometry",
         "ui_3d_undo",
         "ui_3d_redo"
@@ -96,9 +100,105 @@ describe("ui_3d_* tools", () => {
       ctx
     )) as { ok: boolean; object: Model3DSceneNode };
 
-    expect(handler.addPrimitive).toHaveBeenCalledWith("sphere", "Sun");
+    expect(handler.addPrimitive).toHaveBeenCalledWith("sphere", "Sun", {
+      position: undefined,
+      figure: undefined,
+      camera: undefined
+    });
     expect(result.ok).toBe(true);
     expect(result.object.name).toBe("Sun");
+  });
+
+  it("adds a figure with its body, pose and cast link", async () => {
+    const handler = createMockHandler();
+    handler.addPrimitive.mockReturnValue(node({ name: "Ana", type: "Figure" }));
+    setModel3DToolHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_3d_add_object",
+      { kind: "figure", name: "Ana", body: "female", pose: "sit", entityId: "e1", position: [1, 0, 2] },
+      "tc-f1",
+      ctx
+    );
+
+    expect(handler.addPrimitive).toHaveBeenCalledWith("figure", "Ana", {
+      position: [1, 0, 2],
+      figure: {
+        body: "female",
+        pose: "sit",
+        height: undefined,
+        color: undefined,
+        entityId: "e1",
+        label: undefined
+      },
+      camera: undefined
+    });
+  });
+
+  it("adds a camera with a lens and an aim", async () => {
+    const handler = createMockHandler();
+    handler.addPrimitive.mockReturnValue(node({ name: "cam_a", type: "PerspectiveCamera" }));
+    setModel3DToolHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_3d_add_object",
+      { kind: "camera", name: "cam_a", fovDeg: 30, lookAt: [0, 1, 0] },
+      "tc-c1",
+      ctx
+    );
+
+    expect(handler.addPrimitive).toHaveBeenCalledWith("camera", "cam_a", {
+      position: undefined,
+      figure: undefined,
+      camera: { fovDeg: 30, lookAt: [0, 1, 0] }
+    });
+  });
+
+  it("rejects figure and camera fields on other kinds and bad enum values", async () => {
+    setModel3DToolHandler(createMockHandler());
+    await expect(
+      FrontendToolRegistry.call("ui_3d_add_object", { kind: "box", pose: "sit" }, "tc-f2", ctx)
+    ).rejects.toThrow('pose applies to kind "figure" only');
+    await expect(
+      FrontendToolRegistry.call("ui_3d_add_object", { kind: "figure", fovDeg: 30 }, "tc-f3", ctx)
+    ).rejects.toThrow('fovDeg applies to kind "camera" only');
+    await expect(
+      FrontendToolRegistry.call("ui_3d_add_object", { kind: "figure", pose: "fly" }, "tc-f4", ctx)
+    ).rejects.toThrow();
+  });
+
+  it("poses a figure and aims a camera through the bridge handler", async () => {
+    const handler = createMockHandler();
+    handler.setFigure.mockReturnValue(node({ name: "Ana", type: "Figure" }));
+    handler.setCamera.mockReturnValue(node({ name: "cam_a", type: "PerspectiveCamera" }));
+    setModel3DToolHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_3d_set_figure",
+      { target: "Ana", pose: "run", label: null },
+      "tc-f5",
+      ctx
+    );
+    expect(handler.setFigure).toHaveBeenCalledWith("Ana", { pose: "run", label: null });
+
+    await FrontendToolRegistry.call(
+      "ui_3d_set_camera",
+      { target: "cam_a", position: [0, 2, 4], lookAt: [0, 1, 0], fovDeg: 24 },
+      "tc-c2",
+      ctx
+    );
+    expect(handler.setCamera).toHaveBeenCalledWith("cam_a", {
+      position: [0, 2, 4],
+      lookAt: [0, 1, 0],
+      fovDeg: 24
+    });
+
+    await expect(
+      FrontendToolRegistry.call("ui_3d_set_figure", { target: "Ana" }, "tc-f6", ctx)
+    ).rejects.toThrow("at least one");
+    await expect(
+      FrontendToolRegistry.call("ui_3d_set_camera", { target: "cam_a" }, "tc-c3", ctx)
+    ).rejects.toThrow("at least one");
   });
 
   it("rejects an unknown primitive kind during validation", async () => {

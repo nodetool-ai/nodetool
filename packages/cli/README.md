@@ -32,6 +32,12 @@ nodetool run flow.json --params '{"topic":"rivers"}'
 store when `SECRETS_MASTER_KEY` is set and the key is stored, and from the
 environment otherwise.
 
+At startup the CLI loads `./.env.local`, `./.env`, `~/.nodetool/.env` and
+`~/.env`, after any file named by `--env-file` or `NODETOOL_ENV_FILE`. Real
+environment variables win. `nodetool env check --json` lists every variable
+with its status and source, never its value. See
+[Environment and Env Files](../../docs/cli.md#environment-and-env-files).
+
 No single provider is required. `nodetool info` shows the credential state of
 each provider (names only, never values), and `nodetool providers list` lists
 the providers usable now: a key is set, an installed pack registers it, or, for

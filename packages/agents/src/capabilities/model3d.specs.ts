@@ -104,7 +104,8 @@ export const getModel3dSpec: CapabilitySpec = {
   description:
     "List every object in a 3D model's scene with its uuid, name, type, " +
     "visibility, transform (position, rotation in degrees, scale) and " +
-    "material color, plus the scene's world-space bounds. Call this first to " +
+    "material color, a figure's body, pose, entityId and label, a camera's " +
+    "lens, plus the scene's world-space bounds. Call this first to " +
     "see what is in a model and to get the uuids the edit operations take. " +
     "This is the headless twin of ui_3d_list_scene, and needs no open editor.",
   inputSchema: GET_MODEL3D_SCHEMA,
@@ -131,7 +132,9 @@ export const EDIT_MODEL3D_SCHEMA: JsonSchema = {
               "set_visibility",
               "rename_object",
               "set_material_color",
-              "select_object"
+              "select_object",
+              "set_figure",
+              "set_camera"
             ],
             description: "Which operation this entry applies."
           },
@@ -144,9 +147,14 @@ export const EDIT_MODEL3D_SCHEMA: JsonSchema = {
               "cylinder",
               "torus",
               "directionalLight",
-              "pointLight"
+              "pointLight",
+              "figure",
+              "camera"
             ],
-            description: "add_object: the primitive to add."
+            description:
+              "add_object: what to add. A figure is a jointed mannequin that " +
+              "stands on y = 0 and faces +Z. A camera is a named view that " +
+              "looks down its own -Z."
           },
           name: {
             type: "string",
@@ -160,7 +168,12 @@ export const EDIT_MODEL3D_SCHEMA: JsonSchema = {
               TARGET_PROPERTY.description +
               " Pass null on select_object to clear the selection."
           },
-          position: { ...VEC3_PROPERTY, description: "set_transform: [x, y, z] position." },
+          position: {
+            ...VEC3_PROPERTY,
+            description:
+              "set_transform, set_camera: [x, y, z] position. add_object: " +
+              "where the new object goes."
+          },
           rotation: {
             ...VEC3_PROPERTY,
             description: "set_transform: [x, y, z] Euler rotation in degrees."
@@ -173,8 +186,54 @@ export const EDIT_MODEL3D_SCHEMA: JsonSchema = {
           color: {
             type: "string",
             description:
-              "set_material_color: a CSS hex string like \"#ff8800\". Meshes only."
-          }
+              "set_material_color: a CSS hex string like \"#ff8800\". Meshes " +
+              "and figures. add_object, set_figure: the figure's color."
+          },
+          body: {
+            type: "string",
+            enum: ["male", "female", "child"],
+            description:
+              "Figures: the body. male stands about 1.8 m, female about " +
+              "1.65 m, child about 1.2 m. Default male."
+          },
+          pose: {
+            type: "string",
+            enum: ["stand", "sit", "walk", "run", "lie"],
+            description: "Figures: the pose preset. Default stand."
+          },
+          height: {
+            type: "number",
+            description:
+              "Figures: standing height in meters, 0.3 to 3. Defaults to the body's own."
+          },
+          entityId: {
+            type: ["string", "null"],
+            description:
+              "Figures: the id of the cast entity the figure stands in for. " +
+              "Null clears it."
+          },
+          label: {
+            type: ["string", "null"],
+            description:
+              "Figures: a label such as a character name. Null clears it."
+          },
+          fovDeg: {
+            type: "number",
+            description:
+              "Cameras: vertical field of view in degrees, 1 to 179. Default 40."
+          },
+          lookAt: {
+            ...VEC3_PROPERTY,
+            description:
+              "Cameras: an [x, y, z] point the camera is turned to face, " +
+              "applied after position."
+          },
+          aspectRatio: {
+            type: "number",
+            description: "Cameras: width over height. Default 16:9."
+          },
+          znear: { type: "number", description: "Cameras: near clip distance." },
+          zfar: { type: "number", description: "Cameras: far clip distance." }
         },
         required: ["op"]
       }
@@ -186,9 +245,10 @@ export const EDIT_MODEL3D_SCHEMA: JsonSchema = {
 export const editModel3dSpec: CapabilitySpec = {
   name: "edit_model3d",
   description:
-    "Edit a 3D model's scene headlessly: add and delete primitives and " +
-    "lights, set transforms (rotation in degrees), rename, show and hide, " +
-    "recolor a mesh's material, and set the selected object. Operations run " +
+    "Edit a 3D model's scene headlessly: add and delete primitives, " +
+    "lights, blockout figures and cameras, set transforms (rotation in " +
+    "degrees), rename, show and hide, recolor a mesh's material, pose a " +
+    "figure, aim a camera, and set the selected object. Operations run " +
     "in order against the stored glTF and the result is saved back to the " +
     "same asset, so the id stays valid and an open editor reloads it. These " +
     "are the ui_3d_* verbs with no editor open. Anything the operations do " +

@@ -15,15 +15,29 @@ import {
   renameObject,
   selectObject,
   setMaterialColor,
+  setCamera,
+  setFigure,
   setTransform,
   setVisibility,
+  type CameraOptions,
+  type FigureOptions,
   type Model3DSceneObject
 } from "./scene.js";
+import { FIGURE_BODIES, FIGURE_POSES, isFigureBody, isFigurePose } from "./figure.js";
 import type { Vec3 } from "./math.js";
 import { PRIMITIVE_KINDS, type PrimitiveKind } from "./primitives.js";
 
 export type Model3DOperation =
-  | { op: "add_object"; kind: PrimitiveKind; name?: string }
+  | ({
+      op: "add_object";
+      kind: PrimitiveKind;
+      name?: string;
+      /** Where the object goes, in place of the kind's default position. */
+      position?: Vec3;
+    } & FigureOptions &
+      CameraOptions)
+  | ({ op: "set_figure"; target: string } & FigureOptions)
+  | ({ op: "set_camera"; target: string; position?: Vec3 } & CameraOptions)
   | { op: "delete_object"; target: string }
   | {
       op: "set_transform";
@@ -44,7 +58,9 @@ export const MODEL3D_OPERATIONS = [
   "set_visibility",
   "rename_object",
   "set_material_color",
-  "select_object"
+  "select_object",
+  "set_figure",
+  "set_camera"
 ] as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -81,6 +97,110 @@ function optionalVec3(
   return [value[0], value[1], value[2]] as Vec3;
 }
 
+function optionalNumber(
+  args: Record<string, unknown>,
+  key: string,
+  op: string
+): number | undefined {
+  const value = args[key];
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Model3DOperationError(`${op}.${key} must be a finite number.`);
+  }
+  return value;
+}
+
+/** A text field that null (or, on set_figure, an empty string) clears. */
+function optionalText(
+  args: Record<string, unknown>,
+  key: string,
+  op: string
+): string | null | undefined {
+  const value = args[key];
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value !== null && typeof value !== "string") {
+    throw new Model3DOperationError(`${op}.${key} must be a string or null.`);
+  }
+  return value;
+}
+
+function parseFigureOptions(args: Record<string, unknown>, op: string): FigureOptions {
+  const options: FigureOptions = {};
+  const body = args["body"];
+  if (body !== undefined && body !== null) {
+    if (!isFigureBody(body)) {
+      throw new Model3DOperationError(
+        `${op}.body is "${String(body)}"; expected one of ${FIGURE_BODIES.join(", ")}.`
+      );
+    }
+    options.body = body;
+  }
+  const pose = args["pose"];
+  if (pose !== undefined && pose !== null) {
+    if (!isFigurePose(pose)) {
+      throw new Model3DOperationError(
+        `${op}.pose is "${String(pose)}"; expected one of ${FIGURE_POSES.join(", ")}.`
+      );
+    }
+    options.pose = pose;
+  }
+  const height = optionalNumber(args, "height", op);
+  if (height !== undefined) {
+    options.height = height;
+  }
+  const color = args["color"];
+  if (color !== undefined && color !== null) {
+    if (typeof color !== "string" || color.trim() === "") {
+      throw new Model3DOperationError(`${op}.color must be a CSS hex string like "#ff8800".`);
+    }
+    options.color = color;
+  }
+  const entityId = optionalText(args, "entityId", op);
+  if (entityId !== undefined) {
+    options.entityId = entityId;
+  }
+  const label = optionalText(args, "label", op);
+  if (label !== undefined) {
+    options.label = label;
+  }
+  return options;
+}
+
+function parseCameraOptions(args: Record<string, unknown>, op: string): CameraOptions {
+  const options: CameraOptions = {};
+  for (const key of ["fovDeg", "aspectRatio", "znear", "zfar"] as const) {
+    const value = optionalNumber(args, key, op);
+    if (value !== undefined) {
+      options[key] = value;
+    }
+  }
+  const lookAt = optionalVec3(args, "lookAt", op);
+  if (lookAt) {
+    options.lookAt = lookAt;
+  }
+  return options;
+}
+
+const FIGURE_FIELDS = ["body", "pose", "height", "color", "entityId", "label"] as const;
+const CAMERA_FIELDS = ["fovDeg", "aspectRatio", "znear", "zfar", "lookAt"] as const;
+
+/** Reject fields that belong to another kind, which would otherwise be dropped. */
+function rejectFields(
+  args: Record<string, unknown>,
+  fields: readonly string[],
+  message: (field: string) => string
+): void {
+  for (const field of fields) {
+    if (args[field] !== undefined && args[field] !== null) {
+      throw new Model3DOperationError(message(field));
+    }
+  }
+}
+
 /**
  * Read one operation out of caller-supplied JSON.
  *
@@ -115,9 +235,26 @@ export function parseOperation(raw: unknown): Model3DOperation {
       if (name !== undefined && typeof name !== "string") {
         throw new Model3DOperationError("add_object.name must be a string.");
       }
-      const parsed: Model3DOperation = { op: "add_object", kind: kind as PrimitiveKind };
+      let parsed: Extract<Model3DOperation, { op: "add_object" }> = {
+        op: "add_object",
+        kind: kind as PrimitiveKind
+      };
+      if (kind === "figure") {
+        parsed = { ...parsed, ...parseFigureOptions(raw, op) };
+      } else {
+        rejectFields(raw, FIGURE_FIELDS, (field) => `add_object.${field} applies to kind "figure" only.`);
+      }
+      if (kind === "camera") {
+        parsed = { ...parsed, ...parseCameraOptions(raw, op) };
+      } else {
+        rejectFields(raw, CAMERA_FIELDS, (field) => `add_object.${field} applies to kind "camera" only.`);
+      }
       if (typeof name === "string" && name.trim() !== "") {
         parsed.name = name;
+      }
+      const position = optionalVec3(raw, "position", op);
+      if (position) {
+        parsed.position = position;
       }
       return parsed;
     }
@@ -168,6 +305,33 @@ export function parseOperation(raw: unknown): Model3DOperation {
       }
       return { op: "set_material_color", target: requireTarget(raw, op), color };
     }
+    case "set_figure": {
+      const options = parseFigureOptions(raw, op);
+      if (Object.keys(options).length === 0) {
+        throw new Model3DOperationError(
+          `set_figure needs at least one of ${FIGURE_FIELDS.join(", ")}.`
+        );
+      }
+      return { op: "set_figure", target: requireTarget(raw, op), ...options };
+    }
+    case "set_camera": {
+      const options = parseCameraOptions(raw, op);
+      const position = optionalVec3(raw, "position", op);
+      if (Object.keys(options).length === 0 && !position) {
+        throw new Model3DOperationError(
+          `set_camera needs at least one of position, ${CAMERA_FIELDS.join(", ")}.`
+        );
+      }
+      const parsed: Model3DOperation = {
+        op: "set_camera",
+        target: requireTarget(raw, op),
+        ...options
+      };
+      if (position) {
+        parsed.position = position;
+      }
+      return parsed;
+    }
     case "select_object": {
       const target = raw["target"];
       if (
@@ -194,13 +358,26 @@ export function applyOperation(
 ): OperationResult {
   const { json } = file;
   switch (operation.op) {
-    case "add_object":
+    case "add_object": {
+      const { op, kind, name, position, ...rest } = operation;
       return {
-        op: operation.op,
-        object: addObject(json, operation.kind, operation.name, {
-          base64Encode
+        op,
+        object: addObject(json, kind, name, {
+          base64Encode,
+          position,
+          figure: rest,
+          camera: rest
         })
       };
+    }
+    case "set_figure": {
+      const { op, target, ...options } = operation;
+      return { op, object: setFigure(json, target, options, base64Encode) };
+    }
+    case "set_camera": {
+      const { op, target, ...options } = operation;
+      return { op, object: setCamera(json, target, options) };
+    }
     case "delete_object":
       return { op: operation.op, object: deleteObject(json, operation.target) };
     case "set_transform":

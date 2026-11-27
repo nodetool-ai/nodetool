@@ -447,7 +447,7 @@ describe("useStoryboardSetupFlow", () => {
     const steps = screen.getByRole("navigation", { name: "Setup steps" });
     expect(
       Array.from(steps.querySelectorAll("li")).map((item) => item.textContent)
-    ).toEqual(["1. Idea", "2. Story", "3. Entities", "4. Look"]);
+    ).toEqual(["1. Idea", "2. Story", "3. References", "4. Look"]);
   });
 
   it("walks idea through entities to look", async () => {
@@ -470,7 +470,7 @@ describe("useStoryboardSetupFlow", () => {
     // The mocked run writes no shots; the real one always does, and the review
     // step will not spend over an empty screenplay.
     act(() => seedScreenplay());
-    await user.click(screen.getByRole("button", { name: "Set up entities" }));
+    await user.click(screen.getByRole("button", { name: "Set up references" }));
     expect(stageOf()).toBe("entities");
 
     act(() => useStoryboardStore.getState().setEntityIds(BOARD_ID, ["mara"]));
@@ -490,7 +490,7 @@ describe("useStoryboardSetupFlow", () => {
     expect(
       screen.getByRole("button", { name: "Choose the look" })
     ).toBeDisabled();
-    await user.click(screen.getByRole("button", { name: "Skip entities" }));
+    await user.click(screen.getByRole("button", { name: "Skip references" }));
 
     expect(stageOf()).toBe("look");
   });
@@ -510,7 +510,7 @@ describe("useStoryboardSetupFlow", () => {
     );
 
     expect(onReviewed).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Set up entities" }));
+    await user.click(screen.getByRole("button", { name: "Set up references" }));
 
     await waitFor(() => expect(onReviewed).toHaveBeenCalledTimes(1));
     expect(stageOf()).toBe("entities");
@@ -536,7 +536,7 @@ describe("useStoryboardSetupFlow", () => {
       </ThemeProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: "Set up entities" }));
+    await user.click(screen.getByRole("button", { name: "Set up references" }));
     await waitFor(() => expect(onReviewed).toHaveBeenCalledTimes(1));
 
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
@@ -685,7 +685,7 @@ describe("useStoryboardSetupFlow", () => {
     useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "review" });
     renderFlow();
 
-    await user.click(screen.getByRole("button", { name: "Set up entities" }));
+    await user.click(screen.getByRole("button", { name: "Set up references" }));
     await waitFor(() => expect(stageOf()).toBe("entities"));
   });
 

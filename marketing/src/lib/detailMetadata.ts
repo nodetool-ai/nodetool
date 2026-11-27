@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import type { Storyboard } from "@/data/storyboards";
 import type { AdRecipe } from "@/data/adLibrary";
 import type { RecipeEntry } from "@/data/recipes";
-import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
+import { DEFAULT_OG_IMAGES, shareImages } from "@/lib/defaultOgImage";
+import { LOCALE_KEYWORDS } from "@/i18n/keywords";
 import { fmt } from "@/i18n/detailLabels";
 import {
   adLabels,
@@ -21,6 +22,11 @@ import { LOCALES, languageAlternates, type Locale } from "@/i18n/routes";
 
 const BASE_URL = "https://nodetool.ai";
 
+/** A translation's keywords; without them it inherits the English list. */
+function localeKeywords(locale: Locale | null): Pick<Metadata, "keywords"> {
+  return locale ? { keywords: [...LOCALE_KEYWORDS[locale]] } : {};
+}
+
 function urls(locale: Locale | null, route: string) {
   const path = locale ? `/${locale}${route}` : route;
   return {
@@ -38,6 +44,7 @@ export function storyboardMetadata(locale: Locale | null, english: Storyboard): 
     title: locale ? { absolute: title } : title,
     description: board.description,
     alternates: { canonical: url, languages },
+    ...localeKeywords(locale),
     openGraph: {
       title,
       description: board.description,
@@ -57,8 +64,9 @@ export function adMetadata(locale: Locale | null, english: AdRecipe): Metadata {
     title: locale ? { absolute: title } : title,
     description: ad.objective,
     alternates: { canonical: url, languages },
+    ...localeKeywords(locale),
     openGraph: {
-      images: DEFAULT_OG_IMAGES,
+      images: locale ? shareImages(locale) : DEFAULT_OG_IMAGES,
       title: ad.title,
       description: ad.objective,
       url,
@@ -89,12 +97,13 @@ export function recipeMetadata(locale: Locale | null, english: RecipeEntry): Met
     title: { absolute: title },
     description: recipe.outcome,
     alternates: { canonical: url, languages },
+    ...localeKeywords(locale),
     openGraph: {
       title,
       description: recipe.outcome,
       url,
       type: "article",
-      images: image ? [`${BASE_URL}${image}`] : DEFAULT_OG_IMAGES,
+      images: image ? [`${BASE_URL}${image}`] : shareImages(locale),
       ...og,
     },
   };

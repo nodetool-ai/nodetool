@@ -9,6 +9,7 @@
  * animation curves and those are resolved by the scene model.
  */
 
+import { model3dFreeCameraPose } from "./model3d.js";
 import { stableSerialize } from "./stableSerialize.js";
 import type {
   ClipModel3DCamera,
@@ -34,13 +35,13 @@ export interface Model3DBakeRenderSettings {
 
 /**
  * One frame's camera as the Blender job takes it: `CameraParams` from
- * `@nodetool-ai/blender-nodes`, plus the two fields `ClipModel3DCamera`
- * carries that the DTO did not have. Declared here rather than imported
- * because this package is pure TypeScript and knows nothing about a runner;
+ * `@nodetool-ai/blender-nodes`, plus the fields `ClipModel3DCamera` carries
+ * that the DTO did not have, the free camera's pose among them. Declared here
+ * rather than imported because this package is pure TypeScript and knows nothing about a runner;
  * the two shapes are checked against each other where they meet.
  */
 export interface Model3DBakeCameraParams {
-  camera_mode: "auto" | "scene" | "orbit";
+  camera_mode: "auto" | "scene" | "orbit" | "free";
   azimuth: number;
   elevation: number;
   fov: number;
@@ -57,6 +58,12 @@ export interface Model3DBakeCameraParams {
   scene_camera_name?: string;
   /** Look-at offset from the bounding-sphere center, world units. */
   target_offset?: [number, number, number];
+  /** `free` mode: the camera eye, glTF world units (Y up). */
+  position?: [number, number, number];
+  /** `free` mode: the look-at point, glTF world units (Y up). */
+  target?: [number, number, number];
+  /** `free` mode: roll in degrees. Positive turns the horizon clockwise. */
+  roll?: number;
 }
 
 /**
@@ -67,9 +74,14 @@ export interface Model3DBakeCameraParams {
 const TRANSPARENT_BACKGROUND_COLOR = "#000000";
 
 /**
- * The clip's camera as one frame of the bake job. `orbit` and `scene` are the
- * only two modes a clip has; the job's `auto` is not reachable from a clip,
+ * The clip's camera as one frame of the bake job. `orbit`, `scene` and `free`
+ * are the modes a clip has; the job's `auto` is not reachable from a clip,
  * which is what makes the reverse mapping total.
+ *
+ * A `free` camera always sends `position`, `target` and `roll`, with the
+ * defaults of {@link model3dFreeCameraPose} filled in, so the Blender op never
+ * has to know them. The other modes send those fields only when the clip
+ * stores them.
  */
 export function model3dBakeCameraParams(
   camera: ClipModel3DCamera,
@@ -99,6 +111,16 @@ export function model3dBakeCameraParams(
   if (camera.targetOffset !== undefined) {
     params.target_offset = [...camera.targetOffset];
   }
+  if (camera.mode === "free") {
+    const pose = model3dFreeCameraPose(camera);
+    params.position = pose.position;
+    params.target = pose.target;
+    params.roll = pose.rollDeg;
+    return params;
+  }
+  if (camera.position !== undefined) params.position = [...camera.position];
+  if (camera.target !== undefined) params.target = [...camera.target];
+  if (camera.rollDeg !== undefined) params.roll = camera.rollDeg;
   return params;
 }
 
@@ -112,7 +134,10 @@ export function clipModel3DCameraFromBakeParams(
   params: Model3DBakeCameraParams
 ): ClipModel3DCamera {
   const camera: ClipModel3DCamera = {
-    mode: params.camera_mode === "scene" ? "scene" : "orbit",
+    mode:
+      params.camera_mode === "scene" || params.camera_mode === "free"
+        ? params.camera_mode
+        : "orbit",
     azimuthDeg: params.azimuth,
     elevationDeg: params.elevation,
     fovDeg: params.fov,
@@ -124,6 +149,9 @@ export function clipModel3DCameraFromBakeParams(
   if (params.target_offset !== undefined) {
     camera.targetOffset = [...params.target_offset];
   }
+  if (params.position !== undefined) camera.position = [...params.position];
+  if (params.target !== undefined) camera.target = [...params.target];
+  if (params.roll !== undefined) camera.rollDeg = params.roll;
   return camera;
 }
 

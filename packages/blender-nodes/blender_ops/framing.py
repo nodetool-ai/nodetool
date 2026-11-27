@@ -10,6 +10,10 @@ The offsets are in the three.js convention (Y up). `ops/render_image.py`
 rotates them rigidly into Blender space when placing the camera; the
 functions here stay identical so the cross-language pin holds.
 
+The free camera functions at the end port `computeFreeClipPlanes` from the
+render core and `model3dFreeCameraBasis` from `packages/timeline`, pinned by
+`tests/free-camera.test.ts` and `blender_ops/tests/test_free_camera.py`.
+
 `apply_camera_lens` is the one function here that is not part of that port:
 it writes the framing onto a camera datablock, and lives beside the math so
 that what `fov` means (the vertical axis) is decided in one place. It touches
@@ -73,3 +77,92 @@ def apply_camera_lens(data, fov_deg, framing):
     data.angle_y = math.radians(max(fov_deg, 1))
     data.clip_start = framing["near"]
     data.clip_end = framing["far"]
+
+
+FREE_CAMERA_POSITION = (0.0, 1.6, 5.0)
+FREE_CAMERA_TARGET = (0.0, 1.0, 0.0)
+
+
+def free_clip_planes(distance_to_center, radius):
+    """Clip planes for a free camera, from the bounds as seen from the eye.
+
+    A port of `computeFreeClipPlanes` in `render3d-core.ts`.
+    """
+    safe_radius = max(radius, 1e-6)
+    distance = max(distance_to_center, 0)
+    far = distance + safe_radius * 4
+    return {
+        "near": max(distance - safe_radius * 4, far / 1000, 1e-4),
+        "far": far,
+    }
+
+
+def _cross(a, b):
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+
+def _unit(v, fallback):
+    size = math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
+    if size <= 1e-6:
+        return fallback
+    return (v[0] / size, v[1] / size, v[2] / size)
+
+
+def free_camera_axes(position, target, roll_deg):
+    """The free camera's `forward`, `right` and `up` in the three.js frame.
+
+    A port of `model3dFreeCameraBasis` in `packages/timeline/src/model3d.ts`.
+    A positive roll turns the camera counter-clockwise around its view axis as
+    seen from behind it, so the horizon turns clockwise in the picture.
+    """
+    to_target = (
+        target[0] - position[0],
+        target[1] - position[1],
+        target[2] - position[2],
+    )
+    forward = _unit(to_target, (0.0, 0.0, -1.0))
+    right0 = _unit(_cross(forward, (0.0, 1.0, 0.0)), (1.0, 0.0, 0.0))
+    up0 = _cross(right0, forward)
+    cos = math.cos(math.radians(roll_deg))
+    sin = math.sin(math.radians(roll_deg))
+    right = tuple(cos * right0[i] + sin * up0[i] for i in range(3))
+    up = tuple(cos * up0[i] - sin * right0[i] for i in range(3))
+    return {"forward": forward, "right": right, "up": up}
+
+
+def three_to_blender(v):
+    """Rigid three.js (Y up) to Blender (Z up) rotation: (x, y, z) -> (x, -z, y)."""
+    return (v[0], -v[2], v[1])
+
+
+def free_camera_pose(params):
+    """The eye, target and roll a `free` camera's params describe."""
+    return {
+        "position": tuple(params.get("position") or FREE_CAMERA_POSITION),
+        "target": tuple(params.get("target") or FREE_CAMERA_TARGET),
+        "roll": float(params.get("roll") or 0.0),
+    }
+
+
+def free_camera_matrix_columns(params):
+    """Blender-space location and rotation columns of a `free` camera.
+
+    Returns `(location, (x_axis, y_axis, z_axis))`. A Blender camera looks
+    down its local -Z with +Y up, so the columns are right, up and the
+    reverse of forward.
+    """
+    pose = free_camera_pose(params)
+    axes = free_camera_axes(pose["position"], pose["target"], pose["roll"])
+    forward = three_to_blender(axes["forward"])
+    return (
+        three_to_blender(pose["position"]),
+        (
+            three_to_blender(axes["right"]),
+            three_to_blender(axes["up"]),
+            (-forward[0], -forward[1], -forward[2]),
+        ),
+    )

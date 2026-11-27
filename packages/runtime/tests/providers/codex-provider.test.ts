@@ -95,6 +95,22 @@ describe("CodexProvider", () => {
     }
   );
 
+  it.each([
+    ["http-error", 503, JSON.stringify({ models: [] }), "HTTP 503"],
+    ["empty", 200, JSON.stringify({ models: [] }), "no models"]
+  ])(
+    "reports a %s listing instead of the fallback catalog to callers choosing a default",
+    async (_scenario, status, body, message) => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(body, { status }));
+      const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+      await expect(provider.listAccountLanguageModels()).rejects.toThrow(message);
+    }
+  );
+
+  it("tells the user how to sign in when no token resolves", () => {
+    expect(() => new CodexProvider({})).toThrow(/codex login/);
+  });
+
   it("advertises the gpt-image models for text_to_image", async () => {
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const models = await provider.getAvailableImageModels();

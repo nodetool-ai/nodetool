@@ -1,5 +1,7 @@
 import * as THREE from "three";
 
+import { isFigure, isFigurePart } from "./figure";
+
 export interface SceneTreeNode {
   uuid: string;
   name: string;
@@ -32,6 +34,17 @@ export const isLightTarget = (object: THREE.Object3D): boolean => {
 };
 
 /**
+ * True for an object the user does not address on its own: a light's target
+ * or a joint of a figure. The outliner and the agent tools leave these out.
+ */
+export const isInternalObject = (object: THREE.Object3D): boolean =>
+  isLightTarget(object) || isFigurePart(object);
+
+/** The type shown for an object: three.js's own, or "Figure". */
+export const objectTypeOf = (object: THREE.Object3D): string =>
+  isFigure(object) ? "Figure" : object.type;
+
+/**
  * Recursively build a flattenable tree describing the editable scene graph.
  * Skips internal helper objects (TransformControls gizmo, grid, etc.) by only
  * walking the children of the supplied editor root.
@@ -41,11 +54,11 @@ export const buildSceneTree = (
   depth = 0
 ): SceneTreeNode[] => {
   return root.children
-    .filter((child) => !isLightTarget(child))
+    .filter((child) => !isInternalObject(child))
     .map((child) => ({
       uuid: child.uuid,
       name: displayName(child),
-      type: child.type,
+      type: objectTypeOf(child),
       visible: child.visible,
       depth,
       object: child,

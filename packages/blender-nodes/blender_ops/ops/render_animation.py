@@ -35,8 +35,10 @@ from ops.common import (
     apply_world,
     has_scene_lights,
     import_model,
+    make_free_camera,
     make_orbit_camera,
     orbit_location,
+    place_free_camera,
     scene_animations,
     scene_bounds,
     scene_cameras,
@@ -321,6 +323,8 @@ def _run_sampled(job, workdir, params, frame_times):
     first = cameras[0] if cameras else params
     if mode == "scene":
         camera_obj = _scene_camera(scene, first.get("scene_camera_name"))
+    elif mode == "free":
+        camera_obj = make_free_camera(scene, center, radius, first)
     else:
         camera_obj = make_orbit_camera(scene, center, radius, first, aspect)
     scene.camera = camera_obj
@@ -353,7 +357,9 @@ def _run_sampled(job, workdir, params, frame_times):
         exact = model_time * fps
         whole = int(math.floor(exact))
         scene.frame_set(whole, subframe=exact - whole)
-        if cameras and mode != "scene":
+        if cameras and mode == "free":
+            place_free_camera(camera_obj, center, radius, cameras[index])
+        elif cameras and mode != "scene":
             _place_orbit_camera(camera_obj, center, radius, cameras[index], aspect)
         locations.append(tuple(round(value, 6) for value in camera_obj.location))
         scene.render.filepath = os.path.join(workdir, file_name)

@@ -3,7 +3,7 @@ import { refusePackInstallsInProcess } from "@nodetool-ai/pack-manager/packs/ins
 import { configureCliPackHost, registerPackCommands, loadInstalledCommandFeature, loadCliPackSnapshot, CliFeatureNotInstalledError } from "@nodetool-ai/pack-manager";
 import { z } from "zod";
 import { Command } from "commander";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve, extname, basename } from "node:path";
 import { createMinimalServer, OPTIONAL_FEATURE_CATALOG } from "@nodetool-ai/server-minimal";
@@ -16,6 +16,9 @@ import { featureRecovery } from "@nodetool-ai/server-features";
 import { cliFailureSchema } from "./errors.js";
 import { providerStates, type ProviderState } from "./providerStatus.js";
 import { localSecretStorePath, withLocalSecretStore, type SecretMigration } from "./localSecrets.js";
+import { missingCredentialMessage, type SecretStoreState } from "./envCatalogue.js";
+import { registerEnvCommands, type EnvCommandDeps } from "./envCommands.js";
+import { describeEnvLoad, extractEnvFileFlag, loadCliEnvironment, type EnvLoadResult } from "./envFiles.js";
 
 const WORKFLOW_SUBCOMMANDS = new Set(["examples", "export-script", "export-dsl", "export-example", "export-bundle", "import-bundle"]);
 
@@ -24,6 +27,9 @@ export interface CliOptions {
   readonly argv?: readonly string[];
   readonly stdout?: (value: string) => void;
   readonly fetch?: typeof fetch;
+  /** Env files applied at startup, so `nodetool env check` can name each variable's source. */
+  readonly envLoad?: EnvLoadResult;
+  readonly cwd?: string;
 }
 /** Default model for `nodetool text` when neither --model nor NODETOOL_TEXT_MODEL is set. */
 export const DEFAULT_TEXT_MODEL = "gpt-4.1-mini";
@@ -44,7 +50,11 @@ Pick a provider: \`nodetool agent run -p <provider> --objective "..."\` (cli-cha
 chat-capable providers in \`nodetool providers list\`, for example anthropic, claude_agent_sdk or openrouter.
 \`nodetool generate <provider> <model> <prompt> --kind image|speech|video\` (cli-workflow feature) makes media.
 
-Environment: OPENAI_API_KEY, OPENAI_BASE_URL (any OpenAI-compatible endpoint),
+Environment: the CLI loads ./.env.local, ./.env, ~/.nodetool/.env and ~/.env at startup (real
+environment variables win; --env-file or NODETOOL_ENV_FILE adds a file first).
+  nodetool env check --json                     every variable, its status and its source (never values)
+  nodetool env list                             every variable the CLI reads, and which commands read it
+Common variables: OPENAI_API_KEY, OPENAI_BASE_URL (any OpenAI-compatible endpoint),
 NODETOOL_TEXT_MODEL, NODETOOL_USER_ID (default "${DEFAULT_LOCAL_USER_ID}"), SECRETS_MASTER_KEY
 (only for the encrypted secret store and serve), NODETOOL_DATA_DIR (serve's data, default
 ./nodetool-data), NODETOOL_API_URL and NODETOOL_API_TOKEN (only for server commands).
@@ -116,7 +126,8 @@ export function createProgram(options: CliOptions = {}): Command {
   const program = new Command("nodetool").description("NodeTool workflow runner, LLM client and execution server").version(version);
   program.configureOutput({ writeOut: output });
   program.addHelpText("after", QUICK_START);
-  program.option("--api-url <url>", "Server URL", env.NODETOOL_API_URL ?? "http://127.0.0.1:7777").option("--token <token>", "Authentication token (or NODETOOL_API_TOKEN)", env.NODETOOL_API_TOKEN);
+  program.option("--api-url <url>", "Server URL", env.NODETOOL_API_URL ?? "http://127.0.0.1:7777").option("--token <token>", "Authentication token (or NODETOOL_API_TOKEN)", env.NODETOOL_API_TOKEN)
+    .option("--env-file <path>", "Load this env file before ./.env.local, ./.env, ~/.nodetool/.env and ~/.env (or NODETOOL_ENV_FILE)");
   const directory = (): string => resolve(env.NODETOOL_DATA_DIR ?? "./nodetool-data");
   const owner = (): string => env.NODETOOL_USER_ID || DEFAULT_LOCAL_USER_ID;
   const hasToken = (): boolean => Boolean(program.opts<{ token?: string }>().token);
@@ -153,7 +164,7 @@ export function createProgram(options: CliOptions = {}): Command {
   function requireMasterKey(purpose: string): string {
     const masterKey = env.SECRETS_MASTER_KEY;
     if (!masterKey || masterKey.length < 32) {
-      throw new Error(`Set SECRETS_MASTER_KEY (at least 32 characters, e.g. \`export SECRETS_MASTER_KEY="$(openssl rand -base64 32)"\`) to ${purpose}. Keep it: secrets stored with one key cannot be read with another.`);
+      throw new Error(`Set SECRETS_MASTER_KEY (at least 32 characters, e.g. \`openssl rand -base64 32\`) to ${purpose}: export it, or add SECRETS_MASTER_KEY=... to ~/.nodetool/.env (mode 600), which every command loads. Keep it: secrets stored with one key cannot be read with another. \`nodetool env check\` shows where each variable comes from.`);
     }
     return masterKey;
   }
@@ -185,6 +196,16 @@ export function createProgram(options: CliOptions = {}): Command {
     }, false);
     return values ?? new Map();
   }
+  /** Names in the local store and which of them decrypt with SECRETS_MASTER_KEY. Never returns values. */
+  async function secretStoreState(): Promise<SecretStoreState> {
+    const masterKey = env.SECRETS_MASTER_KEY;
+    const path = localSecretStorePath(env);
+    let names: string[] = [];
+    try { names = await withSecretStore(async repository => (await repository.list("secrets", owner())).map(row => String(row.key)), false) ?? []; }
+    catch { /* An unreadable database holds nothing a run can use. */ }
+    const readable = masterKey ? new Set((await decryptedSecrets().catch(() => new Map<string, string>())).keys()) : new Set<string>();
+    return { path, exists: existsSync(path), names: new Set(names), readable, masterKey: !masterKey ? "missing" : masterKey.length < 32 ? "too short" : "set" };
+  }
   /** Read a secret from the local encrypted store, when one exists and a master key is configured. */
   async function storedSecret(key: string): Promise<string | undefined> {
     return (await decryptedSecrets()).get(key);
@@ -193,7 +214,7 @@ export function createProgram(options: CliOptions = {}): Command {
   async function provider(): Promise<OpenAITextProvider> {
     const apiKey = (await storedSecret("OPENAI_API_KEY")) ?? env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error("No OpenAI API key: export OPENAI_API_KEY (or store it with `nodetool secrets set OPENAI_API_KEY`, which needs SECRETS_MASTER_KEY). Set OPENAI_BASE_URL to use another OpenAI-compatible endpoint.");
+      throw new Error(`${missingCredentialMessage("OPENAI_API_KEY", await secretStoreState())} Set OPENAI_BASE_URL to use another OpenAI-compatible endpoint.`);
     }
     const configuration: { apiKey: string; baseURL?: string; fetch: typeof globalThis.fetch } = { fetch: transport, apiKey };
     if (env.OPENAI_BASE_URL) configuration.baseURL = env.OPENAI_BASE_URL;
@@ -468,6 +489,22 @@ export function createProgram(options: CliOptions = {}): Command {
     argv.splice(index, 2);
     await feature.run(argv.slice(2));
   });
+  const envCommandDeps: EnvCommandDeps = {
+    env, cwd: options.cwd ?? process.cwd(), print, output, secretStoreState,
+    storeSecrets: async pairs => {
+      const masterKey = requireMasterKey("import secrets into the local store");
+      const userId = owner();
+      await withSecretStore(async repository => {
+        const existing = await repository.list("secrets", userId);
+        for (const [key, value] of pairs) {
+          const current = existing.find(secret => secret.key === key);
+          await repository.put("secrets", userId, { ...current, key, description: current?.description ?? "", encrypted_value: encrypt(masterKey, userId, value) });
+        }
+      });
+    }
+  };
+  if (options.envLoad) { envCommandDeps.envLoad = options.envLoad; }
+  registerEnvCommands(program, envCommandDeps);
   configureCliPackHost(import.meta.url);
   registerPackCommands(program, import.meta.url);
   const native = new Set(program.commands.map(command => command.name()));
@@ -496,8 +533,14 @@ export function hoistGlobalOptions(argv: readonly string[]): string[] {
   return [...head, ...hoisted, ...rest];
 }
 /** Dispatch native commands or one explicitly installed command feature. */
-export async function runCli(input: readonly string[] = process.argv): Promise<void> {
-  const argv = hoistGlobalOptions(input);
+export async function runCli(input: readonly string[] = process.argv, env: NodeJS.ProcessEnv = process.env, cwd: string = process.cwd()): Promise<void> {
+  const extracted = extractEnvFileFlag(input);
+  // Before any command, so installed command features read the same environment.
+  const envLoad = loadCliEnvironment(extracted.envFile === undefined ? { env, cwd } : { env, cwd, envFile: extracted.envFile });
+  const debug = [env.NODETOOL_LOG_LEVEL, env.LOG_LEVEL].some(level => level?.toLowerCase() === "debug");
+  if (debug) { for (const line of describeEnvLoad(envLoad)) { process.stderr.write(`${line}\n`); } }
+  for (const file of envLoad.files) { for (const warning of file.warnings) { process.stderr.write(`Warning: ${warning}\n`); } }
+  const argv = hoistGlobalOptions(extracted.argv);
   let commandIndex = 2;
   let workflowTrace = false;
   while (commandIndex < argv.length) {
@@ -544,7 +587,7 @@ export async function runCli(input: readonly string[] = process.argv): Promise<v
     await feature.run(argv.slice(2));
     return;
   }
-  const program = createProgram({ argv });
+  const program = createProgram({ argv, env, envLoad, cwd });
   const nativeCommands = new Set(["run", "validate", "workflows", "jobs", "assets", "secrets", "providers", "models", "serve", "packs"]);
   const featureId = command ? COMMAND_FEATURES[command] : undefined;
   if (featureId && !nativeCommands.has(command ?? "")) {
