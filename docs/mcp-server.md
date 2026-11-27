@@ -62,6 +62,8 @@ The command is `nodetool-mcp` when the CLI is on `PATH`, and `npx -y @nodetool-a
 
 Codex gets a 120-second start timeout and a 900-second tool timeout, because a video generation can run for minutes. OpenCode gets the 120-second timeout.
 
+The Codex file follows `CODEX_HOME` when it is set, the same directory Codex reads.
+
 Earlier versions wrote the Claude Code entry under `projects["<home>"]`, so it worked only in sessions started in the home directory. A new install moves that entry to the user scope.
 
 ## Other clients
@@ -141,6 +143,29 @@ The renderer and the app-only tools behind the screen are described in the [MCP 
 | The first start times out | Run `nodetool-mcp install` again. It fills the `npx` cache before the harness starts the server. |
 | `nodetool-mcp serve` fails, but `npx` works | The MCP executable is missing from `PATH` or is an older install. Use `--npx`, or update the global `@nodetool-ai/cli-mcp` package. |
 | A generation fails with a missing key | Store the key with `nodetool secrets store <NAME>`. |
+
+## Codex in a managed environment
+
+A managed or sandboxed environment can keep `~/.codex` read-only, or start with no ChatGPT login. Three separate things must work, and each has its own check:
+
+| Layer | Check | What it proves |
+|---|---|---|
+| NodeTool server | `nodetool-mcp status --check` | The server starts over stdio and lists its tools. This does not need Codex. |
+| Codex registration | `codex mcp list` | Codex reads a config that contains the `nodetool` entry. |
+| Codex login | `codex login status` | Codex can call its model. Without a login, Codex fails before it starts any MCP server. |
+
+When `~/.codex` is read-only, point `CODEX_HOME` at a writable directory for both the install and every Codex session:
+
+```bash
+export CODEX_HOME="$HOME/.local/share/codex"
+nodetool-mcp install --codex
+codex login
+codex mcp list
+```
+
+`CODEX_HOME` starts empty, so Codex asks for a login again there. Codex keeps its login in that directory, so a login made with the default directory does not carry over. If the environment can only provide a read-only Codex config, ask its owner to add the block that `nodetool-mcp install --codex` prints, or connect a client that the environment lets you configure.
+
+The `codex` provider inside NodeTool (`nodetool agent run -p codex`) is a separate path. It reads the Codex CLI login from `CODEX_HOME` (default `~/.codex`), not this MCP registration.
 
 ## Add other MCP servers to NodeTool
 

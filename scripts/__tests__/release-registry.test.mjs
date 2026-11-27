@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { loadRegistryDist, loadRegistryResponse, verifyRegistryTarball } from "../release/registry.mjs";
+import { RegistryNotReadyError, loadRegistryDist, loadRegistryResponse, verifyRegistryTarball } from "../release/registry.mjs";
 
 describe("release registry visibility", () => {
   it("reads an exact version even when the package index is stale", async () => {
@@ -64,5 +64,20 @@ describe("registry tarball readiness", () => {
     const fetchImpl = vi.fn(async () => new Response("changed"));
     await expect(verifyRegistryTarball(pin, dist, { fetchImpl })).rejects.toThrow("tarball integrity differs");
     expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("marks exhausted transient statuses as not ready and keeps authorization failures final", async () => {
+    const sleep = vi.fn(async () => {});
+    const absent = await loadRegistryResponse("https://registry.npmjs.org/pkg/1.2.3", {
+      fetchImpl: async () => new Response("missing", { status: 404 }), sleep, maxAttempts: 2
+    }).catch(error => error);
+    expect(absent).toBeInstanceOf(RegistryNotReadyError);
+    const forbidden = await loadRegistryResponse("https://registry.npmjs.org/pkg/1.2.3", {
+      fetchImpl: async () => new Response("forbidden", { status: 403 }), sleep
+    }).catch(error => error);
+    expect(forbidden).toBeInstanceOf(Error);
+    expect(forbidden).not.toBeInstanceOf(RegistryNotReadyError);
+    const late = await loadRegistryResponse("https://registry.npmjs.org/pkg/1.2.3", { now: () => 10, deadline: 5 }).catch(error => error);
+    expect(late).toBeInstanceOf(RegistryNotReadyError);
   });
 });

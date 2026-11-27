@@ -739,6 +739,20 @@ their timeline offsets. Stills, contact sheets, PNG sequences, and video frame
 selections carry no audio. Flags are in
 [CLI Reference](cli.md#nodetool-timeline-render-timeline_id_or_file).
 
+### nodetool timeline preflight (Export Check)
+
+Renders a built-in shape-and-text timeline to a small MP4 through the real
+compositor and encoder, and exits `1` with the error and the configured Vulkan
+driver manifest when the machine cannot export. Run it before a long render on
+a new host. Its selfcheck runs the command from source, so the harness gate
+exercises a real render wherever it has a WebGPU adapter, as in the CI image.
+The no-root lavapipe setup is in
+[Headless Linux rendering](cli.md#headless-linux-rendering).
+
+```bash
+npm run dev:nodetool -- timeline preflight --json
+```
+
 ### nodetool timeline score (Timeline Craft Scorecard)
 
 Deterministic, no-LLM craft scorecard for a timeline document, from the same
