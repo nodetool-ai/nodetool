@@ -31,6 +31,22 @@ import type {
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { Tool } from "../src/tools/base-tool.js";
 
+/**
+ * The Antigravity backend is configured when the `agy` CLI starts, which no
+ * secret controls. Replace it so routing never spawns a real CLI here: it is
+ * unavailable unless a test says otherwise.
+ */
+const antigravity = vi.hoisted(() => ({
+  available: false,
+  answer: vi.fn()
+}));
+vi.mock("../src/tools/serp-providers/antigravity-provider.js", () => ({
+  antigravitySearchAvailable: async () => antigravity.available,
+  AntigravitySearchProvider: class {
+    answer = antigravity.answer;
+  }
+}));
+
 const gate: CapabilityGate = {
   mode: "auto",
   sessionAllow: new Set<string>(),
@@ -74,6 +90,8 @@ const BACKEND_ENV_KEYS = [
 const envStash: Record<string, string | undefined> = {};
 
 beforeEach(() => {
+  antigravity.available = false;
+  antigravity.answer.mockReset();
   for (const key of BACKEND_ENV_KEYS) {
     envStash[key] = process.env[key];
     delete process.env[key];
@@ -232,6 +250,40 @@ describe("behaviour through toolFromCapability", () => {
     expect(result).not.toContain("bad.example");
   });
 
+  it("appends the pages the antigravity backend searched, filtered", async () => {
+    antigravity.available = true;
+    antigravity.answer.mockResolvedValue({
+      text: "Otters are mustelids.",
+      citations: [
+        { title: "Otters", url: "https://good.example/otters", snippet: "", position: 1 },
+        { title: "Spam", url: "https://bad.example/otters", snippet: "", position: 2 }
+      ],
+      raw: {}
+    });
+
+    const tool = asTool(byName("web_search"));
+    const result = String(
+      await tool.process(makeContext(), {
+        query: "otters",
+        blocked_domains: ["bad.example"]
+      })
+    );
+
+    expect(antigravity.answer).toHaveBeenCalledWith("otters", {
+      signal: undefined
+    });
+    expect(result).toContain("Otters are mustelids.");
+    expect(result).toContain("1. Otters\n   https://good.example/otters");
+    expect(result).not.toContain("bad.example");
+  });
+
+  it("names the Antigravity CLI when the pinned antigravity backend is missing", async () => {
+    const tool = asTool(byName("web_search"));
+    await expect(
+      tool.process(makeContext(), { query: "otters", backend: "antigravity" })
+    ).rejects.toThrow(/"antigravity" is not configured .*Antigravity CLI/);
+  });
+
   it("appends the pages the openai backend cited", async () => {
     const create = vi.fn().mockResolvedValue({
       output: [
@@ -302,6 +354,15 @@ describe("behaviour through toolFromCapability", () => {
       search_type: "videos"
     });
     expect(String(result)).toContain('unknown search_type "videos"');
+  });
+
+  it("image_search refuses the web-only antigravity backend", async () => {
+    antigravity.available = true;
+    const tool = asTool(byName("image_search"));
+    await expect(
+      tool.process(makeContext(), { query: "otters", backend: "antigravity" })
+    ).rejects.toThrow(/does not support search_type "images"/);
+    expect(antigravity.answer).not.toHaveBeenCalled();
   });
 
   it("image_search always searches images regardless of caller input", async () => {
