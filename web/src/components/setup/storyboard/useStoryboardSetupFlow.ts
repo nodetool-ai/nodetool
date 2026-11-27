@@ -565,7 +565,7 @@ export const useStoryboardSetupFlow = ({
       {
         stage: "review",
         label: "Story",
-        primaryLabel: "Set up entities",
+        primaryLabel: "Set up references",
         canAdvance: reviewBlockedReason === undefined,
         blockedReason: reviewBlockedReason,
         // `Rewrite from brief` runs outside the shell's primary button, so the
@@ -608,17 +608,17 @@ export const useStoryboardSetupFlow = ({
       },
       {
         stage: "entities",
-        label: "Entities",
+        label: "References",
         primaryLabel: "Choose the look",
         canAdvance: entityIds.length > 0,
-        blockedReason: "Select or create an entity, or skip this step",
-        skipLabel: "Skip entities",
+        blockedReason: "Select or create a reference, or skip this step",
+        skipLabel: "Skip references",
         onSkip: () => undefined,
         pending: creatingEntities > 0,
         pendingLabel:
           creatingEntities === 1
-            ? "Creating an entity"
-            : `Creating ${creatingEntities} entities`,
+            ? "Creating a reference"
+            : `Creating ${creatingEntities} references`,
         onCancel: cancelEntityCreation,
         render: (context) =>
           createElement(EntitiesStep, {

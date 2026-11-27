@@ -280,7 +280,7 @@ describe("script IdeaStep", () => {
     const panel = screen.getByRole("region", {
       name: "Brought from your project"
     });
-    expect(panel).toHaveTextContent("1 reference · 2 entities");
+    expect(panel).toHaveTextContent("1 reference · 2 references");
     expect(panel).toHaveTextContent("kitchen.png");
   });
 

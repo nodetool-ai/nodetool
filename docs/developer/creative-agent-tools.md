@@ -273,7 +273,7 @@ Tools take the entity id, which is the id of its image asset.
 - In prompt boxes outside storyboard shots and the timeline Generate dialog, a picked entity is stored in the prompt as an `entity://` reference and expanded when the prompt is sent.
 - A script speaker linked to a removed entity keeps the stale entity id until cleared.
 - Entity properties are stored as metadata on the image asset. The first reference image is the primary one.
-- Related: [Entities](../entities.md), [Creative Agent](../creative-agent.md#entities-reusable-ingredients).
+- Related: [Entities](../entities.md), [Creative Agent](../creative-agent.md#references-reusable-ingredients).
 
 ## Script tools {#scripts}
 

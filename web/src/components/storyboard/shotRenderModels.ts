@@ -47,7 +47,7 @@ export type ClipModelTask = ReturnType<
 export const CLIP_TASK_LABELS: Record<ClipModelTask, string> = {
   image_to_video: "Animate stills",
   text_to_video: "Generate from prompts",
-  reference_to_video: "Use entity references"
+  reference_to_video: "Use references"
 };
 
 export const imageValue = (model: ShotModelRef): ImageModelValue => ({

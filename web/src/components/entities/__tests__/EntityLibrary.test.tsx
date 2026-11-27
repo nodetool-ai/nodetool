@@ -72,11 +72,11 @@ describe("EntityLibrary", () => {
       </ThemeProvider>
     );
 
-    await user.click(screen.getAllByRole("button", { name: "Add entity" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Add reference" })[0]);
 
     expect(screen.getByTestId("entity-setup")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Back to entities" })
+      screen.getByRole("button", { name: "Back to references" })
     ).toBeInTheDocument();
   });
 
@@ -84,7 +84,7 @@ describe("EntityLibrary", () => {
     const user = userEvent.setup();
     useWorkspaceTabsStore.setState({ activeProjectId: "project-a" });
     const first = renderLibrary();
-    await user.click(screen.getAllByRole("button", { name: "Add entity" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Add reference" })[0]);
     const keyA = screen
       .getByTestId("entity-setup")
       .getAttribute("data-draft-key");
@@ -93,7 +93,7 @@ describe("EntityLibrary", () => {
 
     useWorkspaceTabsStore.setState({ activeProjectId: "project-b" });
     renderLibrary();
-    await user.click(screen.getAllByRole("button", { name: "Add entity" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Add reference" })[0]);
     const keyB = screen
       .getByTestId("entity-setup")
       .getAttribute("data-draft-key");
@@ -106,13 +106,13 @@ describe("EntityLibrary", () => {
     const user = userEvent.setup();
     useWorkspaceTabsStore.setState({ activeProjectId: "project-a" });
     renderLibrary();
-    await user.click(screen.getAllByRole("button", { name: "Add entity" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Add reference" })[0]);
     const key =
       screen.getByTestId("entity-setup").getAttribute("data-draft-key") ??
       undefined;
     writeEntitySetupDraft(key, draft);
 
-    await user.click(screen.getByRole("button", { name: "Back to entities" }));
+    await user.click(screen.getByRole("button", { name: "Back to references" }));
 
     expect(readEntitySetupDraft(key)).toBeNull();
   });
@@ -143,14 +143,14 @@ describe("EntityLibrary", () => {
     expect(useEntityLibraryStore.getState().createAssetId).toBeNull();
   });
 
-  it("holds Back to entities while the entity is being saved", async () => {
+  it("holds Back to references while the entity is being saved", async () => {
     const user = userEvent.setup();
     renderLibrary();
-    await user.click(screen.getAllByRole("button", { name: "Add entity" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Add reference" })[0]);
     await user.click(screen.getByRole("button", { name: "Start saving" }));
 
     expect(
-      screen.getByRole("button", { name: "Back to entities" })
+      screen.getByRole("button", { name: "Back to references" })
     ).toBeDisabled();
   });
 });

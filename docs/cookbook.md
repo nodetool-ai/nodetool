@@ -11,7 +11,7 @@ description: "Recipes for what people make in NodeTool: product films, ads, shor
    [chat]({{ '/global-chat' | relative_url }}), type `/` to pick the skill a
    recipe names. The agent then follows that skill's steps for the request.
 2. **Attach what is real.** Type `@` to attach a product photo, a logo, or an
-   [entity]({{ '/entities' | relative_url }}) such as a recurring character.
+   [reference]({{ '/entities' | relative_url }}) such as a recurring character.
    Generations use its reference image, so the cast and product stay the same.
 3. **Watch and approve.** The plan, each tool call, and each render appear as
    they run. The thread's
@@ -31,7 +31,7 @@ description: "Recipes for what people make in NodeTool: product films, ads, shor
 | A launch film from a product page | `/launch-commercial` and the page URL | Storyboard, then timeline |
 | A polished product film or brand spot | `/product-commercial`, or the **Storyboard** flow | Storyboard, then timeline |
 | Lifestyle mockups of a product, then video | The **Product Launch Kit** app | App results, then timeline |
-| A campaign: one cast, stills, several cuts | `/launch-kit`, or the **Directed Campaign Kit** app | Entities, storyboards, timelines |
+| A campaign: one cast, stills, several cuts | `/launch-kit`, or the **Directed Campaign Kit** app | References, storyboards, timelines |
 | A phone-shot creator ad, testimonial, or vlog | `/ugc-video`, or the **UGC Product Video** recipe | Timeline |
 | A 15-second sound-off ad from real screenshots | `/motion-ad`, or one of the ad-format apps | Timeline |
 | Ad copy and hooks compared before rendering | The **Viral Ad Engine** or **Ad Maker** app | App results |
@@ -59,7 +59,7 @@ finished cut.
 ### Short film or trailer
 
 Pick the **Storyboard** flow and describe the story in one sentence. You
-review the screenplay, assign [entities]({{ '/entities' | relative_url }}) to
+review the screenplay, assign [references]({{ '/entities' | relative_url }}) to
 the shots that need a fixed character or location, choose the look, and render
 stills. Approve the framing you want, then generate clips for those shots
 alone. [AI Video Production]({{ '/ai-video-production' | relative_url }}#storyboard-direct-each-shot-before-animation)
@@ -113,7 +113,7 @@ You review and edit a translation before it is voiced.
 | Photo grading and batch retouching | The **Photo Studio** app | App results |
 | A full image set from one product photo | The **SKU Factory** app, or the [product photo recipe](https://nodetool.ai/recipes/ecommerce-sku-visual-factory) | App results |
 | Your brand filled in from your website | The **Brand & Social** app | App results |
-| A recurring character, product, or location | **Entity** flow | [Entities]({{ '/entities' | relative_url }}) |
+| A recurring character, product, or location | **Reference** flow | [References]({{ '/entities' | relative_url }}) |
 | A set blocked out in 3D as a shot reference | Ask the agent, or `/nodetool-3d-scene` | [3D editor]({{ '/3d-editor' | relative_url }}) |
 | A playable 2D or 3D game | **Game** flow, or `/native-game` | [Game editor]({{ '/game-editor' | relative_url }}) |
 
@@ -123,8 +123,8 @@ sketch editor from its menu. Bind a layer to a prompt to regenerate that layer a
 mask to change one region.
 
 **A character that stays the same.** Make the character once with the
-[Entity flow]({{ '/guided-flows' | relative_url }}#entity). After that, `@`
-the entity in chat or in a Prompt node, or assign it to storyboard shots, and
+[Reference flow]({{ '/guided-flows' | relative_url }}#reference). After that, `@`
+the reference in chat or in a Prompt node, or assign it to storyboard shots, and
 generations use its reference image.
 
 **A game.** The [Game flow]({{ '/guided-flows' | relative_url }}#game) starts a
@@ -168,7 +168,7 @@ workflow directly.
 | Painting a mask, composing a frame | Sketch |
 | That composition in twelve styles | [Sketch as control]({{ '/cookbook/patterns' | relative_url }}#pattern-5-sketch-as-control) |
 | Re-voicing a script after each copy edit | [Script to voiced cut]({{ '/cookbook/patterns' | relative_url }}#pattern-4-script-to-voiced-cut) |
-| Thirty on-brand assets with one cast | [Entities]({{ '/cookbook/patterns' | relative_url }}#pattern-3-entities) |
+| Thirty on-brand assets with one cast | [References]({{ '/cookbook/patterns' | relative_url }}#pattern-3-entities) |
 
 The [workflow patterns]({{ '/cookbook/patterns' | relative_url }}) give each
 graph and the closest shipped template.
@@ -180,7 +180,7 @@ many results, and how to check a graph before it spends.
 |---|---|---|
 | Turn a brief into a rendered film, unattended | [1 · Brief to cut]({{ '/cookbook/patterns' | relative_url }}#pattern-1-brief-to-cut) | `Director`, `ShotBatch`, `ShotChain`, `RenderTimeline` |
 | Approve a cheap still of each shot before its clip | [2 · Stills before clips]({{ '/cookbook/patterns' | relative_url }}#pattern-2-stills-before-clips) | `ScreenplayShots`, `TextToImage`, `ImageToVideo` |
-| Hold one cast and look across a batch | [3 · Entities]({{ '/cookbook/patterns' | relative_url }}#pattern-3-entities) | `ApplyEntities`, `ListGenerator`, `TextToImage` |
+| Hold one cast and look across a batch | [3 · References]({{ '/cookbook/patterns' | relative_url }}#pattern-3-entities) | `ApplyEntities`, `ListGenerator`, `TextToImage` |
 | Voice a script and caption the cut | [4 · Script to voiced cut]({{ '/cookbook/patterns' | relative_url }}#pattern-4-script-to-voiced-cut) | `WriteScript`, `VoiceScript`, `ScriptToTimeline`, `ScriptToSubtitles` |
 | Drive generation from a drawn composition | [5 · Sketch as control]({{ '/cookbook/patterns' | relative_url }}#pattern-5-sketch-as-control) | `RenderSketch`, `SketchLayers`, `ImageToImage` |
 | Get a gallery of variations from one brief | [6 · Multiple variations]({{ '/cookbook/patterns' | relative_url }}#pattern-6-multiple-variations) | `Agent`, `ListGenerator`, `TextToImage`, `Collect` |

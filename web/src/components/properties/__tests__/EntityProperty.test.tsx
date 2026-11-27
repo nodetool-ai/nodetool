@@ -76,7 +76,7 @@ const renderProperty = (
             name: "entities",
             type,
             default: null,
-            title: "Entities",
+            title: "References",
             description: "Entities injected into the prompt.",
             required: false
           }}
@@ -104,7 +104,7 @@ describe("EntityProperty", () => {
     const user = userEvent.setup();
     renderProperty();
 
-    await user.click(screen.getByRole("button", { name: /pick entity/i }));
+    await user.click(screen.getByRole("button", { name: /pick reference/i }));
 
     expect(await screen.findByRole("button", { name: "Nova" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Studio" })).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe("EntityProperty", () => {
     const user = userEvent.setup();
     const { onChange } = renderProperty();
 
-    await user.click(screen.getByRole("button", { name: /pick entity/i }));
+    await user.click(screen.getByRole("button", { name: /pick reference/i }));
     await user.click(await screen.findByRole("button", { name: "Nova" }));
 
     expect(onChange).toHaveBeenCalledTimes(1);
@@ -127,7 +127,7 @@ describe("EntityProperty", () => {
 
     expect(screen.getByText("Nova")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /add entity/i }));
+    await user.click(screen.getByRole("button", { name: /add reference/i }));
     await user.click(await screen.findByRole("button", { name: "Studio" }));
 
     expect(onChange).toHaveBeenCalledWith([nova, studio]);
@@ -162,15 +162,15 @@ describe("EntityProperty", () => {
     const user = userEvent.setup();
     renderProperty();
 
-    await user.click(screen.getByRole("button", { name: /pick entity/i }));
+    await user.click(screen.getByRole("button", { name: /pick reference/i }));
     await user.type(
-      screen.getByRole("textbox", { name: "Search entities" }),
+      screen.getByRole("textbox", { name: "Search references" }),
       "stu"
     );
     expect(screen.queryByRole("button", { name: "Nova" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Studio" })).toBeInTheDocument();
 
-    await user.clear(screen.getByRole("textbox", { name: "Search entities" }));
+    await user.clear(screen.getByRole("textbox", { name: "Search references" }));
     await user.click(screen.getByRole("button", { name: "Characters" }));
     expect(screen.getByRole("button", { name: "Nova" })).toBeInTheDocument();
     expect(
