@@ -8,12 +8,13 @@
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+#include "model/TimelineTypes.h"
 #include <cstddef>
 #include <vector>
 
 class TimelineModel;
 
-// UI-thread value read by the retained Canvas while C++ owns the overlay.
+// UI-thread drag value. The renderer reads it only during scene-graph sync.
 struct NoteDragValue {
     Q_GADGET
     QML_VALUE_TYPE(noteDragValue)
@@ -68,11 +69,12 @@ class PianoRollController : public QObject {
   public:
     using QObject::QObject;
 
-    TimelineModel* timeline() const { return m_timeline; }
+    TimelineModel* timeline() const;
     void setTimeline(TimelineModel* timeline);
     QString clipId() const { return m_clipId; }
     void setClipId(const QString& clipId);
 
+    const std::vector<nt::MidiNote>& typedNotes() const;
     bool valid() const { return m_valid; }
     bool editable() const;
     QVariantMap regionParams() const { return m_regionParams; }

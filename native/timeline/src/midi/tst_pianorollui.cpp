@@ -4,11 +4,14 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "midi/PianoRollController.h"
+#include "midi/NoteLayerItem.h"
+#include "../../tests/measure/OffscreenRhi.h"
 #include "midi/StepEditorLaneModel.h"
 #include <QAbstractItemModelTester>
 #include <QElapsedTimer>
 #include <cmath>
 #include <stdexcept>
+#include <thread>
 
 #include <QDir>
 #include <QFile>
@@ -22,6 +25,8 @@
 #include <QQmlContext>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QSGRendererInterface>
+#include <QPainter>
 #include <QRegularExpression>
 #include <QtTest>
 #include <qpa/qwindowsysteminterface.h>
@@ -31,12 +36,37 @@
 // UI thread only. Test fixtures own their engine, root and offscreen window.
 class TestPianoRollUi : public QObject {
     Q_OBJECT
+public:
+    static void initMain() {
+        if (!qEnvironmentVariableIsSet("NT_PIANOROLL_GPU")) { return; }
+        // Offscreen QPA advertises no RHI capability. Request the default
+        // adaptation explicitly so the null backend exercises geometry nodes.
+        qputenv("QT_QUICK_BACKEND","rhi");
+        if (qEnvironmentVariableIsSet("NT_PIANOROLL_NULL_RHI")) {
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::Null);
+        } else if (qEnvironmentVariableIsEmpty("QSG_RHI_BACKEND")) {
+#ifdef Q_OS_MACOS
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::Metal);
+#elif defined(Q_OS_WIN)
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::Direct3D11);
+#else
+            QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
+#endif
+        }
+    }
+private:
     TestAssetCacheRoot m_testCache;
     TimelineModel model;
     PlaybackClock clock;
     std::unique_ptr<QQmlEngine> engine;
     std::unique_ptr<QObject> root;
+    std::unique_ptr<QQuickRenderControl> renderControl;
     std::unique_ptr<QQuickWindow> window;
+    std::unique_ptr<OffscreenRhi> renderTarget;
+    QImage capture() {
+        if (renderTarget) { QCoreApplication::processEvents(); renderTarget->render(); return renderTarget->capture(); }
+        return window->grabWindow();
+    }
 
     QJsonArray notes() const {
         const auto doc = QJsonDocument::fromJson(model.documentJson()).object();
@@ -144,20 +174,351 @@ Item {
         root.reset(component.createWithInitialProperties(
             {{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}}));
         QVERIFY2(root, qPrintable(component.errorString()));
-        window = std::make_unique<QQuickWindow>();
+        const bool gpu = qEnvironmentVariableIsSet("NT_PIANOROLL_GPU") && !qEnvironmentVariableIsSet("NT_PIANOROLL_THREADED");
+        if (gpu) { renderControl = std::make_unique<QQuickRenderControl>(); }
+        window = std::make_unique<QQuickWindow>(renderControl.get());
         window->resize(800, 400);
         qobject_cast<QQuickItem*>(root.get())->setParentItem(window->contentItem());
-        window->show();
-        QVERIFY(QTest::qWaitForWindowExposed(window.get()));
-        window->requestActivate();
-        QVERIFY(QTest::qWaitForWindowActive(window.get()));
+        if (gpu) {
+            renderTarget = std::make_unique<OffscreenRhi>(*renderControl,*window,!qEnvironmentVariableIsSet("NT_PIANOROLL_NULL_RHI"));
+            QVERIFY2(renderTarget->initialize({800,400}), "The requested offscreen RHI backend is unavailable");
+        } else {
+            window->show();
+            QVERIFY(QTest::qWaitForWindowExposed(window.get()));
+            window->requestActivate();
+            QVERIFY(QTest::qWaitForWindowActive(window.get()));
+        }
         // The tests count in beats. The panel's own default is Smart, which follows the zoom.
         item("panel")->setProperty("snapValue", "beat");
+        auto* controller = item("panel")->findChild<PianoRollController*>();
+        QVERIFY(controller);
+        QTRY_VERIFY_WITH_TIMEOUT(controller->valid(),5000);
+        if (renderTarget) {
+            renderTarget->render();
+            QCoreApplication::processEvents();
+            renderTarget->render();
+        }
+    }
+    void marqueeIncludesBottomRightCorner() {
+        auto layer = std::make_unique<NoteLayerItem>();
+        layer->setParentItem(window->contentItem());
+        layer->setSize({160,100}); layer->setZ(100);
+        layer->setController(item("panel")->findChild<PianoRollController*>());
+        layer->setProperty("topPitch",60);
+        layer->setProperty("rowHeight",12.0);
+        layer->setProperty("pxPerTick",0.1);
+        layer->setProperty("background",QColor(Qt::red));
+        layer->setProperty("accent",QColor(Qt::green));
+        layer->setProperty("marqueeVisible",true);
+        layer->setProperty("marquee",QRectF(240,60,240,-2));
+        QTest::qWait(40);
+        const auto image = capture();
+        QVERIFY(!image.isNull());
+        QCOMPARE(image.pixelColor(48,36),QColor(Qt::green));
+    }
+    void detachedCurveHasNoNeutralLine() {
+        auto layer = std::make_unique<NoteLayerItem>();
+        layer->setParentItem(window->contentItem());
+        layer->setSize({120,100});
+        layer->setZ(100);
+        layer->setProperty("drawingKind", "curve");
+        layer->setProperty("panelColor", QColor(Qt::red));
+        layer->setProperty("borderSubtle", QColor(Qt::blue));
+        layer->setProperty("margin", 4.0);
+        QTest::qWait(40);
+        const auto image = capture();
+        QVERIFY(!image.isNull());
+        QCOMPARE(image.pixelColor(50,96),QColor(Qt::red));
+    }
+    void changingLayerKindDropsNoteChildren() {
+        setNotes(R"([{"id":"a","pitch":60,"startTick":240,"durationTick":960,"velocity":80}])");
+        auto layer = std::make_unique<NoteLayerItem>();
+        layer->setParentItem(window->contentItem());
+        layer->setSize({160,100}); layer->setZ(100);
+        layer->setController(item("panel")->findChild<PianoRollController*>());
+        layer->setProperty("topPitch",60);
+        layer->setProperty("pxPerTick",0.1);
+        layer->setProperty("panelColor",QColor(Qt::red));
+        QTest::qWait(40);
+        QCOMPARE(capture().pixelColor(50,5),QColor(108,191,78));
+        layer->setProperty("drawingKind","scale");
+        QTest::qWait(40);
+        const auto image = capture();
+        QVERIFY(!image.isNull());
+        QCOMPARE(image.pixelColor(155,53),QColor(Qt::red));
+    }
+    void curveMarginMatchesHitTesting() {
+        item("panel")->setProperty("laneChoice", "cc:1");
+        auto* curve = item("pianoRollCurveLane");
+        QVERIFY(curve);
+        QCOMPARE(curve->property("margin").toDouble(), item("panel")->property("laneMargin").toDouble());
+        QCOMPARE(curve->property("scaleInset").toDouble(), item("panel")->property("laneMargin").toDouble());
+    }
+    void emptyCollapseHasNoChromaticRows() {
+        auto* panel = item("panel");
+        panel->setProperty("collapseMode", true);
+        QTest::qWait(40);
+        auto* layer = qobject_cast<NoteLayerItem*>(item("pianoRollNoteLayer"));
+        QVERIFY(layer);
+        QCOMPARE(layer->property("collapsed").toBool(), true);
+        const auto image = capture();
+        QVERIFY(!image.isNull());
+        const auto origin = layer->mapToScene({5,5}).toPoint();
+        const auto next = layer->mapToScene({5,2*panel->property("rowHeight").toDouble()+5}).toPoint();
+        QCOMPARE(image.pixelColor(origin),image.pixelColor(next));
+    }
+    void smallNotesDoNotDrawLabels() {
+        setNotes(R"([{"id":"a","pitch":60,"startTick":240,"durationTick":960,"velocity":80}])");
+        auto* panel = item("panel");
+        panel->setProperty("rowZoom", 7.0/panel->property("baseRowHeight").toDouble());
+        panel->setProperty("topPitch", 62);
+        panel->setProperty("pxPerTick", 0.12);
+        panel->setProperty("noteLabels", false);
+        QTest::qWait(40); const auto before = capture();
+        panel->setProperty("noteLabels", true);
+        QTest::qWait(40); const auto after = capture();
+        auto* layer = item("pianoRollNoteLayer");
+        const auto bounds = layer->mapRectToScene(layer->boundingRect()).toAlignedRect();
+        QCOMPARE(differentPixels(after,before,bounds),0);
+    }
+    void marqueeKeepsRetainedBackground() {
+        auto* layer = qobject_cast<NoteLayerItem*>(item("pianoRollNoteLayer"));
+        QVERIFY(layer);
+        auto* grid = item("pianoRollGrid");
+        const auto from = grid->mapToScene({100,30}).toPoint();
+        QTest::mousePress(window.get(),Qt::LeftButton,Qt::NoModifier,from);
+        capture(); const int builds = layer->contentBuildCount();
+        for (int i = 1; i <= 3; ++i) {
+            QTest::mouseMove(window.get(),from+QPoint(i*10,i*5));
+            QTest::qWait(20); capture();
+            QCOMPARE(layer->contentBuildCount(),builds);
+        }
+        QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,from+QPoint(30,15));
+        QTest::qWait(20); capture();
+        QCOMPARE(layer->contentBuildCount(),builds);
+    }
+    void layerInvalidationBoundaries() {
+        auto* layer = qobject_cast<NoteLayerItem*>(item("pianoRollNoteLayer"));
+        QVERIFY(layer);
+        capture();
+        const int builds = layer->contentBuildCount();
+        layer->setProperty("curveEndTick", 1234.0);
+        QTest::qWait(40); capture();
+        QCOMPARE(layer->contentBuildCount(), builds);
+        QVERIFY(layer->setProperty("collapsed", true));
+        layer->setCollapsePitches({});
+        QCOMPARE(layer->hitNote(10, 10), 0);
+        layer->setProperty("drawingKind", "keyboard");
+        QTest::qWait(40); capture();
+        const int keyboardBuilds = layer->contentBuildCount();
+        layer->setProperty("stepTicks", 120.0);
+        QTest::qWait(40); capture();
+        QCOMPARE(layer->contentBuildCount(), keyboardBuilds);
+    }
+    void retainedNoteLayers() {
+        // The fixture and callback share evidence until the window disconnects.
+        auto workerSync = std::make_shared<std::atomic<bool>>(false);
+        const auto guiId = std::this_thread::get_id();
+        connect(window.get(), &QQuickWindow::beforeSynchronizing, window.get(), [workerSync, guiId] {
+            if (std::this_thread::get_id() != guiId) { workerSync->store(true,std::memory_order_relaxed); }
+        }, Qt::DirectConnection);
+        setNotes(R"([{"id":"a","pitch":60,"startTick":240,"durationTick":960,"velocity":80}])");
+        auto* panel = item("panel");
+        panel->setProperty("pxPerTick", 0.12);
+        panel->setProperty("scrollTick", 0.0);
+        panel->setProperty("topPitch", 70);
+        panel->setProperty("selectedIds", QStringList{"a"});
+        QTest::qWait(80);
+        QVERIFY(!capture().isNull());
+        if (qEnvironmentVariableIsSet("NT_PIANOROLL_NULL_RHI")) {
+            QCOMPARE(window->rendererInterface()->graphicsApi(),QSGRendererInterface::Null);
+        }
+        auto* layer = qobject_cast<NoteLayerItem*>(item("pianoRollNoteLayer"));
+        QVERIFY(layer);
+        const int builds = layer->contentBuildCount();
+        QVERIFY(builds > 0);
+        if (qEnvironmentVariableIsSet("NT_PIANOROLL_THREADED")) {
+            QVERIFY2(workerSync->load(std::memory_order_relaxed), "The threaded test must synchronize on a worker thread");
+        }
+        panel->setProperty("scrollTick", 20.0);
+        panel->setProperty("topPitch", 69);
+        QTest::qWait(40);
+        QVERIFY(!capture().isNull());
+        QCOMPARE(layer->contentBuildCount(), builds);
+        QVERIFY(model.applyEdit("setTrackName",{{"trackId","m"},{"name","Renamed keys"}}));
+        QTest::qWait(40); capture();
+        QCOMPARE(layer->contentBuildCount(),builds);
+        // Hit areas move with the transform, including the eight-pixel resize grip.
+        const double y = (69-60+0.5)*panel->property("rowHeight").toDouble();
+        QCOMPARE(layer->hitNote((300-20)*0.12,y),1);
+        QCOMPARE(layer->hitNote((1200-20)*0.12-1,y),2);
+        QCOMPARE(layer->hitNote((240-20)*0.12-1,y),0);
+        QCOMPARE(layer->notesInRect(0,1200,59,61),QStringList{"a"});
+        auto* controller = panel->findChild<PianoRollController*>();
+        QVERIFY(controller);
+        QVERIFY(controller->beginNoteDrag({"a"},"move"));
+        QTest::qWait(40); capture();
+        const int dragBuilds = layer->contentBuildCount(), overlays = layer->overlayBuildCount();
+        const auto snapshot = model.snapshot();
+        for (int i=1; i<=10; ++i) {
+            controller->updateNoteDrag(i*20,1);
+            QTest::qWait(1); capture();
+        }
+        QCOMPARE(model.snapshot(),snapshot);
+        QCOMPARE(layer->contentBuildCount(),dragBuilds);
+        QVERIFY(layer->overlayBuildCount() > overlays);
+        controller->cancelNoteDrag();
+        // Leaving the retained range and zooming each rebuild exactly once.
+        panel->setProperty("scrollTick", 20000.0);
+        QTest::qWait(40); capture();
+        QVERIFY(layer->contentBuildCount() > dragBuilds);
+        const int beforeZoom = layer->contentBuildCount();
+        panel->setProperty("pxPerTick", 0.2);
+        QTest::qWait(40); capture();
+        QCOMPARE(layer->contentBuildCount(),beforeZoom+1);
+    }
+    static int differentPixels(const QImage& actual,const QImage& expected,const QRect& bounds) {
+        int count = 0;
+        for (int y = bounds.top(); y <= bounds.bottom(); ++y) {
+            for (int x = bounds.left(); x <= bounds.right(); ++x) {
+                const auto a = actual.pixelColor(x,y), b = expected.pixelColor(x,y);
+                if (std::max({std::abs(a.red()-b.red()),std::abs(a.green()-b.green()),std::abs(a.blue()-b.blue())}) > 20) { ++count; }
+            }
+        }
+        return count;
+    }
+    void canvasComparison_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* mode : {"velocity", "clip", "muted", "collapse", "labels", "expression", "drag", "duplicate", "resize", "velocity-drag", "light", "marquee"}) {
+            QTest::newRow(mode) << QString::fromLatin1(mode);
+        }
+    }
+    void canvasComparison() {
+        QFETCH(QString, mode);
+        setNotes(R"([{"id":"a","pitch":60,"startTick":240,"durationTick":960,"velocity":32},
+                     {"id":"b","pitch":63,"startTick":1200,"durationTick":720,"velocity":100},
+                     {"id":"c","pitch":67,"startTick":1920,"durationTick":960,"velocity":127,"muted":true},
+                     {"id":"d","pitch":58,"startTick":2880,"durationTick":480,"velocity":70,
+                      "expression":{"pitch":[{"tick":0,"value":0},{"tick":240,"value":0.3}]}}])");
+        const auto configure = [&] {
+            auto* panel = item("panel");
+            auto* theme = engine->singletonInstance<QObject*>("NodeTool.UiPrimitives","Theme");
+            QVERIFY(theme);
+            theme->setProperty("preference",mode == "light" ? 3 : 2);
+            panel->setProperty("snapValue", "1/16");
+            panel->setProperty("pxPerTick", 0.12);
+            panel->setProperty("scrollTick", 100.0);
+            panel->setProperty("topPitch", 70);
+            panel->setProperty("selectedIds", mode == "muted" ? QStringList{"c"} : QStringList{"b"});
+            panel->setProperty("collapseMode", mode == "collapse");
+            panel->setProperty("noteLabels", mode == "labels");
+            panel->setProperty("noteColorMode", mode == "clip" ? "clip" : "velocity");
+            if (mode == "expression") {
+                panel->setProperty("selectedIds", QStringList{"d"});
+                panel->setProperty("laneChoice", "note:pitch");
+            }
+            if (mode == "marquee") {
+                auto* mouse = item("pianoRollGridMouse");
+                QVERIFY(mouse);
+                mouse->setProperty("marquee",QVariantMap{{"fromTick",200},{"toTick",1800},{"pitchA",59},{"pitchB",65}});
+                QVERIFY(QMetaObject::invokeMethod(panel,"repaint"));
+            }
+            if (mode == "drag" || mode == "duplicate" || mode == "resize" || mode == "velocity-drag") {
+                auto* controller = panel->findChild<PianoRollController*>();
+                QVERIFY(controller);
+                QVERIFY(controller->beginNoteDrag({"b"}, mode == "duplicate" ? "duplicate" : mode == "resize" ? "resize" : mode == "velocity-drag" ? "velocity" : "move"));
+                if (mode == "duplicate") { panel->setProperty("selectedIds", controller->noteDragIds()); }
+                controller->updateNoteDrag(180, 1);
+            }
+            QTest::qWait(80);
+        };
+        configure();
+        QList<QRect> noteBounds;
+        auto* panel = item("panel");
+        auto* gridItem = item("pianoRollGrid");
+        auto* noteController = panel->findChild<PianoRollController*>();
+        QVERIFY(noteController);
+        QList<int> pitches;
+        for (const auto& n : noteController->typedNotes()) { if (!pitches.contains(n.pitch)) { pitches.append(n.pitch); } }
+        std::sort(pitches.begin(),pitches.end(),std::greater<>());
+        const double rh = panel->property("rowHeight").toDouble();
+        const auto addBounds = [&](int pitch,double tick,double duration) {
+            const double row = mode == "collapse" ? pitches.indexOf(pitch) : 70-pitch;
+            const auto origin = gridItem->mapToScene({std::round((tick-100)*0.12),row*rh});
+            const auto clip = gridItem->mapRectToScene(gridItem->boundingRect()).toAlignedRect();
+            const QRect bounds = QRectF(origin,QSizeF(std::max(1.0,std::round(duration*0.12)),rh)).toAlignedRect().intersected(clip);
+            if (bounds.width() > 5 && bounds.height() > 5) { noteBounds.append(bounds); }
+        };
+        for (const auto& n : noteController->typedNotes()) {
+            if (noteController->noteDragIds().contains(n.id)) {
+                const auto preview = noteController->previewNote(n.id);
+                addBounds(preview.pitch,preview.startTick,preview.durationTick);
+            } else { addBounds(n.pitch,n.startTick,n.durationTick); }
+        }
+        if (mode == "duplicate") {
+            for (const auto& id : noteController->noteDragIds()) {
+                const auto preview = noteController->previewNote(id);
+                addBounds(preview.pitch,preview.startTick,preview.durationTick);
+            }
+        }
+        QVERIFY(noteBounds.size() >= 3);
+        const auto actual = capture().convertToFormat(QImage::Format_RGB32);
+        QVERIFY(!actual.isNull());
+        root.reset();
+        QQmlComponent reference(engine.get());
+        reference.setData(R"(import QtQuick
+import "." as Local
+Item {
+    width: 800; height: 400
+    required property var timeline
+    required property var clock
+    Local.PianoRollCanvas { objectName: "panel"; anchors.fill: parent; clipId: "c" }
+})", QUrl::fromLocalFile(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("../../tests/pianoroll/Reference.qml")));
+        root.reset(reference.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}}));
+        QVERIFY2(root, qPrintable(reference.errorString()));
+        qobject_cast<QQuickItem*>(root.get())->setParentItem(window->contentItem());
+        QTest::qWait(80);
+        configure();
+        const auto expected = capture().convertToFormat(QImage::Format_RGB32);
+        QCOMPARE(actual.size(), expected.size());
+        int different = 0;
+        qint64 error = 0;
+        for (int y = 0; y < actual.height(); ++y) {
+            for (int x = 0; x < actual.width(); ++x) {
+                const auto a = actual.pixelColor(x, y), b = expected.pixelColor(x, y);
+                const int delta = std::max({std::abs(a.red() - b.red()), std::abs(a.green() - b.green()), std::abs(a.blue() - b.blue())});
+                if (delta > 20) { ++different; }
+                error += delta;
+            }
+        }
+        if (different > actual.width() * actual.height() / 200 || qEnvironmentVariableIsSet("NT_PANEL_SCREENSHOTS")) {
+            actual.save(QDir::tempPath() + "/pianoroll-actual-" + mode + ".png");
+            expected.save(QDir::tempPath() + "/pianoroll-canvas-" + mode + ".png");
+        }
+        // Canvas and geometry use different glyph rasterizers. The whole
+        // window stays within 0.5%, and each note must retain at least 80%.
+        for (const auto& bounds : noteBounds) {
+            const int missing = differentPixels(actual,expected,bounds);
+            QVERIFY2(missing < bounds.width()*bounds.height()/5, qPrintable(QString("Note at %1,%2 differs in %3/%4 pixels").arg(bounds.x()).arg(bounds.y()).arg(missing).arg(bounds.width()*bounds.height())));
+        }
+        // The same per-note check must reject a missing note even when the
+        // full-window tolerance would allow its small pixel area.
+        auto missingNote = expected.copy();
+        const auto bounds = noteBounds.first();
+        {
+            QPainter painter(&missingNote);
+            painter.fillRect(bounds,expected.pixelColor(std::max(0,bounds.left()-1),bounds.center().y()));
+        }
+        QVERIFY(differentPixels(missingNote,expected,bounds) > bounds.width()*bounds.height()/5);
+        qInfo() << mode << "different pixels" << different << "mean error" << double(error) / (actual.width() * actual.height());
+        QVERIFY2(different < actual.width() * actual.height() / 200, "Canvas comparison differs by more than 0.5% of pixels (channel tolerance 20)");
     }
     void cleanup() {
         clock.seek(0);
         root.reset();
+        renderTarget.reset();
         window.reset();
+        renderControl.reset();
         engine.reset();
     }
 

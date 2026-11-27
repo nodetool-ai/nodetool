@@ -65,6 +65,7 @@
       "jsonParses": 0,
       "markerSignals": 0,
       "menuItemCreations": 0,
+      "noteLayerRebuildsDuringDrag": 0,
       "objectCreations": 0,
       "payloadBytes": 0,
       "sourceSignals": 1,

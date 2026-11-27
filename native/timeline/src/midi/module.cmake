@@ -56,6 +56,7 @@ if(NOT MSVC)
     set_source_files_properties(src/midi/PatternExpand.cpp src/midi/RegionParams.cpp
         PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
+nt_qml_sources(src/midi/NoteLayerItem.h src/midi/NoteLayerItem.cpp)
 nt_qml_sources(src/midi/PianoRollController.h src/midi/PianoRollController.cpp)
 nt_qml_sources(src/midi/StepEditorLaneModel.h src/midi/StepEditorLaneModel.cpp)
 nt_qml_sources(src/midi/StepSequencerController.h src/midi/StepSequencerController.cpp)
@@ -100,6 +101,19 @@ function(nt_midi_tests)
     nt_add_timeline_qml(tst_pianorollui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_pianorollui_qml/NodeTool/Timeline)
     add_test(NAME tst_pianorollui COMMAND tst_pianorollui)
     set_tests_properties(tst_pianorollui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    add_test(NAME tst_pianorollui_geometry COMMAND tst_pianorollui retainedNoteLayers)
+    set_tests_properties(tst_pianorollui_geometry PROPERTIES ENVIRONMENT
+        "QT_QPA_PLATFORM=offscreen;QSG_RENDER_LOOP=basic;QSG_RHI_BACKEND=null;NT_PIANOROLL_GPU=1;NT_PIANOROLL_NULL_RHI=1")
+    add_test(NAME tst_notelayer_boundary COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/tests/pianoroll/test_note_layer_boundary.py")
+    add_test(NAME tst_pianorollui_threaded COMMAND tst_pianorollui retainedNoteLayers layerInvalidationBoundaries)
+    set_tests_properties(tst_pianorollui_threaded PROPERTIES ENVIRONMENT
+        "QT_QPA_PLATFORM=offscreen;QSG_RENDER_LOOP=threaded;QSG_RHI_BACKEND=null;NT_PIANOROLL_GPU=1;NT_PIANOROLL_NULL_RHI=1;NT_PIANOROLL_THREADED=1")
+    option(NT_TIMELINE_RHI_TESTS "Require a real offscreen RHI backend for piano-roll visual tests" OFF)
+    if(NT_TIMELINE_RHI_TESTS)
+        add_test(NAME tst_pianorollui_rhi_comparison COMMAND tst_pianorollui canvasComparison retainedNoteLayers)
+        set_tests_properties(tst_pianorollui_rhi_comparison PROPERTIES ENVIRONMENT
+            "QT_QPA_PLATFORM=offscreen;QSG_RENDER_LOOP=basic;NT_PIANOROLL_GPU=1")
+    endif()
     qt_add_executable(tst_stepsequencerui src/midi/tst_stepsequencerui.cpp ${NT_app})
     set_target_properties(tst_stepsequencerui PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_stepsequencerui PRIVATE timeline_core timeline_decode timeline_audio timeline_server

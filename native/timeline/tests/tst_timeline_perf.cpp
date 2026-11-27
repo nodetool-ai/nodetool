@@ -7,6 +7,7 @@
 #include <QAbstractItemModel>
 #include <QSignalSpy>
 #include "midi/PianoRollController.h"
+#include "midi/NoteLayerItem.h"
 // UI-thread-only stress driver. QPA stays offscreen in both render modes.
 // Counter/profiler and timing passes run in separate fresh processes.
 #include "app/EditRegistry.h"
@@ -716,6 +717,9 @@ int main(int argc, char* argv[]) try {
         creations.observe(window);
         creations.observe(engine);
     }
+    auto* noteLayer = pianoRoll ? qobject_cast<NoteLayerItem*>(findItemByName(pianoRoll, "pianoRollNoteLayer")) : nullptr;
+    if (scenario == "note_drag" && !noteLayer) { return 10; }
+    const int noteBuildsBefore = noteLayer ? noteLayer->contentBuildCount() : 0;
     int workloadError = 0;
     QJsonArray operations;
     const double tWall0 = nowMs();
@@ -795,6 +799,9 @@ int main(int argc, char* argv[]) try {
     if (scenario == "note_drag") {
         const auto* controller = pianoRoll ? pianoRoll->findChild<PianoRollController*>() : nullptr;
         if (!controller || !controller->noteDragActive() || model.snapshot() != beforeSnapshot) { return 9; }
+    }
+    if (scenario == "note_drag") {
+        counters["noteLayerRebuildsDuringDrag"] = noteLayer->contentBuildCount() - noteBuildsBefore;
     }
     double releaseMs = 0;
     if (dragActive) {

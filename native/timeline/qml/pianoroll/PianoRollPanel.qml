@@ -111,6 +111,69 @@ Rectangle {
     }
     readonly property var clipRgb: [Math.round(clipAccent.r * 255), Math.round(clipAccent.g * 255), Math.round(clipAccent.b * 255)]
 
+    readonly property PianoRollController noteController: controller
+    component PianoLayer: NoteLayerItem {
+        id: drawing
+        Component.onCompleted: {
+            setCollapsePitches(root.rowSet ? root.rowSet.pitches : [])
+            if (drawingKind === "curve") { setCurvePoints(root.lanePoints) }
+        }
+        Connections {
+            target: root
+            function onRowSetChanged() { drawing.setCollapsePitches(root.rowSet ? root.rowSet.pitches : []) }
+            function onLiveNotesChanged() {
+                if (drawing.drawingKind === "notes" || drawing.drawingKind === "velocity") { drawing.setPreviewNotes(root.liveNotes || []) }
+            }
+            function onLanePointsChanged() { if (drawing.drawingKind === "curve") { drawing.setCurvePoints(root.lanePoints) } }
+        }
+        controller: root.noteController
+        clip: true
+        pxPerTick: root.pxPerTick
+        scrollTick: root.scrollTick
+        rowHeight: root.rowHeight
+        topPitch: root.topPitch
+        collapseTopRow: root.geometry.topRow
+        selectedIds: root.selectedIds
+        hasPreview: (drawingKind === "notes" || drawingKind === "velocity") && root.liveNotes !== null
+        clipColors: root.noteColorMode === "clip"
+        noteLabels: root.noteLabels
+        dark: Ui.Theme.dark
+        stepTicks: root.snapOn || root.snapValue === "smart" ? root.gridStepTicks : 0
+        phaseTick: root.gridPhaseTick
+        collapsed: root.collapseMode
+        margin: drawingKind === "curve" ? root.laneMargin : Ui.Metrics.xs
+        micro: Ui.Metrics.micro
+        pointSize: root.pointSize
+        labelMinWidth: Ui.Metrics.xxxl
+        scaleInset: Ui.Metrics.sm
+        labelFont: Ui.Typography.font(Ui.Typography.SansCaption)
+        background: Ui.Theme.surfaceCanvas
+        panelColor: Ui.Theme.surfacePanel
+        selectedColor: Ui.Theme.actionSelected
+        borderSubtle: Ui.Theme.borderSubtle
+        borderStrong: Ui.Theme.borderStrong
+        borderControl: Ui.Theme.borderControl
+        scrim: Ui.Theme.scrimModal
+        textPrimary: Ui.Theme.textPrimary
+        textSecondary: Ui.Theme.textSecondary
+        textOnAccent: Ui.Theme.textOnAccent
+        accent: Ui.Theme.accentPrimary
+        accentSecondary: Ui.Theme.accentSecondary
+        accentOutline: Ui.Theme.accentOutline
+        clipAccent: root.clipAccent
+        marqueeVisible: drawingKind === "notes" && gridMouse.marquee !== null
+        marquee: marqueeVisible ? Qt.rect(gridMouse.marquee.fromTick, gridMouse.marquee.pitchA,
+            gridMouse.marquee.toTick - gridMouse.marquee.fromTick, gridMouse.marquee.pitchB - gridMouse.marquee.pitchA) : Qt.rect(0, 0, 0, 0)
+        selectedPointIds: drawingKind === "curve" ? root.selectedPointIds : []
+        curveMin: root.laneInfo.range ? root.laneInfo.range.min : 0
+        curveMax: root.laneInfo.range ? root.laneInfo.range.max : 127
+        curveNeutral: root.laneInfo.type === "expression" ? root.laneInfo.range.neutral : 0
+        curveBaseTick: root.laneBaseTick
+        curveEndTick: root.editingNote ? root.editingNote.startTick + root.editingNote.durationTick : 0
+        expression: root.laneInfo.type === "expression"
+        curveStep: root.laneStep
+    }
+
     // ── Settings. In-memory UI state, like the grid division was. ─────────
     property string tool: "pointer"
     property string altTool: "pencil"
@@ -121,7 +184,6 @@ Rectangle {
     property bool drawVisible: true
     // Pitch names inside notes. Off by default, as in Logic (MUSIC_EDITOR_UI.md 4.1).
     property bool noteLabels: false
-    onNoteLabelsChanged: grid.requestPaint()
     property bool catchOn: true
     property bool linkOn: true
     property bool inspectorVisible: true
@@ -167,7 +229,10 @@ Rectangle {
         onClipIdChanged: root.framed = false
         onNotesReset: {
             root.cancelNotePreview()
-            root.committedNotes = Array.from(controller.notes, note => Notes.copyNote(note, {}))
+            const next = Array.from(controller.notes, note => Notes.copyNote(note, {}))
+            const rows = Object.create(null)
+            for (let i = 0; i < next.length; ++i) { rows[next[i].id] = i }
+            root.noteState = {notes: next, rows: rows}
             root.pruneSelection()
         }
         onNotesPatched: ids => root.applyNotePatch(ids)
@@ -210,9 +275,9 @@ Rectangle {
     property var selectedIds: []
     // A gesture draws from these notes and writes them once, on release.
     property var liveNotes: null
-    property var committedNotes: []
+    property var noteState: ({notes: [], rows: {}})
+    readonly property var committedNotes: noteState.notes
     readonly property var notes: liveNotes !== null ? liveNotes : root.committedNotes
-    readonly property var noteIndex: Notes.noteIndex(root.committedNotes)
     readonly property var selectedSet: Notes.idSet(selectedIds)
     // Collapse Mode rows come from the committed notes, never from a drag preview.
     readonly property var rowSet: collapseMode ? Tools.rowSet(root.committedNotes) : null
@@ -332,7 +397,7 @@ Rectangle {
 
     function applyNotePatch(ids) {
         root.cancelNotePreview()
-        const rows = root.noteIndex.rowsById
+        const rows = root.noteState.rows
         const next = root.committedNotes.slice()
         for (const id of ids) {
             const row = rows[id]
@@ -341,14 +406,14 @@ Rectangle {
             next[row] = Notes.copyNote(next[row], {startTick: note.startTick, durationTick: note.durationTick,
                 pitch: note.pitch, velocity: note.velocity})
         }
-        root.committedNotes = next
+        root.noteState = {notes: next, rows: rows}
         root.pruneSelection()
     }
 
     function pruneSelection() {
         // A pending refresh must not remove the ids owned by an uncommitted gesture.
         if (gridMouse.drag || controller.noteDragActive || liveNotes !== null || liveControllers !== null) { return }
-        const rows = root.noteIndex.rowsById
+        const rows = root.noteState.rows
         const notes = root.committedNotes
         const keptIds = root.selectedIds.filter(id => rows[id] !== undefined)
         if (keptIds.length !== root.selectedIds.length) { root.selectedIds = keptIds }
@@ -419,12 +484,16 @@ Rectangle {
     function playheadTick() { return clock ? Math.round(controller.timelineMsToTick(clock.time)) : 0 }
     function pickNote(x, y, geo) {
         // Preview arrays change each drag frame. Keep the committed index out of that rebuild path.
-        return liveNotes !== null ? Notes.hitTest(notes, x, y, geo) : Notes.hitTestIndexed(noteIndex, x, y, geo)
+        if (liveNotes !== null) { return Notes.hitTest(notes, x, y, geo) }
+        const hit = grid.hitNote(x, y)
+        const note = hit === 0 ? null : committedNotes[Math.floor((hit - 1) / 2)]
+        return note ? {note: note, edge: hit % 2 === 0 ? "end" : "body"} : null
     }
     function selectedNotes() {
         if (liveNotes !== null) { return notes.filter(note => selectedSet[note.id]) }
-        const rows = noteIndex.rowsById
-        const list = committedNotes
+        const state = noteState
+        const rows = state.rows
+        const list = state.notes
         const indices = []
         for (const id of selectedIds) {
             const row = rows[id]
@@ -631,7 +700,8 @@ Rectangle {
         visible: controller.valid
         anchors { left: inspector.right; right: parent.right; top: toolbar.bottom; bottom: parent.bottom }
 
-        Canvas {
+        PianoLayer {
+            drawingKind: "keyboard"
             id: keyboard
             objectName: "pianoRollKeyboard"
             x: 0
@@ -639,111 +709,7 @@ Rectangle {
             width: root.keyboardWidth
             height: gridArea.height
             // The key under the pointer, and the key held down. Each takes the accent tint.
-            property int hoverPitch: -1
-            property int pressedPitch: -1
-            onHoverPitchChanged: requestPaint()
-            onPressedPitchChanged: requestPaint()
-            onPaint: {
-                const ctx = getContext("2d")
-                ctx.reset()
-                const dark = Ui.Theme.dark
-                const ivory = dark ? Ui.Theme.textPrimary : Ui.Theme.surfacePanel
-                const ebony = dark ? Ui.Theme.surfaceCanvas : Ui.Theme.textPrimary
-                const ink = dark ? Ui.Theme.surfaceCanvas : Ui.Theme.textSecondary
-                const rh = root.rowHeight
-                const collapsed = root.geometry.rows
-                const tint = pitch => pitch === pressedPitch ? 0.75 : pitch === hoverPitch ? 0.4 : 0
-                ctx.font = Ui.Typography.canvasFont(Ui.Typography.SansCaption)
-                ctx.textBaseline = "middle"
-                ctx.textAlign = "right"
-                if (collapsed) {
-                    // Collapse Mode shows only the keys that have notes, each a full-width labeled row.
-                    ctx.fillStyle = Ui.Theme.surfacePanel
-                    ctx.fillRect(0, 0, width, height)
-                    const rows = Math.ceil(height / rh) + 1
-                    for (let row = 0; row < rows; ++row) {
-                        const pitch = collapsed.pitches[row + root.geometry.topRow]
-                        if (pitch === undefined) break
-                        const y = row * rh, black = Notes.isBlackKey(pitch)
-                        ctx.fillStyle = black ? ebony : ivory
-                        ctx.fillRect(0, y, width, rh)
-                        if (tint(pitch) > 0) {
-                            ctx.globalAlpha = tint(pitch)
-                            ctx.fillStyle = Ui.Theme.accentPrimary
-                            ctx.fillRect(0, y, width, rh)
-                            ctx.globalAlpha = 1
-                        }
-                        ctx.fillStyle = Ui.Theme.borderStrong
-                        ctx.fillRect(0, y + rh - 1, width, 1)
-                        ctx.fillStyle = black ? Ui.Theme.textSecondary : ink
-                        ctx.fillText(Notes.pitchName(pitch), width - Ui.Metrics.xs, y + rh / 2)
-                    }
-                    return
-                }
-                // A real keyboard: seven white keys share each octave's twelve rows, so the white
-                // keys are wider than a row and their seams do not follow the grid. The black keys
-                // sit on top, 60% deep, each with a lit lower bevel.
-                ctx.fillStyle = ivory
-                ctx.fillRect(0, 0, width, height)
-                const topPitch = root.topPitch
-                const lowPitch = Math.max(0, topPitch - Math.ceil(height / rh) - 1)
-                const octaveBottom = c => (topPitch - c + 1) * rh
-                const whiteHeight = 12 * rh / 7
-                for (let c = Math.floor(lowPitch / 12) * 12; c <= topPitch; c += 12) {
-                    const base = octaveBottom(c)
-                    for (let k = 0; k < 7; ++k) {
-                        const semitone = [0, 2, 4, 5, 7, 9, 11][k]
-                        const bottom = base - k * whiteHeight, top = bottom - whiteHeight
-                        const amount = tint(c + semitone)
-                        if (amount > 0) {
-                            ctx.globalAlpha = amount
-                            ctx.fillStyle = Ui.Theme.accentPrimary
-                            ctx.fillRect(0, top, width, whiteHeight)
-                            ctx.globalAlpha = 1
-                        }
-                        // The seam under each white key. The B-C seam marks the octave.
-                        ctx.fillStyle = Ui.Theme.borderStrong
-                        ctx.globalAlpha = k === 0 ? 0.9 : 0.55
-                        ctx.fillRect(0, Math.round(bottom) - 1, width, 1)
-                        ctx.globalAlpha = 1
-                    }
-                    if (c >= 0 && c <= 127) {
-                        const y = base - whiteHeight / 2
-                        ctx.fillStyle = tint(c) > 0.5 ? Ui.Theme.textOnAccent : ink
-                        ctx.fillText(Notes.pitchName(c), width - Ui.Metrics.xs, y)
-                    }
-                }
-                const blackWidth = Math.round(width * 0.6)
-                for (let pitch = lowPitch; pitch <= topPitch; ++pitch) {
-                    if (!Notes.isBlackKey(pitch)) continue
-                    const y = (topPitch - pitch) * rh
-                    // A soft shadow falls to the right of the key onto the white keys.
-                    ctx.fillStyle = Ui.Theme.scrimModal
-                    ctx.globalAlpha = 0.25
-                    ctx.fillRect(blackWidth, y + 1, Ui.Metrics.micro, rh - 1)
-                    ctx.globalAlpha = 1
-                    ctx.fillStyle = ebony
-                    ctx.fillRect(0, y, blackWidth, rh)
-                    // A faint sheen along the key's lower half reads as depth.
-                    ctx.fillStyle = dark ? Ui.Theme.borderControl : Ui.Theme.textSecondary
-                    ctx.fillRect(0, y + rh / 2, blackWidth - Ui.Metrics.micro, rh / 2 - 1)
-                    // The bevel: a lighter front edge at the key's tip.
-                    ctx.fillStyle = Ui.Theme.borderStrong
-                    ctx.globalAlpha = 0.5
-                    ctx.fillRect(blackWidth - Ui.Metrics.micro, y + 1, Ui.Metrics.micro, rh - 2)
-                    ctx.globalAlpha = 1
-                    const amount = tint(pitch)
-                    if (amount > 0) {
-                        ctx.globalAlpha = amount
-                        ctx.fillStyle = Ui.Theme.accentPrimary
-                        ctx.fillRect(0, y, blackWidth, rh)
-                        ctx.globalAlpha = 1
-                    }
-                }
-                // The edge between the keyboard and the grid.
-                ctx.fillStyle = Ui.Theme.borderStrong
-                ctx.fillRect(width - 1, 0, 1, height)
-            }
+
             MouseArea {
                 id: keyboardMouse
                 objectName: "pianoRollKeyboardMouse"
@@ -773,39 +739,15 @@ Rectangle {
             }
         }
 
-        Canvas {
+        PianoLayer {
+            drawingKind: "ruler"
             id: ruler
             objectName: "pianoRollRuler"
             x: root.keyboardWidth
             y: 0
             width: gridArea.width
             height: root.rulerHeight
-            onPaint: {
-                const ctx = getContext("2d")
-                ctx.reset()
-                ctx.fillStyle = Ui.Theme.surfacePanel
-                ctx.fillRect(0, 0, width, height)
-                if (!controller.valid) return
-                const from = Notes.xToTick(0, root.geometry), to = Notes.xToTick(width, root.geometry)
-                const bars = controller.gridTicks("bar", from, to)
-                const barTicks = controller.gridStepTicks("bar")
-                ctx.font = Ui.Typography.canvasFont(Ui.Typography.SansCaption)
-                ctx.textBaseline = "middle"
-                const labelEvery = Math.max(1, Math.ceil(Ui.Metrics.xxxl / Math.max(1, barTicks * root.pxPerTick)))
-                for (const tick of bars) {
-                    const x = Math.round(Notes.tickToX(tick, root.geometry))
-                    const bar = Math.round(controller.timelineMsToTick(controller.tickToTimelineMs(tick)) - root.gridPhaseTick) / barTicks
-                    const index = Math.round(bar)
-                    ctx.fillStyle = Ui.Theme.borderStrong
-                    ctx.fillRect(x, height / 2, 1, height / 2)
-                    if (index % labelEvery === 0) {
-                        ctx.fillStyle = Ui.Theme.textSecondary
-                        ctx.fillText(String(index + 1), x + Ui.Metrics.xs, height / 2)
-                    }
-                }
-                ctx.fillStyle = Ui.Theme.borderSubtle
-                ctx.fillRect(0, height - 1, width, 1)
-            }
+
             MouseArea {
                 anchors.fill: parent
                 onPressed: mouse => {
@@ -880,149 +822,12 @@ Rectangle {
             onWidthChanged: root.frameIfNeeded()
             onHeightChanged: root.frameIfNeeded()
 
-            Canvas {
+            PianoLayer {
+            drawingKind: "notes"
                 id: grid
+                objectName: "pianoRollNoteLayer"
                 anchors.fill: parent
-                onPaint: {
-                    const ctx = getContext("2d")
-                    ctx.reset()
-                    ctx.fillStyle = Ui.Theme.surfaceCanvas
-                    ctx.fillRect(0, 0, width, height)
-                    if (!controller.valid) return
-                    const geo = root.geometry
-                    const rows = Math.ceil(height / root.rowHeight) + 1
-                    for (let row = 0; row < rows; ++row) {
-                        const pitch = geo.rows ? geo.rows.pitches[row + geo.topRow] : root.topPitch - row
-                        if (pitch === undefined || pitch < 0) break
-                        const y = row * root.rowHeight
-                        if (Notes.isBlackKey(pitch)) {
-                            ctx.fillStyle = Ui.Theme.actionSelected
-                            ctx.fillRect(0, y, width, root.rowHeight)
-                        }
-                        // The B-C boundary marks the octave.
-                        ctx.fillStyle = pitch % 12 === 0 ? Ui.Theme.borderStrong : Ui.Theme.borderSubtle
-                        ctx.globalAlpha = pitch % 12 === 0 ? 0.45 : 1
-                        ctx.fillRect(0, y + root.rowHeight - 1, width, 1)
-                        ctx.globalAlpha = 1
-                    }
-                    const from = Notes.xToTick(0, geo), to = Notes.xToTick(width, geo)
-                    // Bar lines are strong, beat lines medium and the lines at the snap step faint.
-                    // A level whose spacing is under 4 px is skipped.
-                    const faint = root.snapOn || root.snapValue === "smart" ? root.gridStepTicks : 0
-                    if (faint > 0 && faint < root.beatTicks && faint * root.pxPerTick >= Ui.Metrics.xs) {
-                        ctx.fillStyle = Ui.Theme.borderSubtle
-                        for (const tick of Tools.stepLineTicks(from, to, faint, root.gridPhaseTick)) ctx.fillRect(Math.round(Notes.tickToX(tick, geo)), 0, 1, height)
-                    }
-                    if (root.beatTicks * root.pxPerTick >= Ui.Metrics.xs) {
-                        ctx.fillStyle = Ui.Theme.borderStrong
-                        ctx.globalAlpha = 0.3
-                        for (const tick of controller.gridTicks("beat", from, to)) ctx.fillRect(Math.round(Notes.tickToX(tick, geo)), 0, 1, height)
-                    }
-                    if (controller.gridStepTicks("bar") * root.pxPerTick >= Ui.Metrics.xs) {
-                        ctx.globalAlpha = 0.75
-                        ctx.fillStyle = Ui.Theme.borderStrong
-                        for (const tick of controller.gridTicks("bar", from, to)) ctx.fillRect(Math.round(Notes.tickToX(tick, geo)), 0, 1, height)
-                    }
-                    // Outside the clip window the notes are hidden from playback.
-                    ctx.fillStyle = Ui.Theme.scrimModal
-                    const left = Notes.tickToX(controller.windowFromTick, geo), right = Notes.tickToX(controller.windowToTick, geo)
-                    ctx.globalAlpha = 0.5
-                    if (left > 0) ctx.fillRect(0, 0, Math.min(width, left), height)
-                    if (right < width) ctx.fillRect(Math.max(0, right), 0, width - Math.max(0, right), height)
-                    ctx.globalAlpha = 1
-                    let list = root.liveNotes !== null ? root.notes : Notes.viewportNotes(root.noteIndex, geo, width, height)
-                    if (controller.noteDragActive) {
-                        const shown = new Set(list.map(note => note.id))
-                        for (const id of controller.noteDragIds()) {
-                            if (!shown.has(id)) {
-                                const original = root.committedNotes[controller.noteDragRow(id)]
-                                if (original) { list.push(Notes.copyNote(original, {id: id})) }
-                            }
-                        }
-                    }
-                    const selected = root.selectedSet
-                    const clipMode = root.noteColorMode === "clip"
-                    for (let i = 0; i < list.length; ++i) {
-                        const original = list[i]
-                        const preview = controller.noteDragActive && selected[original.id] ? controller.previewNote(original.id) : original
-                        const note = controller.noteDragActive && selected[original.id] ? Notes.copyNote(original, {startTick: preview.startTick,
-                            durationTick: preview.durationTick, pitch: preview.pitch, velocity: preview.velocity}) : original
-                        const r = Notes.noteRect(note, geo)
-                        if (r.x > width || r.x + r.width < 0 || r.y > height || r.y + r.height < 0) continue
-                        const isSelected = !!selected[note.id]
-                        const muted = !!note.muted
-                        const rgb = clipMode ? root.clipRgb : Notes.velocityColor(note.velocity)
-                        // A selected note lights up toward white, as in Logic, and keeps a white frame.
-                        const fill = Notes.mixColor(rgb, [255, 255, 255], isSelected ? 0.55 : 0)
-                        const edge = isSelected ? Ui.Theme.textPrimary : Notes.mixColor(rgb, [0, 0, 0], 0.4)
-                        // A note is a bar with a small radius and a one-pixel edge. The velocity line runs inside it.
-                        const top = Math.round(r.y) + 1, h = Math.max(1, Math.round(r.height) - 2)
-                        const nx = Math.round(r.x), nw = Math.max(1, Math.round(r.width) - 1)
-                        const radius = Math.min(Ui.Metrics.micro, nw / 2, h / 2)
-                        if (muted) {
-                            // A muted note is hollow: a faint fill and an outline.
-                            ctx.globalAlpha = 0.15
-                            ctx.fillStyle = fill
-                            ctx.fillRect(nx, top, nw, h)
-                            ctx.globalAlpha = 0.7
-                            ctx.strokeStyle = isSelected ? Ui.Theme.textPrimary : fill
-                            ctx.lineWidth = 1
-                            ctx.strokeRect(nx + 0.5, top + 0.5, Math.max(0, nw - 1), Math.max(0, h - 1))
-                        } else {
-                            ctx.fillStyle = edge
-                            ctx.beginPath()
-                            ctx.roundedRect(nx, top, nw, h, radius, radius)
-                            ctx.fill()
-                            ctx.fillStyle = fill
-                            ctx.beginPath()
-                            ctx.roundedRect(nx + 1, top + 1, Math.max(0, nw - 2), Math.max(0, h - 2), Math.max(0, radius - 1), Math.max(0, radius - 1))
-                            ctx.fill()
-                            // With Note Labels on, the name sits at the left when the note is wide and tall enough.
-                            let lineX = nx + 2
-                            const name = Notes.pitchName(note.pitch)
-                            if (root.noteLabels && h >= Ui.Metrics.md && nw >= Ui.Metrics.xxxl) {
-                                ctx.font = Ui.Typography.canvasFont(Ui.Typography.SansCaption)
-                                ctx.textBaseline = "middle"
-                                ctx.textAlign = "left"
-                                ctx.fillStyle = Notes.mixColor(rgb, [0, 0, 0], 0.75)
-                                ctx.fillText(name, nx + Ui.Metrics.xs, top + h / 2)
-                                lineX = nx + Ui.Metrics.xs + ctx.measureText(name).width + Ui.Metrics.xs
-                            }
-                            const lineSpan = nx + nw - 2 - lineX
-                            if (lineSpan >= 2 && h >= 5) {
-                                ctx.fillStyle = Notes.mixColor(rgb, [0, 0, 0], 0.55)
-                                ctx.fillRect(lineX, top + Math.floor(h / 2), Math.max(1, Math.round(lineSpan * note.velocity / 127)), 1)
-                            }
-                        }
-                        ctx.globalAlpha = 1
-                        const bend = note.expression ? note.expression.pitch : null
-                        if (bend && bend.length > 0 && r.width > 2) {
-                            // The note's pitch expression: a thin line, one row per semitone around the row centre.
-                            ctx.strokeStyle = Ui.Theme.textPrimary
-                            ctx.lineWidth = 1
-                            ctx.beginPath()
-                            const middle = r.y + r.height / 2
-                            const yOf = v => Math.max(r.y + 1, Math.min(r.y + r.height - 1, middle - v * root.rowHeight))
-                            ctx.moveTo(r.x, middle)
-                            ctx.lineTo(r.x + bend[0].tick * root.pxPerTick, middle)
-                            for (const p of bend) ctx.lineTo(r.x + p.tick * root.pxPerTick, yOf(p.value))
-                            ctx.lineTo(r.x + r.width, yOf(bend[bend.length - 1].value))
-                            ctx.stroke()
-                        }
-                    }
-                    const m = gridMouse.marquee
-                    if (m) {
-                        const x1 = Notes.tickToX(m.fromTick, geo), x2 = Notes.tickToX(m.toTick, geo)
-                        const y1 = Notes.pitchToY(Math.max(m.pitchA, m.pitchB), geo)
-                        const y2 = Notes.pitchToY(Math.min(m.pitchA, m.pitchB), geo) + root.rowHeight
-                        ctx.fillStyle = Ui.Theme.accentOutline
-                        ctx.globalAlpha = 0.3
-                        ctx.fillRect(Math.min(x1, x2), y1, Math.abs(x2 - x1), y2 - y1)
-                        ctx.globalAlpha = 1
-                        ctx.strokeStyle = Ui.Theme.accentPrimary
-                        ctx.strokeRect(Math.min(x1, x2) + 0.5, y1 + 0.5, Math.abs(x2 - x1), y2 - y1)
-                    }
-                }
+
             }
 
             Rectangle {
@@ -1037,6 +842,7 @@ Rectangle {
 
             MouseArea {
                 id: gridMouse
+                objectName: "pianoRollGridMouse"
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton
@@ -1205,8 +1011,7 @@ Rectangle {
                     if (drag.kind === "marquee") {
                         drag.moved = true
                         marquee = {fromTick: drag.startTick, toTick: tick, pitchA: drag.startPitch, pitchB: pitch}
-                        root.selectedIds = Array.from(new Set(drag.additiveIds.concat(Notes.notesInRectIndexed(root.noteIndex, drag.startTick, tick, drag.startPitch, pitch))))
-                        grid.requestPaint()
+                        root.selectedIds = Array.from(new Set(drag.additiveIds.concat(grid.notesInRect(drag.startTick, tick, drag.startPitch, pitch))))
                         return
                     }
                     if (drag.kind === "pencil") {
@@ -1252,7 +1057,6 @@ Rectangle {
                     root.dragIds = []
                     if (!ended) return
                     if (ended.kind === "marquee") {
-                        grid.requestPaint()
                         // A click on empty grid clears the selection. It creates no note.
                         if (!ended.moved && !ended.additive) root.selectedIds = []
                         return
@@ -1262,12 +1066,10 @@ Rectangle {
                             if (!controller.commitNoteDrag(root.dragMode === "nooverlap") && ended.duplicate) { root.selectedIds = ended.selectionBefore }
                         }
                         else { controller.cancelNoteDrag() }
-                        grid.requestPaint()
                         return
                     }
                     const live = root.liveNotes
                     root.liveNotes = null
-                    grid.requestPaint()
                     if (live === null) return
                     if (ended.kind === "pencil") {
                         if (root.write(live)) lastClick = {id: ended.note.id, time: Date.now()}
@@ -1287,7 +1089,6 @@ Rectangle {
                     root.dragIds = []
                     root.liveNotes = null
                     controller.cancelNoteDrag()
-                    grid.requestPaint()
                 }
                 onDoubleClicked: mouse => {
                     const tool = toolFor(mouse)
@@ -1332,35 +1133,18 @@ Rectangle {
         }
 
         // The velocity scale in the keyboard column, beside the lane: 127 at the top, 64, and 0 on the baseline.
-        Canvas {
+        PianoLayer {
+            drawingKind: "scale"
             objectName: "pianoRollVelocityScale"
             visible: velocityLane.visible
             x: 0
             y: velocityLane.y
             width: root.keyboardWidth
             height: velocityLane.height
-            onPaint: {
-                const ctx = getContext("2d")
-                ctx.reset()
-                ctx.fillStyle = Ui.Theme.surfacePanel
-                ctx.fillRect(0, 0, width, height)
-                ctx.fillStyle = Ui.Theme.borderSubtle
-                ctx.fillRect(0, 0, width, 1)
-                ctx.fillRect(width - 1, 0, 1, height)
-                const base = height - Ui.Metrics.xs, usable = base - Ui.Metrics.xs
-                ctx.font = Ui.Typography.canvasFont(Ui.Typography.SansCaption)
-                ctx.textAlign = "right"
-                ctx.fillStyle = Ui.Theme.textSecondary
-                const label = (value, baseline) => {
-                    ctx.textBaseline = baseline
-                    ctx.fillText(String(value), width - Ui.Metrics.sm, Math.round(base - usable * value / 127))
-                }
-                label(127, "top")
-                label(64, "middle")
-                label(0, "bottom")
-            }
+
         }
-        Canvas {
+        PianoLayer {
+            drawingKind: "velocity"
             id: velocityLane
             objectName: "pianoRollVelocity"
             visible: root.drawVisible && root.laneInfo.type === "velocity"
@@ -1368,55 +1152,7 @@ Rectangle {
             y: gridArea.y + gridArea.height + root.laneBarHeight
             width: gridArea.width
             height: root.velocityHeight
-            onPaint: {
-                const ctx = getContext("2d")
-                ctx.reset()
-                ctx.fillStyle = Ui.Theme.surfacePanel
-                ctx.fillRect(0, 0, width, height)
-                ctx.fillStyle = Ui.Theme.borderSubtle
-                ctx.fillRect(0, 0, width, 1)
-                const list = root.notes, selected = root.selectedSet, geo = root.geometry
-                const head = Ui.Metrics.xs
-                // Velocity 0 sits on a baseline one margin above the bottom, so every stem ends in view.
-                const base = height - Ui.Metrics.xs
-                const usable = base - head
-                // Faint guides at a quarter, half and three quarters of full velocity, and the baseline.
-                ctx.fillStyle = Ui.Theme.borderSubtle
-                for (let q = 0; q < 4; ++q) ctx.fillRect(0, Math.round(base - usable * q / 4), width, 1)
-                const clipMode = root.noteColorMode === "clip"
-                // One stem per note with a round head, in the note's color. A selected note's head
-                // is white with a ring in its color, and its stem is brighter.
-                const drawStem = (original, isSelected) => {
-                    const preview = controller.noteDragActive && isSelected ? controller.previewNote(original.id) : original
-                    const note = controller.noteDragActive && isSelected ? Notes.copyNote(original, {startTick: preview.startTick, velocity: preview.velocity}) : original
-                    const x = Math.round(Notes.tickToX(note.startTick, geo)) + 1
-                    if (x < -head || x > width + head) return
-                    const rgb = clipMode ? root.clipRgb : Notes.velocityColor(note.velocity)
-                    const color = Notes.mixColor(rgb, [255, 255, 255], isSelected ? 0.35 : 0)
-                    const y = base - usable * note.velocity / 127
-                    ctx.globalAlpha = note.muted ? 0.4 : 1
-                    ctx.fillStyle = color
-                    ctx.fillRect(x - 1, y, Ui.Metrics.micro, base - y)
-                    ctx.beginPath()
-                    ctx.arc(x, y, head, 0, 2 * Math.PI)
-                    ctx.fillStyle = isSelected ? Ui.Theme.textPrimary : color
-                    ctx.fill()
-                    if (isSelected) {
-                        ctx.lineWidth = Ui.Metrics.micro
-                        ctx.strokeStyle = color
-                        ctx.stroke()
-                    }
-                    ctx.globalAlpha = 1
-                }
-                for (let i = 0; i < list.length; ++i) if (!selected[list[i].id]) drawStem(list[i], false)
-                for (let i = 0; i < list.length; ++i) if (selected[list[i].id]) drawStem(list[i], true)
-                if (controller.noteDragActive) {
-                    for (const id of controller.noteDragIds()) {
-                        const original = root.committedNotes[controller.noteDragRow(id)]
-                        if (original && id !== original.id) { drawStem(Notes.copyNote(original, {id: id}), true) }
-                    }
-                }
-            }
+
             MouseArea {
                 id: velocityMouse
                 anchors.fill: parent
@@ -1497,7 +1233,8 @@ Rectangle {
             }
         }
 
-        Canvas {
+        PianoLayer {
+            drawingKind: "curve"
             id: curveLane
             objectName: "pianoRollCurveLane"
             visible: root.drawVisible && root.laneInfo.type !== "velocity"
@@ -1509,56 +1246,7 @@ Rectangle {
                 return {x: Notes.tickToX(root.laneBaseTick + point.tick, root.geometry),
                         y: Lanes.valueToY(point.value, root.laneInfo.range, height, root.laneMargin)}
             }
-            onPaint: {
-                const ctx = getContext("2d")
-                ctx.reset()
-                ctx.fillStyle = Ui.Theme.surfacePanel
-                ctx.fillRect(0, 0, width, height)
-                ctx.fillStyle = Ui.Theme.borderSubtle
-                ctx.fillRect(0, 0, width, 1)
-                const info = root.laneInfo
-                if (info.type === "velocity" || !controller.valid) return
-                const geo = root.geometry
-                const neutralY = Math.round(Lanes.valueToY(info.type === "expression" ? Lanes.rangeOf(info.key).neutral : 0, info.range, height, root.laneMargin))
-                ctx.fillStyle = Ui.Theme.borderSubtle
-                ctx.fillRect(0, neutralY, width, 1)
-                let from = 0, to = width
-                const note = root.editingNote
-                if (info.type === "expression") {
-                    if (!note) return
-                    from = Notes.tickToX(note.startTick, geo)
-                    to = Notes.tickToX(note.startTick + note.durationTick, geo)
-                    ctx.globalAlpha = 0.15
-                    ctx.fillStyle = Ui.Theme.accentPrimary
-                    ctx.fillRect(from, 0, Math.max(1, to - from), height)
-                    ctx.globalAlpha = 1
-                }
-                const points = root.lanePoints
-                ctx.strokeStyle = Ui.Theme.accentPrimary
-                ctx.lineWidth = 1
-                if (points.length > 0) {
-                    ctx.beginPath()
-                    const first = pixelOf(points[0])
-                    // Before the first point the curve is neutral (an expression) or silent (a controller).
-                    if (info.type === "expression") { ctx.moveTo(from, neutralY); ctx.lineTo(first.x, neutralY); ctx.lineTo(first.x, first.y) }
-                    else ctx.moveTo(first.x, first.y)
-                    for (let i = 1; i < points.length; ++i) {
-                        const p = pixelOf(points[i])
-                        if (root.laneStep && info.type === "controller") ctx.lineTo(p.x, pixelOf(points[i - 1]).y)
-                        ctx.lineTo(p.x, p.y)
-                    }
-                    // After the last point the value holds.
-                    ctx.lineTo(Math.max(to, pixelOf(points[points.length - 1]).x), pixelOf(points[points.length - 1]).y)
-                    ctx.stroke()
-                }
-                const chosen = Notes.idSet(root.selectedPointIds)
-                for (const point of points) {
-                    const p = pixelOf(point)
-                    if (p.x < -root.pointSize || p.x > width + root.pointSize) continue
-                    ctx.fillStyle = chosen[point.id] ? Ui.Theme.accentSecondary : Ui.Theme.accentPrimary
-                    ctx.fillRect(Math.round(p.x - root.pointSize / 2), Math.round(p.y - root.pointSize / 2), root.pointSize, root.pointSize)
-                }
-            }
+
             MouseArea {
                 id: laneMouse
                 objectName: "pianoRollCurveMouse"
@@ -1663,19 +1351,16 @@ Rectangle {
         }
     }
 
-    // Every input of a drawing asks for a repaint of the canvases that read it.
+    // Explicit repaint requests cover tool previews. Native inputs invalidate themselves.
     function repaint() { grid.requestPaint(); repaintLane(); ruler.requestPaint(); keyboard.requestPaint() }
     Connections {
         target: controller
         function onNoteDragChanged() {
             if (!controller.noteDragActive) { root.cancelNotePreview() }
-            grid.requestPaint(); root.repaintLane()
+
         }
     }
-    onNotesChanged: { grid.requestPaint(); repaintLane() }
     onSelectedIdsChanged: {
-        grid.requestPaint()
-        repaintLane()
         // Index ids of one note's curve mean nothing on another note.
         const edited = selectedIds.length === 1 ? selectedIds[0] : ""
         if (edited !== expressionNoteId) {
@@ -1684,19 +1369,5 @@ Rectangle {
         }
     }
     onControllersChanged: curveLane.requestPaint()
-    onLanePointsChanged: curveLane.requestPaint()
-    onSelectedPointIdsChanged: curveLane.requestPaint()
-    onGeometryChanged: repaint()
-    onGridStepTicksChanged: grid.requestPaint()
-    onSnapOnChanged: grid.requestPaint()
-    onNoteColorModeChanged: grid.requestPaint()
-    onClipAccentChanged: grid.requestPaint()
-    Connections {
-        target: controller
-        function onClipChanged() { root.repaint() }
-    }
-    Connections {
-        target: Ui.Theme
-        function onDarkChanged() { root.repaint() }
-    }
+
 }

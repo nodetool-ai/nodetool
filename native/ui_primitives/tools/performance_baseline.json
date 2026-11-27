@@ -1077,8 +1077,7 @@
   },
   "native/timeline/qml/pianoroll/PianoRollPanel.qml": {
     "R1": 32,
-    "R2": 18,
-    "R5-canvas": 6
+    "R2": 18
   },
   "native/timeline/qml/pianoroll/PianoRollToolbar.qml": {
     "R1": 6

@@ -11,6 +11,12 @@ from pathlib import Path
 
 
 class BudgetTest(unittest.TestCase):
+    def test_note_drag_cannot_rebuild_retained_geometry(self):
+        ceiling = {'noteLayerRebuildsDuringDrag': 0}
+        check({'noteLayerRebuildsDuringDrag': 0}, ceiling)
+        with self.assertRaises(ValueError):
+            check({'noteLayerRebuildsDuringDrag': 1}, ceiling)
+
     def test_new_scenarios_need_explicit_adoption_without_raising_old_limits(self):
         base = {'scenarios': {'old': {'objects': 2}}}
         current = {'scenarios': {'old': {'objects': 1}, 'new': {'objects': 3}}}
@@ -121,7 +127,12 @@ class BudgetTest(unittest.TestCase):
                 path.write_text(json.dumps({'scenarios': {'playback': {'objects': value}}}))
             write(budget, 10)
             write(baseline, 10)
-            command = [sys.executable, str(Path(__file__).with_name('check_perf.py')),
+            # Connection audits have separate fixtures. This CLI test isolates counter ceilings.
+            checker = root / 'checker.py'
+            checker.write_text('import sys\nsys.path.insert(0, ' + repr(str(Path(__file__).parent)) + ')\n'
+                               'from check_perf import main\nfrom unittest.mock import patch\n'
+                               'with patch("check_perf.check_connections"):\n    main()\n')
+            command = [sys.executable, str(checker),
                        '--binary', str(binary), '--scenario', 'playback', '--budget', str(budget),
                        '--base-budget', str(baseline), '--output', str(root / 'result.json')]
             def run():

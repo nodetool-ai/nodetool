@@ -459,3 +459,12 @@ bool PianoRollController::patchNotes(const QVariantList& values) {
     for (auto it = previous.cbegin(); it != previous.cend(); ++it) { removed.append(it.key()); }
     return m_timeline->applyEdit("midi.patchNotes", {{"clipId", m_clipId}, {"notes", patches}, {"noteIds", removed}}) != 0;
 }
+
+const std::vector<nt::MidiNote>& PianoRollController::typedNotes() const {
+    const auto* clip = m_timeline ? m_timeline->findClip(m_clipId) : nullptr;
+    // The empty value is immutable and has no thread-affine resources.
+    static const std::vector<nt::MidiNote> empty;
+    return clip && clip->notes ? *clip->notes : empty;
+}
+
+TimelineModel* PianoRollController::timeline() const { return m_timeline; }
