@@ -1,6 +1,6 @@
 name: Logic Bugfixer
 
-# Picks one piece of tricky logic, builds an independent model of what it should
+# Picks one module of tricky logic, builds an independent model of what it should
 # do, and runs both over the whole input space. Every divergence is either a bug
 # in the code or a bug in the model — and finding out which is the work.
 #
@@ -107,6 +107,11 @@ jobs:
 
           if [ "$CANDIDATES" -gt 0 ]; then echo "LOGIC_FOUND=1" >> $GITHUB_ENV; else echo "LOGIC_FOUND=0" >> $GITHUB_ENV; fi
 
+      - name: Rank impact signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/agent-impact.mjs "$RUNNER_TEMP/agent-impact.md"
+
       - name: Run Claude Code
         if: env.LOGIC_FOUND == '1'
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
@@ -117,7 +122,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing. Open the PR with the label agent:logic-bugfixer (gh pr create --label agent:logic-bugfixer). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
+            --append-system-prompt "Read .github/agent-routines.md before you pick a target and follow it: rank candidates by the signals in ${{ runner.temp }}/agent-impact.md, fix every instance of the theme in the module you choose, and start the PR body with an Impact section. Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing. Open the PR with the label agent:logic-bugfixer (gh pr create --label agent:logic-bugfixer). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Model Tricky Logic and Fix What It Gets Wrong
 
@@ -126,13 +131,18 @@ jobs:
 
             `logic-candidates.log` lists exported predicates, comparators,
             folds, and state transitions. `untested-candidates.log` is the
-            subset nothing tests yet — prefer those.
+            subset nothing tests yet. Rank candidates by impact first: a
+            function in a hot file, with many callers, or on a path users run
+            (CLI parsing, workflow execution, the streaming fold, sync, the
+            editor's graph logic) beats an untested leaf helper. Untested only
+            breaks ties.
 
             ## Method
-            1. **Pick one function** that is pure and decidable: its result
-               depends only on its arguments, and its interesting input space is
-               small enough to enumerate (a handful of enums, booleans, small
-               integers, short arrays) or to sample densely.
+            1. **Pick one module** and model its decidable functions together:
+               each one pure, its result depending only on its arguments, and
+               its interesting input space small enough to enumerate (a handful
+               of enums, booleans, small integers, short arrays) or to sample
+               densely. Functions that call each other share one model.
 
             2. **Write down the specification** in the PR body, from the docs,
                the call sites, and the types — not from the implementation.
@@ -174,7 +184,8 @@ jobs:
             - If the enumeration finds nothing, that is a fine outcome: land the
               enumeration as a table-driven test instead, and say the code held.
             - Do not touch CI workflow files.
-            - One function per PR.
+            - One module per PR, with every decidable function in it modelled or
+              listed with the reason it was not.
 
             ## Before starting
             - Run `gh pr list --state open --limit 20` — skip if a logic-bugfix
