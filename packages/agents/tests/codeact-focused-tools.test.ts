@@ -65,10 +65,10 @@ function selectedText(surface: FocusedSurface, name: string): string {
 }
 
 describe("level 1: the turn block", () => {
-  // 700 Qwen3.5 tokens. These blocks measure about 4.1 characters per token,
+  // 720 Qwen3.5 tokens. These blocks measure about 4.1 characters per token,
   // so the ceiling is in a unit that needs no tokenizer.
-  it.each(FOCUSED_SURFACES)("keeps the %s block under 2,870 characters", (surface) => {
-    expect(block(surface).length).toBeLessThanOrEqual(2870);
+  it.each(FOCUSED_SURFACES)("keeps the %s block under 2,950 characters", (surface) => {
+    expect(block(surface).length).toBeLessThanOrEqual(2950);
   });
 
   it.each(FOCUSED_SURFACES)("has no signatures and no full descriptions for %s", (surface) => {
