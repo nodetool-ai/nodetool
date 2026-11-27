@@ -14,10 +14,11 @@ Row {
     id: status
     objectName: "saveStatus"
     property QtObject autosave: null
+    property bool manualSaved: false
     // Under the compact width only the dot stays.
     property bool compact: false
 
-    readonly property string state: autosave === null ? "idle"
+    readonly property string state: autosave === null ? (manualSaved ? "saved" : "idle")
         : autosave.saving ? "saving"
         : (autosave.conflict || autosave.lastError !== "") ? "error"
         : autosave.dirty ? "dirty" : "saved"

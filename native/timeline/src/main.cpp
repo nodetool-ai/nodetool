@@ -1165,7 +1165,7 @@ int main(int argc, char** argv) {
         }
     };
     const bool allowLocalSave = !bench && !parser.isSet(realtimeOpt) && !parser.isSet(teardownOpt);
-    const auto attachLocal = [&localSaver, &matteResolver, &model, &app, allowLocalSave](const QString& path) {
+    const auto attachLocal = [&localSaver, &matteResolver, &model, &app, &session, allowLocalSave](const QString& path) {
         localSaver.reset();
         matteResolver.reset();
         if (allowLocalSave && QFileInfo(path).isFile()) {
@@ -1173,16 +1173,21 @@ int main(int argc, char** argv) {
             QObject::connect(localSaver.get(), &nt::app::LocalDocumentSaver::saveFailed, &app,
                              [](const QString& error) { qWarning().noquote() << error; });
         }
+        session.setFlushLocalCallback({});
+        if (localSaver) {
+            session.setFlushLocalCallback([&localSaver] { return localSaver->flush(); },
+                                          [&localSaver] { return localSaver->lastError(); });
+        }
     };
     refreshMedia();
     session.attachInitialServer(loaded.timeline->raw.value(u"updatedAt").toString());
     if (!session.autosaveController() && allowLocalSave && QFileInfo(source).isFile()) {
         attachLocal(source);
     }
-    session.setFlushLocalCallback([&localSaver] { return !localSaver || localSaver->flush(); });
     session.setAttachLocalCallback(attachLocal);
-    session.setRefreshMediaCallback([&localSaver, &refreshMedia] {
+    session.setRefreshMediaCallback([&localSaver, &refreshMedia, &session] {
         localSaver.reset();
+        session.setFlushLocalCallback({});
         refreshMedia();
     });
     QQuickView view;

@@ -22,6 +22,7 @@ Column {
     id: banners
     objectName: "saveBanners"
     property QtObject autosave: null
+    property string manualError: ""
     property bool strippedDismissed: false
 
     readonly property bool showConflict: autosave !== null && autosave.conflict
@@ -133,6 +134,12 @@ Column {
         }
     }
 
+    Alert {
+        objectName: "saveErrorBanner"
+        visible: !banners.showConflict && (banners.manualError !== "" || (banners.autosave !== null && banners.autosave.lastError !== ""))
+        title: "Could not save the timeline."
+        detail: (banners.manualError !== "" ? banners.manualError : banners.autosave !== null ? banners.autosave.lastError : "") + banners.copySentence
+    }
     Alert {
         objectName: "earlierCopyBanner"
         visible: banners.earlierCopy !== ""

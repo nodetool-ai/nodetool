@@ -180,6 +180,7 @@ public:
 
     // Saves now, dirty or not. Blocks until the server answers.
     SaveResult saveNow();
+    Q_INVOKABLE QVariantMap saveDocument();
     // Before the app quits: saves pending edits within `timeoutMs` of elapsed
     // time. Returns true when the server holds the current document; otherwise
     // the current document is in `<id>.recovery.json` (or `<id>.local.json` on

@@ -31,6 +31,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QWindow>
+#include <QVariantMap>
 #include <QString>
 #include <QThread>
 #include <QUrl>
@@ -97,6 +98,7 @@ public:
     void guardClose(QWindow* window);
     // The answers to closeBlocked: write again and close, close without the
     // last edits, or keep the window open.
+    Q_INVOKABLE QVariantMap saveDocument();
     Q_INVOKABLE void retryClose();
     Q_INVOKABLE void discardAndClose();
     Q_INVOKABLE void cancelClose();

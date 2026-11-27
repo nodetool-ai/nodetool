@@ -1325,6 +1325,14 @@ private slots:
         QVERIFY2(m_save->dirty(), "the edit made during the save is not on the server");
     }
 
+    void manualSavePreservesConflictMetadata() {
+        make();
+        m_save->externalChanged("deleted", {}, {}, false);
+        const auto result = m_save->saveDocument();
+        QVERIFY(!result.value("ok").toBool());
+        QVERIFY(result.value("conflict").toBool());
+    }
+
     void conflictKeepsTheLocalDocument() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
         make();

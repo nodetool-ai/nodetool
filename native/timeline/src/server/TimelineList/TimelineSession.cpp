@@ -17,6 +17,10 @@ TimelineSession::TimelineSession(TimelineModel& model, PlaybackClock& clock, Ass
                                  QObject* parent)
     : QObject(parent), m_model(model), m_clock(clock), m_cache(std::move(cache)), m_cloudTimeline(cloudTimeline) {
     connect(&m_model, &TimelineModel::timelineChanged, this, &TimelineSession::updateWindowTitle);
+    connect(&m_model, &TimelineModel::timelineChanged, this, &TimelineSession::canSaveChanged);
+    connect(&m_model, &TimelineModel::readOnlyChanged, this, &TimelineSession::canSaveChanged);
+    connect(this, &TimelineSession::switchingChanged, this, &TimelineSession::canSaveChanged);
+    connect(this, &TimelineSession::autosaveChanged, this, &TimelineSession::canSaveChanged);
 }
 
 TimelineSession::~TimelineSession() {
@@ -34,6 +38,26 @@ TimelineSession::~TimelineSession() {
         }
     }
     teardownAutosave();
+}
+
+bool TimelineSession::canSave() const {
+    return !m_model.timeline().raw.isEmpty() && !m_model.readOnly() && !m_switching && (m_autosave || m_flushLocal);
+}
+
+QVariantMap TimelineSession::saveDocument() {
+    if (!canSave()) {
+        return {{"ok", false}, {"error", QStringLiteral("Open a writable document first.")}};
+    }
+    if (m_autosave) {
+        return m_autosave->saveDocument();
+    }
+    const bool ok = m_flushLocal && m_flushLocal();
+    QString error;
+    if (!ok) {
+        error = m_localSaveError ? m_localSaveError() : QString();
+        if (error.isEmpty()) { error = QStringLiteral("Could not save the local document."); }
+    }
+    return {{"ok", ok}, {"error", error}};
 }
 
 void TimelineSession::setWindow(QQuickWindow* window) {

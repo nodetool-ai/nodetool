@@ -849,6 +849,13 @@ void AutosaveController::removeCopy(const QString& suffix) const {
 
 SaveResult AutosaveController::saveNow() { return save(*m_client); }
 
+QVariantMap AutosaveController::saveDocument() {
+    m_timer.stop();
+    m_retry.stop();
+    const auto result = saveNow();
+    return {{"ok", result.ok}, {"error", result.error}, {"conflict", result.conflict}};
+}
+
 SaveResult AutosaveController::keepConflictCopy() {
     SaveResult result;
     result.conflict = true;

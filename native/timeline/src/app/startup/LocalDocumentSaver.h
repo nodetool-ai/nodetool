@@ -14,11 +14,13 @@ public:
     LocalDocumentSaver(TimelineModel& model, QString path, int debounceMs = 300, QObject* parent = nullptr);
     ~LocalDocumentSaver() override;
     bool flush();
+    QString lastError() const { return m_lastError; }
 signals:
     void saveFailed(const QString& error);
 private:
     QPointer<TimelineModel> m_model;
     QString m_path;
+    QString m_lastError;
     QByteArray bytes() const;
     QByteArray m_committedBytes;
     // The envelope of a project folder timeline file; empty for a plain document.

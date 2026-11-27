@@ -3,8 +3,15 @@
 #include "app/Menus/ShellMenus.h"
 #include "edit/clipboard/ClipboardOps.h"
 #include "server/FieldAudit.h"
+#include "server/AutosaveController.h"
+#include "server/TimelineList/TimelineSession.h"
+#include "app/startup/LocalDocumentSaver.h"
+#include "../../tests/TestHttpServer.h"
+#include "aiassist/AssistantCommands.h"
 #include "wiring/KeyActions.h"
+#include "nodetool/account/qt/CloudDocument.h"
 #include <QJSValue>
+#include <QDir>
 #include <QQmlEngine>
 #include <QQmlContext>
 #include <QQmlComponent>
@@ -188,6 +195,187 @@ private slots:
         patch("c", {{"mediaType", "video"}});
     }
     void cleanup() { view.reset(); nt::edit::setIdGenerator({}); }
+    void saveIsDisabledDuringTheRequest() {
+        QQmlComponent component(view->engine());
+        component.setData("import QtQml\nQtObject { property QtObject editor; property bool saving: false; property bool conflict: false; property bool enabledDuringSave: true; function saveDocument() { enabledDuringSave = editor.canSaveDocument; return {ok: true}; } }", QUrl());
+        std::unique_ptr<QObject> saver(component.createWithInitialProperties({{"editor", QVariant::fromValue(view->rootObject())}}));
+        QVERIFY2(saver, qPrintable(component.errorString()));
+        view->rootObject()->setProperty("saver", QVariant::fromValue(saver.get()));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        QVariant result;
+        QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "saveDocument", Q_RETURN_ARG(QVariant, result)));
+        QVERIFY(result.toBool());
+        QVERIFY(!saver->property("enabledDuringSave").toBool());
+        saver->setProperty("saving", true);
+        QVERIFY(!view->rootObject()->property("canSaveDocument").toBool());
+    }
+    void conflictDoesNotDuplicateManualError() {
+        QQmlComponent component(view->engine());
+        component.setData("import QtQuick\nimport NodeTool.Timeline\nSaveBanners { manualError: \"conflict\"; autosave: QtObject { property bool conflict: true; property var stripped: []; property string lastError: \"conflict\" } }", QUrl());
+        std::unique_ptr<QObject> banners(component.create());
+        QVERIFY2(banners, qPrintable(component.errorString()));
+        auto* error = banners->findChild<QObject*>("saveErrorBanner");
+        QVERIFY(error);
+        QVERIFY(!error->property("visible").toBool());
+    }
+    void successfulAutosaveClearsManualError() {
+        QQmlComponent component(view->engine());
+        component.setData("import QtQml\nQtObject { signal saved(string updatedAt); property bool conflict: false; function saveDocument() { return {ok: false, error: \"try again\"}; } }", QUrl());
+        std::unique_ptr<QObject> saver(component.create());
+        QVERIFY2(saver, qPrintable(component.errorString()));
+        view->rootObject()->setProperty("saver", QVariant::fromValue(saver.get()));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        QVariant result;
+        QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "saveDocument", Q_RETURN_ARG(QVariant, result)));
+        QVERIFY(!result.toBool());
+        QVERIFY(!view->rootObject()->property("manualSaveError").toString().isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(saver.get(), "saved", Q_ARG(QString, "next")));
+        QVERIFY(view->rootObject()->property("manualSaveError").toString().isEmpty());
+    }
+    void saveShortcutUsesKeyActionRegistry() {
+        const auto& actions = nt::wiring::keyActions();
+        const auto action = std::find_if(actions.begin(), actions.end(), [](const auto& entry) { return entry.name == "saveDocument"; });
+        QVERIFY(action != actions.end());
+        QVERIFY(action->defaultKeys.contains(QKeySequence(QKeySequence::Save)));
+    }
+    void cloudManualSaveDoesNotShowServerSaved() {
+        nodetool::account::qt::CloudDocument document(nodetool::account::qt::CloudDocumentServices{});
+        QQmlComponent component(view->engine());
+        component.setData("import QtQuick\nimport NodeTool.Timeline\nDocumentBar { required property TimelineModel model; required property CloudDocument cloud; timeline: model; manualSaved: true; cloudDocument: cloud }", QUrl());
+        std::unique_ptr<QObject> bar(component.createWithInitialProperties({{"model", QVariant::fromValue(&model)}, {"cloud", QVariant::fromValue(&document)}}));
+        QVERIFY2(bar, qPrintable(component.errorString()));
+        auto* status = bar->findChild<QObject*>("saveStatus");
+        QVERIFY(status);
+        QVERIFY(!status->property("visible").toBool());
+    }
+    void sessionWithoutDestinationDisablesSave() {
+        QTemporaryDir folder;
+        nt::server::TimelineSession session(model, clock, nt::server::AssetCacheRoot(folder.path()));
+        QVERIFY(view->rootObject()->setProperty("documentSession", QVariant::fromValue<QObject*>(&session)));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("documentSession", QVariant::fromValue<QObject*>(nullptr)); });
+        QVERIFY(!view->rootObject()->property("canSaveDocument").toBool());
+        int localSaves = 0;
+        session.setFlushLocalCallback([&localSaves] { ++localSaves; return true; });
+        QVERIFY(view->rootObject()->property("canSaveDocument").toBool());
+        QQmlComponent component(view->engine());
+        component.setData("import QtQml\nQtObject { function saveDocument() { return {ok: false}; } }", QUrl());
+        std::unique_ptr<QObject> fallback(component.create());
+        QVERIFY(fallback);
+        view->rootObject()->setProperty("saver", QVariant::fromValue(fallback.get()));
+        const auto detachSaver = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        QVariant result;
+        QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "saveDocument", Q_RETURN_ARG(QVariant, result)));
+        QVERIFY(result.toBool());
+        QCOMPARE(localSaves, 1);
+        model.setReadOnly(true);
+        QVERIFY(!view->rootObject()->property("canSaveDocument").toBool());
+        model.setReadOnly(false);
+        model.close();
+        QVERIFY(!view->rootObject()->property("canSaveDocument").toBool());
+    }
+    void manualLocalSaveShortcutAndFailureBanner() {
+        QTemporaryDir folder;
+        const QString path = folder.filePath("timeline.json");
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(model.documentJson());
+        file.close();
+        nt::app::LocalDocumentSaver saver(model, path, 60000);
+        nt::server::TimelineSession session(model, clock, nt::server::AssetCacheRoot(folder.path()));
+        session.setFlushLocalCallback([&saver] { return saver.flush(); }, [&saver] { return saver.lastError(); });
+        QVERIFY(view->rootObject()->setProperty("documentSession", QVariant::fromValue<QObject*>(&session)));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("documentSession", QVariant::fromValue<QObject*>(nullptr)); });
+        QVERIFY(model.applyEdit("patchClip", {{"clipId", "c"}, {"patch", QJsonObject{{"name", "Manual local"}}}}));
+        const auto key = QKeySequence(QKeySequence::Save)[0];
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QVERIFY(file.readAll().contains("Manual local"));
+        file.close();
+        QCOMPARE(item("saveStatus")->property("label").toString(), QString("Saved"));
+        nt::app::ShellMenus menus;
+        menus.setAnchor(view->rootObject());
+        model.setReadOnly(true);
+        QVERIFY(!menus.trigger("saveDocument"));
+        model.setReadOnly(false);
+        nt::aiassist::AssistantCommands commands(model, clock);
+        commands.setEditor(view->rootObject());
+        const auto result = commands.execute("ui_timeline_run_command", {{"command", "saveDocument"},
+            {"timeline_id", QStringLiteral("native-local:%1").arg(model.documentGeneration())}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(QJsonDocument::fromVariant(result).toJson()));
+        QTRY_VERIFY_WITH_TIMEOUT(!view->rootObject()->property("manualSaved").toBool(), 3000);
+        QVERIFY(QFile::remove(path));
+        QVERIFY(QDir().mkdir(path));
+        QVERIFY(model.applyEdit("patchClip", {{"clipId", "c"}, {"patch", QJsonObject{{"name", "Failed local"}}}}));
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QVERIFY(item("saveErrorBanner")->isVisible());
+        QVERIFY(item("saveErrorBanner")->property("detail").toString().contains(path));
+        const auto failed = commands.execute("ui_timeline_run_command", {{"command", "saveDocument"},
+            {"timeline_id", QStringLiteral("native-local:%1").arg(model.documentGeneration())}});
+        QVERIFY(!failed.value("ok").toBool());
+        QVERIFY(QJsonDocument::fromVariant(failed).toJson().contains(path.toUtf8()));
+    }
+    void manualSaveShortcutAndFailureBanner() {
+        const auto initialMenus = nt::app::shellMenuDescription("premiere");
+        bool foundSave = false;
+        for (const auto& menu : initialMenus) {
+            for (const auto& entry : menu.items) {
+                if (entry.action != "saveDocument") { continue; }
+                foundSave = true;
+                QVERIFY(!entry.enabled);
+                QVERIFY(!entry.disabledReason.isEmpty());
+                QCOMPARE(entry.sequence, QKeySequence(QKeySequence::Save));
+            }
+        }
+        QVERIFY(foundSave);
+        TestHttpServer http;
+        QVERIFY2(http.base().port() > 0, "This test requires a localhost listener.");
+        QTemporaryDir backup;
+        int requests = 0;
+        bool fail = false;
+        bool saveEnabledInRequest = false;
+        http.setPost([&](const QByteArray&, const QByteArray&) {
+            ++requests;
+            saveEnabledInRequest = view->rootObject()->property("canSaveDocument").toBool();
+            return fail ? QByteArray(R"({"error":{"message":"Save rejected","data":{"code":"BAD_REQUEST","httpStatus":400}}})")
+                : QByteArray(R"({"result":{"data":{"updatedAt":"next"}}})");
+        });
+        nt::server::AutosaveController saver(nt::server::AssetCacheRoot(backup.path()),
+            {http.base(), {}, "manual", backup.path()}, model.undoStack(),
+            [this] { return model.timeline().raw; }, "base");
+        saver.setExternalSync(false);
+        saver.setDebounceMs(60000);
+        QVERIFY(view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(&saver)));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        QVERIFY(model.applyEdit("patchClip", {{"clipId", "c"}, {"patch", QJsonObject{{"name", "Manual"}}}}));
+        QVERIFY(saver.dirty());
+        QCOMPARE(requests, 0);
+        const auto key = QKeySequence(QKeySequence::Save)[0];
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QCOMPARE(requests, 1);
+        QVERIFY(!saveEnabledInRequest);
+        QVERIFY(!saver.dirty());
+        QCOMPARE(item("saveStatus")->property("label").toString(), QString("Saved"));
+        QVERIFY(view->rootObject()->property("manualSaved").toBool());
+        fail = true;
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QCOMPARE(requests, 2);
+        QVERIFY(item("saveErrorBanner")->isVisible());
+        QVERIFY(item("saveErrorBanner")->property("detail").toString().contains("Save rejected"));
+        model.setReadOnly(true);
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QCOMPARE(requests, 2);
+        model.setReadOnly(false);
+        nt::aiassist::AssistantCommands commands(model, clock);
+        commands.setEditor(view->rootObject());
+        fail = false;
+        QVERIFY(saver.saveNow().ok);
+        QVERIFY(!item("saveErrorBanner")->isVisible());
+        const auto result = commands.execute("ui_timeline_run_command", {{"command", "saveDocument"},
+            {"timeline_id", QStringLiteral("native-local:%1").arg(model.documentGeneration())}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(QJsonDocument::fromVariant(result).toJson()));
+        QCOMPARE(requests, 4);
+        QTRY_VERIFY_WITH_TIMEOUT(!view->rootObject()->property("manualSaved").toBool(), 3000);
+    }
     void closedMenusCreateNoItemsDuringEditsAndScroll() {
         MenuItemCreationProbe probe;
         const auto teardown = qScopeGuard([this] { view.reset(); });
@@ -1166,7 +1354,7 @@ private slots:
         };
         reset();
         QStringList problems;
-        int ran = 0, off = 0;
+        int ran = 0, off = 0, unavailableSave = 0;
         const QSet<QString> accountActions{"accountSignIn", "accountOtherServer", "accountSwitchServer", "shareTimeline"};
         QSet<QString> unavailableAccountActions;
         const auto visit = [&](auto&& self, const std::vector<nt::app::ShellMenuItem>& items, const QString& path) -> void {
@@ -1176,6 +1364,7 @@ private slots:
                 if (!entry.children.empty()) { self(self, entry.children, name); continue; }
                 if (!entry.enabled) {
                     ++off;
+                    if (entry.action == "saveDocument") { ++unavailableSave; }
                     if (accountActions.contains(entry.action)) { unavailableAccountActions.insert(entry.action); }
                     if (entry.disabledReason.isEmpty()) { problems << name + " is off with no reason"; }
                     continue;
@@ -1198,7 +1387,9 @@ private slots:
         // while two clips are selected, Remove Filler Words with no filler word, and File > Publish
         // to Cloud, Synchronize and the account actions with no account.
         QCOMPARE(unavailableAccountActions, accountActions);
-        const int editingOff = off - int(unavailableAccountActions.size());
+        // This fixture has no save target.
+        QCOMPARE(unavailableSave, 1);
+        const int editingOff = off - int(unavailableAccountActions.size()) - unavailableSave;
         if (rich) { QVERIFY2(editingOff < 17, qPrintable(QString::number(editingOff))); } else { QVERIFY(editingOff > 10); }
         source->setProperty("asset", QVariantMap{});
     }
@@ -1366,7 +1557,7 @@ private slots:
         QTest::addColumn<QString>("path");
         QTest::addColumn<QStringList>("labels");
         QTest::newRow("file") << "File" << QStringList{"Open Recent", "Open Timeline…", "New Timeline", "---",
-            "New Music Project…", "---", "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
+            "Save", "---", "New Music Project…", "---", "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
             "Project Settings…", "---", "Publish to Cloud…", "Synchronize…", "---",
             "Sign In to NodeTool Cloud…", "Sign In to Another Server…", "Switch Cloud Server…", "Share…", "---", "Settings…", "Quit"};
         QTest::newRow("edit") << "Edit" << QStringList{"Undo", "Redo", "---", "Cut", "Copy", "Paste", "Paste Insert", "Paste Attributes…", "---",

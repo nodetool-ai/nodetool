@@ -158,6 +158,8 @@ int main(int argc, char** argv) {
             } else if (cmd == u"sync") {
                 save.setExternalSync(command.value("on").toBool());
                 reply({{"ok", true}});
+            } else if (cmd == u"saveDocument") {
+                reply(QJsonObject::fromVariantMap(save.saveDocument()));
             } else if (cmd == u"saveNow") {
                 reply(resultJson(save.saveNow()));
             } else if (cmd == u"undo") {

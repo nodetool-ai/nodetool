@@ -177,9 +177,11 @@ constexpr const char* kCloud = "https://nt.example";
 // `mutex_` guards the rows.
 class MemoryDrafts final : public nodetool::account::DraftStore {
 public:
+    std::atomic<bool> rejectWrites{false};
     std::optional<std::string> put(const nodetool::account::CloudDocumentKey& key,
                                    const nodetool::account::CloudBase& base, const std::string& draft) override {
         const std::lock_guard lock(mutex_);
+        if (rejectWrites.load()) { return std::nullopt; }
         rows_[key.documentId] = {key, "d" + std::to_string(++next_), base, draft, {}, {}};
         return rows_[key.documentId].draftId;
     }
@@ -3550,6 +3552,31 @@ private slots:
         QCOMPARE(withRate.value("fps").toInt(), 24);
     }
 
+    void cloudManualSaveClearsARecoveredWriteError() {
+        CloudSaverRig rig;
+        TimelineModel model;
+        model.setTimeline(makeTimeline({1, 2}));
+        nt::account::CloudTimelineSaver saver(model, rig.session, rig.options());
+        QTRY_VERIFY(!model.readOnly());
+        rig.drafts.rejectWrites = true;
+        QVERIFY(model.applyEdit("setProjectSettings", QJsonObject{{"fps", 24}, {"width", 1920}, {"height", 1080}}));
+        QVERIFY(!saver.saveDocument().value("ok").toBool());
+        QVERIFY(!saver.error().isEmpty());
+        rig.drafts.rejectWrites = false;
+        QVERIFY(saver.saveDocument().value("ok").toBool());
+        QVERIFY(saver.error().isEmpty());
+    }
+
+    void cloudManualSaveRejectsAnEmptyDocument() {
+        CloudSaverRig rig;
+        TimelineModel model;
+        model.setTimeline(makeTimeline({1, 2}));
+        nt::account::CloudTimelineSaver saver(model, rig.session, rig.options());
+        QTRY_VERIFY(!model.readOnly());
+        model.close();
+        QVERIFY(!saver.saveDocument().value("ok").toBool());
+    }
+
     // Review F1: every change of the undo stack reaches the cloud document,
     // through the saver itself: a settings-only change, an undo and a redo.
     // The last one is in the local drafts when the window goes.
@@ -3572,6 +3599,13 @@ private slots:
         model.undoStack()->redo();
         QCOMPARE(fpsOf(document->content()), 24);
 
+        // Manual Save persists the last edit without waiting for the draft tick.
+        QVERIFY(saver->saveDocument().value("ok").toBool());
+        const auto savedRows = rig.drafts.list({}, {}).drafts;
+        QCOMPARE(savedRows.size(), std::size_t(1));
+        QCOMPARE(fpsOf(QString::fromStdString(savedRows[0].draft)), 24);
+        model.setReadOnly(true);
+        QVERIFY(!saver->saveDocument().value("ok").toBool());
         // Closing right after the change keeps it on this computer.
         saver.reset();
         const auto rows = rig.drafts.list({}, {}).drafts;

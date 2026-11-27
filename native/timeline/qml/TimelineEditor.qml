@@ -10,6 +10,64 @@ import NodeTool.UiPrimitives as Ui
 
 Controls.Control {
     id: root
+    objectName: "timelineEditor"
+    property QtObject documentSession: typeof nativeSession !== "undefined" ? nativeSession : null
+    readonly property bool canSaveDocument: !timeline.readOnly && !saveInProgress && !(saver && (saver.conflict || saver.saving)) && (cloudSaver !== null || (documentSession !== null ? documentSession.canSave : saver !== null))
+    property bool saveInProgress: false
+    property string manualSaveError: ""
+    property bool manualSaved: false
+    Timer { id: savedTimer; interval: 2000; onTriggered: root.manualSaved = false }
+    Connections {
+        target: root.timeline
+        function onChanged() { savedTimer.stop(); root.manualSaved = false }
+        function onDocumentReplaced() {
+            savedTimer.stop()
+            root.manualSaved = false
+            root.manualSaveError = ""
+        }
+    }
+    function clearManualSaveFeedback() {
+        savedTimer.stop()
+        manualSaved = false
+        manualSaveError = ""
+    }
+    onSaverChanged: clearManualSaveFeedback()
+    onCloudSaverChanged: clearManualSaveFeedback()
+    onDocumentSessionChanged: clearManualSaveFeedback()
+    Connections {
+        target: root.saver
+        ignoreUnknownSignals: true
+        function onSaved() { root.manualSaveError = "" }
+    }
+    Connections {
+        target: root.cloudDocument
+        function onStateChanged() {
+            if (root.cloudDocument.syncStatus === CloudDocument.SavedToCloud) root.manualSaveError = ""
+        }
+    }
+    Connections {
+        target: root.cloudSaver
+        ignoreUnknownSignals: true
+        function onErrorChanged() {
+            if (root.cloudSaver.error === "") root.manualSaveError = ""
+        }
+    }
+    function saveDocument() {
+        if (!canSaveDocument) return false
+        clearManualSaveFeedback()
+        const target = cloudSaver || documentSession || saver
+        saveInProgress = true
+        try {
+            const result = target.saveDocument()
+            const ok = result !== undefined && result !== null && result.ok === true
+            manualSaveError = ok || (result && result.conflict) ? "" : (result && result.error || "Could not save the document.")
+            manualSaved = ok
+            if (manualSaved) savedTimer.restart()
+            return ok
+        } finally {
+            saveInProgress = false
+        }
+    }
     required property TimelineModel timeline
     required property PlaybackClock clock
     Binding { target: root.timeline.automationRecorder; property: "clock"; value: root.clock; restoreMode: Binding.RestoreNone }
@@ -221,6 +279,7 @@ Controls.Control {
                 Layout.fillWidth: true
                 timeline: root.timeline
                 autosave: root.saver
+                manualSaved: root.manualSaved
                 cloudDocument: root.cloudDocument
                 cloudAccount: root.cloudAccount
                 accountServers: root.accountServers
@@ -244,7 +303,7 @@ Controls.Control {
                 onClicked: dockCanvas.rightCollapsed = !dockCanvas.rightCollapsed
             }
         }
-        SaveBanners { Layout.fillWidth: true; autosave: root.saver }
+        SaveBanners { Layout.fillWidth: true; autosave: root.saver; manualError: root.manualSaveError }
         DocumentFileBanner { Layout.fillWidth: true; folder: root.projectFolder }
         ProjectLockBanner { Layout.fillWidth: true; Layout.leftMargin: Ui.Metrics.md; Layout.rightMargin: Ui.Metrics.md; lock: root.projectFolder.lock }
         DockCanvas {

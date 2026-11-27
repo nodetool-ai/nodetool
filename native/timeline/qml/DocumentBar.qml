@@ -12,6 +12,7 @@ Rectangle {
     objectName: "documentBar"
     required property TimelineModel timeline
     property QtObject autosave: null
+    property bool manualSaved: false
     // An open cloud timeline. Its synchronization status replaces the save
     // status.
     property CloudDocument cloudDocument: null
@@ -87,6 +88,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             // Without an autosave it stays idle and hidden.
             autosave: bar.cloudDocument === null ? bar.autosave : null
+            manualSaved: bar.cloudDocument === null && bar.manualSaved
             compact: bar.width < TimelineMetrics.compactDocumentBarWidth
         }
         Loader {

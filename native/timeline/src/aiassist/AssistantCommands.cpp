@@ -949,6 +949,10 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     }
     if ((!ran || command->mustChange) && !changed && added == 0) {
         setup.restoreAll();
+        if (id == u"saveDocument" && m_editor) {
+            const QString error = m_editor->property("manualSaveError").toString();
+            if (!error.isEmpty()) { return failure(error); }
+        }
         return failure(command->runs == Runs::Edit || command->mustChange ? QStringLiteral("%1 changed nothing. Check clip locks, the ids and the values.").arg(id)
                                                    : QStringLiteral("%1 could not run on the current state. Check the selection, the playhead and clip locks.").arg(id));
     }

@@ -12,6 +12,8 @@
 #include "edit/sourceEdit/SourceViewerState.h"
 #include "edit/trim/TrimMode.h"
 #include "ui/TimelineViewState.h"
+#include "wiring/w/SceneItems.h"
+#include "wiring/KeyActions.h"
 
 #include <QJsonArray>
 #include <QQmlEngine>
@@ -26,6 +28,27 @@ using menu::anyTarget;
 using menu::clipTargets;
 using menu::gestures;
 using menu::hasEditor;
+
+QQuickItem* saveHost(const QVariantMap& context) {
+    return nt::wiring::w::windowItem(gestures(context), QStringLiteral("timelineEditor"));
+}
+const bool saveKeyRegistered = nt::wiring::registerKeyAction({"saveDocument", "Save", {QKeySequence(Qt::CTRL | Qt::Key_S)},
+    [](ClipGestureController& gestures, const QVariantMap&) {
+        auto* host = nt::wiring::w::windowItem(&gestures, QStringLiteral("timelineEditor"));
+        QVariant result;
+        return host && host->property("canSaveDocument").toBool()
+            && QMetaObject::invokeMethod(host, "saveDocument", Q_RETURN_ARG(QVariant, result)) && result.toBool();
+    }});
+const bool saveRegistered = registerShellMenuItem({"File", "saveDocument", "Save", {}, {}, "save", -10,
+    [](const QVariantMap& context) {
+        auto* host = saveHost(context);
+        auto* model = qobject_cast<TimelineModel*>(context.value("timeline").value<QObject*>());
+        return model && !model->timeline().raw.isEmpty() && host && host->property("canSaveDocument").toBool();
+    }, {}, [](const QVariantMap& context) {
+        auto* host = saveHost(context);
+        QVariant result;
+        return host && QMetaObject::invokeMethod(host, "saveDocument", Q_RETURN_ARG(QVariant, result)) && result.toBool();
+    }, QStringLiteral("Open a writable document first.")});
 
 struct Need {
     MenuPredicate enabled;

@@ -52,10 +52,12 @@ bool LocalDocumentSaver::flush() {
     QSaveFile file(m_path);
     const auto& bytes = m_committedBytes;
     if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit()) {
-        emit saveFailed(QStringLiteral("Cannot save %1: %2").arg(m_path, file.errorString()));
+        m_lastError = QStringLiteral("Cannot save %1: %2").arg(m_path, file.errorString());
+        emit saveFailed(m_lastError);
         return false;
     }
     m_dirty = false;
+    m_lastError.clear();
     return true;
 }
 }
