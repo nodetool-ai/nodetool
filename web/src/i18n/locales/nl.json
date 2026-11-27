@@ -6390,7 +6390,17 @@
           "script": "Omzetten naar script",
           "ask": "Vragen erover stellen",
           "askPrompt": "Bekijk de bijgevoegde bestanden en stel voor wat ik ermee kan maken."
-        }
+        },
+        "entitiesHint": "Personages, plekken, stijlen en rekwisieten die je hergebruikt, zodat ze er in elke afbeelding en video hetzelfde uitzien.",
+        "goalHints": {
+          "chat": "Stel een vraag of werk een idee uit. Het antwoord verschijnt als chat.",
+          "image": "Beschrijf een afbeelding. Verzenden opent de afbeeldingmaker met je tekst.",
+          "video": "Beschrijf een korte clip. Verzenden opent de videomaker met je tekst.",
+          "audio": "Typ de tekst die je wilt horen. Verzenden opent de stemmaker, die hem voorleest."
+        },
+        "showAllWays": "Alle manieren om te beginnen tonen",
+        "showAllWaysHint": "Studio's, vaardigheden, kant-en-klare voorbeelden, je projecten en lege documenten",
+        "needHelp": "Nieuw bij NodeTool? Bekijk een tutorial of open een voorbeeld dat direct werkt."
       }
     }
   },

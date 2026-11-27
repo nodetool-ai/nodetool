@@ -6476,7 +6476,17 @@
           "script": "Trasforma in sceneggiatura",
           "ask": "Chiedi informazioni",
           "askPrompt": "Guarda i file allegati e suggerisci cosa potrei crearne."
-        }
+        },
+        "entitiesHint": "Personaggi, luoghi, stili e oggetti che riutilizzi, così appaiono uguali in ogni immagine e video.",
+        "goalHints": {
+          "chat": "Fai una domanda o sviluppa un'idea. La risposta compare come chat.",
+          "image": "Descrivi un'immagine. Invia apre il creatore di immagini con il tuo testo.",
+          "video": "Descrivi una breve clip. Invia apre il creatore di video con il tuo testo.",
+          "audio": "Scrivi il testo da ascoltare. Invia apre il creatore di voce che lo legge ad alta voce."
+        },
+        "showAllWays": "Mostra tutti i modi per iniziare",
+        "showAllWaysHint": "Studi, abilità, esempi pronti, i tuoi progetti e documenti vuoti",
+        "needHelp": "Nuovo su NodeTool? Guarda un tutorial o apri un esempio che funziona così com'è."
       }
     }
   },

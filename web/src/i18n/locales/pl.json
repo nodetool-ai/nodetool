@@ -6562,7 +6562,17 @@
           "script": "Zamień w scenariusz",
           "ask": "Zapytaj o nie",
           "askPrompt": "Przejrzyj dołączone pliki i zaproponuj, co mogę z nich zrobić."
-        }
+        },
+        "entitiesHint": "Postacie, miejsca, style i rekwizyty, których używasz ponownie, aby wyglądały tak samo na każdym obrazie i filmie.",
+        "goalHints": {
+          "chat": "Zadaj pytanie lub rozwiń pomysł. Odpowiedź pojawi się jako czat.",
+          "image": "Opisz obraz. Wyślij otwiera kreator obrazów z twoim tekstem.",
+          "video": "Opisz krótki klip. Wyślij otwiera kreator wideo z twoim tekstem.",
+          "audio": "Wpisz tekst do odsłuchania. Wyślij otwiera kreator głosu, który przeczyta go na głos."
+        },
+        "showAllWays": "Pokaż wszystkie sposoby rozpoczęcia",
+        "showAllWaysHint": "Studia, umiejętności, gotowe przykłady, twoje projekty i puste dokumenty",
+        "needHelp": "Nowy w NodeTool? Obejrzyj samouczek lub otwórz przykład, który działa od razu."
       }
     }
   },

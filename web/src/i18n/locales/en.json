@@ -6390,7 +6390,17 @@
           "script": "Turn into a script",
           "ask": "Ask about them",
           "askPrompt": "Look at the attached files and suggest what I could make from them."
-        }
+        },
+        "entitiesHint": "Characters, places, styles and props you reuse, so they look the same in every picture and video.",
+        "goalHints": {
+          "chat": "Ask a question or talk through an idea. The answer appears as a chat.",
+          "image": "Describe a picture. Send opens the image maker with your words filled in.",
+          "video": "Describe a short clip. Send opens the video maker with your words filled in.",
+          "audio": "Type the words to hear. Send opens the voice maker to read them aloud."
+        },
+        "showAllWays": "Show all ways to start",
+        "showAllWaysHint": "Studios, skills, ready-made examples, your projects and blank documents",
+        "needHelp": "New to NodeTool? Watch a tutorial, or open an example that runs as is."
       }
     }
   },

@@ -6390,7 +6390,17 @@
           "script": "Tee käsikirjoitukseksi",
           "ask": "Kysy niistä",
           "askPrompt": "Katso liitetyt tiedostot ja ehdota, mitä voisin tehdä niistä."
-        }
+        },
+        "entitiesHint": "Hahmot, paikat, tyylit ja rekvisiitta, joita käytät uudelleen, jotta ne näyttävät samoilta jokaisessa kuvassa ja videossa.",
+        "goalHints": {
+          "chat": "Kysy kysymys tai mieti ideaa. Vastaus näkyy keskusteluna.",
+          "image": "Kuvaile kuva. Lähetä avaa kuvatyökalun tekstisi kanssa.",
+          "video": "Kuvaile lyhyt leike. Lähetä avaa videotyökalun tekstisi kanssa.",
+          "audio": "Kirjoita kuultava teksti. Lähetä avaa puhetyökalun, joka lukee sen ääneen."
+        },
+        "showAllWays": "Näytä kaikki aloitustavat",
+        "showAllWaysHint": "Studiot, taidot, valmiit esimerkit, projektisi ja tyhjät dokumentit",
+        "needHelp": "Uusi NodeToolissa? Katso opetusvideo tai avaa esimerkki, joka toimii sellaisenaan."
       }
     }
   },

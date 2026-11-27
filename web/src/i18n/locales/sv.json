@@ -6390,7 +6390,17 @@
           "script": "Gör om till manus",
           "ask": "Fråga om dem",
           "askPrompt": "Titta på de bifogade filerna och föreslå vad jag kan göra av dem."
-        }
+        },
+        "entitiesHint": "Figurer, platser, stilar och rekvisita som du återanvänder, så att de ser likadana ut i varje bild och video.",
+        "goalHints": {
+          "chat": "Ställ en fråga eller resonera kring en idé. Svaret visas som en chatt.",
+          "image": "Beskriv en bild. Skicka öppnar bildskaparen med din text.",
+          "video": "Beskriv ett kort klipp. Skicka öppnar videoskaparen med din text.",
+          "audio": "Skriv texten du vill höra. Skicka öppnar röstskaparen som läser upp den."
+        },
+        "showAllWays": "Visa alla sätt att börja",
+        "showAllWaysHint": "Studior, färdigheter, färdiga exempel, dina projekt och tomma dokument",
+        "needHelp": "Ny i NodeTool? Titta på en självstudie eller öppna ett exempel som fungerar direkt."
       }
     }
   },

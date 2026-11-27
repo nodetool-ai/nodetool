@@ -6390,7 +6390,17 @@
           "script": "Als Skript übernehmen",
           "ask": "Fragen dazu stellen",
           "askPrompt": "Sieh dir die angehängten Dateien an und schlage vor, was ich daraus machen könnte."
-        }
+        },
+        "entitiesHint": "Figuren, Orte, Stile und Requisiten, die du wiederverwendest, damit sie in jedem Bild und Video gleich aussehen.",
+        "goalHints": {
+          "chat": "Stelle eine Frage oder denke eine Idee durch. Die Antwort erscheint als Chat.",
+          "image": "Beschreibe ein Bild. Senden öffnet den Bildersteller mit deinem Text.",
+          "video": "Beschreibe einen kurzen Clip. Senden öffnet den Videoersteller mit deinem Text.",
+          "audio": "Tippe den Text, den du hören willst. Senden öffnet die Sprachausgabe, die ihn vorliest."
+        },
+        "showAllWays": "Alle Startmöglichkeiten zeigen",
+        "showAllWaysHint": "Studios, Skills, fertige Beispiele, deine Projekte und leere Dokumente",
+        "needHelp": "Neu bei NodeTool? Sieh dir ein Tutorial an oder öffne ein Beispiel, das sofort läuft."
       }
     }
   },

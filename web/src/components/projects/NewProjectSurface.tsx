@@ -720,6 +720,11 @@ const NewProjectSurface = ({
   // output.
   const firstResult = useOnboardingStore((state) => state.firstResult);
   const showFirstRun = showOnboarding && !firstResult;
+  // Until the first result, Home shows only the first-run starters, the
+  // prompt and the main creation cards. Skills, Studios, examples, recent
+  // work and blank documents wait behind one "Show all ways to start".
+  const [showAllWays, setShowAllWays] = useState(false);
+  const simpleHome = showFirstRun && !showAllWays;
   // The first task fills the prompt, then starts it on the next render, once
   // `handleStart` reads the new prompt.
   const [pendingFirstTask, setPendingFirstTask] = useState<string | null>(null);
@@ -2701,20 +2706,31 @@ const NewProjectSurface = ({
                     onChange={handleAttachFiles}
                     style={{ display: "none" }}
                   />
-                  <EditorButton
-                    variant="text"
-                    color="inherit"
-                    density="normal"
-                    startIcon={<PeopleAltOutlinedIcon />}
-                    onClick={() => setEntityPickerOpen(true)}
-                    sx={composerPillSx}
-                  >
-                    {selectedEntities.length === 0
-                      ? t("pass3_32.projects.home.entitiesNone")
-                      : t("pass3_32.projects.home.entitiesSelected", {
-                          entities: selectedEntities.map((entity) => entity.name).join(", ")
-                        })}
-                  </EditorButton>
+                  {/* Nobody could say what "Entities · none" was
+                      (study-17-I4), so a first run without an entity does
+                      not show it. The "@" menu still reaches entities. */}
+                  {!(simpleHome && (entities ?? []).length === 0) && (
+                    <Tooltip
+                      title={t("pass3_32.projects.home.entitiesHint")}
+                      placement="bottom"
+                      describeChild
+                    >
+                      <EditorButton
+                        variant="text"
+                        color="inherit"
+                        density="normal"
+                        startIcon={<PeopleAltOutlinedIcon />}
+                        onClick={() => setEntityPickerOpen(true)}
+                        sx={composerPillSx}
+                      >
+                        {selectedEntities.length === 0
+                          ? t("pass3_32.projects.home.entitiesNone")
+                          : t("pass3_32.projects.home.entitiesSelected", {
+                              entities: selectedEntities.map((entity) => entity.name).join(", ")
+                            })}
+                      </EditorButton>
+                    </Tooltip>
+                  )}
                   {goal === "chat" && (
                   <EditorButton
                     ref={modelButtonRef}
@@ -2734,7 +2750,9 @@ const NewProjectSurface = ({
                   </EditorButton>
                   )}
                   {/* Off: the work files into the open project. On: the next
-                      send or card makes a project named after the prompt. */}
+                      send or card makes a project named after the prompt.
+                      A first run has one project, so the toggle waits. */}
+                  {!simpleHome && (
                   <Tooltip
                     title={t("pass3_32.projects.home.newProjectHint")}
                     placement="bottom"
@@ -2763,6 +2781,7 @@ const NewProjectSurface = ({
                       {t("pass3_32.projects.home.newProject")}
                     </EditorButton>
                   </Tooltip>
+                  )}
                   <Box sx={{ flex: 1 }} />
                   {estimate && (
                     <Box
@@ -2815,17 +2834,33 @@ const NewProjectSurface = ({
                 aria-label={t("pass3_32.projects.home.goals.label")}
               >
                 {HOME_GOALS.map((item) => (
-                  <Chip
+                  <Tooltip
                     key={item.goal}
-                    icon={item.icon}
-                    label={t(`pass3_32.projects.home.goals.${item.goal}`)}
-                    active={goal === item.goal}
-                    onClick={() => setGoal(item.goal)}
-                  />
+                    title={t(`pass3_32.projects.home.goalHints.${item.goal}`)}
+                    placement="bottom"
+                    describeChild
+                  >
+                    <Chip
+                      icon={item.icon}
+                      label={t(`pass3_32.projects.home.goals.${item.goal}`)}
+                      active={goal === item.goal}
+                      onClick={() => setGoal(item.goal)}
+                    />
+                  </Tooltip>
                 ))}
               </FlexRow>
-
-              {starters.length > 0 && (
+              {/* A first run says what the picked kind does, in place of the
+                  skill row, which waits behind "Show all ways to start". */}
+              {simpleHome && (
+                <Caption
+                  color="secondary"
+                  aria-live="polite"
+                  sx={{ maxWidth: INTRO_TEXT_WIDTH, alignSelf: "center", textAlign: "center" }}
+                >
+                  {t(`pass3_32.projects.home.goalHints.${goal}`)}
+                </Caption>
+              )}
+              {!simpleHome && starters.length > 0 && (
                 <FlexColumn gap={SPACING.md} align="center">
                   <FlexRow
                     justify="center"
@@ -2917,17 +2952,33 @@ const NewProjectSurface = ({
             </Box>
           </FlexColumn>
 
-          {/* Studios name an outcome and open an existing surface with
-              presets chosen. */}
-          <StartStudios onSkill={handleStudioSkill} onFlow={handleCreationCard} />
-
-          <RecentProjects />
-
-          {/* Examples are a place to browse, so they sit after the ways to
-              make something and the way back into recent work. */}
-          <ExploreExamples />
-
-          {projectWork}
+          {simpleHome ? (
+            <FlexColumn align="center" gap={SPACING.sm}>
+              <EditorButton
+                variant="outlined"
+                density="normal"
+                aria-expanded={false}
+                startIcon={<ExpandMoreIcon />}
+                onClick={() => setShowAllWays(true)}
+              >
+                {t("pass3_32.projects.home.showAllWays")}
+              </EditorButton>
+              <Caption color="muted" sx={{ textAlign: "center" }}>
+                {t("pass3_32.projects.home.showAllWaysHint")}
+              </Caption>
+            </FlexColumn>
+          ) : (
+            <>
+              {/* Studios name an outcome and open an existing surface with
+                  presets chosen. */}
+              <StartStudios onSkill={handleStudioSkill} onFlow={handleCreationCard} />
+              <RecentProjects />
+              {/* Examples are a place to browse, so they sit after the ways to
+                  make something and the way back into recent work. */}
+              <ExploreExamples />
+              {projectWork}
+            </>
+          )}
         </FlexColumn>
 
         <Box sx={{ flex: 1, minHeight: SPACING.xxxl }} />
@@ -2946,12 +2997,20 @@ const NewProjectSurface = ({
         >
           <Divider />
           <FlexRow align="baseline" gap={SPACING.md} wrap>
-            <Caption sx={{ ...EYEBROW, color: "text.secondary" }}>
-              {t("pass3_32.projects.home.blankDocument")}
-            </Caption>
-            <Caption color="muted">
-              {t("pass3_32.projects.home.blankDocumentDescription")}
-            </Caption>
+            {simpleHome ? (
+              <Caption color="secondary">
+                {t("pass3_32.projects.home.needHelp")}
+              </Caption>
+            ) : (
+              <>
+                <Caption sx={{ ...EYEBROW, color: "text.secondary" }}>
+                  {t("pass3_32.projects.home.blankDocument")}
+                </Caption>
+                <Caption color="muted">
+                  {t("pass3_32.projects.home.blankDocumentDescription")}
+                </Caption>
+              </>
+            )}
             <Box sx={{ flex: 1 }} />
             <EditorButton
               variant="text"
@@ -2968,6 +3027,7 @@ const NewProjectSurface = ({
               {t("pass3_32.projects.home.tutorials")}
             </EditorButton>
           </FlexRow>
+          {!simpleHome && (
           <Box
             sx={{
               display: "grid",
@@ -3021,6 +3081,7 @@ const NewProjectSurface = ({
               </EditorButton>
             ))}
           </Box>
+          )}
         </FlexColumn>
       </FlexColumn>
 
