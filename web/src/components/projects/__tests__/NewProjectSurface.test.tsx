@@ -986,7 +986,7 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(addNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("so 1 attached file stay")
+          content: expect.stringContaining("Left on this screen: 1 attached file.")
         })
       )
     );
@@ -1163,7 +1163,7 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(addNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("2 attached files stay")
+          content: expect.stringContaining("Left on this screen: 2 attached files.")
         })
       )
     );
@@ -1729,7 +1729,9 @@ describe("NewProjectSurface", () => {
     expect(screen.getByRole("button", { name: "Files · 1" })).toBeInTheDocument();
   });
 
-  it("writes an entity picked from `@` into the prompt as its token", async () => {
+  // UX research study 23: the raw `entity://e1` token read as broken text,
+  // and only the pill reached the picture maker.
+  it("writes an entity picked from `@` by name and adds it to the pill", async () => {
     renderSurface();
     const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     await userEvent.type(prompt, "A spot lit by @auro");
@@ -1737,7 +1739,10 @@ describe("NewProjectSurface", () => {
     const menu = await screen.findByRole("listbox", { name: "Entities" });
     await userEvent.click(within(menu).getByText("Aurora lamp"));
 
-    expect(prompt).toHaveValue("A spot lit by entity://e1 ");
+    expect(prompt).toHaveValue("A spot lit by Aurora lamp ");
+    expect(
+      screen.getByRole("button", { name: /^Entities · Aurora lamp/ })
+    ).toBeInTheDocument();
   });
 
   // The composer opens chat; the guided cards open their own flows.
@@ -2650,12 +2655,14 @@ describe("NewProjectSurface", () => {
         expect.objectContaining({ mode: "video" })
       )
     );
-    // Create sends no entity mentions yet, so the picked entity is named as
-    // left behind.
-    await waitFor(() =>
-      expect(addNotification).toHaveBeenCalledWith(
-        expect.objectContaining({ content: expect.stringContaining("Aurora lamp") })
-      )
+    // Create carries the picked entity as its token, which the server
+    // expands when the take is generated (UX research study 23).
+    expect(openCreateSession).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ prompt: expect.stringContaining("entity://e1") })
+    );
+    expect(addNotification).not.toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.stringContaining("Aurora lamp") })
     );
   });
 
