@@ -228,7 +228,7 @@ adds to the first or throws it away:
 
 | Fold | Channels | Result |
 |---|---|---|
-| add | `offsetX`, `offsetY`, `rotation`, `rotationX`, `rotationY`, `blur`, `brightness`, `hue`, `temperature`, `tint`, `cameraAzimuth`, `cameraElevation`, `cameraFov` | Values sum, so a shake and a slide both move the clip |
+| add | `offsetX`, `offsetY`, `rotation`, `rotationX`, `rotationY`, `blur`, `brightness`, `hue`, `temperature`, `tint`, `cameraAzimuth`, `cameraElevation`, `cameraFov`, `cameraPosX`, `cameraPosY`, `cameraPosZ`, `cameraTargetX`, `cameraTargetY`, `cameraTargetZ`, `cameraRoll` | Values sum, so a shake and a slide both move the clip |
 | multiply | `scale`, `scaleX`, `scaleY`, `opacity`, `saturation`, `contrast`, `cameraZoom` | Values multiply, so two half-opacity ramps give a quarter |
 | min | `wipeProgress` | The tightest wipe wins |
 | replace | `positionX`, `positionY`, `anchorX`, `anchorY`, `trimStart`, `trimEnd` | One value survives — the last animation in document order. The other is discarded |

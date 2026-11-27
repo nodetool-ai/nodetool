@@ -20,15 +20,25 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_MODEL3D_STYLE,
+  computeModel3DBakeHash,
   type ClipModel3DStyle,
   type TimelineClip,
   type TimelineSequence,
   type TimelineTrack
 } from "@nodetool-ai/timeline";
-import type {
-  Model3DRenderFrame,
-  Model3DSessionOptions
+import {
+  applyOperations,
+  createModel3DFile,
+  parseOperation,
+  serializeModel3D
+} from "@nodetool-ai/model3d";
+import {
+  MODEL3D_RENDER_PASSES,
+  type Model3DRenderFrame,
+  type Model3DRenderPass,
+  type Model3DSessionOptions
 } from "@nodetool-ai/video-nodes/nodes/model3d/render3d-core";
+import { PREVIEW_PASSES } from "../src/capabilities/timelines.specs.js";
 
 const { renderFrames } = vi.hoisted(() => ({
   renderFrames:
@@ -285,6 +295,42 @@ describe("model3d layers on the agent frame path", () => {
     expect(await pixelAt(result.frames[0]!.png, W / 2, H / 2)).toEqual([255, 0, 0, 255]);
   });
 
+  it("folds the free camera channels and reports the pose it drew", async () => {
+    const cube = model3dClip({ id: "cube", style: {
+      camera: {
+        mode: "free", azimuthDeg: 45, elevationDeg: 25, fovDeg: 40, zoom: 1,
+        position: [0, 1, 4], target: [0, 1, 0], rollDeg: 5
+      }
+    } });
+    cube.motionBlur = { samplesPerFrame: 1 };
+    cube.animations = [{
+      id: "camera", role: "in", preset: "custom", durationMs: 2000, easing: "linear",
+      custom: { curves: [
+        { property: "cameraPosZ", keyframes: [{ t: 0, value: 0 }, { t: 1, value: -2 }] },
+        { property: "cameraTargetX", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] },
+        { property: "cameraRoll", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 20 }] },
+        { property: "cameraFov", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 10 }] }
+      ] }
+    }];
+    const result = await renderTimelineFrames({
+      sequence: sequenceOf([cube]), timesMs: [0, 1000], width: W,
+      loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
+    });
+    expect(result.complete).toBe(true);
+    const requested = renderFrames.mock.calls.flatMap(([, , frames]) => frames);
+    // Two poses that differ only in the free fields are two renders.
+    expect(requested).toHaveLength(2);
+    expect(requested[0]!.camera).toMatchObject({
+      mode: "free", position: [0, 1, 4], target: [0, 1, 0], rollDeg: 5, fovDeg: 40
+    });
+    expect(requested[1]!.camera).toMatchObject({
+      mode: "free", position: [0, 1, 3], target: [0.5, 1, 0], rollDeg: 15, fovDeg: 45
+    });
+    expect(result.frames[1]!.layers[0]!.camera).toMatchObject({
+      mode: "free", position: [0, 1, 3], target: [0.5, 1, 0], roll_deg: 15, fov_deg: 45
+    });
+  });
+
   it("uses the per-clip shutter clock for a 3D matte source", async () => {
     const key = model3dClip({ id: "key", trackId: "track-1", style: {
       camera: { mode: "orbit", azimuthDeg: 0, elevationDeg: 0, fovDeg: 35, zoom: 1 }
@@ -335,6 +381,89 @@ describe("model3d layers on the agent frame path", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+
+  it("offers the passes the renderer draws", () => {
+    expect([...PREVIEW_PASSES]).toEqual([...MODEL3D_RENDER_PASSES]);
+  });
+
+  it("asks the renderer for the pass on every 3D frame and reports it", async () => {
+    const clay = await renderTimelineFrames({
+      sequence: sequenceOf([model3dClip({ id: "cube" })]),
+      timesMs: [0, 2000],
+      width: W,
+      pass: "clay",
+      loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
+    });
+    expect(clay.complete).toBe(true);
+    const requested = renderFrames.mock.calls.flatMap(([, , frames]) => frames);
+    expect(requested.map((frame) => frame.pass)).toEqual(["clay", "clay"]);
+    expect(clay.frames.map((frame) => frame.layers[0]!.pass)).toEqual([
+      "clay",
+      "clay"
+    ]);
+
+    renderFrames.mockClear();
+    const beauty = await framesOf([model3dClip({ id: "cube" })], [0]);
+    const plain = renderFrames.mock.calls.flatMap(([, , frames]) => frames);
+    // A beauty frame is the request it was before passes existed.
+    expect(plain[0]).not.toHaveProperty("pass");
+    expect(beauty.frames[0]!.layers[0]!.pass).toBeUndefined();
+  });
+
+  it("reports a layer that is not 3D when a pass is asked for", async () => {
+    const title: TimelineClip = {
+      id: "title", name: "Title", trackId: "track-1",
+      startMs: 0, durationMs: 4000, mediaType: "shape", status: "generated", sourceType: "generated",
+      shapeStyle: { kind: "rect", fill: "#ffffff", x: 0, y: 0, width: 0.2, height: 0.2 }
+    };
+    const withPass = await renderTimelineFrames({
+      sequence: sequenceOf([model3dClip({ id: "cube" }), title]),
+      timesMs: [1000],
+      width: W,
+      pass: "depth",
+      loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
+    });
+    expect(withPass.complete).toBe(false);
+    expect(withPass.frames[0]!.degraded).toEqual([
+      { clip_id: "title", clip_name: "Title", reason: "render_pass_not_applied" }
+    ]);
+    // The same frame in beauty is complete: the degradation is the pass's.
+    const beauty = await framesOf([model3dClip({ id: "cube" }), title], [1000]);
+    expect(beauty.complete).toBe(true);
+    expect(beauty.frames[0]!.degraded).toEqual([]);
+  });
+
+  it("draws a baked clip live in a pass other than beauty", async () => {
+    const baked = model3dClip({
+      id: "cube",
+      style: { background: { transparent: false, color: "#102030" } }
+    });
+    baked.model3dStyle!.bake = {
+      assetId: "asset-bake",
+      dependencyHash: computeModel3DBakeHash(baked, { fps: 30, width: 1920, height: 1080 })
+    };
+    const clay = await renderTimelineFrames({
+      sequence: sequenceOf([baked]),
+      timesMs: [1000],
+      width: W,
+      pass: "clay",
+      loadAsset: async () => new Uint8Array([0x67, 0x6c, 0x54, 0x46])
+    });
+    expect(clay.frames[0]!.layers[0]).toMatchObject({ kind: "model3d", pass: "clay" });
+    expect(renderFrames).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses an unknown pass and lists the passes", async () => {
+    const context = new ProcessingContext({ jobId: "bad-pass", userId: "u1" });
+    const result = await toolForCapabilityName("preview_timeline_frame").process(context, {
+      document: sequenceOf([model3dClip({ id: "cube" })]),
+      times_ms: [1000], width: W, pass: "wireframe"
+    });
+    expect(result).toMatchObject({
+      error: expect.stringMatching(/pass must be one of beauty, clay, depth, normal.*"wireframe"/)
+    });
+    expect(renderFrames).not.toHaveBeenCalled();
   });
 
   it("degrades to model3d_unavailable when the renderer will not launch", async () => {
@@ -497,5 +626,178 @@ describe.skipIf(!chromePath)("model3d layers, real headless render", () => {
     // An opaque background means every pixel of the layer is drawn, so the
     // frame is opaque wherever the layer covers it — which is all of it.
     expect((await pixelAt(frames[0]!.png, W / 2, H / 2))[3]).toBe(255);
+  }, 180_000);
+
+  it("draws a free camera frame from its eye toward its target", async () => {
+    process.env.CHROME_PATH = chromePath!;
+    const actual = await vi.importActual<
+      typeof import("@nodetool-ai/video-nodes/nodes/model3d/render3d-headless")
+    >("@nodetool-ai/video-nodes/nodes/model3d/render3d-headless");
+    renderFrames.mockImplementation(actual.renderGlbFramesHeadless);
+
+    const glb = createTriangleGlb();
+    const render = async (
+      camera: Pick<ClipModel3DStyle["camera"], "mode" | "position" | "target">
+    ) => {
+      const { frames } = await renderTimelineFrames({
+        sequence: sequenceOf([
+          model3dClip({
+            id: "triangle",
+            style: {
+              lighting: "studio",
+              background: { transparent: false, color: "#102030" },
+              camera: { azimuthDeg: 0, elevationDeg: 0, fovDeg: 35, zoom: 1, ...camera }
+            }
+          })
+        ]),
+        timesMs: [0],
+        width: W,
+        loadAsset: async () => glb
+      });
+      expect(frames[0]!.degraded).toEqual([]);
+      expect(frames[0]!.layers[0]!.skipped).toBeUndefined();
+      return frames[0]!;
+    };
+
+    // In front of the triangle and looking at it, the triangle covers the
+    // middle of the picture. Turned to look away, only the background is.
+    const onTarget = await render({
+      mode: "free", position: [0.3, 0.3, 2], target: [0.3, 0.3, 0]
+    });
+    expect(onTarget.layers[0]!.camera).toMatchObject({
+      mode: "free", position: [0.3, 0.3, 2], target: [0.3, 0.3, 0], roll_deg: 0
+    });
+    const drawn = await pixelAt(onTarget.png, W / 2, H / 2);
+    const away = await render({
+      mode: "free", position: [0.3, 0.3, 2], target: [0.3, 0.3, 4]
+    });
+    const empty = await pixelAt(away.png, W / 2, H / 2);
+    expect(empty).toEqual([16, 32, 48, 255]);
+    expect(drawn).not.toEqual(empty);
+  }, 180_000);
+
+  /**
+   * A small blockout set built the way an agent builds one: a floor, a red
+   * box at the origin and two cameras with the default names, so the second
+   * one is "Camera 2".
+   */
+  function blockoutSet(): Uint8Array {
+    const file = createModel3DFile("Set");
+    applyOperations(
+      file,
+      [
+        { op: "add_object", kind: "plane", name: "floor" },
+        { op: "set_transform", target: "floor", scale: [8, 8, 1] },
+        { op: "add_object", kind: "box", name: "crate", position: [0, 0.5, 0] },
+        { op: "set_material_color", target: "crate", color: "#ff0000" },
+        // Looks at the crate from the front.
+        { op: "add_object", kind: "camera", position: [0, 0.5, 4], lookAt: [0, 0.5, 0] },
+        // Looks away from it, at empty space above the horizon.
+        { op: "add_object", kind: "camera", position: [0, 0.5, 4], lookAt: [0, 30, 40] }
+      ].map(parseOperation)
+    );
+    return serializeModel3D(file);
+  }
+
+  async function realRenderer(): Promise<void> {
+    process.env.CHROME_PATH = chromePath!;
+    const actual = await vi.importActual<
+      typeof import("@nodetool-ai/video-nodes/nodes/model3d/render3d-headless")
+    >("@nodetool-ai/video-nodes/nodes/model3d/render3d-headless");
+    renderFrames.mockImplementation(actual.renderGlbFramesHeadless);
+  }
+
+  const SET_BACKGROUND = { transparent: false, color: "#102030" } as const;
+
+  it("selects a scene camera whose name has a space", async () => {
+    await realRenderer();
+    const glb = blockoutSet();
+    const render = async (sceneCameraName: string) => {
+      const { frames } = await renderTimelineFrames({
+        sequence: sequenceOf([
+          model3dClip({
+            id: "set",
+            style: {
+              lighting: "flat",
+              background: SET_BACKGROUND,
+              camera: { ...DEFAULT_MODEL3D_STYLE.camera, mode: "scene", sceneCameraName }
+            }
+          })
+        ]),
+        timesMs: [0],
+        width: W,
+        loadAsset: async () => glb
+      });
+      expect(frames[0]!.layers[0]!.skipped).toBeUndefined();
+      expect(frames[0]!.degraded).toEqual([]);
+      return pixelAt(frames[0]!.png, W / 2, H / 2);
+    };
+    // "Camera" faces the red crate. "Camera 2" faces away, so its picture is
+    // the background: a wrong match would draw the crate again.
+    const first = await render("Camera");
+    expect(first[0]).toBeGreaterThan(150);
+    expect(first[1]).toBeLessThan(80);
+    expect(await render("Camera 2")).toEqual([16, 32, 48, 255]);
+  }, 180_000);
+
+  it("draws a blockout in clay, one frame per timecode and as a sheet", async () => {
+    await realRenderer();
+    const root = await mkdtemp(join(tmpdir(), "preview-blockout-"));
+    try {
+      await mkdir(join(root, "nodetool-base", "models"), { recursive: true });
+      await writeFile(join(root, "nodetool-base", "models", "set.gltf"), blockoutSet());
+      const context = new ProcessingContext({
+        jobId: "blockout-preview", userId: "u1", workspaceDir: root,
+        environment: { NODETOOL_PACKAGE_ASSETS_DIR: root }
+      });
+      const set = model3dClip({
+        id: "set",
+        assetId: "package://nodetool-base/models/set.gltf",
+        style: {
+          background: SET_BACKGROUND,
+          camera: {
+            ...DEFAULT_MODEL3D_STYLE.camera,
+            mode: "free", position: [0, 0.5, 4], target: [0, 0.5, 0], fovDeg: 40
+          }
+        }
+      });
+      const preview = (pass: Model3DRenderPass | undefined, sheet: boolean) =>
+        toolForCapabilityName("preview_timeline_frame").process(context, {
+          document: sequenceOf([set]),
+          times_ms: [0, 2000, 3900], width: W, pass, sheet
+        }) as Promise<{
+          complete: boolean;
+          pass: string;
+          frames: { time_ms: number; image?: { path: string }; layers: { pass?: string }[] }[];
+          sheet?: { cells: number; image: { path: string } };
+        }>;
+
+      const clay = await preview("clay", false);
+      expect(clay.complete).toBe(true);
+      expect(clay.pass).toBe("clay");
+      expect(clay.frames.map((frame) => frame.time_ms)).toEqual([0, 2000, 3900]);
+      expect(clay.frames.every((frame) => frame.layers[0]!.pass === "clay")).toBe(true);
+      const { readFile } = await import("node:fs/promises");
+      const clayPixel = await pixelAt(
+        new Uint8Array(await readFile(join(root, clay.frames[0]!.image!.path))), W / 2, H / 2
+      );
+      // The red crate is grey in clay: the three channels agree.
+      expect(Math.abs(clayPixel[0] - clayPixel[1])).toBeLessThanOrEqual(4);
+      expect(Math.abs(clayPixel[1] - clayPixel[2])).toBeLessThanOrEqual(4);
+      expect(clayPixel[0]).toBeGreaterThan(40);
+
+      const beauty = await preview(undefined, false);
+      expect(beauty.pass).toBe("beauty");
+      const beautyPixel = await pixelAt(
+        new Uint8Array(await readFile(join(root, beauty.frames[0]!.image!.path))), W / 2, H / 2
+      );
+      expect(beautyPixel[0] - beautyPixel[1]).toBeGreaterThan(60);
+
+      const sheet = await preview("clay", true);
+      expect(sheet.sheet).toMatchObject({ cells: 3 });
+      expect(sheet.frames.every((frame) => frame.image === undefined)).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   }, 180_000);
 });

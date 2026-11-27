@@ -163,7 +163,7 @@ describe("StudioStoryboardPage setup stages", () => {
   it.each([
     ["idea", "Write shots"],
     ["genre", "Generate screenplay"],
-    ["review", "Set up entities"],
+    ["review", "Set up references"],
     ["entities", "Choose the look"],
     ["look", "Generate your storyboard"]
   ] as const)("mounts the %s step, not the board", (stage, primary) => {
@@ -221,7 +221,7 @@ describe("StudioStoryboardPage setup stages", () => {
     expect(screen.getByTestId("board")).toBeInTheDocument();
   });
 
-  // Leaving review again (Entities, Back, Set up entities) must re-project the
+  // Leaving review again (Entities, Back, Set up references) must re-project the
   // script the first pass made. Without `relink` the second extraction throws
   // "already links script", and review can never be left.
   it("re-projects the linked script each time review is left", async () => {
@@ -238,7 +238,7 @@ describe("StudioStoryboardPage setup stages", () => {
     renderPage();
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Set up entities" })
+      screen.getByRole("button", { name: "Set up references" })
     );
 
     await waitFor(() => expect(extract).toHaveBeenCalled());

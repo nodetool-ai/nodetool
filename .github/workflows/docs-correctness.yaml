@@ -103,6 +103,11 @@ jobs:
       - name: Record base commit
         run: echo "BASE_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
+      - name: Rank impact signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/agent-impact.mjs "$RUNNER_TEMP/agent-impact.md"
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         with:
@@ -112,7 +117,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "All prose you write follows docs/WRITING_STYLE.md: concise, concrete, no AI slop (leverage, seamless, robust, comprehensive, it's worth noting, rule-of-three padding). Fix slop you pass in paragraphs you are already editing. Open the PR with the label agent:docs-correctness (gh pr create --label agent:docs-correctness). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
+            --append-system-prompt "Read .github/agent-routines.md before you pick a target and follow it: rank candidates by the signals in ${{ runner.temp }}/agent-impact.md, fix every instance of the theme in the module you choose, and start the PR body with an Impact section. All prose you write follows docs/WRITING_STYLE.md: concise, concrete, no AI slop (leverage, seamless, robust, comprehensive, it's worth noting, rule-of-three padding). Fix slop you pass in paragraphs you are already editing. Open the PR with the label agent:docs-correctness (gh pr create --label agent:docs-correctness). Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Documentation Correctness
 
@@ -164,7 +169,10 @@ jobs:
               This PR is a correction pass, not an editing pass.
             - Do not touch CI workflow files.
             - Do not add new documentation pages — `docs-completeness.yaml` covers gaps.
-            - Keep changes focused — maximum 15 files per PR.
+            - One doc area per PR, such as `docs/cli.md` with the `AGENTS.md`
+              sections about the same commands. Fix every wrong claim in it.
+              Prefer pages that describe hot areas and published user docs. No
+              file cap.
             - Do not commit the `docs-facts/` directory.
 
             ## Before starting

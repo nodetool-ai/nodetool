@@ -1,6 +1,7 @@
-import { accessSync, constants, statSync } from "node:fs";
+import { accessSync, constants, readFileSync, statSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { runtimeLocations, sdServerPath } from "@nodetool-ai/config";
+import { z } from "zod";
 
 /**
  * Credential requirements of the remote providers the runtime registers
@@ -70,7 +71,7 @@ export const KEYED_PROVIDERS: readonly ProviderCredential[] = [
 ];
 
 /** Names a vendor's own SDK reads, accepted like the runtime registry does. */
-const CREDENTIAL_ALIASES: Readonly<Record<string, readonly string[]>> = { FAL_API_KEY: ["FAL_KEY"] };
+export const CREDENTIAL_ALIASES: Readonly<Record<string, readonly string[]>> = { FAL_API_KEY: ["FAL_KEY"] };
 
 /** Providers that an installed pack registers, keyed by pack id. */
 const PACK_PROVIDERS: readonly { readonly id: string; readonly name: string; readonly pack: string }[] = [
@@ -78,7 +79,7 @@ const PACK_PROVIDERS: readonly { readonly id: string; readonly name: string; rea
   { id: "whisper_cpp", name: "whisper.cpp (local)", pack: "whisper-cpp" }
 ];
 
-export type CredentialSource = "env" | "stored" | "claude CLI" | "pack" | "runtime";
+export type CredentialSource = "env" | "stored" | "claude CLI" | "codex CLI" | "pack" | "runtime";
 
 export interface ProviderState {
   readonly id: string;
@@ -121,6 +122,26 @@ export function findClaudeCli(env: NodeJS.ProcessEnv): string | null {
   return null;
 }
 
+/** A ChatGPT login in the Codex CLI's `auth.json`. An API-key login has no tokens. */
+const codexCliLoginSchema = z.object({ tokens: z.object({ access_token: z.string().min(1) }) });
+
+/**
+ * Whether the Codex CLI holds a ChatGPT login (`codex login`), which the
+ * command line's `codex` provider uses when NodeTool has no Codex credential.
+ * Mirrors `codexCliAuthPath` in `@nodetool-ai/cli-providers`.
+ */
+export function hasCodexCliLogin(env: NodeJS.ProcessEnv): boolean {
+  const home = env.HOME?.trim() || env.USERPROFILE?.trim();
+  const codexHome = env.CODEX_HOME?.trim() || (home ? join(home, ".codex") : null);
+  if (!codexHome) { return false; }
+  try {
+    return codexCliLoginSchema.safeParse(JSON.parse(readFileSync(join(codexHome, "auth.json"), "utf8"))).success;
+  } catch {
+    // No login file, or one that is not JSON.
+    return false;
+  }
+}
+
 function credentialSource(name: string, input: ProviderStateInput): CredentialSource | null {
   if (input.storedKeys.has(name)) { return "stored"; }
   return [name, ...CREDENTIAL_ALIASES[name] ?? []].some(candidate => input.env[candidate]) ? "env" : null;
@@ -140,10 +161,14 @@ function hasSdCppRuntime(env: NodeJS.ProcessEnv): boolean {
 
 /** Credential state of every known provider, without reading any secret value. */
 export function providerStates(input: ProviderStateInput): ProviderState[] {
-  const keyed = KEYED_PROVIDERS.map(provider => {
+  const keyed = KEYED_PROVIDERS.map((provider): ProviderState => {
     const sources = provider.credentials.map(name => credentialSource(name, input));
     const usable = sources.every(source => source !== null);
-    return { id: provider.id, name: provider.name, requires: provider.credentials.join(" + "), usable, source: usable ? sources.includes("stored") ? "stored" as const : "env" as const : null };
+    const state = { id: provider.id, name: provider.name, requires: provider.credentials.join(" + "), usable, source: usable ? sources.includes("stored") ? "stored" as const : "env" as const : null };
+    if (!usable && provider.id === "codex" && hasCodexCliLogin(input.env)) {
+      return { ...state, usable: true, source: "codex CLI" };
+    }
+    return state;
   });
   const claude = findClaudeCli(input.env) !== null;
   const sdCpp = hasSdCppRuntime(input.env);

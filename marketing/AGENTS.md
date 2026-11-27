@@ -198,6 +198,12 @@ set in `src/data/languagePages.ts` and pair with the home page.
   the path. Their strings are in `src/i18n/<locale>/chrome.ts`, and the
   catalog card words are in `LocalizedCatalog.tsx`. An English page shows a
   switch to each of its translations.
+- An inline script in `app/layout.tsx` sets `<html lang>` from the path, and
+  unlayered `:lang()` rules at the end of `globals.css` give CJK text system
+  fonts, normal tracking and Japanese phrase wrapping in headings. Translated
+  pages share `public/preview-<locale>.png` (from
+  `scripts/generate-localized-share-images.mjs`) and the keywords in
+  `src/i18n/keywords.ts`. `tests/e2e/cjk-pages.spec.ts` checks all three.
 - Detail pages (`/<locale>/storyboards/<slug>`, `/<locale>/recipes/<slug>`,
   `/<locale>/ad-library/<slug>`, in Chinese, Japanese and Korean) render the English
   page's component with a translated entry. `src/i18n/details.ts` picks each

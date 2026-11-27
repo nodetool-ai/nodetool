@@ -108,8 +108,8 @@ in fork pull requests, the jobs fall back to ccache with the Actions cache.
 | `internal-only-shipper.yaml` | Scheduled agent ships or deletes features gated to dev/internal builds | none/maintenance | Advisory (`continue-on-error`) |
 | `issue-triage.yml` | Labels new issues, flags duplicates, requests repro details | none/maintenance | n/a (read-only) |
 | `jekyll.yml` | Build and deploy the docs site to GitHub Pages on pushes to `main` that change `docs/` | none/maintenance | Required for docs deploy |
-| `logic-bugfixer.yaml` | Scheduled agent models one decidable function, enumerates its inputs, and fixes divergences with a reproduction | none/maintenance | Advisory (`continue-on-error`) |
-| `logic-simplifier.yaml` | Scheduled agent simplifies the logic in one branch-dense function | none/maintenance | Advisory (`continue-on-error`) |
+| `logic-bugfixer.yaml` | Scheduled agent models the decidable functions of one module, enumerates their inputs, and fixes divergences with a reproduction | none/maintenance | Advisory (`continue-on-error`) |
+| `logic-simplifier.yaml` | Scheduled agent simplifies the convoluted functions of one branch-dense module | none/maintenance | Advisory (`continue-on-error`) |
 | `marketing-ci.yml` | Typecheck/lint/build/Playwright smoke for the marketing site; deploys to Cloudflare Workers on push to main | none/maintenance | Required for `marketing/**` |
 | `model-watch.yml` | Weekly scan for new/changed provider models, files issues | none/maintenance | n/a |
 | `mutation-changed.yml` | Daily `nodetool-mutator` on the functions that commits merged to `main` since the last successful scheduled run add or rewrite in the mutation-tested packages; lists survivors | none/maintenance | Advisory |
@@ -419,6 +419,14 @@ shape. `.github/tests/agent-workflows.test.mjs` enforces it in the `lint` leg of
   Claude-authored PRs whose title matches `TITLE_PATTERN`, which covers PRs
   opened before the labels existed. A manual dispatch runs even when a PR is
   open.
+- **Impact ranking.** Every routine except quality-assurance runs
+  `.github/scripts/agent-impact.mjs` before the agent starts. It writes
+  `$RUNNER_TEMP/agent-impact.md`: the areas and files maintainers committed to
+  most in the last 90 days (no bot commits, tests or docs) and the open issues.
+  The agent reads [`.github/agent-routines.md`](../agent-routines.md), ranks its
+  scan's candidates by those signals, fixes every instance of the theme in the
+  module it picks, and opens the PR body with an Impact section. Prompts carry
+  no file or item caps. One theme per PR sets the size.
 - **Recently changed files.** Routines that pick one target per run
   (logic-simplifier, logic-bugfixer, duplicate-unifier, abstraction-improver,
   abstraction-police, performance-optimization, test-coverage,

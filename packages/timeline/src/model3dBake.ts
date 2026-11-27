@@ -9,6 +9,7 @@
  * animation curves and those are resolved by the scene model.
  */
 
+import { model3dFreeCameraPose } from "./model3d.js";
 import { stableSerialize } from "./stableSerialize.js";
 import type {
   ClipModel3DCamera,
@@ -34,13 +35,13 @@ export interface Model3DBakeRenderSettings {
 
 /**
  * One frame's camera as the Blender job takes it: `CameraParams` from
- * `@nodetool-ai/blender-nodes`, plus the two fields `ClipModel3DCamera`
- * carries that the DTO did not have. Declared here rather than imported
- * because this package is pure TypeScript and knows nothing about a runner;
+ * `@nodetool-ai/blender-nodes`, plus the fields `ClipModel3DCamera` carries
+ * that the DTO did not have, the free camera's pose among them. Declared here
+ * rather than imported because this package is pure TypeScript and knows nothing about a runner;
  * the two shapes are checked against each other where they meet.
  */
 export interface Model3DBakeCameraParams {
-  camera_mode: "auto" | "scene" | "orbit";
+  camera_mode: "auto" | "scene" | "orbit" | "free";
   azimuth: number;
   elevation: number;
   fov: number;
@@ -57,6 +58,12 @@ export interface Model3DBakeCameraParams {
   scene_camera_name?: string;
   /** Look-at offset from the bounding-sphere center, world units. */
   target_offset?: [number, number, number];
+  /** `free` mode: the camera eye, glTF world units (Y up). */
+  position?: [number, number, number];
+  /** `free` mode: the look-at point, glTF world units (Y up). */
+  target?: [number, number, number];
+  /** `free` mode: roll in degrees. Positive turns the horizon clockwise. */
+  roll?: number;
 }
 
 /**
@@ -67,9 +74,14 @@ export interface Model3DBakeCameraParams {
 const TRANSPARENT_BACKGROUND_COLOR = "#000000";
 
 /**
- * The clip's camera as one frame of the bake job. `orbit` and `scene` are the
- * only two modes a clip has; the job's `auto` is not reachable from a clip,
+ * The clip's camera as one frame of the bake job. `orbit`, `scene` and `free`
+ * are the modes a clip has; the job's `auto` is not reachable from a clip,
  * which is what makes the reverse mapping total.
+ *
+ * A `free` camera always sends `position`, `target` and `roll`, with the
+ * defaults of {@link model3dFreeCameraPose} filled in, so the Blender op never
+ * has to know them. The other modes send those fields only when the clip
+ * stores them.
  */
 export function model3dBakeCameraParams(
   camera: ClipModel3DCamera,
@@ -99,6 +111,16 @@ export function model3dBakeCameraParams(
   if (camera.targetOffset !== undefined) {
     params.target_offset = [...camera.targetOffset];
   }
+  if (camera.mode === "free") {
+    const pose = model3dFreeCameraPose(camera);
+    params.position = pose.position;
+    params.target = pose.target;
+    params.roll = pose.rollDeg;
+    return params;
+  }
+  if (camera.position !== undefined) params.position = [...camera.position];
+  if (camera.target !== undefined) params.target = [...camera.target];
+  if (camera.rollDeg !== undefined) params.roll = camera.rollDeg;
   return params;
 }
 
@@ -112,7 +134,10 @@ export function clipModel3DCameraFromBakeParams(
   params: Model3DBakeCameraParams
 ): ClipModel3DCamera {
   const camera: ClipModel3DCamera = {
-    mode: params.camera_mode === "scene" ? "scene" : "orbit",
+    mode:
+      params.camera_mode === "scene" || params.camera_mode === "free"
+        ? params.camera_mode
+        : "orbit",
     azimuthDeg: params.azimuth,
     elevationDeg: params.elevation,
     fovDeg: params.fov,
@@ -124,6 +149,9 @@ export function clipModel3DCameraFromBakeParams(
   if (params.target_offset !== undefined) {
     camera.targetOffset = [...params.target_offset];
   }
+  if (params.position !== undefined) camera.position = [...params.position];
+  if (params.target !== undefined) camera.target = [...params.target];
+  if (params.roll !== undefined) camera.rollDeg = params.roll;
   return camera;
 }
 
@@ -137,7 +165,7 @@ export function clipModel3DCameraFromBakeParams(
  * the value has to be is identical on every host for the same input, which a
  * pure-arithmetic hash over a canonically ordered payload is.
  */
-function digest(payload: string): string {
+export function model3dPictureDigest(payload: string): string {
   const hash = (seed: number): number => {
     let acc = seed >>> 0;
     for (let i = 0; i < payload.length; i += 1) {
@@ -156,25 +184,17 @@ function digest(payload: string): string {
 const MODEL3D_BAKE_HASH_VERSION_PREFIX = "model3d-bake-v1:";
 
 /**
- * The hash a `model3d` clip's bake is stored under, and checked against.
- *
- * It names every input the baked picture depends on (§D6): the style without
- * `bake` itself, the glTF asset, the clip's animations (the camera curves and
- * the `orbit` preset among them), the trim window, the duration, the speed,
- * the time remap, and the sequence's fps and size. A change to any of them
- * makes the bake stale and the live 3D layer draws again.
- *
- * Everything else about the clip is deliberately absent: start, track,
- * transform, opacity, effects, mask and matte apply to the baked layer the
- * way they apply to any video clip, so a change to one of them does not need
- * a re-render.
+ * Everything about a clip and its sequence that a render of the clip's span
+ * depends on, apart from the style, which each caller narrows first. The
+ * Blender bake and the Blockout reference both hash this record, so a field
+ * added here makes both stale.
  */
-export function computeModel3DBakeHash(
+export function model3dPictureInputs(
   clip: TimelineClip,
-  sequence: Model3DBakeSequence
-): string {
-  const { bake: _bake, ...style } = clip.model3dStyle ?? {};
-  const payload = `${MODEL3D_BAKE_HASH_VERSION_PREFIX}${stableSerialize({
+  sequence: Model3DBakeSequence,
+  style: Partial<ClipModel3DStyle>
+): Record<string, unknown> {
+  return {
     assetId: clip.currentAssetId,
     style,
     animations: clip.animations,
@@ -187,6 +207,32 @@ export function computeModel3DBakeHash(
     fps: sequence.fps,
     width: sequence.width,
     height: sequence.height
-  })}`;
-  return digest(payload);
+  };
+}
+
+/**
+ * The hash a `model3d` clip's bake is stored under, and checked against.
+ *
+ * It names every input the baked picture depends on (§D6): the style without
+ * `bake` and `reference`, the glTF asset, the clip's animations (the camera
+ * curves and the `orbit` preset among them), the trim window, the duration,
+ * the speed, the time remap, and the sequence's fps and size. A change to any
+ * of them makes the bake stale and the live 3D layer draws again.
+ *
+ * Everything else about the clip is deliberately absent: start, track,
+ * transform, opacity, effects, mask and matte apply to the baked layer the
+ * way they apply to any video clip, so a change to one of them does not need
+ * a re-render. `reference` is a render of the clip, not an input to one, so
+ * storing a Blockout reference leaves a bake current.
+ */
+export function computeModel3DBakeHash(
+  clip: TimelineClip,
+  sequence: Model3DBakeSequence
+): string {
+  const { bake: _bake, reference: _reference, ...style } =
+    clip.model3dStyle ?? {};
+  const payload = `${MODEL3D_BAKE_HASH_VERSION_PREFIX}${stableSerialize(
+    model3dPictureInputs(clip, sequence, style)
+  )}`;
+  return model3dPictureDigest(payload);
 }

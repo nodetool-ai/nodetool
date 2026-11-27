@@ -5,9 +5,13 @@
  *
  * In a named project it also offers Personal. An image picked there is
  * copied into the project, and `onPick` receives the copy's id.
+ *
+ * "Upload a picture" takes a file from the computer into the project and
+ * picks it. Without it a person with a photo and an empty library reached a
+ * dead end here and had to find the Library first (UX research study 23).
  */
 
-import React, { memo, useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
@@ -21,10 +25,12 @@ import {
   FlexRow,
   LoadingSpinner,
   ScrollArea,
-  SPACING
+  SPACING,
+  UploadButton
 } from "../ui_primitives";
 import type { Asset } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
+import { useAssetStore } from "../../stores/AssetStore";
 import ImageRefPreview from "../node/ImageRefPreview";
 import { AssetPickSourceTabs } from "../assets/AssetPickSourceTabs";
 import ErrorBanner from "../support/ErrorBanner";
@@ -69,6 +75,8 @@ const EntityAssetPickerDialogInternal: React.FC<
   const [source, setSource] = useState<AssetPickSource>("project");
   const [copying, setCopying] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   // A picker limited to given ids offers only those, so it has no library tab.
   const personalProjectId = assetIds ? null : pick.personalProjectId;
   const fromPersonal = source === "personal" && personalProjectId !== null;
@@ -110,6 +118,31 @@ const EntityAssetPickerDialogInternal: React.FC<
     }
   };
 
+  // An uploaded picture lands in the entity's project, so it needs no copy.
+  const handleUpload = useCallback(
+    async (files: File[]): Promise<void> => {
+      const file = files[0];
+      if (!file) {
+        return;
+      }
+      setUploadError(null);
+      setUploading(true);
+      try {
+        const asset = await useAssetStore
+          .getState()
+          .createAsset(file, undefined, undefined, undefined, "file", pick.projectId);
+        onPick(asset.id);
+      } catch (error) {
+        setUploadError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setUploading(false);
+      }
+    },
+    [onPick, pick.projectId]
+  );
+  // A picker limited to given ids picks among those only.
+  const canUpload = !assetIds;
+
   return (
     <Dialog
       open={open}
@@ -123,8 +156,43 @@ const EntityAssetPickerDialogInternal: React.FC<
         />
       }
     >
-      {personalProjectId !== null && (
-        <AssetPickSourceTabs value={source} onChange={setSource} />
+      {(personalProjectId !== null || canUpload) && (
+        <FlexRow
+          align="center"
+          justify={personalProjectId !== null ? "space-between" : "flex-end"}
+          gap={SPACING.sm}
+          wrap
+        >
+          {personalProjectId !== null && (
+            <AssetPickSourceTabs value={source} onChange={setSource} />
+          )}
+          {canUpload && (
+            <UploadButton
+              label={
+                uploading
+                  ? t("screens4_22.entities.uploading")
+                  : t("screens4_22.entities.uploadImage")
+              }
+              tooltip={t("screens4_22.entities.uploadImage")}
+              accept="image/*"
+              multiple={false}
+              disabled={uploading || copying}
+              onFileSelect={(files) => void handleUpload(files)}
+            />
+          )}
+        </FlexRow>
+      )}
+      {uploadError !== null && (
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "Could not upload an entity reference image",
+            errorText: uploadError
+          }}
+          onDismiss={() => setUploadError(null)}
+        >
+          {t("screens4_22.entities.uploadFailed")}
+        </ErrorBanner>
       )}
       {copyError !== null && (
         <ErrorBanner
@@ -138,9 +206,11 @@ const EntityAssetPickerDialogInternal: React.FC<
           {t("assetPicker.copyFailed")}
         </ErrorBanner>
       )}
-      {copying ? (
+      {copying || uploading ? (
         <FlexRow align="center" justify="center" sx={{ p: SPACING.lg }}>
-          <LoadingSpinner text={t("assetPicker.copying")} />
+          <LoadingSpinner
+            text={uploading ? t("screens4_22.entities.uploading") : t("assetPicker.copying")}
+          />
         </FlexRow>
       ) : isLoading ? (
         <FlexRow align="center" justify="center" sx={{ p: SPACING.lg }}>
@@ -151,7 +221,10 @@ const EntityAssetPickerDialogInternal: React.FC<
           variant="no-data"
           title={emptyTitle ?? t("screens4_22.entities.noImages")}
           description={
-            emptyDescription ?? t("screens4_22.entities.noImagesDescription")
+            emptyDescription ??
+            (canUpload
+              ? t("screens4_22.entities.noImagesUploadDescription")
+              : t("screens4_22.entities.noImagesDescription"))
           }
           size="small"
         />

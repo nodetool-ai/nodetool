@@ -1,4 +1,37 @@
+import type { FigureInfo } from "@nodetool-ai/model3d";
+
+import type { FigurePatch } from "./figure";
 import type { PrimitiveKind } from "./objectFactory";
+
+/** A camera object's lens. `fovDeg` is the vertical field of view in degrees. */
+export interface Model3DCameraInfo {
+  projection: "perspective" | "orthographic";
+  fovDeg?: number;
+  aspectRatio?: number;
+  znear?: number;
+  zfar?: number;
+}
+
+export interface Model3DCameraPatch {
+  /** Vertical field of view in degrees. */
+  fovDeg?: number;
+  aspectRatio?: number;
+  znear?: number;
+  zfar?: number;
+  position?: [number, number, number];
+  /** A point the camera is turned to face. */
+  lookAt?: [number, number, number];
+}
+
+/** What `addPrimitive` takes beyond the kind and name. */
+export interface Model3DAddOptions {
+  /** Where the object goes, in place of the kind's default position. */
+  position?: [number, number, number];
+  /** Settings of a `figure`. */
+  figure?: FigurePatch;
+  /** Settings of a `camera`. */
+  camera?: Model3DCameraPatch;
+}
 
 /**
  * Serializable description of a single object in the editor scene graph.
@@ -8,7 +41,10 @@ import type { PrimitiveKind } from "./objectFactory";
 export interface Model3DSceneNode {
   uuid: string;
   name: string;
-  /** Three.js object type, e.g. "Mesh", "Group", "DirectionalLight". */
+  /**
+   * Three.js object type, e.g. "Mesh", "Group", "DirectionalLight",
+   * "PerspectiveCamera", or "Figure" for a blockout figure.
+   */
   type: string;
   visible: boolean;
   position: [number, number, number];
@@ -17,6 +53,10 @@ export interface Model3DSceneNode {
   scale: [number, number, number];
   /** Parent object uuid, or null when the object sits directly under the root. */
   parentUuid: string | null;
+  /** Body, pose, height and cast link of a figure. */
+  figure?: FigureInfo;
+  /** Lens of a camera. */
+  camera?: Model3DCameraInfo;
 }
 
 export interface Model3DTransformPatch {
@@ -105,7 +145,15 @@ export interface Model3DHistoryResult {
 export interface Model3DToolHandler {
   listScene: () => Model3DSceneNode[];
   getSelected: () => Model3DSceneNode | null;
-  addPrimitive: (kind: PrimitiveKind, name?: string) => Model3DSceneNode;
+  addPrimitive: (
+    kind: PrimitiveKind,
+    name?: string,
+    options?: Model3DAddOptions
+  ) => Model3DSceneNode;
+  /** Change a figure's body, pose, height, color or cast link. */
+  setFigure: (idOrName: string, patch: FigurePatch) => Model3DSceneNode;
+  /** Change a camera's lens, move it, or turn it to face a point. */
+  setCamera: (idOrName: string, patch: Model3DCameraPatch) => Model3DSceneNode;
   selectObject: (idOrName: string | null) => Model3DSceneNode | null;
   deleteObject: (idOrName: string) => Model3DSceneNode;
   setTransform: (

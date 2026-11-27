@@ -32,6 +32,12 @@ nodetool run flow.json --params '{"topic":"rivers"}'
 store when `SECRETS_MASTER_KEY` is set and the key is stored, and from the
 environment otherwise.
 
+At startup the CLI loads `./.env.local`, `./.env`, `~/.nodetool/.env` and
+`~/.env`, after any file named by `--env-file` or `NODETOOL_ENV_FILE`. Real
+environment variables win. `nodetool env check --json` lists every variable
+with its status and source, never its value. See
+[Environment and Env Files](../../docs/cli.md#environment-and-env-files).
+
 No single provider is required. `nodetool info` shows the credential state of
 each provider (names only, never values), and `nodetool providers list` lists
 the providers usable now: a key is set, an installed pack registers it, or, for
@@ -84,6 +90,9 @@ printf '%s' "$OPENAI_API_KEY" | nodetool secrets store OPENAI_API_KEY
 nodetool models list --provider openai
 nodetool text 'Hello' --model <model-id>
 ```
+
+`assets download` keeps an existing destination file unless you pass `--force`.
+`workflows list --limit` accepts a whole number from 1 to 500.
 
 Secret values are read from stdin and encrypted for the authenticated user.
 Without a token, `secrets list` and `secrets set` use the local store instead. `OPENAI_BASE_URL` selects a public HTTPS OpenAI-compatible endpoint.

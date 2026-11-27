@@ -167,6 +167,11 @@ jobs:
           echo "Findings: $FINDINGS" >> $GITHUB_STEP_SUMMARY
           if [ "${FINDINGS:-0}" -gt 0 ]; then echo "THIN_FOUND=1" >> $GITHUB_ENV; else echo "THIN_FOUND=0" >> $GITHUB_ENV; fi
 
+      - name: Rank impact signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/agent-impact.mjs "$RUNNER_TEMP/agent-impact.md"
+
       - name: Run Claude Code
         if: env.THIN_FOUND == '1'
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
@@ -177,7 +182,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing. Open the PR with the label agent:abstraction-improver (gh pr create --label agent:abstraction-improver). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
+            --append-system-prompt "Read .github/agent-routines.md before you pick a target and follow it: rank candidates by the signals in ${{ runner.temp }}/agent-impact.md, fix every instance of the theme in the module you choose, and start the PR body with an Impact section. Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, and prose throat-clearing. Open the PR with the label agent:abstraction-improver (gh pr create --label agent:abstraction-improver). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Flatten an Over-Engineered Abstraction
 
@@ -190,7 +195,10 @@ jobs:
             this repo uses to talk about module depth. Prefer removing a shallow
             layer over deepening it.
 
-            Pick **one** abstraction and remove the indirection.
+            Pick the kind of abstraction and the module that rank highest by
+            impact, and remove every instance of that indirection in the
+            module: every forwarding wrapper in one package, or every
+            re-export-only barrel in one feature directory.
 
             ## What to remove
             - **Interface with one implementer** and no second one in sight:
@@ -228,7 +236,8 @@ jobs:
             - Update every call site. Do not leave a deprecated alias behind.
             - Do not replace one abstraction with another. The diff should be
               net-negative in lines and in files.
-            - One abstraction per PR. Maximum 15 files.
+            - One kind of abstraction in one module or package per PR. No file
+              cap.
             - Do not touch CI workflow files.
 
             ## Before starting

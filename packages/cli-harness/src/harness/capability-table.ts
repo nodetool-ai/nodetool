@@ -1602,7 +1602,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "web_search",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "e4946512515e",
+    contract: "bde144792395",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
@@ -1618,7 +1618,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "image_search",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "3c50d887acb1",
+    contract: "a020118f52f6",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
@@ -2433,11 +2433,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "9e166dd37c1c",
+    contract: "9df666b3132a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
-      "packages/agents/tests/capabilities-timelines-grain.test.ts",
+      "packages/agents/tests/capabilities-timelines-blockout.test.ts",
     ],
     evals: [
       {
@@ -2482,7 +2482,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "preview_timeline_frame",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "905d8042a3f4",
+    contract: "acc2575169c5",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timeline-preview.test.ts",
@@ -2490,7 +2490,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/surfaces/timeline.ts",
-        cases: ["looked-before-done", "three-d-turntable"],
+        cases: ["blockout-free-camera-move", "looked-before-done", "three-d-turntable"],
       },
     ],
   },
@@ -2857,7 +2857,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_model3d",
     module: "model3d",
     impl: "packages/agents/src/capabilities/model3d.ts",
-    contract: "4405bcfef4c1",
+    contract: "ad4e1b347025",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-model3d.test.ts",
@@ -2867,7 +2867,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_model3d",
     module: "model3d",
     impl: "packages/agents/src/capabilities/model3d.ts",
-    contract: "1cb386cf7cbd",
+    contract: "6e44de746984",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-model3d.test.ts",

@@ -13,10 +13,16 @@ Lights come from the scene when it has any, else the `lighting` preset.
 import os
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 from errors import BadJob, ImportFailed, NoCamera, NoGeometry, RenderFailed
-from framing import apply_camera_lens, compute_framing, orbit_offset
+from framing import (
+    apply_camera_lens,
+    compute_framing,
+    free_camera_matrix_columns,
+    free_clip_planes,
+    orbit_offset,
+)
 
 
 ORBIT_CAMERA_NAME = "NodeTool_Orbit"
@@ -137,6 +143,28 @@ def make_orbit_camera(scene, center, radius, params, aspect):
     return obj
 
 
+def place_free_camera(obj, center, radius, params):
+    """Put a camera on a `free` pose: eye, target, roll and vertical fov.
+
+    No fit against the bounds. The clip planes come from the bounds as seen
+    from the eye, the way the three.js session derives them.
+    """
+    location, (x_axis, y_axis, z_axis) = free_camera_matrix_columns(params)
+    obj.location = Vector(location)
+    rotation = Matrix((x_axis, y_axis, z_axis)).transposed()
+    obj.rotation_euler = rotation.to_euler()
+    planes = free_clip_planes((obj.location - center).length, radius)
+    apply_camera_lens(obj.data, min(params["fov"], 179), planes)
+
+
+def make_free_camera(scene, center, radius, params):
+    data = bpy.data.cameras.new(ORBIT_CAMERA_NAME)
+    obj = bpy.data.objects.new(ORBIT_CAMERA_NAME, data)
+    scene.collection.objects.link(obj)
+    place_free_camera(obj, center, radius, params)
+    return obj
+
+
 def aim_camera(obj, center):
     direction = center - obj.location
     if direction.length < 1e-9:
@@ -148,6 +176,8 @@ def select_camera(scene, center, radius, params, aspect):
     mode = params.get("camera_mode", "auto")
     if mode == "orbit":
         return make_orbit_camera(scene, center, radius, params, aspect)
+    if mode == "free":
+        return make_free_camera(scene, center, radius, params)
     cameras = scene_cameras(scene)
     if mode == "scene":
         if not cameras:

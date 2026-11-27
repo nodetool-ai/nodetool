@@ -407,7 +407,17 @@ s(
   "SERP_PROVIDER",
   "Search",
   "Select which search provider to use for web search operations.",
-  ["serpapi", "dataforseo", "brave", "apify", "openai", "gemini"]
+  [
+    "serpapi",
+    "dataforseo",
+    "brave",
+    "apify",
+    "openai",
+    "gemini",
+    "antigravity",
+    "codex",
+    "claude"
+  ]
 );
 s(
   "MINIMAX_REGION",

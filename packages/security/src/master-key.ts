@@ -67,7 +67,10 @@ export function isKeychainBackendMissing(err: Error): boolean {
 
 function keychainAccessError(message: string): KeychainAccessError {
   return new KeychainAccessError(
-    `${message}. Allow NodeTool access to the system keychain when prompted.`
+    `${message}. Allow NodeTool access to the system keychain when prompted. ` +
+      "On a machine without a keychain (a headless server or container), set SECRETS_MASTER_KEY instead: " +
+      "export it, or add it to ~/.nodetool/.env, which the nodetool CLI loads at startup. " +
+      "`nodetool env check` shows where each variable comes from."
   );
 }
 

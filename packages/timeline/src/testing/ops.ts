@@ -162,8 +162,16 @@ export function seedClips(): TimelineClip[] {
       currentAssetId: "asset_glb",
       // Opaque on purpose: a transparent style is refused until the alpha
       // encode lands (T13), and `bake_model3d_clip` has to be drivable here.
+      // A free camera, so `apply_model3d_camera_move` has one to move.
       model3dStyle: {
         ...DEFAULT_MODEL3D_STYLE,
+        camera: {
+          ...DEFAULT_MODEL3D_STYLE.camera,
+          mode: "free",
+          position: [0, 1.6, 5],
+          target: [0, 1, 0],
+          rollDeg: 0
+        },
         background: { transparent: false, color: "#101010" }
       }
     }),
@@ -254,6 +262,10 @@ export function directContext(state: TimelineOpState): TimelineOpContext {
     version: 0
   };
   return {
+    // No reference renderer, stated so a host that spreads this context over
+    // its own drops the renderer it has. Every host then answers the fixture
+    // the same way: nothing is rendered and the op says why.
+    renderModel3DReference: undefined,
     generateFromBeats: async (document) => {
       const clip = makeClip({
         id: "clip_1",
@@ -529,18 +541,53 @@ export const FIXTURES: Fixture[] = [
     tool: "set_model3d_style",
     args: {
       target: "clip_m",
-      patch: { camera: { azimuthDeg: 120 }, lighting: "soft" }
+      patch: {
+        camera: { position: [2, 1.6, 4], focalLengthMm: 35 },
+        lighting: "soft"
+      },
+      keyAtMs: 2000,
+      keyEasing: "easeOut"
     },
     op: {
       op: "set_model3d_style",
       target: "clip_m",
-      patch: { camera: { azimuthDeg: 120 }, lighting: "soft" }
+      patch: {
+        camera: { position: [2, 1.6, 4], focalLengthMm: 35 },
+        lighting: "soft"
+      },
+      keyAtMs: 2000,
+      keyEasing: "easeOut"
+    }
+  },
+  {
+    tool: "apply_model3d_camera_move",
+    args: {
+      target: "clip_m",
+      move: "pushIn",
+      amount: 0.5,
+      startMs: 1000,
+      durationMs: 2000,
+      easing: "easeInOut"
+    },
+    op: {
+      op: "apply_model3d_camera_move",
+      target: "clip_m",
+      move: "pushIn",
+      amount: 0.5,
+      startMs: 1000,
+      durationMs: 2000,
+      easing: "easeInOut"
     }
   },
   {
     tool: "bake_model3d_clip",
     args: { target: "clip_m" },
     op: { op: "bake_model3d_clip", target: "clip_m" }
+  },
+  {
+    tool: "render_model3d_reference",
+    args: { target: "clip_m", pass: "depth" },
+    op: { op: "render_model3d_reference", target: "clip_m", pass: "depth" }
   },
   {
     tool: "add_group",

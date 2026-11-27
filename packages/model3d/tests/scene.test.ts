@@ -401,3 +401,29 @@ describe("containers", () => {
     );
   });
 });
+
+describe("listScene object types from raw glTF", () => {
+  const typesOf = (json: GltfJson) => listScene(json).map((o) => o.type);
+  const lightScene = (lights: unknown, nodeLight: unknown): GltfJson =>
+    ({
+      asset: { version: "2.0" },
+      scene: 0,
+      scenes: [{ nodes: [0] }],
+      nodes: [{ name: "L", extensions: { KHR_lights_punctual: { light: nodeLight } } }],
+      extensions: { KHR_lights_punctual: { lights } }
+    }) as unknown as GltfJson;
+
+  it("maps light types and defaults unknown or missing lights to a point light", () => {
+    expect(typesOf(lightScene([{ type: "spot" }], 0))).toEqual(["SpotLight"]);
+    expect(typesOf(lightScene([{ type: "directional" }], 0))).toEqual(["DirectionalLight"]);
+    expect(typesOf(lightScene([{ type: "point" }], 0))).toEqual(["PointLight"]);
+    expect(typesOf(lightScene([{ type: "other" }], 0))).toEqual(["PointLight"]);
+    expect(typesOf(lightScene([{}], 0))).toEqual(["PointLight"]);
+    expect(typesOf(lightScene([], 0))).toEqual(["PointLight"]);
+    expect(typesOf(lightScene("nope", 0))).toEqual(["PointLight"]);
+  });
+
+  it("treats a non-numeric light index as a plain group", () => {
+    expect(typesOf(lightScene([{ type: "spot" }], "0"))).toEqual(["Group"]);
+  });
+});

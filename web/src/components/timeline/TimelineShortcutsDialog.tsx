@@ -207,11 +207,22 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
     ]
   },
   {
+    // Model3DOrbitOverlay's gestures, active while a 3D clip is selected.
+    title: "3D camera (3D clip selected)",
+    rows: [
+      { keys: ["Alt", "drag"], label: "Orbit the camera", translationKey: "camera3dOrbit" },
+      { keys: ["Alt", "Shift", "drag"], label: "Truck a free camera and its target", translationKey: "camera3dTruck" },
+      { keys: ["Alt", "scroll"], label: "Dolly the camera", translationKey: "camera3dDolly" },
+      { keys: ["Alt", "Ctrl", "scroll"], label: "Change a free camera's lens", translationKey: "camera3dLens" }
+    ]
+  },
+  {
     title: "Keyframes & source",
     rows: [
       { action: "addKeyframe", label: "Keyframe the selected clip at the playhead" },
       { action: "nextKeyframe", label: "Next keyframe" },
       { action: "prevKeyframe", label: "Previous keyframe" },
+      { action: "keyCamera", label: "Key the free 3D camera at the playhead" },
       { action: "sourceAppend", label: "Append source range to the end" },
       { action: "sourceInsert", label: "Insert source range at playhead" },
       { action: "sourceOverwrite", label: "Overwrite with source range at playhead" }

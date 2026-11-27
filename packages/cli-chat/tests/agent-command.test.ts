@@ -226,7 +226,7 @@ const scriptedCalls: unknown[][] = [];
 vi.mock("@nodetool-ai/cli-providers", () => ({
   buildConfiguredProviders: async () => ({}),
   createProvider: async () => currentProvider,
-  DEFAULT_MODELS: { claude_agent_sdk: "sonnet" }
+  resolveDefaultModel: async (providerId: string) => (providerId === "claude_agent_sdk" ? "sonnet" : undefined)
 }));
 
 const { ScriptedProvider, textScript, toolCallScript } = await import(
@@ -492,9 +492,9 @@ describe("the budget a CLI run holds", () => {
     ).rejects.toThrow(/--max-iterations must be an integer/);
     expect(provider.callLog).toHaveLength(0);
   });
-  it("uses the provider's default model when --model is omitted", () => {
-    expect(resolveAgentModel("claude_agent_sdk", undefined)).toBe("sonnet");
-    expect(resolveAgentModel("claude_agent_sdk", "opus")).toBe("opus");
+  it("uses the provider's default model when --model is omitted", async () => {
+    await expect(resolveAgentModel("claude_agent_sdk", undefined)).resolves.toBe("sonnet");
+    await expect(resolveAgentModel("claude_agent_sdk", "opus")).resolves.toBe("opus");
   });
 
   it("tells the agent to use the run's provider and model in what it builds", () => {
@@ -504,8 +504,8 @@ describe("the budget a CLI run holds", () => {
     expect(text).toContain("/tmp/ws");
   });
 
-  it("names the model listing command when a provider has no default model", () => {
-    expect(() => resolveAgentModel("fal_ai", undefined)).toThrow(
+  it("names the model listing command when a provider has no default model", async () => {
+    await expect(resolveAgentModel("fal_ai", undefined)).rejects.toThrow(
       "nodetool models list --provider fal_ai"
     );
   });

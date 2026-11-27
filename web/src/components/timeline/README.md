@@ -407,7 +407,8 @@ A glTF asset on a `video` or `overlay` track is a clip with
 `mediaType: "model3d"`. The model sits in `currentAssetId`, where an image clip
 keeps its image, so replace, versions, thumbnails and the dependency hash work
 unchanged. Everything the timeline adds is `model3dStyle`: the camera (orbit
-terms, or a glTF camera by name), which glTF animation plays and how fast,
+terms, a glTF camera by name, or a free camera), which glTF animation plays and
+how fast,
 lighting preset and intensity, background, and the bake once one exists.
 `DEFAULT_MODEL3D_STYLE` in `@nodetool-ai/timeline` is what a dropped model
 starts with.
@@ -419,6 +420,85 @@ on top. Four animated channels (`cameraAzimuth`, `cameraElevation`,
 other channel; on a clip that is not 3D they are ignored. The `orbit` preset
 drives `cameraAzimuth`, which is what makes a turntable one `animate_clip`
 call.
+
+### Free camera
+
+`camera.mode: "free"` places the camera in world space and does not fit the
+model. It reads four fields:
+
+| Field | Meaning | Default |
+| --- | --- | --- |
+| `position` | Camera eye, glTF world units | `[0, 1.6, 5]` |
+| `target` | Look-at point, glTF world units | `[0, 1, 0]` |
+| `rollDeg` | Roll around the view axis. Positive turns the horizon clockwise in the picture | `0` |
+| `fovDeg` | Vertical field of view | required |
+
+Free mode ignores `azimuthDeg`, `elevationDeg`, `zoom` and `targetOffset`, but
+the clip keeps them, so switching back to `orbit` restores the old pose.
+`orbitCameraToFree` converts an orbit camera to the free camera that draws the
+same picture. It needs the model's bounding sphere and the picture's aspect.
+
+Seven additive channels drive the free camera: `cameraPosX`, `cameraPosY`,
+`cameraPosZ`, `cameraTargetX`, `cameraTargetY`, `cameraTargetZ` and
+`cameraRoll`. `cameraFov` is its lens. `model3dCameraPropertiesFor(mode)` lists
+the channels a mode reads. `focalLengthMmToFovDeg` and `fovDegToFocalLengthMm`
+convert between a lens in millimetres and `fovDeg` on a 24 mm tall sensor.
+
+`MODEL3D_CAMERA_MOVES` lists ten move presets: pan, tilt, orbit, push in,
+truck, crane, pedestal, zoom, dolly zoom and dutch.
+`applyModel3DCameraMove(clip, move, options)` writes one into the clip's
+keyframe animation, starting from the camera the keyframes give at the start of
+the move. Angles are in degrees, distances are fractions of the distance from
+the eye to the target, and zoom is a factor on the focal length.
+
+#### Editing a free camera
+
+The 3D model section of the inspector (`Inspector/ClipModel3DSection.tsx`)
+offers Free next to Orbit and Scene camera. Switching from Orbit to Free calls
+`orbitCameraToFree` with the bounding sphere the render session reports as
+`bounds` and the sequence aspect, so the picture stays the same. In Free mode
+the section shows Position, Target, Lens in millimetres and Roll in degrees,
+each with a keyframe row, and hides the orbit fields. `cameraRowsFor(mode)` in
+`Inspector/keyframeRows.ts` picks the rows.
+
+| Action | Where | Effect |
+| --- | --- | --- |
+| Key camera | Inspector button, or Alt+C with a 3D clip selected | Keys all eight free camera channels at the playhead in one undo step |
+| Camera move | Inspector button | Opens a menu with the ten presets, an amount in the preset's unit and a duration that defaults to playhead through clip end. Add move calls `applyModel3DCameraMove` in one undo step |
+| Orbit | Alt-drag in the preview | Turns the eye around the target |
+| Truck | Alt+Shift-drag in the preview | Slides eye and target together |
+| Dolly | Alt-wheel in the preview | Moves the eye along the view axis |
+| Lens | Alt+Ctrl-wheel in the preview | Changes the focal length |
+
+A preview gesture writes a key at the playhead when the camera is keyed and
+edits the authored pose when it is not. Each gesture is one undo step. The
+gesture math is in `preview/model3dFreeCameraGesture.ts`, and the patches the
+inspector and the gestures write are in `Inspector/model3dFreeCamera.ts`.
+
+#### Blockout set
+
+"Blockout set" in the add-clip menu creates a new glTF asset with a ground
+plane (`model3dSet.ts`) and places a `model3d` clip on it with a free camera
+and an opaque grey background. "Edit set" in the inspector opens the asset in
+the 3D model editor as a workspace tab. Saving there bumps
+`AssetRevisionStore`, and the preview and the inspector reload the model.
+The standalone `/timeline/:id` route has no workspace tabs, so Edit set does
+nothing visible there.
+
+### Render passes
+
+A render session draws one of four passes per frame, chosen by the host through
+`Model3DRenderFrame.pass`. The pass is not stored on the clip.
+
+| Pass | Picture |
+| --- | --- |
+| `beauty` | The model's own materials. The default |
+| `clay` | Every mesh in one mid-grey matte material, under the clip's lighting |
+| `depth` | Linear distance from the camera. Near is white, far is black, and the range spans the model's bounding box as seen from the camera |
+| `normal` | View-space normals as RGB |
+
+`Model3DLayerSource.frame(layer, anim, size, pass)` takes the pass in the
+browser. `renderGlbFramesHeadless` takes it on each frame on the server.
 
 ### Live rendering
 
@@ -467,10 +547,33 @@ throws the alpha away — falls back to the live layer with a `bake_undecodable`
 degradation instead of drawing an opaque box over the footage
 (`preview/bakeDecoding.ts`).
 
+### Blockout reference
+
+A 3D clip with a `free` camera is a Blockout: a rough set filmed with a keyed
+camera. The inspector's Reference row (`Inspector/BlockoutReferenceSection.tsx`)
+and the `render_model3d_reference` op render the clip's span to a grey video
+and store `{ assetId, dependencyHash, pass }` under `model3dStyle.reference`.
+The pass is `clay` (shaded grey, the default), `depth` or `normal`.
+
+In the browser the frames come from `computeModel3DReferenceFrames` and go
+through the three.js session the preview uses
+(`render/renderBlockoutReference.ts`), then mediabunny encodes them to H.264
+MP4, the encoder the export uses. `useBlockoutReference` uploads the video as
+an asset and writes the clip. Progress, cancel and the last failure live in
+`BlockoutReferenceStore`, keyed by sequence and clip. The server draws the same
+frame list through the headless three.js host.
+
+A reference ignores the clip's lighting and background. It is always drawn
+with the studio light on an opaque neutral background
+(`model3dReferenceSession`), so the dependency hash covers only the asset, the
+camera, the animation, the clip's timing and the sequence format. An edit to
+any of those marks the reference stale (`model3dReferenceStatus`), and the row
+shows it. A reference is never composited: it is an input to generation.
+
 ### From the agent
 
-Three ops reach a 3D clip: `add_model3d_clip`, `set_model3d_style` and
-`bake_model3d_clip`. The browser's `ui_timeline_edit` and the server's
+Four ops reach a 3D clip: `add_model3d_clip`, `set_model3d_style`,
+`bake_model3d_clip` and `render_model3d_reference`. The browser's `ui_timeline_edit` and the server's
 `edit_timeline` dispatch them from the same op union, and each is also a
 standalone `ui_timeline_*` tool.
 `validate_timeline` reports `model3d_style_missing` (a `model3d` clip with no
@@ -502,6 +605,34 @@ Selecting a shot clip adds a **Shot** tab to the right dock group:
   reference-mode shot after this one on the board, and puts its clip on a new
   track above this one over the same span. The render dialog opens on the new
   shot.
+
+### Shot blockout
+
+A `model3d` clip that carries a shot's `storyboardBoardId` and
+`storyboardShotId` is that shot's Blockout (`blockoutClipForShot`). It does not
+follow the shot: `clipsFollowingShot` reads video and audio clips only, so
+picking a take never replaces the set. The link is made from the **Blockout**
+section of the Shot tab, which offers the 3D clips that overlap the shot's
+clip, or from the Shot row of the 3D clip's inspector section. A shot has one
+Blockout (`blockoutLinkPatches`).
+
+**New take** on a shot with a Blockout decides what the video model receives
+from the tasks the model catalog reports for it (`modelTakesReferenceVideo`),
+never from the model's name:
+
+1. A model that declares `reference_to_video` gets the reference video in
+   `reference_videos`, with the shot prompt, the entity reference images and
+   the shot's still as a reference image. The reference is rendered first when
+   it is missing or stale.
+2. Any other model gets no reference. The camera move is written into the
+   prompt as a sentence (`describeModel3DCameraMove`), and the dialog says so
+   before the render starts.
+
+`applyBlockoutToClipRequest` (`lib/storyboard/blockoutRequest.ts`) applies that
+decision to the `generate_media` payload. The take records the reference hash
+it was made from as `render_inputs.blockout_reference_hash`. The storyboard's
+stale check ignores it, and the Shot tab compares it with the clip's current
+hash (`isBlockoutTakeStale`) to mark a take made from an older Blockout.
 
 ## Persistence
 

@@ -20,6 +20,19 @@ import { currentProject, projectPointerIssue, readProjectSelection } from "./pro
 import { installerNpmVersion } from "../npm-runner.js";
 import { loadInstalledCommandFeature, type WorkflowPackResolver } from "../cli-feature.js";
 
+/** Split `doctor --pack` ids into unknown ids, known packs that are not installed, and installed packs the load check can register. */
+export function classifyRequestedPacks(catalog: NodeCatalogIndex, snapshot: InstalledPackSnapshot, ids: readonly string[]) {
+  const unknown: string[] = [];
+  const notInstalled: string[] = [];
+  const installed: string[] = [];
+  for (const id of new Set(ids)) {
+    if (!catalog.packs.some(pack => pack.id === id)) { unknown.push(id); }
+    else if (!snapshot.packs.some(pack => pack.id === id)) { notInstalled.push(id); }
+    else { installed.push(id); }
+  }
+  return { unknown, notInstalled, installed };
+}
+
 /** Called only inside a packs command. No entrypoint or module import reads desired state. */
 export interface PackCommandServiceOptions {
   readonly snapshot?: InstalledPackSnapshot;
@@ -90,7 +103,14 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
       process.stderr.write('Running "nodetool serve" and "nodetool mcp serve" processes may fail on later lazy imports. Restart them after removing packs.\n');
     },
     async doctor(options: PackDoctorOptions) {
-      const issues: Array<{ kind: string; message: string }> = [];
+      const issues: Array<{ kind: string; message: string; packId?: string; hint?: string }> = [];
+      const requested = classifyRequestedPacks(catalog, snapshot, options.pack ?? []);
+      for (const id of requested.unknown) {
+        issues.push({ kind: "unknown_pack", packId: id, message: `Unknown pack id: ${id}`, hint: "List pack ids with \"nodetool packs list\", or look one up with \"nodetool packs why <node_type|id>\"." });
+      }
+      for (const id of requested.notInstalled) {
+        issues.push({ kind: "pack_not_installed", packId: id, message: `Pack ${id} is not installed`, hint: `Install it with "nodetool packs add ${id} --yes".` });
+      }
       const baseline = { ...reportPackInstallation(snapshot), packsRoot: managed?.packsRoot ?? null, projectRoot: snapshot.projectRoot,
         reason: mode.kind === "global" || mode.kind === "local" ? null : mode.reason,
         installedPacks: snapshot.packs.map(pack => ({ id: pack.id, npm: pack.npm, version: pack.version })),
@@ -113,9 +133,9 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
             if (missing.length) { throw new Error(`Selected packs are not installed: ${missing.join(", ")}`); }
           }
         } catch (error) { issues.push({ kind: "integrity", message: error instanceof Error ? error.message : String(error) }); }
-        if ((options.installed || options.pack?.length) && snapshot.projectRoot) {
+        const ids = options.pack?.length ? requested.installed : options.installed ? snapshot.packs.map(pack => pack.id) : [];
+        if (ids.length && snapshot.projectRoot) {
           try {
-            const ids = options.pack ?? snapshot.packs.map(pack => pack.id);
             await (operations ?? DEFAULT_INSTALLER_OPERATIONS).loadCheck({ cliRoot: mode.cliRoot, projectRoot: snapshot.projectRoot }, ids);
           }
           catch (error) { issues.push({ kind: "registration", message: error instanceof Error ? error.message : String(error) }); }

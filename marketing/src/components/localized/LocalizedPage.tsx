@@ -11,7 +11,8 @@ import LocalizedCatalog from "./LocalizedCatalog";
 import NodeEditorDemo from "../NodeEditorDemo";
 import TimelineEditorDemo from "../TimelineEditorDemo";
 import { breadcrumbSchema } from "@/lib/jsonld";
-import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
+import { shareImages } from "@/lib/defaultOgImage";
+import { LOCALE_KEYWORDS } from "@/i18n/keywords";
 import { modelDirectoryCounts } from "@/data/modelDirectory";
 import { STAGE_COSTS } from "@/data/stageCosts";
 import { storyboards } from "@/data/storyboards";
@@ -34,6 +35,7 @@ export function localizedMetadata(locale: Locale, route: string): Metadata {
   return {
     title: { absolute: page.title },
     description: page.description,
+    keywords: [...LOCALE_KEYWORDS[locale]],
     alternates: { canonical: path, languages: languageAlternates(route) },
     openGraph: {
       title: page.title,
@@ -43,7 +45,7 @@ export function localizedMetadata(locale: Locale, route: string): Metadata {
       locale: LOCALES[locale].ogLocale,
       alternateLocale: ["en_US"],
       type: "website",
-      images: DEFAULT_OG_IMAGES,
+      images: shareImages(locale),
     },
     twitter: { card: "summary_large_image", title: page.title, description: page.description },
   };

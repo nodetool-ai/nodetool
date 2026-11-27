@@ -10,6 +10,7 @@
 
 import type {
   BaseProvider,
+  CodexProvider,
   GetSecret,
   Message,
   ProviderStreamItem,
@@ -33,12 +34,16 @@ import { readCachedHfModels } from "@nodetool-ai/huggingface";
 import {
   CUSTOM_PROVIDERS_SETTING_KEY,
   parseCustomProviderCatalog,
+  type ToolCall,
   type UnifiedModel
 } from "@nodetool-ai/protocol";
 import { getSecret, Setting } from "@nodetool-ai/models";
+import { resolveCodexCliAccessToken } from "./codex-cli-login.js";
+
+export { codexCliAuthPath, resolveCodexCliAccessToken } from "./codex-cli-login.js";
 export type InferenceEvent =
   | { readonly type: "chunk"; readonly content: string }
-  | { readonly type: "tool_call"; readonly id: string; readonly name: string; readonly args: Record<string, unknown> }
+  | { readonly type: "tool_call"; readonly id: string; readonly name: string; readonly args: ToolCall["args"] }
   | { readonly type: "error"; readonly message: string }
   | { readonly type: "done" };
 
@@ -146,7 +151,7 @@ function isAppleSilicon(): boolean {
 }
 
 /** Default model shown when switching to a provider in interactive mode. */
-export const DEFAULT_MODELS: Record<string, string> = {
+export const DEFAULT_MODELS = {
   anthropic: "claude-sonnet-4-6",
   claude_agent_sdk: "sonnet",
   antigravity: "gemini-3.1-pro-high",
@@ -183,10 +188,60 @@ export const DEFAULT_MODELS: Record<string, string> = {
   lmstudio: "qwen/qwen3.5-9b",
   mlx: "mlx-community/Qwen3.5-0.8B-OptiQ-4bit",
   node_llama_cpp: "qwen2.5-3b-instruct-q4_k_m.gguf"
-};
+} as const satisfies Record<KnownProvider, string>;
 
-/** Resolve a secret from the encrypted DB (user "1"); env fallback handled by the registry. */
-const resolveForUser1: GetSecret = (key) => getSecret(key, "1");
+function isKnownProvider(providerId: string): providerId is KnownProvider {
+  return Object.hasOwn(DEFAULT_MODELS, providerId);
+}
+
+/** The default model for a provider id, or undefined when the provider has none. */
+export function defaultModelFor(providerId: string): string | undefined {
+  return isKnownProvider(providerId) ? DEFAULT_MODELS[providerId] : undefined;
+}
+
+function hasAccountCatalog(
+  provider: BaseProvider
+): provider is BaseProvider & Pick<CodexProvider, "listAccountLanguageModels"> {
+  return "listAccountLanguageModels" in provider && typeof provider.listAccountLanguageModels === "function";
+}
+
+/**
+ * The model a run uses when the caller names none. Codex serves a different
+ * catalog to each account, so its default is the first model the account's
+ * live catalog lists. Throws with guidance when that catalog cannot be loaded.
+ */
+export async function resolveDefaultModel(
+  providerId: string
+): Promise<string | undefined> {
+  if (providerId !== "codex") { return defaultModelFor(providerId); }
+  const provider = await createProviderStrict(providerId);
+  if (!hasAccountCatalog(provider)) { return defaultModelFor(providerId); }
+  try {
+    const [first] = await provider.listAccountLanguageModels();
+    return first.id;
+  } catch (error) {
+    throw new Error(
+      `Could not load the Codex models for this account (${
+        error instanceof Error ? error.message : String(error)
+      }). Pass --model <id> with a model your ChatGPT plan offers. ` +
+        "The Codex CLI lists them under /model.",
+      { cause: error }
+    );
+  }
+}
+
+/**
+ * The secret the command line hands every provider: the encrypted DB (user
+ * "1"), with the environment fallback handled by the registry. Codex also
+ * accepts the Codex CLI login, after a NodeTool sign-in and CODEX_ACCESS_TOKEN.
+ */
+const resolveForUser1: GetSecret = async (key) => {
+  const value = await getSecret(key, "1");
+  if (value || key !== "CODEX_ACCESS_TOKEN" || process.env.CODEX_ACCESS_TOKEN) {
+    return value;
+  }
+  return resolveCodexCliAccessToken();
+};
 
 /**
  * Lazily spawn the local Python worker bridge and register the Python-only
@@ -209,6 +264,10 @@ async function ensurePythonProvidersRegistered(): Promise<void> {
         // Don't shadow a TS-native provider that owns the same id (e.g. the
         // hosted HuggingFace provider vs. the Python local one).
         if (listRegisteredProviderIds().includes(info.id)) continue;
+        // SAFETY: PythonProvider's constructor has an overload taking the
+        // registry's kwargs object (`_id`, `_bridge`, `_capabilities`), but the
+        // overloaded signature does not satisfy the registry's single-argument
+        // constructor type.
         registerProvider(info.id, PythonProvider as never, {
           _bridge: bridge,
           _id: info.id,

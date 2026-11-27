@@ -15,12 +15,12 @@ description: "Open-source agent-first creative workspace. Create images, video, 
     <div class="media-frame">
       <video class="inview-video" muted loop playsinline preload="metadata"
         poster="https://nodetool.ai/hero-flow-poster.webp"
-        aria-label="One sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut">
+        aria-label="One sentence becomes a beat sheet, references, a storyboard of stills and clips, and a finished cut">
         <source src="https://nodetool.ai/hero-flow.webm" type="video/webm">
         <source src="https://nodetool.ai/hero-flow.mp4" type="video/mp4">
       </video>
     </div>
-    <figcaption>One sentence to a finished short: beat sheet, entities, storyboard, clips, and the cut.</figcaption>
+    <figcaption>One sentence to a finished short: beat sheet, references, storyboard, clips, and the cut.</figcaption>
   </figure>
   <div class="cta-row">
     <a href="{{ '/getting-started' | relative_url }}" class="cta-button primary">Get started</a>
@@ -426,7 +426,7 @@ Same source, same workflows. Both AGPL-3.0.
   </article>
 </div>
 
-More creative patterns — directed films, entity-consistent batches, script-driven cuts — in the [Cookbook]({{ '/cookbook' | relative_url }}).
+More creative patterns — directed films, reference-consistent batches, script-driven cuts — in the [Cookbook]({{ '/cookbook' | relative_url }}).
 
 ## Get started
 

@@ -1,4 +1,13 @@
 import * as THREE from "three";
+import {
+  CAMERA_DEFAULT_ASPECT,
+  CAMERA_DEFAULT_FOV_DEG,
+  CAMERA_DEFAULT_ZFAR,
+  CAMERA_DEFAULT_ZNEAR,
+  PRIMITIVE_DEFAULTS
+} from "@nodetool-ai/model3d";
+
+import { createFigure, type FigurePatch } from "./figure";
 
 export type PrimitiveKind =
   | "box"
@@ -10,7 +19,14 @@ export type PrimitiveKind =
   | "empty"
   | "directionalLight"
   | "pointLight"
-  | "spotLight";
+  | "spotLight"
+  | "figure"
+  | "camera";
+
+/** Settings for the kinds that take them. */
+export interface PrimitiveOptions {
+  figure?: FigurePatch;
+}
 
 export const PRIMITIVE_LABELS = {
   box: "Box",
@@ -22,7 +38,9 @@ export const PRIMITIVE_LABELS = {
   empty: "Empty",
   directionalLight: "Directional Light",
   pointLight: "Point Light",
-  spotLight: "Spot Light"
+  spotLight: "Spot Light",
+  figure: "Figure",
+  camera: "Camera"
 } satisfies Record<PrimitiveKind, string>;
 
 // MeshPhysicalMaterial (extends MeshStandardMaterial) so the Properties panel
@@ -38,8 +56,25 @@ const standardMaterial = () =>
  * Build a fresh Three.js object for the given primitive kind. The caller is
  * responsible for adding it to the scene and giving it a unique name.
  */
-export const createPrimitive = (kind: PrimitiveKind): THREE.Object3D => {
+export const createPrimitive = (
+  kind: PrimitiveKind,
+  options: PrimitiveOptions = {}
+): THREE.Object3D => {
   switch (kind) {
+    case "figure":
+      return createFigure(options.figure);
+    case "camera": {
+      // A scene camera: a named view a timeline clip can film through. It
+      // looks down its own -Z, as glTF cameras do.
+      const camera = new THREE.PerspectiveCamera(
+        CAMERA_DEFAULT_FOV_DEG,
+        CAMERA_DEFAULT_ASPECT,
+        CAMERA_DEFAULT_ZNEAR,
+        CAMERA_DEFAULT_ZFAR
+      );
+      camera.position.fromArray(PRIMITIVE_DEFAULTS.camera.position);
+      return camera;
+    }
     case "box":
       return new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), standardMaterial());
     case "sphere":

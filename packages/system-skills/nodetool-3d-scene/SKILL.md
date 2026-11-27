@@ -1,6 +1,6 @@
 ---
 name: nodetool-3d-scene
-description: "Build, edit, validate or render a NodeTool 3D model: glTF primitives, transforms, lights, material colors, generated meshes, and headless Blender renders. For a playable 3D game, use native-game."
+description: "Build, edit, validate or render a NodeTool 3D model: glTF primitives, transforms, lights, material colors, blockout sets with posed figures and named cameras, generated meshes, and headless Blender renders. For a playable 3D game, use native-game."
 featured: true
 ---
 
@@ -21,7 +21,9 @@ on a timeline.
    scene and can apply the whole scene in the same call.
 2. **Read it.** `get_model3d {model_id}` lists every object with its uuid, name,
    type, visibility, transform and material color, plus the scene's world-space
-   bounds. Call this before editing, for the uuids.
+   bounds. A figure also lists its `figure` (body, pose, height, entityId,
+   label) and a camera its `camera` (fovDeg, aspectRatio, znear, zfar). Call
+   this before editing, for the uuids.
 3. **Edit.** `edit_model3d {model_id, ops: [...]}`. Operations run in order.
    Anything they do not name — meshes, textures, skins, animations — is kept, so
    an imported model survives an edit.
@@ -49,13 +51,15 @@ workflow.
 
 | Op | Fields |
 |---|---|
-| `add_object` | `kind`: `box`, `sphere`, `plane`, `cylinder`, `torus`, `directionalLight`, `pointLight`. Optional `name` |
+| `add_object` | `kind`: `box`, `sphere`, `plane`, `cylinder`, `torus`, `directionalLight`, `pointLight`, `figure`, `camera`. Optional `name`, `position`. A figure also takes `body`, `pose`, `height`, `color`, `entityId`, `label`. A camera also takes `fovDeg`, `lookAt`, `aspectRatio`, `znear`, `zfar` |
 | `delete_object` | `target` |
 | `set_transform` | `position`, `rotation` (Euler **degrees**), `scale`, each `[x, y, z]` |
 | `set_visibility` | `visible` |
 | `rename_object` | `target`, `name` |
-| `set_material_color` | `color` as a CSS hex string, meshes only |
+| `set_material_color` | `color` as a CSS hex string, meshes and figures |
 | `select_object` | `target`, or `null` to clear |
+| `set_figure` | `target`, and any of `body`, `pose`, `height`, `color`, `entityId`, `label` |
+| `set_camera` | `target`, and any of `position`, `lookAt`, `fovDeg`, `aspectRatio`, `znear`, `zfar` |
 
 `target` is a uuid or a name. Object ids are stamped into
 `node.extras.nodetool_id`, because glTF addresses nodes by array index and a
@@ -74,7 +78,56 @@ a model built headlessly opens there unchanged. Headlessly, a light is a
 Light settings, other material fields and parenting need the open editor:
 `ui_3d_set_light`, `ui_3d_set_material`, `ui_3d_set_parent`.
 
-## No camera headlessly
+## Blockout sets
+
+A blockout is a rough set that a timeline `model3d` clip films as a reference
+for a video model: boxes for walls and furniture, figures for the cast, and
+named cameras for the views. The scene is +Y up, in meters, with the ground at
+y = 0.
+
+**Figures.** `add_object {kind: "figure"}` adds a jointed mannequin of plain
+meshes. Its origin is on the ground under the pelvis, it faces +Z, and its left
+side is +X. Turn it with `set_transform` `rotation: [0, degrees, 0]`.
+
+| Field | Values |
+|---|---|
+| `body` | `male` (1.8 m, default), `female` (1.65 m), `child` (1.2 m) |
+| `pose` | `stand` (default), `sit`, `walk`, `run`, `lie` |
+| `height` | Standing height in meters, 0.3 to 3. Defaults to the body's own |
+| `color` | CSS hex. Default `#b8b8b8` |
+| `entityId` | The id of the cast entity the figure stands in for. `null` clears it |
+| `label` | A character name or role. `null` clears it |
+
+Every pose rests on y = 0. `sit` leaves the seat at knee height, so put a box
+under it. `lie` is on the back with the head toward -Z. `set_figure` changes
+any of these on an existing figure, and a new `body` takes that body's default
+height unless `height` is given. A figure is one object: its joints are not
+listed and cannot be addressed. Set `entityId` and `label` on every cast
+figure, because they are how a later prompt says who stands where.
+
+**Cameras.** `add_object {kind: "camera"}` adds a perspective camera that looks
+down its own -Z. `position` places it and `lookAt: [x, y, z]` turns it to face
+a point, applied after the position. `fovDeg` is the vertical field of view,
+default 40. `set_camera` moves, re-aims or relenses it. A `model3d` clip in
+`scene` camera mode picks a camera by `sceneCameraName`, which is the name
+`get_model3d` reports, spaces included.
+
+```json
+{"ops": [
+  {"op": "add_object", "kind": "plane", "name": "floor"},
+  {"op": "set_transform", "target": "floor", "scale": [6, 6, 1]},
+  {"op": "add_object", "kind": "figure", "name": "ana", "body": "female",
+   "pose": "walk", "position": [-1, 0, 0], "entityId": "<entity id>", "label": "Ana"},
+  {"op": "add_object", "kind": "camera", "name": "cam_wide",
+   "position": [0, 1.5, 6], "lookAt": [0, 1, 0], "fovDeg": 35},
+  {"op": "add_object", "kind": "directionalLight"}
+]}
+```
+
+In the open editor the same verbs are `ui_3d_add_object` with the same fields,
+`ui_3d_set_figure` and `ui_3d_set_camera`.
+
+## No viewport headlessly
 
 `ui_3d_frame_scene` and `ui_3d_capture_view` need a WebGL context. Without one,
 `get_model3d`'s world-space bounds are what answer "how big is this and where is

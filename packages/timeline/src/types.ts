@@ -326,19 +326,26 @@ export interface ClipShapeStyle {
 
 /**
  * How a `model3d` clip's camera is placed. `orbit` frames the model's bounding
- * sphere; `scene` uses a camera the glTF itself declares.
+ * sphere, `scene` uses a camera the glTF itself declares, and `free` is a
+ * camera placed in world space by `position`, `target`, `rollDeg` and `fovDeg`.
  */
-export type Model3DCameraMode = "orbit" | "scene";
+export type Model3DCameraMode = "orbit" | "scene" | "free";
 
 /**
  * A `model3d` clip's camera. The orbit terms are the vocabulary
  * `nodetool.model3d.RenderToImage`, the Blender bake job and the model
  * editor's pose already share, so one pose reads the same in all of them.
+ *
+ * `free` mode reads `position`, `target`, `rollDeg` and `fovDeg`. It does not
+ * fit the bounding sphere and ignores `azimuthDeg`, `elevationDeg`, `zoom` and
+ * `targetOffset`. Every field stays stored in every mode, so a mode switch
+ * loses nothing.
  */
 export interface ClipModel3DCamera {
   mode: Model3DCameraMode;
   azimuthDeg: number;
   elevationDeg: number;
+  /** Vertical field of view, degrees. */
   fovDeg: number;
   /** Distance multiplier on the auto-framed fit: above 1 moves closer. */
   zoom: number;
@@ -346,6 +353,15 @@ export interface ClipModel3DCamera {
   targetOffset?: [number, number, number];
   /** `scene` mode: the glTF camera's name; the first camera when absent. */
   sceneCameraName?: string;
+  /** `free` mode: the camera eye in glTF world units. Default `[0, 1.6, 5]`. */
+  position?: [number, number, number];
+  /** `free` mode: the look-at point in glTF world units. Default `[0, 1, 0]`. */
+  target?: [number, number, number];
+  /**
+   * `free` mode: roll around the view axis, degrees. Positive turns the
+   * horizon clockwise in the picture. Default 0.
+   */
+  rollDeg?: number;
 }
 
 /** Which glTF animation a `model3d` clip plays, and how. */
@@ -374,6 +390,18 @@ export interface ClipModel3DStyle {
    * it stale and the live 3D layer draws again.
    */
   bake?: { assetId: string; dependencyHash: string };
+  /**
+   * A grey render of this clip's span, kept as a video asset that a video
+   * model follows when a storyboard shot is generated (Blockout 3D). It is
+   * never drawn on the timeline. `dependencyHash` is
+   * `computeModel3DReferenceHash` at render time, so an edit to the set, the
+   * camera or the span marks it stale.
+   */
+  reference?: {
+    assetId: string;
+    dependencyHash: string;
+    pass: "clay" | "depth" | "normal";
+  };
 }
 
 /**

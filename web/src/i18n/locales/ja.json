@@ -16,12 +16,12 @@
   },
   "screen_storyboard": {
     "entities": {
-      "pickTitle": "エンティティを選択してください",
+      "pickTitle": "リファレンスを選択",
       "done": "完了",
       "untitled": "無題",
-      "searchPlaceholder": "名前、種類、またはタグでエンティティを検索する",
-      "searchLabel": "エンティティの検索",
-      "kindLabel": "エンティティの種類",
+      "searchPlaceholder": "名前、種類、タグでリファレンスを検索",
+      "searchLabel": "リファレンスを検索",
+      "kindLabel": "リファレンスの種類",
       "kindFilters": {
         "all": "すべて",
         "characters": "キャラクター",
@@ -29,16 +29,16 @@
         "styles": "スタイル",
         "props": "小道具"
       },
-      "loading": "エンティティの読み込み",
-      "emptyTitle": "まだエンティティがありません",
+      "loading": "リファレンスを読み込み中",
+      "emptyTitle": "まだリファレンスがありません",
       "emptyPickerDescription": "作成したキャラクター、場所、スタイル、小道具がここに表示されます。",
-      "newEntity": "新しいエンティティ",
-      "noMatches": "一致するエンティティはありません",
+      "newEntity": "新しいリファレンス",
+      "noMatches": "一致するリファレンスはありません",
       "noMatchesDescription": "別の名前、種類、またはタグを試してください。",
-      "entitiesLabel": "エンティティ",
+      "entitiesLabel": "リファレンス",
       "noImage": "画像なし",
-      "editEntity": "エンティティの編集",
-      "removeEntity": "エンティティの削除",
+      "editEntity": "リファレンスを編集",
+      "removeEntity": "リファレンスを外す",
       "save": "保存",
       "create": "作成",
       "image": "画像",
@@ -52,14 +52,14 @@
       },
       "name": "名前",
       "descriptor": "記述子",
-      "descriptorHelp": "文章でどのように見えるか。このエンティティを使用するすべてのプロンプトでは、一語一語それが取得されます。",
+      "descriptorHelp": "見た目を一文で。このリファレンスを使うすべてのプロンプトに一字一句そのまま入ります。",
       "voiceId": "音声ID（オプション）",
       "tags": "タグ (カンマ区切り)",
-      "panelEmptyDescription": "上の [+] ボタンを使用して画像を文字、場所、スタイル、または小道具としてタグ付けするか、ライブラリ内の画像を右クリックして [エンティティとして使用] を選択します。",
-      "libraryEmptyDescription": "画像にキャラクター、場所、スタイル、または小道具としてタグを付けて、複数のショットで再利用します。ライブラリで画像を右クリックし、[エンティティとして使用] を選択します。",
-      "addEntity": "エンティティの追加",
+      "panelEmptyDescription": "上の + ボタンで画像をキャラクター、場所、スタイル、小道具としてタグ付けするか、ライブラリで画像を右クリックして「リファレンスとして使う」を選んでください。",
+      "libraryEmptyDescription": "画像をキャラクター、場所、スタイル、小道具としてタグ付けすると、複数のショットで使い回せます。ライブラリで画像を右クリックし、「リファレンスとして使う」を選んでください。",
+      "addEntity": "リファレンスを追加",
       "librarySubtitle": "再利用可能な文字、場所、スタイル、小道具",
-      "backToEntities": "エンティティに戻る",
+      "backToEntities": "リファレンスに戻る",
       "pickImageTitle": "参考画像を選択してください",
       "noImages": "画像がありません",
       "noImagesDescription": "最初に画像を生成またはアップロードします。"
@@ -191,7 +191,7 @@
     "sendMediaToWorkflowTooltip": "選択したメディアを定数ノードとしてワークフロー キャンバスに追加します",
     "transformWithWorkflow": "ワークフローで変革…",
     "transformWithWorkflowTooltip": "ワークフローの 1 つを通じてこのファイルを実行します",
-    "useAsEntity": "エンティティとして使用…",
+    "useAsEntity": "リファレンスとして使う…",
     "useAsEntityTooltip": "この画像にキャラクター、場所、スタイル、または小道具としてタグを付けて、複数のショットで再利用します",
     "editTimeline": "タイムラインを編集する",
     "createTimelineFromVideo": "動画からタイムラインを作成する",
@@ -2831,7 +2831,11 @@
         "rotation": "回転",
         "orbit": "軌道",
         "fieldOfView": "視野",
-        "zoom": "ズーム"
+        "zoom": "ズーム",
+        "cameraPosition": "位置",
+        "cameraTarget": "ターゲット",
+        "cameraLens": "レンズ",
+        "cameraRoll": "ロール"
       },
       "inputs": {
         "opacity": "不透明度",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "カメラの方位角",
         "cameraElevation": "カメラの仰角",
         "cameraFieldOfView": "カメラの視野",
-        "cameraZoom": "カメラのズーム"
+        "cameraZoom": "カメラのズーム",
+        "cameraPositionX": "カメラ位置 X",
+        "cameraPositionY": "カメラ位置 Y",
+        "cameraPositionZ": "カメラ位置 Z",
+        "cameraTargetX": "カメラターゲット X",
+        "cameraTargetY": "カメラターゲット Y",
+        "cameraTargetZ": "カメラターゲット Z",
+        "cameraLens": "カメラのレンズ(ミリメートル)",
+        "cameraRoll": "カメラのロール(度)"
       },
       "easing": {
         "linear": "リニア",
@@ -3001,7 +3013,7 @@
       }
     },
     "entity": {
-      "title": "エンティティ",
+      "title": "リファレンス",
       "kinds": {
         "character": "キャラクター",
         "location": "場所",
@@ -3009,51 +3021,51 @@
         "prop": "小道具"
       },
       "defaults": {
-        "untitledName": "無題のエンティティ",
+        "untitledName": "無題のリファレンス",
         "untitledReferenceFile": "無題.png"
       },
       "errors": {
         "canvasUnavailable": "キャンバス 2D コンテキストは使用できません",
         "blankImageFailed": "空白の画像のレンダリングに失敗しました",
-        "blankStart": "空のエンティティを開始できませんでした: {{detail}}",
-        "referenceRequired": "エンティティを作成する前に参照イメージを選択します。",
-        "createdEntityUnreadable": "エンティティの作成後にエンティティを読み取ることができませんでした。"
+        "blankStart": "空のリファレンスを開始できませんでした: {{detail}}",
+        "referenceRequired": "リファレンスを作成する前に画像を選んでください。",
+        "createdEntityUnreadable": "作成後にリファレンスを読み込めませんでした。"
       },
       "steps": {
         "details": {
           "label": "詳細",
           "primary": "リファレンスを選択してください",
           "blocked": {
-            "name": "エンティティに名前を付けます",
+            "name": "リファレンスに名前を付ける",
             "descriptor": "保存すべき特性について説明する"
           },
           "pending": "空白のリファレンスを準備する"
         },
         "reference": {
           "label": "参考資料",
-          "primary": "レビューエンティティ",
+          "primary": "リファレンスを確認",
           "blocked": {
-            "libraryError": "エンティティ ライブラリを確認できませんでした",
-            "libraryLoading": "エンティティ ライブラリをロードする",
+            "libraryError": "リファレンスライブラリを確認できませんでした",
+            "libraryLoading": "リファレンスライブラリを読み込み中",
             "reference": "参考画像を選択してください"
           }
         },
         "review": {
           "label": "レビュー",
-          "primary": "エンティティの作成",
-          "pending": "エンティティの作成",
+          "primary": "リファレンスを作成",
+          "pending": "リファレンスを作成しています",
           "blocked": {
-            "libraryError": "エンティティ ライブラリを確認できませんでした",
-            "libraryLoading": "エンティティ ライブラリをロードする",
+            "libraryError": "リファレンスライブラリを確認できませんでした",
+            "libraryLoading": "リファレンスライブラリを読み込み中",
             "reference": "戻って参照画像を選択します",
-            "name": "戻ってエンティティに名前を付けます",
+            "name": "戻ってリファレンスに名前を付けてください",
             "descriptor": "戻って、保持すべき特性を説明します"
           }
         }
       },
       "details": {
         "title": "一貫性を保つべきものは何でしょうか?",
-        "description": "エンティティに安定した名前を付けると、説明生成プロンプトが再利用されます。",
+        "description": "リファレンスに固定の名前と、生成プロンプトで繰り返し使う説明を付けてください。",
         "kinds": {
           "character": {
             "title": "キャラクター",
@@ -3073,10 +3085,10 @@
           }
         },
         "fields": {
-          "kind": "エンティティの種類",
+          "kind": "リファレンスのタイプ",
           "name": "名前",
           "descriptor": "記述子",
-          "descriptorHelp": "このテキストは、エンティティを使用するすべてのプロンプトに追加されます。安定した視覚的特徴のみを説明してください。",
+          "descriptorHelp": "この文は、リファレンスを使うすべてのプロンプトに追加されます。変わらない見た目の特徴だけを書いてください。",
           "tagsOptional": "タグ (オプション)"
         },
         "placeholders": {
@@ -3098,7 +3110,7 @@
         "description": "今後の生成で維持したい特徴が最もはっきり写った画像を選ぶか、AI で作成します。",
         "imageCaption": "{{name}} リファレンス",
         "selectedCaption": "選択されたリファレンス",
-        "selectedAlt": "選択されたエンティティ参照",
+        "selectedAlt": "選択したリファレンス画像",
         "assets": {
           "unavailable": "アセットが利用できない",
           "loading": "アセットのロード",
@@ -3131,7 +3143,7 @@
         "errors": {
           "noImage": "画像モデルは参照画像を返しませんでした。",
           "generationFailed": "参照画像を生成できませんでした。",
-          "reportSummary": "エンティティ参照画像の生成に失敗しました"
+          "reportSummary": "リファレンス画像を生成できませんでした"
         },
         "prompt": {
           "template": "{{name}} の参考画像。 {{descriptor}} {{instruction}}",
@@ -3192,7 +3204,7 @@
         "clipTask": {
           "image_to_video": "静止画をアニメーション化する",
           "text_to_video": "プロンプトから生成",
-          "reference_to_video": "エンティティ参照を使用する"
+          "reference_to_video": "リファレンスを使う"
         },
         "confirmWithCost": "{{verb}} · 約 {{cost}}",
         "renderClip": "クリップをレンダリング",
@@ -3564,58 +3576,58 @@
       "entities": {
         "editOnlyModel": "{{model}} は画像のみを編集するため、説明から参照を引き出すことはできません。テキストから画像を作成するモデルを選択してください。",
         "substituteModelHelper": "{{originalModel}} は画像のみを編集するため、参照では {{referenceModel}} を使用します。 Look ステップの静止画は {{originalModel}} のままです。",
-        "referenceModelHelper": "作成することを選択した欠落エンティティに対してのみ使用されます。同じモデルが Look ステップに持ち込まれます。",
+        "referenceModelHelper": "作成することにした不足リファレンスにのみ使います。同じモデルが Look の手順にも引き継がれます。",
         "priceUnknown": "価格不明",
         "aboutPrice": "{{price}} について",
         "missingScreenplayOrModel": "絵コンテには、まず脚本と監督モデルが必要です。",
-        "findFailedFallback": "ストーリー内にエンティティが見つかりませんでした。",
+        "findFailedFallback": "ストーリーからリファレンスが見つかりませんでした。",
         "pickReferenceModelFirst": "最初に参照画像モデルを選択します。",
         "noReferenceImageReturned": "画像モデルは参照画像を返しませんでした。",
-        "entitySaveFailed": "エンティティを保存できませんでした。",
-        "entityCreateFailedFallback": "エンティティを作成できませんでした。",
+        "entitySaveFailed": "リファレンスを保存できませんでした。",
+        "entityCreateFailedFallback": "リファレンスを作成できませんでした。",
         "title": "人と場所の一貫性を保つ",
         "description": "ショット全体で一貫して見えるようにする必要があるキャラクター、場所、小道具を選択します。",
         "suggestedFromStory": "あなたの話からの提案",
         "suggestionsDescription": "脚本内で繰り返し出てくる参照を見つけます。使いたいものだけを作成します。",
-        "findingEntities": "エンティティの検索",
+        "findingEntities": "リファレンスを探しています",
         "refreshSuggestions": "提案を更新する",
-        "findEntities": "エンティティの検索",
-        "cancelFinding": "エンティティの検索をキャンセルする",
+        "findEntities": "リファレンスを探す",
+        "cancelFinding": "リファレンスの検索をキャンセル",
         "cancel": "キャンセル",
         "noSuggestionsFound": "脚本に繰り返し登場する人物、場所、小道具は見つかりませんでした。",
         "loadingEstimate": "見積もりを読み込んでいます…",
         "findEstimateResult": "脚本内の登場人物、場所、小道具を見つける",
         "findEstimateNext": "あなたが選択するまでは何も作成されません。",
-        "findFailureTitle": "エンティティが見つかりませんでした",
-        "createFailureTitle": "エンティティを作成できませんでした",
-        "findFailureSummary": "絵コンテエンティティの提案が失敗しました",
-        "createFailureSummary": "絵コンテエンティティの作成に失敗しました",
+        "findFailureTitle": "リファレンスが見つかりませんでした",
+        "createFailureTitle": "リファレンスを作成できませんでした",
+        "findFailureSummary": "ストーリーボードのリファレンス候補の取得に失敗しました",
+        "createFailureSummary": "ストーリーボードのリファレンス作成に失敗しました",
         "referenceImageModel": "参考画像モデル",
         "creatingEntity": "{{name}} を作成しています…",
         "useEntity": "{{name}} を使用する",
         "createEntity": "{{name}} を作成する",
-        "libraryTitle": "エンティティ ライブラリ",
+        "libraryTitle": "リファレンスライブラリ",
         "selectedCount_one": "{{count}} がこの絵コンテ用に選択されました",
         "selectedCount_other": "{{count}} がこの絵コンテ用に選択されました",
-        "createFromImage": "画像からエンティティを作成する",
-        "loadingEntities": "エンティティの読み込み",
-        "loadFailedTitle": "エンティティを読み込めませんでした",
+        "createFromImage": "画像からリファレンスを作成",
+        "loadingEntities": "リファレンスを読み込み中",
+        "loadFailedTitle": "リファレンスを読み込めませんでした",
         "tryAgain": "もう一度試してください",
-        "loadFailureSummary": "絵コンテ エンティティ ライブラリのロードに失敗しました",
-        "loadFailedFallback": "エンティティ ライブラリがロードされませんでした。もう一度試すか、この手順をスキップしてください。",
-        "emptyTitle": "まだエンティティがありません",
+        "loadFailureSummary": "ストーリーボードのリファレンスライブラリを読み込めませんでした",
+        "loadFailedFallback": "リファレンスライブラリを読み込めませんでした。もう一度試すか、この手順をスキップしてください。",
+        "emptyTitle": "まだリファレンスがありません",
         "emptyDescription": "生成またはアップロードされた画像から作成するか、この手順をスキップしてください。",
-        "searchPlaceholder": "エンティティの検索",
+        "searchPlaceholder": "リファレンスを検索",
         "selectedOnly": "選択されたもののみ",
-        "noEntitiesSelected": "エンティティが選択されていません",
-        "noMatchingEntities": "一致するエンティティがありません",
+        "noEntitiesSelected": "リファレンスが選択されていません",
+        "noMatchingEntities": "一致するリファレンスはありません",
         "noSelectedDescription": "ライブラリを参照して、この絵コンテの参照を選択します。",
         "noMatchingDescription": "別の名前を試すか、選択したフィルターを変更してください。",
         "viewReferenceImage": "{{name}} 参照画像を表示",
         "selectEntity": "{{name}} · {{kind}}",
         "noDescription": "説明なし",
         "assignEachShot": "各ショットを割り当てる",
-        "assignDescription": "エンティティが表示されるべきではないショットからエンティティを削除します。",
+        "assignDescription": "表示すべきでないショットからリファレンスを外します。",
         "shotNumber": "ショット {{number}}",
         "groups": {
           "characters": "キャラクター",
@@ -5478,7 +5490,35 @@
           "bakeFailed": "3D クリップのベイクに失敗しました",
           "loadingModel": "モデルを読み込み中…",
           "unavailable": "利用不可",
-          "missingName": "{{name}} (欠落)"
+          "missingName": "{{name}} (欠落)",
+          "free": "フリー",
+          "keyCamera": "カメラをキー設定",
+          "keyCameraHelp": "再生ヘッドの位置ですべてのカメラチャンネルにキーフレームを追加します",
+          "cameraMove": "カメラムーブ",
+          "addCameraMove": "カメラムーブを追加",
+          "move": "ムーブ",
+          "moveAmount": "量",
+          "moveDuration": "長さ",
+          "moveAmountDegrees": "量は角度です。",
+          "moveAmountDistance": "量はカメラからターゲットまでの距離に対する割合です。",
+          "moveAmountFactor": "量は焦点距離に掛ける倍率です。",
+          "moveStartsAt": "ムーブは {{time}} から始まります。",
+          "applyMove": "ムーブを追加",
+          "freeCameraHelp": "プレビューでは、Alt を押しながらドラッグで周回、Shift を加えると横移動、スクロールで前後移動、スクロール中に Ctrl を加えるとレンズを変更します。",
+          "editSet": "セットを編集",
+          "editSetHelp": "このクリップの3Dモデルをモデルエディターで開きます",
+          "moves": {
+            "pan": "パン",
+            "tilt": "ティルト",
+            "orbit": "オービット",
+            "pushIn": "プッシュイン",
+            "truck": "トラック",
+            "crane": "クレーン",
+            "pedestal": "ペデスタル",
+            "zoom": "ズーム",
+            "dollyZoom": "ドリーズーム",
+            "dutch": "ダッチアングル"
+          }
         },
         "reframe": {
           "title": "スマートリフレーム",
@@ -6122,7 +6162,7 @@
         "actionLabel": "{{name}} を別のプロジェクトにコピーする",
         "title": "{{name}} をコピー",
         "confirm": "コピー",
-        "description": "参照されたアセット、エンティティ、およびサポートされているドキュメントが宛先にコピーされます。ソースはそのままです。",
+        "description": "リンクされたアセット、リファレンス、対応ドキュメントがコピー先に複製されます。元は変わりません。",
         "destinationProject": "目的地プロジェクト"
       },
       "documents": {
@@ -6167,7 +6207,7 @@
         "openChatError": "チャットを開けませんでした: {{error}}",
         "startFlowError": "{{flow}} を開始できませんでした: {{error}}",
         "flowNames": {
-          "entity": "エンティティ",
+          "entity": "リファレンス",
           "storyboard": "絵コンテ",
           "video": "ビデオ",
           "script": "スクリプト",
@@ -6178,9 +6218,9 @@
         },
         "attachedFileCount_one": "{{count}} 添付ファイル",
         "attachedFileCount_other": "{{count}} 添付ファイル",
-        "singleEntity": "エンティティ {{name}}",
-        "entityCount_one": "{{count}} エンティティ",
-        "entityCount_other": "{{count}} エンティティ",
+        "singleEntity": "リファレンス {{name}}",
+        "entityCount_one": "{{count}} 件のリファレンス",
+        "entityCount_other": "{{count}} 件のリファレンス",
         "uncarriedContext": "{{flow}} フローはプロンプトから開始されるため、{{items}} はこの画面に留まります。フロー独自のステップから追加します。",
         "documentNames": {
           "storyboard": "新しい絵コンテ",
@@ -6190,11 +6230,11 @@
           "workflow": "新しいワークフロー",
           "app": "新しいアプリ",
           "game": "新しいゲーム",
-          "entity": "新しいエンティティ"
+          "entity": "新しいリファレンス"
         },
         "entryCards": {
           "entity": {
-            "title": "エンティティ",
+            "title": "リファレンス",
             "description": "再利用可能なキャラクター、場所、スタイル、または小道具を作成します。"
           },
           "storyboard": {
@@ -6257,13 +6297,13 @@
         "heading": "何を作りたいですか？",
         "intro": "アイデアを画像、ビデオ、アプリ、ワークフローに変換します。質問するか、何を作るかを説明します。",
         "chatPromptLabel": "チャットプロンプト",
-        "promptPlaceholder": "何を作りたいのか説明してください。スキルの場合は / を入力し、ファイルまたはエンティティの場合は @ を入力します。",
+        "promptPlaceholder": "作りたいものを説明してください。/ でスキル、@ でファイルやリファレンスを指定できます。",
         "removeReference": "{{name}} を削除します",
         "attachFiles": "ファイルを添付する",
         "attachedFileCountShort_one": "ファイル · {{count}}",
         "attachedFileCountShort_other": "ファイル · {{count}}",
-        "entitiesNone": "エンティティ · なし",
-        "entitiesSelected": "エンティティ · {{entities}}",
+        "entitiesNone": "リファレンス · なし",
+        "entitiesSelected": "リファレンス · {{entities}}",
         "selectedModel": "モデル · {{name}}",
         "selectModel": "モデルを選択してください",
         "sendToChat": "チャットに送信",
@@ -6283,7 +6323,7 @@
         "blankDocumentDescription": "— プロジェクトの外部で、緩いタブとして開きます",
         "browseExamples": "例を参照する",
         "tutorials": "チュートリアル",
-        "entitiesDialogTitle": "このプロジェクトのエンティティ",
+        "entitiesDialogTitle": "このプロジェクトのリファレンス",
         "blankStoryboard": "空の絵コンテ",
         "renderedExampleShots_one": "{{count}} ショット、すでにレンダリング済み",
         "renderedExampleShots_other": "{{count}} ショット、すでにレンダリング済み",
@@ -6390,7 +6430,17 @@
           "script": "台本にする",
           "ask": "ファイルについて質問",
           "askPrompt": "添付したファイルを見て、何が作れるか提案して。"
-        }
+        },
+        "entitiesHint": "繰り返し使うキャラクター、場所、スタイル、小道具。どの画像や動画でも同じ見た目に保てます。",
+        "goalHints": {
+          "chat": "質問したり、アイデアを相談したりできます。回答はチャットに表示されます。",
+          "image": "画像を説明してください。送信すると、入力した文で画像作成が開きます。",
+          "video": "短いクリップを説明してください。送信すると、入力した文で動画作成が開きます。",
+          "audio": "読み上げたい文を入力してください。送信すると音声作成が開き、読み上げます。"
+        },
+        "showAllWays": "すべての始め方を表示",
+        "showAllWaysHint": "スタジオ、スキル、すぐ使える例、プロジェクト、空のドキュメント",
+        "needHelp": "NodeTool は初めてですか？チュートリアルを見るか、そのまま動く例を開いてください。"
       }
     }
   },
@@ -6767,7 +6817,7 @@
         "title": "流れを変える？",
         "confirm": "捨てて選ぶ",
         "cancel": "この下書きを保存してください",
-        "description": "ブリーフと、最初に作成した参照とエンティティは、次に選択するフローに付属します。この {{flow}} ドラフトは、クリエイティブ コンテキスト、インポートされたファイル、配置されたメディアなど、このステップで追加された他のものとともに破棄されます。まだ何も生成されていません。"
+        "description": "ブリーフと、最初に用意した画像やリファレンスは、次に選ぶフローに引き継がれます。この {{flow}} の下書きは、この手順で追加したもの(クリエイティブな文脈、読み込んだファイル、配置したメディアなど)と一緒に破棄されます。まだ何も生成されていません。"
       }
     },
     "setupFooterField": {
@@ -6805,12 +6855,12 @@
     },
     "entityDetails": {
       "title": "一貫性を保つべきものは何でしょうか?",
-      "description": "エンティティに安定した名前を付けると、説明生成プロンプトが再利用されます。",
+      "description": "リファレンスに固定の名前と、生成プロンプトで繰り返し使う説明を付けてください。",
       "fields": {
-        "kind": "エンティティの種類",
+        "kind": "リファレンスのタイプ",
         "name": "名前",
         "descriptor": "記述子",
-        "descriptorHelp": "このテキストは、エンティティを使用するすべてのプロンプトに追加されます。安定した視覚的特徴のみを説明してください。",
+        "descriptorHelp": "この文は、リファレンスを使うすべてのプロンプトに追加されます。変わらない見た目の特徴だけを書いてください。",
         "tagsOptional": "タグ (オプション)"
       },
       "placeholders": {
@@ -6906,9 +6956,9 @@
   },
   "pass3_5": {
     "entity": {
-      "title": "エンティティ",
+      "title": "リファレンス",
       "defaults": {
-        "untitledName": "無題のエンティティ",
+        "untitledName": "無題のリファレンス",
         "untitledReferenceFile": "無題.png"
       },
       "kinds": {
@@ -6920,38 +6970,38 @@
       "errors": {
         "canvasUnavailable": "キャンバスが使用できないため、空の参照を作成できませんでした。",
         "blankImageFailed": "空の参照イメージをレンダリングできませんでした。",
-        "blankStart": "空のエンティティを開始できませんでした: {{detail}}",
-        "referenceRequired": "エンティティを作成する前に参照イメージを選択します。",
-        "createdEntityUnreadable": "エンティティの作成後にエンティティを読み取ることができませんでした。"
+        "blankStart": "空のリファレンスを開始できませんでした: {{detail}}",
+        "referenceRequired": "リファレンスを作成する前に画像を選んでください。",
+        "createdEntityUnreadable": "作成後にリファレンスを読み込めませんでした。"
       },
       "steps": {
         "details": {
           "label": "詳細",
           "primary": "リファレンスを選択してください",
           "blocked": {
-            "name": "エンティティに名前を付けます",
+            "name": "リファレンスに名前を付ける",
             "descriptor": "保存すべき特性について説明する"
           },
           "pending": "空白のリファレンスを準備する"
         },
         "reference": {
           "label": "参考資料",
-          "primary": "レビューエンティティ",
+          "primary": "リファレンスを確認",
           "blocked": {
-            "libraryError": "エンティティ ライブラリを確認できませんでした",
-            "libraryLoading": "エンティティ ライブラリをロードする",
+            "libraryError": "リファレンスライブラリを確認できませんでした",
+            "libraryLoading": "リファレンスライブラリを読み込み中",
             "reference": "参考画像を選択してください"
           }
         },
         "review": {
           "label": "レビュー",
-          "primary": "エンティティの作成",
-          "pending": "エンティティの作成",
+          "primary": "リファレンスを作成",
+          "pending": "リファレンスを作成しています",
           "blocked": {
-            "libraryError": "エンティティ ライブラリを確認できませんでした",
-            "libraryLoading": "エンティティ ライブラリをロードする",
+            "libraryError": "リファレンスライブラリを確認できませんでした",
+            "libraryLoading": "リファレンスライブラリを読み込み中",
             "reference": "戻って参照画像を選択します",
-            "name": "戻ってエンティティに名前を付けます",
+            "name": "戻ってリファレンスに名前を付けてください",
             "descriptor": "戻って、保持すべき特性を説明します"
           }
         }
@@ -6961,7 +7011,7 @@
         "description": "今後の生成で維持したい特徴が最もはっきり写った画像を選ぶか、AI で作成します。",
         "imageCaption": "{{name}} リファレンス",
         "selectedCaption": "選択されたリファレンス",
-        "selectedAlt": "選択されたエンティティ参照",
+        "selectedAlt": "選択したリファレンス画像",
         "assets": {
           "unavailable": "アセットが利用できない",
           "loading": "アセットのロード",
@@ -6987,7 +7037,7 @@
         "errors": {
           "noImage": "画像モデルは参照画像を返しませんでした。",
           "generationFailed": "参照画像を生成できませんでした。",
-          "reportSummary": "エンティティ参照画像の生成に失敗しました"
+          "reportSummary": "リファレンス画像を生成できませんでした"
         },
         "prompt": {
           "template": "{{name}} の参考画像。 {{descriptor}} {{instruction}}",
@@ -7040,12 +7090,12 @@
         }
       },
       "review": {
-        "title": "エンティティを確認する",
-        "description": "この参照と記述子は、エンティティを追加できる場所ならどこでも利用できます。",
+        "title": "リファレンスを確認してください",
+        "description": "このリファレンスと説明は、リファレンスを追加できるすべての場所で使えます。",
         "imageCaption": "{{name}} リファレンス",
         "imageAlt": "{{name}} リファレンス",
         "tags": "タグ: {{tags}}",
-        "loadingLibrary": "エンティティ ライブラリをロードしています…",
+        "loadingLibrary": "リファレンスライブラリを読み込み中…",
         "empty": {
           "title": "参考画像はまだありません",
           "description": "参照ステップに戻って、ステップを選択または生成します。"
@@ -7202,7 +7252,7 @@
         "uploadFailed": "画像のアップロードに失敗しました",
         "promptContext": "プロンプトと一緒に来ました",
         "referenceImages": "参考画像",
-        "entities": "エンティティ",
+        "entities": "リファレンス",
         "referencesHelp": "段階的な概要には次のように書かれています。すぐに生成すると、テキストのみが使用されます。",
         "entitiesHelp": "これらは、ドキュメントを設定するときにドキュメントに残ります。",
         "alternativesLabel": "その他の開始方法"
@@ -7212,11 +7262,11 @@
         "downloadUnreadable": "ファイルを読み取れませんでした ({{status}})。",
         "variation": "バリエーション {{number}}",
         "unrecordedFailure": "これはレンダリングされず、理由も示されませんでした。",
-        "savingEntity": "エンティティに保存中…",
+        "savingEntity": "リファレンスに保存中…",
         "opening": "オープニング…",
-        "savedEntity": "エンティティに保存されました。",
+        "savedEntity": "リファレンスに保存しました。",
         "openedCanvas": "新しいノード キャンバスで開きます。",
-        "saveEntityFailed": "エンティティに保存できませんでした。",
+        "saveEntityFailed": "リファレンスに保存できませんでした。",
         "openCanvasFailed": "そのキャンバスを開けませんでした。",
         "heading": "画像を選択してください",
         "intro": "すべてのバリエーションはドキュメント上に残るため、レンダリングしたものは何も失われません。",
@@ -7235,7 +7285,7 @@
           "failed": "こいつは失敗した"
         },
         "sketchEditor": "スケッチエディタ",
-        "saveToEntities": "エンティティに保存",
+        "saveToEntities": "リファレンスに保存",
         "newNodeCanvas": "新しいノードキャンバス",
         "imageToVideo": "画像からビデオへ",
         "retryVariation": "{{label}} をもう一度試してください",
@@ -7468,8 +7518,8 @@
       "sourceLineCount_other": "{{count}} 行",
       "referenceCount_one": "{{count}} リファレンス",
       "referenceCount_other": "{{count}} 参照",
-      "entityCount_one": "{{count}} エンティティ",
-      "entityCount_other": "{{count}} エンティティ"
+      "entityCount_one": "{{count}} 件のリファレンス",
+      "entityCount_other": "{{count}} 件のリファレンス"
     },
     "review": {
       "addDirection": "方向を追加",
@@ -7866,14 +7916,14 @@
       "addOwnDisabledReason": "カスタム スタイルは、ボードのセットアップ中に追加されます。"
     },
     "entityStillModelWarning": {
-      "message": "エンティティは参照画像を持ちますが、このモデルはテキストのみを受け取ります。使用するイメージ間モデルを選択します。"
+      "message": "リファレンスには画像が含まれますが、このモデルはテキストしか受け付けません。使うには画像から画像のモデルを選んでください。"
     }
   },
   "screens4_13": {
     "storyboard": {
       "entityTiles": {
         "untitled": "無題",
-        "chooseEntities": "エンティティの選択"
+        "chooseEntities": "リファレンスを選択"
       },
       "oneTake": {
         "title": "ワンテイク",
@@ -7888,7 +7938,7 @@
         "referenceStills": "静止画を撮影",
         "referenceEntities": "キャストとロケ地",
         "referenceStillsHelp": "各ショットは依然としてフレーミングとポーズを修正しています。落ち着いたショットに最適です。",
-        "referenceEntitiesHelp": "エンティティ イメージは、誰が、どこで、を固定します。ショットのテキストがフレーミングとモーションを設定します。アクションに最適。",
+        "referenceEntitiesHelp": "リファレンスで「誰が」「どこで」が決まります。ショットのテキストで構図と動きが決まります。アクション向きです。",
         "duration": "長さ",
         "aspectRatio": "アスペクト比",
         "resolution": "解像度",
@@ -7920,7 +7970,7 @@
         "blockers": {
           "addShot": "まずボードにショットを追加します。",
           "renderStill": "少なくとも 1 ショットの静止画をレンダリングします。",
-          "addEntityImage": "まずボード上のエンティティに参照画像を与えます。",
+          "addEntityImage": "先にボード上のリファレンスに画像を設定してください。",
           "noModel": "ビデオ モデルが選択されていません。",
           "imageLimit_one": "{{count}} イメージは {{limit}} の制限を超えています。 {{removeCount}} を削除します。",
           "imageLimit_other": "{{count}} イメージは {{limit}} の制限を超えています。 {{removeCount}} を削除します。",
@@ -7976,9 +8026,9 @@
         "shotStillAlt": "静止画を撮影",
         "imageReference": "[画像{{number}}] ",
         "references": "参考画像",
-        "referencesHelp": "静止画はフレーミングとポーズを修正します。エンティティ イメージは、誰が、どこで、を固定します。",
+        "referencesHelp": "静止画で構図とポーズが決まり、リファレンスで「誰が」「どこで」が決まります。",
         "stills": "静止画",
-        "entities": "エンティティ",
+        "entities": "リファレンス",
         "addEntity": "ライブラリから追加",
         "noStill": "いや、まだ",
         "noEntityImage": "画像なし",
@@ -7993,7 +8043,7 @@
           "differentScenes": "このシーン クリップのショットは 1 つのシーンではなくなりました。",
           "addShot": "まずボードにショットを追加します。",
           "renderStill": "少なくとも 1 ショットの静止画をレンダリングします。",
-          "addEntityImage": "まずボード上のエンティティに参照画像を与えます。",
+          "addEntityImage": "先にボード上のリファレンスに画像を設定してください。",
           "noReference": "少なくとも 1 つの参照画像を選択します。",
           "noVideoModel": "ビデオ モデルが選択されていません。",
           "imageLimit": "{{imageCount}} 画像は {{limit}} の制限を超えています。 {{remove}} を削除します。",
@@ -8077,8 +8127,8 @@
       "shotEntitiesField": {
         "label": "このショットでは",
         "remove": "このショットから {{name}} を削除します",
-        "empty": "まだエンティティがありません。このショット内で一貫性を保つために、キャラクター、場所、スタイル、または小道具を選択してください。",
-        "newEntity": "新しいエンティティ"
+        "empty": "まだリファレンスがありません。キャラクター、場所、スタイル、小道具を選ぶと、このショットで見た目をそろえられます。",
+        "newEntity": "新しいリファレンス"
       },
       "shotGraphicsEditor": {
         "title": "グラフィックス",
@@ -8094,7 +8144,7 @@
         "exactText": "正確なテキスト: {{id}}",
         "protectedCopy": "保護されたコピーは実稼働入力から取得されます。そこで編集してください。",
         "assetReference": "アセット参照: {{id}}",
-        "entity": "エンティティ: {{id}}",
+        "entity": "リファレンス: {{id}}",
         "graphicNotes": "グラフィックノート: {{id}}",
         "defaultText": "あなたのテキスト",
         "addText": "テキストを追加する",
@@ -8192,7 +8242,7 @@
         "clipTask": {
           "image_to_video": "静止画をアニメーション化する",
           "text_to_video": "プロンプトから生成",
-          "reference_to_video": "エンティティ参照を使用する"
+          "reference_to_video": "リファレンスを使う"
         }
       },
       "shotScript": {
@@ -8458,6 +8508,10 @@
       "loadingImages": "画像の読み込み中",
       "noImages": "画像がありません",
       "noImagesDescription": "最初に画像を生成またはアップロードします。",
+      "uploadImage": "画像をアップロード",
+      "uploading": "アップロード中…",
+      "uploadFailed": "画像をアップロードできませんでした。もう一度お試しください。",
+      "noImagesUploadDescription": "コンピューターから画像をアップロードするか、先に画像を生成してください。",
       "pickImage": "画像 {{name}} を選択してください",
       "closeDialog": "ダイアログを閉じる",
       "noImage": "画像なし",
@@ -8468,11 +8522,11 @@
         "style": "スタイル",
         "prop": "プロップ"
       },
-      "editEntity": "エンティティの編集",
+      "editEntity": "リファレンスを編集",
       "editEntityFor": "{{name}} を編集",
-      "removeEntity": "エンティティの削除",
+      "removeEntity": "リファレンスを外す",
       "removeEntityFor": "{{name}} を削除します",
-      "newEntity": "新しいエンティティ",
+      "newEntity": "新しいリファレンス",
       "save": "保存",
       "cancel": "キャンセル",
       "create": "作成",
@@ -8481,33 +8535,33 @@
       "kind": "種類",
       "name": "名前",
       "descriptor": "記述子",
-      "descriptorHelp": "その様子を文章で説明します。このエンティティを使用するすべてのプロンプトには、書かれたとおりにこのテキストが含まれます。",
+      "descriptorHelp": "見た目を一文で説明してください。このリファレンスを使うすべてのプロンプトに、この文がそのまま入ります。",
       "voiceId": "音声ID（オプション）",
       "tags": "タグ (カンマ区切り)",
-      "saveFailed": "このエンティティを保存できませんでした。接続を確認して、もう一度試してください。",
-      "loadingEntities": "エンティティの読み込み",
-      "emptyTitle": "まだエンティティがありません",
-      "libraryEmptyDescription": "画像をキャラクター、場所、スタイル、または小道具として追加して、ショット全体で再利用します。ライブラリ内の画像を右クリックして、「エンティティとして使用」を選択することもできます。",
-      "addEntity": "エンティティの追加",
-      "backToEntities": "エンティティに戻る",
-      "entitiesLabel": "エンティティ",
+      "saveFailed": "このリファレンスを保存できませんでした。接続を確認してもう一度お試しください。",
+      "loadingEntities": "リファレンスを読み込み中",
+      "emptyTitle": "まだリファレンスがありません",
+      "libraryEmptyDescription": "画像をキャラクター、場所、スタイル、小道具として追加すると、複数のショットで使い回せます。ライブラリで画像を右クリックし、「リファレンスとして使う」を選ぶこともできます。",
+      "addEntity": "リファレンスを追加",
+      "backToEntities": "リファレンスに戻る",
+      "entitiesLabel": "リファレンス",
       "librarySubtitle": "再利用可能な文字、場所、スタイル、小道具",
       "retakeImage": "新規生成"
     }
   },
   "screens4_23": {
     "entities": {
-      "newEntity": "新しいエンティティ",
-      "loading": "エンティティの読み込み",
-      "emptyTitle": "まだエンティティがありません",
-      "panelEmptyDescription": "上の [+] ボタンを使用して画像を文字、場所、スタイル、または小道具としてタグ付けするか、ライブラリ内の画像を右クリックして [エンティティとして使用] を選択します。",
+      "newEntity": "新しいリファレンス",
+      "loading": "リファレンスを読み込み中",
+      "emptyTitle": "まだリファレンスがありません",
+      "panelEmptyDescription": "上の + ボタンで画像をキャラクター、場所、スタイル、小道具としてタグ付けするか、ライブラリで画像を右クリックして「リファレンスとして使う」を選んでください。",
       "emptyPickerDescription": "作成したキャラクター、場所、スタイル、小道具がここに表示されます。",
-      "noMatches": "一致するエンティティはありません",
+      "noMatches": "一致するリファレンスはありません",
       "noMatchesDescription": "別の名前、種類、またはタグを試してください。",
       "untitled": "無題",
-      "searchPlaceholder": "名前、種類、またはタグでエンティティを検索する",
-      "searchLabel": "エンティティの検索",
-      "kindLabel": "エンティティの種類",
+      "searchPlaceholder": "名前、種類、タグでリファレンスを検索",
+      "searchLabel": "リファレンスを検索",
+      "kindLabel": "リファレンスの種類",
       "kindFilters": {
         "all": "すべて",
         "characters": "キャラクター",
@@ -8521,10 +8575,10 @@
         "style": "スタイル",
         "prop": "プロップ"
       },
-      "entitiesLabel": "エンティティ",
-      "selectedCount_one": "{{formattedCount}} エンティティが選択されました",
-      "selectedCount_other": "{{formattedCount}} エンティティが選択されました",
-      "pickTitle": "エンティティを選択してください",
+      "entitiesLabel": "リファレンス",
+      "selectedCount_one": "{{formattedCount}} 件のリファレンスを選択中",
+      "selectedCount_other": "{{formattedCount}} 件のリファレンスを選択中",
+      "pickTitle": "リファレンスを選択",
       "done": "完了"
     }
   },
@@ -9202,6 +9256,18 @@
         "gemini": {
           "description": "Gemini キーを再利用します。散文で回答し、読んだページを引用します。",
           "keyLink": "Gemini API キーを取得する"
+        },
+        "antigravity": {
+          "description": "このマシンの Antigravity CLI で Google 検索を実行します。キーは不要です。agy を一度実行してサインインしてください。",
+          "keyLink": "Antigravity CLI をセットアップ"
+        },
+        "codex": {
+          "description": "Codex 用の ChatGPT サインインで OpenAI のウェブ検索を実行します。API キーは不要です。",
+          "keyLink": "モデルとプロバイダーで Codex にサインイン"
+        },
+        "claude": {
+          "description": "このマシンの Claude Code CLI で、Claude のサブスクリプションを使ってウェブ検索します。キーは不要です。claude を一度実行してサインインしてください。",
+          "keyLink": "Claude Code をセットアップ"
         }
       }
     },
@@ -9925,9 +9991,9 @@
     "shotDesignFrame": {
       "ariaLabel": "{{shot}} デザイン プレビューを撮影",
       "errors": {
-        "entityAssetMismatch": "エンティティ {{entityId}} のアセットが、選択したエンティティと一致しません。",
-        "entitySourceMismatch": "ソース要素 {{elementId}} はこのエンティティと一致しません。",
-        "missingEntityReference": "エンティティ {{entityId}} が絵コンテにありません。",
+        "entityAssetMismatch": "リファレンス {{entityId}} のアセットが選択したリファレンスと一致しません。",
+        "entitySourceMismatch": "ソース要素 {{elementId}} はこのリファレンスと一致しません。",
+        "missingEntityReference": "リファレンス {{entityId}} がストーリーボードにありません。",
         "unavailable": "ショットのプレビューは利用できません。"
       },
       "pause": "プレビューを一時停止する",
@@ -10010,7 +10076,7 @@
         "takes": "かかる"
       },
       "title": "シーン {{scene}}、ショット {{shot}}",
-      "untitledEntity": "無題のエンティティ"
+      "untitledEntity": "無題のリファレンス"
     },
     "shotEditTable": {
       "camera": {
@@ -10653,8 +10719,8 @@
       "sketches": "スケッチ",
       "timelines": "タイムライン",
       "storyboards": "絵コンテ",
-      "entities": "エンティティ",
-      "openEntitiesFullPage": "エンティティをページ全体で開く",
+      "entities": "リファレンス",
+      "openEntitiesFullPage": "リファレンスを全画面で開く",
       "examples": "例",
       "scripts": "スクリプト",
       "jsScripts": "JSスクリプト",
@@ -10678,7 +10744,7 @@
         "sketches": "スケッチ",
         "scripts": "スクリプト",
         "storyboards": "絵コンテ",
-        "entities": "エンティティ",
+        "entities": "リファレンス",
         "examples": "例",
         "timelines": "タイムライン",
         "jsScripts": "JSスクリプト",
@@ -11408,7 +11474,9 @@
         "directionalLight": "指向性ライト",
         "pointLight": "ポイントライト",
         "spotLight": "スポットライト",
-        "empty": "空のオブジェクト"
+        "empty": "空のオブジェクト",
+        "figure": "フィギュア",
+        "camera": "カメラ"
       },
       "loading": {
         "saving": "保存中…",
@@ -11629,6 +11697,29 @@
       "decay": "ディケイ",
       "angle": "角度",
       "penumbra": "半影",
+      "figure": "フィギュア",
+      "figureBody": "体型",
+      "figureBodies": {
+        "male": "男性",
+        "female": "女性",
+        "child": "子ども"
+      },
+      "figurePose": "ポーズ",
+      "figurePoses": {
+        "stand": "立つ",
+        "sit": "座る",
+        "walk": "歩く",
+        "run": "走る",
+        "lie": "横たわる"
+      },
+      "figureHeight": "身長",
+      "figureLabel": "ラベル",
+      "figureEntity": "キャストエンティティ ID",
+      "camera": "カメラ",
+      "cameraFov": "視野角",
+      "cameraAspect": "アスペクト比",
+      "cameraNear": "ニア",
+      "cameraFar": "ファー",
       "geometry": "ジオメトリ",
       "material": "材質",
       "slot": "スロット",
@@ -12671,7 +12762,10 @@
       "speechTextPrompt": "読み上げるテキストを入力し、Enter キーを押します…",
       "templates": "テンプレート",
       "upload3dAsset": "最初に {{formats}} アセットをアップロードします。",
-      "useOutput": "{{name}} 出力を使用する"
+      "useOutput": "{{name}} 出力を使用する",
+      "blockoutSet": "ブロックアウトセット",
+      "blockoutSetDescription": "空の3Dセットを作り、フリーカメラで撮影します",
+      "addBlockoutSet": "ブロックアウトセットのクリップを追加"
     },
     "preview": {
       "autoQuality": "自動 ({{quality}})",
@@ -13324,7 +13418,7 @@
         "selectModel": "モデルを選択してください",
         "attach": {
           "assetsTab": "アセット",
-          "entitiesTab": "エンティティ",
+          "entitiesTab": "リファレンス",
           "documentsTab": "ドキュメント",
           "uploadTab": "アップロード",
           "tabsLabel": "何を追加するか",
@@ -14077,7 +14171,7 @@
         "creative": "クリエイティブなドキュメント",
         "text": "テキストファイル",
         "agents": "エージェントとコード",
-        "entities": "エンティティ",
+        "entities": "リファレンス",
         "shared": "私と共有しました",
         "cloud": "クラウド",
         "cloudShared": "私と共有しました"
@@ -14089,7 +14183,7 @@
         "script": "スクリプト",
         "storyboard": "絵コンテ",
         "timeline": "タイムライン",
-        "entity": "エンティティ",
+        "entity": "リファレンス",
         "jsscript": "JSスクリプト",
         "game": "ゲーム",
         "text": "テキストファイル"
@@ -14098,7 +14192,7 @@
       "deleteFailure": "{{name}} を削除できませんでした: {{error}}",
       "unknownError": "不明なエラー",
       "deleteConfirmTitle": "{{type}} を削除しますか?",
-      "deleteEntityDescription": "「{{name}}」はエンティティではなくなります。そのアセットは保管されます。",
+      "deleteEntityDescription": "「{{name}}」はリファレンスではなくなります。アセットは残ります。",
       "deleteDescription": "「{{name}}」は完全に削除されます。",
       "deleteAction": "削除",
       "cancel": "キャンセル",
@@ -14178,8 +14272,8 @@
       "noRecentAssets": "まだファイルがありません。添付するかドラッグして挿入します。",
       "noAssetsMatch": "一致するアセットがありません。",
       "noSavedAssets": "保存されたアセットはまだありません。",
-      "noEntitiesMatch": "一致するエンティティはありません。",
-      "entities": "エンティティ",
+      "noEntitiesMatch": "一致するリファレンスはありません。",
+      "entities": "リファレンス",
       "assetSource": "アセットソース",
       "rename": "{{name}} の名前を変更します",
       "assetName": "アセット名",
@@ -14870,8 +14964,8 @@
       "error": "エラー: {{error}}"
     },
     "entity": {
-      "add": "エンティティの追加",
-      "pick": "エンティティを選択",
+      "add": "リファレンスを追加",
+      "pick": "リファレンスを選択",
       "untitled": "無題"
     },
     "collection": {
@@ -15941,7 +16035,7 @@
       "sketches": "スケッチ",
       "scripts": "スクリプト",
       "storyboards": "絵コンテ",
-      "entities": "エンティティ",
+      "entities": "リファレンス",
       "examples": "例",
       "timelines": "タイムライン",
       "jsscripts": "JSスクリプト",
@@ -16076,7 +16170,7 @@
         "models": "モデルマネージャー",
         "packages": "パッケージマネージャー",
         "collections": "コレクション",
-        "entities": "エンティティ",
+        "entities": "リファレンス",
         "memory": "記憶",
         "settings": "設定",
         "effects": "効果",
@@ -16790,7 +16884,8 @@
         "Keyframes & source": "キーフレームとソース",
         "Zoom & view": "ズームして表示",
         "Workspaces": "ワークスペース",
-        "History": "履歴"
+        "History": "履歴",
+        "3D camera (3D clip selected)": "3Dカメラ(3Dクリップ選択時)"
       },
       "rows": {
         "selectTool": "ツールを選択",
@@ -16941,7 +17036,12 @@
         "panelScript": "スクリプトへ移動",
         "panelStoryboard": "絵コンテへ移動",
         "nextPanel": "次のパネルへ移動",
-        "prevPanel": "前のパネルへ移動"
+        "prevPanel": "前のパネルへ移動",
+        "keyCamera": "再生ヘッドの位置でフリー3Dカメラをキー設定",
+        "camera3dOrbit": "カメラを周回させる",
+        "camera3dTruck": "フリーカメラとターゲットを横に動かす",
+        "camera3dDolly": "カメラを前後に動かす",
+        "camera3dLens": "フリーカメラのレンズを変更"
       }
     },
     "vst": {
@@ -16978,14 +17078,14 @@
   },
   "i18n-next62": {
     "scriptCastPanel": {
-      "noEntity": "エンティティなし",
+      "noEntity": "リファレンスなし",
       "noVoice": "声が出ない",
       "speakerName": "講演者名",
       "hideVoiceSettings": "音声設定を非表示にする",
       "voiceSettings": "音声設定",
-      "linkedEntityMissing": "リンクされたエンティティがありません",
-      "linkedEntity": "リンクされたエンティティ",
-      "linkedEntityNotFound": "リンクされたエンティティが見つかりません — 削除されました。別のものを選択するか、クリアします。",
+      "linkedEntityMissing": "リンクされたリファレンスがありません",
+      "linkedEntity": "リンクされたリファレンス",
+      "linkedEntityNotFound": "リンクされたリファレンスが見つかりません。削除されています。別のものを選ぶか、空にしてください。",
       "removeSpeaker": "スピーカーを取り外します",
       "speakerDefaultName": "スピーカー {{count}}",
       "cast": "キャスト",
@@ -17194,9 +17294,9 @@
         "imageLabel": "画像 {{index}}",
         "noImages": "画像を追加してクリップを条件付けします。",
         "addImage": "画像を追加",
-        "entitiesLabel": "エンティティ",
+        "entitiesLabel": "リファレンス",
         "entitiesEmpty": "キャラクター、場所、スタイル、小道具を選択して、クリップ内で一貫性を保ちます。",
-        "newEntity": "新しいエンティティ",
+        "newEntity": "新しいリファレンス",
         "pickImageTitle": "参考画像を選択してください"
       },
       "transcript": {
@@ -19856,8 +19956,8 @@
   "lipsync": {
     "title": "リップシンク",
     "subtitle": "選択した声で画像を話させます。",
-    "entity": "エンティティを選択してください",
-    "entityImage": "保存された参照画像を持つエンティティを選択するか、画像をアップロードします。",
+    "entity": "リファレンスを選択",
+    "entityImage": "画像を保存したリファレンスを選ぶか、画像をアップロードしてください。",
     "realPerson": "これは実在の人物です",
     "consent": "この生成されたクリップで画像を使用することにこの人の同意を得ています。",
     "line": "彼らは何と言えばいいのでしょうか？",
@@ -20357,7 +20457,7 @@
   "storyboardText": {
     "mode": "テキスト",
     "editorLabel": "Markdown テキストとしての絵コンテ",
-    "hint": "幕は #、シーンは ##、ショットは ###、フィールドは - **Motion:** と入力します。エンティティや画像に言及するには @ と入力します。",
+    "hint": "# で幕、## でシーン、### でショット、- **Motion:** でフィールドを入力します。@ でリファレンスや画像を挙げられます。",
     "issues": "確認が必要な行: {{lines}}",
     "loading": "テキストを読み込み中…",
     "warnings": {
@@ -20393,7 +20493,7 @@
       "instruction": "エージェントへの依頼",
       "send": "エージェントに送信",
       "failed": "モデルへのリクエストに失敗しました。",
-      "context": "リクエストと一緒に送信: 絵コンテ全体、{{shots}} ショット、ライブラリの {{entities}} エンティティ。",
+      "context": "リクエストと一緒に送信: ボード全体、{{shots}} 件のショット、ライブラリの {{entities}} 件のリファレンス。",
       "quick": {
         "tighten": "引き締める",
         "visual": "より視覚的に",
@@ -20878,6 +20978,60 @@
       "embedAgain": "再度埋め込む",
       "rebuild": "インデックスを再構築",
       "providerHint": "プロバイダーのモデルを使うには、上でプロバイダーとモデルを設定してください。そのプロバイダーに送信される文章: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "クレイ",
+        "hint": "固定ライトで陰影を付けたグレーの形状。モデルはカメラと配置に従い、表面はすべて生成します"
+      },
+      "depth": {
+        "label": "深度",
+        "hint": "カメラからの距離のみ。モデルは表面をすべて生成します"
+      },
+      "normal": {
+        "label": "法線",
+        "hint": "面の向きのみ。モデルは形状を保ち、マテリアルを生成します"
+      }
+    },
+    "reference": {
+      "label": "リファレンス",
+      "pass": "リファレンスのパス",
+      "render": "リファレンスをレンダリング",
+      "renderAgain": "再レンダリング",
+      "cancel": "キャンセル",
+      "cancelProgress": "キャンセル ({{done}}/{{total}})",
+      "play": "リファレンスを再生",
+      "hide": "リファレンスを隠す",
+      "stale": "リファレンスが古くなっています",
+      "playerLabel": "ブロックアウトのリファレンス",
+      "failed": "リファレンスのレンダリングに失敗しました"
+    },
+    "shot": {
+      "label": "ショット",
+      "pickerLabel": "このブロックアウトが配置するショット",
+      "none": "未リンク",
+      "elsewhere": "タイムライン上の別の場所のショット",
+      "noCandidates": "このクリップに重なるショットのクリップがありません。リンクするにはショットのクリップの下に配置してください。",
+      "help": "リンクしたショットのテイクは、このクリップのリファレンスから生成されます。"
+    },
+    "shotPanel": {
+      "title": "ブロックアウト",
+      "clip": "ブロックアウトのクリップ",
+      "none": "なし",
+      "noCandidates": "ブロックアウトとして使うには、このショットのクリップの下に3Dクリップを配置してください。",
+      "help": "次のテイクは、リンクした3Dクリップのカメラと配置に従います。",
+      "camera": "カメラ: {{move}}",
+      "selectClip": "クリップを選択",
+      "selectClipTooltip": "タイムライン上のブロックアウトのクリップを選択",
+      "takeStale": "古いブロックアウトから作られたテイク",
+      "rendering": "ブロックアウトのリファレンスをレンダリング中",
+      "renderingProgress": "ブロックアウトのリファレンスをレンダリング中 ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "ブロックアウトのリファレンス動画は、プロンプトと一緒にこのモデルへ送信されます。存在しないか古い場合は、先にレンダリングされます。",
+      "promptOnly": "このモデルはリファレンス動画を受け取りません。グレーのレンダリングは送信されず、カメラの動きはテキストとしてプロンプトに追加されます: {{move}}"
     }
   }
 }

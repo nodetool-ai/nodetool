@@ -35,6 +35,9 @@
       "path": "../cli-common"
     },
     {
+      "path": "../cli-execution"
+    },
+    {
       "path": "../execution"
     },
     {

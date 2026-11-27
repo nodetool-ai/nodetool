@@ -107,7 +107,7 @@ describe("ComposerAttachDialog", () => {
   it("shows one tab per kind of reference", () => {
     renderDialog();
 
-    for (const name of ["Assets", "Entities", "Documents", "Upload"]) {
+    for (const name of ["Assets", "References", "Documents", "Upload"]) {
       expect(screen.getByRole("tab", { name })).toBeInTheDocument();
     }
   });
@@ -135,9 +135,9 @@ describe("ComposerAttachDialog", () => {
     const user = userEvent.setup();
     const props = renderDialog();
 
-    await user.click(screen.getByRole("tab", { name: "Entities" }));
+    await user.click(screen.getByRole("tab", { name: "References" }));
     await user.type(
-      screen.getByRole("textbox", { name: "Search entities" }),
+      screen.getByRole("textbox", { name: "Search references" }),
       "mar"
     );
     await user.click(screen.getByRole("button", { name: "Mara" }));

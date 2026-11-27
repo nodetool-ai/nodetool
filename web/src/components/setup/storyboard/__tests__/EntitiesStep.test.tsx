@@ -266,7 +266,7 @@ it("filters the library without losing selections or shot assignments", async ()
     await screen.findByRole("checkbox", { name: "Mara · Character" })
   );
   await user.type(
-    screen.getByRole("textbox", { name: "Search entities" }),
+    screen.getByRole("textbox", { name: "Search references" }),
     "concrete"
   );
   expect(
@@ -340,7 +340,7 @@ it("finds entities in the screenplay and creates a selected reference", async ()
   const user = userEvent.setup();
   renderStep();
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   expect(
     await screen.findByText("A dented brass railway lantern with amber glass")
   ).toBeInTheDocument();
@@ -423,7 +423,7 @@ it("draws a reference with the text-to-image variant of an editing-only still mo
   const user = userEvent.setup();
   renderStep();
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   expect(
     await screen.findByText(
       "FLUX.2 Flex — Edit only edits images, so references use FLUX.2 Flex — Text to Image. Stills in the Look step keep FLUX.2 Flex — Edit."
@@ -478,7 +478,7 @@ it("asks for another model when the still model only edits and has no text-to-im
   const user = userEvent.setup();
   renderStep();
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   await user.click(
     await screen.findByRole("button", { name: "Create The Lantern" })
   );
@@ -524,7 +524,7 @@ it("creates suggested references in parallel with a generating mark on each acti
   const user = userEvent.setup();
   renderStep();
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   await user.click(
     await screen.findByRole("button", { name: "Create The Lantern" })
   );
@@ -592,7 +592,7 @@ it("attaches an entity that lands after the step is left", async () => {
   const user = userEvent.setup();
   const { unmount } = renderStep();
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   await user.click(
     await screen.findByRole("button", { name: "Create The Lantern" })
   );
@@ -652,7 +652,7 @@ it("reports a creation to the flow and drops it once aborted", async () => {
     </QueryClientProvider>
   );
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   await user.click(
     await screen.findByRole("button", { name: "Create The Lantern" })
   );
@@ -718,7 +718,7 @@ it("keeps an entity off the board when it is canceled during the save", async ()
     </QueryClientProvider>
   );
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   await user.click(
     await screen.findByRole("button", { name: "Create The Lantern" })
   );
@@ -743,7 +743,7 @@ it("finds entities in the reviewed shots and title", async () => {
   const user = userEvent.setup();
   renderStep();
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
 
   await waitFor(() => expect(rpcRequest).toHaveBeenCalledTimes(1));
   const prompt = (rpcRequest.mock.calls[0][1] as { prompt: string }).prompt;
@@ -758,12 +758,12 @@ it("names a failed find as a find", async () => {
   const user = userEvent.setup();
   renderStep();
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
 
   expect(
-    await screen.findByText("Could not find entities")
+    await screen.findByText("Could not find references")
   ).toBeInTheDocument();
-  expect(screen.queryByText("Could not create entities")).toBeNull();
+  expect(screen.queryByText("Could not create references")).toBeNull();
 });
 
 // F16: in view mode the step changes nothing on the board.
@@ -787,9 +787,9 @@ it("holds every pick and paid action in view mode", async () => {
     name: "Mara · Character"
   });
   expect(pick).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Find entities" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Find references" })).toBeDisabled();
   expect(
-    screen.getByRole("button", { name: "Create entity from an image" })
+    screen.getByRole("button", { name: "Create reference from an image" })
   ).toBeDisabled();
   expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual(
     []
@@ -804,7 +804,7 @@ it("holds every pick and paid action in view mode", async () => {
 });
 
 // A shotlist import goes from step 1 straight to Look, past the genre step
-// that fills in the screenplay model. `Find entities` asks that model, so
+// that fills in the screenplay model. `Find references` asks that model, so
 // without it the step could only say "Director model first" with no picker.
 it("fills in the screenplay model a shotlist import skipped", async () => {
   useStoryboardStore.getState().setDirectorModel(BOARD_ID, null);
@@ -828,9 +828,9 @@ it("says the library failed to load rather than that it is empty", async () => {
   renderStep();
 
   expect(
-    await screen.findByText("Could not load your entities")
+    await screen.findByText("Could not load your references")
   ).toBeInTheDocument();
-  expect(screen.queryByText("No entities yet")).toBeNull();
+  expect(screen.queryByText("No references yet")).toBeNull();
   expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Try again" }));
@@ -856,7 +856,7 @@ it("keeps found suggestions when the step remounts", async () => {
   });
   const user = userEvent.setup();
   const { unmount } = renderStep();
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   expect(
     await screen.findByText("A dented brass railway lantern with amber glass")
   ).toBeInTheDocument();
@@ -874,7 +874,7 @@ it("keeps found suggestions when the step remounts", async () => {
 });
 
 // Both buttons spend money, so each says what before it is pressed.
-it("prices Find entities and each Create before they are pressed", async () => {
+it("prices Find references and each Create before they are pressed", async () => {
   getModelUnitPrice.mockReturnValue({ unit_price: 0.04, breakdown: "" });
   useStoryboardStore.getState().setDirectorModel(BOARD_ID, {
     type: "language_model",
@@ -900,7 +900,7 @@ it("prices Find entities and each Create before they are pressed", async () => {
   expect(
     await screen.findByRole("group", { name: "Before you generate" })
   ).toHaveTextContent(/GPT-4o mini · ~\$/);
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   const create = await screen.findByRole("button", {
     name: "Create The Lantern"
   });
@@ -911,7 +911,7 @@ it("prices Find entities and each Create before they are pressed", async () => {
   );
 });
 
-it("cancels Find entities and returns focus to its button", async () => {
+it("cancels Find references and returns focus to its button", async () => {
   let findSignal: AbortSignal | undefined;
   rpcRequest.mockImplementationOnce(
     (
@@ -927,22 +927,22 @@ it("cancels Find entities and returns focus to its button", async () => {
   const user = userEvent.setup();
   renderStep();
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   expect(
-    screen.getByRole("button", { name: "Finding entities" })
+    screen.getByRole("button", { name: "Finding references" })
   ).toBeDisabled();
   await user.click(
-    screen.getByRole("button", { name: "Cancel finding entities" })
+    screen.getByRole("button", { name: "Cancel finding references" })
   );
 
   expect(findSignal?.aborted).toBe(true);
-  const find = screen.getByRole("button", { name: "Find entities" });
+  const find = screen.getByRole("button", { name: "Find references" });
   expect(find).toBeEnabled();
   await waitFor(() => expect(find).toHaveFocus());
   expect(
-    screen.queryByRole("button", { name: "Cancel finding entities" })
+    screen.queryByRole("button", { name: "Cancel finding references" })
   ).toBeNull();
-  expect(screen.queryByText("Could not find entities")).toBeNull();
+  expect(screen.queryByText("Could not find references")).toBeNull();
 });
 
 // Continue and Back unmount the step while Find is still running. The answer
@@ -956,7 +956,7 @@ it("keeps suggestions that land after the step is left", async () => {
   );
   const user = userEvent.setup();
   const { unmount } = renderStep();
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   unmount();
   finishFind({
     data: {
@@ -996,30 +996,30 @@ it("shows a Find that is still running after the step remounts", async () => {
   );
   const user = userEvent.setup();
   const { unmount } = renderStep();
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
   unmount();
 
   renderStep();
 
   expect(
-    screen.getByRole("button", { name: "Finding entities" })
+    screen.getByRole("button", { name: "Finding references" })
   ).toBeDisabled();
   await user.click(
-    screen.getByRole("button", { name: "Cancel finding entities" })
+    screen.getByRole("button", { name: "Cancel finding references" })
   );
   expect(findSignal?.aborted).toBe(true);
-  expect(screen.getByRole("button", { name: "Find entities" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Find references" })).toBeEnabled();
   expect(rpcRequest).toHaveBeenCalledTimes(1);
 });
 
 // A paid Find that found nothing must say so, rather than leave the step
 // looking as if the button did nothing.
-it("says when Find entities found nothing", async () => {
+it("says when Find references found nothing", async () => {
   rpcRequest.mockResolvedValueOnce({ data: { entities: [] } });
   const user = userEvent.setup();
   renderStep();
 
-  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(screen.getByRole("button", { name: "Find references" }));
 
   expect(
     await screen.findByText(

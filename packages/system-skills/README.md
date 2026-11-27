@@ -78,6 +78,7 @@ one working on this repository alike.
 | `nodetool-app-builder` | Mini apps: operations, widgets, bindings, variables, resources |
 | `nodetool-sketch` | Sketches (image documents): layers, blend modes, placed images, briefs, versions |
 | `nodetool-3d-scene` | glTF models: objects, transforms, lights, materials, headless Blender renders |
+| `blockout-3d` | A shot staged in 3D: a grey set, a free camera and camera moves on a timeline 3D clip, clay review frames, the reference video |
 | `manimgx` | ManimGX scenes: math and 3D animations in Python, inspected and rendered by the `nodetool.manimgx` nodes |
 | `nodetool-js-scripting` | The QuickJS sandbox: Code node bodies, JS script documents, packs, calling nodes from code |
 | `nodetool-video-post` | Repairs on delivered footage, and the candidate review protocol they return |

@@ -71,8 +71,11 @@ export const MODULES = {
     exports: {
       ACTIVE_MODEL_CONTEXT_KEY: pure("a constant of the runtime's processing context"),
       APPROVAL_DECISIONS: realRuntime("permission-gate.js"),
+      AntigravityProvider: unavailable("host-binary", "runs the Antigravity CLI (agy)"),
       BaseProvider: realRuntime("providers/base-provider.js"),
       BlenderExecutorError: blender,
+      ClaudeAgentProvider: unavailable("host-binary", "runs the Claude Code CLI (claude)"),
+      CodexProvider: unavailable("server-only", "builds a Codex provider from the server's ChatGPT sign-in instead of the context's providers"),
       DEFAULT_YT_DLP_FORMAT: ytDlp,
       DIRECT_TOOL_NAMES: pure("a constant of the runtime's core tools"),
       GenerationAlreadyAcceptedError: generations,
@@ -191,6 +194,7 @@ export const MODULES = {
       resolveEntities: realRuntime("entities"),
       resolvePythonNodeExecutor: python,
       runHostBinary: hostBinaries,
+      runNativeWebSearch: realRuntime("providers/native-web-search.js"),
       safeFetch: impl("host/media-fetch.mjs"),
       // The guest keeps no project folders: the asset goes through the assets
       // capability and the file through the files capability, where the node

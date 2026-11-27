@@ -29,11 +29,12 @@ import {
   type ActiveLayer
 } from "@nodetool-ai/timeline/render";
 import type {
+  Model3DRenderPass,
   Model3DRenderSession,
   Model3DSessionOptions
 } from "@nodetool-ai/video-nodes/nodes/model3d/render3d-core";
 
-export type { Model3DRenderSession, Model3DSessionOptions };
+export type { Model3DRenderPass, Model3DRenderSession, Model3DSessionOptions };
 
 /** Why a 3D layer will not draw, short of it still loading. */
 export type Model3DUnavailableReason =
@@ -169,7 +170,9 @@ function probeRenderSupport(): boolean {
 }
 
 async function fetchGlb(url: string): Promise<Uint8Array> {
-  const response = await fetch(url);
+  // Revalidate: a model saved in place keeps its url, and a cached copy would
+  // draw the set as it was before the edit.
+  const response = await fetch(url, { cache: "no-cache" });
   if (!response.ok) {
     throw new Error(`the model could not be fetched (HTTP ${response.status})`);
   }
@@ -232,12 +235,14 @@ export class Model3DLayerSource {
    * One drawn frame of a 3D layer, or null when its session is not ready. The
    * camera is the clip's own pose folded with the sampled channels, and the
    * time is the layer's `sourceTimeSec` — the clip's source clock, already
-   * multiplied by `animation.speed` by the scene model.
+   * multiplied by `animation.speed` by the scene model. `pass` picks what is
+   * drawn and is `beauty` when absent.
    */
   frame(
     layer: ActiveLayer,
     anim: Model3DCameraChannels,
-    size: Model3DFrameSize
+    size: Model3DFrameSize,
+    pass?: Model3DRenderPass
   ): OffscreenCanvas | null {
     const style = layer.model3dStyle;
     if (!style) return null;
@@ -247,7 +252,8 @@ export class Model3DLayerSource {
       timeSec: layer.sourceTimeSec ?? 0,
       camera: resolveModel3DCamera(style, anim),
       width: size.width,
-      height: size.height
+      height: size.height,
+      pass
     });
   }
 
@@ -270,6 +276,19 @@ export class Model3DLayerSource {
     if (!entry) return;
     this.entries.delete(clipId);
     if (entry.state.status === "ready") entry.state.session.dispose();
+  }
+
+  /**
+   * Forget an asset whose bytes changed under the same id, such as a set saved
+   * from the model editor: its cached GLB and every session drawn from it. The
+   * next {@link acquire} fetches the model again.
+   */
+  invalidateAsset(assetId: string): void {
+    this.models.delete(assetId);
+    this.pendingModels.delete(assetId);
+    for (const [clipId, entry] of [...this.entries]) {
+      if (entry.assetId === assetId) this.release(clipId);
+    }
   }
 
   /**

@@ -40,6 +40,22 @@ import {
   type GeometryParams
 } from "./geometryParams";
 import type { RecordEdit, ValueEdit } from "./editorCommands";
+import {
+  applyFigureInfo,
+  figureInfoOf,
+  figureMaterials,
+  patchFigureInfo,
+  type FigurePatch
+} from "./figure";
+import { objectTypeOf } from "./sceneTree";
+import {
+  FIGURE_BODIES,
+  FIGURE_MAX_HEIGHT,
+  FIGURE_MIN_HEIGHT,
+  FIGURE_POSES,
+  type FigureBody,
+  type FigurePose
+} from "@nodetool-ai/model3d";
 import { isBoolean, isNumber } from "../../utils/typePredicates";
 
 const headerStyles = (theme: Theme) =>
@@ -572,6 +588,45 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
   const pointLight = object instanceof THREE.PointLight ? object : null;
   const spotLight = object instanceof THREE.SpotLight ? object : null;
 
+  const figure = figureInfoOf(object);
+  const figureColor = figure
+    ? (figureMaterials(object)[0] as (THREE.Material & { color?: THREE.Color }) | undefined)?.color
+    : undefined;
+  const camera = object instanceof THREE.PerspectiveCamera ? object : null;
+
+  const setFigure = (label: string, patch: FigurePatch, mergeKey?: string) => {
+    if (!figure) {
+      return;
+    }
+    record({
+      label: t("i18n-cont-model-editor-11.properties.change", { label: label.toLowerCase() }),
+      mergeKey,
+      get: () => figureInfoOf(object) ?? figure,
+      set: (info) => applyFigureInfo(object, info),
+      value: patchFigureInfo(figure, patch)
+    });
+  };
+
+  const setLens = (
+    label: string,
+    field: "fov" | "aspect" | "near" | "far",
+    value: number
+  ) => {
+    if (!camera) {
+      return;
+    }
+    record({
+      label: t("i18n-cont-model-editor-11.properties.change", { label: label.toLowerCase() }),
+      mergeKey: `${uuid}:${field}`,
+      get: () => camera[field],
+      set: (v) => {
+        camera[field] = v;
+        camera.updateProjectionMatrix();
+      },
+      value
+    });
+  };
+
   const geometryType = mesh?.geometry.type;
   const geometryParams = mesh ? readGeometryParams(mesh.geometry) : null;
   const hasGeometry =
@@ -642,7 +697,7 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
             })
           }
         />
-        <Caption>{object.type}</Caption>
+        <Caption>{objectTypeOf(object)}</Caption>
       </FlexColumn>
       <ScrollArea>
         {/* Remount fields only when the selected object changes; live value
@@ -663,6 +718,123 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
             <Vector3Row label={t("i18n-cont-model-editor-11.properties.scale")} objectUuid={uuid} vector={object.scale} step={0.1} resetValue={1} record={record} />
           </InspectorSection>
 
+          {figure && (
+            <InspectorSection title={t("i18n-cont-model-editor-11.properties.figure")}>
+              <InspectorFieldRow label={t("i18n-cont-model-editor-11.properties.figureBody")}>
+                <InspectorSelect
+                  grow
+                  label={t("i18n-cont-model-editor-11.properties.figureBody")}
+                  value={figure.body}
+                  options={FIGURE_BODIES.map((body) => ({
+                    value: body,
+                    label: t(`i18n-cont-model-editor-11.properties.figureBodies.${body}`)
+                  }))}
+                  onChange={(v) =>
+                    setFigure(t("i18n-cont-model-editor-11.properties.figureBody"), {
+                      body: v as FigureBody
+                    })
+                  }
+                />
+              </InspectorFieldRow>
+              <InspectorFieldRow label={t("i18n-cont-model-editor-11.properties.figurePose")}>
+                <InspectorSelect
+                  grow
+                  label={t("i18n-cont-model-editor-11.properties.figurePose")}
+                  value={figure.pose}
+                  options={FIGURE_POSES.map((pose) => ({
+                    value: pose,
+                    label: t(`i18n-cont-model-editor-11.properties.figurePoses.${pose}`)
+                  }))}
+                  onChange={(v) =>
+                    setFigure(t("i18n-cont-model-editor-11.properties.figurePose"), {
+                      pose: v as FigurePose
+                    })
+                  }
+                />
+              </InspectorFieldRow>
+              <NumberRow
+                label={t("i18n-cont-model-editor-11.properties.figureHeight")}
+                value={figure.height}
+                step={0.01}
+                min={FIGURE_MIN_HEIGHT}
+                max={FIGURE_MAX_HEIGHT}
+                onCommit={(v) =>
+                  setFigure(
+                    t("i18n-cont-model-editor-11.properties.figureHeight"),
+                    { height: THREE.MathUtils.clamp(v, FIGURE_MIN_HEIGHT, FIGURE_MAX_HEIGHT) },
+                    `${uuid}:figureHeight`
+                  )
+                }
+              />
+              {figureColor && (
+                <ColorRow label={t("i18n-cont-model-editor-11.properties.color")} color={figureColor} record={record} mergeKey={`${uuid}:figureColor`} />
+              )}
+              <InspectorFieldRow label={t("i18n-cont-model-editor-11.properties.figureLabel")}>
+                <TextInput
+                  className="nodrag"
+                  label={t("i18n-cont-model-editor-11.properties.figureLabel")}
+                  hideLabel
+                  size="small"
+                  value={figure.label ?? ""}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setFigure(
+                      t("i18n-cont-model-editor-11.properties.figureLabel"),
+                      { label: e.target.value },
+                      `${uuid}:figureLabel`
+                    )
+                  }
+                />
+              </InspectorFieldRow>
+              <InspectorFieldRow label={t("i18n-cont-model-editor-11.properties.figureEntity")}>
+                <TextInput
+                  className="nodrag"
+                  label={t("i18n-cont-model-editor-11.properties.figureEntity")}
+                  hideLabel
+                  size="small"
+                  value={figure.entityId ?? ""}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setFigure(
+                      t("i18n-cont-model-editor-11.properties.figureEntity"),
+                      { entityId: e.target.value },
+                      `${uuid}:figureEntity`
+                    )
+                  }
+                />
+              </InspectorFieldRow>
+            </InspectorSection>
+          )}
+          {camera && (
+            <InspectorSection title={t("i18n-cont-model-editor-11.properties.camera")}>
+              <NumberRow
+                label={t("i18n-cont-model-editor-11.properties.cameraFov")}
+                value={camera.fov}
+                step={1}
+                min={1}
+                max={179}
+                onCommit={(v) => setLens(t("i18n-cont-model-editor-11.properties.cameraFov"), "fov", THREE.MathUtils.clamp(v, 1, 179))}
+              />
+              <NumberRow
+                label={t("i18n-cont-model-editor-11.properties.cameraAspect")}
+                value={camera.aspect}
+                step={0.01}
+                min={0.1}
+                onCommit={(v) => setLens(t("i18n-cont-model-editor-11.properties.cameraAspect"), "aspect", Math.max(0.1, v))}
+              />
+              <NumberRow
+                label={t("i18n-cont-model-editor-11.properties.cameraNear")}
+                value={camera.near}
+                step={0.01}
+                min={0.001}
+                onCommit={(v) => setLens(t("i18n-cont-model-editor-11.properties.cameraNear"), "near", THREE.MathUtils.clamp(v, 0.001, camera.far * 0.99))}
+              />
+              <NumberRow
+                label={t("i18n-cont-model-editor-11.properties.cameraFar")}
+                value={camera.far}
+                step={1}
+                onCommit={(v) => setLens(t("i18n-cont-model-editor-11.properties.cameraFar"), "far", Math.max(camera.near * 1.01, v))}
+              />
+            </InspectorSection>
+          )}
           {light && (
             <InspectorSection title={t("i18n-cont-model-editor-11.properties.light")}>
               <ColorRow label={t("i18n-cont-model-editor-11.properties.color")} color={light.color} record={record} mergeKey={`${uuid}:lightColor`} />

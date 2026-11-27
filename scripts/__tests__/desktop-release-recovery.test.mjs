@@ -152,7 +152,7 @@ describe("desktop release recovery", { timeout: 30_000 }, () => {
     expect(checkouts[1].with).toMatchObject({
       ref: "${{ github.sha }}",
       path: ".release-tools",
-      "sparse-checkout": "scripts/smoke-backend-bundle.mjs\n.github/scripts/with-window-manager.sh\n",
+      "sparse-checkout": "scripts/smoke-backend-bundle.mjs\nscripts/check-linux-isa-baseline.mjs\n.github/scripts/with-window-manager.sh\n",
       "sparse-checkout-cone-mode": false
     });
     expect(steps.find(step => step.name === "Build VST host").run)
@@ -162,9 +162,27 @@ describe("desktop release recovery", { timeout: 30_000 }, () => {
     for (const step of smokeSteps) {
       expect(step.run).toContain("node .release-tools/scripts/smoke-backend-bundle.mjs ");
     }
+    const isaCheck = steps.find(step => step.name === "Check the Linux x64 CPU baseline");
+    expect(isaCheck.if).toBe("matrix.os == 'ubuntu-latest'");
+    expect(isaCheck.run).toBe(
+      "node .release-tools/scripts/check-linux-isa-baseline.mjs electron/dist/linux-unpacked/resources"
+    );
+    expect(steps.indexOf(isaCheck)).toBeGreaterThan(steps.findIndex(step => step.name === "Build Electron (macOS/Linux)"));
     expect(steps.find(step => step.name === "Build SDK contract bundle").run)
       .toContain('--commit "${{ needs.preflight.outputs.ref }}"');
     expect(workflow.jobs["publish-release"].steps.find(step => step.name === "Publish release").with.target_commitish)
       .toBe("${{ needs.preflight.outputs.ref }}");
+  });
+
+  it("pins the x86-64 baseline before any Linux native build", () => {
+    const steps = workflow.jobs["release-build"].steps;
+    const pin = steps.find(step => step.name === "Pin the x86-64 baseline for native builds (Linux)");
+    expect(pin.if).toBe("matrix.os == 'ubuntu-latest'");
+    expect(pin.run).toContain('echo "CFLAGS=-march=x86-64 -mtune=generic" >> "$GITHUB_ENV"');
+    expect(pin.run).toContain('echo "CXXFLAGS=-march=x86-64 -mtune=generic" >> "$GITHUB_ENV"');
+    const pinIndex = steps.indexOf(pin);
+    for (const name of ["Install dependencies", "Build VST host", "Build account helper", "Build Electron (macOS/Linux)"]) {
+      expect(steps.findIndex(step => step.name === name)).toBeGreaterThan(pinIndex);
+    }
   });
 });

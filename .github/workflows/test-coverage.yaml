@@ -73,6 +73,11 @@ jobs:
           tail -20 coverage.log >> $GITHUB_STEP_SUMMARY || true
           cd ..
 
+      - name: Rank impact signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/agent-impact.mjs "$RUNNER_TEMP/agent-impact.md"
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
         with:
@@ -82,7 +87,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing. Open the PR with the label agent:test-coverage (gh pr create --label agent:test-coverage). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
+            --append-system-prompt "Read .github/agent-routines.md before you pick a target and follow it: rank candidates by the signals in ${{ runner.temp }}/agent-impact.md, fix every instance of the theme in the module you choose, and start the PR body with an Impact section. Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing. Open the PR with the label agent:test-coverage (gh pr create --label agent:test-coverage). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Improve Test Coverage
 
@@ -96,7 +101,9 @@ jobs:
 
             1. Read the coverage reports: `web/coverage.log` and `electron/coverage.log`
             2. Identify source files with low or zero coverage
-            3. Prioritize: utility functions > store logic > hooks > components
+            3. Prioritize by impact: untested code on hot paths and user flows
+               (the stores, hooks and components behind the editor, chat,
+               workflow runs and the asset library) before leaf utilities
 
             ## What to test
 
@@ -118,7 +125,8 @@ jobs:
             - Do not touch `@ts-expect-error` / `@ts-ignore` directives.
             - Do not touch `test.skip` / `describe.skipIf` / `test.fixme` markers.
             - Do not touch CI workflow files.
-            - Keep changes focused — maximum 5 new test files per PR.
+            - Cover one feature area per PR completely: its store, hooks and main
+              components. No file cap.
 
             ## Before starting
             - Run `gh pr list --state open --limit 20` — skip if a test coverage PR is already open.

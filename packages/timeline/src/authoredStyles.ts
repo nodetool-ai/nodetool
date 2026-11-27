@@ -27,6 +27,7 @@ import {
   DEFAULT_TEXT_CLIP_FONT_SIZE_PX
 } from "./defaults.js";
 import { assertAuthorableFontFamily } from "./fonts/catalog.js";
+import { resolveModel3DLensFovDeg } from "./model3dCameraKeys.js";
 import type {
   ClipModel3DAnimation,
   ClipModel3DCamera,
@@ -95,7 +96,11 @@ export function shapeStyleWithDefaults(shape: ClipShapeStyle): ClipShapeStyle {
  * correctly.
  */
 export interface ClipModel3DStylePatch {
-  camera?: Partial<ClipModel3DCamera>;
+  /**
+   * `focalLengthMm` is the lens as a focal length on a 24 mm tall sensor. It
+   * is never stored: the patch turns it into `fovDeg`.
+   */
+  camera?: Partial<ClipModel3DCamera> & { focalLengthMm?: number };
   animation?: Partial<ClipModel3DAnimation>;
   lighting?: ClipModel3DStyle["lighting"];
   lightIntensity?: number;
@@ -115,9 +120,15 @@ export function model3dStyleWithPatch(
   patch: ClipModel3DStylePatch | undefined
 ): ClipModel3DStyle {
   const from = base ?? DEFAULT_MODEL3D_STYLE;
+  const { focalLengthMm, ...cameraPatch } = patch?.camera ?? {};
+  const fovDeg = resolveModel3DLensFovDeg(
+    { fovDeg: cameraPatch.fovDeg, focalLengthMm },
+    "camera"
+  );
+  if (fovDeg !== undefined) cameraPatch.fovDeg = fovDeg;
   const next: ClipModel3DStyle = {
     ...from,
-    camera: { ...from.camera, ...patch?.camera },
+    camera: { ...from.camera, ...cameraPatch },
     animation: { ...from.animation, ...patch?.animation }
   };
   if (patch?.lighting !== undefined) next.lighting = patch.lighting;

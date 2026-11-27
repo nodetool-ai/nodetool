@@ -11,6 +11,7 @@
 
 export * from "./sceneModel.js";
 export * from "./model3dBakeSamples.js";
+export * from "./model3dReferenceSamples.js";
 export * from "./transform.js";
 export * from "./transition.js";
 export * from "./draw.js";

@@ -170,6 +170,11 @@ jobs:
 
           if [ "$CANDIDATES" -gt 0 ]; then echo "USELESS_FOUND=1" >> $GITHUB_ENV; else echo "USELESS_FOUND=0" >> $GITHUB_ENV; fi
 
+      - name: Rank impact signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/agent-impact.mjs "$RUNNER_TEMP/agent-impact.md"
+
       - name: Run Claude Code
         if: env.USELESS_FOUND == '1'
         uses: anthropics/claude-code-action@acfe7992852970efb4fee683d63d628e3e52df67 # v1.0.286
@@ -180,7 +185,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5-5
             --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
-            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing. Open the PR with the label agent:useless-test-pruner (gh pr create --label agent:useless-test-pruner). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
+            --append-system-prompt "Read .github/agent-routines.md before you pick a target and follow it: rank candidates by the signals in ${{ runner.temp }}/agent-impact.md, fix every instance of the theme in the module you choose, and start the PR body with an Impact section. Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, and prose throat-clearing. Open the PR with the label agent:useless-test-pruner (gh pr create --label agent:useless-test-pruner). Leave alone every file listed in ${{ runner.temp }}/agent-recent-files.txt: this routine changed it in the last 30 days, so pick a different target. Before opening the PR, apply the code-review skill (.claude/skills/code-review/SKILL.md) to your own diff, fix every finding, and list any finding you did not fix, with the reason, under a Self-review heading in the PR body."
           prompt: |
             # Delete Tests That Cannot Fail
 
@@ -230,7 +235,8 @@ jobs:
             - Snapshot tests over rendered components are not automatically
               useless — check whether the snapshot has content.
             - Do not touch CI workflow files.
-            - Maximum 12 test cases per PR.
+            - One test suite or package per PR. Act on every surviving case in
+              it. No case cap.
 
             ## Before starting
             - Run `gh pr list --state open --limit 20` — skip if a test-pruning

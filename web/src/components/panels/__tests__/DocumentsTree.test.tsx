@@ -226,7 +226,7 @@ it("opens an entity in the existing entity editor", async () => {
   });
   renderTree();
 
-  await user.click(screen.getByRole("treeitem", { name: /^Mara Entity$/ }));
+  await user.click(screen.getByRole("treeitem", { name: /^Mara Reference$/ }));
 
   expect(screen.getByTestId("entity-editor")).toHaveTextContent("Editing Mara");
   expect(mockOpenTab).not.toHaveBeenCalled();
@@ -506,7 +506,7 @@ it("offers no rename for an entity", () => {
   expect(screen.getByRole("button", { name: "Delete Mara" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Rename Mara" })).toBeNull();
   fireEvent.contextMenu(
-    screen.getByRole("treeitem", { name: /^Mara Entity$/ })
+    screen.getByRole("treeitem", { name: /^Mara Reference$/ })
   );
   expect(screen.queryByRole("menuitem", { name: "Rename" })).toBeNull();
 });

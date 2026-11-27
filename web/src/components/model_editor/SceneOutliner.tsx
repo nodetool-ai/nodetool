@@ -9,6 +9,7 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import FlashlightOnIcon from "@mui/icons-material/FlashlightOn";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import AccessibilityNewIcon from "@mui/icons-material/AccessibilityNew";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -59,6 +60,9 @@ const TypeIcon = ({ type, hasChildren }: { type: string; hasChildren: boolean })
   }
   if (type.includes("Camera")) {
     return <CameraAltIcon sx={{ ...ICON_SX, color: "secondary.main" }} />;
+  }
+  if (type === "Figure") {
+    return <AccessibilityNewIcon sx={{ ...ICON_SX, color: "info.main" }} />;
   }
   if (type === "Mesh" || type === "SkinnedMesh") {
     return <ViewInArIcon sx={{ ...ICON_SX, color: "info.main" }} />;

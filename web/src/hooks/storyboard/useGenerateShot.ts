@@ -24,6 +24,7 @@ import { compileShotPresets } from "@nodetool-ai/presets";
 import { presetCatalog } from "../../lib/presets/catalog";
 import { useCallback } from "react";
 import { assertProductionGenerationAllowed } from "@nodetool-ai/protocol";
+import { modelTakesReferenceVideo } from "@nodetool-ai/timeline";
 import type {
   BoardRenderContext,
   Entity,
@@ -54,6 +55,10 @@ import {
   type StoryboardBoard
 } from "../../stores/storyboard/StoryboardStore";
 import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
+import {
+  applyBlockoutToClipRequest,
+  type ClipBlockoutSource
+} from "../../lib/storyboard/blockoutRequest";
 import { useEntities } from "../../serverState/useEntities";
 import {
   useImageModelsByProvider,
@@ -152,6 +157,12 @@ const STILL_VARIANT_TASKS: Record<StillVariantMode, string> = {
 export interface ClipRenderOptions {
   /** Output resolution, e.g. "720p". Defaults to {@link CLIP_RESOLUTION}. */
   resolution?: string;
+  /**
+   * The Blockout clip linked to the shot on a timeline. A model that takes a
+   * reference video is sent its reference render, and any other model gets
+   * the camera move as prompt text (`applyBlockoutToClipRequest`).
+   */
+  blockout?: ClipBlockoutSource;
 }
 
 interface UseGenerateShotResult {
@@ -537,7 +548,15 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           "Reference mode requires at least one resolved reference image."
         );
       }
-      const productionRoute = productionCandidates[0]?.executionRoute;
+      const blockout = options?.blockout;
+      // A Blockout reference rides the reference route whatever the shot's
+      // own render mode is, when the model declares it takes reference video.
+      const blockoutReference =
+        blockout?.referenceAssetId !== undefined &&
+        modelTakesReferenceVideo(selectedModel?.supported_tasks);
+      const productionRoute = blockoutReference
+        ? "reference_to_video"
+        : productionCandidates[0]?.executionRoute;
       const requiredTask =
         productionRoute === "reference_to_video"
           ? "reference_to_video"
@@ -552,7 +571,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         recordStartFailure(shot.id, boardId, "clip", message);
         throw new Error(message);
       }
-      const data: Record<string, unknown> = {
+      let data: Record<string, unknown> = {
         ...(compiled.applied.length > 0 && { preset_ids: compiled.applied }),
         mode: "video",
         prompt: `${productionCandidates[0]?.snapshot.prompt ?? prompt}${entityTokenSuffix(entities)}`,
@@ -568,6 +587,21 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       }
       if (sourceAssetId && productionRoute !== "reference_to_video") {
         data.source_asset_id = sourceAssetId;
+      }
+      if (blockout) {
+        data = applyBlockoutToClipRequest({
+          data,
+          blockout,
+          supportedTasks: selectedModel?.supported_tasks,
+          referenceImageAssetIds: [
+            ...(productionCandidates[0]?.referenceAssetIds ?? []),
+            ...entities
+              .flatMap((entity) => entity.reference_images ?? [])
+              .map(assetIdFromRef)
+              .filter((id): id is string => id !== undefined),
+            ...(sourceAssetId ? [sourceAssetId] : [])
+          ]
+        }).data;
       }
       const requestedDurationMs =
         productionCandidates[0]?.snapshot.requestedDurationMs;
@@ -597,7 +631,12 @@ export const useGenerateShot = (): UseGenerateShotResult => {
             renderShot,
             "clip",
             data,
-            renderContext(board, renderShot),
+            {
+              ...renderContext(board, renderShot),
+              ...(blockout && {
+                blockout_reference_hash: blockout.referenceHash
+              })
+            },
             undefined,
             production,
             production.identity.batchId

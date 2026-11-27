@@ -53,29 +53,29 @@ The chat panel in the workflow editor keeps a mode chip. Click it to switch:
 Each mode adds its own controls (resolution, aspect ratio, duration, voice) and attaches them to the message so the server routes to the right provider call.
 
 Reference to Video takes every image and video on the message, plus the
-reference image of any `@`-mentioned entity, so the prompt describes the action
+reference image of any `@`-mentioned reference, so the prompt describes the action
 and the camera rather than the subjects. Its audio chip chooses between what the
 model scores and the first reference video's own track; only some models accept
 the second, and one that does not rejects the request.
 
 ---
 
-## Mentions: @ for assets and entities
+## Mentions: @ for assets and references
 
-![Entity Mentions](assets/screenshots/chat-mention-entities.png)
+![Reference Mentions](assets/screenshots/chat-mention-entities.png)
 
 Type `@` in the composer to reference things by name instead of hunting for
 them:
 
-- **Entities** — characters, locations, styles, and props from your entity
+- **References** — characters, locations, styles, and props from your reference
   library appear first. Picking one inlines its name into the message and
   attaches its reference image, so generated images and clips keep the
-  entity's look.
+  reference's look.
 - **Assets** — recent and saved library files. Picking one attaches it to the
   message like a drag from the asset library.
 
 The same picker works inside the workflow editor's Prompt node, where a picked
-entity becomes a chip that expands to its descriptor and reference image at
+reference becomes a chip that expands to its descriptor and reference image at
 generation time.
 
 ---

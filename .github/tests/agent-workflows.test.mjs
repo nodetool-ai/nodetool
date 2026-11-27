@@ -8,6 +8,7 @@ import { parse } from "yaml";
 
 import { summarize, discoverRoutinePrs } from "../scripts/agent-preflight.mjs";
 import { tally, toMarkdown } from "../scripts/agent-pr-report.mjs";
+import { rankHotspots, areaOf } from "../scripts/agent-impact.mjs";
 
 const dir = new URL("../workflows/", import.meta.url);
 const read = (file) => parse(readFileSync(new URL(file, dir), "utf8"));
@@ -57,6 +58,20 @@ for (const { file, wf } of routines) {
     assert.equal(wf.jobs[name]["cache-mode"], "read");
     assert.ok(!steps.some((s) => s.uses?.startsWith("actions/setup-node")));
   });
+
+  // quality-assurance repairs whatever broke on main, so it has no target to rank.
+  if (file !== "quality-assurance.yaml") {
+    test(`${file}: ranks its target by the shared impact rules, with no size cap`, () => {
+      const steps = wf.jobs[name].steps;
+      const claudeAt = steps.findIndex((s) => s.uses?.startsWith("anthropics/claude-code-action"));
+      const impactAt = steps.findIndex((s) => (s.run ?? "").includes("agent-impact.mjs"));
+      assert.ok(impactAt >= 0 && impactAt < claudeAt, "impact signals are not written before the agent runs");
+      const claude = steps[claudeAt].with;
+      assert.ok(claude.claude_args.includes(".github/agent-routines.md"));
+      assert.ok(claude.claude_args.includes("agent-impact.md"));
+      assert.doesNotMatch(claude.prompt, /maximum \d+|at most \d+ gaps|pick \*\*one\*\* (function|group|abstraction|flaky test|flag)|one function per PR/i);
+    });
+  }
 
   test(`${file}: the recent-files list exists before the agent reads it`, () => {
     const steps = wf.jobs[name].steps;
@@ -117,6 +132,19 @@ test("report tallies outcomes and net lines per agent label", () => {
     { label: "agent:perf", opened: 1, merged: 0, closed: 0, open: 1, net: 0 },
   ]);
   assert.match(toMarkdown(rows, 30), /\| dead-code-cleanup \| 2 \| 1 \| 1 \| 0 \| -49 \|/);
+});
+
+test("impact signals count maintainer commits per file and area, without bots, tests or docs", () => {
+  const log = [
+    "",
+    "georgi\n\npackages/cli/src/run.ts\npackages/cli/src/args.ts\npackages/cli/tests/run.test.ts",
+    "claude[bot]\n\npackages/cli/src/run.ts\nweb/src/stores/A.ts",
+    "Claude\n\npackages/cli/src/run.ts\nweb/src/stores/NodeStore.ts\ndocs/cli.md",
+  ].join("\0");
+  const { files, areas } = rankHotspots(log);
+  assert.deepEqual(files, [["packages/cli/src/run.ts", 2], ["packages/cli/src/args.ts", 1], ["web/src/stores/NodeStore.ts", 1]]);
+  assert.deepEqual(areas, [["packages/cli", 2], ["web/src/stores", 1]]);
+  assert.equal(areaOf("native/timeline/src/a.cpp"), "native/timeline");
 });
 
 test("jobs that publish or deploy never restore a shared cache", () => {
