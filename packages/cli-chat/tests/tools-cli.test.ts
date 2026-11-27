@@ -117,6 +117,46 @@ it("discovers shipped guides and schemas and creates valid timeline/game startin
     );
     expect(video.error).toBeUndefined();
     expect(JSON.stringify(video)).toContain("asset://");
+    const storyboardTools = await run("tools", "list", "storyboard");
+    expect(storyboardTools).toContainEqual(
+      expect.objectContaining({ name: "create_storyboard" })
+    );
+    const createSchema = await run("tools", "info", "create_storyboard");
+    expect(createSchema.name).toBe("create_storyboard");
+    const board = await run(
+      "tools",
+      "call",
+      "create_storyboard",
+      "--args",
+      JSON.stringify({ name: "CLI 3-shot board", aspect_ratio: "16:9" })
+    );
+    expect(board.error).toBeUndefined();
+    const boardId = board.storyboard_id ?? board.id;
+    expect(boardId).toMatch(/^[a-f0-9]{12,32}$/);
+    const edited = await run(
+      "tools",
+      "call",
+      "edit_storyboard",
+      "--args",
+      JSON.stringify({
+        storyboard_id: boardId,
+        expected_revision: board.revision,
+        ops: [
+          { op: "add_shot", action: "Hook", duration_seconds: 0.5 },
+          { op: "add_shot", action: "Demo", duration_seconds: 1 },
+          { op: "add_shot", action: "CTA", duration_seconds: 2.5 }
+        ]
+      })
+    );
+    expect(edited.error).toBeUndefined();
+    const readback = await run(
+      "tools",
+      "call",
+      "get_storyboard",
+      "--args",
+      JSON.stringify({ storyboard_id: boardId })
+    );
+    expect(readback.shots.map((shot: { duration_seconds: number }) => shot.duration_seconds)).toEqual([0.5, 1, 2.5]);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

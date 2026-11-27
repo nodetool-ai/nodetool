@@ -1,4 +1,4 @@
-import sharp from "sharp";
+import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { z } from "zod";
 import { gameImagePreparation } from "@nodetool-ai/protocol";
 import { prepareSheet, prepareTileset, prepareLut } from "./atlas-preparation.js";
@@ -51,6 +51,7 @@ export function imagePreparationMetadata(settings: ImagePreparationSettings): No
 /** Decode, transform and encode canonical PNG bytes before a digest is computed. */
 export async function prepareGameImage(bytes: Uint8Array, settings: ImagePreparationSettings): Promise<PreparedImage> {
   if (settings.lut) { return prepareLut(settings.lut); }
+  const sharp = await loadSharpOrThrow();
   const metadata = await sharp(bytes, { failOn: "error", limitInputPixels: MAX_DIMENSION * MAX_DIMENSION }).metadata();
   const originalWidth = metadata.width;
   const originalHeight = metadata.height;
