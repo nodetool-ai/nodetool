@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/TimelineSource.h"
+#include "model/ChangeSet.h"
 #include "model/TimelineTypes.h"
 #include "model/TrackListModel.h"
 
@@ -30,18 +31,18 @@ class TimelineModel : public TimelineSource {
     QML_ELEMENT
     QML_UNCREATABLE("Created by main")
     Q_PROPERTY(QString effectMatteId READ effectMatteId NOTIFY effectMatteChanged)
-    Q_PROPERTY(QString timelineId READ timelineId NOTIFY timelineChanged)
-    Q_PROPERTY(QString projectId READ projectId NOTIFY timelineChanged)
-    Q_PROPERTY(QString sourcePath READ sourcePath NOTIFY timelineChanged)
-    Q_PROPERTY(QString name READ name NOTIFY timelineChanged)
-    Q_PROPERTY(double fps READ fps NOTIFY timelineChanged)
-    Q_PROPERTY(bool dropFrame READ dropFrame NOTIFY timelineChanged)
-    Q_PROPERTY(double durationMs READ durationMs NOTIFY timelineChanged)
-    Q_PROPERTY(int canvasWidth READ canvasWidth NOTIFY timelineChanged)
-    Q_PROPERTY(int canvasHeight READ canvasHeight NOTIFY timelineChanged)
+    Q_PROPERTY(QString timelineId READ timelineId NOTIFY timelineIdChanged)
+    Q_PROPERTY(QString projectId READ projectId NOTIFY projectIdChanged)
+    Q_PROPERTY(QString sourcePath READ sourcePath NOTIFY sourcePathChanged)
+    Q_PROPERTY(QString name READ name NOTIFY nameChanged)
+    Q_PROPERTY(double fps READ fps NOTIFY fpsChanged)
+    Q_PROPERTY(bool dropFrame READ dropFrame NOTIFY dropFrameChanged)
+    Q_PROPERTY(double durationMs READ durationMs NOTIFY durationMsChanged)
+    Q_PROPERTY(int canvasWidth READ canvasWidth NOTIFY canvasWidthChanged)
+    Q_PROPERTY(int canvasHeight READ canvasHeight NOTIFY canvasHeightChanged)
     // The later of `durationMs` and the last clip end (TracksRegion `contentEndMs`).
-    Q_PROPERTY(double contentEndMs READ contentEndMs NOTIFY timelineChanged)
-    Q_PROPERTY(int clipCount READ clipCount NOTIFY timelineChanged)
+    Q_PROPERTY(double contentEndMs READ contentEndMs NOTIFY contentEndMsChanged)
+    Q_PROPERTY(int clipCount READ clipCount NOTIFY clipCountChanged)
     Q_PROPERTY(TrackListModel* tracks READ tracks CONSTANT)
     Q_PROPERTY(AutomationRecorder* automationRecorder READ automationRecorder CONSTANT)
     // The edit history (D5): one command per edit, one per gesture.
@@ -196,6 +197,7 @@ public:
     // Borrowed indices into timeline(), built once per document snapshot on the UI thread.
     const std::vector<size_t>& trackClipIndices(const QString& trackId) const;
     bool trackClipIndexChanged(const QString& trackId) const;
+    quint64 notificationClipVisits() const { return m_notificationClipVisits; }
     quint64 trackIndexVisits() const { return m_trackIndexVisits; }
     quint64 clipQueryVisits() const { return m_clipQueryVisits; }
     quint64 effectClipReads() const { return m_effectClipReads; }
@@ -252,6 +254,18 @@ public:
 signals:
     void mixerOverrideChanged(const QString& trackId, const QString& param);
     void beforeCommand();
+    void timelineIdChanged();
+    void projectIdChanged();
+    void sourcePathChanged();
+    void nameChanged();
+    void fpsChanged();
+    void dropFrameChanged();
+    void durationMsChanged();
+    void canvasWidthChanged();
+    void canvasHeightChanged();
+    void contentEndMsChanged();
+    void clipCountChanged();
+    void changed(const ChangeSet& changes);
     void timelineChanged();
     void commandSettled();
     // The clips changed: an edit, or a new document (then the tracks reset too).
@@ -266,6 +280,13 @@ signals:
     void effectMatteChanged();
 
 private:
+    void notifyChanges();
+    // Notification comparisons retain the previous immutable snapshot across edits.
+    std::shared_ptr<const nt::Timeline> m_notifiedSnapshot;
+    quint64 m_notifiedGeneration = 0;
+    quint64 m_notificationClipVisits = 0;
+    double m_notifiedContentEnd = 0;
+    QHash<QString, nt::Clip> m_validatedClips;
     std::atomic<bool> m_measuring{false};
     // Shared with active scopes, UI-thread only.
     std::shared_ptr<MeasurementRegistration> m_measurement;

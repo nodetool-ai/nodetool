@@ -35,15 +35,40 @@ QString mediaKey(const QJsonObject& raw) {
 }
 
 // The top-level keys whose values differ between two documents, in one pass.
-QSet<QString> differingKeys(const QJsonObject& a, const QJsonObject& b) {
+QSet<QString> differingKeys(const QJsonObject& a, const QJsonObject& b, const QString& ignored = {}) {
     QSet<QString> keys;
     for (auto it = a.begin(); it != a.end(); ++it) {
+        if (!ignored.isEmpty() && it.key() == ignored) { continue; }
         if (b.value(it.key()) != it.value()) keys.insert(it.key());
     }
     for (auto it = b.begin(); it != b.end(); ++it) {
+        if (!ignored.isEmpty() && it.key() == ignored) { continue; }
         if (!a.contains(it.key())) keys.insert(it.key());
     }
     return keys;
+}
+
+void entityChanges(const QJsonArray& before, const QJsonArray& after,
+                   QHash<QString, QSet<QString>>& changes, bool& structural) {
+    QHash<QString, QJsonObject> previous;
+    QStringList oldIds, newIds;
+    for (const auto& value : before) {
+        const auto object = value.toObject();
+        const auto id = object.value("id").toString();
+        previous.insert(id, object);
+        oldIds.append(id);
+    }
+    for (const auto& value : after) {
+        const auto object = value.toObject();
+        const auto id = object.value("id").toString();
+        newIds.append(id);
+        const auto fields = differingKeys(previous.take(id), object);
+        if (!fields.isEmpty()) { changes.insert(id, fields); }
+    }
+    for (auto it = previous.cbegin(); it != previous.cend(); ++it) {
+        changes.insert(it.key(), differingKeys(it.value(), {}));
+    }
+    structural = oldIds != newIds;
 }
 
 bool onlyKey(const QSet<QString>& keys, const QString& key) {
@@ -219,6 +244,7 @@ void TimelineModel::installTimeline(nt::Timeline timeline, const HistoryRebase* 
     // reset must drop the old snapshot.
     {
         const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
         emit clipsChanged();
         emit timelineChanged();
         emit markersChanged();
@@ -333,9 +359,89 @@ void TimelineModel::settleTransient() {
     if (pending.takesChanged) ++m_takesRevision;
     {
         const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
         emit clipsChanged();
         emit timelineChanged();
     }
+}
+
+void TimelineModel::notifyChanges() {
+    ChangeSet changes;
+    changes.fullReplacement = !m_notifiedSnapshot || m_notifiedGeneration != m_generation;
+    const auto before = m_notifiedSnapshot ? m_notifiedSnapshot->raw : QJsonObject{};
+    const auto& after = m_timeline->raw;
+    // Clip-only application already recorded the exact IDs. Avoid comparing
+    // the whole clip array again before diffing those clips.
+    changes.documentFields = differingKeys(before, after, QStringLiteral("clips"));
+    const auto collect = [&](const QString& key, auto& entities, bool& structural) {
+        if (changes.documentFields.contains(key)) {
+            entityChanges(before.value(key).toArray(), after.value(key).toArray(), entities, structural);
+        }
+    };
+    if (!changes.fullReplacement && m_changedClipIds && m_notifiedSnapshot) {
+        auto ids = *m_changedClipIds;
+        if (m_transient) { ids.unite(m_transient->clipIds); }
+        for (const auto& id : ids) {
+            const auto* old = m_notifiedSnapshot->findClip(id.toStdString());
+            const auto* next = m_timeline->findClip(id.toStdString());
+            const auto fields = differingKeys(old ? old->raw : QJsonObject{}, next ? next->raw : QJsonObject{});
+            if (!fields.isEmpty()) { changes.clips.insert(id, fields); }
+            changes.clipsStructural = changes.clipsStructural || !old || !next;
+        }
+        if (!changes.clips.isEmpty() || changes.clipsStructural) { changes.documentFields.insert("clips"); }
+    } else {
+        if (before.value("clips") != after.value("clips")) { changes.documentFields.insert("clips"); }
+        collect("clips", changes.clips, changes.clipsStructural);
+    }
+    collect("tracks", changes.tracks, changes.tracksStructural);
+    collect("markers", changes.markers, changes.markersStructural);
+    for (auto it = changes.clips.cbegin(); it != changes.clips.cend(); ++it) {
+        if (it.value().contains("notes")) { changes.noteClipIds.insert(it.key()); }
+    }
+    // Resolved media may change without changing the persisted document.
+    if (m_changedClipIds) {
+        for (const auto& id : *m_changedClipIds) {
+            const auto* old = m_notifiedSnapshot ? m_notifiedSnapshot->findClip(id.toStdString()) : nullptr;
+            const auto* next = m_timeline->findClip(id.toStdString());
+            if (!old || !next) { continue; }
+            if (old->mediaPath != next->mediaPath) { changes.clips[id].insert("mediaPath"); }
+            if (old->audioPath != next->audioPath) { changes.clips[id].insert("audioPath"); }
+            if (old->originalMediaPath != next->originalMediaPath) { changes.clips[id].insert("originalMediaPath"); }
+            if (old->generatedMattePath != next->generatedMattePath) { changes.clips[id].insert("generatedMattePath"); }
+        }
+    }
+    const bool sourcePathChangedValue = changes.fullReplacement ||
+        (m_notifiedSnapshot && m_notifiedSnapshot->sourcePath != m_timeline->sourcePath);
+    const bool clipCountChangedValue = changes.fullReplacement || !m_notifiedSnapshot ||
+        m_notifiedSnapshot->clips.size() != m_timeline->clips.size();
+    const auto contentEnd = [this](const nt::Timeline& timeline) {
+        double end = timeline.durationMs;
+        for (const auto& clip : timeline.clips) { ++m_notificationClipVisits; end = std::max(end, clip.endMs()); }
+        return end;
+    };
+    const bool clipEndsChanged = std::any_of(changes.clips.cbegin(), changes.clips.cend(), [](const auto& fields) {
+        return fields.contains("startMs") || fields.contains("durationMs");
+    });
+    const bool recomputeEnd = changes.fullReplacement || changes.clipsStructural || clipEndsChanged ||
+        changes.documentFields.contains("durationMs");
+    const double nextEnd = recomputeEnd ? contentEnd(*m_timeline) : m_notifiedContentEnd;
+    const bool contentEndChangedValue = changes.fullReplacement || nextEnd != m_notifiedContentEnd;
+    m_notifiedContentEnd = nextEnd;
+    // Publish the baseline and delta before scalar slots can make a nested edit.
+    m_notifiedSnapshot = m_timeline;
+    m_notifiedGeneration = m_generation;
+    emit changed(changes);
+    if (changes.fullReplacement || changes.documentFields.contains("id")) { emit timelineIdChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("projectId")) { emit projectIdChanged(); }
+    if (sourcePathChangedValue) { emit sourcePathChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("name")) { emit nameChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("fps")) { emit fpsChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("dropFrame")) { emit dropFrameChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("durationMs")) { emit durationMsChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("width")) { emit canvasWidthChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("height")) { emit canvasHeightChanged(); }
+    if (clipCountChangedValue) { emit clipCountChanged(); }
+    if (contentEndChangedValue) { emit contentEndMsChanged(); }
 }
 
 bool TimelineModel::patch(const QJsonArray& changed, bool transient) {
@@ -372,12 +478,25 @@ bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& 
         // sequence's fields and tracks.
         QJsonObject part = raw;
         part.insert(QStringLiteral("clips"), changed);
-        nt::ParseResult parsed = [&] {
-            const Measurement measurement(*this, "parse");
-            return nt::parseTimeline(part);
-        }();
-        if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) return false;
-        parsedClips = std::move(parsed.timeline->clips);
+        bool cached = true;
+        for (const auto& value : changed) {
+            const auto object = value.toObject();
+            const auto it = m_validatedClips.constFind(object.value("id").toString());
+            if (it == m_validatedClips.cend() || it->raw != object) { cached = false; break; }
+        }
+        if (cached) {
+            for (const auto& value : changed) {
+                parsedClips.push_back(m_validatedClips.value(value.toObject().value("id").toString()));
+            }
+        } else {
+            nt::ParseResult parsed = [&] {
+                const Measurement measurement(*this, "parse");
+                return nt::parseTimeline(part);
+            }();
+            if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) { return false; }
+            parsedClips = std::move(parsed.timeline->clips);
+        }
+        m_validatedClips.clear();
         // The parse knows neither the load's base folder nor the server's
         // asset cache: take the media the document's load resolved.
         for (auto& c : parsedClips) {
@@ -467,6 +586,7 @@ bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& 
     if (takesChanged) ++m_takesRevision;
     {
         const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
         emit clipsChanged();
         emit timelineChanged();
     }
@@ -533,6 +653,7 @@ quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before,
     auto command = std::make_unique<DocumentCommand>(text, std::move(beforeDocument), std::move(afterDocument),
         [this](const QJsonObject& raw) { replaceFromHistory(raw); }, token, mergeId, continuation);
     pushCommand(std::move(command));
+    m_validatedClips.clear();
     return token;
 }
 
@@ -573,6 +694,7 @@ bool TimelineModel::replaceMarkers(const QJsonArray& incoming) {
     m_tracks->rebind(m_timeline.get());
     {
         const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
         emit markersChanged();
         emit sourceChanged();
     }
@@ -630,8 +752,10 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
     }
     const Measurement measurement(*this, "apply_edit");
     // False when nothing changed or `after` is not a valid document. `before` is the current document.
+    m_validatedClips.clear();
     const auto valid = [this](const QJsonObject& before, const QJsonObject& after) {
         const Measurement measurement(*this, "validation");
+        m_validatedClips.clear();
         const auto keys = differingKeys(before, after);
         if (keys.isEmpty()) {
             return false;
@@ -654,12 +778,15 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
             if (!changed.isEmpty()) {
                 auto part = after;
                 part.insert("clips", changed);
-                const auto parsed = [&] {
+                auto parsed = [&] {
                     const Measurement measurement(*this, "parse");
                     return nt::parseTimeline(part);
                 }();
                 if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) {
                     return false;
+                }
+                for (auto& clip : parsed.timeline->clips) {
+                    m_validatedClips.insert(QString::fromStdString(clip.id), std::move(clip));
                 }
             }
         } else if (onlyKey(keys, QStringLiteral("markers"))) {
@@ -704,6 +831,7 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
     auto command = std::make_unique<DocumentCommand>(musicLabels.value(name, name), before, *after,
         [owner](const QJsonObject& raw) { if (owner) owner->replaceFromHistory(raw); }, token);
     pushCommand(std::move(command));
+    m_validatedClips.clear();
     return token;
 }
 
@@ -800,6 +928,7 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
     }
     {
         const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
         emit clipsChanged();
         emit timelineChanged();
         if (markersChangedValue) { emit markersChanged(); }
@@ -846,6 +975,7 @@ void TimelineModel::registerMedia(const nt::Clip& media) {
     m_tracks->rebind(m_timeline.get());
     {
         const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
         emit clipsChanged();
         emit timelineChanged();
     }
@@ -886,6 +1016,7 @@ void TimelineModel::registerMatteMedia(const QString& assetId, const std::string
     m_tracks->rebind(m_timeline.get());
     {
         const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
         emit clipsChanged();
         emit timelineChanged();
     }

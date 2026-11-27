@@ -1,6 +1,7 @@
 // TimelineModel change notification costs: which edits reset the track rows,
 // bump the takes revision or mark every clip changed.
 #include "model/TimelineJson.h"
+#include "app/EditRegistry.h"
 #include "model/TimelineModel.h"
 #include "midi/PianoRollController.h"
 #include "music/MusicPanelModel.h"
@@ -44,6 +45,234 @@ void load(TimelineModel& model) {
 class TestTimelineModel : public QObject {
     Q_OBJECT
 private slots:
+    void metadataNotificationDoesNotScanClipEnds() {
+        TimelineModel model;
+        load(model);
+        const auto visits = model.notificationClipVisits();
+        QSignalSpy ends(&model, &TimelineModel::contentEndMsChanged);
+        auto raw = model.timeline().raw;
+        raw["name"] = "Metadata edit";
+        QVERIFY(model.settleDocument(raw));
+        QCOMPARE(model.notificationClipVisits(), visits);
+        QCOMPARE(ends.size(), 0);
+        auto clip = model.findClip("clip-0-2")->raw;
+        clip["durationMs"] = 2000;
+        QVERIFY(model.patchClips({clip}));
+        QCOMPARE(model.contentEndMs(), 4000.0);
+        QCOMPARE(model.notificationClipVisits(), visits + 6);
+        QCOMPARE(ends.size(), 1);
+        clip["durationMs"] = 500;
+        QVERIFY(model.patchClips({clip}));
+        QCOMPARE(model.contentEndMs(), 3000.0);
+        QCOMPARE(model.notificationClipVisits(), visits + 12);
+        QCOMPARE(ends.size(), 2);
+        raw = model.timeline().raw;
+        raw["durationMs"] = 6000;
+        QVERIFY(model.settleDocument(raw));
+        QCOMPARE(model.contentEndMs(), 6000.0);
+        QCOMPARE(ends.size(), 3);
+    }
+
+    void transientIdsAndStructuralFlagsMatchTheDocument() {
+        TimelineModel model;
+        load(model);
+        auto first = model.findClip("clip-0-0")->raw;
+        auto second = model.findClip("clip-1-0")->raw;
+        first["startMs"] = 50;
+        second["startMs"] = 100;
+        QVERIFY(model.previewClips({first}));
+        QVERIFY(model.previewClips({second}));
+        QSignalSpy notifications(&model, &TimelineModel::changed);
+        model.settleTransient();
+        QCOMPARE(notifications.size(), 1);
+        auto changes = qvariant_cast<ChangeSet>(notifications.takeFirst()[0]);
+        QCOMPARE(changes.clips.size(), 2);
+        QVERIFY(changes.clipChanged("clip-0-0"));
+        QVERIFY(changes.clipChanged("clip-1-0"));
+        QVERIFY(!changes.clipsStructural);
+        auto clips = model.clipsJson();
+        const QJsonValue saved = clips[0];
+        clips[0] = clips[1];
+        clips[1] = saved;
+        QVERIFY(model.replaceClips(clips));
+        changes = qvariant_cast<ChangeSet>(notifications.takeFirst()[0]);
+        QVERIFY(changes.clipsStructural);
+        QVERIFY(changes.clips.isEmpty());
+        clips.removeAt(0);
+        QVERIFY(model.replaceClips(clips));
+        notifications.clear();
+        QVERIFY(!model.addMarker(100, "Cue").isEmpty());
+        changes = qvariant_cast<ChangeSet>(notifications.takeFirst()[0]);
+        QVERIFY(!changes.clipsStructural);
+        QVERIFY(changes.clips.isEmpty());
+    }
+
+    void duplicateClipCachePreservesParsedValues() {
+        TimelineModel model;
+        load(model);
+        QVERIFY(model.applyEdit("duplicate-cache-test", {}, [](QJsonObject raw, const QJsonObject&) {
+            auto clips = raw["clips"].toArray();
+            auto clip = clips[0].toObject();
+            clip["name"] = "Duplicate";
+            clips[0] = clip;
+            clips.append(clip);
+            raw["clips"] = clips;
+            return raw;
+        }));
+        const auto raw = model.timeline().raw;
+        auto parsed = nt::parseTimeline(raw);
+        if (!parsed.timeline) { QFAIL("Fixture must parse"); }
+        QCOMPARE(model.timeline().clips.size(), parsed.timeline->clips.size());
+        for (size_t i = 0; i < parsed.timeline->clips.size(); ++i) {
+            QCOMPARE(model.timeline().clips[i].raw, parsed.timeline->clips[i].raw);
+            QCOMPARE(model.timeline().clips[i].id, parsed.timeline->clips[i].id);
+        }
+    }
+
+    void scalarReentryNotifiesChangesInMutationOrder() {
+        TimelineModel model;
+        load(model);
+        QSignalSpy notifications(&model, &TimelineModel::changed);
+        connect(&model, &TimelineModel::nameChanged, &model, [&model] {
+            auto clip = model.findClip("clip-0-0")->raw;
+            clip["name"] = "Nested";
+            QVERIFY(model.patchClips({clip}));
+        });
+        auto raw = model.timeline().raw;
+        raw["name"] = "Outer";
+        QVERIFY(model.settleDocument(raw));
+        QCOMPARE(notifications.size(), 2);
+        const auto outer = qvariant_cast<ChangeSet>(notifications[0][0]);
+        const auto inner = qvariant_cast<ChangeSet>(notifications[1][0]);
+        QCOMPARE(outer.documentFields, QSet<QString>{"name"});
+        QVERIFY(outer.clips.isEmpty());
+        QCOMPARE(inner.documentFields, QSet<QString>{"clips"});
+        QCOMPARE(inner.clips.value("clip-0-0"), QSet<QString>{"name"});
+        notifications.clear();
+        model.addMarker(100, "Cue");
+        const auto marker = qvariant_cast<ChangeSet>(notifications[0][0]);
+        QCOMPARE(marker.documentFields, QSet<QString>{"markers"});
+        QVERIFY(marker.clips.isEmpty());
+    }
+
+    void resolvedMatteNotifiesItsClip() {
+        TimelineModel model;
+        auto raw = document();
+        auto clips = raw["clips"].toArray();
+        auto clip = clips[0].toObject();
+        clip["generatedMatte"] = QJsonObject{{"assetId", "matte"}};
+        clips[0] = clip;
+        raw["clips"] = clips;
+        auto parsed = nt::parseTimeline(raw);
+        if (!parsed.timeline) { QFAIL("Fixture must parse"); }
+        model.setTimeline(std::move(*parsed.timeline));
+        QSignalSpy notifications(&model, &TimelineModel::changed);
+        model.registerMatteMedia("matte", "/resolved/matte.png");
+        QCOMPARE(notifications.size(), 1);
+        const auto changes = qvariant_cast<ChangeSet>(notifications.first().first());
+        QVERIFY(changes.clipChanged("clip-0-0"));
+        QVERIFY(changes.clips.value("clip-0-0").contains("generatedMattePath"));
+        QVERIFY(!changes.clipsStructural);
+    }
+
+    void registeredEditsMatchFullReload() {
+        TimelineModel model;
+        auto raw = document();
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi");
+        clip.insert("notes", QJsonArray{});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        auto parsed = nt::parseTimeline(raw);
+        if (parsed.timeline) {
+            model.setTimeline(std::move(*parsed.timeline));
+        } else {
+            QFAIL("Invalid differential fixture");
+        }
+        const QJsonArray notes{QJsonObject{{"id", "note"}, {"pitch", 60}, {"velocity", 90},
+                                          {"startTick", 0}, {"durationTick", 480}}};
+        const QJsonArray controllers{QJsonObject{{"id", "lane"}, {"kind", "cc"}, {"cc", 7},
+                                                {"points", QJsonArray{}}}};
+        const QList<QPair<QString, QJsonObject>> fixtures{
+            {"midi.setNotes", {{"clipId", "clip-0-0"}, {"notes", notes}}},
+            {"midi.setControllers", {{"clipId", "clip-0-0"}, {"controllers", controllers}}},
+            {"midi.setEvents", {{"clipId", "clip-0-0"}, {"notes", QJsonArray{}}, {"controllers", QJsonArray{}}}},
+            {"set_clip_params", {{"clipId", "clip-0-0"}, {"patch", QJsonObject{{"name", "Renamed"}}}}},
+            {"move_clip", {{"clipId", "clip-0-0"}, {"startMs", 100}}},
+            {"trim_clip", {{"clipId", "clip-0-0"}, {"durationMs", 800}}}
+        };
+        const auto equivalent = [&model](const QJsonObject& expected) {
+            auto parsed = nt::parseTimeline(expected);
+            QVERIFY(parsed.timeline);
+            TimelineModel reload;
+            reload.setTimeline(std::move(*parsed.timeline));
+            QCOMPARE(model.documentJson(), reload.documentJson());
+            QCOMPARE(model.clipCount(), reload.clipCount());
+            for (size_t i = 0; i < reload.timeline().clips.size(); ++i) {
+                const auto& clip = reload.timeline().clips[i];
+                const auto* actual = &model.timeline().clips[i];
+                QCOMPARE(actual->id, clip.id);
+                QCOMPARE(actual->name, clip.name);
+                QCOMPARE(actual->raw, clip.raw);
+                QCOMPARE(actual->startMs, clip.startMs);
+                QCOMPARE(actual->durationMs, clip.durationMs);
+            }
+            const auto roles = reload.tracks()->roleNames();
+            QCOMPARE(model.tracks()->rowCount(), reload.tracks()->rowCount());
+            for (int row = 0; row < reload.tracks()->rowCount(); ++row) {
+                for (auto it = roles.cbegin(); it != roles.cend(); ++it) {
+                    QCOMPARE(model.tracks()->data(model.tracks()->index(row), it.key()),
+                             reload.tracks()->data(reload.tracks()->index(row), it.key()));
+                }
+            }
+        };
+        for (const auto& fixture : fixtures) {
+            const auto edit = nt::app::findEdit(fixture.first);
+            QVERIFY2(edit, qPrintable(fixture.first));
+            const auto before = model.timeline().raw;
+            const auto expected = edit(before, fixture.second);
+            QVERIFY2(expected != before, qPrintable(fixture.first));
+            QSignalSpy notifications(&model, &TimelineModel::changed);
+            QVERIFY(model.applyEdit(fixture.first, fixture.second));
+            QCOMPARE(notifications.size(), 1);
+            const auto changes = qvariant_cast<ChangeSet>(notifications.first().first());
+            QVERIFY(changes.clipChanged("clip-0-0"));
+            QVERIFY(!changes.clipChanged("clip-1-0"));
+            QVERIFY(!changes.clipsStructural);
+            const auto oldClip = before.value("clips").toArray()[0].toObject();
+            const auto newClip = expected.value("clips").toArray()[0].toObject();
+            QSet<QString> fields;
+            for (auto it = oldClip.begin(); it != oldClip.end(); ++it) {
+                if (newClip.value(it.key()) != it.value()) { fields.insert(it.key()); }
+            }
+            for (auto it = newClip.begin(); it != newClip.end(); ++it) {
+                if (oldClip.value(it.key()) != it.value()) { fields.insert(it.key()); }
+            }
+            QCOMPARE(changes.clips.value("clip-0-0"), fields);
+            QCOMPARE(changes.noteClipIds.contains("clip-0-0"), fields.contains("notes"));
+            equivalent(expected);
+            notifications.clear();
+            model.undoStack()->undo();
+            QCOMPARE(notifications.size(), 1);
+            const auto undone = qvariant_cast<ChangeSet>(notifications[0][0]);
+            QCOMPARE(undone.clips, changes.clips);
+            QCOMPARE(undone.noteClipIds, changes.noteClipIds);
+            QCOMPARE(undone.documentFields, changes.documentFields);
+            QCOMPARE(undone.clipsStructural, changes.clipsStructural);
+            equivalent(before);
+            notifications.clear();
+            model.undoStack()->redo();
+            QCOMPARE(notifications.size(), 1);
+            const auto redone = qvariant_cast<ChangeSet>(notifications[0][0]);
+            QCOMPARE(redone.clips, changes.clips);
+            QCOMPARE(redone.noteClipIds, changes.noteClipIds);
+            QCOMPARE(redone.documentFields, changes.documentFields);
+            QCOMPARE(redone.clipsStructural, changes.clipsStructural);
+            equivalent(expected);
+        }
+    }
+
     void takeInputsFollowDocumentAndSelection() {
         TimelineModel model;
         auto raw = document();

@@ -102,8 +102,8 @@ void AutomationController::setTimeline(TimelineModel* timeline) {
         connect(timeline_, &TimelineSource::sourceChanged, this, [self] {
             if (!self) { return; }
             if (!self->timeline_->pushingCommand()) { self->cancelDevices(); ++self->gestureGeneration_; }
-            self->refresh();
         });
+        connect(timeline_, &TimelineModel::previewChanged, this, &AutomationController::refresh);
         connect(history_, &QUndoStack::indexChanged, this, [self] {
             if (self && self->timeline_ && !self->timeline_->pushingCommand()) { self->cancelDevices(); ++self->gestureGeneration_; }
         });
@@ -114,7 +114,11 @@ void AutomationController::setTimeline(TimelineModel* timeline) {
             ++self->gestureGeneration_;
             emit self->changed();
         });
-        connect(timeline_, &TimelineModel::timelineChanged, this, &AutomationController::refresh);
+        connect(timeline_, &TimelineModel::changed, this, [this](const ChangeSet& changes) {
+            if (!timeline_->pushingCommand()) { cancelDevices(); ++gestureGeneration_; }
+            if (changes.fullReplacement || !changes.tracks.isEmpty() || changes.tracksStructural ||
+                changes.documentFields.contains("master")) { refresh(); }
+        });
     }
     emit changed();
 }
@@ -277,8 +281,10 @@ void AutomationReadout::setTimeline(TimelineModel* next) {
     if (timeline_) { disconnect(timeline_,nullptr,this,nullptr); }
     timeline_=next;
     if (timeline_) {
-        connect(timeline_,&TimelineModel::timelineChanged,this,&AutomationReadout::compile);
-        connect(timeline_,&TimelineSource::sourceChanged,this,&AutomationReadout::compile);
+        connect(timeline_, &TimelineModel::changed, this, [this](const ChangeSet& changes) {
+            if (changes.trackChanged(trackId_)) { compile(); }
+        });
+        connect(timeline_, &TimelineModel::previewChanged, this, &AutomationReadout::compile);
         connect(timeline_,&TimelineModel::mixerOverrideChanged,this,&AutomationReadout::overrideChanged);
     }
     compile(); emit sourceChanged();

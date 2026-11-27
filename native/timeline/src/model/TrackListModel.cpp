@@ -78,11 +78,24 @@ bool TrackListModel::refresh(const nt::Timeline* timeline) {
         if (rows[i]->id != m_rows[i]->id) return false;
         if (rows[i]->raw != m_rows[i]->raw) changed.push_back(i);
     }
+    QHash<int, QHash<int, QVariant>> before;
+    const auto names = roleNames();
+    for (const auto row : changed) {
+        for (auto it = names.cbegin(); it != names.cend(); ++it) {
+            before[static_cast<int>(row)].insert(it.key(), data(index(static_cast<int>(row)), it.key()));
+        }
+    }
     m_timeline = timeline;
     m_rows = std::move(rows);
     for (const size_t i : changed) {
         const auto at = index(static_cast<int>(i));
-        emit dataChanged(at, at);
+        QList<int> roles;
+        const auto values = before.value(static_cast<int>(i));
+        for (auto it = values.cbegin(); it != values.cend(); ++it) {
+            if (it.value() != data(at, it.key())) { roles.append(it.key()); }
+        }
+        if (!roles.isEmpty()) { emit dataChanged(at, at, roles); }
+        emit trackDocumentChanged(static_cast<int>(i));
     }
     return true;
 }

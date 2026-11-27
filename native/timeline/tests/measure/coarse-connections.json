@@ -1,0 +1,110 @@
+{
+  "src/activity/local/LocalActivity.cpp": {
+    "timelineChanged": 1
+  },
+  "src/ai/GenerationController.cpp": {
+    "clipsChanged": 1
+  },
+  "src/aiassist/ProductionReview.cpp": {
+    "timelineChanged": 1
+  },
+  "src/aiassist/ShotWorkflow.cpp": {
+    "timelineChanged": 1
+  },
+  "src/assets/AssetBrowser.cpp": {
+    "clipsChanged": 1
+  },
+  "src/audio/automation/AutomationRecorder.cpp": {
+    "timelineChanged": 1
+  },
+  "src/audio/vst/VstHostModel.cpp": {
+    "timelineChanged": 1
+  },
+  "src/chat/TimelineChatHost.cpp": {
+    "timelineChanged": 1
+  },
+  "src/colorpanel/ScopesController.cpp": {
+    "clipsChanged": 1,
+    "timelineChanged": 1
+  },
+  "src/edit/ClipGestureController.cpp": {
+    "clipsChanged": 1
+  },
+  "src/edit/clipaudio/ClipAudio.cpp": {
+    "clipsChanged": 1
+  },
+  "src/edit/clipeffects/ClipAnalysisController.cpp": {
+    "clipsChanged": 1
+  },
+  "src/edit/inspectorsections/InspectorEdits.cpp": {
+    "clipsChanged": 1,
+    "timelineChanged": 1
+  },
+  "src/edit/speed/SpeedController.cpp": {
+    "timelineChanged": 1
+  },
+  "src/edit/transitions/TransitionController.cpp": {
+    "timelineChanged": 1
+  },
+  "src/edit/trim/TrimMode.cpp": {
+    "clipsChanged": 1
+  },
+  "src/export/FrameCapture.cpp": {
+    "timelineChanged": 1
+  },
+  "src/midi/StepSequencerController.cpp": {
+    "timelineChanged": 1
+  },
+  "src/model/TimelineModel.cpp": {
+    "timelineChanged": 1
+  },
+  "src/motion/controls/FollowPathControls.cpp": {
+    "clipsChanged": 1
+  },
+  "src/motion/mattes/MatteResolver.cpp": {
+    "clipsChanged": 1
+  },
+  "src/music/MusicJobs.cpp": {
+    "clipsChanged": 1
+  },
+  "src/music/MusicPanelModel.cpp": {
+    "timelineChanged": 1
+  },
+  "src/music/MusicSequenceState.cpp": {
+    "timelineChanged": 1
+  },
+  "src/preview/crop/ReframeController.cpp": {
+    "timelineChanged": 1
+  },
+  "src/preview/gizmo/TransformGizmoController.cpp": {
+    "clipsChanged": 1
+  },
+  "src/reference/ReferenceController.cpp": {
+    "clipsChanged": 1,
+    "timelineChanged": 1
+  },
+  "src/remix/clip/RemixController.cpp": {
+    "clipsChanged": 1
+  },
+  "src/server/TimelineList/TimelineDocumentController.cpp": {
+    "timelineChanged": 1
+  },
+  "src/server/TimelineList/TimelineSession.cpp": {
+    "timelineChanged": 2
+  },
+  "src/server/projectfolder/ProjectFolderState.cpp": {
+    "timelineChanged": 1
+  },
+  "src/takes/TakeGrid.cpp": {
+    "clipsChanged": 1
+  },
+  "src/transcript/TranscriptSession.cpp": {
+    "clipsChanged": 1
+  },
+  "src/ui/MidiNoteLines.cpp": {
+    "clipsChanged": 1
+  },
+  "src/ui/RulerCanvas.cpp": {
+    "timelineChanged": 1
+  }
+}

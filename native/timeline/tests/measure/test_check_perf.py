@@ -2,7 +2,7 @@ import sys
 import unittest
 
 sys.dont_write_bytecode = True
-from check_perf import check, loads, ratchet, result_from, prior_budget, update_budget
+from check_perf import check_connections, coarse_connections, check, loads, ratchet, result_from, prior_budget, update_budget
 from unittest.mock import patch
 import json
 import subprocess
@@ -11,6 +11,44 @@ from pathlib import Path
 
 
 class BudgetTest(unittest.TestCase):
+    def test_connection_audit_preserves_strings_and_aliases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'src').mkdir()
+            (root / 'src/model.cpp').write_text(
+                'QString url("https://example.test"); connect(m, &TimelineModel::timelineChanged, this, f);'
+                '\nconnect(m, SIGNAL(clipsChanged()), this, SLOT(f()));'
+                '\nauto coarse = &TimelineModel::clipsChanged; connect(m, coarse, this, f);'
+                '\nQString ignored("connect(m, &TimelineModel::clipsChanged, this, f);");')
+            self.assertEqual(coarse_connections(root),
+                             {'src/model.cpp': {'timelineChanged': 1, 'clipsChanged': 2}})
+
+    def test_connection_baseline_cannot_raise_prior_limits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'src').mkdir()
+            (root / 'src/model.cpp').write_text('// no connections')
+            with self.assertRaises(ValueError):
+                check_connections(root, {'src/model.cpp': {'clipsChanged': 2}},
+                                  {'src/model.cpp': {'clipsChanged': 1}})
+
+    def test_coarse_connections_only_decrease(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'src').mkdir()
+            source = root / 'src/model.cpp'
+            source.write_text('connect(model, &TimelineModel::timelineChanged, this, refresh);')
+            baseline = {'src/model.cpp': {'timelineChanged': 1}}
+            self.assertEqual(check_connections(root, baseline), baseline)
+            source.write_text(source.read_text() + '\nconnect(model, &TimelineModel::clipsChanged, this, refresh);')
+            with self.assertRaises(ValueError):
+                check_connections(root, baseline)
+            source.write_text('// connect(model, &TimelineModel::timelineChanged, this, refresh);')
+            self.assertEqual(check_connections(root, baseline), {})
+            source.unlink()
+            with self.assertRaises(ValueError):
+                coarse_connections(root)
+
     def test_updates_merge_with_current_budget_and_publish_atomically(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'budget.json'

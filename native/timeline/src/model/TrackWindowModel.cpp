@@ -56,10 +56,33 @@ void TrackWindowModel::setTracks(TrackListModel* tracks) {
         connect(m_tracks, &QAbstractItemModel::modelReset, this, rebuild);
         connect(m_tracks, &QAbstractItemModel::rowsInserted, this, rebuild);
         connect(m_tracks, &QAbstractItemModel::rowsRemoved, this, rebuild);
-        connect(m_tracks, &QAbstractItemModel::dataChanged, this, [this]() {
-            relayout();
-            if (rowCount() > 0) emit dataChanged(index(0), index(rowCount() - 1));
-            updateWindow();
+        connect(m_tracks, &TrackListModel::trackDocumentChanged, this, [this](int row) {
+            const int visible = row - m_window.start;
+            if (visible >= 0 && visible < rowCount()) {
+                emit dataChanged(index(visible), index(visible), {TrackRole});
+            }
+        });
+        connect(m_tracks, &QAbstractItemModel::dataChanged, this,
+                [this](const QModelIndex& first, const QModelIndex& last, const QList<int>& roles) {
+            const auto oldTops = m_tops;
+            const auto oldHeights = m_heights;
+            const bool layout = roles.isEmpty() || roles.contains(TrackListModel::HeightPxRole);
+            if (layout) { relayout(); updateWindow(); }
+            for (int row = 0; row < rowCount(); ++row) {
+                const auto source = static_cast<size_t>(row) + static_cast<size_t>(m_window.start);
+                QList<int> affected;
+                if (static_cast<int>(source) >= first.row() && static_cast<int>(source) <= last.row()) {
+                    if (roles.isEmpty()) {
+                        emit dataChanged(index(row), index(row), {});
+                        continue;
+                    }
+                    affected = roles;
+                    if (layout) { affected.append(BaseRowHeightRole); }
+                }
+                if (layout && oldTops[source] != m_tops[source]) { affected.append(RowTopRole); }
+                if (layout && oldHeights[source] != m_heights[source]) { affected.append(RowHeightRole); }
+                if (!affected.isEmpty()) { emit dataChanged(index(row), index(row), affected); }
+            }
         });
     }
     resetRows();

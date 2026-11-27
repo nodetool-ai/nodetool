@@ -27,8 +27,11 @@ void PianoRollController::setTimeline(TimelineModel* timeline) {
     m_timeline = timeline;
     m_reloadInputs = {};
     if (m_timeline) {
-        connect(m_timeline, &TimelineModel::clipsChanged, this, &PianoRollController::reload);
-        connect(m_timeline, &TimelineModel::timelineChanged, this, &PianoRollController::reload);
+        connect(m_timeline, &TimelineModel::changed, this, [this](const ChangeSet& changes) {
+            const auto* clip = m_timeline->findClip(m_clipId);
+            if (changes.clipChanged(m_clipId) || (clip && changes.trackChanged(QString::fromStdString(clip->trackId))) ||
+                changes.documentFields.contains("tempo")) { reload(); }
+        });
         connect(m_timeline, &TimelineModel::readOnlyChanged, this, &PianoRollController::clipChanged);
     }
     emit timelineChanged();

@@ -1421,6 +1421,25 @@ lane: ({id:"virtual-pan",target:{kind:"mixer",param:"pan"},points:[]}) })"));
         QCOMPARE(track()["automation"].toArray()[0].toObject()["points"].toArray().size(),0);
         transport.pause();
     }
+    void externalEditInvalidatesGestureBeforeRefresh() {
+        AutomationController controller;
+        controller.setTimeline(&model);
+        controller.setTrackId("a");
+        const auto before = controller.gestureGeneration();
+        quint64 seen = before;
+        connect(&controller, &AutomationController::channelChanged, &controller, [&] {
+            seen = controller.gestureGeneration();
+        });
+        auto raw = doc();
+        auto tracks = raw["tracks"].toArray();
+        auto first = tracks[0].toObject();
+        first["name"] = "External rename";
+        tracks[0] = first;
+        raw["tracks"] = tracks;
+        QVERIFY(model.settleDocument(raw));
+        QVERIFY(seen != before);
+    }
+
     void coincidentReadoutF8_data() {
         QTest::addColumn<QJsonArray>("points"); QTest::addColumn<double>("expected");
         const auto json=[](const char* value) { return QJsonDocument::fromJson(value).array(); };

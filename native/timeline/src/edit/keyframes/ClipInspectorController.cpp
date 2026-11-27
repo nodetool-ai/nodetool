@@ -17,12 +17,9 @@ void ClipInspectorController::setTimeline(TimelineModel* model) {
         connect(model, &TimelineModel::beforeCommand, this, [this] {
             if (m_gesturing) { cancelGesture(); m_ignoreCommit = true; }
         });
-        // Clip contents arrive on clipsChanged, a track lock on timelineChanged alone.
-        connect(model, &TimelineModel::clipsChanged, this, [this] {
-            if (m_active && m_timeline->clipTouched(m_clipId)) { refresh(); }
-        });
-        connect(model, &TimelineModel::timelineChanged, this, [this] {
-            if (m_active && computeLocked(m_clip) != m_locked) { refresh(); }
+        connect(model, &TimelineModel::changed, this, [this](const ChangeSet& changes) {
+            if (!m_active) { return; }
+            if (changes.clipChanged(m_clipId) || changes.trackChanged(m_clip.value("trackId").toString())) { refresh(); }
         });
         connect(model, &TimelineModel::documentReplaced, this, [this] {
             m_ignoreCommit = m_gesturing;

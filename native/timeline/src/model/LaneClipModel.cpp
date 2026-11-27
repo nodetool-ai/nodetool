@@ -35,7 +35,11 @@ void LaneClipModel::setTimeline(TimelineModel* timeline) {
     if (m_timeline) disconnect(m_timeline, nullptr, this, nullptr);
     m_timeline = timeline;
     if (m_timeline) {
-        connect(m_timeline, &TimelineModel::clipsChanged, this, [this]() {
+        connect(m_timeline, &TimelineModel::changed, this, [this](const ChangeSet& changes) {
+            if (!changes.fullReplacement && changes.clips.isEmpty() && !changes.clipsStructural) {
+                rebase();
+                return;
+            }
             if (!m_timeline->trackClipIndexChanged(m_trackId) && rebase()) { return; }
             rebuildClips();
             recompute();
@@ -163,13 +167,26 @@ void LaneClipModel::recompute() {
     // 2. Walk the new order: keep, move, or insert each clip. A kept clip
     // whose JSON or resolved media changed sends dataChanged; an unchanged
     // clip sends nothing, so its delegate does no work.
-    std::vector<int> changedRows;
+    QHash<int, QList<int>> changedRows;
+    const auto compareRoles = [this, &changedRows](int row, const nt::Clip* next, int destination) {
+        const auto* previous = m_rows[static_cast<size_t>(row)];
+        QList<int> roles;
+        const auto names = roleNames();
+        for (auto it = names.cbegin(); it != names.cend(); ++it) {
+            const auto before = data(index(row), it.key());
+            m_rows[static_cast<size_t>(row)] = next;
+            const auto after = data(index(row), it.key());
+            m_rows[static_cast<size_t>(row)] = previous;
+            if (before != after) { roles.append(it.key()); }
+        }
+        if (!roles.isEmpty()) { changedRows.insert(destination, roles); }
+    };
     for (size_t pos = 0; pos < next.size(); ++pos) {
         const nt::Clip* c = next[pos];
         if (pos < m_rows.size() && m_rows[pos]->id == c->id) {
             if (newSnapshot && (m_rows[pos]->raw != c->raw || m_rows[pos]->mediaPath != c->mediaPath ||
                                 m_rows[pos]->audioPath != c->audioPath)) {
-                changedRows.push_back(static_cast<int>(pos));
+                compareRoles(static_cast<int>(pos), c, static_cast<int>(pos));
             }
             m_rows[pos] = c;
             continue;
@@ -180,7 +197,7 @@ void LaneClipModel::recompute() {
             const int from = static_cast<int>(it - m_rows.begin());
             if (newSnapshot && ((*it)->raw != c->raw || (*it)->mediaPath != c->mediaPath ||
                                 (*it)->audioPath != c->audioPath)) {
-                changedRows.push_back(static_cast<int>(pos));
+                compareRoles(from, c, static_cast<int>(pos));
             }
             beginMoveRows({}, from, from, {}, static_cast<int>(pos));
             m_rows.erase(it);
@@ -192,7 +209,9 @@ void LaneClipModel::recompute() {
         m_rows.insert(m_rows.begin() + static_cast<long>(pos), c);
         endInsertRows();
     }
-    for (int row : changedRows) emit dataChanged(index(row), index(row));
+    for (auto it = changedRows.cbegin(); it != changedRows.cend(); ++it) {
+        emit dataChanged(index(it.key()), index(it.key()), it.value());
+    }
     m_dataChangedRows += static_cast<int>(changedRows.size());
     if (rowCount() != before) emit countChanged();
     emit recomputed();

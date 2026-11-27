@@ -9,6 +9,7 @@
 // TracksRegionVirtualization, TimelineScrollbar and timelineWheel.
 #include "TestAssetCacheRoot.h"
 #include "model/LaneClipModel.h"
+#include "aiassist/AssistController.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "model/TrackWindowModel.h"
@@ -620,6 +621,82 @@ private slots:
         QVERIFY(controller()->trimSourceClipId().isEmpty());
     }
 
+    void assistNotifiesOnClipReorder() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 2}));
+        AssistController assist;
+        assist.setModel(&doc);
+        QSignalSpy updates(&assist, &AssistController::changed);
+        auto clips = doc.clipsJson();
+        const QJsonValue first = clips[0];
+        clips[0] = clips[1];
+        clips[1] = first;
+        QVERIFY(doc.replaceClips(clips));
+        QCOMPARE(updates.size(), 1);
+    }
+
+    void laneReleasesSnapshotAfterMetadataEdit() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 1}));
+        LaneClipModel lane;
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        const std::weak_ptr<const nt::Timeline> previous = doc.snapshot();
+        auto raw = doc.timeline().raw;
+        raw["name"] = "Renamed sequence";
+        QVERIFY(doc.settleDocument(raw));
+        doc.trackClipIndices("track-0");
+        QVERIFY(previous.expired());
+        QCOMPARE(lane.clipIds(), QStringList{"c-0-0"});
+    }
+
+    void trackWindowForwardsAllRoles() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({20, 1}));
+        TimelineViewState view;
+        view.setViewportHeightPx(100);
+        TrackWindowModel window;
+        window.setTracks(doc.tracks());
+        window.setViewState(&view);
+        view.setScrollTopPx(640);
+        QVERIFY(window.data(window.index(0), TrackWindowModel::SourceRowRole).toInt() > 0);
+        QSignalSpy updates(&window, &QAbstractItemModel::dataChanged);
+        const int source = window.data(window.index(0), TrackWindowModel::SourceRowRole).toInt();
+        emit doc.tracks()->dataChanged(doc.tracks()->index(source), doc.tracks()->index(source), {});
+        QCOMPARE(updates.size(), 1);
+        QCOMPARE(updates.first()[0].value<QModelIndex>().row(), 0);
+        QVERIFY(updates.first()[2].value<QList<int>>().isEmpty());
+    }
+
+    void trackRenameNotifiesOnlyItsRowAndRoles() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({2, 1}));
+        TrackWindowModel window;
+        window.setTracks(doc.tracks());
+        QSignalSpy sourceUpdates(doc.tracks(), &QAbstractItemModel::dataChanged);
+        QSignalSpy windowUpdates(&window, &QAbstractItemModel::dataChanged);
+        QVERIFY(doc.applyEdit("rename-test", {}, [](QJsonObject raw, const QJsonObject&) {
+            auto tracks = raw.value("tracks").toArray();
+            auto track = tracks[0].toObject();
+            track.insert("name", "Renamed");
+            tracks[0] = track;
+            raw.insert("tracks", tracks);
+            return raw;
+        }));
+        QCOMPARE(sourceUpdates.size(), 1);
+        QCOMPARE(sourceUpdates.first()[0].value<QModelIndex>().row(), 0);
+        QCOMPARE(sourceUpdates.first()[2].value<QList<int>>(), QList<int>{TrackListModel::NameRole});
+        QCOMPARE(windowUpdates.size(), 2);
+        QCOMPARE(windowUpdates[0][2].value<QList<int>>(), QList<int>{TrackListModel::NameRole});
+        QCOMPARE(windowUpdates[1][2].value<QList<int>>(), QList<int>{TrackWindowModel::TrackRole});
+        for (const auto& update : windowUpdates) {
+            QCOMPARE(update[0].value<QModelIndex>().row(), 0);
+            QCOMPARE(update[1].value<QModelIndex>().row(), 0);
+            const auto roles = update[2].value<QList<int>>();
+            QVERIFY(roles == QList<int>{TrackListModel::NameRole} || roles == QList<int>{TrackWindowModel::TrackRole});
+        }
+    }
+
     void laneExposesOnlyScalarPresentationRoles() {
         TimelineModel doc;
         doc.setTimeline(makeTimeline({1, 1}));
@@ -636,7 +713,12 @@ private slots:
         clip.insert("status", "queued");
         QVERIFY(doc.patchClips({clip}));
         QCOMPARE(updates.count(), 1);
-        QVERIFY(updates.first().at(2).value<QList<int>>().isEmpty());
+        const auto changedRoles = updates.first().at(2).value<QList<int>>();
+        QVERIFY(changedRoles.contains(LaneClipModel::StatusRole));
+        QVERIFY(changedRoles.contains(LaneClipModel::LabelColorRole));
+        QVERIFY(changedRoles.contains(LaneClipModel::SpeedMultiplierRole));
+        QVERIFY(!changedRoles.contains(LaneClipModel::StartMsRole));
+        QVERIFY(!changedRoles.contains(LaneClipModel::NameRole));
         const auto row = lane.index(0);
         QCOMPARE(lane.data(row, LaneClipModel::StatusRole).toString(), QString("queued"));
         QCOMPARE(lane.data(row, LaneClipModel::LabelColorRole).toString(), QString("#123456"));

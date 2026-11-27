@@ -1,11 +1,53 @@
 #!/usr/bin/env python3
 """Run isolated stress scenarios. Gate work counters, report wall time only."""
 import argparse
+import re
 import tempfile
 import json
 import os
 from pathlib import Path
 import subprocess
+
+
+def coarse_connections(root):
+    files = sorted((root / 'src').rglob('*'))
+    inspected = [p for p in files if p.suffix in {'.cpp', '.h'} and not p.name.startswith('tst_')]
+    if not inspected:
+        raise ValueError('Connection audit inspected no sources')
+    result = {}
+    for path in inspected:
+        # Mask literals and comments without treating URL slashes as comments.
+        text = re.sub(r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|//[^\n]*|/\*[\s\S]*?\*/""",
+                      lambda _: ' ',
+                      path.read_text())
+        aliases = dict(re.findall(
+            r'\b(\w+)\s*=\s*&\s*TimelineModel\s*::\s*(timelineChanged|clipsChanged)\b', text))
+        signals = []
+        for argument in re.findall(r'\bconnect\s*\(\s*[^,;]*,\s*([^,;]+)', text):
+            direct = re.search(r'&\s*TimelineModel\s*::\s*(timelineChanged|clipsChanged)\b', argument)
+            legacy = re.search(r'\bSIGNAL\s*\(\s*(timelineChanged|clipsChanged)\s*\(', argument)
+            signal = direct[1] if direct else legacy[1] if legacy else aliases.get(argument.strip())
+            if signal:
+                signals.append(signal)
+        if signals:
+            result[path.relative_to(root).as_posix()] = {name: signals.count(name) for name in set(signals)}
+    return result
+
+
+def check_connections(root, baseline, prior=None):
+    if prior is not None:
+        for filename, signals in baseline.items():
+            for signal, limit in signals.items():
+                ceiling = prior.get(filename, {}).get(signal, 0)
+                if type(limit) is not int or limit < 0 or limit > ceiling:
+                    raise ValueError(f'{filename}: {signal} baseline {limit} exceeds prior {ceiling}')
+    actual = coarse_connections(root)
+    for filename, signals in actual.items():
+        for signal, count in signals.items():
+            limit = baseline.get(filename, {}).get(signal, 0)
+            if type(limit) is not int or limit < 0 or count > limit:
+                raise ValueError(f'{filename}: {signal} connections {count} exceeds {limit}')
+    return actual
 
 
 def reject_constant(value):
@@ -100,6 +142,9 @@ def main():
     parser.add_argument('--base-budget', type=Path, help='Use an explicit reviewed baseline instead of git')
     parser.add_argument('--allow-new-budget', action='store_true', help='Explicit initial adoption when the path is absent from origin/main')
     args = parser.parse_args()
+    root = Path(__file__).resolve().parents[2]
+    connections_path = Path(__file__).with_name('coarse-connections.json')
+    check_connections(root, loads(connections_path.read_text()), prior_budget(connections_path, True))
     if args.agent and args.scenario != "model_change":
         parser.error("--agent requires --scenario model_change")
     budget = loads(args.budget.read_text())
