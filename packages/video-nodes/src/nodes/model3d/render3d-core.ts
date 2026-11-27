@@ -151,6 +151,14 @@ export interface Model3DRenderSession {
   /** Names of the glTF's animations and cameras, for the inspector and the validator. */
   readonly animations: readonly string[];
   readonly cameras: readonly string[];
+  /**
+   * The model's rest-pose bounding sphere, world units: what an orbit camera
+   * is fitted against. A host needs it to convert an orbit pose to a free one.
+   */
+  readonly bounds: {
+    readonly center: readonly [number, number, number];
+    readonly radius: number;
+  };
   /** Draws one frame into the session's canvas and returns it. */
   render(frame: Model3DRenderFrame): OffscreenCanvas;
   dispose(): void;
@@ -298,11 +306,32 @@ export function selectAnimationClips<T extends { name: string }>(
   );
 }
 
+/** A camera as the session holds it after GLTFLoader loaded the model. */
+export interface NamedSceneCamera {
+  /** The loader's name: whitespace becomes `_` and `[ ] . : /` are dropped. */
+  name: string;
+  /** GLTFLoader keeps the glTF node's own name in `userData.name`. */
+  userData?: { name?: unknown };
+}
+
+/** The name the glTF file gives a camera, before the loader rewrote it. */
+export function sceneCameraLabel(camera: NamedSceneCamera): string {
+  const original = camera.userData?.name;
+  return typeof original === "string" && original !== ""
+    ? original
+    : camera.name;
+}
+
 /**
  * The glTF camera `camera.sceneCameraName` selects, or the first one when the
  * name is absent. Pure, exported for tests.
+ *
+ * GLTFLoader rewrites a name to make it safe for animation bindings, so
+ * "Camera 2" loads as "Camera_2". The name is matched against the glTF node's
+ * own name first, then the loader's name, then the loader's name for the
+ * requested one, which covers a name kept only on the glTF camera definition.
  */
-export function selectSceneCamera<T extends { name: string }>(
+export function selectSceneCamera<T extends NamedSceneCamera>(
   cameras: readonly T[],
   sceneCameraName?: string
 ): T {
@@ -314,11 +343,15 @@ export function selectSceneCamera<T extends { name: string }>(
   if (sceneCameraName === undefined || sceneCameraName === "") {
     return cameras[0];
   }
-  const found = cameras.find((camera) => camera.name === sceneCameraName);
+  const sanitized = THREE.PropertyBinding.sanitizeNodeName(sceneCameraName);
+  const found =
+    cameras.find((camera) => camera.userData?.name === sceneCameraName) ??
+    cameras.find((camera) => camera.name === sceneCameraName) ??
+    cameras.find((camera) => camera.name === sanitized);
   if (found) return found;
   throw new Error(
     `Model3D render: camera "${sceneCameraName}" is not in this model — available cameras: ${cameras
-      .map((camera) => camera.name)
+      .map(sceneCameraLabel)
       .join(", ")}`
   );
 }
@@ -670,7 +703,11 @@ export async function createModel3DRenderSession(
 
   return {
     animations: gltf.animations.map((clip) => clip.name),
-    cameras: sceneCameras.map((camera) => camera.name),
+    cameras: sceneCameras.map(sceneCameraLabel),
+    bounds: {
+      center: [sphere.center.x, sphere.center.y, sphere.center.z],
+      radius: sphere.radius
+    },
 
     render(frame: Model3DRenderFrame): OffscreenCanvas {
       if (disposed) {

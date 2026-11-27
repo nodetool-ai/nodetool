@@ -22,6 +22,7 @@ import { printCommandError } from "@nodetool-ai/pack-manager/command-errors";
 import { printDebugSummary } from "@nodetool-ai/cli-common/commands/debug-summary-output";
 import { renderTimelineValidation } from "./timeline-validation-output.js";
 import { registerTimelineRenderCommand } from "./timeline-render.js";
+import { registerTimelineReferenceCommand } from "./timeline-reference.js";
 import { registerTimelineScoreCommand } from "./timeline-score.js";
 import { registerTimelineVersionsCommands } from "./timeline-versions.js";
 
@@ -156,6 +157,7 @@ export function registerTimelineCommands(program: Command): void {
     });
 
   registerTimelineRenderCommand(timeline, sequenceLoader);
+  registerTimelineReferenceCommand(timeline);
   registerTimelineScoreCommand(timeline, sequenceLoader);
   registerTimelineVersionsCommands(timeline);
 }

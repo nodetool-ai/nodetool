@@ -1754,7 +1754,19 @@ export const clipModel3DStyle = z.object({
    * as video while `dependencyHash` matches the live style; a style edit makes
    * it stale and the live 3D layer draws again.
    */
-  bake: z.object({ assetId: z.string(), dependencyHash: z.string() }).optional()
+  bake: z.object({ assetId: z.string(), dependencyHash: z.string() }).optional(),
+  /**
+   * A grey render of the clip's span, the reference video a video model
+   * follows when a linked storyboard shot is generated. Without this field
+   * Zod strips it on every PATCH and the reference is rendered again.
+   */
+  reference: z
+    .object({
+      assetId: z.string(),
+      dependencyHash: z.string(),
+      pass: z.enum(["clay", "depth", "normal"])
+    })
+    .optional()
 });
 export type ClipModel3DStyle = z.infer<typeof clipModel3DStyle>;
 

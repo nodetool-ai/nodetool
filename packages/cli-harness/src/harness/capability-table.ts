@@ -2433,11 +2433,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "9e166dd37c1c",
+    contract: "9df666b3132a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
-      "packages/agents/tests/capabilities-timelines-grain.test.ts",
+      "packages/agents/tests/capabilities-timelines-blockout.test.ts",
     ],
     evals: [
       {
@@ -2482,7 +2482,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "preview_timeline_frame",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "905d8042a3f4",
+    contract: "acc2575169c5",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timeline-preview.test.ts",
@@ -2490,7 +2490,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/surfaces/timeline.ts",
-        cases: ["looked-before-done", "three-d-turntable"],
+        cases: ["blockout-free-camera-move", "looked-before-done", "three-d-turntable"],
       },
     ],
   },

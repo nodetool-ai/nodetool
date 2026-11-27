@@ -6,6 +6,7 @@ Status: implemented. The editing surface is documented in
 [docs/harnesses.md](../harnesses.md#3d-clips-in-preview_timeline_frame)
 § 3D clips in preview_timeline_frame.
 Companion doc: [3d-timeline-clips-tasks.md](3d-timeline-clips-tasks.md) (implementation plan, agent-consumable tasks).
+The free camera, camera move presets and the grey reference render built on these clips are in [Blockout 3D](blockout-3d.md).
 
 ## Goal
 

@@ -181,6 +181,7 @@ import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMo
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { performSourceEdit } from "../sourceEdit";
 import { keyframeRowFor, toggleRowKeyframeAt } from "../Inspector/keyframeRows";
+import { keyFreeCameraPatch } from "../Inspector/model3dFreeCamera";
 import { getSelectedAssetForExplorer } from "../../../stores/AssetGridStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import {
@@ -1844,6 +1845,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               keyframeTimesMs(target).map((t) => target.startMs + t),
               action === "nextKeyframe"
             );
+            return;
+          }
+
+          case "keyCamera": {
+            // The selected clip (one), when it is a 3D clip on a free camera.
+            if (selectedClipIds.size !== 1) return;
+            const clipId: string = selectedClipIds.values().next().value!;
+            const target = doc.clips.find((c) => c.id === clipId);
+            if (!target || target.model3dStyle?.camera.mode !== "free") return;
+            const relMs = liveMs - target.startMs;
+            if (relMs < 0 || relMs > target.durationMs) return;
+            e.preventDefault();
+            doc.editClipKeyframes(clipId, (c) => keyFreeCameraPatch(c, relMs));
             return;
           }
 

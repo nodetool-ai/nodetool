@@ -2831,7 +2831,11 @@
         "rotation": "Rotation",
         "orbit": "Orbit",
         "fieldOfView": "Field of view",
-        "zoom": "Zoom"
+        "zoom": "Zoom",
+        "cameraPosition": "Position",
+        "cameraTarget": "Target",
+        "cameraLens": "Lens",
+        "cameraRoll": "Roll"
       },
       "inputs": {
         "opacity": "Opacity",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "Camera azimuth",
         "cameraElevation": "Camera elevation",
         "cameraFieldOfView": "Camera field of view",
-        "cameraZoom": "Camera zoom"
+        "cameraZoom": "Camera zoom",
+        "cameraPositionX": "Camera position X",
+        "cameraPositionY": "Camera position Y",
+        "cameraPositionZ": "Camera position Z",
+        "cameraTargetX": "Camera target X",
+        "cameraTargetY": "Camera target Y",
+        "cameraTargetZ": "Camera target Z",
+        "cameraLens": "Camera lens in millimeters",
+        "cameraRoll": "Camera roll in degrees"
       },
       "easing": {
         "linear": "Linear",
@@ -5478,7 +5490,35 @@
           "bakeFailed": "3D clip bake failed",
           "loadingModel": "Loading model…",
           "unavailable": "Unavailable",
-          "missingName": "{{name}} (missing)"
+          "missingName": "{{name}} (missing)",
+          "free": "Free",
+          "keyCamera": "Key camera",
+          "keyCameraHelp": "Add a keyframe for every camera channel at the playhead",
+          "cameraMove": "Camera move",
+          "addCameraMove": "Add a camera move",
+          "move": "Move",
+          "moveAmount": "Amount",
+          "moveDuration": "Duration",
+          "moveAmountDegrees": "The amount is an angle.",
+          "moveAmountDistance": "The amount is a share of the distance from the camera to its target.",
+          "moveAmountFactor": "The amount multiplies the focal length.",
+          "moveStartsAt": "The move starts at {{time}}.",
+          "applyMove": "Add move",
+          "freeCameraHelp": "In the preview, hold Alt and drag to orbit, add Shift to truck, scroll to dolly, and add Ctrl while scrolling to change the lens.",
+          "editSet": "Edit set",
+          "editSetHelp": "Open this clip's 3D model in the model editor",
+          "moves": {
+            "pan": "Pan",
+            "tilt": "Tilt",
+            "orbit": "Orbit",
+            "pushIn": "Push in",
+            "truck": "Truck",
+            "crane": "Crane",
+            "pedestal": "Pedestal",
+            "zoom": "Zoom",
+            "dollyZoom": "Dolly zoom",
+            "dutch": "Dutch angle"
+          }
         },
         "reframe": {
           "title": "Smart reframe",
@@ -12722,7 +12762,10 @@
       "speechTextPrompt": "Type text to speak and press Enter…",
       "templates": "Templates",
       "upload3dAsset": "Upload a {{formats}} asset first.",
-      "useOutput": "Use {{name}} output"
+      "useOutput": "Use {{name}} output",
+      "blockoutSet": "Blockout set",
+      "blockoutSetDescription": "Start an empty 3D set and film it with a free camera",
+      "addBlockoutSet": "Add a blockout set clip"
     },
     "preview": {
       "autoQuality": "Auto ({{quality}})",
@@ -16841,7 +16884,8 @@
         "Keyframes & source": "Keyframes & source",
         "Zoom & view": "Zoom & view",
         "Workspaces": "Workspaces",
-        "History": "History"
+        "History": "History",
+        "3D camera (3D clip selected)": "3D camera (3D clip selected)"
       },
       "rows": {
         "selectTool": "Select tool",
@@ -16992,7 +17036,12 @@
         "panelScript": "Go to Script",
         "panelStoryboard": "Go to Storyboard",
         "nextPanel": "Go to the next panel",
-        "prevPanel": "Go to the previous panel"
+        "prevPanel": "Go to the previous panel",
+        "keyCamera": "Key the free 3D camera at the playhead",
+        "camera3dOrbit": "Orbit the camera",
+        "camera3dTruck": "Truck a free camera and its target",
+        "camera3dDolly": "Dolly the camera",
+        "camera3dLens": "Change a free camera's lens"
       }
     },
     "vst": {
@@ -20929,6 +20978,60 @@
       "embedAgain": "Embed again",
       "rebuild": "Rebuild index",
       "providerHint": "To use a provider model, set the provider and model above. Passages sent to that provider: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "Clay",
+        "hint": "Grey shaded shapes with a fixed light, so the model follows the camera and staging and invents every surface"
+      },
+      "depth": {
+        "label": "Depth",
+        "hint": "Distance from the camera only, so the model invents every surface"
+      },
+      "normal": {
+        "label": "Normals",
+        "hint": "Surface direction only, so the model keeps shapes and invents materials"
+      }
+    },
+    "reference": {
+      "label": "Reference",
+      "pass": "Reference pass",
+      "render": "Render reference",
+      "renderAgain": "Render again",
+      "cancel": "Cancel",
+      "cancelProgress": "Cancel ({{done}}/{{total}})",
+      "play": "Play reference",
+      "hide": "Hide reference",
+      "stale": "Reference out of date",
+      "playerLabel": "Blockout reference",
+      "failed": "Reference render failed"
+    },
+    "shot": {
+      "label": "Shot",
+      "pickerLabel": "Shot this blockout stages",
+      "none": "Not linked",
+      "elsewhere": "A shot elsewhere on the timeline",
+      "noCandidates": "No shot clip overlaps this clip. Place it under a shot's clip to link it.",
+      "help": "A take of the linked shot is generated from this clip's reference."
+    },
+    "shotPanel": {
+      "title": "Blockout",
+      "clip": "Blockout clip",
+      "none": "None",
+      "noCandidates": "Place a 3D clip under this shot's clip to use it as a blockout.",
+      "help": "The next take follows the camera and staging of the linked 3D clip.",
+      "camera": "Camera: {{move}}",
+      "selectClip": "Select clip",
+      "selectClipTooltip": "Select the blockout clip on the timeline",
+      "takeStale": "Take made from an older blockout",
+      "rendering": "Rendering the blockout reference",
+      "renderingProgress": "Rendering the blockout reference ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "The blockout's reference video is sent to this model with the prompt. It is rendered first when it is missing or out of date.",
+      "promptOnly": "This model does not take a reference video. The grey render is not sent, and the camera move is added to the prompt as text: {{move}}"
     }
   }
 }

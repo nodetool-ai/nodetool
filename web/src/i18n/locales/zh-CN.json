@@ -2831,7 +2831,11 @@
         "rotation": "旋转",
         "orbit": "环绕",
         "fieldOfView": "视野",
-        "zoom": "变焦"
+        "zoom": "变焦",
+        "cameraPosition": "位置",
+        "cameraTarget": "目标",
+        "cameraLens": "镜头",
+        "cameraRoll": "滚转"
       },
       "inputs": {
         "opacity": "不透明度",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "相机方位角",
         "cameraElevation": "相机仰角",
         "cameraFieldOfView": "相机视野",
-        "cameraZoom": "相机变焦"
+        "cameraZoom": "相机变焦",
+        "cameraPositionX": "摄像机位置 X",
+        "cameraPositionY": "摄像机位置 Y",
+        "cameraPositionZ": "摄像机位置 Z",
+        "cameraTargetX": "摄像机目标 X",
+        "cameraTargetY": "摄像机目标 Y",
+        "cameraTargetZ": "摄像机目标 Z",
+        "cameraLens": "摄像机镜头(毫米)",
+        "cameraRoll": "摄像机滚转(度)"
       },
       "easing": {
         "linear": "线性",
@@ -5478,7 +5490,35 @@
           "bakeFailed": "3D 片段烘焙失败",
           "loadingModel": "正在加载模型…",
           "unavailable": "不可用",
-          "missingName": "{{name}}（缺失）"
+          "missingName": "{{name}}（缺失）",
+          "free": "自由",
+          "keyCamera": "为摄像机打关键帧",
+          "keyCameraHelp": "在播放头处为每个摄像机通道添加关键帧",
+          "cameraMove": "运镜",
+          "addCameraMove": "添加运镜",
+          "move": "运镜",
+          "moveAmount": "数值",
+          "moveDuration": "时长",
+          "moveAmountDegrees": "数值是角度。",
+          "moveAmountDistance": "数值是摄像机到目标距离的比例。",
+          "moveAmountFactor": "数值是焦距的倍数。",
+          "moveStartsAt": "运镜从 {{time}} 开始。",
+          "applyMove": "添加运镜",
+          "freeCameraHelp": "在预览中按住 Alt 拖动可环绕目标,加按 Shift 可横移,滚动可推拉,滚动时加按 Ctrl 可更换镜头。",
+          "editSet": "编辑场景",
+          "editSetHelp": "在模型编辑器中打开此片段的 3D 模型",
+          "moves": {
+            "pan": "摇镜",
+            "tilt": "俯仰",
+            "orbit": "环绕",
+            "pushIn": "推镜",
+            "truck": "横移",
+            "crane": "升降臂",
+            "pedestal": "升降",
+            "zoom": "变焦",
+            "dollyZoom": "滑动变焦",
+            "dutch": "荷兰角"
+          }
         },
         "reframe": {
           "title": "智能重构图",
@@ -12722,7 +12762,10 @@
       "speechTextPrompt": "输入要朗读的文本并按 Enter…",
       "templates": "模板",
       "upload3dAsset": "请先上传 {{formats}} 素材。",
-      "useOutput": "使用 {{name}} 输出"
+      "useOutput": "使用 {{name}} 输出",
+      "blockoutSet": "粗模场景",
+      "blockoutSetDescription": "新建一个空的 3D 场景,并用自由摄像机拍摄",
+      "addBlockoutSet": "添加粗模场景片段"
     },
     "preview": {
       "autoQuality": "自动（{{quality}}）",
@@ -16841,7 +16884,8 @@
         "Keyframes & source": "关键帧和源素材",
         "Zoom & view": "缩放和视图",
         "Workspaces": "工作区",
-        "History": "历史记录"
+        "History": "历史记录",
+        "3D camera (3D clip selected)": "3D 摄像机(已选中 3D 片段)"
       },
       "rows": {
         "selectTool": "选择工具",
@@ -16992,7 +17036,12 @@
         "panelScript": "转到脚本",
         "panelStoryboard": "转到故事板",
         "nextPanel": "转到下一个面板",
-        "prevPanel": "转到上一个面板"
+        "prevPanel": "转到上一个面板",
+        "keyCamera": "在播放头处为自由 3D 摄像机打关键帧",
+        "camera3dOrbit": "环绕摄像机",
+        "camera3dTruck": "横移自由摄像机及其目标",
+        "camera3dDolly": "推拉摄像机",
+        "camera3dLens": "更换自由摄像机的镜头"
       }
     },
     "vst": {
@@ -20929,6 +20978,60 @@
       "embedAgain": "重新嵌入",
       "rebuild": "重建索引",
       "providerHint": "要使用服务商的模型，请在上方设置服务商和模型。发送给该服务商的段落：{{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "黏土",
+        "hint": "固定光照下的灰色着色形体，模型会跟随镜头和调度，并自行生成每个表面"
+      },
+      "depth": {
+        "label": "深度",
+        "hint": "仅包含到相机的距离，模型会自行生成每个表面"
+      },
+      "normal": {
+        "label": "法线",
+        "hint": "仅包含表面朝向，模型会保留形状并自行生成材质"
+      }
+    },
+    "reference": {
+      "label": "参考",
+      "pass": "参考通道",
+      "render": "渲染参考",
+      "renderAgain": "重新渲染",
+      "cancel": "取消",
+      "cancelProgress": "取消 ({{done}}/{{total}})",
+      "play": "播放参考",
+      "hide": "隐藏参考",
+      "stale": "参考已过期",
+      "playerLabel": "Blockout 参考",
+      "failed": "参考渲染失败"
+    },
+    "shot": {
+      "label": "镜头",
+      "pickerLabel": "此 Blockout 所调度的镜头",
+      "none": "未关联",
+      "elsewhere": "时间线上其他位置的镜头",
+      "noCandidates": "没有镜头片段与此片段重叠。将它放在某个镜头的片段下方即可关联。",
+      "help": "关联镜头的镜次会根据此片段的参考生成。"
+    },
+    "shotPanel": {
+      "title": "Blockout",
+      "clip": "Blockout 片段",
+      "none": "无",
+      "noCandidates": "在此镜头的片段下方放置一个 3D 片段，即可将其用作 Blockout。",
+      "help": "下一个镜次会跟随所关联 3D 片段的镜头和调度。",
+      "camera": "镜头运动：{{move}}",
+      "selectClip": "选择片段",
+      "selectClipTooltip": "在时间线上选择 Blockout 片段",
+      "takeStale": "镜次由较早的 Blockout 生成",
+      "rendering": "正在渲染 Blockout 参考",
+      "renderingProgress": "正在渲染 Blockout 参考 ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "Blockout 的参考视频会随提示词一起发送给此模型。如果参考缺失或已过期，会先进行渲染。",
+      "promptOnly": "此模型不接受参考视频。灰色渲染不会发送，镜头运动会以文字形式添加到提示词中：{{move}}"
     }
   }
 }

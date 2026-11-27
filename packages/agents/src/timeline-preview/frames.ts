@@ -76,6 +76,7 @@ import {
   Model3DPrerenderer,
   sessionOptionsFor
 } from "./model3d.js";
+import type { Model3DRenderPass } from "@nodetool-ai/video-nodes/nodes/model3d/render3d-core";
 import { PreviewRasterizer } from "./rasterize.js";
 import type { RenderChild } from "./render-child-client.js";
 
@@ -133,6 +134,13 @@ export interface RenderTimelineFramesOptions {
   width?: number;
   /** Resolve a clip's asset id to its encoded bytes, or null when unavailable. */
   loadAsset: (assetId: string) => Promise<Uint8Array | null>;
+  /**
+   * What every `model3d` layer draws: `beauty` (default), `clay`, `depth` or
+   * `normal`. A pass other than `beauty` draws the live 3D layer even when the
+   * clip has a current bake, and every other layer kind is reported as
+   * `render_pass_not_applied`, because only the 3D renderer has passes.
+   */
+  pass?: Model3DRenderPass;
   /** Draw these clips only, while resolving their layout and animations against the full sequence. */
   onlyClipIds?: readonly string[];
   /**
@@ -197,6 +205,8 @@ export interface PreviewLayerReport {
   matte?: { source_clip_id: string; mode: string; invert: boolean };
   /** The text a text or caption layer drew. */
   text?: string;
+  /** The render pass a `model3d` layer was drawn in, when it is not `beauty`. */
+  pass?: Model3DRenderPass;
   /** The camera a `model3d` layer was drawn with. */
   camera?: PreviewCameraReport;
   /**
@@ -230,7 +240,12 @@ export interface PreviewDegradation {
 export type PreviewDegradationReason =
   | Canvas2DDegradationReason
   /** A 3D layer left out because headless Chromium is missing or would not run. */
-  | "model3d_unavailable";
+  | "model3d_unavailable"
+  /**
+   * A layer that is not a `model3d` layer, drawn as it always is while the
+   * call asked for a clay, depth or normal pass.
+   */
+  | "render_pass_not_applied";
 
 /** A clip that was active at the frame's time and still did not draw. */
 export interface PreviewDroppedLayer {
@@ -381,6 +396,7 @@ export async function renderTimelineFrames(
   const { createCanvas } = await loadCanvas();
   const { ensureGoogleFonts } = await import("@nodetool-ai/timeline/fonts/google-node");
   const { sequence, loadAsset } = options;
+  const pass: Model3DRenderPass = options.pass ?? "beauty";
   assertTimelineColorSpaceSupported(sequence);
   const onlyClipIds = options.onlyClipIds ? new Set(options.onlyClipIds) : undefined;
   const { width, height } = frameSize(sequence, options.width);
@@ -431,12 +447,17 @@ export async function renderTimelineFrames(
     mediaTracks: sequence.mediaTracks,
     camera2d: sequence.camera2d,
     tempo: sequence.tempo,
-    model3dBakeHash: (clip: TimelineClip): string =>
-      computeModel3DBakeHash(clip, {
-        fps: Math.max(1, sequence.fps || 30),
-        width: animationCanvas.width,
-        height: animationCanvas.height
-      })
+    // A bake is a beauty render, so another pass leaves the resolver out and
+    // the scene model draws the live 3D layer.
+    model3dBakeHash:
+      pass === "beauty"
+        ? (clip: TimelineClip): string =>
+            computeModel3DBakeHash(clip, {
+              fps: Math.max(1, sequence.fps || 30),
+              width: animationCanvas.width,
+              height: animationCanvas.height
+            })
+        : undefined
   };
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext(
@@ -555,6 +576,7 @@ export async function renderTimelineFrames(
   const model3d = new Model3DPrerenderer({
     width,
     height,
+    pass,
     loadAsset: bytesFor
   });
   const decodedImages = new Map<string, PreviewSource | null>();
@@ -945,6 +967,17 @@ export async function renderTimelineFrames(
       }
       if (layer.shapeMask) report.mask = { kind: layer.shapeMask.kind };
       reports.push(report);
+      if (pass !== "beauty") {
+        if (layer.kind === "model3d") {
+          report.pass = pass;
+        } else {
+          degradedBeforeDraw.push({
+            clip_id: layer.clipId,
+            clip_name: layer.clip.name,
+            reason: "render_pass_not_applied"
+          });
+        }
+      }
 
       const drawn = await toDrawLayer(layer);
       if (typeof drawn === "string") {

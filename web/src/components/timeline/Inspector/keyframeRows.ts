@@ -21,11 +21,17 @@ import {
   keyframeTimesMs,
   keyframeValueAt,
   keyframeValueForComposed,
+  focalLengthMmToFovDeg,
+  fovDegToFocalLengthMm,
+  model3dCameraPropertiesFor,
+  model3dFreeCameraPose,
   model3dStyleWithPatch,
   removeKeyframes,
   setKeyframes,
   type ClipTransform,
   type KeyframeProperty,
+  type Model3DCameraMode,
+  type Model3DVec3,
   type TimelineClip
 } from "@nodetool-ai/timeline";
 
@@ -38,6 +44,15 @@ export interface KeyframeInputSpec {
   basePatch: (clip: TimelineClip, value: number) => Partial<TimelineClip>;
   /** Stored → displayed (radians → degrees, 0..1 → percent). Default 1. */
   displayScale?: number;
+  /**
+   * A conversion `displayScale` cannot express, such as a lens in millimetres
+   * over a stored field of view. Replaces `displayScale` when present. `min`
+   * and `max` stay in stored units.
+   */
+  display?: {
+    toDisplay: (stored: number) => number;
+    fromDisplay: (displayed: number) => number;
+  };
   decimals: number;
   unit?: string;
   /** Bounds on the composed value, in stored units. */
@@ -248,6 +263,126 @@ export const CAMERA_ZOOM_ROW: KeyframeRowSpec = {
   ]
 };
 
+const freePoseOf = (clip: TimelineClip) => model3dFreeCameraPose(cameraOf(clip));
+
+const AXES = ["X", "Y", "Z"] as const;
+
+/** One input per axis of a free camera point, each on its own curve. */
+function vec3Inputs(
+  field: "position" | "target",
+  properties: readonly [KeyframeProperty, KeyframeProperty, KeyframeProperty],
+  labelPrefix: string
+): KeyframeInputSpec[] {
+  return AXES.map((axis, index) => ({
+    property: properties[index],
+    ariaLabel: `${labelPrefix} ${axis}`,
+    base: (clip) => freePoseOf(clip)[field][index],
+    basePatch: (clip, value) => {
+      const next: Model3DVec3 = [...freePoseOf(clip)[field]];
+      next[index] = value;
+      return {
+        model3dStyle: model3dStyleWithPatch(clip.model3dStyle, {
+          camera: { [field]: next }
+        })
+      };
+    },
+    decimals: 2,
+    scrub: { step: 0.05 }
+  }));
+}
+
+export const CAMERA_POSITION_ROW: KeyframeRowSpec = {
+  id: "cameraPosition",
+  label: "Position",
+  inputs: vec3Inputs(
+    "position",
+    ["cameraPosX", "cameraPosY", "cameraPosZ"],
+    "Camera position"
+  )
+};
+
+export const CAMERA_TARGET_ROW: KeyframeRowSpec = {
+  id: "cameraTarget",
+  label: "Target",
+  inputs: vec3Inputs(
+    "target",
+    ["cameraTargetX", "cameraTargetY", "cameraTargetZ"],
+    "Camera target"
+  )
+};
+
+/**
+ * The free camera's lens. The curve is `cameraFov`, in degrees, and the field
+ * reads it as a focal length on a 24 mm tall sensor.
+ */
+export const CAMERA_LENS_ROW: KeyframeRowSpec = {
+  id: "cameraLens",
+  label: "Lens",
+  inputs: [
+    {
+      property: "cameraFov",
+      ariaLabel: "Camera lens",
+      base: (clip) => cameraOf(clip).fovDeg,
+      basePatch: (clip, fovDeg) => ({
+        model3dStyle: model3dStyleWithPatch(clip.model3dStyle, {
+          camera: { fovDeg }
+        })
+      }),
+      display: {
+        toDisplay: fovDegToFocalLengthMm,
+        fromDisplay: focalLengthMmToFovDeg
+      },
+      decimals: 0,
+      unit: "mm",
+      min: 1,
+      max: 170,
+      scrub: { step: 1, min: 4, max: 600 }
+    }
+  ]
+};
+
+export const CAMERA_ROLL_ROW: KeyframeRowSpec = {
+  id: "cameraRoll",
+  label: "Roll",
+  inputs: [
+    {
+      property: "cameraRoll",
+      ariaLabel: "Camera roll",
+      base: (clip) => freePoseOf(clip).rollDeg,
+      basePatch: (clip, rollDeg) => ({
+        model3dStyle: model3dStyleWithPatch(clip.model3dStyle, {
+          camera: { rollDeg }
+        })
+      }),
+      decimals: 1,
+      unit: "°",
+      scrub: { step: 0.5 }
+    }
+  ]
+};
+
+const CAMERA_ROWS: Record<Model3DCameraMode, readonly KeyframeRowSpec[]> = {
+  orbit: [CAMERA_ORBIT_ROW, CAMERA_FOV_ROW, CAMERA_ZOOM_ROW],
+  free: [
+    CAMERA_POSITION_ROW,
+    CAMERA_TARGET_ROW,
+    CAMERA_LENS_ROW,
+    CAMERA_ROLL_ROW
+  ],
+  scene: []
+};
+
+/**
+ * The camera rows a clip in `mode` shows: the ones whose every curve the mode
+ * reads (`model3dCameraPropertiesFor`).
+ */
+export function cameraRowsFor(mode: Model3DCameraMode): KeyframeRowSpec[] {
+  const read = new Set<KeyframeProperty>(model3dCameraPropertiesFor(mode));
+  return CAMERA_ROWS[mode].filter((row) =>
+    row.inputs.every((input) => read.has(input.property))
+  );
+}
+
 /** The rows whose stopwatch Alt+K presses, keyed by any of their curves. */
 const ROWS_BY_PROPERTY = new Map<KeyframeProperty, KeyframeRowSpec>();
 for (const row of [
@@ -257,7 +392,10 @@ for (const row of [
   ROTATION_ROW,
   CAMERA_ORBIT_ROW,
   CAMERA_FOV_ROW,
-  CAMERA_ZOOM_ROW
+  CAMERA_ZOOM_ROW,
+  CAMERA_POSITION_ROW,
+  CAMERA_TARGET_ROW,
+  CAMERA_ROLL_ROW
 ]) {
   for (const input of row.inputs) ROWS_BY_PROPERTY.set(input.property, row);
 }

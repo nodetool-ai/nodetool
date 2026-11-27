@@ -33,6 +33,7 @@
   "dependencies": {
     "@nodetool-ai/agents": "*",
     "@nodetool-ai/cli-common": "*",
+    "@nodetool-ai/cli-execution": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/execution": "*",
     "@nodetool-ai/models": "*",

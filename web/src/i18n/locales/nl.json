@@ -2831,7 +2831,11 @@
         "rotation": "Rotatie",
         "orbit": "Baan",
         "fieldOfView": "Gezichtsveld",
-        "zoom": "Zoomen"
+        "zoom": "Zoomen",
+        "cameraPosition": "Positie",
+        "cameraTarget": "Doel",
+        "cameraLens": "Lens",
+        "cameraRoll": "Rol"
       },
       "inputs": {
         "opacity": "Dekking",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "Camera-azimut",
         "cameraElevation": "Camera-elevatie",
         "cameraFieldOfView": "Gezichtsveld van de camera",
-        "cameraZoom": "Camerazoom"
+        "cameraZoom": "Camerazoom",
+        "cameraPositionX": "Camerapositie X",
+        "cameraPositionY": "Camerapositie Y",
+        "cameraPositionZ": "Camerapositie Z",
+        "cameraTargetX": "Cameradoel X",
+        "cameraTargetY": "Cameradoel Y",
+        "cameraTargetZ": "Cameradoel Z",
+        "cameraLens": "Cameralens in millimeters",
+        "cameraRoll": "Camerarol in graden"
       },
       "easing": {
         "linear": "Lineair",
@@ -5478,7 +5490,35 @@
           "bakeFailed": "3D-clip bakken is mislukt",
           "loadingModel": "Model laden…",
           "unavailable": "Niet beschikbaar",
-          "missingName": "{{name}} (ontbreekt)"
+          "missingName": "{{name}} (ontbreekt)",
+          "free": "Vrij",
+          "keyCamera": "Camera vastleggen",
+          "keyCameraHelp": "Voeg bij de afspeelkop een keyframe toe voor elk camerakanaal",
+          "cameraMove": "Camerabeweging",
+          "addCameraMove": "Een camerabeweging toevoegen",
+          "move": "Beweging",
+          "moveAmount": "Hoeveelheid",
+          "moveDuration": "Duur",
+          "moveAmountDegrees": "De hoeveelheid is een hoek.",
+          "moveAmountDistance": "De hoeveelheid is een deel van de afstand tussen de camera en het doel.",
+          "moveAmountFactor": "De hoeveelheid vermenigvuldigt de brandpuntsafstand.",
+          "moveStartsAt": "De beweging begint op {{time}}.",
+          "applyMove": "Beweging toevoegen",
+          "freeCameraHelp": "In de voorvertoning: houd Alt ingedrukt en sleep om rond het doel te draaien, voeg Shift toe om zijwaarts te rijden, scrol om dichterbij te rijden en voeg Ctrl toe tijdens het scrollen om de lens te wijzigen.",
+          "editSet": "Set bewerken",
+          "editSetHelp": "Het 3D-model van deze clip openen in de modeleditor",
+          "moves": {
+            "pan": "Pan",
+            "tilt": "Tilt",
+            "orbit": "Cirkelen",
+            "pushIn": "Inrijden",
+            "truck": "Zijwaarts rijden",
+            "crane": "Kraan",
+            "pedestal": "Heffen",
+            "zoom": "Zoom",
+            "dollyZoom": "Dollyzoom",
+            "dutch": "Dutch angle"
+          }
         },
         "reframe": {
           "title": "Slim herkaderen",
@@ -12722,7 +12762,10 @@
       "speechTextPrompt": "Typ de tekst die u wilt uitspreken en druk op Enter…",
       "templates": "Sjablonen",
       "upload3dAsset": "Upload eerst een {{formats}} item.",
-      "useOutput": "Gebruik {{name}}-uitvoer"
+      "useOutput": "Gebruik {{name}}-uitvoer",
+      "blockoutSet": "Blockout-set",
+      "blockoutSetDescription": "Begin een lege 3D-set en film die met een vrije camera",
+      "addBlockoutSet": "Een clip met blockout-set toevoegen"
     },
     "preview": {
       "autoQuality": "Automatisch ({{quality}})",
@@ -16841,7 +16884,8 @@
         "Keyframes & source": "Sleutelframes en bron",
         "Zoom & view": "Zoomen en bekijken",
         "Workspaces": "Werkruimtes",
-        "History": "Geschiedenis"
+        "History": "Geschiedenis",
+        "3D camera (3D clip selected)": "3D-camera (3D-clip geselecteerd)"
       },
       "rows": {
         "selectTool": "Gereedschap selecteren",
@@ -16992,7 +17036,12 @@
         "panelScript": "Naar het script",
         "panelStoryboard": "Naar het storyboard",
         "nextPanel": "Naar het volgende paneel",
-        "prevPanel": "Naar het vorige paneel"
+        "prevPanel": "Naar het vorige paneel",
+        "keyCamera": "De vrije 3D-camera vastleggen bij de afspeelkop",
+        "camera3dOrbit": "De camera rond het doel draaien",
+        "camera3dTruck": "Een vrije camera en het doel zijwaarts verplaatsen",
+        "camera3dDolly": "De camera naar voren of achteren rijden",
+        "camera3dLens": "De lens van een vrije camera wijzigen"
       }
     },
     "vst": {
@@ -20929,6 +20978,60 @@
       "embedAgain": "Opnieuw inbedden",
       "rebuild": "Index opnieuw opbouwen",
       "providerHint": "Stel hierboven de provider en het model in om een providermodel te gebruiken. Passages naar die provider: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "Klei",
+        "hint": "Grijze geschaduwde vormen met vast licht, zodat het model de camera en opstelling volgt en elk oppervlak verzint"
+      },
+      "depth": {
+        "label": "Diepte",
+        "hint": "Alleen de afstand tot de camera, zodat het model elk oppervlak verzint"
+      },
+      "normal": {
+        "label": "Normalen",
+        "hint": "Alleen de richting van oppervlakken, zodat het model vormen behoudt en materialen verzint"
+      }
+    },
+    "reference": {
+      "label": "Referentie",
+      "pass": "Referentiepass",
+      "render": "Referentie renderen",
+      "renderAgain": "Opnieuw renderen",
+      "cancel": "Annuleren",
+      "cancelProgress": "Annuleren ({{done}}/{{total}})",
+      "play": "Referentie afspelen",
+      "hide": "Referentie verbergen",
+      "stale": "Referentie verouderd",
+      "playerLabel": "Blockout-referentie",
+      "failed": "Renderen van de referentie mislukt"
+    },
+    "shot": {
+      "label": "Shot",
+      "pickerLabel": "Shot dat deze blockout opstelt",
+      "none": "Niet gekoppeld",
+      "elsewhere": "Een shot elders op de tijdlijn",
+      "noCandidates": "Geen shotclip overlapt deze clip. Plaats hem onder de clip van een shot om hem te koppelen.",
+      "help": "Een take van het gekoppelde shot wordt gegenereerd uit de referentie van deze clip."
+    },
+    "shotPanel": {
+      "title": "Blockout",
+      "clip": "Blockout-clip",
+      "none": "Geen",
+      "noCandidates": "Plaats een 3D-clip onder de clip van dit shot om hem als blockout te gebruiken.",
+      "help": "De volgende take volgt de camera en opstelling van de gekoppelde 3D-clip.",
+      "camera": "Camera: {{move}}",
+      "selectClip": "Clip selecteren",
+      "selectClipTooltip": "De blockout-clip op de tijdlijn selecteren",
+      "takeStale": "Take gemaakt van een oudere blockout",
+      "rendering": "Blockout-referentie wordt gerenderd",
+      "renderingProgress": "Blockout-referentie wordt gerenderd ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "De referentievideo van de blockout wordt met de prompt naar dit model gestuurd. Hij wordt eerst gerenderd als hij ontbreekt of verouderd is.",
+      "promptOnly": "Dit model accepteert geen referentievideo. De grijze render wordt niet verstuurd, en de camerabeweging wordt als tekst aan de prompt toegevoegd: {{move}}"
     }
   }
 }

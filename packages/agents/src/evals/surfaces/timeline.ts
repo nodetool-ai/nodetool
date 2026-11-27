@@ -685,6 +685,63 @@ export const TIMELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<TimelineBridgeF
       }
     },
     {
+      id: "blockout-free-camera-move",
+      description:
+        "Frame a blockout set with a free camera, key a push in, then look",
+      objective:
+        "The 3D model asset 'asset_kitchen_set_glb' is a blockout set in meters with a figure standing at the origin. Put it on a video track for 4 seconds. Frame the figure from eye height, about 5 meters in front of it, with a 35 mm lens. Then make the camera push in toward the figure over the whole clip, and look at the frame in the middle to check the set is on screen.",
+      createBridge: () => createTimelineToolBridge({ preview: true }),
+      systemPrompt: TIMELINE_SYSTEM_PROMPT,
+      expect: {
+        requiredTools: [
+          "ui_timeline_add_model3d_clip",
+          "ui_timeline_apply_model3d_camera_move",
+          "preview_timeline_frame"
+        ],
+        noErrorResults: true,
+        minToolCalls: 3,
+        maxToolCalls: 14,
+        finalState: [
+          {
+            name: "setClipHasAFreeCameraAtEyeHeight",
+            detail:
+              "no model3d clip holding the set with a free camera between 1.2 m and 2 m high",
+            test: (s) =>
+              s.documentClips.some((clip) => {
+                const camera = clip.model3dStyle?.camera;
+                const height = camera?.position?.[1] ?? 1.6;
+                return (
+                  clip.mediaType === "model3d" &&
+                  clip.currentAssetId === "asset_kitchen_set_glb" &&
+                  camera?.mode === "free" &&
+                  height >= 1.2 &&
+                  height <= 2
+                );
+              })
+          },
+          {
+            name: "cameraPositionIsKeyed",
+            detail: "no keyframe curve moves the free camera's position",
+            test: (s) =>
+              s.documentClips.some((clip) =>
+                (clip.animations ?? []).some((animation) =>
+                  (animation.custom?.curves ?? []).some(
+                    (curve) =>
+                      curve.property.startsWith("cameraPos") &&
+                      curve.keyframes.length >= 2
+                  )
+                )
+              )
+          },
+          {
+            name: "previewReportedTheSet",
+            detail: "no preview reported a model3d layer",
+            test: (s) => s.previewedLayerKinds.includes("model3d")
+          }
+        ]
+      }
+    },
+    {
       id: "trimmed-video-edit-candidate-apply",
       description:
         "Edit a trimmed source into an inactive candidate, inspect it, then apply it",

@@ -1,4 +1,8 @@
 import {
+  DEFAULT_MODEL3D_STYLE,
+  focalLengthMmToFovDeg,
+  fovDegToFocalLengthMm,
+  model3dStyleWithPatch,
   isPropertyKeyframed,
   keyframeTimesMs,
   keyframeValueAt,
@@ -8,6 +12,11 @@ import {
 } from "@nodetool-ai/timeline";
 
 import {
+  CAMERA_LENS_ROW,
+  CAMERA_POSITION_ROW,
+  CAMERA_ROLL_ROW,
+  cameraRowsFor,
+  keyframeRowFor,
   OPACITY_ROW,
   POSITION_ROW,
   SCALE_ROW,
@@ -121,5 +130,73 @@ describe("keyframeRows", () => {
   it("patches the transform as before when nothing is keyed", () => {
     const next = { ...TRANSFORM, position: { x: 1, y: 2 } };
     expect(gizmoTransformPatch(clip(), next, 1000)).toEqual({ transform: next });
+  });
+});
+
+describe("free camera rows", () => {
+  const freeClip = (): TimelineClip =>
+    clip({
+      mediaType: "model3d",
+      model3dStyle: model3dStyleWithPatch(DEFAULT_MODEL3D_STYLE, {
+        camera: { mode: "free", position: [0, 1, 5], target: [0, 1, 0], fovDeg: 40 }
+      })
+    });
+
+  it("offers each camera mode the rows whose curves it reads", () => {
+    expect(cameraRowsFor("orbit").map((row) => row.id)).toEqual([
+      "cameraOrbit",
+      "cameraFov",
+      "cameraZoom"
+    ]);
+    expect(cameraRowsFor("free").map((row) => row.id)).toEqual([
+      "cameraPosition",
+      "cameraTarget",
+      "cameraLens",
+      "cameraRoll"
+    ]);
+    expect(cameraRowsFor("scene")).toEqual([]);
+  });
+
+  it("edits one axis of the authored position and keeps the other two", () => {
+    const c = freeClip();
+    const next = apply(
+      c,
+      commitInputValue(c, CAMERA_POSITION_ROW, CAMERA_POSITION_ROW.inputs[2], 3, 0)
+    );
+    expect(next.model3dStyle?.camera.position).toEqual([0, 1, 3]);
+  });
+
+  it("keys all three axes together and stores offsets from the authored point", () => {
+    let c = freeClip();
+    c = apply(c, toggleRowStopwatch(c, CAMERA_POSITION_ROW, 0));
+    c = apply(
+      c,
+      commitInputValue(c, CAMERA_POSITION_ROW, CAMERA_POSITION_ROW.inputs[2], 3, 1000)
+    );
+    expect(c.model3dStyle?.camera.position).toEqual([0, 1, 5]);
+    expect(keyframeValueAt(c, "cameraPosZ", 1000)).toBe(-2);
+    expect(keyframeTimesMs(c, ["cameraPosX"])).toEqual([0, 1000]);
+    expect(inputValueAt(c, CAMERA_POSITION_ROW.inputs[2], 500)).toBe(4);
+  });
+
+  it("stores the lens as a field of view and shows it in millimetres", () => {
+    const input = CAMERA_LENS_ROW.inputs[0];
+    const c = freeClip();
+    expect(input.display?.toDisplay(inputValueAt(c, input, 0))).toBeCloseTo(
+      fovDegToFocalLengthMm(40),
+      6
+    );
+    const next = apply(
+      c,
+      commitInputValue(c, CAMERA_LENS_ROW, input, input.display!.fromDisplay(50), 0)
+    );
+    expect(next.model3dStyle?.camera.fovDeg).toBeCloseTo(focalLengthMmToFovDeg(50), 6);
+  });
+
+  it("arms the position row for the keyframe shortcut", () => {
+    expect(keyframeRowFor("cameraPosY")).toBe(CAMERA_POSITION_ROW);
+    expect(keyframeRowFor("cameraRoll")).toBe(CAMERA_ROLL_ROW);
+    // The orbit row keeps `cameraFov`, which both lens rows write.
+    expect(keyframeRowFor("cameraFov")?.id).toBe("cameraFov");
   });
 });
