@@ -21,6 +21,7 @@ import type {
 import type { TimelineInteractionStep } from "./interactions.js";
 import { runInteractionSteps } from "@nodetool-ai/cli-common/interaction-script";
 import { writeDebugBundle } from "@nodetool-ai/cli-common/debug-bundle";
+import { isRecord } from "@nodetool-ai/cli-common/predicates";
 import {
   resolveTimelineTarget,
   type ResolvedTimelineTarget,
@@ -142,6 +143,26 @@ export async function runTimelineValidate(
 }
 
 /**
+ * The bundle's `timeline.json`: the document the session ended with (the input
+ * when no step ran), wrapped with the target's name, size, frame rate and
+ * duration so `timeline render` and `timeline debug` read it at the original
+ * settings. Fields the bridge does not report, such as the transcript, carry
+ * over from the input.
+ */
+export function bundleTimeline(
+  resolved: Pick<ResolvedTimelineTarget, "target" | "raw" | "meta">,
+  finalDocument: TimelineDocument | undefined
+): Record<string, unknown> {
+  const input = isRecord(resolved.raw) ? resolved.raw : {};
+  const document = finalDocument ? { ...input, ...finalDocument } : input;
+  const bundle: Record<string, unknown> = { ...resolved.meta, document };
+  if (resolved.target.name !== undefined) {
+    bundle.name = resolved.target.name;
+  }
+  return bundle;
+}
+
+/**
  * Replay `--interact` against the headless bridge and write the bundle.
  *
  * A failing step is recorded and the script continues: a run that stops at the
@@ -224,7 +245,7 @@ export async function runTimelineDebug(
     kind: "timeline",
     ref,
     outDir: options.outDir,
-    raw: resolved.raw,
+    raw: bundleTimeline(resolved, finalDocument),
     report,
     reportMarkdown: core.renderTimelineReportMarkdown(report),
   });

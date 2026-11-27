@@ -343,6 +343,20 @@ describe("runTimelineDebug", () => {
     expect((core.calls.build[0] as { finalState?: unknown }).finalState).toBeUndefined();
   });
 
+  it("writes the edited document to timeline.json, at the target's size and frame rate", async () => {
+    const dir = outDir();
+    const bridge = fakeBridge();
+    await runTimelineDebug(
+      timelineFile(),
+      { outDir: dir, interact: [{ tool: "ui_timeline_add_track", input: { name: "Music" } }] },
+      { loadSequence: async () => null, core: fakeCore(), createBridge: () => bridge }
+    );
+    const written = JSON.parse(readFileSync(join(dir, "timeline.json"), "utf8"));
+    expect(written).toMatchObject({ fps: 24, width: 1280, height: 720 });
+    expect(written.document.tracks.map((t: { name: string }) => t.name)).toEqual(["Video", "Music"]);
+    expect(written.document.clips).toEqual([clip]);
+  });
+
   it("writes the bundle: report.json, report.md and the input document", async () => {
     const dir = outDir();
     const file = timelineFile();
@@ -358,6 +372,7 @@ describe("runTimelineDebug", () => {
     }
     expect(readFileSync(join(dir, "report.md"), "utf8")).toContain("timeline ok");
     const written = JSON.parse(readFileSync(join(dir, "timeline.json"), "utf8"));
-    expect(written.clips).toEqual([clip]);
+    expect(written).toMatchObject({ fps: 24, width: 1280, height: 720 });
+    expect(written.document.clips).toEqual([clip]);
   });
 });

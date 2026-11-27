@@ -196,7 +196,10 @@ the argument, or from stdin when it is omitted or `-`.
 
 The key is read from the local encrypted secret store when `SECRETS_MASTER_KEY`
 is set and the store holds `OPENAI_API_KEY`, otherwise from the environment.
-`OPENAI_BASE_URL` selects another OpenAI-compatible endpoint.
+`OPENAI_BASE_URL` selects another OpenAI-compatible endpoint. The shared
+outbound URL policy requires `https` and a public host, so the CLI refuses
+loopback, private, link-local, `.local` and `.internal` endpoints before it
+sends a request.
 
 ```bash
 nodetool text "Write a haiku about rivers"
@@ -213,6 +216,10 @@ their property and output types, as JSON. `--example` prints a runnable workflow
 nodetool nodes --example > flow.json
 nodetool run flow.json --params '{"topic":"rivers"}'
 ```
+
+`--params` keys are matched to input-node names. A key that matches no input is
+ignored, and `nodetool run` prints a warning on stderr that names it and lists
+the declared inputs. Stdout stays the run's JSON result.
 
 ### `nodetool serve`
 
@@ -1101,8 +1108,11 @@ nodetool timeline debug sequence.json \
   session:  1 step(s), 0 failed
 ```
 
-The bundle holds `report.json`, `report.md`, and `timeline.json` (the input
-document). The command exits `0` only when the verdict is ok.
+The bundle holds `report.json`, `report.md`, and `timeline.json`: the document
+after the last interaction (the input when none ran), wrapped with the target's
+`name`, `width`, `height`, `fps` and `durationMs`, so `nodetool timeline render`
+reads it at the original settings. The command exits `0` only when the verdict
+is ok.
 
 #### `nodetool timeline render <timeline_id_or_file>`
 

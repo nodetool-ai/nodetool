@@ -706,8 +706,9 @@ tool: pass an inline `document` to check a timeline being built, or a
 timeline assistant is told to call it after edits, before the user renders.
 
 The bundle (`nodetool-debug/timeline-<id>-<ts>/`) holds `report.json`,
-`report.md`, and `timeline.json` (the input document). Exit code 0 only when
-the verdict is ok. Validation and report rules live in
+`report.md`, and `timeline.json`: the document after the last interaction,
+wrapped with the target's size, frame rate and duration so `timeline render`
+reads it unchanged. Exit code 0 only when the verdict is ok. Validation and report rules live in
 `@nodetool-ai/execution/timeline-debug`; the CLI keeps target resolution, the
 interaction script, and the bundle.
 
