@@ -8,6 +8,7 @@ import { parse } from "yaml";
 
 import { summarize, discoverRoutinePrs } from "../scripts/agent-preflight.mjs";
 import { tally, toMarkdown } from "../scripts/agent-pr-report.mjs";
+import { rankIssues } from "../scripts/agent-issue-picker.mjs";
 
 const dir = new URL("../workflows/", import.meta.url);
 const read = (file) => parse(readFileSync(new URL(file, dir), "utf8"));
@@ -117,6 +118,36 @@ test("report tallies outcomes and net lines per agent label", () => {
     { label: "agent:perf", opened: 1, merged: 0, closed: 0, open: 1, net: 0 },
   ]);
   assert.match(toMarkdown(rows, 30), /\| dead-code-cleanup \| 2 \| 1 \| 1 \| 0 \| -49 \|/);
+});
+
+const issue = (over) => ({ number: 1, title: "t", body: "", labels: [], assignees: [], comments: [], reactionGroups: [], ...over });
+const now = Date.parse("2026-11-27T12:00:00Z");
+
+test("issue picker drops issues another agent or PR already owns", () => {
+  const issues = [
+    issue({ number: 1, labels: [{ name: "agent:claimed" }], comments: [{ body: "Claimed by x on branch y.", createdAt: "2026-11-27T06:00:00Z" }] }),
+    issue({ number: 2, labels: [{ name: "agent:claimed" }], comments: [{ body: "Claimed by x on branch y.", createdAt: "2026-11-25T06:00:00Z" }] }),
+    issue({ number: 3, assignees: [{ login: "georgi" }] }),
+    issue({ number: 4 }),
+    issue({ number: 5, labels: [{ name: "Planning" }] }),
+    issue({ number: 6, body: "Depends on #4." }),
+    issue({ number: 7, body: "Depends on #99." }),
+  ];
+  const prs = [{ number: 50, title: "fix: x", body: "Closes #4" }];
+  assert.deepEqual(rankIssues(issues, { prs, now, limit: 10 }).map((r) => r.number), [2, 7]);
+});
+
+test("issue picker ranks reproducible bugs first and caps each series", () => {
+  const issues = [
+    issue({ number: 1, title: "Polish the dock" }),
+    issue({ number: 2, title: "Export ignores deleted track", body: "## Reproduction\nrun it" }),
+    issue({ number: 3, title: "[music] A fails", labels: [{ name: "bug" }] }),
+    issue({ number: 4, title: "[music] B fails", labels: [{ name: "bug" }] }),
+    issue({ number: 5, title: "[music] C fails", labels: [{ name: "bug" }] }),
+  ];
+  const ranked = rankIssues(issues, { prs: [], now, limit: 10 });
+  assert.deepEqual(ranked.map((r) => r.number), [2, 3, 4, 1]);
+  assert.deepEqual(ranked[0].reasons, ["bug", "has repro or acceptance criteria"]);
 });
 
 test("jobs that publish or deploy never restore a shared cache", () => {
