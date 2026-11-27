@@ -6476,7 +6476,17 @@
           "script": "Convertir en guion",
           "ask": "Preguntar sobre ellos",
           "askPrompt": "Revisa los archivos adjuntos y sugiere qué podría crear con ellos."
-        }
+        },
+        "entitiesHint": "Personajes, lugares, estilos y objetos que reutilizas para que se vean igual en cada imagen y vídeo.",
+        "goalHints": {
+          "chat": "Haz una pregunta o desarrolla una idea. La respuesta aparece como un chat.",
+          "image": "Describe una imagen. Enviar abre el creador de imágenes con tu texto.",
+          "video": "Describe un clip corto. Enviar abre el creador de vídeos con tu texto.",
+          "audio": "Escribe el texto que quieres oír. Enviar abre el creador de voz para leerlo en voz alta."
+        },
+        "showAllWays": "Mostrar todas las formas de empezar",
+        "showAllWaysHint": "Estudios, habilidades, ejemplos listos, tus proyectos y documentos en blanco",
+        "needHelp": "¿Nuevo en NodeTool? Mira un tutorial o abre un ejemplo que funciona tal cual."
       }
     }
   },

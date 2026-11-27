@@ -6476,7 +6476,17 @@
           "script": "Transformer en script",
           "ask": "Poser une question",
           "askPrompt": "Regarde les fichiers joints et propose ce que je pourrais en faire."
-        }
+        },
+        "entitiesHint": "Personnages, lieux, styles et accessoires que vous réutilisez, pour qu'ils restent identiques dans chaque image et vidéo.",
+        "goalHints": {
+          "chat": "Posez une question ou développez une idée. La réponse s'affiche dans un chat.",
+          "image": "Décrivez une image. Envoyer ouvre le créateur d'images avec votre texte.",
+          "video": "Décrivez un court clip. Envoyer ouvre le créateur de vidéos avec votre texte.",
+          "audio": "Tapez le texte à entendre. Envoyer ouvre le créateur de voix pour le lire à voix haute."
+        },
+        "showAllWays": "Afficher toutes les façons de commencer",
+        "showAllWaysHint": "Studios, compétences, exemples prêts à l'emploi, vos projets et documents vides",
+        "needHelp": "Nouveau sur NodeTool ? Regardez un tutoriel ou ouvrez un exemple qui fonctionne tel quel."
       }
     }
   },

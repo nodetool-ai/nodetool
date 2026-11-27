@@ -109,9 +109,10 @@ jest.mock("../../../hooks/skills/useSkills", () => ({
   }
 }));
 
+let mockNoEntities = false;
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({
-    data: [
+    data: mockNoEntities ? [] : [
       {
         id: "e1",
         kind: "prop",
@@ -665,6 +666,7 @@ beforeEach(() => {
     }
   ];
   useProviderOnboardingStore.setState({ open: false });
+  mockNoEntities = false;
 });
 
 describe("NewProjectSurface", () => {
@@ -1391,6 +1393,46 @@ describe("NewProjectSurface", () => {
     const staged = peekChatTurn("chat-1");
     const text = staged?.[0].type === "text" ? staged[0].text : "";
     expect(text).toMatch(/three ideas for a 30-second video about a fox/);
+  });
+
+  // Study 17: newcomers met about ninety choices on Home and could not name
+  // "Entities · none" (study-17-I4) or tell Studios from examples (I5).
+  // Before a first result, Home keeps the starters, the prompt, the kinds and
+  // the creation cards, and folds the rest behind one button.
+  it("folds the secondary ways to start until the first result", async () => {
+    useOnboardingStore.setState({ firstResult: false });
+    mockNoEntities = true;
+    renderSurface();
+    expect(screen.queryByRole("group", { name: "Start from a skill" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Studios" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("current-project-documents")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Entities · none/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New project" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Workflow$/ })).not.toBeInTheDocument();
+    // Help stays in view: what the picked kind does, and where to learn.
+    expect(
+      screen.getByText("Ask a question or talk through an idea. The answer appears as a chat.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tutorials" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Create image / })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Image" }));
+    expect(
+      screen.getByText("Describe a picture. Send opens the image maker with your words filled in.")
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Show all ways to start" }));
+    expect(screen.getByRole("group", { name: "Start from a skill" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Studios" })).toBeInTheDocument();
+    expect(screen.getByTestId("current-project-documents")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Entities · none/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New project" })).toBeInTheDocument();
+  });
+
+  it("keeps the entities pill on a first run once an entity exists", () => {
+    useOnboardingStore.setState({ firstResult: false });
+    renderSurface();
+    expect(screen.getByRole("button", { name: /^Entities · none/ })).toBeInTheDocument();
   });
 
   it("shows the checklist until onboarding is done", () => {
