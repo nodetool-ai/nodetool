@@ -825,16 +825,20 @@ function requireHexColor(color: string): Vec3 {
 
 /** Write or clear the optional text fields of a figure's extra. */
 function applyFigureLinks(info: FigureInfo, options: FigureOptions): void {
-  for (const key of ["entityId", "label"] as const) {
-    const value = options[key];
-    if (value === undefined) {
-      continue;
-    }
-    const trimmed = value === null ? "" : value.trim();
-    if (trimmed === "") {
-      delete info[key];
+  if (options.entityId !== undefined) {
+    const entityId = options.entityId?.trim() ?? "";
+    if (entityId === "") {
+      delete info.entityId;
     } else {
-      info[key] = trimmed;
+      info.entityId = entityId;
+    }
+  }
+  if (options.label !== undefined) {
+    const label = options.label?.trim() ?? "";
+    if (label === "") {
+      delete info.label;
+    } else {
+      info.label = label;
     }
   }
 }

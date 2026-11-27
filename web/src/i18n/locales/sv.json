@@ -2831,7 +2831,11 @@
         "rotation": "Rotation",
         "orbit": "Bana",
         "fieldOfView": "Synfält",
-        "zoom": "Zooma"
+        "zoom": "Zooma",
+        "cameraPosition": "Position",
+        "cameraTarget": "Mål",
+        "cameraLens": "Objektiv",
+        "cameraRoll": "Rollning"
       },
       "inputs": {
         "opacity": "Opacitet",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "Kameraazimut",
         "cameraElevation": "Kamerahöjd",
         "cameraFieldOfView": "Kamera synfält",
-        "cameraZoom": "Kamerazoom"
+        "cameraZoom": "Kamerazoom",
+        "cameraPositionX": "Kameraposition X",
+        "cameraPositionY": "Kameraposition Y",
+        "cameraPositionZ": "Kameraposition Z",
+        "cameraTargetX": "Kameramål X",
+        "cameraTargetY": "Kameramål Y",
+        "cameraTargetZ": "Kameramål Z",
+        "cameraLens": "Kameraobjektiv i millimeter",
+        "cameraRoll": "Kamerarollning i grader"
       },
       "easing": {
         "linear": "Linjär",
@@ -5478,7 +5490,35 @@
           "bakeFailed": "Bakning av 3D-klipp misslyckades",
           "loadingModel": "Laddar modell...",
           "unavailable": "Ej tillgänglig",
-          "missingName": "{{name}} (saknas)"
+          "missingName": "{{name}} (saknas)",
+          "free": "Fri",
+          "keyCamera": "Sätt kameranyckel",
+          "keyCameraHelp": "Lägg till en nyckelbild för varje kamerakanal vid spelhuvudet",
+          "cameraMove": "Kamerarörelse",
+          "addCameraMove": "Lägg till en kamerarörelse",
+          "move": "Rörelse",
+          "moveAmount": "Mängd",
+          "moveDuration": "Längd",
+          "moveAmountDegrees": "Mängden är en vinkel.",
+          "moveAmountDistance": "Mängden är en andel av avståndet från kameran till målet.",
+          "moveAmountFactor": "Mängden multiplicerar brännvidden.",
+          "moveStartsAt": "Rörelsen börjar vid {{time}}.",
+          "applyMove": "Lägg till rörelse",
+          "freeCameraHelp": "I förhandsvisningen: håll Alt och dra för att kretsa, lägg till Skift för att åka i sidled, rulla för att åka in och lägg till Ctrl när du rullar för att byta objektiv.",
+          "editSet": "Redigera scenografi",
+          "editSetHelp": "Öppna klippets 3D-modell i modellredigeraren",
+          "moves": {
+            "pan": "Panorering",
+            "tilt": "Tiltning",
+            "orbit": "Kretsning",
+            "pushIn": "Inåkning",
+            "truck": "Sidoåkning",
+            "crane": "Kran",
+            "pedestal": "Höjning",
+            "zoom": "Zoom",
+            "dollyZoom": "Dollyzoom",
+            "dutch": "Lutad bild"
+          }
         },
         "reframe": {
           "title": "Smart omramning",
@@ -12722,7 +12762,10 @@
       "speechTextPrompt": "Skriv text för att tala och tryck på Retur...",
       "templates": "Mallar",
       "upload3dAsset": "Ladda upp en {{formats}}-tillgång först.",
-      "useOutput": "Använd {{name}} utgång"
+      "useOutput": "Använd {{name}} utgång",
+      "blockoutSet": "Blockout-scenografi",
+      "blockoutSetDescription": "Börja en tom 3D-scenografi och filma den med en fri kamera",
+      "addBlockoutSet": "Lägg till ett klipp med blockout-scenografi"
     },
     "preview": {
       "autoQuality": "Auto ({{quality}})",
@@ -16841,7 +16884,8 @@
         "Keyframes & source": "Nyckelrutor och källa",
         "Zoom & view": "Zooma och visa",
         "Workspaces": "Arbetsytor",
-        "History": "Historia"
+        "History": "Historia",
+        "3D camera (3D clip selected)": "3D-kamera (3D-klipp valt)"
       },
       "rows": {
         "selectTool": "Välj verktyg",
@@ -16992,7 +17036,12 @@
         "panelScript": "Gå till manuset",
         "panelStoryboard": "Gå till storyboarden",
         "nextPanel": "Gå till nästa panel",
-        "prevPanel": "Gå till föregående panel"
+        "prevPanel": "Gå till föregående panel",
+        "keyCamera": "Sätt nyckel för den fria 3D-kameran vid spelhuvudet",
+        "camera3dOrbit": "Låt kameran kretsa",
+        "camera3dTruck": "Flytta en fri kamera och dess mål i sidled",
+        "camera3dDolly": "Åk in eller ut med kameran",
+        "camera3dLens": "Byt objektiv på en fri kamera"
       }
     },
     "vst": {
@@ -20929,6 +20978,60 @@
       "embedAgain": "Bädda in igen",
       "rebuild": "Bygg om indexet",
       "providerHint": "För att använda en leverantörs modell anger du leverantör och modell ovan. Avsnitt som skickas dit: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "Lera",
+        "hint": "Grå skuggade former med fast ljus, så att modellen följer kameran och uppställningen och hittar på varje yta"
+      },
+      "depth": {
+        "label": "Djup",
+        "hint": "Bara avståndet från kameran, så att modellen hittar på varje yta"
+      },
+      "normal": {
+        "label": "Normaler",
+        "hint": "Bara ytornas riktning, så att modellen behåller formerna och hittar på materialen"
+      }
+    },
+    "reference": {
+      "label": "Referens",
+      "pass": "Referenspass",
+      "render": "Rendera referens",
+      "renderAgain": "Rendera igen",
+      "cancel": "Avbryt",
+      "cancelProgress": "Avbryt ({{done}}/{{total}})",
+      "play": "Spela upp referens",
+      "hide": "Dölj referens",
+      "stale": "Referensen är inaktuell",
+      "playerLabel": "Blockout-referens",
+      "failed": "Renderingen av referensen misslyckades"
+    },
+    "shot": {
+      "label": "Shot",
+      "pickerLabel": "Shot som denna blockout ställer upp",
+      "none": "Inte länkad",
+      "elsewhere": "Ett shot på en annan plats i tidslinjen",
+      "noCandidates": "Inget shot-klipp överlappar det här klippet. Lägg det under klippet för ett shot för att länka det.",
+      "help": "En tagning av det länkade shotet genereras från det här klippets referens."
+    },
+    "shotPanel": {
+      "title": "Blockout",
+      "clip": "Blockout-klipp",
+      "none": "Ingen",
+      "noCandidates": "Lägg ett 3D-klipp under klippet för det här shotet för att använda det som blockout.",
+      "help": "Nästa tagning följer kameran och uppställningen i det länkade 3D-klippet.",
+      "camera": "Kamera: {{move}}",
+      "selectClip": "Markera klipp",
+      "selectClipTooltip": "Markera blockout-klippet i tidslinjen",
+      "takeStale": "Tagningen gjordes från en äldre blockout",
+      "rendering": "Renderar blockout-referensen",
+      "renderingProgress": "Renderar blockout-referensen ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "Blockoutens referensvideo skickas till den här modellen tillsammans med prompten. Den renderas först om den saknas eller är inaktuell.",
+      "promptOnly": "Den här modellen tar inte emot en referensvideo. Den grå renderingen skickas inte, och kamerarörelsen läggs till i prompten som text: {{move}}"
     }
   }
 }

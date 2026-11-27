@@ -1141,6 +1141,25 @@ machine, install a Vulkan ICD such as lavapipe
 ([headless WebGPU setup](dev-environment.md#webgpu-on-a-headless-machine)).
 The first frame compiles the GPU pipelines, so progress starts after a delay.
 
+#### `nodetool timeline reference <timeline_id> <clip>`
+
+Render the Blockout reference of a 3D clip: a grey video of the clip's span
+that a video model follows. The command takes a `timeline_sequences` row id and
+the clip's id or name. It runs the `render_model3d_reference` op against the
+local database, stores the video as an asset and records it on the clip. A
+reference that still matches the clip is reused. It needs a local Chrome, as
+`preview_timeline_frame` does for 3D clips.
+
+| Flag | Purpose |
+|---|---|
+| `--pass <pass>` | `clay`, `depth` or `normal`. Default `clay`. |
+| `--out <path>` | Also write the MP4 to this file. |
+| `--json` | Print the stored reference as JSON. |
+
+```bash
+nodetool timeline reference <timeline_id> Set --pass depth --out reference.mp4
+```
+
 #### `nodetool timeline score <timeline_id_or_file>`
 
 Score a timeline document's craft against the shipped showcase examples

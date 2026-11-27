@@ -13,6 +13,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CLIP_RESOLUTION, shotRenderMode } from "@nodetool-ai/protocol";
 import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
+import { modelTakesReferenceVideo } from "@nodetool-ai/timeline";
 
 import {
   AlertBanner,
@@ -57,8 +58,24 @@ import {
   isComfyWorkflowModel
 } from "../../lib/storyboard/comfyWorkflowModel";
 import { useOpenComfyWorkflow } from "../../hooks/storyboard/useOpenComfyWorkflow";
+import type { ClipBlockoutSource } from "../../lib/storyboard/blockoutRequest";
 
 export type ShotRenderStep = "still" | "clip";
+
+/**
+ * The Blockout clip linked to the shot on a timeline. A clip render sends its
+ * reference video to a model that takes one, and its camera move as prompt
+ * text to a model that does not.
+ */
+export interface ShotRenderBlockout {
+  /** The clip's camera move as a sentence, shown before the render starts. */
+  cameraMove: string;
+  /**
+   * Resolve what the render sends. Renders the reference first when the model
+   * takes one and the stored reference is missing or stale.
+   */
+  prepare: (takesReferenceVideo: boolean) => Promise<ClipBlockoutSource>;
+}
 
 interface ShotRenderDialogProps {
   boardId: string;
@@ -66,6 +83,8 @@ interface ShotRenderDialogProps {
   /** Which render the dialog starts. The card mounts it only while open. */
   step: ShotRenderStep;
   onClose: () => void;
+  /** Set by a timeline whose shot has a linked Blockout clip. */
+  blockout?: ShotRenderBlockout;
 }
 
 const rememberedRef = (
@@ -119,7 +138,8 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
   boardId,
   shot,
   step,
-  onClose
+  onClose,
+  blockout
 }) => {
   const { t, i18n } = useTranslation();
   const { generateKeyframe, generateClip } = useGenerateShot();
@@ -221,6 +241,19 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
     ? pickedResolution
     : (resolutionOptions[0]?.value ?? CLIP_RESOLUTION);
 
+  // Decided from the tasks the catalog reports for the model, never its name.
+  const takesReferenceVideo = useMemo(
+    () =>
+      modelTakesReferenceVideo(
+        videoModels.find(
+          (model) =>
+            model.id === clipSelection?.id &&
+            model.provider === clipSelection?.provider
+        )?.supported_tasks
+      ),
+    [videoModels, clipSelection?.id, clipSelection?.provider]
+  );
+
   const shots = useMemo(() => [shot], [shot]);
   const modelForShot = useCallback(() => selection, [selection]);
   const estimate = useRenderBatchCostEstimate(
@@ -240,9 +273,19 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
       setClipResolution(resolution);
     }
     const render =
-      step === "clip"
-        ? generateClip(boardId, shot, selection, undefined, { resolution })
-        : generateKeyframe(boardId, shot, selection);
+      step !== "clip"
+        ? generateKeyframe(boardId, shot, selection)
+        : blockout
+          ? // A failed reference render is reported on the Blockout rows.
+            blockout
+              .prepare(takesReferenceVideo)
+              .then((source) =>
+                generateClip(boardId, shot, selection, undefined, {
+                  resolution,
+                  blockout: source
+                })
+              )
+          : generateClip(boardId, shot, selection, undefined, { resolution });
     void render.catch(() => undefined);
     onClose();
   }, [
@@ -254,7 +297,9 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
     shot,
     resolution,
     setClipResolution,
-    onClose
+    onClose,
+    blockout,
+    takesReferenceVideo
   ]);
 
   const isClip = step === "clip";
@@ -310,6 +355,18 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
                 modelId={clipSelection.id}
                 onOpened={onClose}
               />
+            )}
+            {blockout && clipSelection && (
+              <AlertBanner
+                severity={takesReferenceVideo ? "info" : "warning"}
+                data-testid="shot-render-blockout-note"
+              >
+                {takesReferenceVideo
+                  ? t("blockout3d.render.withReference")
+                  : t("blockout3d.render.promptOnly", {
+                      move: blockout.cameraMove
+                    })}
+              </AlertBanner>
             )}
             <SelectField
               label={t("i18n-cont-storyboard-04.storyboard.shotRender.resolution")}

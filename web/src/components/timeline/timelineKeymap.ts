@@ -93,6 +93,7 @@ export type TimelineAction =
   | "addKeyframe"
   | "nextKeyframe"
   | "prevKeyframe"
+  | "keyCamera"
   | "sourceAppend"
   | "sourceInsert"
   | "sourceOverwrite"
@@ -208,6 +209,10 @@ const COMMON: Partial<Keymap> = {
   addKeyframe: [k("k", { alt: true })],
   nextKeyframe: [k("k", { alt: true, shift: true })],
   prevKeyframe: [k("k", { ctrl: true, alt: true, shift: true })],
+  // Keys every channel of a 3D clip's free camera. Alt+C is free in every
+  // preset; Option+C types "ç" on macOS, so the binding matches the physical
+  // key.
+  keyCamera: [k("c", { alt: true })],
   // Video or DAW layout. Alt+M is free in every preset; Option+M types "µ"
   // on macOS, so the binding matches the physical key.
   toggleDawMode: [k("m", { alt: true })],

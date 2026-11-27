@@ -7,6 +7,8 @@
  * - Default tab: "Templates" — workflows tagged `"timeline-template"`.
  * - Expander: "All workflows" — all standalone workflows (run_mode IN ("workflow", null)).
  * - "3D model" — the glTF assets in the library, placed as a `model3d` clip.
+ * - "Blockout set" — a new empty set asset (a ground plane), placed as a
+ *   `model3d` clip on a free camera. See `model3dSet.ts`.
  *
  * When the user picks a workflow:
  *  1. If it has multiple terminal output nodes, a second step asks which one to use.
@@ -21,6 +23,7 @@ import type { Theme } from "@mui/material/styles";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 
 import ErrorBanner from "../support/ErrorBanner";
 import {
@@ -41,6 +44,8 @@ import { trpc } from "../../trpc/client";
 import { trpcClient } from "../../trpc/client";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { useAssetStore } from "../../stores/AssetStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
@@ -54,6 +59,7 @@ import type {
 } from "../../stores/ApiTypes";
 import { clipFitsTrack, makeClip } from "@nodetool-ai/timeline";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
+import { blockoutSetClip, blockoutSetFile } from "./model3dSet";
 
 /**
  * An adjustment layer draws nothing of its own — like an authored text or
@@ -453,6 +459,8 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
     const addClip = useTimelineStore((s) => s.addClip);
     const selectClip = useTimelineUIStore((s) => s.selectClip);
+    const createAsset = useAssetStore((s) => s.createAsset);
+    const activeProjectId = useWorkspaceTabsStore((s) => s.activeProjectId);
     const directGen = useTimelineDirectGenJob();
 
     // ── Data fetching ──────────────────────────────────────────────────────
@@ -589,6 +597,45 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       },
       [addImportedClip, trackId, startMs, selectClip, onClose]
     );
+
+    // A new set is an asset first, so the clip has a model to draw and the
+    // model editor has a file to open. The clip lands in one `addClip`, which
+    // is one undo entry.
+    const handleAddBlockoutSet = useCallback(async () => {
+      setIsAdding(true);
+      setError(null);
+      try {
+        const asset = await createAsset(
+          blockoutSetFile(t("i18n-next6.addClip.blockoutSet")),
+          undefined,
+          undefined,
+          undefined,
+          "file",
+          activeProjectId ?? undefined
+        );
+        const clip = blockoutSetClip(asset, trackId, startMs);
+        addClip(clip);
+        selectClip(clip.id);
+        onClose();
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : t("i18n-next6.addClip.failedToAddClip")
+        );
+      } finally {
+        setIsAdding(false);
+      }
+    }, [
+      activeProjectId,
+      addClip,
+      createAsset,
+      onClose,
+      selectClip,
+      startMs,
+      t,
+      trackId
+    ]);
 
     const handleTabChange = useCallback((tab: string) => {
       setActiveTab(tab as "templates" | "all");
@@ -797,6 +844,41 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                         </Text>
                         <Caption sx={{ color: "text.secondary" }}>
                           {t("i18n-next6.addClip.place3dAsset")}
+                        </Caption>
+                      </FlexColumn>
+                    </FlexRow>
+                  )}
+
+                  {/* Blockout set: a new empty 3D set, filmed by a free camera */}
+                  {canAddModel3D && (
+                    <FlexRow
+                      align="center"
+                      gap={1}
+                      css={workflowItemStyles(theme)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={t("i18n-next6.addClip.addBlockoutSet")}
+                      aria-disabled={isAdding}
+                      data-testid="add-clip-blockout-set"
+                      onClick={() => {
+                        if (!isAdding) {
+                          void handleAddBlockoutSet();
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if ((e.key === "Enter" || e.key === " ") && !isAdding) {
+                          e.preventDefault();
+                          void handleAddBlockoutSet();
+                        }
+                      }}
+                    >
+                      <CategoryOutlinedIcon fontSize="small" />
+                      <FlexColumn gap={0}>
+                        <Text size="small" weight={500}>
+                          {t("i18n-next6.addClip.blockoutSet")}
+                        </Text>
+                        <Caption sx={{ color: "text.secondary" }}>
+                          {t("i18n-next6.addClip.blockoutSetDescription")}
                         </Caption>
                       </FlexColumn>
                     </FlexRow>

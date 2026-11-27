@@ -64,6 +64,7 @@ export const storyboardRenderProvenance = productionTakeMetadata.extend({
     render_mode: z.enum(["keyframe", "direct", "reference"]).optional(),
     camera_preset_ids: z.array(z.string()).max(3).optional(),
     look_preset_ids: z.array(z.string()).max(3).optional(),
+    blockout_reference_hash: z.string().optional(),
     recorded_at: z.string()
   })
 });
@@ -107,6 +108,12 @@ export interface BoardRenderContext {
   entity_conditioning_hash?: string;
   /** Resolved creative-context binding ids consumed by clip production. */
   production_reference_asset_ids?: readonly string[];
+  /**
+   * The dependency hash of the blockout a clip render is generated from. Set
+   * by a timeline that renders a shot with a linked blockout clip. Recorded on
+   * the take, never compared by {@link isVersionStale}.
+   */
+  blockout_reference_hash?: string;
 }
 
 /** Hash the entity fields sent to still generation, in their request order. */
@@ -246,7 +253,27 @@ export function currentRenderInputs(
   if (kind === "keyframe" && board.entity_conditioning_hash !== undefined) {
     draft.entity_conditioning_hash = board.entity_conditioning_hash;
   }
+  if (kind === "clip" && board.blockout_reference_hash !== undefined) {
+    draft.blockout_reference_hash = board.blockout_reference_hash;
+  }
   return draft;
+}
+
+/**
+ * Whether a clip take was generated from a blockout that has changed since.
+ *
+ * `currentHash` is the dependency hash the shot's blockout clip has now
+ * (`computeModel3DReferenceHash` in `@nodetool-ai/timeline`), or undefined
+ * when the shot has no blockout. A take that records no blockout hash was not
+ * generated from one and is never out of date against it.
+ */
+export function isBlockoutTakeStale(
+  version: ClipVersion | null | undefined,
+  currentHash: string | undefined
+): boolean {
+  const recorded = version?.render_inputs?.blockout_reference_hash;
+  if (recorded === undefined || currentHash === undefined) return false;
+  return recorded !== currentHash;
 }
 
 /** Stamp a draft for storage on the version once its asset lands. */

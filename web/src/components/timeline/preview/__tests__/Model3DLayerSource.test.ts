@@ -41,6 +41,7 @@ function fakeSession(name: string): FakeSession {
   return {
     animations: ["Idle"],
     cameras: [],
+    bounds: { center: [0, 0, 0], radius: 1 },
     render: jest.fn(() => canvas),
     dispose: jest.fn(),
     name
@@ -310,6 +311,25 @@ describe("Model3DLayerSource", () => {
 
     source.dispose();
     expect(sessions[1].dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("fetches the model again once its asset is invalidated", async () => {
+    const fetchModel = jest.fn(async () => new Uint8Array([1, 2, 3]));
+    const { source, sessions, createSession } = makeSource({ fetchModel });
+    source.acquire(layer("clip-a", { assetId: "set" }));
+    source.acquire(layer("clip-b", { assetId: "other" }));
+    await settle();
+    expect(fetchModel).toHaveBeenCalledTimes(2);
+
+    source.invalidateAsset("set");
+    expect(sessions[0].dispose).toHaveBeenCalledTimes(1);
+    expect(sessions[1].dispose).not.toHaveBeenCalled();
+    expect(source.state("clip-a")).toBeUndefined();
+
+    source.acquire(layer("clip-a", { assetId: "set" }));
+    await settle();
+    expect(fetchModel).toHaveBeenCalledTimes(3);
+    expect(createSession).toHaveBeenCalledTimes(3);
   });
 
   it("serves again after dispose then revive, as StrictMode remounts it", async () => {

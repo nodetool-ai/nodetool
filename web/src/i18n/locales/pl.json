@@ -2889,7 +2889,11 @@
         "rotation": "Obrót",
         "orbit": "Orbita",
         "fieldOfView": "Pole widzenia",
-        "zoom": "Powiększ"
+        "zoom": "Powiększ",
+        "cameraPosition": "Pozycja",
+        "cameraTarget": "Cel",
+        "cameraLens": "Obiektyw",
+        "cameraRoll": "Przechył"
       },
       "inputs": {
         "opacity": "Nieprzezroczystość",
@@ -2901,7 +2905,15 @@
         "cameraAzimuth": "Azymut kamery",
         "cameraElevation": "Wysokość kamery",
         "cameraFieldOfView": "Pole widzenia kamery",
-        "cameraZoom": "Zoom aparatu"
+        "cameraZoom": "Zoom aparatu",
+        "cameraPositionX": "Pozycja kamery X",
+        "cameraPositionY": "Pozycja kamery Y",
+        "cameraPositionZ": "Pozycja kamery Z",
+        "cameraTargetX": "Cel kamery X",
+        "cameraTargetY": "Cel kamery Y",
+        "cameraTargetZ": "Cel kamery Z",
+        "cameraLens": "Obiektyw kamery w milimetrach",
+        "cameraRoll": "Przechył kamery w stopniach"
       },
       "easing": {
         "linear": "Liniowy",
@@ -5632,7 +5644,35 @@
           "bakeFailed": "Pieczenie klipu 3D nie powiodło się",
           "loadingModel": "Ładowanie modelu…",
           "unavailable": "Niedostępne",
-          "missingName": "{{name}} (brak)"
+          "missingName": "{{name}} (brak)",
+          "free": "Swobodna",
+          "keyCamera": "Kluczuj kamerę",
+          "keyCameraHelp": "Dodaje klatkę kluczową dla każdego kanału kamery w miejscu głowicy",
+          "cameraMove": "Ruch kamery",
+          "addCameraMove": "Dodaj ruch kamery",
+          "move": "Ruch",
+          "moveAmount": "Wartość",
+          "moveDuration": "Czas trwania",
+          "moveAmountDegrees": "Wartość jest kątem.",
+          "moveAmountDistance": "Wartość jest częścią odległości od kamery do jej celu.",
+          "moveAmountFactor": "Wartość mnoży ogniskową.",
+          "moveStartsAt": "Ruch zaczyna się w {{time}}.",
+          "applyMove": "Dodaj ruch",
+          "freeCameraHelp": "W podglądzie przytrzymaj Alt i przeciągnij, aby okrążać cel, dodaj Shift, aby przesuwać w bok, przewijaj, aby najeżdżać, i dodaj Ctrl podczas przewijania, aby zmienić obiektyw.",
+          "editSet": "Edytuj scenografię",
+          "editSetHelp": "Otwórz model 3D tego klipu w edytorze modeli",
+          "moves": {
+            "pan": "Panorama",
+            "tilt": "Pochylenie",
+            "orbit": "Okrążenie",
+            "pushIn": "Najazd",
+            "truck": "Jazda w bok",
+            "crane": "Kran",
+            "pedestal": "Podniesienie",
+            "zoom": "Zoom",
+            "dollyZoom": "Dolly zoom",
+            "dutch": "Kadr holenderski"
+          }
         },
         "reframe": {
           "title": "Inteligentne przeramowanie",
@@ -13118,7 +13158,10 @@
       "speechTextPrompt": "Wpisz tekst, który chcesz wypowiedzieć, i naciśnij Enter…",
       "templates": "Szablony",
       "upload3dAsset": "Najpierw prześlij zasób {{formats}}.",
-      "useOutput": "Użyj wyjścia {{name}}"
+      "useOutput": "Użyj wyjścia {{name}}",
+      "blockoutSet": "Scenografia blockout",
+      "blockoutSetDescription": "Zacznij pustą scenografię 3D i sfilmuj ją swobodną kamerą",
+      "addBlockoutSet": "Dodaj klip ze scenografią blockout"
     },
     "preview": {
       "autoQuality": "Automatyczny ({{quality}})",
@@ -17427,7 +17470,8 @@
         "Keyframes & source": "Klatki kluczowe i źródło",
         "Zoom & view": "Powiększ i wyświetl",
         "Workspaces": "Obszary robocze",
-        "History": "Historia"
+        "History": "Historia",
+        "3D camera (3D clip selected)": "Kamera 3D (wybrany klip 3D)"
       },
       "rows": {
         "selectTool": "Wybierz narzędzie",
@@ -17578,7 +17622,12 @@
         "panelScript": "Przejdź do Scenariusza",
         "panelStoryboard": "Przejdź do Storyboardu",
         "nextPanel": "Przejdź do następnego panelu",
-        "prevPanel": "Przejdź do poprzedniego panelu"
+        "prevPanel": "Przejdź do poprzedniego panelu",
+        "keyCamera": "Kluczuj swobodną kamerę 3D w miejscu głowicy",
+        "camera3dOrbit": "Okrążaj kamerą cel",
+        "camera3dTruck": "Przesuń swobodną kamerę i jej cel w bok",
+        "camera3dDolly": "Najedź lub odjedź kamerą",
+        "camera3dLens": "Zmień obiektyw swobodnej kamery"
       }
     },
     "vst": {
@@ -21567,6 +21616,60 @@
       "embedAgain": "Osadź ponownie",
       "rebuild": "Przebuduj indeks",
       "providerHint": "Aby użyć modelu dostawcy, ustaw powyżej dostawcę i model. Fragmenty wysłane do tego dostawcy: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "Glina",
+        "hint": "Szare, cieniowane kształty przy stałym świetle, aby model podążał za kamerą i ustawieniem sceny oraz wymyślił każdą powierzchnię"
+      },
+      "depth": {
+        "label": "Głębia",
+        "hint": "Tylko odległość od kamery, aby model wymyślił każdą powierzchnię"
+      },
+      "normal": {
+        "label": "Normalne",
+        "hint": "Tylko kierunek powierzchni, aby model zachował kształty i wymyślił materiały"
+      }
+    },
+    "reference": {
+      "label": "Referencja",
+      "pass": "Przebieg referencji",
+      "render": "Renderuj referencję",
+      "renderAgain": "Renderuj ponownie",
+      "cancel": "Anuluj",
+      "cancelProgress": "Anuluj ({{done}}/{{total}})",
+      "play": "Odtwórz referencję",
+      "hide": "Ukryj referencję",
+      "stale": "Referencja nieaktualna",
+      "playerLabel": "Referencja blockoutu",
+      "failed": "Renderowanie referencji nie powiodło się"
+    },
+    "shot": {
+      "label": "Ujęcie",
+      "pickerLabel": "Ujęcie ustawiane przez ten blockout",
+      "none": "Niepołączony",
+      "elsewhere": "Ujęcie w innym miejscu osi czasu",
+      "noCandidates": "Żaden klip ujęcia nie nakłada się na ten klip. Umieść go pod klipem ujęcia, aby go połączyć.",
+      "help": "Dubel połączonego ujęcia jest generowany z referencji tego klipu."
+    },
+    "shotPanel": {
+      "title": "Blockout",
+      "clip": "Klip blockoutu",
+      "none": "Brak",
+      "noCandidates": "Umieść klip 3D pod klipem tego ujęcia, aby użyć go jako blockoutu.",
+      "help": "Następny dubel podąża za kamerą i ustawieniem sceny połączonego klipu 3D.",
+      "camera": "Kamera: {{move}}",
+      "selectClip": "Zaznacz klip",
+      "selectClipTooltip": "Zaznacz klip blockoutu na osi czasu",
+      "takeStale": "Dubel utworzony ze starszego blockoutu",
+      "rendering": "Renderowanie referencji blockoutu",
+      "renderingProgress": "Renderowanie referencji blockoutu ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "Wideo referencyjne blockoutu jest wysyłane do tego modelu razem z promptem. Jeśli go brakuje lub jest nieaktualne, zostanie najpierw wyrenderowane.",
+      "promptOnly": "Ten model nie przyjmuje wideo referencyjnego. Szary render nie jest wysyłany, a ruch kamery jest dodawany do promptu jako tekst: {{move}}"
     }
   }
 }

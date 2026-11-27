@@ -411,6 +411,14 @@ export interface RenderInputs {
   /** Ordered camera preset selection used for this clip. */
   camera_preset_ids?: string[];
   look_preset_ids?: string[];
+  /**
+   * The dependency hash of the timeline blockout this clip was generated
+   * from: `model3dStyle.reference.dependencyHash` of the shot's blockout clip
+   * at enqueue time. Absent when no blockout was linked. A storyboard has no
+   * timeline to compare against, so `isVersionStale` does not read it. The
+   * timeline compares it through `isBlockoutTakeStale`.
+   */
+  blockout_reference_hash?: string;
   recorded_at: string;
 }
 

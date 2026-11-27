@@ -43,6 +43,140 @@ export function clipsFollowingShot(
 }
 
 /**
+ * The blockout of a shot: the `model3d` clip stamped with the shot's board and
+ * shot ids. Its grey render is the reference video a take of the shot is
+ * generated from. {@link clipsFollowingShot} leaves it out, so selecting a
+ * take never replaces the set with footage. The earliest clip wins when
+ * several carry the same shot.
+ */
+export function blockoutClipForShot(
+  clips: readonly TimelineClip[],
+  boardId: string,
+  shotId: string
+): TimelineClip | undefined {
+  let found: TimelineClip | undefined;
+  for (const clip of clips) {
+    if (
+      clip.mediaType === "model3d" &&
+      clip.storyboardBoardId === boardId &&
+      clip.storyboardShotId === shotId &&
+      (!found || clip.startMs < found.startMs)
+    ) {
+      found = clip;
+    }
+  }
+  return found;
+}
+
+/**
+ * The `model3d` clips a shot's clip can take as its blockout: the ones that
+ * share any stretch of time with it, earliest first. A clip already linked to
+ * another shot is left out.
+ */
+export function blockoutCandidatesForClip(
+  clips: readonly TimelineClip[],
+  shotClip: Pick<
+    TimelineClip,
+    "startMs" | "durationMs" | "storyboardBoardId" | "storyboardShotId"
+  >
+): TimelineClip[] {
+  const start = shotClip.startMs;
+  const end = shotClip.startMs + shotClip.durationMs;
+  return clips
+    .filter((clip) => {
+      if (clip.mediaType !== "model3d") return false;
+      if (clip.startMs >= end || clip.startMs + clip.durationMs <= start) {
+        return false;
+      }
+      const linkedElsewhere =
+        !!clip.storyboardShotId &&
+        (clip.storyboardBoardId !== shotClip.storyboardBoardId ||
+          clip.storyboardShotId !== shotClip.storyboardShotId);
+      return !linkedElsewhere;
+    })
+    .sort((a, b) => a.startMs - b.startMs);
+}
+
+/**
+ * The shot clips a `model3d` clip can become the blockout of: the video clips
+ * that play a shot's take and share any stretch of time with it, earliest
+ * first, one per shot.
+ */
+export function shotClipCandidatesForBlockout(
+  clips: readonly TimelineClip[],
+  blockoutClip: Pick<TimelineClip, "startMs" | "durationMs">
+): TimelineClip[] {
+  const start = blockoutClip.startMs;
+  const end = blockoutClip.startMs + blockoutClip.durationMs;
+  const seen = new Set<string>();
+  return clips
+    .filter(
+      (clip) =>
+        clip.mediaType === "video" &&
+        !!clip.storyboardBoardId &&
+        !!clip.storyboardShotId &&
+        !clip.scriptLineId &&
+        clip.startMs < end &&
+        clip.startMs + clip.durationMs > start
+    )
+    .sort((a, b) => a.startMs - b.startMs)
+    .filter((clip) => {
+      const key = `${clip.storyboardBoardId} ${clip.storyboardShotId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+/** One clip's change in a blockout link edit. */
+export interface BlockoutLinkPatch {
+  clipId: string;
+  patch: Pick<TimelineClip, "storyboardBoardId" | "storyboardShotId">;
+}
+
+/**
+ * The clip patches that make `blockoutClipId` the one blockout of a shot, or
+ * that unlink it when `shot` is null. A shot has one blockout, so any other
+ * `model3d` clip stamped with the same shot is unlinked in the same edit.
+ * Returns nothing when the clip is missing or is not a `model3d` clip.
+ */
+export function blockoutLinkPatches(
+  clips: readonly TimelineClip[],
+  blockoutClipId: string,
+  shot: { boardId: string; shotId: string } | null
+): BlockoutLinkPatch[] {
+  const target = clips.find((clip) => clip.id === blockoutClipId);
+  if (!target || target.mediaType !== "model3d") return [];
+  const unlink = { storyboardBoardId: undefined, storyboardShotId: undefined };
+  if (!shot) {
+    return target.storyboardShotId || target.storyboardBoardId
+      ? [{ clipId: target.id, patch: unlink }]
+      : [];
+  }
+  const patches: BlockoutLinkPatch[] = [];
+  for (const clip of clips) {
+    if (
+      clip.id !== target.id &&
+      clip.mediaType === "model3d" &&
+      clip.storyboardBoardId === shot.boardId &&
+      clip.storyboardShotId === shot.shotId
+    ) {
+      patches.push({ clipId: clip.id, patch: unlink });
+    }
+  }
+  if (
+    target.storyboardBoardId !== shot.boardId ||
+    target.storyboardShotId !== shot.shotId
+  ) {
+    patches.push({
+      clipId: target.id,
+      patch: { storyboardBoardId: shot.boardId, storyboardShotId: shot.shotId }
+    });
+  }
+  return patches;
+}
+
+/**
  * Put a shot's newly selected take on a clip that follows the shot.
  *
  * The clip keeps its place and length. Its source window stays where it was

@@ -488,9 +488,12 @@ export const editTimelineSpec: CapabilitySpec = {
   name: "edit_timeline",
   description:
     "Edit a saved timeline sequence headlessly: add tracks, add text, " +
-    "shape and 3D-model clips, split, trim, move, duplicate and delete " +
+    "shape and 3D-model clips (add_model3d_clip), split, trim, move, duplicate and delete " +
     "clips, set a 3D clip's camera, animation and lighting with " +
-    "set_model3d_style, set clip " +
+    "set_model3d_style (a free camera takes position, target, roll and a " +
+    "lens in mm, and keyAtMs keys it), key a camera move preset with " +
+    "apply_model3d_camera_move, render a 3D clip's grey reference video " +
+    "with render_model3d_reference, set clip " +
     "params and workflow bindings, group clips under a shared transform, " +
     "set transitions, masks, mattes and effect chains, and animate clips " +
     "with presets or keyframed custom curves. It also drives the guided video " +
@@ -638,6 +641,15 @@ export const MAX_PREVIEW_BLUR_SAMPLES = 32;
 /** The film convention: the shutter is open for half of each frame. */
 export const DEFAULT_PREVIEW_SHUTTER_ANGLE = 180;
 
+/**
+ * The passes a preview draws 3D clips in. The renderer's own list is
+ * `MODEL3D_RENDER_PASSES` in `@nodetool-ai/video-nodes`, which this eager spec
+ * table does not import. `tests/timeline-model3d-frames.test.ts` holds the two
+ * equal.
+ */
+export const PREVIEW_PASSES = ["beauty", "clay", "depth", "normal"] as const;
+export type PreviewPass = (typeof PREVIEW_PASSES)[number];
+
 export const PREVIEW_TIMELINE_FRAME_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -695,6 +707,18 @@ export const PREVIEW_TIMELINE_FRAME_SCHEMA: JsonSchema = {
         `Frame width in pixels; the height follows the sequence aspect. ` +
         `Default ${DEFAULT_PREVIEW_WIDTH}, max ${MAX_PREVIEW_WIDTH}.`
     },
+    pass: {
+      type: "string",
+      enum: [...PREVIEW_PASSES],
+      description:
+        "What 3D clips draw. beauty (default) is the lit model. clay is one " +
+        "matte grey on every surface, the look of a blockout reference. " +
+        "depth is white near the camera and black far from it. normal is " +
+        "the surface direction as color. Only 3D clips have passes: any " +
+        "other layer in the frame draws as usual and is reported as a " +
+        "render_pass_not_applied degradation. A baked 3D clip draws live in " +
+        "a pass other than beauty."
+    },
     motion_blur_samples: {
       type: "number",
       description:
@@ -737,7 +761,10 @@ export const previewTimelineFrameSpec: CapabilitySpec = {
     "Install Dawn with nodetool packs add webgpu --yes. 3D layers need headless Chromium. Sample the middle of an animation, not its endpoints — " +
     "the endpoints are the states you already know. `range` sweeps a window " +
     "densely and `sheet` returns the sweep as one labelled contact sheet, " +
-    "which is how you watch a move play out rather than checking one instant.",
+    "which is how you watch a move play out rather than checking one instant. " +
+    "`pass` draws 3D clips as clay, depth or normal instead of the lit " +
+    "model. To review a blockout, pass one timecode per shot with " +
+    "pass \"clay\" and sheet true.",
   inputSchema: PREVIEW_TIMELINE_FRAME_SCHEMA,
   category: "read",
   userMessage: (params) =>

@@ -150,9 +150,17 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
     op: "set_model3d_style",
     ...parseContract(contracts.ui_timeline_set_model3d_style, args)
   }),
+  apply_model3d_camera_move: (args) => ({
+    op: "apply_model3d_camera_move",
+    ...parseContract(contracts.ui_timeline_apply_model3d_camera_move, args)
+  }),
   bake_model3d_clip: (args) => ({
     op: "bake_model3d_clip",
     ...parseContract(contracts.ui_timeline_bake_model3d_clip, args)
+  }),
+  render_model3d_reference: (args) => ({
+    op: "render_model3d_reference",
+    ...parseContract(contracts.ui_timeline_render_model3d_reference, args)
   }),
   add_group: (args) => ({
     op: "add_group",

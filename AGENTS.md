@@ -175,6 +175,7 @@ document and nothing else in the directory reaches the product.
 | Write sandbox JavaScript: Code nodes, JS scripts, packs | [nodetool-js-scripting](.claude/skills/nodetool-js-scripting/SKILL.md) |
 | Build or edit a sketch (image document) | [nodetool-sketch](.claude/skills/nodetool-sketch/SKILL.md) |
 | Build, edit or render a 3D model | [nodetool-3d-scene](.claude/skills/nodetool-3d-scene/SKILL.md) |
+| Block out a shot in 3D as a reference for video generation | [blockout-3d](.claude/skills/blockout-3d/SKILL.md) |
 | Write or revise a NodeTool skill, user or shipped | [nodetool-skill-author](.claude/skills/nodetool-skill-author/SKILL.md) |
 | Configure providers, credentials and model selection | [nodetool-model-provider-config](.claude/skills/nodetool-model-provider-config/SKILL.md) |
 | Build ingestion, vector indexing and retrieval | [nodetool-rag-indexing](.claude/skills/nodetool-rag-indexing/SKILL.md) |

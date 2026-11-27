@@ -2831,7 +2831,11 @@
         "rotation": "回転",
         "orbit": "軌道",
         "fieldOfView": "視野",
-        "zoom": "ズーム"
+        "zoom": "ズーム",
+        "cameraPosition": "位置",
+        "cameraTarget": "ターゲット",
+        "cameraLens": "レンズ",
+        "cameraRoll": "ロール"
       },
       "inputs": {
         "opacity": "不透明度",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "カメラの方位角",
         "cameraElevation": "カメラの仰角",
         "cameraFieldOfView": "カメラの視野",
-        "cameraZoom": "カメラのズーム"
+        "cameraZoom": "カメラのズーム",
+        "cameraPositionX": "カメラ位置 X",
+        "cameraPositionY": "カメラ位置 Y",
+        "cameraPositionZ": "カメラ位置 Z",
+        "cameraTargetX": "カメラターゲット X",
+        "cameraTargetY": "カメラターゲット Y",
+        "cameraTargetZ": "カメラターゲット Z",
+        "cameraLens": "カメラのレンズ(ミリメートル)",
+        "cameraRoll": "カメラのロール(度)"
       },
       "easing": {
         "linear": "リニア",
@@ -5478,7 +5490,35 @@
           "bakeFailed": "3D クリップのベイクに失敗しました",
           "loadingModel": "モデルを読み込み中…",
           "unavailable": "利用不可",
-          "missingName": "{{name}} (欠落)"
+          "missingName": "{{name}} (欠落)",
+          "free": "フリー",
+          "keyCamera": "カメラをキー設定",
+          "keyCameraHelp": "再生ヘッドの位置ですべてのカメラチャンネルにキーフレームを追加します",
+          "cameraMove": "カメラムーブ",
+          "addCameraMove": "カメラムーブを追加",
+          "move": "ムーブ",
+          "moveAmount": "量",
+          "moveDuration": "長さ",
+          "moveAmountDegrees": "量は角度です。",
+          "moveAmountDistance": "量はカメラからターゲットまでの距離に対する割合です。",
+          "moveAmountFactor": "量は焦点距離に掛ける倍率です。",
+          "moveStartsAt": "ムーブは {{time}} から始まります。",
+          "applyMove": "ムーブを追加",
+          "freeCameraHelp": "プレビューでは、Alt を押しながらドラッグで周回、Shift を加えると横移動、スクロールで前後移動、スクロール中に Ctrl を加えるとレンズを変更します。",
+          "editSet": "セットを編集",
+          "editSetHelp": "このクリップの3Dモデルをモデルエディターで開きます",
+          "moves": {
+            "pan": "パン",
+            "tilt": "ティルト",
+            "orbit": "オービット",
+            "pushIn": "プッシュイン",
+            "truck": "トラック",
+            "crane": "クレーン",
+            "pedestal": "ペデスタル",
+            "zoom": "ズーム",
+            "dollyZoom": "ドリーズーム",
+            "dutch": "ダッチアングル"
+          }
         },
         "reframe": {
           "title": "スマートリフレーム",
@@ -12722,7 +12762,10 @@
       "speechTextPrompt": "読み上げるテキストを入力し、Enter キーを押します…",
       "templates": "テンプレート",
       "upload3dAsset": "最初に {{formats}} アセットをアップロードします。",
-      "useOutput": "{{name}} 出力を使用する"
+      "useOutput": "{{name}} 出力を使用する",
+      "blockoutSet": "ブロックアウトセット",
+      "blockoutSetDescription": "空の3Dセットを作り、フリーカメラで撮影します",
+      "addBlockoutSet": "ブロックアウトセットのクリップを追加"
     },
     "preview": {
       "autoQuality": "自動 ({{quality}})",
@@ -16841,7 +16884,8 @@
         "Keyframes & source": "キーフレームとソース",
         "Zoom & view": "ズームして表示",
         "Workspaces": "ワークスペース",
-        "History": "履歴"
+        "History": "履歴",
+        "3D camera (3D clip selected)": "3Dカメラ(3Dクリップ選択時)"
       },
       "rows": {
         "selectTool": "ツールを選択",
@@ -16992,7 +17036,12 @@
         "panelScript": "スクリプトへ移動",
         "panelStoryboard": "絵コンテへ移動",
         "nextPanel": "次のパネルへ移動",
-        "prevPanel": "前のパネルへ移動"
+        "prevPanel": "前のパネルへ移動",
+        "keyCamera": "再生ヘッドの位置でフリー3Dカメラをキー設定",
+        "camera3dOrbit": "カメラを周回させる",
+        "camera3dTruck": "フリーカメラとターゲットを横に動かす",
+        "camera3dDolly": "カメラを前後に動かす",
+        "camera3dLens": "フリーカメラのレンズを変更"
       }
     },
     "vst": {
@@ -20929,6 +20978,60 @@
       "embedAgain": "再度埋め込む",
       "rebuild": "インデックスを再構築",
       "providerHint": "プロバイダーのモデルを使うには、上でプロバイダーとモデルを設定してください。そのプロバイダーに送信される文章: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "クレイ",
+        "hint": "固定ライトで陰影を付けたグレーの形状。モデルはカメラと配置に従い、表面はすべて生成します"
+      },
+      "depth": {
+        "label": "深度",
+        "hint": "カメラからの距離のみ。モデルは表面をすべて生成します"
+      },
+      "normal": {
+        "label": "法線",
+        "hint": "面の向きのみ。モデルは形状を保ち、マテリアルを生成します"
+      }
+    },
+    "reference": {
+      "label": "リファレンス",
+      "pass": "リファレンスのパス",
+      "render": "リファレンスをレンダリング",
+      "renderAgain": "再レンダリング",
+      "cancel": "キャンセル",
+      "cancelProgress": "キャンセル ({{done}}/{{total}})",
+      "play": "リファレンスを再生",
+      "hide": "リファレンスを隠す",
+      "stale": "リファレンスが古くなっています",
+      "playerLabel": "ブロックアウトのリファレンス",
+      "failed": "リファレンスのレンダリングに失敗しました"
+    },
+    "shot": {
+      "label": "ショット",
+      "pickerLabel": "このブロックアウトが配置するショット",
+      "none": "未リンク",
+      "elsewhere": "タイムライン上の別の場所のショット",
+      "noCandidates": "このクリップに重なるショットのクリップがありません。リンクするにはショットのクリップの下に配置してください。",
+      "help": "リンクしたショットのテイクは、このクリップのリファレンスから生成されます。"
+    },
+    "shotPanel": {
+      "title": "ブロックアウト",
+      "clip": "ブロックアウトのクリップ",
+      "none": "なし",
+      "noCandidates": "ブロックアウトとして使うには、このショットのクリップの下に3Dクリップを配置してください。",
+      "help": "次のテイクは、リンクした3Dクリップのカメラと配置に従います。",
+      "camera": "カメラ: {{move}}",
+      "selectClip": "クリップを選択",
+      "selectClipTooltip": "タイムライン上のブロックアウトのクリップを選択",
+      "takeStale": "古いブロックアウトから作られたテイク",
+      "rendering": "ブロックアウトのリファレンスをレンダリング中",
+      "renderingProgress": "ブロックアウトのリファレンスをレンダリング中 ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "ブロックアウトのリファレンス動画は、プロンプトと一緒にこのモデルへ送信されます。存在しないか古い場合は、先にレンダリングされます。",
+      "promptOnly": "このモデルはリファレンス動画を受け取りません。グレーのレンダリングは送信されず、カメラの動きはテキストとしてプロンプトに追加されます: {{move}}"
     }
   }
 }

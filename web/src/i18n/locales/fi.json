@@ -2831,7 +2831,11 @@
         "rotation": "Kierto",
         "orbit": "Kiertorata",
         "fieldOfView": "Näkökenttä",
-        "zoom": "Zoomaus"
+        "zoom": "Zoomaus",
+        "cameraPosition": "Sijainti",
+        "cameraTarget": "Kohde",
+        "cameraLens": "Objektiivi",
+        "cameraRoll": "Kallistus"
       },
       "inputs": {
         "opacity": "Peittävyys",
@@ -2843,7 +2847,15 @@
         "cameraAzimuth": "Kameran atsimuutti",
         "cameraElevation": "Kameran korkeuskulma",
         "cameraFieldOfView": "Kameran näkökenttä",
-        "cameraZoom": "Kameran zoomaus"
+        "cameraZoom": "Kameran zoomaus",
+        "cameraPositionX": "Kameran sijainti X",
+        "cameraPositionY": "Kameran sijainti Y",
+        "cameraPositionZ": "Kameran sijainti Z",
+        "cameraTargetX": "Kameran kohde X",
+        "cameraTargetY": "Kameran kohde Y",
+        "cameraTargetZ": "Kameran kohde Z",
+        "cameraLens": "Kameran objektiivi millimetreinä",
+        "cameraRoll": "Kameran kallistus asteina"
       },
       "easing": {
         "linear": "Lineaarinen",
@@ -5478,7 +5490,35 @@
           "bakeFailed": "3D-leikkeen kiinnitys epäonnistui",
           "loadingModel": "Ladataan mallia…",
           "unavailable": "Ei käytettävissä",
-          "missingName": "{{name}} (puuttuu)"
+          "missingName": "{{name}} (puuttuu)",
+          "free": "Vapaa",
+          "keyCamera": "Avainna kamera",
+          "keyCameraHelp": "Lisää avainkehys jokaiselle kameran kanavalle toistopään kohdalle",
+          "cameraMove": "Kameraliike",
+          "addCameraMove": "Lisää kameraliike",
+          "move": "Liike",
+          "moveAmount": "Määrä",
+          "moveDuration": "Kesto",
+          "moveAmountDegrees": "Määrä on kulma.",
+          "moveAmountDistance": "Määrä on osuus kameran ja sen kohteen välisestä etäisyydestä.",
+          "moveAmountFactor": "Määrä kertoo polttovälin.",
+          "moveStartsAt": "Liike alkaa kohdasta {{time}}.",
+          "applyMove": "Lisää liike",
+          "freeCameraHelp": "Esikatselussa: pidä Alt pohjassa ja vedä kiertääksesi, lisää Vaihto siirtääksesi sivulle, vieritä ajaaksesi lähemmäs ja lisää Ctrl vierittäessä vaihtaaksesi objektiivia.",
+          "editSet": "Muokkaa lavastetta",
+          "editSetHelp": "Avaa tämän leikkeen 3D-malli mallieditorissa",
+          "moves": {
+            "pan": "Panorointi",
+            "tilt": "Tilttaus",
+            "orbit": "Kierto",
+            "pushIn": "Ajo lähemmäs",
+            "truck": "Sivuajo",
+            "crane": "Nosturi",
+            "pedestal": "Nosto",
+            "zoom": "Zoomaus",
+            "dollyZoom": "Dolly-zoomaus",
+            "dutch": "Kallistettu kuva"
+          }
         },
         "reframe": {
           "title": "Älykäs uudelleenrajaus",
@@ -12722,7 +12762,10 @@
       "speechTextPrompt": "Kirjoita puhuttava teksti ja paina Enter…",
       "templates": "Pohjat",
       "upload3dAsset": "Lataa ensin {{formats}}-aineisto.",
-      "useOutput": "Käytä tulostetta {{name}}"
+      "useOutput": "Käytä tulostetta {{name}}",
+      "blockoutSet": "Blockout-lavaste",
+      "blockoutSetDescription": "Aloita tyhjä 3D-lavaste ja kuvaa se vapaalla kameralla",
+      "addBlockoutSet": "Lisää blockout-lavasteleike"
     },
     "preview": {
       "autoQuality": "Automaattinen ({{quality}})",
@@ -16841,7 +16884,8 @@
         "Keyframes & source": "Avainkehykset ja lähde",
         "Zoom & view": "Zoomaus ja näkymä",
         "Workspaces": "Työtilat",
-        "History": "Historia"
+        "History": "Historia",
+        "3D camera (3D clip selected)": "3D-kamera (3D-leike valittuna)"
       },
       "rows": {
         "selectTool": "Valintatyökalu",
@@ -16992,7 +17036,12 @@
         "panelScript": "Siirry käsikirjoitukseen",
         "panelStoryboard": "Siirry kuvakäsikirjoitukseen",
         "nextPanel": "Siirry seuraavaan paneeliin",
-        "prevPanel": "Siirry edelliseen paneeliin"
+        "prevPanel": "Siirry edelliseen paneeliin",
+        "keyCamera": "Avainna vapaa 3D-kamera toistopään kohdalle",
+        "camera3dOrbit": "Kierrä kameraa",
+        "camera3dTruck": "Siirrä vapaata kameraa ja sen kohdetta sivulle",
+        "camera3dDolly": "Aja kameraa lähemmäs tai kauemmas",
+        "camera3dLens": "Vaihda vapaan kameran objektiivia"
       }
     },
     "vst": {
@@ -20929,6 +20978,60 @@
       "embedAgain": "Upota uudelleen",
       "rebuild": "Rakenna indeksi uudelleen",
       "providerHint": "Jos haluat käyttää palveluntarjoajan mallia, aseta palveluntarjoaja ja malli yllä. Sille lähetettävät katkelmat: {{count}}"
+    }
+  },
+  "blockout3d": {
+    "pass": {
+      "clay": {
+        "label": "Savi",
+        "hint": "Harmaat varjostetut muodot kiinteällä valolla, jotta malli seuraa kameraa ja asettelua ja keksii jokaisen pinnan"
+      },
+      "depth": {
+        "label": "Syvyys",
+        "hint": "Vain etäisyys kamerasta, jotta malli keksii jokaisen pinnan"
+      },
+      "normal": {
+        "label": "Normaalit",
+        "hint": "Vain pinnan suunta, jotta malli säilyttää muodot ja keksii materiaalit"
+      }
+    },
+    "reference": {
+      "label": "Referenssi",
+      "pass": "Referenssin passi",
+      "render": "Renderöi referenssi",
+      "renderAgain": "Renderöi uudelleen",
+      "cancel": "Peruuta",
+      "cancelProgress": "Peruuta ({{done}}/{{total}})",
+      "play": "Toista referenssi",
+      "hide": "Piilota referenssi",
+      "stale": "Referenssi on vanhentunut",
+      "playerLabel": "Blockout-referenssi",
+      "failed": "Referenssin renderöinti epäonnistui"
+    },
+    "shot": {
+      "label": "Otos",
+      "pickerLabel": "Otos, jonka tämä blockout lavastaa",
+      "none": "Ei linkitetty",
+      "elsewhere": "Otos muualla aikajanalla",
+      "noCandidates": "Mikään otoksen klippi ei ole tämän klipin kohdalla. Sijoita se otoksen klipin alle linkittääksesi sen.",
+      "help": "Linkitetyn otoksen otto luodaan tämän klipin referenssistä."
+    },
+    "shotPanel": {
+      "title": "Blockout",
+      "clip": "Blockout-klippi",
+      "none": "Ei mitään",
+      "noCandidates": "Sijoita 3D-klippi tämän otoksen klipin alle käyttääksesi sitä blockoutina.",
+      "help": "Seuraava otto seuraa linkitetyn 3D-klipin kameraa ja asettelua.",
+      "camera": "Kamera: {{move}}",
+      "selectClip": "Valitse klippi",
+      "selectClipTooltip": "Valitse blockout-klippi aikajanalta",
+      "takeStale": "Otto on tehty vanhemmasta blockoutista",
+      "rendering": "Blockout-referenssiä renderöidään",
+      "renderingProgress": "Blockout-referenssiä renderöidään ({{done}}/{{total}})"
+    },
+    "render": {
+      "withReference": "Blockoutin referenssivideo lähetetään tälle mallille kehotteen kanssa. Se renderöidään ensin, jos se puuttuu tai on vanhentunut.",
+      "promptOnly": "Tämä malli ei ota vastaan referenssivideota. Harmaata renderöintiä ei lähetetä, ja kameran liike lisätään kehotteeseen tekstinä: {{move}}"
     }
   }
 }
