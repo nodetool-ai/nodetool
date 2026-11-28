@@ -152,7 +152,10 @@ QJsonObject editAutomation(QJsonObject channel, const QString& action, const QJs
                 }
                 merged[time] = point;
             };
-            for (const auto& value : points) { insert(value.toObject()); }
+            for (const auto& value : points) {
+                const auto point = value.toObject();
+                merged[point["timeMs"].toDouble()] = point;
+            }
             for (const auto& value : p["points"].toArray()) {
                 auto point = value.toObject();
                 requireKeys(point, {"timeMs", "value", "easing"});

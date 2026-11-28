@@ -1462,6 +1462,50 @@ Item {
         QVERIFY(captureStepEditor("step-editor-notes"));
     }
 
+    // Visual QA shots of a dense phrase in each drawing state, written when NT_SHOTS_DIR is set.
+    void visualQaShots() {
+        const QString dir = qEnvironmentVariable("NT_SHOTS_DIR");
+        if (dir.isEmpty()) { QSKIP("NT_SHOTS_DIR unset"); }
+        QVERIFY(QDir().mkpath(dir));
+        const QString tag = renderTarget ? QStringLiteral("gpu-") : QStringLiteral("sw-");
+        if (!renderTarget) { window->resize(1200, 640); qobject_cast<QQuickItem*>(root.get())->setSize({1200, 640}); }
+        framed();
+        QJsonArray list;
+        const int pitches[] = {60, 64, 67, 72, 62, 65, 69, 71, 59, 55, 57, 74};
+        for (int i = 0; i < 48; ++i) {
+            QJsonObject n{{"id", QStringLiteral("n%1").arg(i)}, {"pitch", pitches[i % 12] + (i / 12) % 2 * 2},
+                          {"velocity", 20 + (i * 37) % 108}, {"startTick", i * 80}, {"durationTick", 60 + (i % 5) * 60}};
+            if (i == 7) { n["muted"] = true; }
+            list.append(n);
+        }
+        setNotes(QString::fromUtf8(QJsonDocument(list).toJson()));
+        setProp("topPitch", 78);
+        setProp("selectedIds", QVariantList{QStringLiteral("n3"), QStringLiteral("n4"), QStringLiteral("n5")});
+        const auto shot = [&](const QString& name) {
+            QTest::qWait(80);
+            const QImage image = capture();
+            QVERIFY(!image.isNull());
+            QVERIFY(image.save(QDir(dir).filePath(tag + name + ".png")));
+        };
+        shot("notes");
+        setProp("pxPerTick", 0.25);
+        setProp("noteLabels", true);
+        shot("labels-zoomed");
+        setProp("noteLabels", false);
+        setProp("pxPerTick", 0.05);
+        setProp("collapseMode", true);
+        shot("collapse");
+        setProp("collapseMode", false);
+        QVERIFY(QMetaObject::invokeMethod(item("pianoRollLaneSelect"), "valueCommitted", Q_ARG(QVariant, QVariant(QStringLiteral("cc:1")))));
+        auto* lane = item("pianoRollCurveLane");
+        QTRY_VERIFY(lane->isVisible());
+        for (const double f : {0.1, 0.3, 0.5, 0.7}) {
+            QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier, lane->mapToScene({lane->width() * f, lane->height() * (0.2 + f / 2)}).toPoint());
+            newClickSequence();
+        }
+        shot("curve-lane");
+    }
+
     // A review screenshot of the piano roll with a short phrase, written when NT_PANEL_SCREENSHOTS is set.
     void pianoRollReviewScreenshot() {
         window->resize(1200, 640);

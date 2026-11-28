@@ -73,6 +73,8 @@ struct CurveSegment {
 // straight segments. Pitch bend maps -8192..8191, other kinds 0..127.
 [[nodiscard]] std::vector<CurveSegment> computeControllerCurve(const QJsonArray& lanes, const NoteLineView& view);
 
+// GUI-thread properties and polish geometry cross to the render thread only
+// during Qt Quick synchronization, while the GUI thread is blocked.
 class MidiNoteLinesItem : public QQuickItem {
     Q_OBJECT
     QML_ELEMENT
@@ -117,6 +119,7 @@ class MidiNoteLinesItem : public QQuickItem {
     void painted();
 
   protected:
+    void updatePolish() override;
     QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData* data) override;
     void geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) override;
 
@@ -127,6 +130,12 @@ class MidiNoteLinesItem : public QQuickItem {
     QSGNode* softwarePaintNode(QSGNode* old, const std::vector<NoteLine>& lines, const std::vector<CurveSegment>& curve);
     void markDirty();
 
+    // Owned by this item, written by GUI polish, read-only during render sync.
+    struct RenderSnapshot {
+        std::vector<NoteLine> lines;
+        std::vector<CurveSegment> curve;
+    };
+    RenderSnapshot m_renderSnapshot;
     QPointer<TimelineModel> m_timeline;
     QString m_clipId;
     double m_msPerPx = 10;

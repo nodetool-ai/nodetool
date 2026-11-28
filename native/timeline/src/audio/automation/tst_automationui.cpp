@@ -294,6 +294,25 @@ private slots:
         QTRY_COMPARE(lane->property("paintedPointCount").toInt(),3);
     }
 
+    // A visual QA shot of a busy lane, written when NT_SHOTS_DIR is set.
+    void automationLaneShot() {
+        const QString dir=qEnvironmentVariable("NT_SHOTS_DIR");
+        if (dir.isEmpty()) { QSKIP("NT_SHOTS_DIR unset"); }
+        QVERIFY(QDir().mkpath(dir));
+        QByteArray points;
+        for (int i=0;i<24;++i) {
+            const double value=-30+30*(0.5+0.5*std::sin(i*0.7));
+            points+=(i?",":"")+QByteArray("{timeMs:")+QByteArray::number(i*400)+",value:"+QByteArray::number(value,'f',2)+"}";
+            if (i==12) { points+=",{timeMs:4800,value:0}"; }
+        }
+        QVERIFY(open("Rectangle { color:\"#101114\"; width:800; height:120; required property var timeline\n"
+                     "AutomationLaneView { y:8; width:800; height:56; timeline:parent.timeline; track:({id:\"a\",type:\"audio\"}); lane:({id:\"shot\",target:{kind:\"mixer\",param:\"volumeDb\"},points:["+points+"]}); viewportWidth:800 } }"));
+        auto* lane=item("automation-lane-shot"); QVERIFY(lane);
+        lane->setProperty("selected",5);
+        QTest::qWait(120);
+        QVERIFY(window->grabWindow().save(QDir(dir).filePath("automation-lane.png")));
+    }
+
     void perf2AutomationTileHasHysteresis() {
         QVERIFY(open(R"(Flickable { id:fixture; width:600; height:56; required property var timeline; contentWidth:100000; contentHeight:56; contentX:599; interactive:false; clip:true
             AutomationLaneView { width:100000; height:56; timeline:fixture.timeline; track:({id:"a",type:"audio"}); lane:({id:"lane",target:{kind:"mixer",param:"volumeDb"},points:[]}); viewportLeft:fixture.contentX; viewportWidth:fixture.width }

@@ -1647,16 +1647,16 @@ void ModalSynth::renderSubBlock(std::span<float> stereo, std::size_t startFrame,
         }
 
         auto [left, right] = limiter_.process(spl0, spl1);
-        if (std::isfinite(left)) left = softSafetyCeiling(left);
-        if (std::isfinite(right)) right = softSafetyCeiling(right);
-
-        // Post-limiter / pre-clamp diagnostics.
+        // Post-limiter diagnostics, before the safety ceiling and final clamp.
         if (!std::isfinite(left) || !std::isfinite(right)) [[unlikely]] {
             ++nonFiniteCount_;
         } else {
             const double pk = std::max(std::abs(left), std::abs(right));
             if (pk > maxPreClampAbs_) maxPreClampAbs_ = pk;
         }
+
+        if (std::isfinite(left)) left = softSafetyCeiling(left);
+        if (std::isfinite(right)) right = softSafetyCeiling(right);
 
         const std::size_t idx = (startFrame + f) * 2;
         stereo[idx] += static_cast<float>(clampFinite(left, -4.0, 4.0, 0.0));

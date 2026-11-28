@@ -189,7 +189,7 @@ public:
         return snapshots_[static_cast<std::size_t>(renderSnapshotIdx_)]->models;
     }
 
-    // Raw internal, pre-limiter, and pre-clamp diagnostics (for verification tests).
+    // Raw internal, pre-limiter, and post-limiter/pre-safety-ceiling diagnostics.
     [[nodiscard]] std::uint64_t nonFiniteCount() const noexcept { return nonFiniteCount_; }
     [[nodiscard]] std::uint64_t waveguideClampCount() const noexcept { return waveguideClampCount_; }
     [[nodiscard]] double maxRawResonatorAbs() const noexcept { return maxRawResonatorAbs_; }

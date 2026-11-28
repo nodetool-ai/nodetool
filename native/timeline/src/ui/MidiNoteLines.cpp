@@ -16,6 +16,7 @@
 #include <QSGImageNode>
 #include <QSGRendererInterface>
 #include <QSGTexture>
+#include <QThread>
 
 #include <algorithm>
 #include <cmath>
@@ -180,6 +181,7 @@ MidiNoteLinesItem::MidiNoteLinesItem(QQuickItem* parent) : QQuickItem(parent) { 
 
 void MidiNoteLinesItem::markDirty() {
     m_dirty = true;
+    polish();
     update();
 }
 
@@ -251,6 +253,7 @@ NoteLineView MidiNoteLinesItem::currentView(const nt::Clip& clip) const {
 }
 
 std::vector<NoteLine> MidiNoteLinesItem::build() const {
+    Q_ASSERT(QThread::currentThread() == thread());
     if (!m_timeline || m_clipId.isEmpty()) { return {}; }
     const nt::Clip* clip = m_timeline->findClip(m_clipId);
     if (!clip || clip->mediaType != nt::MediaType::Midi) { return {}; }
@@ -265,6 +268,7 @@ std::vector<NoteLine> MidiNoteLinesItem::build() const {
 }
 
 std::vector<CurveSegment> MidiNoteLinesItem::buildCurve() const {
+    Q_ASSERT(QThread::currentThread() == thread());
     if (!m_timeline || m_clipId.isEmpty()) { return {}; }
     const nt::Clip* clip = m_timeline->findClip(m_clipId);
     if (!clip || clip->mediaType != nt::MediaType::Midi) { return {}; }
@@ -336,12 +340,18 @@ QSGNode* MidiNoteLinesItem::softwarePaintNode(QSGNode* old, const std::vector<No
     return node;
 }
 
+void MidiNoteLinesItem::updatePolish() {
+    Q_ASSERT(QThread::currentThread() == thread());
+    m_renderSnapshot = {build(), buildCurve()};
+    m_dirty = true;
+}
+
 QSGNode* MidiNoteLinesItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     if (!m_dirty && old) { return old; }
     m_dirty = false;
     ++m_paintCount;
-    const std::vector<NoteLine> lines = build();
-    const std::vector<CurveSegment> curve = buildCurve();
+    const auto& lines = m_renderSnapshot.lines;
+    const auto& curve = m_renderSnapshot.curve;
     if (window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
         QSGNode* result = softwarePaintNode(old, lines, curve);
         QMetaObject::invokeMethod(this, &MidiNoteLinesItem::painted, Qt::QueuedConnection);

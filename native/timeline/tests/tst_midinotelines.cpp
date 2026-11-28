@@ -38,10 +38,42 @@ NoteLineView view120(double inPointMs, double msPerPx, double widthPx, double he
 }
 }  // namespace
 
+// GUI-thread test driver for the polish/render synchronization boundary.
+class SnapshotNoteLines : public MidiNoteLinesItem {
+  public:
+    using MidiNoteLinesItem::updatePolish;
+    using MidiNoteLinesItem::updatePaintNode;
+};
+
 class TestMidiNoteLines : public QObject {
     Q_OBJECT
 
   private slots:
+    void renderUsesLastPolishedSnapshot() {
+        TimelineModel model;
+        const QJsonObject raw{{"name", "t"}, {"fps", 30}, {"width", 640}, {"height", 360},
+            {"tracks", QJsonArray{QJsonObject{{"id", "m"}, {"name", "Keys"}, {"type", "midi"}, {"index", 0}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "m"}, {"mediaType", "midi"},
+                {"startMs", 0}, {"durationMs", 2000}, {"notes", QJsonArray{note(0, 960, 60)}}}}}};
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(requireValue(parsed.timeline));
+        QQuickWindow window;
+        SnapshotNoteLines item;
+        item.setParentItem(window.contentItem());
+        item.setSize({400, 40});
+        item.setTimeline(&model);
+        item.setClipId("c");
+        item.updatePolish();
+        // A later GUI edit must not change the already published render input.
+        model.setTimeline(nt::Timeline{});
+        std::unique_ptr<QSGNode> node(item.updatePaintNode(nullptr, nullptr));
+        QVERIFY(node);
+
+        item.updatePolish();
+        node.reset(item.updatePaintNode(node.release(), nullptr));
+        QVERIFY(!node);
+    }
     void trimmedClipMapsContentTicksToTheClipWindow() {
         // The clip shows content from 1000 ms on, 400 px at 5 ms/px = 2000 ms.
         const auto v = view120(1000, 5, 400, 40);

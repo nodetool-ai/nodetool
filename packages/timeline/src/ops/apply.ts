@@ -525,7 +525,7 @@ class OpScope {
     const track = makeTrack({
       id: this.ctx.newId("track"),
       type,
-      name: name ?? `${capitalize(type)} ${index + 1}`,
+      name: name ?? `${type === "midi" ? type : capitalize(type)} ${index + 1}`,
       index
     });
     if (type === "midi") {

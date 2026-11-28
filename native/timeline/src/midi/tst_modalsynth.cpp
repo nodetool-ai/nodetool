@@ -621,7 +621,7 @@ private slots:
                          qPrintable(QStringLiteral("Pre-clamp blow-up masked at sr=%1 mode=%2: peak=%3")
                                         .arg(sr).arg(mode).arg(synth.maxPreClampAbs())));
                 const double pk = peakAbs(buf);
-                QVERIFY2(pk <= 4.0,
+                QVERIFY2(pk <= 0.900001,
                          qPrintable(QStringLiteral("Blow-up at sr=%1 mode=%2: peak=%3").arg(sr).arg(mode).arg(pk)));
             }
         }
@@ -2205,6 +2205,9 @@ private slots:
             std::vector<float> pcm(2048 * 2, 0.0f);
             synth.renderBlock(pcm);
             QCOMPARE(synth.nonFiniteCount(), std::uint64_t{0});
+            QVERIFY2(synth.maxPreClampAbs() > peakAbs(pcm) + 0.001,
+                     "Post-limiter diagnostic must precede the safety ceiling");
+            QVERIFY(peakAbs(pcm) <= 0.900001);
             QVERIFY2(synth.maxPreLimiterAbs() > synth.maxPreClampAbs() * 2.0,
                      qPrintable(QStringLiteral("E5 pre-limiter peak not separated from limiter output: preLim=%1 postLim=%2")
                                     .arg(synth.maxPreLimiterAbs()).arg(synth.maxPreClampAbs())));

@@ -167,7 +167,13 @@ export function runAutomationEdit(
         entries.set(point.timeMs, point);
       };
       for (const point of lane.points) {
-        insert(point);
+        const bucket = Math.floor(point.timeMs * 2);
+        let entries = buckets.get(bucket);
+        if (!entries) {
+          entries = new Map();
+          buckets.set(bucket, entries);
+        }
+        entries.set(point.timeMs, point);
       }
       for (const point of p.points) {
         if (

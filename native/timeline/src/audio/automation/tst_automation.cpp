@@ -1,5 +1,6 @@
 #include "../../../tests/RequireValue.h"
 #include "audio/automation/Automation.h"
+#include "edit/tracks/TrackEdits.h"
 #include "audio/automation/Meters.h"
 #include "audio/Mixer.h"
 #include "model/TimelineJson.h"
@@ -30,6 +31,10 @@ QJsonObject lane(QString kind, QString param, QJsonArray points) {
 class TestAutomation : public QObject {
     Q_OBJECT
 private slots:
+    void unnamedMidiTrackDefault() {
+        const auto result = nt::tracks::addTrack(QJsonObject{{"tracks", QJsonArray{}}}, {{"type", "midi"}});
+        QCOMPARE(result.value("tracks").toArray()[0].toObject().value("name").toString(), QString("midi 1"));
+    }
     void concurrentReturnSnapshotsF16() {
         nt::MixerReturn handoff;
         std::atomic<bool> done{false};

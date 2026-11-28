@@ -508,6 +508,7 @@ interface Fixture {
 }
 
 export const FIXTURES: Fixture[] = [
+  { tool: "add_track", args: { type: "midi" }, op: { op: "add_track", type: "midi" } },
   { tool: "generate_from_beats", args: {}, op: { op: "generate_from_beats" } },
   {
     tool: "add_midi_clip",

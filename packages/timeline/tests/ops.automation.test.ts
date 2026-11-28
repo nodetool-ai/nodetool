@@ -684,6 +684,21 @@ describe("native document parity", () => {
   const binary = fileURLToPath(
     new URL("../../../native/timeline/build/tst_automation", import.meta.url)
   );
+  it("preserves close stored points when adding elsewhere in both engines", async () => {
+    const initial = state();
+    const points = [
+      { timeMs: 10, value: -12 },
+      { timeMs: 10.25, value: -6, easing: "linear" },
+      { timeMs: 20, value: 0 }
+    ];
+    initial.tracks[0]!.automation![0]!.points = points;
+    const payload = { target, points: [{ timeMs: 500, value: -3 }] };
+    const out = await run(initial, "automation.addPoints", payload);
+    expect(out.state.tracks[0]!.automation![0]!.points).toEqual([
+      ...points, { timeMs: 500, value: -3 }
+    ]);
+    await expectNative(initial, "automation.addPoints", payload);
+  });
   it("compares each named edit against the native edit implementation", async () => {
     expect(
       existsSync(binary),
