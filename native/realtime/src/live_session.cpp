@@ -3,6 +3,7 @@
 #include "nodetool/realtime/audio.h"
 #include "nodetool/realtime/control.h"
 #include "nodetool/realtime/live.h"
+#include "nodetool/realtime/params.h"
 
 #include "audio/PcmRing.h"
 #include "playback/AudioClockFeed.h"
@@ -46,7 +47,13 @@ constexpr std::int64_t kQuantumFrames = 128; // ring arithmetic is signed
 class AudioPlan final : public live::Retirable {
 public:
     struct Binding { unsigned parameter; unsigned control; };
-    struct Result { bool controlAccepted = true; std::uint64_t nonFinite = 0; };
+    struct Initial { std::uint32_t slot; std::array<double, 4> lanes; std::uint32_t width; };
+    struct Result {
+        bool controlAccepted = true;
+        std::uint64_t nonFinite = 0;
+        std::uint64_t lateEvents = 0;
+        std::uint64_t rejectedEvents = 0;
+    };
 
     std::uint64_t revision = 0;
     unsigned sampleRate = 0;
@@ -58,10 +65,24 @@ public:
     std::vector<float> snapshot;
     std::vector<Binding> bindings;
     std::vector<unsigned> deviceSinks;
+    // The table slot of each snapshot entry, and whether a control register
+    // drives the entry instead of the param table.
+    std::vector<std::uint32_t> snapshotSlots;
+    std::vector<bool> bound;
+    // The audio and synced params this plan reads (section 10.3).
+    std::vector<ParamRead> reads;
+    // Prepare thread: the plan's param values, written to the table before
+    // the plan is published.
+    std::vector<Initial> initial;
 
-    // Audio render thread. Renders one quantum into interleaved stereo.
-    Result process(std::uint64_t streamFrame, std::span<float, kQuantum * 2> out) noexcept {
+    // Audio render thread. Renders one quantum into interleaved stereo. The
+    // reader already holds this quantum's param snapshot.
+    Result process(std::uint64_t streamFrame, std::span<float, kQuantum * 2> out, const AudioParamReader& params,
+                   EventQueue& events) noexcept {
         Result result;
+        for (std::size_t i = 0; i < snapshot.size(); ++i) {
+            if (!bound[i]) { snapshot[i] = static_cast<float>(params.value(snapshotSlots[i]).lanes[0]); }
+        }
         const double rate = sampleRate;
         const double seconds = static_cast<double>(streamFrame + kQuantum) / rate;
         const TickContext context{seconds, seconds * 2, kQuantum / rate, 2, streamFrame / kQuantum + 1, width, height};
@@ -75,7 +96,18 @@ public:
                 ++result.nonFinite; // keeps the value of the quantum before
             }
         }
-        const auto processed = audio->process({snapshot, true});
+        const auto due = events.pending();
+        auto processed = audio->process({snapshot, true}, due);
+        if (!processed.accepted && !due.empty()) {
+            // Section 10.3: an event the plan cannot take (an unknown node or
+            // type) must not stop the sound. Drop the batch and run without it.
+            result.rejectedEvents += due.size();
+            events.consume(due.size());
+            processed = audio->process({snapshot, true});
+        } else {
+            events.consume(processed.consumedEvents);
+            result.lateEvents += processed.lateEvents;
+        }
         result.nonFinite += processed.nonFiniteSamples;
         std::fill(out.begin(), out.end(), 0.0f);
         for (const auto index : deviceSinks) {
@@ -126,12 +158,31 @@ std::unique_ptr<AudioPlan> buildAudioPlan(std::string_view json, const Registry&
         std::vector<const Plan*> bySlot;
         for (const auto& parameter : plan["params"]) {
             const auto slot = parameter["slot"].get<unsigned>();
+            if (slot >= config.maxParams) {
+                error = {parameter["node"].get<std::string>(), "param_slot", "The param slot exceeds the live session's param table"};
+                return {};
+            }
             if (bySlot.size() <= slot) { bySlot.resize(slot + 1, nullptr); }
             bySlot[slot] = &parameter;
+            AudioPlan::Initial initial{slot, {}, 1};
+            const auto& value = parameter["value"];
+            if (value.is_array()) {
+                initial.width = static_cast<std::uint32_t>(value.size());
+                for (std::size_t lane = 0; lane < value.size(); ++lane) { initial.lanes[lane] = value[lane].get<double>(); }
+            } else {
+                initial.lanes[0] = value.is_boolean() ? (value.get<bool>() ? 1.0 : 0.0) : value.get<double>();
+            }
+            result->initial.push_back(initial);
         }
         for (const auto slot : result->audio->parameterSlots()) {
             const auto& parameter = *bySlot.at(slot);
-            if (parameter.contains("audioControl")) {
+            const bool isBound = parameter.contains("audioControl");
+            result->snapshotSlots.push_back(slot);
+            result->bound.push_back(isBound);
+            if (!isBound) {
+                result->reads.push_back({slot, parameter["sync"] == "synced" ? SyncPolicy::synced : SyncPolicy::audio});
+            }
+            if (isBound) {
                 const auto index = parameter["audioControl"].get<unsigned>();
                 if (result->control->registers()[index].width != 1) {
                     error = {parameter["node"].get<std::string>(), "control_width", "Audio parameters require scalar control registers"};
@@ -249,6 +300,10 @@ struct AudioStats {
     std::uint64_t nonFiniteSamples = 0;
     std::uint64_t controlRejections = 0;
     std::uint64_t deferredTakes = 0;
+    std::uint64_t paramReadFailures = 0;
+    std::uint64_t syncedParamsApplied = 0;
+    std::uint64_t lateEvents = 0;
+    std::uint64_t rejectedEvents = 0;
     bool realtimeRequested = false;
     bool realtimeGranted = false;
 };
@@ -272,6 +327,16 @@ struct LiveSession::Impl {
     Registry registry; // prepare thread after open
 
     live::Domain<AudioPlan> audio;
+    // Section 11.1. Writers: the host, the runner worker and the prepare
+    // thread. The audio render thread and the render thread read.
+    ParamTable params;
+    // Written by the audio render thread, read by the render thread.
+    AudioAppliedTable applied;
+    // Senders: the host and the runner worker. Consumer: the audio render thread.
+    EventQueue events;
+    // The clock generation. The device callback raises it on a reroute, the
+    // audio render thread reads it for the applied state.
+    std::atomic<std::uint64_t> clockGeneration{0};
     // Audio render thread writes, device callback reads.
     std::unique_ptr<nt::audio::PcmRing> ring;
     // Device callback raises it after an underrun, the audio thread reads it.
@@ -301,7 +366,8 @@ struct LiveSession::Impl {
     std::jthread audioThread;                      // GUI thread
     std::jthread prepareThread;                    // GUI thread
 
-    explicit Impl(const LiveConfig& c) : config(c), audio(c.maxSlots) {}
+    explicit Impl(const LiveConfig& c)
+        : config(c), audio(c.maxSlots), params(c.maxParams), applied(c.maxParams), events(c.eventCapacity) {}
 
     // ---- device callback ----
     static void render(void* user, float* interleaved, std::uint32_t frames) {
@@ -315,6 +381,7 @@ struct LiveSession::Impl {
             callback.flushedFrames += static_cast<std::uint64_t>(end - ring->readFloor());
             ring->release(end);
             ++callback.clockGeneration;
+            clockGeneration.store(callback.clockGeneration, std::memory_order_release);
         }
         const auto begin = ring->readFloor();
         const auto count = std::min(frames, ring->readableEnd() - begin);
@@ -353,6 +420,7 @@ struct LiveSession::Impl {
         stats.realtimeRequested = config.requestRealtimeClass;
         stats.realtimeGranted = realtime.granted();
         std::array<float, kQuantum * 2> block{};
+        AudioParamReader reader(params, applied);
         audioStats.store(stats);
         if (hooks.loopEnter) { hooks.loopEnter(hooks.user); }
         while (wait.ready() && !stop.stop_requested()) {
@@ -360,15 +428,25 @@ struct LiveSession::Impl {
                 wait.pause();
                 continue;
             }
-            if (audio.takePending()) { ++stats.planSwaps; }
+            const auto generation = clockGeneration.load(std::memory_order_acquire);
+            if (audio.takePending()) {
+                ++stats.planSwaps;
+                // D7g: the render thread swaps a synced plan when this quantum is audible.
+                applied.storePlan({audio.plan()->revision, stats.streamFrame, generation});
+            }
             if (auto* plan = audio.plan()) {
-                const auto result = plan->process(stats.streamFrame, block);
+                reader.beginQuantum(plan->reads, stats.streamFrame, generation);
+                const auto result = plan->process(stats.streamFrame, block, reader, events);
                 if (!result.controlAccepted) { ++stats.controlRejections; }
                 stats.nonFiniteSamples += result.nonFinite;
+                stats.lateEvents += result.lateEvents;
+                stats.rejectedEvents += result.rejectedEvents;
                 stats.planRevision = plan->revision;
             } else {
                 block.fill(0.0f);
             }
+            stats.paramReadFailures = reader.failedReads();
+            stats.syncedParamsApplied = reader.syncedApplied();
             ring->write(block.data(), kQuantumFrames);
             stats.streamFrame += kQuantum;
             ++stats.quanta;
@@ -408,6 +486,12 @@ struct LiveSession::Impl {
             rejection = std::move(error);
             return;
         }
+        // Section 11.1: the plan's values enter the param table before the
+        // plan does. An unchanged value keeps its revision, so a host write
+        // survives a plan that carries the same value.
+        for (const auto& value : plan->initial) {
+            params.writeIfChanged(value.slot, std::span<const double>(value.lanes.data(), value.width));
+        }
         if (audio.publishPlan(std::move(plan))) { unconsumedPlans.fetch_add(1, std::memory_order_relaxed); }
         publishedPlans.fetch_add(1, std::memory_order_relaxed);
     }
@@ -422,7 +506,8 @@ std::unique_ptr<LiveSession> LiveSession::open(const LiveConfig& config, std::st
     };
     if ((config.sampleRate != 44100 && config.sampleRate != 48000) || config.periodFrames == 0 ||
         config.periodFrames > 8192 || config.minLeadQuanta == 0 || config.maxLeadQuanta < config.minLeadQuanta ||
-        config.maxLeadQuanta > 256 || config.maxSlots > 256) {
+        config.maxLeadQuanta > 256 || config.maxSlots > 256 || config.maxParams == 0 ||
+        config.maxParams > 100000 || config.eventCapacity == 0 || config.eventCapacity > 4096) {
         return fail("invalid live session configuration");
     }
     auto impl = std::make_shared<Impl>(config);
@@ -460,12 +545,14 @@ std::unique_ptr<LiveSession> LiveSession::open(const LiveConfig& config, std::st
     }
     if (impl->ring->readableEnd() < lead) { return fail("the audio render thread did not fill the ring"); }
     if (!impl->device->start()) { return fail("cannot start the audio device"); }
+    impl->applied.setDeviceRunning(true);
     return session;
 }
 
 LiveSession::~LiveSession() {
     // Section 7: stop the device, then join the audio render thread, then the
     // prepare thread, which destroys the plans before it returns.
+    m_impl->applied.setDeviceRunning(false);
     m_impl->device->close();
     m_impl->audioThread.request_stop();
     if (m_impl->audioThread.joinable()) { m_impl->audioThread.join(); }
@@ -496,6 +583,11 @@ LiveStats LiveSession::stats() const {
     result.nonFiniteSamples = audio.nonFiniteSamples;
     result.controlRejections = audio.controlRejections;
     result.deferredTakes = audio.deferredTakes;
+    result.paramReadFailures = audio.paramReadFailures;
+    result.syncedParamsApplied = audio.syncedParamsApplied;
+    result.lateEvents = audio.lateEvents;
+    result.rejectedEvents = audio.rejectedEvents;
+    result.droppedEvents = m_impl->events.dropped();
     result.realtimeRequested = audio.realtimeRequested;
     result.realtimeGranted = audio.realtimeGranted;
     result.callbackFrames = callback.callbackFrames;
@@ -525,6 +617,16 @@ bool LiveSession::waitForRevision(std::uint64_t revision, std::chrono::milliseco
     }
     return true;
 }
+
+bool LiveSession::setParam(std::uint32_t slot, std::span<const double> lanes) {
+    return m_impl->params.write(slot, lanes) != 0;
+}
+
+bool LiveSession::sendEvent(const AudioEvent& event) { return m_impl->events.send(event); }
+
+const ParamTable& LiveSession::params() const { return m_impl->params; }
+
+const AudioAppliedTable& LiveSession::audioApplied() const { return m_impl->applied; }
 
 void LiveSession::simulateDeviceChangeForTest() { m_impl->deviceChanged(); }
 

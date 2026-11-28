@@ -47,8 +47,12 @@ An optional `audioControl` parameter field names an audio-domain control
 register. The loader requires a producer in that domain and a scalar initial
 value. The offline host checks the prepared register width and resolves sparse
 parameter slots into a dense snapshot before execution. It samples bindings
-at each quantum endpoint. Unbound parameters retain their plan values. This
-does not implement WP13 cross-thread synchronization or revision handoffs.
+at each quantum endpoint. Unbound parameters retain their plan values.
+
+The `sync` field is `immediate`, `audio` or `synced` (design section 11.1). An
+audio kernel cannot read an `immediate` parameter. The loader rejects it with
+reason `param_sync`. The [live session](../README.md#params-synced-changes-and-events)
+implements the synced handoff.
 
 Audio nodes can carry `delayFrames` and `bufferSlot` structural fields. The
 [audio executor](../audio.md) permits them only for `delay` and `sample-player`

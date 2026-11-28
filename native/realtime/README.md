@@ -27,9 +27,34 @@ drains. Only the prepare thread destroys plans and slot values. The buffered
 driver keeps a ring lead of two device periods and at least 8 quanta. An underrun
 plays silence, is counted and raises the lead by one quantum. A device reroute
 flushes the ring and starts a new clock generation. The `realtime-live` test runs
-these on the null device. The render thread and surface (WP14), the param table
-(WP13), state follow on swap (WP18), tap and capture rings (WP22, WP26) and live
-slot replacement inside the executors (WP19) are not part of it.
+these on the null device. The render thread and surface (WP14), state follow on
+swap (WP18), tap and capture rings (WP22, WP26) and live slot replacement inside
+the executors (WP19) are not part of it.
+
+## Params, synced changes and events
+
+WP13 adds [params.h](include/nodetool/realtime/params.h). The session owns a
+fixed param table of single-writer seqlocks. `setParam` writes it under a mutex
+that no realtime thread takes, and the prepare thread writes each plan's values
+before it publishes the plan. A value equal to the stored one keeps its
+revision. Each plan param has a sync policy: `immediate` (render only),
+`audio` (audio only) or `synced` (both). The loader rejects an audio kernel that
+reads an `immediate` param with reason `param_sync`, and the session rejects a
+slot outside its table with `param_slot`.
+
+At each quantum start the audio render thread reads the slots its plan uses
+once. For each synced change it writes the revision, value, stream frame and
+clock generation to the audio-applied table. It also records the newest four
+plan revisions it took, with the quantum that took each. A render thread reads
+both tables with bounded reads. `RenderParamApplier` applies a synced value in
+the first frame whose audible stream frame reaches the recorded one, or at once
+after a clock generation change or with no running device. A render domain
+built with staging (`live::Domain<Plan>(maxSlots, true)`) holds up to two taken
+plans. A synced plan swaps when its sound is audible. A full stage keeps its
+oldest plan and replaces the newer one. The newest staged plan swaps at once
+when the device stops or the record of the oldest is gone. `sendEvent` queues
+events for the audio render thread. A full queue drops the newest event, and a
+batch the plan cannot take is dropped without stopping the sound.
 
 ## Build and test
 

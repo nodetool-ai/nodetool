@@ -2,6 +2,8 @@
 // The handoffs between the prepare thread and the realtime threads of a live
 // session (realtime design 7, 11.2 and 11.4). Only the prepare thread creates
 // or destroys the objects that cross them.
+#include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -68,8 +70,11 @@ public:
 
     std::size_t capacity() const noexcept { return m_items.size(); }
     // Realtime thread: true when one more push succeeds.
-    bool hasRoom() const noexcept {
-        return m_write.load(std::memory_order_relaxed) - m_read.load(std::memory_order_acquire) < m_items.size();
+    bool hasRoom() const noexcept { return room() > 0; }
+    // Realtime thread: how many pushes succeed now.
+    std::size_t room() const noexcept {
+        return m_items.size() -
+               static_cast<std::size_t>(m_write.load(std::memory_order_relaxed) - m_read.load(std::memory_order_acquire));
     }
 
     // Realtime thread. False when the queue is full: the caller keeps the
@@ -125,20 +130,52 @@ private:
     std::shared_ptr<const SlotValue> m_value;
 };
 
+// The render thread's input to a staged plan swap (section 11.2) for one
+// frame, computed from the audio-applied plan state. It lists the newest plan
+// revisions the audio thread took, each with whether its stream frame is
+// audible in this frame (or its clock generation is no longer current).
+struct StagedSwapClock {
+    struct Applied {
+        std::uint64_t revision = 0; // 0 marks an empty entry
+        bool audible = false;
+    };
+    std::array<Applied, 4> recent{};
+    bool swapNow = false; // no audio device runs
+
+    const Applied* find(std::uint64_t revision) const noexcept {
+        for (const auto& entry : recent) {
+            if (entry.revision != 0 && entry.revision == revision) { return &entry; }
+        }
+        return nullptr;
+    }
+    std::uint64_t newest() const noexcept {
+        std::uint64_t result = 0;
+        for (const auto& entry : recent) { result = std::max(result, entry.revision); }
+        return result;
+    }
+};
+
 // The realtime side of one domain: a plan handoff, one handoff for each slot
 // and the retire queue of capacity `maxSlots + 3`. Section 11.4 counts
 // `maxSlots + 2`: between two drains the realtime thread takes at most one
 // object per handoff, plus the one the prepare thread published after the
 // first drain. One more is needed for a take that ran before the first
 // drain and whose retire push lands after it, when the realtime thread is
-// preempted between the two steps. The stress test below reaches it. `Plan` must derive from
-// Retirable. The prepare thread publishes and drains. The domain's realtime
+// preempted between the two steps. The stress test reaches it.
+//
+// A staged domain (the render domain, section 11.2) also holds up to two
+// taken plans that wait for their sound. Each can be retired without a take
+// in the same tick, so its queue has two more entries.
+//
+// `Plan` must derive from Retirable. A staged domain's `Plan` also has a
+// `revision` and a `synced` flag, set for a revision that changes both
+// plans. The prepare thread publishes and drains. The domain's realtime
 // thread takes, holds the active objects and retires the replaced ones.
 template <typename Plan>
 class Domain {
 public:
-    explicit Domain(std::size_t maxSlots)
-        : m_slots(maxSlots), m_active(maxSlots), m_retire(maxSlots + 3) {}
+    explicit Domain(std::size_t maxSlots, bool staged = false)
+        : m_slots(maxSlots), m_active(maxSlots), m_retire(maxSlots + 3 + (staged ? kStage : 0)) {}
 
     // ---- prepare thread ----
     std::size_t drain() {
@@ -163,6 +200,8 @@ public:
         drain();
         m_plan.reclaim().reset();
         m_activePlan.reset();
+        for (auto& staged : m_stage) { staged.reset(); }
+        m_staged = 0;
         for (auto& slot : m_slots) { slot.reclaim().reset(); }
         for (auto& slot : m_active) { slot.reset(); }
     }
@@ -186,6 +225,68 @@ public:
                 swapped = true;
             }
         }
+        takeSlots();
+        return swapped;
+    }
+    // Staged domains only. Takes the pending plan into the stage, then swaps
+    // by the dual-plan rule of section 11.2:
+    //  - a plan that is not synced swaps at this tick;
+    //  - a synced plan swaps when the audio thread took its revision and that
+    //    revision's stream frame is audible;
+    //  - the newest staged plan swaps at once when no audio device runs, or
+    //    when the audio thread already took a newer revision and the record
+    //    of this one is gone.
+    // A full stage keeps its oldest plan, which still waits for its sound,
+    // and replaces the newer one. Slot values swap as in takePending.
+    // Returns true when the active plan changed.
+    bool takePendingStaged(const StagedSwapClock& clock) noexcept {
+        if (m_plan.hasPending()) {
+            if (m_staged == kStage && !m_retire.hasRoom()) {
+                ++m_deferred;
+            } else if (auto next = m_plan.take()) {
+                if (m_staged == kStage) {
+                    retire(std::move(m_stage[kStage - 1]));
+                    --m_staged;
+                }
+                m_stage[m_staged++] = std::move(next);
+            }
+        }
+        bool swapped = false;
+        while (m_staged > 0) {
+            const auto& front = *m_stage[0];
+            const auto* applied = clock.find(front.revision);
+            if (!front.synced || (applied && applied->audible)) {
+                if (m_activePlan && !m_retire.hasRoom()) {
+                    ++m_deferred;
+                    break;
+                }
+                activate(1);
+                swapped = true;
+                continue;
+            }
+            if (clock.swapNow || (!applied && clock.newest() > front.revision)) {
+                if (m_retire.room() < m_staged - 1 + (m_activePlan ? 1 : 0)) {
+                    ++m_deferred;
+                    break;
+                }
+                activate(m_staged);
+                swapped = true;
+            }
+            break;
+        }
+        takeSlots();
+        return swapped;
+    }
+    std::size_t stagedPlans() const noexcept { return m_staged; }
+    Plan* plan() noexcept { return m_activePlan.get(); }
+    const SlotRef* slot(std::size_t index) const noexcept { return m_active[index].get(); }
+    // Takes skipped for lack of retire room. Zero when section 11.4 holds.
+    std::uint64_t deferredTakes() const noexcept { return m_deferred; }
+
+private:
+    static constexpr std::size_t kStage = 2;
+
+    void takeSlots() noexcept {
         for (std::size_t i = 0; i < m_slots.size(); ++i) {
             if (!m_slots[i].hasPending()) { continue; }
             if (m_active[i] && !m_retire.hasRoom()) {
@@ -195,14 +296,18 @@ public:
                 m_active[i] = std::move(next);
             }
         }
-        return swapped;
     }
-    Plan* plan() noexcept { return m_activePlan.get(); }
-    const SlotRef* slot(std::size_t index) const noexcept { return m_active[index].get(); }
-    // Takes skipped for lack of retire room. Zero when section 11.4 holds.
-    std::uint64_t deferredTakes() const noexcept { return m_deferred; }
+    // Activates the staged plan at `count - 1`, retires the active plan and
+    // the staged plans before it, and shifts the rest forward. Room was
+    // checked by the caller.
+    void activate(std::size_t count) noexcept {
+        retire(std::move(m_activePlan));
+        for (std::size_t i = 0; i + 1 < count; ++i) { retire(std::move(m_stage[i])); }
+        m_activePlan = std::move(m_stage[count - 1]);
+        for (std::size_t i = count; i < m_staged; ++i) { m_stage[i - count] = std::move(m_stage[i]); }
+        m_staged -= count;
+    }
 
-private:
     // Room was checked before the take, so the push succeeds.
     template <typename T>
     void retire(std::unique_ptr<T> old) noexcept {
@@ -214,6 +319,8 @@ private:
     Handoff<Plan> m_plan;
     std::vector<Handoff<SlotRef>> m_slots;
     std::unique_ptr<Plan> m_activePlan;             // realtime thread
+    std::array<std::unique_ptr<Plan>, kStage> m_stage; // realtime thread, staged domains
+    std::size_t m_staged = 0;                       // realtime thread
     std::vector<std::unique_ptr<SlotRef>> m_active; // realtime thread
     RetireQueue m_retire;
     std::uint64_t m_retired = 0;                    // prepare thread

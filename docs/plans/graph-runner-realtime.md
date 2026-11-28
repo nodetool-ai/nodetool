@@ -1207,6 +1207,10 @@ Every exchange with a realtime thread has a bound (F36, F49):
   realtime thread checks for room before each take, so the queue cannot
   overflow. A take without room stays pending for a later tick and is
   counted.
+- The render thread's staging slot of section 11.2 holds up to two taken
+  plans. A full stage retires its newer plan when a third arrives, and a swap
+  to the newest staged plan retires the older one, without a take in the same
+  tick. The render domain's retire queue therefore holds `maxSlots + 5`.
 - A value that both plans read has a reference count of two, one for each
   domain's handoff slot. Each realtime thread retires its replaced active
   reference through its own retire queue, and the prepare thread drops the

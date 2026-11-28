@@ -808,10 +808,49 @@ check, and publishing without draining fails the swap test. With the section
 runs, because a take that runs before a drain can push after it. The queue now
 holds `maxSlots + 3`, and the design section says why.
 
-Not covered: the render thread and the plan staging of section 11.2 (WP14),
-synced params (WP13), state follow on swap (WP18), tap and capture rings, live
+Not covered: the render thread (WP14), state follow on swap (WP18), tap and
+capture rings, live
 slot replacement inside the executors (WP19), and the macOS device workgroup.
 The Linux `SCHED_FIFO` request is exercised. The macOS time-constraint and
 Windows MMCSS paths are not compiled by Linux CI. Device-timing qualification
 needs the hardware of WP02 and WP15.
 
+## WP13 params and synced changes
+
+[params.h](include/nodetool/realtime/params.h) adds the param table, the three
+sync policies, the audio-applied table, the render-side apply rule of D7g, the
+event queue, and plan staging in the render domain of
+[live.h](include/nodetool/realtime/live.h). The live session reads params at
+each quantum start, records synced changes and plan revisions, and passes
+events to the audio executor.
+
+`realtime-params` and `realtime-live` pass with GCC Release, ASan/UBSan and
+TSan, and with Clang TSan. They check:
+
+- The synced change of section 15 against a simulated 48 kHz audio clock with a
+  lead of 8 quanta and a 60 Hz display: the sound takes the change at the next
+  quantum start, and the picture takes it in the first frame whose audible time
+  reaches that quantum, not one frame earlier or later. An immediate param
+  written at the same time shows in the next frame.
+- Rapid revisions within one ring lead: two synced revisions each reach the
+  picture in the frame where their sound is audible. With three, the oldest
+  shows at its sound, the middle one is replaced, and the newest wins at its
+  sound. A render-only revision swaps at the next frame.
+- The fallbacks: a clock generation change or a stopped device applies a synced
+  value or the newest staged plan at once, and a lost record of a staged plan
+  after a newer audio revision swaps to the newest.
+- 5,000 synced revisions through threads for the prepare, audio and render
+  roles: no deferred take, and only the prepare thread destroys plans.
+- On the null device: plan values enter the table, a host write reaches the
+  audio-applied table at a quantum start, a plan with an equal value keeps the
+  host revision, a slot outside the table is rejected, and an event with an
+  unknown node is dropped while quanta continue.
+
+Inverted checks: a `syncedDue` that always returns true fails the synced change
+test, and a staged swap that ignores audibility fails the rapid revision test.
+
+The render staging needs two more retire entries per domain than section 11.4
+counts, since a staged plan can retire without a take. A staged domain holds
+`maxSlots + 5`. The section 15 check here is offline. The render thread, visual
+clock and presentation latency are WP14, so the audible frame of a real frame is
+not yet measured.
