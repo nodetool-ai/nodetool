@@ -6,7 +6,7 @@
  * and option keys a draft needs.
  */
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
-import type { ImageModel, VideoModel } from "./types.js";
+import type { ImageModel, VideoModel, VideoRecreateMode } from "./types.js";
 
 const IMAGE_RATIOS = ["1:1", "3:4", "16:9", "4:3", "9:16", "2:3", "3:2", "21:9"];
 const VIDEO_RATIOS = ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"];
@@ -50,13 +50,35 @@ export const DREAMINA_IMAGE_MODELS: readonly ImageModel[] = IMAGE.map(([id, name
   resolutions
 }));
 
-/** Every Dreamina video model takes a first frame image. */
-export const DREAMINA_VIDEO_MODELS: readonly VideoModel[] = VIDEO.map(([id, name, references, [shortest, longest], resolutions]) => ({
-  id,
-  name,
-  provider: PROVIDER_IDS.DREAMINA,
-  supportedTasks: references ? ["text_to_video", "image_to_video", "reference_to_video"] : ["text_to_video", "image_to_video"],
-  durations: Array.from({ length: longest - shortest + 1 }, (_, i) => shortest + i),
-  resolutions,
-  aspectRatios: VIDEO_RATIOS
-}));
+/**
+ * Video recreate models ("recast"), captured from the web app's recreate
+ * panel. They take a source video and keep its length, so they list no durations.
+ * [model_req_key, name, recreate modes]
+ */
+const RECAST: Array<[string, string, VideoRecreateMode[]]> = [
+  ["dreamina_seedance_45_pro_recast", "Dreamina Seedance 2.5 Recreate", ["creative_remix", "object_swap", "motion_transfer"]],
+  ["dreamina_wan_30_recast", "Dreamina Recreate Lite", ["object_swap", "motion_transfer"]]
+];
+
+/** The recreate modes each recast model offers. */
+export const DREAMINA_RECAST_MODES: ReadonlyMap<string, readonly VideoRecreateMode[]> = new Map(RECAST.map(([id, , modes]) => [id, modes]));
+
+/** Every Dreamina video model takes a first frame image, except the recast models. */
+export const DREAMINA_VIDEO_MODELS: readonly VideoModel[] = [
+  ...VIDEO.map(([id, name, references, [shortest, longest], resolutions]): VideoModel => ({
+    id,
+    name,
+    provider: PROVIDER_IDS.DREAMINA,
+    supportedTasks: references ? ["text_to_video", "image_to_video", "reference_to_video"] : ["text_to_video", "image_to_video"],
+    durations: Array.from({ length: longest - shortest + 1 }, (_, i) => shortest + i),
+    resolutions,
+    aspectRatios: VIDEO_RATIOS
+  })),
+  ...RECAST.map(([id, name]): VideoModel => ({
+    id,
+    name,
+    provider: PROVIDER_IDS.DREAMINA,
+    supportedTasks: ["video_to_video"],
+    resolutions: ["480p", "720p", "1080p"]
+  }))
+];

@@ -771,9 +771,19 @@ export interface ReferenceToVideoParams extends TextToVideoParams {
  * prompt (e.g. style transfer, motion restyle). Mirrors `ImageToImageParams`
  * for the video domain.
  */
+/**
+ * How a video-to-video model reuses the source video:
+ * - `creative_remix`: remake the same ad or clip with the user's own product and characters.
+ * - `object_swap`: keep the actions and camera work, replace only the named content.
+ * - `motion_transfer`: keep the motion and camera work, the subject in the reference images performs it.
+ */
+export type VideoRecreateMode = "creative_remix" | "object_swap" | "motion_transfer";
+
 export interface VideoToVideoParams {
   model: VideoModel;
   prompt?: string | null;
+  /** Recreate mode for models that offer several. Providers with one behavior ignore it. */
+  mode?: VideoRecreateMode | null;
   /** Ordered identity/style images, separate from the source video. */
   referenceImages?: readonly Uint8Array[];
   referenceAssetIds?: readonly string[];
