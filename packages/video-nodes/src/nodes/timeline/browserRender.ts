@@ -177,14 +177,22 @@ const CHROMIUM_ARGS = [
  * build the Package Manager installs encodes H.264 too. The bundled Chromium
  * is the last resort.
  */
-async function launchCandidates(): Promise<{ label: string; options: { channel?: string; executablePath?: string } }[]> {
-  const candidates: { label: string; options: { channel?: string; executablePath?: string } }[] = [];
+type LaunchOptions = { channel?: string; executablePath?: string };
+
+function launchCandidates(): { label: string; options: () => Promise<LaunchOptions | null> }[] {
+  const candidates: { label: string; options: () => Promise<LaunchOptions | null> }[] = [];
   const executablePath = process.env["CHROME_PATH"]?.trim();
-  if (executablePath) candidates.push({ label: executablePath, options: { executablePath } });
-  candidates.push({ label: "chrome", options: { channel: "chrome" } });
-  const managed = await installedAppBinary("chrome", runtimeLocations().chrome).catch(() => null);
-  if (managed) candidates.push({ label: managed, options: { executablePath: managed } });
-  candidates.push({ label: "bundled", options: { channel: "chromium" } });
+  if (executablePath) candidates.push({ label: executablePath, options: async () => ({ executablePath }) });
+  candidates.push({ label: "chrome", options: async () => ({ channel: "chrome" }) });
+  // Looked up only when reached, so a host with Chrome never touches the disk.
+  candidates.push({
+    label: "managed chrome",
+    options: async () => {
+      const managed = await installedAppBinary("chrome", runtimeLocations().chrome).catch(() => null);
+      return managed ? { executablePath: managed } : null;
+    }
+  });
+  candidates.push({ label: "bundled", options: async () => ({ channel: "chromium" }) });
   return candidates;
 }
 
@@ -202,12 +210,14 @@ async function launchBrowser(): Promise<{ browser: PlaywrightBrowser; label: str
     );
   }
   const failures: string[] = [];
-  for (const candidate of await launchCandidates()) {
+  for (const candidate of launchCandidates()) {
+    const options = await candidate.options();
+    if (!options) { continue; }
     try {
       const browser = await playwright.chromium.launch({
         headless: true,
         args: CHROMIUM_ARGS,
-        ...candidate.options
+        ...options
       });
       return { browser, label: candidate.label };
     } catch (error) {
