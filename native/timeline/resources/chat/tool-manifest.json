@@ -10369,6 +10369,9 @@
                               "depth",
                               "normal"
                             ]
+                          },
+                          "assetRevision": {
+                            "type": "string"
                           }
                         },
                         "required": [
