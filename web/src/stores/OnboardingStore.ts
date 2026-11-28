@@ -8,7 +8,8 @@
  * is derived live from configured secrets and is not stored here — only the
  * fact that the first-run sign-in offer was already made, so a user who
  * declined it is not asked again on every launch. It also counts active usage
- * time for the one-time GitHub star prompt.
+ * time for the one-time GitHub star prompt, and remembers that the home
+ * screen's local-agent card was dismissed.
  */
 
 import { create } from "zustand";
@@ -56,12 +57,15 @@ interface OnboardingStore {
   activeUsageMs: number;
   /** The GitHub star prompt has been shown once already. */
   githubStarPromptShown: boolean;
+  /** The person closed the card that connects their local coding agents. */
+  localAgentsDismissed: boolean;
   markStep: (step: OnboardingStepId) => void;
   markIdeaDescribed: () => void;
   markFirstResult: () => void;
   dismiss: () => void;
   addActiveUsage: (ms: number) => void;
   markGithubStarPromptShown: () => void;
+  dismissLocalAgents: () => void;
 }
 
 export const useOnboardingStore = create<OnboardingStore>()(
@@ -73,6 +77,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       firstResult: false,
       activeUsageMs: 0,
       githubStarPromptShown: false,
+      localAgentsDismissed: false,
 
       markStep: (step: OnboardingStepId) => {
         set((state) =>
@@ -100,6 +105,10 @@ export const useOnboardingStore = create<OnboardingStore>()(
 
       markGithubStarPromptShown: () => {
         set({ githubStarPromptShown: true });
+      },
+
+      dismissLocalAgents: () => {
+        set({ localAgentsDismissed: true });
       }
     }),
     {

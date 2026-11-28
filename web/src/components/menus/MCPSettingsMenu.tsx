@@ -45,7 +45,7 @@ interface McpStatusResponse {
 const TERMINAL_INSTALL =
   "npx -y --package=@nodetool-ai/cli nodetool mcp install";
 
-type McpTarget = "claude" | "codex" | "opencode";
+type McpTarget = "claude" | "codex" | "opencode" | "antigravity";
 
 async function fetchMcpStatus(): Promise<McpStatusResponse> {
   return trpcClient.mcpConfig.status.query();

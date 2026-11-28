@@ -1,6 +1,6 @@
 /**
  * Register the NodeTool MCP server in the config files of local agent
- * harnesses: Claude Code, Codex, and OpenCode.
+ * harnesses: Claude Code, Codex, OpenCode, and Antigravity.
  *
  * Both `nodetool mcp install` and the Settings → MCP buttons write through this
  * module, so the two surfaces produce the same entry in the same place.
@@ -24,7 +24,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 
-export type McpClientId = "claude" | "codex" | "opencode";
+export type McpClientId = "claude" | "codex" | "opencode" | "antigravity";
 
 export type McpLaunch =
   | { transport: "stdio"; command: string; args: string[] }
@@ -33,13 +33,15 @@ export type McpLaunch =
 export const MCP_CLIENT_IDS: readonly McpClientId[] = [
   "claude",
   "codex",
-  "opencode"
+  "opencode",
+  "antigravity"
 ];
 
 export const MCP_CLIENT_LABELS = {
   claude: "Claude Code",
   codex: "Codex",
-  opencode: "OpenCode"
+  opencode: "OpenCode",
+  antigravity: "Antigravity"
 } satisfies Record<McpClientId, string>;
 
 /** The name the server has in every client config. */
@@ -135,6 +137,14 @@ export function codexHome(home: string, env: NodeJS.ProcessEnv = process.env): s
   return env["CODEX_HOME"]?.trim() || join(home, ".codex");
 }
 
+/**
+ * Antigravity's MCP file. The `agy` CLI, the Antigravity IDE, and the
+ * Antigravity app all read this one user-scope file.
+ */
+function antigravityConfigDir(home: string): string {
+  return join(home, ".gemini", "config");
+}
+
 export function mcpClientConfigPath(client: McpClientId, home: string): string {
   switch (client) {
     case "claude":
@@ -143,6 +153,8 @@ export function mcpClientConfigPath(client: McpClientId, home: string): string {
       return join(codexHome(home), "config.toml");
     case "opencode":
       return join(home, ".config", "opencode", "opencode.json");
+    case "antigravity":
+      return join(antigravityConfigDir(home), "mcp_config.json");
   }
 }
 
@@ -160,6 +172,14 @@ export function isMcpClientPresent(client: McpClientId, home: string): boolean {
     case "opencode":
       return (
         existsSync(join(home, ".config", "opencode")) || isOnPath("opencode")
+      );
+    case "antigravity":
+      // `~/.gemini` alone belongs to the Gemini CLI, so only the Antigravity
+      // data directories count.
+      return (
+        existsSync(join(home, ".gemini", "antigravity-cli")) ||
+        existsSync(join(home, ".gemini", "antigravity")) ||
+        isOnPath("agy")
       );
   }
 }
@@ -224,6 +244,13 @@ function opencodeEntry(launch: McpLaunch): JsonObject {
 }
 
 /** TOML basic strings accept JSON string escaping, so quotes cannot break out. */
+/** Antigravity names the Streamable HTTP endpoint `serverUrl`. */
+function antigravityEntry(launch: McpLaunch): JsonObject {
+  return launch.transport === "stdio"
+    ? { command: launch.command, args: launch.args, timeoutSeconds: TOOL_TIMEOUT_SEC }
+    : { serverUrl: launch.url, timeoutSeconds: TOOL_TIMEOUT_SEC };
+}
+
 function codexBlock(launch: McpLaunch): string {
   const location =
     launch.transport === "stdio"
@@ -243,8 +270,9 @@ function codexBlock(launch: McpLaunch): string {
 }
 
 function launchFromEntry(entry: JsonObject): McpLaunch | null {
-  if (typeof entry["url"] === "string") {
-    return { transport: "http", url: entry["url"] };
+  const url = entry["url"] ?? entry["serverUrl"];
+  if (typeof url === "string") {
+    return { transport: "http", url };
   }
   const command = entry["command"];
   if (typeof command === "string") {
@@ -288,6 +316,10 @@ export function readMcpClientEntry(
       const servers = asObject(readJson(path)["mcp"]);
       return launchFromEntry(asObject(servers[SERVER_NAME]));
     }
+    case "antigravity": {
+      const servers = asObject(readJson(path)["mcpServers"]);
+      return launchFromEntry(asObject(servers[SERVER_NAME]));
+    }
   }
 }
 
@@ -328,6 +360,15 @@ export function writeMcpClientEntry(
       writeJson(path, config);
       return path;
     }
+    case "antigravity": {
+      mkdirSync(antigravityConfigDir(home), { recursive: true });
+      const config = readJson(path);
+      const servers = asObject(config["mcpServers"]);
+      servers[SERVER_NAME] = antigravityEntry(launch);
+      config["mcpServers"] = servers;
+      writeJson(path, config);
+      return path;
+    }
   }
 }
 
@@ -355,6 +396,14 @@ export function removeMcpClientEntry(client: McpClientId, home: string): boolean
     case "opencode": {
       const config = readJson(path);
       const servers = asObject(config["mcp"]);
+      if (!(SERVER_NAME in servers)) return false;
+      delete servers[SERVER_NAME];
+      writeJson(path, config);
+      return true;
+    }
+    case "antigravity": {
+      const config = readJson(path);
+      const servers = asObject(config["mcpServers"]);
       if (!(SERVER_NAME in servers)) return false;
       delete servers[SERVER_NAME];
       writeJson(path, config);

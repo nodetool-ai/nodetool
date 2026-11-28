@@ -20302,6 +20302,21 @@
     "opening": "여는 중…",
     "startFailed": "시작 항목을 열 수 없습니다: {{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "내 코딩 에이전트",
+    "heading": "NodeTool에서 {{agents}} 사용하기",
+    "description": "이 컴퓨터에서 찾았습니다. 한 번 연결하면 에이전트가 자체 터미널에서 워크플로를 만들고, 미디어를 생성하고, NodeTool 프로젝트를 편집할 수 있습니다.",
+    "agentConnected": "{{agent}} 연결됨",
+    "connect": "{{agents}} 연결",
+    "connecting": "연결 중…",
+    "connectFailed": "연결하지 못했습니다. 에이전트 설정 파일에 쓰기 권한이 있는지 확인한 뒤 다시 시도하세요.",
+    "connectedHeading": "이제 {{agents}}에서 NodeTool을 사용할 수 있습니다",
+    "nextStep": "{{agents}}을(를) 다시 시작한 뒤 이렇게 물어보세요:",
+    "examplePrompt": "NodeTool로 내 워크플로 목록을 보여줘.",
+    "copyPrompt": "프롬프트 복사",
+    "done": "완료",
+    "dismiss": "숨기기"
+  },
   "timelineClipPanels": {
     "noClip": "선택한 클립이 없습니다",
     "severalClips": "여러 클립이 선택되었습니다",

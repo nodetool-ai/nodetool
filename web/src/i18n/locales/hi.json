@@ -20302,6 +20302,21 @@
     "opening": "खुल रहा है…",
     "startFailed": "स्टार्टर नहीं खुल सका: {{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "आपके कोडिंग एजेंट",
+    "heading": "NodeTool के साथ {{agents}} इस्तेमाल करें",
+    "description": "इस कंप्यूटर पर मिला। एक बार कनेक्ट करें, फिर आपका एजेंट अपने टर्मिनल से वर्कफ़्लो बना सकता है, मीडिया जनरेट कर सकता है और NodeTool में आपके प्रोजेक्ट एडिट कर सकता है।",
+    "agentConnected": "{{agent}} कनेक्ट हुआ",
+    "connect": "{{agents}} कनेक्ट करें",
+    "connecting": "कनेक्ट हो रहा है…",
+    "connectFailed": "कनेक्ट नहीं हो सका। जांचें कि एजेंट की कॉन्फ़िग फ़ाइल में लिखा जा सकता है, फिर दोबारा कोशिश करें।",
+    "connectedHeading": "{{agents}} अब NodeTool इस्तेमाल कर सकता है",
+    "nextStep": "{{agents}} को रीस्टार्ट करें, फिर पूछें:",
+    "examplePrompt": "NodeTool से मेरे वर्कफ़्लो की सूची दिखाओ।",
+    "copyPrompt": "प्रॉम्प्ट कॉपी करें",
+    "done": "हो गया",
+    "dismiss": "छिपाएं"
+  },
   "timelineClipPanels": {
     "noClip": "कोई क्लिप चुनी नहीं गई",
     "severalClips": "कई क्लिप चुनी गई हैं",

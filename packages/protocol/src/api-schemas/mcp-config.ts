@@ -1,16 +1,18 @@
 import { z } from "zod";
 
 // ── Target constants ──────────────────────────────────────────────
-// The server enumerates three hard-coded MCP targets (Claude Code, Codex,
-// OpenCode). Clients can filter by a subset, but unknown targets are
+// The server enumerates four hard-coded MCP targets (Claude Code, Codex,
+// OpenCode, Antigravity). Clients can filter by a subset, but unknown targets are
 // silently dropped by the router — matching legacy `resolveTargets` behaviour.
-export const mcpTarget = z.enum(["claude", "codex", "opencode"]);
+export const mcpTarget = z.enum(["claude", "codex", "opencode", "antigravity"]);
 export type McpTarget = z.infer<typeof mcpTarget>;
 
 // ── status (GET /api/mcp/status) ──────────────────────────────────
 export const targetStatus = z.object({
   target: mcpTarget,
   label: z.string(),
+  // The agent itself is on this machine: its binary or its data directory.
+  present: z.boolean(),
   installed: z.boolean(),
   // An HTTP entry has a URL. A stdio entry has the command the client runs.
   url: z.string().nullable(),

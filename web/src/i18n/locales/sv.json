@@ -20302,6 +20302,21 @@
     "opening": "Öppnar…",
     "startFailed": "Det gick inte att öppna startern: {{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "Dina kodagenter",
+    "heading": "Använd {{agents}} med NodeTool",
+    "description": "Hittades på den här datorn. Anslut en gång så kan agenten bygga arbetsflöden, generera media och redigera dina projekt i NodeTool från sin egen terminal.",
+    "agentConnected": "{{agent}} ansluten",
+    "connect": "Anslut {{agents}}",
+    "connecting": "Ansluter…",
+    "connectFailed": "Det gick inte att ansluta. Kontrollera att agentens konfigurationsfil är skrivbar och försök igen.",
+    "connectedHeading": "{{agents}} kan nu använda NodeTool",
+    "nextStep": "Starta om {{agents}} och fråga sedan:",
+    "examplePrompt": "Använd NodeTool för att lista mina arbetsflöden.",
+    "copyPrompt": "Kopiera prompt",
+    "done": "Klar",
+    "dismiss": "Dölj"
+  },
   "timelineClipPanels": {
     "noClip": "Inget klipp markerat",
     "severalClips": "Flera klipp markerade",

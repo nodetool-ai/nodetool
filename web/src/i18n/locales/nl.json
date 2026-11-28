@@ -20302,6 +20302,21 @@
     "opening": "Openen…",
     "startFailed": "Kan de starter niet openen: {{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "Je codeeragents",
+    "heading": "Gebruik {{agents}} met NodeTool",
+    "description": "Gevonden op deze computer. Maak één keer verbinding, dan kan je agent vanuit zijn eigen terminal workflows bouwen, media genereren en je projecten in NodeTool bewerken.",
+    "agentConnected": "{{agent}} verbonden",
+    "connect": "{{agents}} verbinden",
+    "connecting": "Verbinden…",
+    "connectFailed": "Verbinden mislukt. Controleer of het configuratiebestand van de agent schrijfbaar is en probeer het opnieuw.",
+    "connectedHeading": "{{agents}} kan NodeTool nu gebruiken",
+    "nextStep": "Start {{agents}} opnieuw en vraag:",
+    "examplePrompt": "Gebruik NodeTool om mijn workflows te tonen.",
+    "copyPrompt": "Prompt kopiëren",
+    "done": "Klaar",
+    "dismiss": "Verbergen"
+  },
   "timelineClipPanels": {
     "noClip": "Geen clip geselecteerd",
     "severalClips": "Meerdere clips geselecteerd",

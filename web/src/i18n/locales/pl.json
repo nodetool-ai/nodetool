@@ -20926,6 +20926,21 @@
     "opening": "Otwieranie…",
     "startFailed": "Nie udało się otworzyć startera: {{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "Twoi agenci kodujący",
+    "heading": "Używaj {{agents}} z NodeTool",
+    "description": "Znaleziono na tym komputerze. Połącz raz, a agent będzie mógł tworzyć workflowy, generować media i edytować Twoje projekty w NodeTool z własnego terminala.",
+    "agentConnected": "Połączono: {{agent}}",
+    "connect": "Połącz: {{agents}}",
+    "connecting": "Łączenie…",
+    "connectFailed": "Nie udało się połączyć. Sprawdź, czy plik konfiguracyjny agenta jest zapisywalny, i spróbuj ponownie.",
+    "connectedHeading": "{{agents}} może teraz używać NodeTool",
+    "nextStep": "Uruchom ponownie {{agents}}, a potem zapytaj:",
+    "examplePrompt": "Użyj NodeTool, aby wyświetlić moje workflowy.",
+    "copyPrompt": "Kopiuj prompt",
+    "done": "Gotowe",
+    "dismiss": "Ukryj"
+  },
   "timelineClipPanels": {
     "noClip": "Nie wybrano klipu",
     "severalClips": "Wybrano kilka klipów",

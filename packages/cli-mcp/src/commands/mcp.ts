@@ -23,6 +23,7 @@ interface TargetOptions {
   claude?: boolean;
   codex?: boolean;
   opencode?: boolean;
+  antigravity?: boolean;
 }
 
 type InstallOptions = LaunchOptions & TargetOptions & { verify: boolean };
@@ -43,14 +44,15 @@ export async function resolveLaunch(opts: LaunchOptions): Promise<McpLaunch> {
 }
 
 function selectedTargets(opts: TargetOptions): McpClientId[] {
-  return (["claude", "codex", "opencode"] as const).filter((id) => opts[id]);
+  return (["claude", "codex", "opencode", "antigravity"] as const).filter((id) => opts[id]);
 }
 
 function addTargetOptions(command: Command, verb: string): Command {
   return command
     .option("--claude", `${verb} Claude Code`)
     .option("--codex", `${verb} Codex`)
-    .option("--opencode", `${verb} OpenCode`);
+    .option("--opencode", `${verb} OpenCode`)
+    .option("--antigravity", `${verb} Antigravity`);
 }
 
 function addLaunchOptions(command: Command): Command {
@@ -87,7 +89,7 @@ export function registerMcpClientCommands(mcp: Command): void {
       mcp
         .command("install")
         .description(
-          "Register NodeTool with Claude Code, Codex, and OpenCode. " +
+          "Register NodeTool with Claude Code, Codex, OpenCode, and Antigravity. " +
             "Without a target flag, installs for every client found on this machine."
         ),
       "Install for"
@@ -112,8 +114,8 @@ export function registerMcpClientCommands(mcp: Command): void {
       }
       if (targets.length === 0) {
         console.error(
-          "No Claude Code, Codex, or OpenCode installation found.\n" +
-            "Pick one with --claude, --codex, or --opencode, or print a config " +
+          "No Claude Code, Codex, OpenCode, or Antigravity installation found.\n" +
+            "Pick one with --claude, --codex, --opencode, or --antigravity, or print a config " +
             "for another client with: nodetool mcp config"
         );
         process.exitCode = 1;

@@ -20302,6 +20302,21 @@
     "opening": "正在打开…",
     "startFailed": "无法打开该入门项：{{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "你的编程智能体",
+    "heading": "在 NodeTool 中使用 {{agents}}",
+    "description": "已在这台电脑上找到。连接一次后，智能体就能在自己的终端里构建工作流、生成媒体并编辑你在 NodeTool 中的项目。",
+    "agentConnected": "{{agent}} 已连接",
+    "connect": "连接 {{agents}}",
+    "connecting": "正在连接…",
+    "connectFailed": "连接失败。请确认智能体的配置文件可写，然后重试。",
+    "connectedHeading": "{{agents}} 现在可以使用 NodeTool 了",
+    "nextStep": "重启 {{agents}}，然后问它：",
+    "examplePrompt": "用 NodeTool 列出我的工作流。",
+    "copyPrompt": "复制提示词",
+    "done": "完成",
+    "dismiss": "隐藏"
+  },
   "timelineClipPanels": {
     "noClip": "未选择片段",
     "severalClips": "已选择多个片段",

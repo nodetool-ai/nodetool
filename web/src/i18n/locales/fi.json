@@ -20302,6 +20302,21 @@
     "opening": "Avataan…",
     "startFailed": "Aloitusta ei voitu avata: {{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "Koodausagenttisi",
+    "heading": "Käytä {{agents}} NodeToolin kanssa",
+    "description": "Löytyi tältä tietokoneelta. Yhdistä kerran, niin agenttisi voi rakentaa työnkulkuja, luoda mediaa ja muokata projektejasi NodeToolissa omasta päätteestään.",
+    "agentConnected": "{{agent}} yhdistetty",
+    "connect": "Yhdistä {{agents}}",
+    "connecting": "Yhdistetään…",
+    "connectFailed": "Yhdistäminen epäonnistui. Tarkista, että agentin asetustiedostoon voi kirjoittaa, ja yritä uudelleen.",
+    "connectedHeading": "{{agents}} voi nyt käyttää NodeToolia",
+    "nextStep": "Käynnistä {{agents}} uudelleen ja kysy:",
+    "examplePrompt": "Listaa työnkulkuni NodeToolin avulla.",
+    "copyPrompt": "Kopioi kehote",
+    "done": "Valmis",
+    "dismiss": "Piilota"
+  },
   "timelineClipPanels": {
     "noClip": "Leikettä ei ole valittu",
     "severalClips": "Useita leikkeitä valittu",

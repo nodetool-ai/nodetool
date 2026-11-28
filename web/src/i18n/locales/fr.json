@@ -20614,6 +20614,21 @@
     "opening": "Ouverture…",
     "startFailed": "Impossible d'ouvrir l'exemple : {{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "Vos agents de code",
+    "heading": "Utilisez {{agents}} avec NodeTool",
+    "description": "Trouvé sur cet ordinateur. Connectez-le une fois et votre agent pourra créer des workflows, générer des médias et modifier vos projets NodeTool depuis son propre terminal.",
+    "agentConnected": "{{agent}} connecté",
+    "connect": "Connecter {{agents}}",
+    "connecting": "Connexion…",
+    "connectFailed": "Connexion impossible. Vérifiez que le fichier de configuration de l'agent est accessible en écriture, puis réessayez.",
+    "connectedHeading": "{{agents}} peut maintenant utiliser NodeTool",
+    "nextStep": "Redémarrez {{agents}}, puis demandez :",
+    "examplePrompt": "Utilise NodeTool pour lister mes workflows.",
+    "copyPrompt": "Copier le prompt",
+    "done": "Terminé",
+    "dismiss": "Masquer"
+  },
   "timelineClipPanels": {
     "noClip": "Aucun clip sélectionné",
     "severalClips": "Plusieurs clips sélectionnés",

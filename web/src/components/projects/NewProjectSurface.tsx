@@ -144,6 +144,7 @@ import useOnboardingStore, {
 } from "../../stores/OnboardingStore";
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
 import FirstRunStarters from "../onboarding/FirstRunStarters";
+import LocalAgentsCard from "../onboarding/LocalAgentsCard";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
 import RecentChats from "./RecentChats";
 import RecentProjects from "./RecentProjects";
@@ -2526,6 +2527,9 @@ const NewProjectSurface = ({
               onOpenExamples={handleOpenExamples}
             />
           )}
+          {/* Offers to connect Claude Code, Codex or Antigravity when one is
+              installed on this machine. Renders nothing otherwise. */}
+          <LocalAgentsCard />
 
           <FlexColumn gap={SPACING.xl}>
             {/* The prompt's `/` and `@` menus open downward when
