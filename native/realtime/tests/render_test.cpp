@@ -1,5 +1,5 @@
 #include "nodetool/realtime/render.h"
-#include "platform/SanitizerBuild.h"
+#include "audio/SanitizerBuild.h"
 #ifndef NT_SANITIZED
 #include "audio/TestAllocationCounter.h"
 #endif

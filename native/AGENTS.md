@@ -9,7 +9,8 @@ that load or scroll, follow
 [Qt Quick performance](ui_primitives/PERFORMANCE.md).
 
 [Realtime engine rules](realtime/AGENTS.md) cover the headless realtime core
-and its provisional milestone gates. [Timeline player rules](timeline-player/AGENTS.md)
+and its provisional milestone gates. [Audio I/O rules](audio-io/AGENTS.md) cover the
+device layer that the realtime engine and the timeline player share. [Timeline player rules](timeline-player/AGENTS.md)
 cover the preview module that the timeline app and the node editor share.
 
 The memory and thread ownership rules below are non-negotiable. Code that

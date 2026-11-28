@@ -8,7 +8,7 @@
 // instead.
 #pragma once
 
-#include "platform/SanitizerBuild.h"
+#include "audio/SanitizerBuild.h"
 
 #include <algorithm>
 #include <cstddef>

@@ -1,6 +1,6 @@
 #include "nodetool/realtime/control.h"
 #include "nodetool/realtime/math.h"
-#include "platform/SanitizerBuild.h"
+#include "audio/SanitizerBuild.h"
 #ifndef NT_SANITIZED
 #include "audio/TestAllocationCounter.h"
 #endif

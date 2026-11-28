@@ -724,3 +724,26 @@ packed install lowers prepared PCM and shared sink outputs outside the workspace
 Render/audio/control/PCM results agree through an isolated browser bundle without
 Node globals or external imports. Broad local checks remain deferred under the
 targeted-check policy.
+
+## WP11 audio-io extraction
+
+[native/audio-io](../audio-io/README.md) now holds the miniaudio playback device
+and null backend, `AudioClockFeed`, `OutputLatency`, `PcmRing` and the test
+allocation counter. It depends on the standard library and miniaudio only. The
+new `PlaybackDevice` owns the miniaudio context and device, which replaces the
+timeline engine's hand-released pair and its `native-rules #6` marker. Following
+RT-F36 and design section 11.4, `RealtimeSeqLockReader` gives realtime code a
+bounded `tryLoad` with a fixed attempt count and a failed-read counter, and no
+blocking `load`. The realtime tests and spikes link the library instead of
+reaching into `native/timeline-player`.
+
+`audio-io-test` passes with GCC Release, ASan/UBSan and TSan, and with Clang
+ASan/UBSan and TSan, on Linux. A reader whose `tryLoad` calls the blocking
+`load` fails the held-writer check and hangs until its timeout. The realtime
+core presets pass their seven tests with GCC and Clang in all three
+configurations, and the spike build passes all fifteen CTest entries in Release.
+The changed `AudioEngine.cpp` compiles with GCC and Clang against Qt 6.4
+headers. This host has no Qt 6.12, so the timeline and timeline-player suites
+were not built or run locally. Their CI must show the timeline's existing audio
+tests pass unchanged before WP11's exit evidence is complete. WP11 remains open
+until then, and the M0 dependency remains as recorded above.

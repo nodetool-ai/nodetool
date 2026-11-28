@@ -24,6 +24,7 @@ on:
     paths:
       - "native/timeline/**"
       - "native/timeline-player/**"
+      - "native/audio-io/**"
       - "native/ui_primitives/**"
       - "native/chat/**"
       - "native/model-picker/**"
@@ -42,6 +43,7 @@ on:
     paths:
       - "native/timeline/**"
       - "native/timeline-player/**"
+      - "native/audio-io/**"
       - "native/ui_primitives/**"
       - "native/chat/**"
       - "native/model-picker/**"

@@ -19,7 +19,7 @@
  * project that lists another in `dependsOn` treats that project's changed
  * files as its own, since it always builds them: graph-runner and the node
  * editor build native/jobs. A project's `sharedDirs` count as part of it for
- * selection too: the timeline build compiles native/ui_primitives,
+ * selection too: the timeline build compiles native/audio-io, native/ui_primitives,
  * native/chat, native/model-picker, native/storyboard and native/files and
  * runs their tests, and the node editor build compiles native/files. A
  * directory with `partOf` is never a project of its own, even when it declares
@@ -149,6 +149,7 @@ export const PROJECTS = {
     dependsOn: ["kernels"],
     sharedDirs: [
       "native/timeline-player",
+      "native/audio-io",
       "native/ui_primitives",
       "native/chat",
       "native/model-picker",
@@ -156,10 +157,10 @@ export const PROJECTS = {
       "native/files"
     ]
   },
-  // The realtime tests include headers from native/timeline-player/src and
-  // compile its miniaudio.cpp (native/realtime/CMakeLists.txt).
+  // The realtime tests and spikes build native/audio-io through
+  // add_subdirectory (native/realtime/CMakeLists.txt).
   realtime: {
-    sharedDirs: ["native/timeline-player"]
+    sharedDirs: ["native/audio-io"]
   },
   // Built and tested only inside the timeline build.
   "timeline-player": {
