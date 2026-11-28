@@ -331,6 +331,7 @@ export const MODULES = {
       loadPackageAssetJson: impl("shims/config.cjs"),
       managedWorkspaceKey: unavailable("server-only", "names a server workspace"),
       mayUseServerCredential: impl("shims/config.cjs"),
+      oauthGrantMaxAgeMs: unavailable("server-only", "reads the server's OAuth grant settings"),
       packageManifestSchema: pure("a schema of the config package"),
       redactPrivateKeys: pure("a helper of the config package's trace redaction"),
       redactTraceText: pure("a helper of the config package's trace redaction"),
