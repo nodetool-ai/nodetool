@@ -2131,6 +2131,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "get_project",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "852fcd8ed8de",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
+    name: "summarize_projects",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "b90ad8ad4093",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
     name: "create_project",
     module: "projects",
     impl: "packages/agents/src/capabilities/projects.ts",
@@ -3067,6 +3087,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-game3d.test.ts",
       "packages/agents/tests/capabilities-game-autoplay.test.ts",
+    ],
+  },
+  {
+    name: "list_native_games",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "b3883cfc86fe",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
     ],
   },
   {

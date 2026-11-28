@@ -1359,9 +1359,51 @@ function withDraftRecovery(capability: CapabilityExport): CapabilityExport {
   } };
 }
 
+const MAX_LISTED_GAMES = 200;
+
+const list: CapabilityExport = {
+  spec: gameSpecs[13],
+  impl: async (run, args) => {
+    const user = userId(run);
+    if (!user) return { error: "No user is bound to this session." };
+    const rawLimit = Math.floor(Number(args["limit"] ?? 50));
+    const limit = Number.isFinite(rawLimit) && rawLimit >= 1 ? Math.min(rawLimit, MAX_LISTED_GAMES) : 50;
+    const projectId = args["project_id"];
+    let games: Game[];
+    if (projectId !== undefined) {
+      if (typeof projectId !== "string" || !projectId.trim()) return { error: "project_id must be a project id (use list_projects to find one)." };
+      if (!(await Project.findOwned(user, projectId.trim()))) return { error: "Project not found" };
+      games = await Game.listByProject(user, projectId.trim());
+    } else {
+      // The router's listAll applies the same rule: a game counts only while
+      // the caller still owns the project it sits in.
+      const owned = new Map<string, boolean>();
+      games = [];
+      for (const game of await Game.listByUser(user)) {
+        let projectOwned = owned.get(game.project_id);
+        if (projectOwned === undefined) {
+          projectOwned = (await Project.findOwned(user, game.project_id)) !== null;
+          owned.set(game.project_id, projectOwned);
+        }
+        if (projectOwned) games.push(game);
+      }
+    }
+    const newest = [...games].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    return {
+      games: newest.slice(0, limit).map((game) => ({
+        ...summary(game),
+        project_id: game.project_id,
+        draft_updated_at: game.draft_updated_at,
+        updated_at: game.updated_at
+      })),
+      truncated: newest.length > limit
+    };
+  }
+};
+
 export const module: CapabilityModule = {
   module: "game",
-  exports: [create, get, save, install, playtest, buildGame, edit, capture, generateAsset, listExamples, getExample, installExample, autoplay,
+  exports: [create, get, save, install, playtest, buildGame, edit, capture, generateAsset, listExamples, getExample, installExample, autoplay, list,
     { spec: previewGameAuthoringSpec, impl: previewGameAuthoring },
     { spec: applyGameAuthoringSpec, impl: applyGameAuthoring },
     { spec: browseGameAssetsSpec, impl: browseGameAssets }].map(withDraftRecovery)
