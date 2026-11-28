@@ -34,6 +34,9 @@ export const staticEntries: PageEntry[] = [
   { route: "/libraries/sandbox-compiler", title: "@nodetool-ai/sandbox-compiler", description: "Check whether an npm package runs in a QuickJS sandbox before you load it.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/gamedev", title: "Open-source AI game engine", description: "A 2D and 3D game engine an AI agent builds and playtests in, with a Game Editor for you and web export.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  // English page for India, the second country by search clicks: Sarvam voices
+  // and transcription in Indian languages, captions, dubs and vertical cuts.
+  { route: "/indian-languages", title: "AI voiceover in Indian languages", description: "Voice, transcribe and caption videos in Hindi, Tamil and other Indian languages with Sarvam.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/ai-image-editor", title: "Open-source AI image editor", description: "A layered image editor where one layer is regenerated without touching the rest.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/ai-video-editor", title: "Open-source AI video editor", description: "An agent plans, renders, and cuts a multi-track timeline you keep editing.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/ja", title: "NodeTool（日本語）", description: "Japanese overview of NodeTool: films, the agent, the live timeline, local projects, and the Japanese app interface.", priority: 0.7, changeFrequency: "monthly", indexable: true },

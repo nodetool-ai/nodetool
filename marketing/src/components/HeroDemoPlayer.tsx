@@ -13,7 +13,9 @@
  * So the poster fills a 16:9 box and the video sits 1px inside it. The video
  * mounts only once the section is on screen, is revealed once it is actually
  * painting frames, and never autoplays for a reader who asked for reduced
- * motion.
+ * motion. On a connection the browser measures as 3G or slower, or with
+ * Save-Data on, the reel waits for the play button instead of downloading by
+ * itself.
  *
  * iOS Safari drives two of the decisions here. It caps preloading at metadata
  * and fetches media data only once playback is requested, so `canplay` never
@@ -26,6 +28,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { usePrefersReducedMotion } from "../lib/useGridParallax";
+import { useDataSaver } from "../lib/useDataSaver";
 import { track } from "../lib/analytics";
 import { localeOfPath } from "../i18n/routes";
 import { ZH_PLAYER } from "../i18n/zh/chrome";
@@ -70,6 +73,10 @@ export default function HeroDemoPlayer({
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const reducedMotion = usePrefersReducedMotion();
+  const saveData = useDataSaver();
+  // On a slow or metered connection the reel loads only once asked for.
+  const [requested, setRequested] = useState(false);
+  const showVideo = mountVideo && (!saveData || requested || started);
   const locale = localeOfPath(usePathname());
   const copy = locale ? PLAYER_COPY[locale] : ENGLISH_PLAYER;
 
@@ -101,10 +108,10 @@ export default function HeroDemoPlayer({
   // element exists rather than waiting for a readiness event that data would
   // have to arrive for.
   useEffect(() => {
-    if (!mountVideo) return;
+    if (!showVideo) return;
     const video = videoRef.current;
     if (!video) return;
-    if (!inView || reducedMotion) {
+    if (!inView || (reducedMotion && !requested)) {
       video.pause();
       return;
     }
@@ -112,7 +119,7 @@ export default function HeroDemoPlayer({
       // Refused (Low Power Mode, power saving, background tab). The poster
       // holds and the button below offers it.
     });
-  }, [inView, mountVideo, reducedMotion]);
+  }, [inView, showVideo, reducedMotion, requested]);
 
   const toggle = useCallback(() => {
     const video = videoRef.current;
@@ -140,6 +147,7 @@ export default function HeroDemoPlayer({
   // covers the first frames. iOS Safari has no element fullscreen at all and
   // only takes a <video>, hence the fallback.
   const enterFullscreen = useCallback(() => {
+    setRequested(true);
     const frame = frameRef.current;
     const video = videoRef.current as
       | (HTMLVideoElement & { webkitEnterFullscreen?: () => void })
@@ -174,7 +182,7 @@ export default function HeroDemoPlayer({
           loading={priority ? "eager" : "lazy"}
         />
 
-        {mountVideo && (
+        {showVideo && (
           <video
             ref={videoRef}
             muted
@@ -213,6 +221,19 @@ export default function HeroDemoPlayer({
               ) : (
                 <Volume2 className="h-4 w-4" aria-hidden />
               )}
+            </button>
+          )}
+          {!showVideo && saveData && (
+            <button
+              type="button"
+              onClick={() => {
+                setRequested(true);
+                track("View Demo", { action: "play", placement: "demo" });
+              }}
+              aria-label={copy.play}
+              className="rounded-full border border-slate-600/80 bg-slate-950/70 p-2 text-slate-200 backdrop-blur hover:text-white focus-ring"
+            >
+              <Play className="h-4 w-4" aria-hidden />
             </button>
           )}
           {hasMetadata && (

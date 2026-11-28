@@ -60,6 +60,7 @@ const NAV: NavEntry[] = [
       { name: "Game development", href: "/gamedev" },
       { name: "Local-first", href: "/solutions/local-first" },
       { name: "Researchers", href: "/solutions/researchers" },
+      { name: "Indian languages", href: "/indian-languages" },
       { name: "All solutions", href: "/solutions" },
     ],
   },
