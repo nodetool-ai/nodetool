@@ -207,7 +207,7 @@ Server state lives in TanStack Query (`web/src/serverState/`). Zustand and Query
 
 ### target
 
-- A central key factory module per resource (`web/src/serverState/keys.ts`) — no string-literal keys outside the factory.
+- A central key factory module per resource, as in `web/src/serverState/workflowQueryKeys.ts` — no string-literal keys outside the factory.
 - 100% of mutations specify optimistic updates or document why they don't.
 
 ---
