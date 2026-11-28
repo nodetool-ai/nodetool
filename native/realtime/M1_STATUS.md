@@ -775,3 +775,43 @@ headers. This host has no Qt 6.12, so the timeline and timeline-player suites
 were not built or run locally. Their CI must show the timeline's existing audio
 tests pass unchanged before WP11's exit evidence is complete. WP11 remains open
 until then, and the M0 dependency remains as recorded above.
+
+## WP12 live session core
+
+[`LiveSession`](include/nodetool/realtime/live_session.h) runs the prepare
+thread, the audio render thread with the buffered driver, and the playback
+device of [native/audio-io](../audio-io/README.md). Plans and slot values cross
+through the single-slot handoffs and per-domain retire queues of
+[live.h](include/nodetool/realtime/live.h). A slot value has one reference per
+domain that reads it. The destructor stops the device, joins the audio render
+thread, then the prepare thread, which destroys every plan. Stats come from two
+seqlocks, one written by the audio render thread and one by the device callback,
+plus prepare-thread counters.
+
+`realtime-live` passes with GCC Release, ASan/UBSan and TSan, and with Clang
+TSan. It checks:
+
+- 20,000 plan and slot swaps against a spinning realtime thread. The retire
+  queue carries many times its capacity, no take is deferred, and only the
+  prepare thread destroys objects.
+- A slot value shared by two consumer threads never has more than two
+  references, and the prepare thread drops the last one.
+- A session on the null device: 400 plan swaps, a malformed plan and a
+  sample-rate mismatch rejected while the active plan keeps running, a device
+  change that flushes the ring and raises the lead after the underrun, and zero
+  C++ allocations on the audio render thread, with a positive control on that
+  thread.
+
+Inverted checks: an allocation added to the audio loop fails the allocation
+check, and publishing without draining fails the swap test. With the section
+11.4 capacity of `maxSlots + 2`, the swap test deferred takes in nine of ten
+runs, because a take that runs before a drain can push after it. The queue now
+holds `maxSlots + 3`, and the design section says why.
+
+Not covered: the render thread and the plan staging of section 11.2 (WP14),
+synced params (WP13), state follow on swap (WP18), tap and capture rings, live
+slot replacement inside the executors (WP19), and the macOS device workgroup.
+The Linux `SCHED_FIFO` request is exercised. The macOS time-constraint and
+Windows MMCSS paths are not compiled by Linux CI. Device-timing qualification
+needs the hardware of WP02 and WP15.
+
