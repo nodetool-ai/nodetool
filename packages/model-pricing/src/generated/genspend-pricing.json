@@ -2,11 +2,11 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-11-21T11:30:18.335Z",
-  "catalogGeneratedAt": "2026-11-21T11:30:17.004Z",
+  "updatedAt": "2026-11-28T12:05:32.620Z",
+  "catalogGeneratedAt": "2026-11-28T12:05:31.015Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
-  "catalogModels": 187,
-  "catalogOfferings": 646,
+  "catalogModels": 188,
+  "catalogOfferings": 649,
   "providers": [
     "atlascloud",
     "elevenlabs",
@@ -19,7 +19,7 @@
     "together",
     "xai"
   ],
-  "pricedModels": 369,
+  "pricedModels": 372,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.0/reference-to-video": {
       "unit_price": 0.14,
@@ -1353,6 +1353,36 @@
         "max": 15
       }
     },
+    "atlascloud:kwaivgi/kling-v4.0/image-to-video": {
+      "unit_price": 0.11,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-4.0",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/models/kwaivgi/kling-v4.0/text-to-video",
+      "clip_seconds": null
+    },
+    "atlascloud:kwaivgi/kling-v4.0/reference-to-video": {
+      "unit_price": 0.11,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-4.0",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/models/kwaivgi/kling-v4.0/text-to-video",
+      "clip_seconds": null
+    },
+    "atlascloud:kwaivgi/kling-v4.0/text-to-video": {
+      "unit_price": 0.11,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-4.0",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://www.atlascloud.ai/models/kwaivgi/kling-v4.0/text-to-video",
+      "clip_seconds": null
+    },
     "atlascloud:kwaivgi/kling-video-o3-4k/image-to-video": {
       "unit_price": 0.357,
       "billing_unit": "seconds",
@@ -2132,7 +2162,7 @@
       "source_url": "https://fal.ai/models/alibaba/qwen-audio-3-tts"
     },
     "fal_ai:alibaba/wan-3.0-prime/image-to-video": {
-      "unit_price": 0.045,
+      "unit_price": 0.05,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-3.0-prime",
@@ -2142,7 +2172,7 @@
       "clip_seconds": null
     },
     "fal_ai:alibaba/wan-3.0-prime/reference-to-video": {
-      "unit_price": 0.045,
+      "unit_price": 0.05,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-3.0-prime",
@@ -2152,7 +2182,7 @@
       "clip_seconds": null
     },
     "fal_ai:alibaba/wan-3.0-prime/text-to-video": {
-      "unit_price": 0.045,
+      "unit_price": 0.05,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-3.0-prime",
@@ -2162,7 +2192,7 @@
       "clip_seconds": null
     },
     "fal_ai:alibaba/wan-3.0/image-to-video": {
-      "unit_price": 0.045,
+      "unit_price": 0.05,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-3.0",
@@ -2172,7 +2202,7 @@
       "clip_seconds": null
     },
     "fal_ai:alibaba/wan-3.0/reference-to-video": {
-      "unit_price": 0.045,
+      "unit_price": 0.05,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-3.0",
@@ -2182,7 +2212,7 @@
       "clip_seconds": null
     },
     "fal_ai:alibaba/wan-3.0/text-to-video": {
-      "unit_price": 0.045,
+      "unit_price": 0.05,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "wan-3.0",
@@ -2199,7 +2229,13 @@
       "match": "catalog",
       "live": false,
       "source_url": "https://fal.ai/flux-3-max",
-      "clip_seconds": null
+      "clip_seconds": null,
+      "data_flags": [
+        {
+          "kind": "rate_mismatch",
+          "severity": "quote_wrong"
+        }
+      ]
     },
     "fal_ai:blackforestlabs/flux-3-max/text-to-video": {
       "unit_price": 0.085,
@@ -2209,7 +2245,13 @@
       "match": "catalog",
       "live": false,
       "source_url": "https://fal.ai/flux-3-max",
-      "clip_seconds": null
+      "clip_seconds": null,
+      "data_flags": [
+        {
+          "kind": "rate_mismatch",
+          "severity": "quote_wrong"
+        }
+      ]
     },
     "fal_ai:blackforestlabs/flux-3/edit-image": {
       "unit_price": 0.048,
@@ -6708,7 +6750,7 @@
       "unit_class": "per-video-second",
       "model_slug": "kling-4.0",
       "match": "catalog",
-      "live": true,
+      "live": false,
       "source_url": "https://kie.ai/kling-4-0",
       "clip_seconds": null
     },
