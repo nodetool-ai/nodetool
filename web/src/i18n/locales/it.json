@@ -7258,8 +7258,8 @@
         "slotMusic": "{{id}}: musica",
         "templates": {
           "topdown": {
-            "title": "Stanza dall'alto",
-            "description": "Percorri una stanza murata vista dall'alto e raccogli l'oggetto da collezione per vincere."
+            "title": "Avventura dall'alto",
+            "description": "Esplora un dungeon di stanze visto dall'alto, raccogli ogni gemma schivando nemici e pericoli, poi fuggi dall'uscita."
           }
         },
         "animationFrames": "{{name}} ({{count}} fotogrammi)",
@@ -7292,7 +7292,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} immagine",
         "slotSound": "{{id}}: effetto sonoro",
         "slotMusic": "{{id}}: musica",
-        "animationFrames": "{{name}} ({{count}} fotogrammi)"
+        "animationFrames": "{{name}} ({{count}} fotogrammi)",
+        "layoutSection": "Il livello",
+        "layoutDescription": "La costruzione dispone stanze, gemme, nemici e pericoli in base a queste due scelte.",
+        "sizeField": "Dimensione",
+        "difficultyField": "Difficoltà",
+        "size": {
+          "small": "Piccolo (6 stanze)",
+          "medium": "Medio (9 stanze)",
+          "large": "Grande (12 stanze)"
+        },
+        "difficulty": {
+          "relaxed": "Rilassata (5 di salute, nemici lenti)",
+          "normal": "Normale (4 di salute)",
+          "hard": "Difficile (3 di salute, nemici veloci, più pericoli)"
+        },
+        "musicHint": "Generata come traccia in loop quando è disponibile un modello musicale. Altrimenti il livello è senza musica."
       },
       "look": {
         "title": "Scegli l'aspetto",

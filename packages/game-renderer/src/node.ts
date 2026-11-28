@@ -2,6 +2,7 @@ import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
+import { MISSING_ASSET_COLOR, placeholderColor } from "./placeholder-colors.js";
 import { gameFontFamily } from "./fonts.js";
 import { loadGameUiImages, paintGameHud2D } from "./ui/hud2d.js";
 import { applyGpuEffects } from "./gpu-capture.js";
@@ -99,7 +100,7 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
         drawContext.drawImage(image, source.x, source.y, source.width, source.height, -width / 2, -height / 2, width, height);
       }
     } else {
-      drawContext.fillStyle = item.assetId === "player" ? "#2acae9" : item.assetId === "wall" ? "#5c6978" : item.assetId === "gem" ? "#ffc432" : "#ff00ff";
+      drawContext.fillStyle = placeholderColor(item.assetId) ?? MISSING_ASSET_COLOR;
       drawContext.fillRect(-width / 2, -height / 2, width, height);
     }
     drawContext.restore();

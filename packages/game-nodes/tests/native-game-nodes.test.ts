@@ -25,7 +25,7 @@ describe("native game nodes", () => {
     const node = new LoadGameTemplateNode({ template: "topdown" });
     const result = await node.process();
     expect(result.manifest.engineVersion).toBe("1");
-    expect(result.slots.map((slot) => slot.id)).toEqual(["player", "wall", "gem", "sfx.collect"]);
+    expect(result.slots.map((slot) => slot.id)).toEqual(["player", "enemy", "gem", "hazard", "exit", "floor", "wall", "sfx.collect", "sfx.hurt", "music.level"]);
   });
 
   it("turns a template slot into generation inputs", async () => {

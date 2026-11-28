@@ -7158,8 +7158,8 @@
         "slotMusic": "{{id}}: Musik",
         "templates": {
           "topdown": {
-            "title": "Raum aus der Draufsicht",
-            "description": "Geh durch einen ummauerten Raum aus der Draufsicht und sammle den Gegenstand ein, um zu gewinnen."
+            "title": "Top-down-Abenteuer",
+            "description": "Erkunde ein Verlies aus Räumen von oben, sammle alle Edelsteine, weiche Gegnern und Gefahren aus und entkomme durch den Ausgang."
           }
         },
         "animationFrames": "{{name}} ({{count}} Frames)"
@@ -7191,7 +7191,22 @@
         "slotImage": "{{id}}: Bild mit {{width}}×{{height}}",
         "slotSound": "{{id}}: Soundeffekt",
         "slotMusic": "{{id}}: Musik",
-        "animationFrames": "{{name}} ({{count}} Frames)"
+        "animationFrames": "{{name}} ({{count}} Frames)",
+        "layoutSection": "Das Level",
+        "layoutDescription": "Der Aufbau legt Räume, Edelsteine, Gegner und Gefahren anhand dieser beiden Angaben an.",
+        "sizeField": "Größe",
+        "difficultyField": "Schwierigkeit",
+        "size": {
+          "small": "Klein (6 Räume)",
+          "medium": "Mittel (9 Räume)",
+          "large": "Groß (12 Räume)"
+        },
+        "difficulty": {
+          "relaxed": "Entspannt (5 Leben, langsame Gegner)",
+          "normal": "Normal (4 Leben)",
+          "hard": "Schwer (3 Leben, schnelle Gegner, mehr Gefahren)"
+        },
+        "musicHint": "Wird als Schleife erzeugt, wenn ein Musikmodell verfügbar ist. Sonst läuft das Level ohne Musik."
       },
       "look": {
         "title": "Look auswählen",

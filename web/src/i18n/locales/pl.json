@@ -7358,8 +7358,8 @@
         "slotMusic": "{{id}}: muzyka",
         "templates": {
           "topdown": {
-            "title": "Pokój z góry na dół",
-            "description": "Przejdź się po pomieszczeniu otoczonym murami widzianym z góry i podnieś przedmiot kolekcjonerski, aby wygrać."
+            "title": "Przygoda z widokiem z góry",
+            "description": "Przemierzaj loch pełen komnat widziany z góry, zbierz wszystkie klejnoty, unikając wrogów i pułapek, i ucieknij przez wyjście."
           }
         },
         "animationFrames": "{{name}} ({{count}} klatki)",
@@ -7393,7 +7393,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} obraz",
         "slotSound": "{{id}}: efekt dźwiękowy",
         "slotMusic": "{{id}}: muzyka",
-        "animationFrames": "{{name}} ({{count}} klatki)"
+        "animationFrames": "{{name}} ({{count}} klatki)",
+        "layoutSection": "Poziom",
+        "layoutDescription": "Budowanie rozmieszcza pokoje, klejnoty, wrogów i pułapki na podstawie tych dwóch wyborów.",
+        "sizeField": "Rozmiar",
+        "difficultyField": "Trudność",
+        "size": {
+          "small": "Mały (6 pokoi)",
+          "medium": "Średni (9 pokoi)",
+          "large": "Duży (12 pokoi)"
+        },
+        "difficulty": {
+          "relaxed": "Łatwa (5 zdrowia, wolni wrogowie)",
+          "normal": "Normalna (4 zdrowia)",
+          "hard": "Trudna (3 zdrowia, szybcy wrogowie, więcej pułapek)"
+        },
+        "musicHint": "Generowana jako zapętlony utwór, gdy dostępny jest model muzyczny. W przeciwnym razie poziom gra bez muzyki."
       },
       "look": {
         "title": "Wybierz wygląd",

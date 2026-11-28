@@ -7157,8 +7157,8 @@
         "slotMusic": "{{id}}：音乐",
         "templates": {
           "topdown": {
-            "title": "俯视房间",
-            "description": "在一个有围墙的俯视房间里行走，拾取收藏品即可获胜。"
+            "title": "俯视角冒险",
+            "description": "以俯视角探索由房间组成的地牢，避开敌人和陷阱收集所有宝石，然后从出口逃出。"
           }
         },
         "animationFrames": "{{name}}（{{count}} 帧）",
@@ -7191,7 +7191,22 @@
         "slotImage": "{{id}}：{{width}}×{{height}} 图像",
         "slotSound": "{{id}}：音效",
         "slotMusic": "{{id}}：音乐",
-        "animationFrames": "{{name}}（{{count}} 帧）"
+        "animationFrames": "{{name}}（{{count}} 帧）",
+        "layoutSection": "关卡",
+        "layoutDescription": "构建会根据这两项选择布置房间、宝石、敌人和陷阱。",
+        "sizeField": "大小",
+        "difficultyField": "难度",
+        "size": {
+          "small": "小（6 个房间）",
+          "medium": "中（9 个房间）",
+          "large": "大（12 个房间）"
+        },
+        "difficulty": {
+          "relaxed": "轻松（5 点生命，敌人较慢）",
+          "normal": "普通（4 点生命）",
+          "hard": "困难（3 点生命，敌人更快，陷阱更多）"
+        },
+        "musicHint": "有可用的音乐模型时会生成循环音轨，否则关卡没有音乐。"
       },
       "look": {
         "title": "选择画风",

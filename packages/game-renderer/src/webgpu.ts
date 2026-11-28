@@ -11,6 +11,7 @@ import { AssetCache, imageHeight, imageWidth, type GameImage } from "./canvas2d.
 import { parseTint, projectedCamera, sourceRect, visibleItems } from "./frame.js";
 import { PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
 import type { GameHudEffectOrder, GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
+import { placeholderRgba } from "./placeholder-colors.js";
 
 interface AssetTextureGeneration {
   readonly image: Promise<GameImage | null>;
@@ -465,10 +466,7 @@ export class WebGPUGameRenderer implements GameRenderer {
     if (cached) {
       return cached;
     }
-    const colors = {
-      player: [42, 202, 233, 255], wall: [92, 105, 120, 255], gem: [255, 196, 50, 255],
-    } as const;
-    const color = assetId === "player" ? colors.player : assetId === "wall" ? colors.wall : assetId === "gem" ? colors.gem : undefined;
+    const color = placeholderRgba(assetId);
     if (!color) {
       return this.fallback;
     }

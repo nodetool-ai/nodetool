@@ -2,23 +2,30 @@
  * The Game flow's build: one game, then one paid image per visual slot.
  *
  * What is asserted is what the build is allowed to spend and where it puts
- * it: the game id is recorded before the first generation, sounds are not
- * generated, every image prompt carries the reviewed subject, the style and
- * the slot's cast member, a slot that fails keeps its placeholder, and a
- * second start while one runs joins it instead of paying twice.
+ * it: the game id is recorded before the first generation, the document is
+ * the generated adventure, sound effects are not generated, music is drawn
+ * after the art and may fail, every image prompt carries the reviewed
+ * subject, the style and the slot's cast member, the art is bound into the
+ * draft once drawn, a slot that fails keeps its placeholder, and a second
+ * start while one runs joins it instead of paying twice.
  */
 
 const gameCreate = jest.fn();
 const generateAsset = jest.fn();
+const getDraft = jest.fn();
+const saveDraftDocument = jest.fn();
 jest.mock("../../../trpc/client", () => ({
   trpcClient: {
     games: {
       create: { mutate: (...args: unknown[]) => gameCreate(...args) },
-      generateAsset: { mutate: (...args: unknown[]) => generateAsset(...args) }
+      generateAsset: { mutate: (...args: unknown[]) => generateAsset(...args) },
+      getDraft: { query: (...args: unknown[]) => getDraft(...args) },
+      saveDraftDocument: { mutate: (...args: unknown[]) => saveDraftDocument(...args) }
     }
   }
 }));
 
+import { createAdventureGame } from "@nodetool-ai/game-runtime";
 import {
   NATIVE_GAME_INSPIRATION_CHIPS,
   gameSlotSpec
@@ -50,6 +57,11 @@ beforeEach(() => {
   useGameAssistantKickoffStore.setState({ kickoffs: {} });
   gameCreate.mockResolvedValue({ game: { id: "game-1", name: "Last Acorn" } });
   generateAsset.mockResolvedValue({});
+  getDraft.mockImplementation(async () => ({
+    game: { id: "game-1", draftUpdatedAt: "draft-1" },
+    document: createAdventureGame("a".repeat(32), { title: design.title })
+  }));
+  saveDraftDocument.mockResolvedValue({});
 });
 
 describe("startGameBuild", () => {
@@ -70,27 +82,59 @@ describe("startGameBuild", () => {
         projectId: "p1",
         name: "Last Acorn",
         dimension: "2d",
-        document: expect.objectContaining({ schemaVersion: 1 })
+        document: expect.objectContaining({ schemaVersion: 4, entrySceneId: "level" })
       }),
       expect.anything()
     );
+    // The design's layout picks the level: the acorn chip is small.
+    const document = gameCreate.mock.calls[0]![0].document;
+    expect(document.scenes[0].entities.filter((entity: { id: string }) => entity.id.startsWith("gem"))).toHaveLength(5);
     expect(order).toEqual([
       "set:game_id,project_name",
       "draw:player",
-      "draw:wall",
+      "draw:enemy",
       "draw:gem",
+      "draw:hazard",
+      "draw:exit",
+      "draw:floor",
+      "draw:wall",
+      "draw:music.level",
       "set:stage"
     ]);
+    expect(saveDraftDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "game-1", baseUpdatedAt: "draft-1" }),
+      expect.anything()
+    );
     expect(setGame).toHaveBeenLastCalledWith({ stage: "done" });
     expect(result).toEqual({
       gameId: "game-1",
       name: "Last Acorn",
       projectId: "p1",
-      failures: []
+      failures: [],
+      skipped: []
     });
   });
 
-  it("hands the rest of the game to the editor's assistant", async () => {
+  it("draws music after the art and keeps going without it", async () => {
+    generateAsset.mockImplementation(async (args: { slot: string }) => {
+      if (args.slot === "music.level") {
+        throw new Error("No text_to_music model is available");
+      }
+      return {};
+    });
+
+    const result = await startGameBuild("w1", input());
+
+    const music = generateAsset.mock.calls.find(([args]) => args.slot === "music.level")![0];
+    expect(music).toMatchObject({ kind: "music" });
+    expect(music.prompt).toContain(design.slot_prompts.find((entry) => entry.slot_id === "music.level")!.prompt);
+    expect(result.failures).toEqual([]);
+    expect(result.skipped).toEqual([
+      { slot: "music.level", reason: "No text_to_music model is available" }
+    ]);
+  });
+
+  it("hands the polish to the editor's assistant", async () => {
     generateAsset.mockImplementation(async (args: { slot: string }) => {
       if (args.slot === "wall") {
         throw new Error("Provider refused the prompt");
@@ -126,7 +170,11 @@ describe("startGameBuild", () => {
     const wall = generateAsset.mock.calls.find(
       ([args]) => args.slot === "wall"
     )![0];
-    expect(wall.preparation).toMatchObject({ cropPolicy: "cover" });
+    expect(wall.preparation).toEqual({ tileset: { tileWidth: 32, tileHeight: 32, edges: 3 } });
+    const floor = generateAsset.mock.calls.find(
+      ([args]) => args.slot === "floor"
+    )![0];
+    expect(floor.preparation).toMatchObject({ cropPolicy: "cover" });
   });
 
   it("reuses the game an earlier build of this workflow made", async () => {

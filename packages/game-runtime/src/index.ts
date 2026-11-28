@@ -23,3 +23,4 @@ export * from "./authoring-reconcile.js";
 export * from "./systems/pipeline.js";
 
 export type { GameScriptReloadResult } from "./script-reload.js";
+export * from "./adventure.js";

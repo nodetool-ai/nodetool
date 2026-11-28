@@ -2040,7 +2040,8 @@ const NewProjectSurface = ({
         gameId: created.game.id,
         name: created.game.name || target.name,
         projectId: target.projectId,
-        failures: []
+        failures: [],
+        skipped: []
       });
     },
     [handleSetupFinished]

@@ -10,7 +10,7 @@
  * Idea → Design (template, then the review) → Look and build. Nothing is spent
  * before the last step except the one designer call, and the design it writes
  * is text the creator can edit. The build draws one image per visual slot,
- * then the game editor's assistant builds the rest of the game from the design.
+ * then the build makes a playable level and the editor's assistant tunes it to the design.
  */
 
 import { createElement, useCallback, useMemo, useState } from "react";
@@ -305,7 +305,7 @@ export const useGameSetupFlow = ({
           estimate === null
             ? `Draws ${imageSlots.length} images`
             : `Draws ${imageSlots.length} images, about ${formatUsd(estimate)}`
-        }. Then the assistant builds the rest of the game in the editor.`,
+        }, and builds a playable level. The assistant then tunes it in the editor.`,
         canAdvance:
           design !== null &&
           designGaps.length === 0 &&

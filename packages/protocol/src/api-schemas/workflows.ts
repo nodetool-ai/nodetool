@@ -1052,6 +1052,20 @@ export const gameSlotPrompt = z
   .passthrough();
 export type GameSlotPrompt = z.infer<typeof gameSlotPrompt>;
 
+/** How big the generated level is: rooms, gems and enemies scale with it. */
+export const GAME_LEVEL_SIZES = ["small", "medium", "large"] as const;
+/** How hard the generated level plays: health, enemy speed and hazard count. */
+export const GAME_LEVEL_DIFFICULTIES = ["relaxed", "normal", "hard"] as const;
+
+/** The level the build generates. Missing fields build a medium, normal level. */
+export const gameDesignLayout = z
+  .object({
+    size: z.enum(GAME_LEVEL_SIZES).optional(),
+    difficulty: z.enum(GAME_LEVEL_DIFFICULTIES).optional()
+  })
+  .passthrough();
+export type GameDesignLayout = z.infer<typeof gameDesignLayout>;
+
 export const gameDesign = z
   .object({
     title: z.string(),
@@ -1063,7 +1077,8 @@ export const gameDesign = z
     win: z.string(),
     lose: z.string(),
     cast: z.array(gameCastMember).default([]),
-    slot_prompts: z.array(gameSlotPrompt).default([])
+    slot_prompts: z.array(gameSlotPrompt).default([]),
+    layout: gameDesignLayout.optional()
   })
   .passthrough();
 export type GameDesign = z.infer<typeof gameDesign>;

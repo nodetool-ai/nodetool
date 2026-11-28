@@ -176,7 +176,8 @@ const GameSetupHost: React.FC<GameSetupHostProps> = ({
           game?.design?.title ??
           t("pass3_5.game.defaults.untitledName"),
         projectId,
-        failures: []
+        failures: [],
+        skipped: []
       });
     }
   }, [game, gameId, handleFinish, projectId, settledDone, t]);

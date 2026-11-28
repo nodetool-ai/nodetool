@@ -7258,8 +7258,8 @@
         "slotMusic": "{{id}}: música",
         "templates": {
           "topdown": {
-            "title": "Habitación de arriba hacia abajo",
-            "description": "Camina por una habitación amurallada vista desde arriba y recoge el objeto coleccionable para ganar."
+            "title": "Aventura cenital",
+            "description": "Explora una mazmorra de salas vista desde arriba, recoge todas las gemas esquivando enemigos y peligros y escapa por la salida."
           }
         },
         "animationFrames": "{{name}} ({{count}} fotogramas)",
@@ -7292,7 +7292,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} imagen",
         "slotSound": "{{id}}: efecto de sonido",
         "slotMusic": "{{id}}: música",
-        "animationFrames": "{{name}} ({{count}} fotogramas)"
+        "animationFrames": "{{name}} ({{count}} fotogramas)",
+        "layoutSection": "El nivel",
+        "layoutDescription": "La construcción distribuye las salas, gemas, enemigos y peligros según estas dos opciones.",
+        "sizeField": "Tamaño",
+        "difficultyField": "Dificultad",
+        "size": {
+          "small": "Pequeño (6 salas)",
+          "medium": "Mediano (9 salas)",
+          "large": "Grande (12 salas)"
+        },
+        "difficulty": {
+          "relaxed": "Relajada (5 de salud, enemigos lentos)",
+          "normal": "Normal (4 de salud)",
+          "hard": "Difícil (3 de salud, enemigos rápidos, más peligros)"
+        },
+        "musicHint": "Se genera como pista en bucle cuando hay un modelo de música disponible. Si no, el nivel se juega sin música."
       },
       "look": {
         "title": "Elige el look",

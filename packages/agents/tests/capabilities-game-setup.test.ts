@@ -534,7 +534,7 @@ describe("build_game", () => {
     expect(types).not.toContain("nodetool.game.SoundEffect");
   });
 
-  it("does not add an unused music chain when the template has no music slot", async () => {
+  it("adds a music chain for the template's music slot", async () => {
     const id = await designedWorkflow();
     await run().invoke("set_game_setup", {
       workflow_id: id,
@@ -544,7 +544,7 @@ describe("build_game", () => {
       workflow_id: id
     })) as { issues: string[]; graph: { nodes: Array<{ type: string }> } };
     expect(result.issues).toEqual([]);
-    expect(result.graph.nodes.map((node) => node.type)).not.toContain(
+    expect(result.graph.nodes.map((node) => node.type)).toContain(
       "nodetool.audio.TextToMusic"
     );
   });
