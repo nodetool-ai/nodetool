@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import * as sync from "@nodetool-ai/protocol/api-schemas/sync.js";
 import { ApiErrorCode } from "../error-codes.js";
+import { isInteractiveAuthKind } from "../auth-kind.js";
 import { publicProcedure } from "./index.js";
 import { throwApiError } from "./error-formatter.js";
 
@@ -34,12 +35,14 @@ export const protectedProcedure = publicProcedure.use(
 
 /**
  * A procedure that creates a credential: an access token, an OAuth consent,
- * or another session. A native device session may not call it, so a stolen
- * `ntd_` token cannot mint a longer-lived credential than itself
+ * a linked account, or another session. Only an interactive sign-in may call
+ * it (see `auth-kind.ts`). A credential created from another one, such as a
+ * personal access token, a native device session or a delegated bridge
+ * token, may not, so no credential can mint a longer-lived one than itself
  * (technical design, "Sign-in protocol", access token contract).
  */
 export const interactiveProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.nativeSessionId) {
+  if (!isInteractiveAuthKind(ctx.authKind)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Sign in to the web app to do this."

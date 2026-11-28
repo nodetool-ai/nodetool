@@ -23,6 +23,7 @@
  */
 
 import { randomBytes } from "node:crypto";
+import { oauthGrantMaxAgeMs } from "@nodetool-ai/config";
 import { digestsMatch, hashSecret } from "./access-token.js";
 import { and, eq, isNull, lt, notInArray, or } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
@@ -88,6 +89,27 @@ function isoNow(): string {
 function isRowExpired(expiresAt: string, now: number): boolean {
   const expiry = Date.parse(expiresAt);
   return Number.isFinite(expiry) && expiry <= now;
+}
+
+/**
+ * When a grant created at `createdAt` ends, or null when grants have no
+ * maximum age (`NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS`). Every token minted for
+ * the grant expires by then, and a refresh at or after it ends the grant, so
+ * rotation never extends a grant past its maximum age.
+ */
+function grantEndsAt(createdAt: string): Date | null {
+  const maxAgeMs = oauthGrantMaxAgeMs();
+  if (maxAgeMs === null) return null;
+  const created = Date.parse(createdAt);
+  // A row without a readable creation time is treated as already at its end.
+  return new Date(Number.isFinite(created) ? created + maxAgeMs : 0);
+}
+
+/** The earlier of two optional expiry bounds. */
+function earlierBound(a: Date | null, b: Date | null): Date | null {
+  if (a === null) return b;
+  if (b === null) return a;
+  return a < b ? a : b;
 }
 
 // ── Clients ──────────────────────────────────────────────────────────
@@ -569,7 +591,12 @@ async function withLockedGrant<T>(
       .update(mcpOauthGrants)
       .set({ id: grantId })
       .where(eq(mcpOauthGrants.id, grantId))
-      .returning({ id: mcpOauthGrants.id, kind: mcpOauthGrants.kind, revoked_at: mcpOauthGrants.revoked_at });
+      .returning({
+        id: mcpOauthGrants.id,
+        kind: mcpOauthGrants.kind,
+        revoked_at: mcpOauthGrants.revoked_at,
+        created_at: mcpOauthGrants.created_at
+      });
   if (getDbType() === "sqlite") {
     // better-sqlite3 transactions must be fully synchronous.
     return db.transaction((tx: DbTransaction): T => sqliteBody(tx, lock(tx).all()[0]));
@@ -584,6 +611,7 @@ interface LockedGrant {
   id: string;
   kind: OauthGrantKind;
   revoked_at: string | null;
+  created_at: string;
 }
 
 /** Mark a grant revoked and delete every token minted for it. */
@@ -638,9 +666,13 @@ async function rotateOnce(parsed: ParsedToken): Promise<RefreshRotation> {
   return withLockedGrant(
     grantId,
     (tx, grant): RefreshRotation =>
-      grant && !grant.revoked_at ? rotateSqlite(tx, parsed, now) : null,
+      grant && !grant.revoked_at
+        ? rotateSqlite(tx, parsed, now, grantEndsAt(grant.created_at))
+        : null,
     async (tx, grant): Promise<RefreshRotation> =>
-      grant && !grant.revoked_at ? rotatePostgres(tx, parsed, now) : null
+      grant && !grant.revoked_at
+        ? rotatePostgres(tx, parsed, now, grantEndsAt(grant.created_at))
+        : null
   );
 }
 
@@ -667,6 +699,7 @@ type RotationStep =
   | { verdict: "retry"; record: McpOauthToken }
   | { verdict: "replace_lost"; record: McpOauthToken; successorId: string }
   | { verdict: "expired"; grantId: string }
+  | { verdict: "grant_ended"; grantId: string }
   | { verdict: "rotate"; record: McpOauthToken };
 
 /** The refresh row that replaced the presented one, when there is one. */
@@ -684,12 +717,16 @@ function rotationStep(
   parsed: ParsedToken,
   successor: SuccessorRow | undefined,
   grantKind: OauthGrantKind,
-  now: number
+  now: number,
+  grantEnd: Date | null
 ): RotationStep {
   if (!row) return { verdict: "unknown" };
   const record = new McpOauthToken(row);
   if (!digestsMatch(record.secret_hash, hashSecret(parsed.secret))) {
     return { verdict: "unknown" };
+  }
+  if (grantEnd !== null && grantEnd.getTime() <= now) {
+    return { verdict: "grant_ended", grantId: record.grant_id };
   }
   if (successor) {
     // `last_used_at` on a refresh row records when it was rotated.
@@ -721,12 +758,13 @@ function rotationStep(
  * mints a pair that links to no ancestor: the `rotated_from` slot already
  * belongs to the first rotation's successor, and the unique index on it is
  * what makes a concurrent first rotation detectable. The retry's chain keeps
- * the original absolute expiry.
+ * the original absolute expiry. No token outlives the grant's end.
  */
 function rotationPair(
   record: McpOauthToken,
   linkAncestor: boolean,
-  grantKind: OauthGrantKind
+  grantKind: OauthGrantKind,
+  grantEnd: Date | null
 ): {
   access: MintedTokenRow;
   refresh: MintedTokenRow;
@@ -737,7 +775,7 @@ function rotationPair(
       "access",
       accessTtl(grantKind),
       null,
-      null,
+      grantEnd,
       grantKind
     ),
     refresh: mintTokenRow(
@@ -746,8 +784,12 @@ function rotationPair(
       refreshTtl(grantKind),
       linkAncestor ? record.id : null,
       // An MCP chain keeps its absolute expiry. A native chain is an
-      // inactivity limit, so each rotation starts a new period.
-      grantKind === "native" ? null : new Date(record.expires_at),
+      // inactivity limit, so each rotation starts a new period, up to the
+      // grant's end.
+      earlierBound(
+        grantKind === "native" ? null : new Date(record.expires_at),
+        grantEnd
+      ),
       grantKind
     )
   };
@@ -776,7 +818,8 @@ function rotated(
 function rotateSqlite(
   tx: DbTransaction,
   parsed: ParsedToken,
-  now: number
+  now: number,
+  grantEnd: Date | null
 ): RefreshRotation {
   if (getDbType() !== "sqlite") {
     throw new Error("Synchronous OAuth rotation requires SQLite");
@@ -813,12 +856,17 @@ function rotateSqlite(
     parsed,
     successor,
     grantKind,
-    now
+    now,
+    grantEnd
   );
   if (step.verdict === "unknown") return null;
   if (step.verdict === "reuse") {
     revokeGrantSync(tx, step.grantId);
     return { reuseDetected: true };
+  }
+  if (step.verdict === "grant_ended") {
+    revokeGrantSync(tx, step.grantId);
+    return null;
   }
   if (step.verdict === "expired") {
     tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, parsed.id)).run();
@@ -830,7 +878,8 @@ function rotateSqlite(
   const { access, refresh } = rotationPair(
     step.record,
     linksAncestor(step.verdict),
-    grantKind
+    grantKind,
+    grantEnd
   );
   // The refresh row goes first: the unique index on `rotated_from` makes it
   // the atomic claim on this rotation. Two concurrent presentations of the
@@ -851,7 +900,8 @@ function rotateSqlite(
 async function rotatePostgres(
   tx: DbTransaction,
   parsed: ParsedToken,
-  now: number
+  now: number,
+  grantEnd: Date | null
 ): Promise<RefreshRotation> {
   const rows = await tx
     .select()
@@ -883,12 +933,17 @@ async function rotatePostgres(
     parsed,
     successors[0],
     grantKind,
-    now
+    now,
+    grantEnd
   );
   if (step.verdict === "unknown") return null;
   if (step.verdict === "reuse") {
     await revokeGrantAsync(tx, step.grantId);
     return { reuseDetected: true };
+  }
+  if (step.verdict === "grant_ended") {
+    await revokeGrantAsync(tx, step.grantId);
+    return null;
   }
   if (step.verdict === "expired") {
     await tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, parsed.id));
@@ -900,7 +955,8 @@ async function rotatePostgres(
   const { access, refresh } = rotationPair(
     step.record,
     linksAncestor(step.verdict),
-    grantKind
+    grantKind,
+    grantEnd
   );
   await tx.insert(mcpOauthTokens).values(tokenValues(refresh));
   await tx.insert(mcpOauthTokens).values(tokenValues(access));
@@ -942,41 +998,39 @@ export class McpOauthToken extends DBModel {
     grant_id: string,
     grantKind: OauthGrantKind = "mcp"
   ): Promise<{ accessToken: string; refreshToken: string; expiresAt: Date }> {
-    const access = mintTokenRow(
-      grant_id,
-      "access",
-      accessTtl(grantKind),
-      null,
-      null,
-      grantKind
-    );
-    const refresh = mintTokenRow(
-      grant_id,
-      "refresh",
-      refreshTtl(grantKind),
-      null,
-      null,
-      grantKind
-    );
+    // The pair is minted under the lock, from the grant row the lock read,
+    // so both tokens end by the grant's end.
+    const pairFor = (grant: LockedGrant | undefined) => {
+      if (!grant || grant.revoked_at) return null;
+      const grantEnd = grantEndsAt(grant.created_at);
+      if (grantEnd !== null && grantEnd.getTime() <= Date.now()) return null;
+      return {
+        access: mintTokenRow(grant_id, "access", accessTtl(grantKind), null, grantEnd, grantKind),
+        refresh: mintTokenRow(grant_id, "refresh", refreshTtl(grantKind), null, grantEnd, grantKind)
+      };
+    };
     const minted = await withLockedGrant(
       grant_id,
-      (tx, grant): boolean => {
+      (tx, grant) => {
         if (getDbType() !== "sqlite") throw new Error("Synchronous token minting requires SQLite");
-        if (!grant || grant.revoked_at) return false;
-        tx.insert(mcpOauthTokens).values(tokenValues(access)).run();
-        tx.insert(mcpOauthTokens).values(tokenValues(refresh)).run();
-        return true;
+        const pair = pairFor(grant);
+        if (!pair) return null;
+        tx.insert(mcpOauthTokens).values(tokenValues(pair.access)).run();
+        tx.insert(mcpOauthTokens).values(tokenValues(pair.refresh)).run();
+        return pair;
       },
-      async (tx, grant): Promise<boolean> => {
-        if (!grant || grant.revoked_at) return false;
-        await tx.insert(mcpOauthTokens).values(tokenValues(access));
-        await tx.insert(mcpOauthTokens).values(tokenValues(refresh));
-        return true;
+      async (tx, grant) => {
+        const pair = pairFor(grant);
+        if (!pair) return null;
+        await tx.insert(mcpOauthTokens).values(tokenValues(pair.access));
+        await tx.insert(mcpOauthTokens).values(tokenValues(pair.refresh));
+        return pair;
       }
     );
     if (!minted) {
-      throw new Error(`OAuth grant ${grant_id} is revoked or missing`);
+      throw new Error(`OAuth grant ${grant_id} is revoked, ended or missing`);
     }
+    const { access, refresh } = minted;
     return {
       accessToken: rawToken(access),
       refreshToken: rawToken(refresh),

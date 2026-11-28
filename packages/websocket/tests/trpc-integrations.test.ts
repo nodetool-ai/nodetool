@@ -13,13 +13,19 @@ import { ExternalIdentity, ModelObserver, initTestDb } from "@nodetool-ai/models
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
+import type { AuthKind } from "../src/auth-kind.js";
 import { sharedLinkCodes } from "../src/lib/link-codes.js";
 
 const createCaller = createCallerFactory(appRouter);
 
-function makeCtx(userId: string | null): Context {
+function makeCtx(
+  userId: string | null,
+  authKind: AuthKind | null = "session"
+): Context {
   return {
     userId,
+    // A browser sign-in session by default, the caller the settings UI runs as.
+    authKind,
     registry: {} as never,
     apiOptions: { metadataRoots: [], registry: {} as never } as never,
     pythonBridge: {} as never,
@@ -105,6 +111,38 @@ describe("integrations.createLinkCode", () => {
       provider: "telegram",
       userId: "user-a"
     });
+  });
+});
+
+describe("integrations linking needs an interactive sign-in", () => {
+  const nonInteractive: AuthKind[] = ["access_token", "native", "mcp", "delegated"];
+
+  it.each(nonInteractive)("refuses createLinkCode to a %s caller", async (kind) => {
+    await expect(
+      createCaller(makeCtx("user-a", kind)).integrations.createLinkCode({
+        provider: "telegram"
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it.each(nonInteractive)("refuses confirmLink to a %s caller", async (kind) => {
+    const { code } = sharedLinkCodes.mintForExternalAccount("telegram", "tg-9");
+    await expect(
+      createCaller(makeCtx("user-a", kind)).integrations.confirmLink({
+        provider: "telegram",
+        code
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    // The code is not spent, so the user can still confirm it from the web app.
+    expect(sharedLinkCodes.peek(code)).not.toBeNull();
+    expect(await ExternalIdentity.findByExternal("telegram", "tg-9")).toBeNull();
+  });
+
+  it("still lets a non-interactive caller list its linked accounts", async () => {
+    const res = await createCaller(
+      makeCtx("user-a", "access_token")
+    ).integrations.list();
+    expect(res.identities).toEqual([]);
   });
 });
 

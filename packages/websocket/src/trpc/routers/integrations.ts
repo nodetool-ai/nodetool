@@ -20,7 +20,7 @@ import { z } from "zod";
 import { ExternalIdentity } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
-import { protectedProcedure } from "../middleware.js";
+import { interactiveProcedure, protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { sharedLinkCodes } from "../../lib/link-codes.js";
 
@@ -78,7 +78,7 @@ export const integrationsRouter = router({
     }),
 
   /** Mint a one-time code bound to this user, for the deep-link direction. */
-  createLinkCode: protectedProcedure
+  createLinkCode: interactiveProcedure
     .input(z.object({ provider: providerInput }))
     .output(createLinkCodeOutput)
     .mutation(({ ctx, input }) => {
@@ -109,7 +109,7 @@ export const integrationsRouter = router({
     }),
 
   /** Spend a bridge-minted code, linking its account to this user. */
-  confirmLink: protectedProcedure
+  confirmLink: interactiveProcedure
     .input(z.object({ provider: providerInput, code: z.string().min(1) }))
     .output(z.object({ linked: z.literal(true), external_id: z.string() }))
     .mutation(async ({ ctx, input }) => {

@@ -15,6 +15,7 @@ async function makeGrant(overrides: Partial<{
   client_name: string;
   scope: string;
   resource: string;
+  kind: "mcp" | "native";
 }> = {}): Promise<string> {
   const { id } = await McpOauthGrant.create({
     user_id: "user-a",
@@ -376,5 +377,134 @@ describe("McpOauthGrant + McpOauthToken", () => {
       false
     );
     expect(await McpOauthToken.revokeByRawToken("not-a-token")).toBe(false);
+  });
+});
+
+describe("OAuth grant maximum age", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const ENV_KEYS = ["NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS", "OIDC_ISSUER", "OIDC_CLIENT_ID"];
+  let saved: Record<string, string | undefined>;
+
+  beforeEach(() => {
+    initTestDb();
+    saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+    for (const key of ENV_KEYS) delete process.env[key];
+  });
+  afterEach(() => {
+    ModelObserver.clear();
+    vi.useRealTimers();
+    for (const key of ENV_KEYS) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
+  async function refreshExpiry(refreshToken: string): Promise<number> {
+    const id = refreshToken.slice("ntr_".length).split("_")[0]!;
+    const row = await McpOauthToken.get<McpOauthToken>(id);
+    return Date.parse(row!.expires_at);
+  }
+
+  it("rotates a native grant within its maximum age without extending it", async () => {
+    process.env.NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS = "10";
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const start = Date.now();
+    const grantId = await makeGrant({ scope: "native", kind: "native" });
+    const pair = await McpOauthToken.mintPair(grantId, "native");
+    expect(await refreshExpiry(pair.refreshToken)).toBeLessThanOrEqual(start + 10 * DAY);
+
+    vi.setSystemTime(start + 5 * DAY);
+    const r1 = (await McpOauthToken.rotateRefresh(pair.refreshToken)) as {
+      refreshToken: string;
+    };
+    expect(r1.refreshToken).toMatch(/^ntr_/);
+    expect(await refreshExpiry(r1.refreshToken)).toBeLessThanOrEqual(start + 10 * DAY);
+
+    vi.setSystemTime(start + 9 * DAY);
+    const r2 = (await McpOauthToken.rotateRefresh(r1.refreshToken)) as {
+      refreshToken: string;
+      expiresAt: Date;
+    };
+    expect(r2.refreshToken).toMatch(/^ntr_/);
+    expect(await refreshExpiry(r2.refreshToken)).toBeLessThanOrEqual(start + 10 * DAY);
+    expect(r2.expiresAt.getTime()).toBeLessThanOrEqual(start + 10 * DAY);
+
+    vi.setSystemTime(start + 10 * DAY + 1000);
+    expect(await McpOauthToken.rotateRefresh(r2.refreshToken)).toBeNull();
+    expect((await McpOauthGrant.get(grantId))!.revoked_at).not.toBeNull();
+  });
+
+  it("ends an access token at the grant's maximum age", async () => {
+    process.env.NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS = "1";
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const start = Date.now();
+    const grantId = await makeGrant({ scope: "native", kind: "native" });
+    const pair = await McpOauthToken.mintPair(grantId, "native");
+    vi.setSystemTime(start + DAY - 60_000);
+    const rotated = (await McpOauthToken.rotateRefresh(pair.refreshToken)) as {
+      accessToken: string;
+      expiresAt: Date;
+    };
+    expect(rotated.expiresAt.getTime()).toBeLessThanOrEqual(start + DAY);
+    expect(await McpOauthToken.verifyNativeAccess(rotated.accessToken)).not.toBeNull();
+    vi.setSystemTime(start + DAY + 1000);
+    expect(await McpOauthToken.verifyNativeAccess(rotated.accessToken)).toBeNull();
+  });
+
+  it("ends an MCP grant at its maximum age when that is shorter than the refresh chain", async () => {
+    process.env.NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS = "10";
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const start = Date.now();
+    const grantId = await makeGrant();
+    const pair = await McpOauthToken.mintPair(grantId);
+    vi.setSystemTime(start + 9 * DAY);
+    const r1 = (await McpOauthToken.rotateRefresh(pair.refreshToken)) as {
+      refreshToken: string;
+    };
+    expect(r1.refreshToken).toMatch(/^ntr_/);
+    vi.setSystemTime(start + 11 * DAY);
+    expect(await McpOauthToken.rotateRefresh(r1.refreshToken)).toBeNull();
+    expect((await McpOauthGrant.get(grantId))!.revoked_at).not.toBeNull();
+  });
+
+  it("defaults to 30 days under SSO", async () => {
+    process.env.OIDC_ISSUER = "https://idp.example.com";
+    process.env.OIDC_CLIENT_ID = "nodetool";
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const start = Date.now();
+    const grantId = await makeGrant({ scope: "native", kind: "native" });
+    const pair = await McpOauthToken.mintPair(grantId, "native");
+    vi.setSystemTime(start + 29 * DAY);
+    const r1 = (await McpOauthToken.rotateRefresh(pair.refreshToken)) as {
+      refreshToken: string;
+    };
+    expect(r1.refreshToken).toMatch(/^ntr_/);
+    vi.setSystemTime(start + 30 * DAY + 1000);
+    expect(await McpOauthToken.rotateRefresh(r1.refreshToken)).toBeNull();
+  });
+
+  it("keeps the 90-day inactivity rule alone when no maximum age applies", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const start = Date.now();
+    const grantId = await makeGrant({ scope: "native", kind: "native" });
+    const pair = await McpOauthToken.mintPair(grantId, "native");
+    vi.setSystemTime(start + 80 * DAY);
+    const r1 = (await McpOauthToken.rotateRefresh(pair.refreshToken)) as {
+      refreshToken: string;
+    };
+    expect(r1.refreshToken).toMatch(/^ntr_/);
+    vi.setSystemTime(start + 160 * DAY);
+    const r2 = (await McpOauthToken.rotateRefresh(r1.refreshToken)) as {
+      refreshToken: string;
+    };
+    expect(r2.refreshToken).toMatch(/^ntr_/);
+  });
+
+  it("mints no pair for a grant past its maximum age", async () => {
+    process.env.NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS = "1";
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const grantId = await makeGrant();
+    vi.setSystemTime(Date.now() + 2 * DAY);
+    await expect(McpOauthToken.mintPair(grantId)).rejects.toThrow(/ended/);
   });
 });

@@ -35,7 +35,7 @@ import {
 import { CloudSockets, MAX_SOCKET_FRAME_BYTES } from "./cloudSocket";
 import { getLocalClientToken } from "./localClientToken";
 import { logMessage } from "./logger";
-import { serverState } from "./state";
+import { trustedLocalOrigin } from "./serverProof";
 import { IpcChannels, type CloudAccountState } from "./types.d";
 
 /** The default cloud server, as in the native apps' cloudServerOrigin(). */
@@ -563,11 +563,8 @@ export function getCloudAccount(): CloudAccount {
       fetch: (url, init) => net.fetch(url, init),
       cloudFetch: (url, { body, ...init }) =>
         net.fetch(url, { ...init, body: body instanceof Uint8Array ? new Uint8Array(body) : body }),
-      localOrigin: () => {
-        // The app's own server, started or adopted at launch.
-        const port = serverState.isStarted ? serverState.serverPort : undefined;
-        return port ? `http://127.0.0.1:${port}` : null;
-      },
+      // The app's own server, started at launch or reused after it proved itself.
+      localOrigin: trustedLocalOrigin,
       localClientToken: getLocalClientToken,
       openExternal: (url) => shell.openExternal(url),
       onState: (state) => {

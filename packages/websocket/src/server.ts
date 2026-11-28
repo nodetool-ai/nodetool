@@ -25,6 +25,7 @@ import {
   getPostgresDatabaseUrl,
   loadEnvironment,
   applyRuntimeEnv,
+  oauthGrantMaxAgeMs,
   withheldServerCredentials
 } from "@nodetool-ai/config";
 import {
@@ -1058,6 +1059,15 @@ if (oidcConfig && supabaseMode) {
   );
 }
 const oidcMode = oidcConfig !== null;
+// Desktop sign-ins and MCP grants end at this age, however often they
+// refresh. Read once here so an invalid value stops the server at boot
+// rather than failing each refresh.
+const oauthGrantMaxAge = oauthGrantMaxAgeMs(process.env);
+if (oauthGrantMaxAge !== null) {
+  log.info("Desktop sign-ins and MCP grants have a maximum age", {
+    days: oauthGrantMaxAge / 86_400_000
+  });
+}
 const oidcClient = oidcConfig ? new OidcClient(oidcConfig) : null;
 
 // SSO session tokens are signed with a key derived from the master key, so
@@ -1206,6 +1216,7 @@ const appSessionProvider = new AppSessionTokenProvider(appSessionSigningKey);
 app.decorateRequest("userId", null);
 app.decorateRequest("authToken", null);
 app.decorateRequest("nativeSessionId", null);
+app.decorateRequest("authKind", null);
 app.decorateRequest("nativeTokenExpiresAt", null);
 app.decorateRequest("appSession", null);
 
@@ -1271,6 +1282,7 @@ app.addHook("onRequest", async (req, reply) => {
     const localHost = isLocalHostHeader(req.headers.host, allowedHosts);
     if (localHost && fromLocalClient) {
       req.userId = "1";
+      req.authKind = "local";
       return;
     }
     if (localHost && !warnedForeignOrigin) {
@@ -1317,6 +1329,7 @@ app.addHook("onRequest", async (req, reply) => {
     const decision = await decideOauthBearer(token, pathname ?? "/", req.method);
     if (decision.kind === "grant") {
       req.userId = decision.userId;
+      req.authKind = decision.nativeSessionId ? "native" : "mcp";
       req.authToken = token;
       req.nativeSessionId = decision.nativeSessionId;
       req.nativeTokenExpiresAt = decision.nativeTokenExpiresAt;
@@ -1343,6 +1356,7 @@ app.addHook("onRequest", async (req, reply) => {
     const accessToken = await AccessToken.verify(token);
     if (accessToken) {
       req.userId = accessToken.user_id;
+      req.authKind = "access_token";
       req.authToken = token;
       void accessToken.touch().catch(() => {
         // last_used_at is a convenience for the revoke UI; a failed write
@@ -1377,6 +1391,7 @@ app.addHook("onRequest", async (req, reply) => {
       pathname === "/ws"
     ) {
       req.userId = session.userId;
+      req.authKind = "app_session";
       req.authToken = token;
       req.appSession = {
         applicationId: session.applicationId,
@@ -1396,6 +1411,7 @@ app.addHook("onRequest", async (req, reply) => {
     const delegated = await delegatedProvider.verifyToken(token);
     if (delegated.ok) {
       req.userId = delegated.userId ?? null;
+      req.authKind = "delegated";
       req.authToken = token;
       return;
     }
@@ -1424,6 +1440,7 @@ app.addHook("onRequest", async (req, reply) => {
       return;
     }
     req.userId = result.userId ?? null;
+    req.authKind = "session";
     req.authToken = token;
     return;
   }
@@ -1444,12 +1461,14 @@ app.addHook("onRequest", async (req, reply) => {
       return;
     }
     req.userId = result.userId ?? null;
+    req.authKind = "session";
     req.authToken = token;
     return;
   }
 
   if (matchesServerAuthToken(token, serverAuthToken)) {
     req.userId = "1";
+    req.authKind = "server_token";
     req.authToken = token;
     return;
   }
@@ -1458,6 +1477,7 @@ app.addHook("onRequest", async (req, reply) => {
     token && apiUsers ? await apiUsers.verifyToken(token) : null;
   if (apiUser) {
     req.userId = apiUser.id;
+    req.authKind = "api_user";
     req.authToken = token;
     return;
   }

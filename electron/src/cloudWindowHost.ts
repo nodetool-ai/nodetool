@@ -9,7 +9,7 @@ import { callCloudLocal, type CloudLocalResult } from "./cloudLocal";
 import { CloudWindow, type WindowLike } from "./cloudWindow";
 import { getLocalClientToken } from "./localClientToken";
 import { logMessage } from "./logger";
-import { serverState } from "./state";
+import { trustedLocalOrigin } from "./serverProof";
 import { IpcChannels } from "./types.d";
 import { createCloudBrowserWindow, webAppUrl } from "./window";
 
@@ -74,7 +74,7 @@ export function cloudWindowLocalCall(
   return callCloudLocal(
     {
       originFor: (id) => getCloudWindow().originFor(id),
-      localOrigin: () => (serverState.isStarted && serverState.serverPort ? `http://127.0.0.1:${serverState.serverPort}` : null),
+      localOrigin: trustedLocalOrigin,
       localClientToken: getLocalClientToken,
       fetch: (url, init) => net.fetch(url, init),
     },
