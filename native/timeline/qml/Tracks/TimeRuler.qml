@@ -25,6 +25,13 @@ Rectangle {
         fromMs: (ruler.viewState.scrollLeftPx - 200) * ruler.viewState.msPerPx
         toMs: (ruler.viewState.scrollLeftPx + ruler.width + 200) * ruler.viewState.msPerPx
     }
+    property Item hoveredMarker: null
+    Ui.Tooltip {
+        objectName: "markerTooltip"
+        trigger: ruler.hoveredMarker
+        visible: ruler.hoveredMarker !== null
+        text: ruler.hoveredMarker ? ruler.hoveredMarker.tooltipText : ""
+    }
     signal seekRequested(real ms)
     // A press or drag on the ruler: the transport plays a short burst of audio.
     signal scrubRequested(real ms)
@@ -178,26 +185,39 @@ Rectangle {
                         PathLine { x: 0; y: 0 }
                     }
                 }
-                Ui.Tooltip {
-                    objectName: "markerTooltip"
-                    trigger: flag
-                    visible: flagHover.hovered
-                    text: flag.label + "  " + MarkerSession.timecode(flag.marker.timeMs, ruler.fps)
-                          + (flag.marker.note ? "\n" + flag.marker.note : "")
+                readonly property string tooltipText: flagHover.hovered
+                    ? flag.label + "  " + MarkerSession.timecode(flag.marker.timeMs, ruler.fps)
+                        + (flag.marker.note ? "\n" + flag.marker.note : "") : ""
+                HoverHandler {
+                    id: flagHover
+                    enabled: flag.glyphInViewport
+                    cursorShape: Qt.PointingHandCursor
+                    onHoveredChanged: {
+                        if (hovered) {
+                            ruler.hoveredMarker = flag
+                        } else if (ruler.hoveredMarker === flag) { ruler.hoveredMarker = null }
+                    }
                 }
-                HoverHandler { id: flagHover; enabled: flag.glyphInViewport; cursorShape: Qt.PointingHandCursor }
+                Component.onDestruction: if (ruler.hoveredMarker === flag) { ruler.hoveredMarker = null }
                 // A range marker shows its name inside the bar, as in Premiere. The name is
                 // elided to the span and is hidden when less than a few characters fit.
-                Ui.Text {
+                Loader {
+                    id: rangeLabel
                     objectName: "markerRangeLabel"
-                    role: Ui.Typography.SansCaption
+                    // Keep semantic text available while its renderer is unloaded.
+                    readonly property string text: flag.label
                     readonly property double room: flag.durationPx - flag.width / 2 - Ui.Metrics.xs
-                    visible: flag.durationPx > 0 && room >= Ui.Metrics.xl
+                    active: flag.durationPx > 0 && room >= Ui.Metrics.xl
+                    visible: active
                     x: flag.width + Ui.Metrics.micro
                     width: Math.max(0, room)
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: flag.label
-                    elide: Text.ElideRight
+                    height: flag.height
+                    sourceComponent: Ui.Text {
+                        role: Ui.Typography.SansCaption
+                        text: rangeLabel.text
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
                 // A range marker has a grip at its end. Dragging it resizes the range, and the
                 // release is one undo entry. Point markers and markers out of view build no grip.

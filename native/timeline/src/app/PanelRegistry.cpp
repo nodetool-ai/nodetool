@@ -32,3 +32,17 @@ QVariantList PanelRegistry::forSlot(const QString& slot) const {
     }
     return out;
 }
+
+QStringList PanelRegistry::idsForSlot(const QString& slot) const {
+    QStringList out;
+    for (const auto& panel : panels()) {
+        if (panel.slot == slot) { out.append(panel.id); }
+    }
+    return out;
+}
+QUrl PanelRegistry::sourceForPanel(const QString& id) const {
+    for (const auto& panel : panels()) {
+        if (panel.id == id) { return panel.source; }
+    }
+    return {};
+}

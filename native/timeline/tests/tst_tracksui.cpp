@@ -63,6 +63,7 @@
 #include <QTest>
 #include <QWheelEvent>
 #include <QAbstractItemModelTester>
+#include "ui/ClipChromeLayer.h"
 #include <QQuickRenderControl>
 #include <QQuickRenderTarget>
 #include <rhi/qrhi.h>
@@ -597,6 +598,166 @@ class TestTracksUi : public QObject {
     }
 
 private slots:
+    void laneChromeHandlesLargeOverlapComponentsAndClearsThem() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 5000}));
+        TimelineViewState state;
+        state.setContentEndMs(doc.contentEndMs());
+        state.setViewportWidthPx(1000);
+        state.flush();
+        LaneClipModel lane;
+        lane.setTrackId("track-0");
+        lane.setViewState(&state);
+        lane.setTimeline(&doc);
+        // GUI-thread probe avoids constructing thousands of QML delegates.
+        struct ChromeProbe : ClipChromeLayer { using ClipChromeLayer::prepare; } chrome;
+        chrome.setModel(&lane);
+        chrome.setViewState(&state);
+        chrome.setHeight(48);
+        chrome.prepare();
+        QVERIFY(chrome.coversLane());
+        QVERIFY(chrome.clipCount() > 0 && chrome.clipCount() < 50);
+        auto overlapping = makeTimeline({1, 5000});
+        for (auto& clip : overlapping.clips) {
+            clip.startMs = 0;
+            clip.raw.insert("startMs", 0);
+        }
+        doc.setTimeline(std::move(overlapping));
+        chrome.prepare();
+        QVERIFY(!chrome.coversLane());
+        QVERIFY(chrome.overlaps("c-0-0") && chrome.overlaps("c-0-4999"));
+        QCOMPARE(chrome.clipCount(), 0);
+        doc.setTimeline(makeTimeline({1, 5000}));
+        chrome.prepare();
+        QVERIFY(chrome.coversLane());
+        QVERIFY(!chrome.overlaps("c-0-0") && !chrome.overlaps("c-0-4999"));
+        lane.setTimeline(nullptr);
+        chrome.prepare();
+        QVERIFY(!chrome.coversLane());
+        QCOMPARE(chrome.clipCount(), 0);
+    }
+
+    void clipChromeMatchesTheDelegateAndRetainsScrollGeometry() {
+        load({1, 60}, 10, 0);
+        seed(10, 0);
+        frame(); frame();
+        auto* chrome = qobject_cast<ClipChromeLayer*>(itemNamed("clipChrome-track-0"));
+        QVERIFY(chrome);
+        QVERIFY(chrome->coversLane());
+        QVERIFY(chrome->clipCount() > 0);
+        QTest::mouseMove(view.get(), QPoint(0,0));
+        frame();
+        const int builds = chrome->buildCount();
+        vs->setScrollLeftPx(1);
+        frame();
+        QCOMPARE(chrome->buildCount(), builds);
+        auto* clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        const QPointF bodyPoint = clip->mapToScene(QPointF(20, 25));
+        const QPointF bandPoint = clip->mapToScene(QPointF(60, 5));
+        const auto layered = view->grabWindow();
+        for (auto* shell : itemsNamed("clip-")) { shell->setProperty("layerChrome", false); }
+        chrome->setVisible(false);
+        frame();
+        const auto delegates = view->grabWindow();
+        for (const auto& point : {bodyPoint, bandPoint}) {
+            const auto a = layered.pixelColor(point.toPoint());
+            const auto b = delegates.pixelColor(point.toPoint());
+            QVERIFY(std::abs(a.red()-b.red()) <= 1 && std::abs(a.green()-b.green()) <= 1 && std::abs(a.blue()-b.blue()) <= 1);
+        }
+    }
+
+    void headerLaneHeightsReactWhenTheTotalHeightStaysTheSame() {
+        load({4, 10}, 10, 0);
+        frame(); frame();
+        rows->reportExtraHeight("track-0", 30);
+        frame();
+        const double total = rows->contentHeight();
+        auto* first = itemNamed("trackHeaderLanes-track-0");
+        auto* second = itemNamed("trackHeaderLanes-track-1");
+        QVERIFY(first && second);
+        QCOMPARE(first->height(), 30.0);
+        rows->setExtraRowHeights({{"track-0", 20.0}, {"track-1", 10.0}});
+        frame();
+        QCOMPARE(rows->contentHeight(), total);
+        QCOMPARE(first->height(), 20.0);
+        QCOMPARE(second->height(), 10.0);
+    }
+
+    void pooledTrackHeadersKeepTheFocusedResizeIdentity() {
+        load({100, 10}, 10, 0);
+        auto* header = itemNamed("trackHeader-track-0");
+        QVERIFY(header);
+        QVERIFY(QMetaObject::invokeMethod(region, "focusTrackResize", Q_ARG(QString, QString("track-0"))));
+        frame();
+        const QPointer<QQuickItem> focused = view->activeFocusItem();
+        QVERIFY(focused && header->isAncestorOf(focused));
+        vs->setScrollTopPx(5000);
+        frame(); frame();
+        QVERIFY(focused && focused->hasActiveFocus());
+        QCOMPARE(header->property("trackId").toString(), QString("track-0"));
+    }
+
+    void laneChromeTracksTypographyChangesOnTheGuiThread() {
+        load({1, 4}, 10, 0);
+        frame(); frame();
+        auto* chrome = qobject_cast<ClipChromeLayer*>(itemNamed("clipChrome-track-0"));
+        QVERIFY(chrome && chrome->nameStyle());
+        auto* style = chrome->nameStyle();
+        const auto original = style->property("font").value<QFont>();
+        const auto beforeImage = view->grabWindow();
+        auto resized = original;
+        resized.setLetterSpacing(QFont::AbsoluteSpacing, 2);
+        const int before = chrome->buildCount();
+        QVERIFY(style->setProperty("font", resized));
+        frame();
+        const bool rebuilt = chrome->buildCount() > before;
+        const bool changed = view->grabWindow() != beforeImage;
+        style->setProperty("font", original);
+        frame();
+        QVERIFY(rebuilt);
+        QVERIFY(changed);
+    }
+
+    void laneChromeRebindsSelectionWithoutLeavingAHole() {
+        load({1, 60}, 10, 0);
+        seed(10, 0);
+        controller()->setSelection({"c-0-2"});
+        frame(); frame();
+        QVERIFY(!itemNamed("clip-c-0-2")->property("layerChrome").toBool());
+        vs->setScrollLeftPx(15000);
+        frame(); frame();
+        for (auto* clip : itemsNamed("clip-")) {
+            QVERIFY(!clip->property("selected").toBool());
+            QVERIFY(clip->property("layerChrome").toBool());
+        }
+        vs->setScrollLeftPx(0);
+        frame(); frame();
+        auto* selected = itemNamed("clip-c-0-2");
+        QVERIFY(selected && selected->property("selected").toBool());
+        QVERIFY(!selected->property("layerChrome").toBool());
+        controller()->setSelection({});
+        frame(); frame();
+        QVERIFY(selected->property("layerChrome").toBool());
+    }
+
+    void overlappingClipsKeepTheirContentStacking() {
+        load({1, 4}, 10, 0);
+        seed(10, 0);
+        frame();
+        auto* chrome = qobject_cast<ClipChromeLayer*>(itemNamed("clipChrome-track-0"));
+        QVERIFY(chrome && chrome->coversLane());
+        QVERIFY(model->moveClip("c-0-2", 1200));
+        frame(); frame();
+        QVERIFY(!chrome->coversLane());
+        QVERIFY(!itemNamed("clip-c-0-2")->property("layerChrome").toBool());
+        QVERIFY(itemNamed("clip-c-0-0")->property("layerChrome").toBool());
+        QVERIFY(itemNamed("clip-c-0-3")->property("layerChrome").toBool());
+        controller()->setSelection({"c-0-2"});
+        frame();
+        QVERIFY(itemNamed("clip-c-0-2")->property("selected").toBool());
+    }
+
     void emptyClipDoesNotLoadTrimGuide() {
         load({1, 4}, 10, 0);
         seed(10, 0);
@@ -2932,12 +3093,13 @@ private slots:
             lanes.insert(lane->objectName().mid(10), lane->property("clipModel").value<LaneClipModel*>());
         QVERIFY(lanes.size() >= 6);
         QMap<QString, int> signalCount;
+        QObject connections;
         for (auto it = lanes.begin(); it != lanes.end(); ++it) {
             const QString id = it.key();
-            connect(it.value(), &QAbstractItemModel::rowsInserted, this, [&signalCount, id]() { ++signalCount[id]; });
-            connect(it.value(), &QAbstractItemModel::rowsRemoved, this, [&signalCount, id]() { ++signalCount[id]; });
-            connect(it.value(), &QAbstractItemModel::rowsMoved, this, [&signalCount, id]() { ++signalCount[id]; });
-            connect(it.value(), &QAbstractItemModel::dataChanged, this, [&signalCount, id]() { ++signalCount[id]; });
+            connect(it.value(), &QAbstractItemModel::rowsInserted, &connections, [&signalCount, id]() { ++signalCount[id]; });
+            connect(it.value(), &QAbstractItemModel::rowsRemoved, &connections, [&signalCount, id]() { ++signalCount[id]; });
+            connect(it.value(), &QAbstractItemModel::rowsMoved, &connections, [&signalCount, id]() { ++signalCount[id]; });
+            connect(it.value(), &QAbstractItemModel::dataChanged, &connections, [&signalCount, id]() { ++signalCount[id]; });
         }
         QList<QPointer<QQuickItem>> otherClips;
         for (QQuickItem* c : itemsNamed(QStringLiteral("clip-c-")))

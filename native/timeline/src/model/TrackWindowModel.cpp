@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <unordered_set>
 
 namespace nt {
 
@@ -57,9 +58,8 @@ void TrackWindowModel::setTracks(TrackListModel* tracks) {
         connect(m_tracks, &QAbstractItemModel::rowsInserted, this, rebuild);
         connect(m_tracks, &QAbstractItemModel::rowsRemoved, this, rebuild);
         connect(m_tracks, &TrackListModel::trackDocumentChanged, this, [this](int row) {
-            const int visible = row - m_window.start;
-            if (visible >= 0 && visible < rowCount()) {
-                emit dataChanged(index(visible), index(visible), {TrackRole});
+            for (int visible = 0; visible < rowCount(); ++visible) {
+                if (sourceRow(visible) == row) { emit dataChanged(index(visible), index(visible), {TrackRole}); }
             }
         });
         connect(m_tracks, &QAbstractItemModel::dataChanged, this,
@@ -69,7 +69,8 @@ void TrackWindowModel::setTracks(TrackListModel* tracks) {
             const bool layout = roles.isEmpty() || roles.contains(TrackListModel::HeightPxRole);
             if (layout) { relayout(); updateWindow(); }
             for (int row = 0; row < rowCount(); ++row) {
-                const auto source = static_cast<size_t>(row) + static_cast<size_t>(m_window.start);
+                const int sourceIndex = sourceRow(row);
+                const auto source = static_cast<size_t>(sourceIndex);
                 QList<int> affected;
                 if (static_cast<int>(source) >= first.row() && static_cast<int>(source) <= last.row()) {
                     if (roles.isEmpty()) {
@@ -117,6 +118,7 @@ void TrackWindowModel::setExtraRowHeights(const QVariantMap& heights) {
 }
 
 void TrackWindowModel::relayout() {
+    m_poolViewport = -1;
     const double zoom = m_view ? m_view->verticalZoom() : 1.0;
     m_layoutZoom = zoom;
     const int n = m_tracks ? m_tracks->rowCount() : 0;
@@ -168,6 +170,7 @@ void TrackWindowModel::resetRows() {
     beginResetModel();
     m_resetting = true;
     m_window = {};
+    m_sourceRows.clear();
     relayout();
     m_resetting = false;
     endResetModel();
@@ -180,8 +183,17 @@ void TrackWindowModel::updateWindow() {
     const double viewport = m_view ? m_view->viewportHeightPx() : 0.0;
     const nt::TrackWindow next = nt::visibleTrackWindow(m_tops, m_heights, scrollTop, viewport);
     const nt::TrackWindow prev = m_window;
-    if (next.start == prev.start && next.end == prev.end) {
+    if (!m_reuseRows && next.start == prev.start && next.end == prev.end) {
         m_window = next;
+        return;
+    }
+    if (m_reuseRows) {
+        updatePooledRows(next);
+        m_window = next;
+        if (next.start != prev.start || next.end != prev.end) {
+            ++m_windowUpdates;
+            emit windowChanged();
+        }
         return;
     }
     const bool overlaps = next.start < prev.end && prev.start < next.end;
@@ -225,12 +237,12 @@ void TrackWindowModel::updateWindow() {
 }
 
 int TrackWindowModel::rowCount(const QModelIndex& parent) const {
-    return parent.isValid() ? 0 : m_window.end - m_window.start;
+    return parent.isValid() ? 0 : m_reuseRows ? static_cast<int>(m_sourceRows.size()) : m_window.end - m_window.start;
 }
 
 QVariant TrackWindowModel::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || !m_tracks || index.row() < 0 || index.row() >= rowCount()) return {};
-    const int source = m_window.start + index.row();
+    const int source = sourceRow(index.row());
     switch (role) {
     case RowTopRole: return m_tops[static_cast<size_t>(source)];
     case RowHeightRole: return m_heights[static_cast<size_t>(source)];
@@ -254,4 +266,85 @@ QHash<int, QByteArray> TrackWindowModel::roleNames() const {
     roles.insert(BaseRowHeightRole, "baseRowHeight");
     roles.insert(TrackRole, "track");
     return roles;
+}
+
+int TrackWindowModel::sourceRow(int row) const {
+    return m_reuseRows ? m_sourceRows[static_cast<size_t>(row)] : m_window.start + row;
+}
+void TrackWindowModel::setReuseRows(bool value) {
+    if (m_reuseRows == value) { return; }
+    m_reuseRows = value;
+    resetRows();
+    emit reuseRowsChanged();
+}
+void TrackWindowModel::retainTrack(QObject* owner, const QString& id, bool retain) {
+    if (!owner) { return; }
+    if (retain && !id.isEmpty()) {
+        connect(owner, &QObject::destroyed, this, &TrackWindowModel::releaseRetainedTrack, Qt::UniqueConnection);
+        m_retainedTracks.insert(owner, id);
+    } else {
+        disconnect(owner, &QObject::destroyed, this, &TrackWindowModel::releaseRetainedTrack);
+        releaseRetainedTrack(owner);
+    }
+}
+void TrackWindowModel::releaseRetainedTrack(QObject* owner) {
+    if (m_retainedTracks.remove(owner)) {
+        QMetaObject::invokeMethod(this, &TrackWindowModel::updateWindow, Qt::QueuedConnection);
+    }
+}
+void TrackWindowModel::updatePooledRows(const nt::TrackWindow& next) {
+    std::unordered_set<int> needed;
+    for (int source = next.start; source < next.end; ++source) { needed.insert(source); }
+    if (m_view && m_poolViewport != m_view->viewportHeightPx()) {
+        m_poolViewport = m_view->viewportHeightPx();
+        // Reserve rows for both overscan edges and a partially visible row.
+        // Hidden lanes keep their clip models detached until they enter.
+        size_t end = 0, capacity = 0;
+        for (size_t first = 0; first < m_tops.size(); ++first) {
+            while (end < m_tops.size() && m_tops[end] < m_tops[first] + m_heights[first] + m_poolViewport) { ++end; }
+            capacity = std::max(capacity, end - first + 6);
+        }
+        m_poolCapacity = std::min(static_cast<int>(m_tops.size()), static_cast<int>(capacity));
+    }
+    if (rowCount() < m_poolCapacity) {
+        const int first = std::max(0, std::min(next.start, static_cast<int>(m_tops.size()) - m_poolCapacity));
+        for (int source = first; source < first + m_poolCapacity; ++source) { needed.insert(source); }
+    }
+    const auto retainedValues = m_retainedTracks.values();
+    const QSet<QString> retained(retainedValues.begin(), retainedValues.end());
+    for (int source : m_sourceRows) {
+        const auto id = m_tracks->data(m_tracks->index(source), TrackListModel::TrackIdRole).toString();
+        if (retained.contains(id)) { needed.insert(source); }
+    }
+    std::vector<size_t> idle;
+    for (size_t slot = 0; slot < m_sourceRows.size(); ++slot) {
+        if (!needed.erase(m_sourceRows[slot])) { idle.push_back(slot); }
+    }
+    std::vector<int> incoming(needed.begin(), needed.end());
+    std::ranges::sort(incoming);
+    std::vector<int> changed;
+    size_t used = 0;
+    for (const int source : incoming) {
+        if (used < idle.size()) {
+            const auto slot = idle[used++];
+            m_sourceRows[slot] = source;
+            changed.push_back(static_cast<int>(slot));
+        } else {
+            const int slot = rowCount();
+            beginInsertRows({}, slot, slot);
+            m_sourceRows.push_back(source);
+            endInsertRows();
+        }
+    }
+    // Idle slots keep their last offscreen identity until another row needs
+    // them. Clearing them here tears down content only to rebuild it later.
+    // Publish after all slots have final identities, as LaneClipModel does.
+    for (const int slot : changed) { emit dataChanged(index(slot), index(slot), roleNames().keys()); }
+}
+
+void TrackWindowModel::reportExtraHeight(const QString& id, double height) {
+    if (id.isEmpty() || !std::isfinite(height) || extraHeight(id) == height) { return; }
+    auto heights = m_extraRowHeights;
+    heights.insert(id, height);
+    setExtraRowHeights(heights);
 }

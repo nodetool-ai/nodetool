@@ -258,6 +258,27 @@ int measurementChecks() {
         || qobject_cast<ValueWriteProbe*>(probeObject.get())->value().pitch != 3
         || qobject_cast<ValueWriteProbe*>(probeObject.get())->setterCalls != 1) { return 30; }
     int regressionFailures = 0;
+    QObject seededRoot;
+    QObject seededChild(&seededRoot);
+    // GUI-thread filter counts queued work even when notify() deduplicates it.
+    struct ObserverEvents : QObject {
+        int metaCalls = 0;
+        bool eventFilter(QObject*, QEvent* event) override {
+            if (event->type() == QEvent::MetaCall) { ++metaCalls; }
+            return false;
+        }
+    } events;
+    ObjectCreations seeded;
+    seeded.installEventFilter(&events);
+    int seededVisits = 0;
+    seeded.onObject = [&](QObject&) { ++seededVisits; };
+    seeded.observe(seededRoot);
+    const int visitsBeforeEvents = seededVisits;
+    QCoreApplication::sendPostedEvents(&seeded, QEvent::MetaCall);
+    if (events.metaCalls != 0 || seededVisits != visitsBeforeEvents || seededVisits == 0) {
+        std::fprintf(stderr, "A7 seeded observer queued redundant construction retries\n");
+        ++regressionFailures;
+    }
     StressStats checkStress;
     model.setReadOnly(false);
     model.setTimeline(*nt::parseTimeline(buildStressDocument(checkStress)).timeline);
@@ -747,10 +768,12 @@ int main(int argc, char* argv[]) try {
     QObject::connect(&window, &QQuickWindow::afterRendering, &renderContext, [&] { renderCpuMs += nowMs() - renderBegin.load(); }, Qt::DirectConnection);
     QObject::connect(&window, &QQuickWindow::beforeSynchronizing, &renderContext, [&] { syncBegin = nowMs(); }, Qt::DirectConnection);
     QObject::connect(&window, &QQuickWindow::afterSynchronizing, &renderContext, [&] { syncMs += nowMs() - syncBegin.load(); }, Qt::DirectConnection);
-    std::vector<double> frameMs, inputMs, polishMs;
+    std::vector<double> frameMs, inputMs, polishMs, actionMs, deferredEventsMs;
     frameMs.reserve(frames);
     inputMs.reserve(frames);
     polishMs.reserve(frames);
+    actionMs.reserve(frames);
+    deferredEventsMs.reserve(frames);
 
     const std::uint64_t memBefore = mallocBytesInUse();
 
@@ -815,6 +838,7 @@ int main(int argc, char* argv[]) try {
     QObject::connect(&model, &TimelineModel::timelineChanged, &counterContext, [&] { counters["timelineSignals"] = counters["timelineSignals"].toInteger() + 1; });
     QObject::connect(&model, &TimelineModel::clipsChanged, &counterContext, [&] { counters["clipSignals"] = counters["clipSignals"].toInteger() + 1; });
     qint64 reboundClipRows = 0;
+    qint64 reboundTrackRows = 0;
     QJsonObject dataChangedRowsByModel;
     QSet<QAbstractItemModel*> observedRowModels;
     ObjectCreations rowModelObservations;
@@ -825,10 +849,14 @@ int main(int argc, char* argv[]) try {
         QObject::connect(rows, &QObject::destroyed, &counterContext,
             [&, rows] { observedRowModels.remove(rows); });
         QObject::connect(rows, &QAbstractItemModel::dataChanged, &counterContext,
-            [&, clipRows = qobject_cast<LaneClipModel*>(rows)](const QModelIndex& first, const QModelIndex& last, const QList<int>& roles) {
+            [&, clipRows = qobject_cast<LaneClipModel*>(rows), trackRows = qobject_cast<TrackWindowModel*>(rows)](const QModelIndex& first, const QModelIndex& last, const QList<int>& roles) {
                 // Pooled presentation slots rebind during scrolling, independently of edits.
                 if (clipRows && roles.contains(LaneClipModel::ClipIdRole)) {
                     reboundClipRows += last.row() - first.row() + 1;
+                    return;
+                }
+                if (trackRows && roles.contains(TrackWindowModel::SourceRowRole)) {
+                    reboundTrackRows += last.row() - first.row() + 1;
                     return;
                 }
                 const auto count = last.row() - first.row() + 1;
@@ -977,6 +1005,8 @@ int main(int argc, char* argv[]) try {
             }
         }
 
+        actionMs.push_back(actionEnd - f0);
+        deferredEventsMs.push_back(f1 - actionEnd);
         inputMs.push_back(f1 - f0);
         polishMs.push_back(f2 - f1);
         creations.classify();
@@ -1054,6 +1084,11 @@ int main(int argc, char* argv[]) try {
 
     const int liveNotesDuringDrag = liveNoteCount;
 
+    QJsonArray frameSamples;
+    for (size_t frame = 0; frame < frameMs.size(); ++frame) {
+        frameSamples.append(QJsonObject{{"frame", static_cast<int>(frame)}, {"totalMs", frameMs[frame]},
+            {"actionMs", actionMs[frame]}, {"deferredMs", deferredEventsMs[frame]}, {"captureMs", polishMs[frame]}});
+    }
     QJsonObject out{
         {"stress", QJsonObject{{"tracks", stress.tracks}, {"clips", stress.clips}, {"notes", stress.midiNotes}, {"markers", stress.markers}}},
         {"gpu", gpu}, {"releaseMs", releaseMs}, {"operations", operations},
@@ -1063,13 +1098,17 @@ int main(int argc, char* argv[]) try {
         {QStringLiteral("motion"), QJsonObject{{"clockAdvanceMs", clock.time() - clockStartMs},
             {"zoomInFrames", zoomInFrames}, {"zoomOutFrames", zoomOutFrames}}},
         {QStringLiteral("reboundClipRows"), reboundClipRows},
+        {QStringLiteral("reboundTrackRows"), reboundTrackRows},
         {QStringLiteral("dataChangedRowsByModel"), dataChangedRowsByModel},
         {QStringLiteral("profiled"), enableProfile},
         {QStringLiteral("frames"), frames},
         {QStringLiteral("wallTotalMs"), tWall1 - tWall0},
         {QStringLiteral("fpsAchieved"), frames / std::max(0.001, (tWall1 - tWall0) / 1000.0)},
         {QStringLiteral("frameMs"), statsOf(frameMs)},
+        {QStringLiteral("frameSamplesMs"), frameSamples},
         {QStringLiteral("guiActionEventsMs"), statsOf(inputMs)},
+        {QStringLiteral("guiActionMs"), statsOf(actionMs)},
+        {QStringLiteral("deferredEventsMs"), statsOf(deferredEventsMs)},
         {QStringLiteral("renderSyncReadbackMs"), statsOf(polishMs)},
         {QStringLiteral("mallocInUseBefore"), static_cast<qint64>(memBefore)},
         {QStringLiteral("mallocInUseAfter"), static_cast<qint64>(memAfter)},
@@ -1187,7 +1226,7 @@ int main(int argc, char* argv[]) try {
     QObject::disconnect(&window, nullptr, &renderContext, nullptr);
     if (qmlProf) { QObject::disconnect(qmlProf, nullptr, &profilerContext, nullptr); }
     if (v4Prof) { QObject::disconnect(v4Prof, nullptr, &profilerContext, nullptr); }
-    if (scenario == "scroll" && (creations.objects == 0 || creations.delegates == 0)) { return 7; }
+    if (scenario == "scroll" && (reboundClipRows == 0 || reboundTrackRows == 0)) { return 7; }
     if (scenario == "note_drag" && (liveNoteCount != 2000 || model.findClip(QStringLiteral("clip-midi-hero"))->raw.value("notes") == parsed.timeline->findClip("clip-midi-hero")->raw.value("notes"))) { return 8; }
     if (workloadError) { return workloadError; }
     return ((scenario == "clip_drag" || scenario == "note_drag" || (scenario == "model_change" || scenario == "note_patch")) && !changed) ? 4 : 0;

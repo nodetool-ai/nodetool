@@ -4,6 +4,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 
 Item {
+    required property int sourceRow
     required property double rowTop
     required property double rowHeight
     required property double baseRowHeight

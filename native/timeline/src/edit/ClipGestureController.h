@@ -1,4 +1,5 @@
 #pragma once
+#include "GestureFeedback.h"
 
 // The clip gestures and the editing keys of the tracks region (M4), copied
 // from useClipDrag.ts, useClipTrim.ts (trimModeFor), clipSnap.ts and the
@@ -93,6 +94,11 @@ class ClipGestureController : public QQuickItem {
     Q_PROPERTY(int liveRevision READ liveRevision NOTIFY liveChanged)
     Q_PROPERTY(double trackDropY READ trackDropY NOTIFY gestureChanged)
     Q_PROPERTY(QVariantMap rubberBand READ rubberBand NOTIFY rubberBandChanged)
+    Q_PROPERTY(GestureFeedback gapFeedback READ gapFeedback NOTIFY selectionChanged)
+    Q_PROPERTY(GestureFeedback sourceFeedback READ sourceFeedback NOTIFY trimSourceRangeChanged)
+    Q_PROPERTY(GestureFeedback previewFeedback READ previewFeedback NOTIFY toolPreviewChanged)
+    Q_PROPERTY(QString selectedEditClipId READ selectedEditClipId NOTIFY selectionChanged)
+    Q_PROPERTY(QString selectedEditEdge READ selectedEditEdge NOTIFY selectionChanged)
     Q_PROPERTY(QVariantMap selectedGap READ selectedGap NOTIFY selectionChanged)
     Q_PROPERTY(QString trimSourceClipId READ trimSourceClipId NOTIFY trimSourceRangeChanged)
     Q_PROPERTY(QVariantMap trimSourceRange READ trimSourceRange NOTIFY trimSourceRangeChanged)
@@ -158,6 +164,20 @@ public:
     Q_INVOKABLE double liveDurationMs(const QString& clipId) const;
     double trackDropY() const { return m_trackDropY; }
     QVariantMap rubberBand() const { return m_rubberBand; }
+    GestureFeedback gapFeedback() const { return GestureFeedback::fromMap(m_selectedGap); }
+    GestureFeedback sourceFeedback() const { return GestureFeedback::fromMap(m_trimSourceRange); }
+    GestureFeedback previewFeedback() const { return GestureFeedback::fromMap(m_toolPreview); }
+    QString selectedEditClipId() const { return m_selectedEdit.value("clipId").toString(); }
+    QString selectedEditEdge() const { return m_selectedEdit.value("edge").toString(); }
+    Q_INVOKABLE void selectClip(const QString& id) { setSelection({id}); }
+    Q_INVOKABLE bool clipMuted(const QString& id) const {
+        const auto* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
+        return clip && clip->muted;
+    }
+    Q_INVOKABLE QString clipLinkIdFor(const QString& id) const {
+        const auto* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
+        return clip ? clip->raw.value("linkId").toString() : QString();
+    }
     QVariantMap selectedGap() const { return m_selectedGap; }
     QString trimSourceClipId() const { return m_trimSourceRange.value("clipId").toString(); }
     QVariantMap trimSourceRange() const { return m_trimSourceRange; }
@@ -433,6 +453,7 @@ class ClipInteractionState : public QObject {
     Q_PROPERTY(ClipGestureController* gestures READ gestures WRITE setGestures NOTIFY subscriptionChanged)
     Q_PROPERTY(QString clipId READ clipId WRITE setClipId NOTIFY subscriptionChanged)
     Q_PROPERTY(bool selected READ selected NOTIFY selectedChanged)
+    Q_PROPERTY(GestureFeedback previewFeedback READ previewFeedback NOTIFY toolPreviewChanged)
     Q_PROPERTY(QVariantMap toolPreview READ toolPreview NOTIFY toolPreviewChanged)
 public:
     explicit ClipInteractionState(QObject* parent=nullptr) : QObject(parent) {}
@@ -442,6 +463,7 @@ public:
     void setGestures(ClipGestureController* value);
     void setClipId(const QString& value);
     bool selected() const { return m_selected; }
+    GestureFeedback previewFeedback() const { return GestureFeedback::fromMap(m_preview); }
     QVariantMap toolPreview() const { return m_preview; }
     void refreshSelection();
     void refreshPreview();

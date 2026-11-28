@@ -14,6 +14,7 @@ import NodeTool.UiPrimitives as Ui
 
 Item {
     id: body
+    property bool layerChrome: false
     property string clipId
     property double startMs: 0
     property string labelColor
@@ -72,9 +73,9 @@ Item {
         detailGestureActive = false
         detailFocusActive = false
         detailMenuActive = false
-        Qt.callLater(body.finishReset)
+        resetParts.restart()
     }
-    function finishReset(): void { resettingParts = false }
+    Timer { id: resetParts; interval: 0; onTriggered: body.resettingParts = false }
 
     readonly property color accent: TimelineVisuals.clipAccent(mediaType)
     // The clip's colour label: a CSS colour, or empty.
@@ -111,18 +112,13 @@ Item {
 
     opacity: disabled ? 0.4 : 1     // DISABLED_CLIP_OPACITY
 
-    // The solid label fill, lighter when selected.
-    Rectangle {
-        objectName: "clipTint"
+    Loader {
         anchors.fill: parent
-        radius: body.radius
-        color: body.selected ? Qt.lighter(body.bodyFill, 1.18) : body.bodyFill
-        Rectangle {
-            objectName: "clipBand"
-            width: parent.width
-            height: TimelineMetrics.clipNameBandHeight
-            radius: body.radius
-            color: body.selected ? Qt.lighter(body.fill, 1.18) : body.fill
+        active: !body.layerChrome || body.interactiveDetails
+        sourceComponent: ClipChromeLayer {
+            detail: body
+            backgroundOnly: true
+            bandHeight: TimelineMetrics.clipNameBandHeight
         }
     }
 
@@ -132,9 +128,9 @@ Item {
         active: !body.resettingParts && body.inViewport && body.mediaSource !== ""
             && (audio || body.mediaType === "video" || body.mediaType === "overlay" || body.mediaType === "image")
         x: audio ? 0 : 1
-        y: headerRow.height
+        y: TimelineMetrics.clipNameBandHeight
         width: Math.max(0, body.width - (audio ? 0 : 2))
-        height: Math.max(0, body.height - headerRow.height - (audio ? 0 : 1))
+        height: Math.max(0, body.height - TimelineMetrics.clipNameBandHeight - (audio ? 0 : 1))
         sourceComponent: audio ? waveformComponent : pictureComponent
     }
     Component {
@@ -201,7 +197,7 @@ Item {
             }
             KeyframeClipDiamonds {
                 id: keyframeDiamonds
-                function playheadPassthrough(point) {
+                function playheadPassthrough(point: point): bool {
                     return keyframeDiamonds.childAt(point.x, point.y) !== null
                 }
                 anchors.fill: parent
@@ -210,7 +206,7 @@ Item {
                 msPerPx: body.msPerPx
                 timesMs: keyframeEdits.hasAnimations ? keyframeEdits.rowState("").times : []
                 locked: body.locked
-                formatTime: ms => TimelineFormat.clipDuration(ms)
+                formatTime: function(ms: real): string { return TimelineFormat.clipDuration(ms) }
                 onSeek: relativeMs => keyframeEdits.seek(relativeMs)
                 onMove: (fromMs, toMs) => {
                     const frameMs = 1000 / Math.max(1, body.timeline.fps)
@@ -258,9 +254,9 @@ Item {
             objectName: "musicLoopRepeats-" + body.clipId
             visible: body.repeatLengthMs > 0
             readonly property double periodPx: body.repeatLengthMs / body.msPerPx
-            readonly property color repeatFill: Qt.alpha(TimelineVisuals.loopRepeatFill, 0.34)
+            readonly property color repeatFill: TimelineVisuals.alphaColor(TimelineVisuals.loopRepeatFill, 0.34)
             readonly property color notchInk: TimelineVisuals.clipText
-            readonly property color seamInk: Qt.alpha(TimelineVisuals.clipText, 0.45)
+            readonly property color seamInk: TimelineVisuals.alphaColor(TimelineVisuals.clipText, 0.45)
             anchors.fill: parent
             readonly property real offset: repeatLoader.x
             onOffsetChanged: requestPaint()
@@ -378,23 +374,23 @@ Item {
                 Accessible.role: Accessible.Slider
                 Accessible.name: label
                 Ui.Tooltip { trigger: transitionGrip; visible: transitionGrip.containsMouse && !transitionGrip.pressed; text: transitionGrip.label }
-                onPressed: mouse => {
+                onPressed: function(mouse: MouseEvent): void {
                     ownerClipId = body.clipId
                     body.detailGestureActive = true
                     startX = mapToItem(body, mouse.x, mouse.y).x
                     startMs = body.transitionMs
                     wantedMs = startMs
-                    transitionEdits.beginGesture("setTransitionDuration", {clipId: body.clipId, durationMs: startMs})
+                    transitionEdits.beginDuration(body.clipId, startMs)
                 }
-                onPositionChanged: mouse => {
+                onPositionChanged: function(mouse: MouseEvent): void {
                     if (!pressed || ownerClipId !== body.clipId) return
                     const dx = mapToItem(body, mouse.x, mouse.y).x - startX
                     wantedMs = Math.max(Math.round(1000 / Math.max(1, body.timeline.fps)), Math.round(startMs + dx * body.msPerPx))
-                    transitionEdits.preview({durationMs: wantedMs})
+                    transitionEdits.previewDuration(wantedMs)
                 }
                 onReleased: {
                     if (ownerClipId !== "" && ownerClipId === body.clipId) {
-                        transitionEdits.commit("setTransitionDuration", {durationMs: wantedMs})
+                        transitionEdits.commitDuration(wantedMs)
                     }
                     ownerClipId = ""
                     body.detailGestureActive = false
@@ -415,53 +411,6 @@ Item {
         }
     }
 
-    // Name band: the fx badge, the name, the duration. 16 px, dark text on the fill.
-    Item {
-        id: headerRow
-        width: parent.width
-        height: TimelineMetrics.clipNameBandHeight
-        clip: true
-        Rectangle {
-            id: dot
-            objectName: "clipFxBadge"
-            visible: body.hasEffects
-            x: Ui.Metrics.xs
-            anchors.verticalCenter: parent.verticalCenter
-            width: fxText.implicitWidth + 2 * Ui.Metrics.micro
-            height: 11
-            radius: 1
-            color: TimelineVisuals.fxBadge
-            border.width: 1
-            border.color: TimelineVisuals.overlayContrast
-            Ui.Text {
-                id: fxText
-                anchors.centerIn: parent
-                text: "fx"
-                role: Ui.Typography.MonoCaption
-                domainColor: TimelineVisuals.overlayContrast
-            }
-        }
-        Ui.Text {
-            id: nameText
-            x: dot.visible ? dot.x + dot.width + Ui.Metrics.xs : Ui.Metrics.xs
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, (body.showDuration ? durationText.x - Ui.Metrics.sm : headerRow.width - Ui.Metrics.md) - x)
-            text: body.name
-            role: Ui.Typography.SansCaption
-            domainColor: TimelineVisuals.clipText
-            elide: Text.ElideRight
-        }
-        Ui.Text {
-            id: durationText
-            visible: body.showDuration
-            x: headerRow.width - Ui.Metrics.sm - implicitWidth
-            anchors.verticalCenter: parent.verticalCenter
-            text: TimelineFormat.clipDuration(body.durationMs)
-            role: Ui.Typography.MonoCaption
-            domainColor: Qt.alpha(TimelineVisuals.clipText, 0.7)
-        }
-    }
-
     // Trim grips: hidden until the clip is hovered or selected.
     Repeater {
         model: body.showTrimHandles && body.interactiveDetails ? 2 : 0
@@ -470,7 +419,7 @@ Item {
             x: index === 0 ? 0 : body.width - width
             width: 8                                     // TRIM_HANDLE_WIDTH_PX
             height: body.height
-            color: Qt.alpha(TimelineVisuals.clipText, 0.3)
+            color: TimelineVisuals.alphaColor(TimelineVisuals.clipText, 0.3)
             opacity: body.selected || body.hovered ? 1 : 0
         }
     }
@@ -493,12 +442,12 @@ Item {
         property string slot: "clipBody"
         anchors.fill: parent
         Repeater {
-            model: PanelRegistry.forSlot("clipBody")
+            model: PanelRegistry.idsForSlot("clipBody")
             delegate: Loader {
                 id: panel
-                required property var modelData
+                required property string modelData
                 anchors.fill: parent
-                active: !body.resettingParts && body.clipId !== "" && body.panelNeeded(modelData.id)
+                active: !body.resettingParts && body.clipId !== "" && body.panelNeeded(modelData)
                 property bool ready: false
                 function loadPanel(): void {
                     if (!ready || !active) { return }
@@ -506,9 +455,9 @@ Item {
                         timeline: Qt.binding(() => body.timeline),
                         gestures: Qt.binding(() => body.gestures), viewState: Qt.binding(() => body.viewState)
                     }
-                    if (modelData.id === "clipFadeGrips") { properties.body = body }
+                    if (modelData === "clipFadeGrips") { properties.body = body }
                     else { properties.clip = body }
-                    setSource(modelData.source, properties)
+                    setSource(PanelRegistry.sourceForPanel(modelData), properties)
                 }
                 onActiveChanged: {
                     if (active) { loadPanel() }
@@ -521,7 +470,7 @@ Item {
     function panelNeeded(id: string): bool {
         if (!visible || clipId === "") { return false }
         switch (id) {
-        case "clipFadeGrips": return showFades && interactiveDetails
+        case "clipFadeGrips": return showFades && interactiveDetails && (!gestures || gestures.gestureKind === "" || detailFocusActive || detailMenuActive)
         case "takeBadge": return takeBadge !== "" && audioRole !== "music"
         case "midiNoteLines": return mediaType === "midi" && inViewport
         case "musicClipJob": return audioRole === "music" || status === "queued"
@@ -531,12 +480,12 @@ Item {
         }
     }
 
-    // The border on top: 1 px darker fill, or 1.5 px white when selected.
-    Rectangle {
+    Loader {
         anchors.fill: parent
-        radius: body.radius
-        color: "transparent"
-        border.width: body.selected ? 1.5 : 1
-        border.color: body.selected ? Ui.Theme.textPrimary : Qt.darker(body.fill, 1.6)
+        active: !body.layerChrome || body.interactiveDetails
+        sourceComponent: ClipChrome {
+            clipBody: body
+            outlineColor: body.selected ? Ui.Theme.textPrimary : TimelineVisuals.darkerColor(body.fill, 1.6)
+        }
     }
 }

@@ -1,13 +1,13 @@
 #pragma once
 
-// Vertical virtualization of the tracks region (DESIGN.md D27). The rows of a
-// `TrackListModel` get exact tops and heights (`layoutTrackRows`, with extra
-// row contributions below each base lane), and this model exposes only the rows that `visibleTrackWindow`
-// keeps for the current vertical scroll, plus 3 rows of overscan. Both are
-// copied from web/src/components/timeline/Tracks/trackWindow.ts.
+// Vertical virtualization of the tracks region (DESIGN.md D27). Tracks get
+// exact tops and heights, including contributions below each base lane.
+// visibleTrackWindow selects the viewport and three rows of overscan, as in
+// web/src/components/timeline/Tracks/trackWindow.ts.
 //
-// A scroll that keeps some rows changes only the rows at the two ends, so the
-// header and lane delegates of the rows that stay are not rebuilt.
+// With reuseRows, slots retain offscreen source identities. Views show rows
+// between windowStart and windowEnd plus retained editors. Rebinding idle
+// slots preserves the headers and lanes that stay in the viewport.
 
 #include "model/TrackListModel.h"
 #include "ui/TimelineViewState.h"
@@ -34,6 +34,7 @@ TrackWindow visibleTrackWindow(const std::vector<double>& tops, const std::vecto
 
 }  // namespace nt
 
+// GUI thread only. Views own delegates and borrow model rows.
 class TrackWindowModel : public QAbstractListModel {
     Q_OBJECT
     QML_ELEMENT
@@ -41,6 +42,7 @@ class TrackWindowModel : public QAbstractListModel {
     Q_PROPERTY(TimelineViewState* viewState READ viewState WRITE setViewState NOTIFY viewStateChanged)
     Q_PROPERTY(double contentHeight READ contentHeight NOTIFY contentHeightChanged)
     Q_PROPERTY(QVariantMap extraRowHeights READ extraRowHeights WRITE setExtraRowHeights NOTIFY extraRowHeightsChanged)
+    Q_PROPERTY(bool reuseRows READ reuseRows WRITE setReuseRows NOTIFY reuseRowsChanged)
     Q_PROPERTY(int windowStart READ windowStart NOTIFY windowChanged)
     Q_PROPERTY(int windowEnd READ windowEnd NOTIFY windowChanged)
     Q_PROPERTY(int trackCount READ trackCount NOTIFY trackLayoutChanged)
@@ -64,6 +66,11 @@ public:
     double contentHeight() const { return m_contentHeight; }
     const QVariantMap& extraRowHeights() const { return m_extraRowHeights; }
     void setExtraRowHeights(const QVariantMap& heights);
+    Q_INVOKABLE double extraHeight(const QString& id) const { return m_extraRowHeights.value(id).toDouble(); }
+    Q_INVOKABLE void reportExtraHeight(const QString& id, double height);
+    bool reuseRows() const { return m_reuseRows; }
+    void setReuseRows(bool value);
+    Q_INVOKABLE void retainTrack(QObject* owner, const QString& id, bool retain);
     int windowStart() const { return m_window.start; }
     int windowEnd() const { return m_window.end; }
     int trackCount() const { return static_cast<int>(m_tops.size()); }
@@ -76,6 +83,7 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
 signals:
+    void reuseRowsChanged();
     void tracksChanged();
     void viewStateChanged();
     void contentHeightChanged();
@@ -84,11 +92,20 @@ signals:
     void trackLayoutChanged();
 
 private:
+    void releaseRetainedTrack(QObject* owner);
+    int sourceRow(int row) const;
+    void updatePooledRows(const nt::TrackWindow& next);
     void relayout();
     void onVerticalZoomChanged();
     void updateWindow();
     void resetRows();
 
+    double m_poolViewport = -1;
+    int m_poolCapacity = 0;
+    bool m_reuseRows = false;
+    std::vector<int> m_sourceRows;
+    // GUI-thread borrows. destroyed() removes each owner before it can dangle.
+    QHash<QObject*, QString> m_retainedTracks;
     QPointer<TrackListModel> m_tracks;
     QPointer<TimelineViewState> m_view;
     std::vector<double> m_tops;

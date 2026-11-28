@@ -34,9 +34,24 @@ Rectangle {
     required property PlaybackClock clock
 
     readonly property alias viewState: view
+    property int extraHeightRevision: 0
+    Connections {
+        target: rowModel
+        function onExtraRowHeightsChanged(): void { ++region.extraHeightRevision }
+    }
     readonly property alias rows: rowModel
     readonly property alias gestures: clipGestures
     property string renamingTrackId: ""
+    property TrackHeader focusedTrackHeader: null
+    Connections {
+        target: region.Window.window
+        function onActiveFocusItemChanged(): void {
+            const focused = region.Window.window.activeFocusItem
+            region.focusedTrackHeader = region.ownerOf(focused, "trackId") as TrackHeader
+            rowModel.retainTrack(region, region.focusedTrackHeader ? region.focusedTrackHeader.trackId : "",
+                region.focusedTrackHeader !== null)
+        }
+    }
     // Follow playhead (the toolbar's Follow toggle, on by default).
     property bool followPlayhead: true
     // The `?` key and the help button ask the editor for the shortcut sheet.
@@ -61,12 +76,12 @@ Rectangle {
     Preferences { id: columnPreferences }
     Binding { target: region.timeline.automationRecorder; property: "clock"; value: region.clock; restoreMode: Binding.RestoreNone }
 
-    function saveHeaderWidth(value) {
+    function saveHeaderWidth(value: real): void {
         headerWidthDraft = value
         columnPreferences.trackHeaderWidth = headerWidth / Ui.Theme.uiScale
         headerWidthDraft = -1
     }
-    function resetHeaderWidth() {
+    function resetHeaderWidth(): void {
         headerWidthDraft = -1
         columnPreferences.trackHeaderWidth = -1
     }
@@ -120,47 +135,10 @@ Rectangle {
     }
 
     function focusNextClipDetail(current: Item, forward: bool): bool {
-        function position(item) {
-            const clip = item.previousClipId !== undefined
-            return { row: item.mapToItem(region, 0, 0).y, start: clip ? item.startMs : item.parent.body.startMs,
-                id: clip ? item.clipId : item.parent.body.clipId, edge: clip ? -1 : item.edge === "in" ? 0 : 1 }
-        }
-        function compare(a, b) {
-            if (Math.abs(a.row - b.row) > 1) { return a.row - b.row }
-            if (a.start !== b.start) { return a.start - b.start }
-            const id = a.id.localeCompare(b.id)
-            return id !== 0 ? id : a.edge - b.edge
-        }
-        const here = position(current)
-        const direction = forward ? 1 : -1
-        let next = null
-        let nextPosition = null
-        function visit(item) {
-            if (!item.visible) { return }
-            if (item.objectName.startsWith("fadeGrip-")
-                || (item.previousClipId !== undefined && item.activeFocusOnTab)) {
-                const at = position(item)
-                if (!(direction < 0 && at.id === here.id && at.edge === -1)
-                    && compare(at, here) * direction > 0
-                    && (!next || compare(at, nextPosition) * direction < 0)) {
-                    next = item
-                    nextPosition = at
-                }
-            }
-            for (const child of item.children) { visit(child) }
-        }
-        visit(lanesContent)
-        if (!next) { return false }
-        next.forceActiveFocus(Qt.TabFocusReason)
-        return true
+        return ClipDelegateTools.focusNext(lanesContent, region, current, forward)
     }
 
-    function focusTrackResize(id) {
-        for (let i = 0; i < headerRepeater.count; ++i) {
-            const header = headerRepeater.itemAt(i)
-            if (header && header.trackId === id) { header.resizeHandle.forceActiveFocus() }
-        }
-    }
+    function focusTrackResize(id: string): void { ClipDelegateTools.focusTrackResize(headerColumn, id) }
 
     TimelineViewState {
         id: view
@@ -173,6 +151,7 @@ Rectangle {
 
     TrackWindowModel {
         id: rowModel
+        reuseRows: true
         objectName: "trackWindowModel"
         tracks: region.timeline.tracks
         viewState: view
@@ -193,9 +172,7 @@ Rectangle {
     property Item clipMenuOwner: null
     property Item laneMenuOwner: null
     function ownerOf(area: Item, identity: string): Item {
-        let owner = area
-        while (owner && owner[identity] === undefined) { owner = owner.parent }
-        return owner
+        return ClipDelegateTools.ownerOf(area, identity)
     }
     Connections {
         target: region.clipMenuOwner
@@ -210,7 +187,7 @@ Rectangle {
     property ClipContextMenu clipMenu: null
     Component { id: clipMenuComponent; ClipContextMenu { gestures: clipGestures } }
     function openClipMenu(context: var, area: Item, px: real, py: real): void {
-        if (!clipMenu) { clipMenu = clipMenuComponent.createObject(region) }
+        if (!clipMenu) { clipMenu = (clipMenuComponent.createObject(region) as ClipContextMenu) }
         if (!clipMenu) { return }
         clipMenuOwner = ownerOf(area, "clipId")
         clipMenu.retarget(area, anchor => {
@@ -222,7 +199,7 @@ Rectangle {
     property RegistryContextMenu editPointMenu: null
     Component { id: laneMenuComponent; TrackLaneContextMenu { gestures: clipGestures } }
     Component { id: editPointMenuComponent; RegistryContextMenu { kind: "editPoint"; gestures: clipGestures } }
-    function closeSharedMenus() {
+    function closeSharedMenus(): void {
         clipMenuOwner = null
         laneMenuOwner = null
         if (clipMenu) {
@@ -246,15 +223,15 @@ Rectangle {
         function onMsPerPxChanged() { region.closeSharedMenus() }
         function onVerticalZoomChanged() { region.closeSharedMenus() }
     }
-    function editPointExists(context) {
+    function editPointExists(context: var): bool {
         const ids = [context.clipId, context.leftId, context.rightId]
-        return !ids.some(id => id && !clipGestures.clipData(id).id)
+        return !ids.some(id => id && !clipGestures.hasClip(id))
     }
     Connections {
         target: region.timeline
         function onDocumentReplaced() { region.closeSharedMenus() }
         function onClipsChanged() {
-            if (region.clipMenu && region.clipMenu.visible && region.clipMenu.context.clipId && !clipGestures.clipData(region.clipMenu.context.clipId).id) {
+            if (region.clipMenu && region.clipMenu.visible && region.clipMenu.context.clipId && !clipGestures.hasClip(region.clipMenu.context.clipId)) {
                 region.clipMenu.close()
                 region.clipMenu.context = ({})
             }
@@ -262,17 +239,17 @@ Rectangle {
             if (!region.editPointExists(region.editPointMenu.context)) region.editPointMenu.close()
         }
     }
-    function openLaneMenu(context, area, px, py) {
-        if (!laneMenu) laneMenu = laneMenuComponent.createObject(region)
+    function openLaneMenu(context: var, area: var, px: var, py: var): void {
+        if (!laneMenu) laneMenu = (laneMenuComponent.createObject(region) as TrackLaneContextMenu)
         if (!laneMenu) return
-        laneMenuOwner = ownerOf(area, "trackId")
+        laneMenuOwner = ownerOf(area as Item, "trackId")
         laneMenu.retarget(area, anchor => {
             laneMenu.context = context
             laneMenu.openAt(anchor, px, py)
         })
     }
-    function openEditPointMenu(context, area, px, py) {
-        if (!editPointMenu) editPointMenu = editPointMenuComponent.createObject(region)
+    function openEditPointMenu(context: var, area: var, px: var, py: var): void {
+        if (!editPointMenu) editPointMenu = (editPointMenuComponent.createObject(region) as RegistryContextMenu)
         if (!editPointMenu) return
         editPointMenu.retarget(area, anchor => {
             if (!region.editPointExists(context)) return
@@ -508,8 +485,12 @@ Rectangle {
                 model: rowModel
                 delegate: TrackHeader {
                     id: header
+                    required property int sourceRow
                     required property double rowTop
                     required property double baseRowHeight
+                    visible: trackId !== "" && ((sourceRow >= rowModel.windowStart && sourceRow < rowModel.windowEnd)
+                        || region.focusedTrackHeader === header)
+                    objectName: visible ? "trackHeader-" + trackId : "pooledTrackHeader"
                     rowHeight: baseRowHeight
                     timeline: region.timeline
                     gestures: clipGestures
@@ -554,7 +535,8 @@ Rectangle {
                         parent: header.parent
                         y: header.rowTop + header.baseRowHeight
                         width: header.width
-                        height: rowModel.extraRowHeights[header.trackId] || 0
+                        objectName: "trackHeaderLanes-" + header.trackId
+                        height: region.extraHeightRevision >= 0 ? rowModel.extraHeight(header.trackId) : 0
                         slot: "trackHeaderLane"
                         vertical: true
                         slotProperties: ({ track: header.track, timeline: region.timeline })
@@ -585,22 +567,23 @@ Rectangle {
                             clip: true
                             accessibleName: "Track name: " + header.name
                             property bool finished: false
-                            function finish(cancel, proposed) {
+                            function finish(cancel: bool, proposed: string): void {
                                 if (finished) return
                                 finished = true
                                 const id = header.trackId
                                 const original = header.name
-                                const next = (proposed === undefined ? text : proposed).trim()
+                                const next = proposed.trim()
                                 region.renamingTrackId = ""
                                 if (!cancel && next !== "" && next !== original)
                                     region.timeline.applyEdit("setTrackName", { trackId: id, name: next })
                             }
-                            Component.onCompleted: Qt.callLater(() => { forceActiveFocus(); selectAll() })
+                            Component.onCompleted: focusRename.restart()
+                            Timer { id: focusRename; interval: 0; onTriggered: { nameInput.forceActiveFocus(); nameInput.selectAll() } }
                             onValueCommitted: value => finish(false, value)
-                            onAccepted: finish(false)
-                            onActiveFocusChanged: if (!activeFocus) finish(false)
-                            onEditCanceled: finish(true)
-                            Keys.onEscapePressed: finish(true)
+                            onAccepted: finish(false, text)
+                            onActiveFocusChanged: if (!activeFocus) finish(false, text)
+                            onEditCanceled: finish(true, text)
+                            Keys.onEscapePressed: finish(true, text)
                         }
                     }
                 }
@@ -658,13 +641,15 @@ Rectangle {
             height: rowModel.contentHeight
             property list<TrackLane> lanePool
             function acquireLane(row: ClipLaneRow): TrackLane {
-                for (const lane of lanePool) {
+                for (let index = 0; index < lanePool.length; ++index) {
+                    const lane = lanePool[index]
                     if (!lane.row && lane.retainedTrackId === row.trackId) {
                         lane.row = row
                         return lane
                     }
                 }
-                for (const lane of lanePool) {
+                for (let index = 0; index < lanePool.length; ++index) {
+                    const lane = lanePool[index]
                     if (!lane.row && !lane.retainedInteraction) {
                         lane.row = row
                         return lane
@@ -679,13 +664,13 @@ Rectangle {
                 interval: 0
                 onTriggered: {
                     const idleLimit = Math.max(2, rowModel.windowEnd - rowModel.windowStart)
-                    const retained = []
                     let idleCount = 0
-                    for (const lane of lanesContent.lanePool) {
-                        if (lane.row || lane.retainedInteraction || idleCount++ < idleLimit) { retained.push(lane) }
-                        else { lane.destroy() }
+                    for (let index = lanesContent.lanePool.length - 1; index >= 0; --index) {
+                        const lane = lanesContent.lanePool[index]
+                        if (lane.row || lane.retainedInteraction || idleCount++ < idleLimit) { continue }
+                        lanesContent.lanePool.splice(index, 1)
+                        lane.destroy()
                     }
-                    lanesContent.lanePool = retained
                 }
             }
             Connections {
@@ -695,13 +680,8 @@ Rectangle {
             Component {
                 id: laneComponent
                 TrackLane {
-                    property real retainedTop: 0
-                    property real retainedHeight: 0
-                    property string retainedType: ""
-                    property bool retainedLocked: false
-                    property bool retainedMuted: false
-                    property bool retainedVisible: false
-                    visible: row !== null || retainedInteraction
+                    onRetainedInteractionChanged: rowModel.retainTrack(this, trackId, retainedInteraction)
+                    visible: (row !== null && trackId !== "" && row.sourceRow >= rowModel.windowStart && row.sourceRow < rowModel.windowEnd) || retainedInteraction
                     y: row ? row.rowTop : retainedTop
                     width: lanesContent.width
                     rowHeight: row ? row.baseRowHeight : retainedHeight
@@ -760,14 +740,10 @@ Rectangle {
                         slot: "trackLane"
                         vertical: true
                         slotProperties: ({ track: trackRow.track, timeline: region.timeline })
-                        function reportHeight() {
-                            if ((rowModel.extraRowHeights[trackRow.trackId] || 0) === implicitHeight) return
-                            const heights = Object.assign({}, rowModel.extraRowHeights)
-                            heights[trackRow.trackId] = implicitHeight
-                            rowModel.extraRowHeights = heights
-                        }
-                        onImplicitHeightChanged: Qt.callLater(reportHeight)
-                        Component.onCompleted: Qt.callLater(reportHeight)
+                        function reportHeight(): void { rowModel.reportExtraHeight(trackRow.trackId, implicitHeight) }
+                        Timer { id: reportLater; interval: 0; onTriggered: laneRows.reportHeight() }
+                        onImplicitHeightChanged: reportLater.restart()
+                        Component.onCompleted: reportLater.restart()
                     }
                 }
             }
@@ -842,7 +818,7 @@ Rectangle {
             id: toolHint
             objectName: "toolHoverFeedback"
             // JSON data from the document, controller, or shared JavaScript API.
-            readonly property var preview: clipGestures.toolPreview
+            readonly property gestureFeedback preview: clipGestures.previewFeedback
             visible: !!preview.label && clipGestures.gestureKind === ""
             variant: Ui.Surface.Overlay
             width: Math.min(parent.width, toolHintText.implicitWidth + 2 * Ui.Metrics.md)

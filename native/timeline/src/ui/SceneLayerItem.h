@@ -31,7 +31,6 @@ private:
     std::vector<Vertex> m_vertices;
     std::vector<Label> m_labels;
     QHash<QString, QImage> m_text;
-    QFont m_font;
     qreal m_dpr = 1;
     bool m_dirty = true;
 };

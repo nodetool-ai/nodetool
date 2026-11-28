@@ -16,6 +16,16 @@ Item {
     signal seek(real relativeMs)
     signal move(real fromMs, real toMs)
     property var drag: null
+    property MouseArea hoveredPointer: null
+    Loader {
+        active: root.hoveredPointer !== null
+        sourceComponent: Ui.Tooltip {
+            trigger: root.hoveredPointer ? root.hoveredPointer.parent : null
+            visible: root.hoveredPointer !== null && root.hoveredPointer.containsMouse
+                && !root.hoveredPointer.pressed && !root.locked
+            text: "Drag to move keyframe"
+        }
+    }
     z: TimelineMetrics.clipOverlayLayer
     Repeater {
         model: root.timesMs
@@ -68,8 +78,10 @@ Item {
                 }
                 onCanceled: root.drag = null
                 hoverEnabled: true
+                onEntered: root.hoveredPointer = pointer
+                onExited: if (root.hoveredPointer === pointer) { root.hoveredPointer = null }
+                Component.onDestruction: if (root.hoveredPointer === pointer) { root.hoveredPointer = null }
             }
-            Ui.Tooltip { trigger: mark; visible: pointer.containsMouse && !pointer.pressed && !root.locked; text: "Drag to move keyframe" }
         }
     }
 }

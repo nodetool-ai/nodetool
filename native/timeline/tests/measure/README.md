@@ -53,15 +53,26 @@ Counters have these boundaries:
   gadget field in QML and checks one counter increment and one C++ setter call.
 - `jsonParses` counts edit validation and document-replacement parser calls.
   Startup parsing is excluded. Signal counters cover model clip, timeline,
-  marker and source notifications. `dataChangedRows` retains the original gate's
-  coverage of non-lane models in the editor and document QObject trees before
-  the workload. Declarative Repeater lanes were outside that traversal, as the
-  selfcheck verifies. Pooling gives lanes an explicit QObject parent. Their edit
-  notifications are reported in `dataChangedRowsByModel` alongside the other
-  models, without changing the legacy gated counter's coverage.
-  `reboundClipRows` reports pooled slot identity changes. Rebindings notify every
-  clip role including `clipId`. Exact lane edit roles remain covered by
-  `tst_tracksui`.
+  marker and source notifications. `dataChangedRows` counts notifications from
+  models observed through the editor, document, window and engine trees.
+  `dataChangedRowsByModel` splits that total by model type. Pooled slot identity
+  changes are reported separately as `reboundClipRows` and `reboundTrackRows`.
+  Exact lane edit roles remain covered by `tst_tracksui`.
+
+Seeded objects are inspected synchronously. Construction retries run only for
+newly attached children. The observer selfcheck rejects retries for a seeded
+scene and verifies discovery of models added after observation starts.
+
+Every frame records `guiActionMs`, `deferredEventsMs` and
+`renderSyncReadbackMs`. `frameSamplesMs` retains their partition for each frame,
+including frame zero. The `Clip.qml` root `Creating` site's `maxMs` reports
+synchronous clip construction. Deferred loaders remain in the frame phases.
+
+`budgets/aot-hot-files.json` limits unique failed function sites in the generated
+hot-file `.aotstats` reports, including `ClipChrome.qml`. `tst_timeline_aot`
+checks those reports. `tst_timeline_aot_checker` proves that a new failure,
+a missing report or an empty scan fails the check.
+
 
 
 Edit phase timers form an exclusive stack. `undo_stack` excludes redo's parse,

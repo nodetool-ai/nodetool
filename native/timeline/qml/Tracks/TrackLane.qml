@@ -12,6 +12,12 @@ import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: lane
     property ClipLaneRow row: null
+    property real retainedTop: 0
+    property real retainedHeight: 0
+    property string retainedType: ""
+    property bool retainedLocked: false
+    property bool retainedMuted: false
+    property bool retainedVisible: false
     property string retainedTrackId: ""
     required property string trackId
     required property string trackType
@@ -49,7 +55,7 @@ Rectangle {
     LaneClipModel {
         id: clips
         reuseDelegates: true
-        timeline: lane.timeline
+        timeline: lane.visible || lane.retainedInteraction ? lane.timeline : null
         trackId: lane.trackId
         viewState: lane.viewState
         // The clip under a gesture stays while it is outside the window (D28).
@@ -60,7 +66,7 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onPressed: mouse => {
+        onPressed: function(mouse: MouseEvent): void {
             if (mouse.button === Qt.RightButton) {
                 if (lane.locked) return
                 const context = { trackId: lane.trackId, trackType: lane.trackType,
@@ -78,22 +84,48 @@ Rectangle {
 
     Rectangle {
         objectName: "selectedGap-" + lane.trackId
-        // JSON data from the document, controller, or shared JavaScript API.
-        readonly property var gap: lane.gestures ? lane.gestures.selectedGap : ({})
+        readonly property gestureFeedback gap: lane.gestures.gapFeedback
         visible: gap.trackId === lane.trackId
         x: (gap.startMs ?? 0) / lane.viewState.msPerPx
         width: ((gap.endMs ?? 0) - (gap.startMs ?? 0)) / lane.viewState.msPerPx
         height: parent.height
-        color: Qt.rgba(Ui.Theme.accentPrimary.r, Ui.Theme.accentPrimary.g, Ui.Theme.accentPrimary.b, 0.18)
+        color: TimelineVisuals.alphaColor(Ui.Theme.accentPrimary, 0.18)
         border.width: Ui.Metrics.border
         border.color: Ui.Theme.accentPrimary
     }
 
-    function openEditPointMenu(clipId, edge, area, areaX, areaY) {
+    function openEditPointMenu(clipId: string, edge: string, area: Item, areaX: real, areaY: real): void {
         const cut = lane.gestures.editPointAt(clipId, edge)
         const context = { clipId: clipId, edge: edge, leftId: cut.leftId, rightId: cut.rightId,
                                   clipIds: cut.rightId ? [cut.rightId] : [], editable: true }
         lane.editPointMenuRequested(context, area, areaX, areaY)
+    }
+
+    ClipChromeLayer {
+        id: chrome
+        objectName: "clipChrome-" + lane.trackId
+        model: clips
+        viewState: lane.viewState
+        y: 6
+        height: Math.max(0, lane.height - 12)
+        opacity: lane.mutedSoundTrack ? 0.5 : 1
+        videoFill: TimelineVisuals.clipFill("video")
+        audioFill: TimelineVisuals.clipFill("audio")
+        overlayFill: TimelineVisuals.clipFill("overlay")
+        midiFill: TimelineVisuals.clipFill("midi")
+        adjustmentFill: TimelineVisuals.clipFill("adjustment")
+        fallbackFill: TimelineVisuals.clipFill("model3d")
+        canvas: Ui.Theme.surfaceCanvas
+        ink: TimelineVisuals.clipText
+        fxFill: TimelineVisuals.fxBadge
+        fxInk: TimelineVisuals.overlayContrast
+        dark: Ui.Theme.dark
+        nameStyle: Ui.Typography.metricsCaption
+        durationStyle: Ui.Typography.metricsMonoCaption
+        bandHeight: TimelineMetrics.clipNameBandHeight
+        small: Ui.Metrics.xs
+        medium: Ui.Metrics.md
+        micro: Ui.Metrics.micro
     }
 
     Repeater {
@@ -105,13 +137,17 @@ Rectangle {
         delegate: Clip {
             id: clipDelegate
             required property int stackingIndex
+            layerChrome: !chromeDetail && chrome.overlapRevision >= 0 && !chrome.overlaps(clipId)
+            onChromeDetailChanged: chrome.setDetailed(clipId, chromeDetail)
+            onPreviousClipIdChanged: chrome.setDetailed(clipId, chromeDetail)
+            Component.onCompleted: chrome.setDetailed(clipId, chromeDetail)
             stackOrder: stackingIndex
             stackCount: clips.trackClipCount
             onKeepDelegateChanged: {
                 if (keepDelegate) { lane.detailClipId = clipId }
                 else { lane.releaseDetail(clipId) }
             }
-            onIdentityReleased: previousId => lane.releaseDetail(previousId)
+            onIdentityReleased: previousId => { lane.releaseDetail(previousId); chrome.setDetailed(previousId, false) }
             laneActive: lane.visible
             laneInViewport: lane.mediaVisible
             laneHeight: lane.height

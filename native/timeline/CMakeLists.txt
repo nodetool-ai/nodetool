@@ -68,6 +68,7 @@ endif()
 if(NOT TARGET nodetool_timeline_scene)
     add_subdirectory(../timeline-player ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
 endif()
+get_target_property(NT_UI_IMPORT_PATH nodetool_ui_primitives BINARY_DIR)
 get_target_property(NT_PLAYER_IMPORT_PATH nodetool_timeline_player BINARY_DIR)
 get_target_property(NT_PLAYER_DECODE_DEFINITIONS nodetool_timeline_decode INTERFACE_COMPILE_DEFINITIONS)
 # The startup registrars of the standard preview hooks: each executable that
@@ -317,7 +318,7 @@ qt_add_qml_module(timeline_qml
     # TimelineModel. The QML files import it.
     DEPENDENCIES NodeTool.TimelinePlayer
     # Where qmlcachegen and qmllint find that module's qmldir and types.
-    IMPORT_PATH ${NT_PLAYER_IMPORT_PATH}
+    IMPORT_PATH ${NT_PLAYER_IMPORT_PATH} ${NT_UI_IMPORT_PATH}
     QML_FILES ${NT_qml_files}
     RESOURCES ${NT_qml_resources}
     SOURCES ${NT_qml})
@@ -397,6 +398,11 @@ set_tests_properties(tst_timeline_perf_observers PROPERTIES ENVIRONMENT "QT_QPA_
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME tst_timeline_perf_budget_checker COMMAND ${Python3_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/test_check_perf.py)
+add_test(NAME tst_timeline_aot_checker COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/test_aot.py)
+add_test(NAME tst_timeline_aot COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/check_aot.py
+    ${CMAKE_CURRENT_BINARY_DIR}/.rcc/qmlcache ${CMAKE_CURRENT_SOURCE_DIR}/budgets/aot-hot-files.json)
 foreach(scenario playback scroll zoom clip_drag note_drag model_change note_patch)
     add_test(NAME tst_timeline_perf_${scenario} COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/check_perf.py

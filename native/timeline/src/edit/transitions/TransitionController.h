@@ -17,6 +17,13 @@ public:
     Q_INVOKABLE void cancelGesture();
     Q_INVOKABLE void preview(const QJsonObject& payload);
     Q_INVOKABLE void commit(const QString& action, const QJsonObject& payload);
+    Q_INVOKABLE void beginDuration(const QString& clipId, double durationMs) {
+        beginGesture(QStringLiteral("setTransitionDuration"), {{"clipId", clipId}, {"durationMs", durationMs}});
+    }
+    Q_INVOKABLE void previewDuration(double durationMs) { preview({{"durationMs", durationMs}}); }
+    Q_INVOKABLE void commitDuration(double durationMs) {
+        commit(QStringLiteral("setTransitionDuration"), {{"durationMs", durationMs}});
+    }
     Q_INVOKABLE bool easingReadable(const QString& value) const;
 signals:
     void modelChanged();

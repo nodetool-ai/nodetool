@@ -12,6 +12,7 @@ nt_sources(ops
     src/edit/OpCli.cpp
 )
 nt_sources(qml
+    src/edit/GestureFeedback.h
     src/edit/ClipGestureController.h
     src/edit/ClipGestureController.cpp
 )

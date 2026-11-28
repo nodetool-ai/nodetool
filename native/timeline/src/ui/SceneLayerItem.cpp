@@ -63,8 +63,7 @@ void SceneLayerItem::circle(QPointF center, double radius, const QColor& color) 
 }
 void SceneLayerItem::label(const QString& value, QPointF origin, const QFont& font, const QColor& color, bool vertical) {
     if (value.isEmpty()) { return; }
-    if (m_font != font) { m_font=font; m_text.clear(); }
-    const QString key=value+color.name(QColor::HexArgb);
+    const QString key=font.toString()+QChar(0)+value+QChar(0)+color.name(QColor::HexArgb);
     auto it=m_text.constFind(key);
     if (it==m_text.cend()) {
         const QFontMetricsF fm(font);

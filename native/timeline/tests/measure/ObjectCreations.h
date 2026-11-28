@@ -114,7 +114,9 @@ private:
             const QPointer<ObjectCreations> self(this);
             const QPointer<QObject> watched(object);
             // ChildAdded can precede derived construction and QML property setup.
-            if (onObject) {
+            // Seeded objects are already fully constructed. Only a newly
+            // attached child can need the deferred construction retry.
+            if (onObject && measured) {
                 QMetaObject::invokeMethod(this, [self, watched] {
                     if (self && watched) { self->attach(watched, true); }
                 }, Qt::QueuedConnection);
