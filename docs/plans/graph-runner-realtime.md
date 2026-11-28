@@ -1189,7 +1189,7 @@ Every exchange with a realtime thread has a bound (F36, F49):
   `tryLoad` only.
 - Each queue has a fixed capacity and the full behavior of section 11.2.
 - Each domain has its own single-producer, single-consumer retire queue of
-  capacity `maxSlots + 2`, written by its realtime thread and drained by the
+  capacity `maxSlots + 3`, written by its realtime thread and drained by the
   prepare thread.
 - The prepare thread drains both retire queues before publishing a plan or a
   slot value. It writes a new plan or slot pointer with
@@ -1198,10 +1198,15 @@ Every exchange with a realtime thread has a bound (F36, F49):
   it immediately without using a retire queue.
 - When a realtime thread takes a non-null `pending` pointer with
   `pending.exchange(nullptr)`, it pushes the replaced active object onto its
-  retire queue. Because a realtime thread retires at most one active plan and
-  at most one active value per slot between prepare drains, and the prepare
-  thread reclaims unconsumed `pending` pointers directly, the retire queue
-  cannot overflow.
+  retire queue. Between two prepare drains a realtime thread takes at most
+  one object from each handoff, plus the one object published after the
+  first drain, and the prepare thread reclaims unconsumed `pending` pointers
+  directly. One more entry covers a take that ran before a drain and whose
+  push lands after it, when the realtime thread is preempted between the two
+  steps. The WP12 stress test reaches that case with `maxSlots + 2`. A
+  realtime thread checks for room before each take, so the queue cannot
+  overflow. A take without room stays pending for a later tick and is
+  counted.
 - A value that both plans read has a reference count of two, one for each
   domain's handoff slot. Each realtime thread retires its replaced active
   reference through its own retire queue, and the prepare thread drops the
@@ -1771,7 +1776,7 @@ folder. P1 replaces it with `live bench`.
 [rt-audio]: ../../packages/audio-nodes/src/nodes/realtime-audio.ts
 [ne-readme]: ../../native/node-editor/README.md
 [tl-engine]: ../../native/timeline-player/src/audio/AudioEngine.h
-[tl-feed]: ../../native/timeline/src/playback/AudioClockFeed.h
+[tl-feed]: ../../native/audio-io/src/playback/AudioClockFeed.h
 [tl-design]: ../../native/timeline/docs/DESIGN.md
 [native-rules]: ../../native/AGENTS.md
 [async-host]: graph-runner-async-host.md

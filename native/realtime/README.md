@@ -14,6 +14,23 @@ GPU-enabled builds also prepare PNG export. The same offline command can be
 enabled in graph-runner. See the offline guide for local slot bindings and the
 registered verification entry point.
 
+## Live session core
+
+WP12 adds `LiveSession` in [live_session.h](include/nodetool/realtime/live_session.h)
+and the handoffs of design section 11.4 in [live.h](include/nodetool/realtime/live.h).
+A session owns a prepare thread, an audio render thread and a `PlaybackDevice`
+from [native/audio-io](../audio-io/README.md). `update` queues plan JSON. The
+prepare thread loads it, builds the audio plan and publishes it through a
+single-slot handoff. The audio render thread takes it at a quantum boundary and
+retires the old plan through a fixed-capacity queue that the prepare thread
+drains. Only the prepare thread destroys plans and slot values. The buffered
+driver keeps a ring lead of two device periods and at least 8 quanta. An underrun
+plays silence, is counted and raises the lead by one quantum. A device reroute
+flushes the ring and starts a new clock generation. The `realtime-live` test runs
+these on the null device. The render thread and surface (WP14), the param table
+(WP13), state follow on swap (WP18), tap and capture rings (WP22, WP26) and live
+slot replacement inside the executors (WP19) are not part of it.
+
 ## Build and test
 
 For the headless M1 core alone, without Node, Qt, GPU or audio dependencies:

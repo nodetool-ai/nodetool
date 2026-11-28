@@ -23,7 +23,8 @@ nt_sources(audio src/midi/PatternAudioStage.h src/midi/PatternAudioStage.cpp
 function(nt_step_pattern_audio_registration)
     add_library(nt_step_pattern_registrar OBJECT src/midi/PatternRegistrations.cpp)
     target_include_directories(nt_step_pattern_registrar PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../audio-io/src")
     target_link_libraries(nt_step_pattern_registrar PRIVATE Qt6::Core)
     target_link_libraries(timeline_audio INTERFACE $<TARGET_OBJECTS:nt_step_pattern_registrar>)
 endfunction()
@@ -31,7 +32,8 @@ cmake_language(DEFER CALL nt_step_pattern_audio_registration)
 function(nt_drum_sampler_registration)
     add_library(nt_drum_sampler_registrar OBJECT src/midi/DrumSamplerRegistrations.cpp)
     target_include_directories(nt_drum_sampler_registrar PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../audio-io/src")
     target_link_libraries(nt_drum_sampler_registrar PRIVATE Qt6::Core)
     target_link_libraries(timeline_audio INTERFACE $<TARGET_OBJECTS:nt_drum_sampler_registrar>)
 endfunction()
@@ -39,7 +41,8 @@ cmake_language(DEFER CALL nt_drum_sampler_registration)
 function(nt_bass_synth_registration)
     add_library(nt_bass_synth_registrar OBJECT src/midi/BassSynthRegistrations.cpp)
     target_include_directories(nt_bass_synth_registrar PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../audio-io/src")
     target_link_libraries(nt_bass_synth_registrar PRIVATE Qt6::Core)
     target_link_libraries(timeline_audio INTERFACE $<TARGET_OBJECTS:nt_bass_synth_registrar>)
 endfunction()
@@ -47,7 +50,8 @@ cmake_language(DEFER CALL nt_bass_synth_registration)
 function(nt_wavetable_synth_registration)
     add_library(nt_wavetable_registrar OBJECT src/midi/WavetableRegistrations.cpp)
     target_include_directories(nt_wavetable_registrar PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src")
+        "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../audio-io/src")
     target_link_libraries(nt_wavetable_registrar PRIVATE Qt6::Core)
     target_link_libraries(timeline_audio INTERFACE $<TARGET_OBJECTS:nt_wavetable_registrar>)
 endfunction()

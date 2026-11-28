@@ -6,6 +6,7 @@ on:
     paths:
       - "native/realtime/**"
       - "native/timeline-player/**"
+      - "native/audio-io/**"
       - "native/graph-runner/guest/host/gpu-catalog.mjs"
       - "packages/gpu/**"
       - "packages/realtime-compiler/**"
@@ -15,6 +16,7 @@ on:
     paths:
       - "native/realtime/**"
       - "native/timeline-player/**"
+      - "native/audio-io/**"
       - "native/graph-runner/guest/host/gpu-catalog.mjs"
       - "packages/gpu/**"
       - "packages/realtime-compiler/**"
@@ -139,4 +141,14 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }}
       - name: Test
+        run: ctest --preset ${{ matrix.preset }} --no-tests=error
+      # native/audio-io is the realtime engine's device layer (design 14.4).
+      - name: Configure audio-io
+        working-directory: native/audio-io
+        run: cmake --preset ${{ matrix.preset }}
+      - name: Build audio-io
+        working-directory: native/audio-io
+        run: cmake --build --preset ${{ matrix.preset }}
+      - name: Test audio-io
+        working-directory: native/audio-io
         run: ctest --preset ${{ matrix.preset }} --no-tests=error

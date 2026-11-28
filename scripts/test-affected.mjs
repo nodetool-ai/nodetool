@@ -107,7 +107,7 @@ export const PATH_CHECKS = [
       { label: "native UI: performance ratchet", command: "python3", args: ["native/ui_primitives/tools/check_performance.py"] }
     ]
   },
-  { path: /^native\/(?:files|gpu-preview|media-player|graph-runner|jobs|kernels|model-picker|node-editor|realtime|storyboard|timeline|timeline-player)\//, steps: [NATIVE_CTEST] },
+  { path: /^native\/(?:audio-io|files|gpu-preview|media-player|graph-runner|jobs|kernels|model-picker|node-editor|realtime|storyboard|timeline|timeline-player)\//, steps: [NATIVE_CTEST] },
   {
     path: /^native\/parity\//,
     steps: [

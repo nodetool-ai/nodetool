@@ -8,9 +8,8 @@
 #include "audio/AudioSource.h"
 #include "audio/SincResampler.h"
 #include "audio/ShuttleStretch.h"
+#include "audio/PlaybackDevice.h"
 #include "audio/hooks/OutputDevice.h"
-
-#include "miniaudio.h"
 
 #include <algorithm>
 #include <atomic>
@@ -352,16 +351,14 @@ struct AudioEngine::Impl {
     std::vector<float> chunk = std::vector<float>(static_cast<std::size_t>(kChunkFrames) * 2);
 
     // ---- device ----
-    // native-rules #6: ma_context and ma_device are freed by hand with uninit calls, no RAII wrapper
-    ma_context context{};
-    ma_device device{};
-    bool contextReady = false;
-    bool deviceReady = false;
+    // Opened in start() and closed in stop(), on the caller thread. close()
+    // returns after the device's callbacks have stopped.
+    std::unique_ptr<PlaybackDevice> device;
     std::string backendName;
     std::string deviceName;
     bool selectedDevice = false;
-    // The CoreAudio latency facts, written on device start and on a reroute
-    // (a CoreAudio thread) and read by stats().
+    // CoreAudio latency facts, written at start and by the decode worker
+    // after notifications, and read by stats().
     mutable std::mutex factsMutex;
     OutputLatency coreAudio;
     // F6: source failures, for the report.
@@ -421,21 +418,13 @@ struct AudioEngine::Impl {
 
     double queryLatency() {
         if (options.backend != Backend::System) return pendingSimulatedLatencySec.load(std::memory_order_acquire);
-#if defined(MA_SUPPORT_COREAUDIO)
-        if (device.pContext->backend == ma_backend_coreaudio) {
-            const OutputLatency facts = queryCoreAudioOutputLatency(device.coreaudio.deviceObjectIDPlayback);
-            {
-                std::lock_guard lock(factsMutex);
-                coreAudio = facts;
-            }
-            if (facts.ok) return facts.seconds;
+        // On CoreAudio the device facts, elsewhere the device buffer.
+        const PlaybackDevice::Latency latency = device->outputLatency();
+        if (latency.coreAudio) {
+            std::lock_guard lock(factsMutex);
+            coreAudio = *latency.coreAudio;
         }
-#endif
-        // Elsewhere: the device buffer, in frames at the device's own rate.
-        // It differs from `sampleRate` when miniaudio converts a forced
-        // engine rate (MUSIC-MODE.md 14.1).
-        return static_cast<double>(device.playback.internalPeriodSizeInFrames * device.playback.internalPeriods) /
-               static_cast<double>(device.playback.internalSampleRate);
+        return latency.seconds;
     }
 
     // ---- callback ----
@@ -720,19 +709,19 @@ struct AudioEngine::Impl {
         return true;
     }
 
-    static void dataCallback(ma_device* dev, void* output, const void*, ma_uint32 frames) {
-        static_cast<Impl*>(dev->pUserData)->render(static_cast<float*>(output), frames, steadyNowNs());
+    static void dataCallback(void* user, float* output, std::uint32_t frames) {
+        static_cast<Impl*>(user)->render(output, frames, steadyNowNs());
     }
 
-    static void notificationCallback(const ma_device_notification* n) {
-        (void)static_cast<Impl*>(n->pDevice->pUserData)->onNotification(n->type);
+    static void notificationCallback(void* user, PlaybackDevice::Notification notification) {
+        (void)static_cast<Impl*>(user)->onNotification(notification);
     }
 
     // Strictly lock-free and allocation-free: PulseAudio dispatches device notifications
     // directly inside its real-time audio data loop. Never acquires any mutex, never
     // queries OS latency, and never writes feed.device; the non-audio worker thread drains
     // notifState and publishes feed.device.
-    std::uint64_t onNotification(ma_device_notification_type type) noexcept {
+    std::uint64_t onNotification(PlaybackDevice::Notification type) noexcept {
         if (!running.load(std::memory_order_acquire)) {
             return notifState.load(std::memory_order_acquire) >> kNotifSeqShift;
         }
@@ -742,7 +731,7 @@ struct AudioEngine::Impl {
             std::uint64_t next = cur;
             bool changed = false;
             switch (type) {
-                case ma_device_notification_type_rerouted: {
+                case PlaybackDevice::Notification::Rerouted: {
                     // D21 step 3: latency is re-queried on the worker thread; generation bumps.
                     const std::uint64_t gen = (((cur >> kNotifGenShift) & kNotifGenMask) + 1ull) & kNotifGenMask;
                     const std::uint64_t seq = (cur >> kNotifSeqShift) + 1ull;
@@ -750,7 +739,7 @@ struct AudioEngine::Impl {
                     changed = true;
                     break;
                 }
-                case ma_device_notification_type_stopped: {
+                case PlaybackDevice::Notification::Stopped: {
                     // Device stopped (suspend / lost device): clock falls back to monotonic.
                     const std::uint64_t gen = (cur >> kNotifGenShift) & kNotifGenMask;
                     const std::uint64_t seq = (cur >> kNotifSeqShift) + 1ull;
@@ -758,7 +747,7 @@ struct AudioEngine::Impl {
                     changed = true;
                     break;
                 }
-                case ma_device_notification_type_started: {
+                case PlaybackDevice::Notification::Started: {
                     // Resume after a prior stop: re-query latency on worker under a new generation.
                     if (isStopped) {
                         const std::uint64_t gen = (((cur >> kNotifGenShift) & kNotifGenMask) + 1ull) & kNotifGenMask;
@@ -1410,50 +1399,32 @@ bool AudioEngine::start(const Options& options, std::string* error) {
         return false;
     };
     const bool manual = options.backend == Backend::Manual;
-    if (!manual) {
-        ma_backend nullBackend[] = {ma_backend_null};
-        const ma_result ctx = options.backend == Backend::Null ? ma_context_init(nullBackend, 1, nullptr, &d.context)
-                                                               : ma_context_init(nullptr, 0, nullptr, &d.context);
-        if (ctx != MA_SUCCESS) return fail("cannot create the audio context");
-        d.contextReady = true;
-    }
-
-    ma_device_config config = ma_device_config_init(ma_device_type_playback);
-    config.playback.format = ma_format_f32;
-    config.playback.channels = 2;
-    config.sampleRate = static_cast<ma_uint32>(std::max(0, options.sampleRate));
-    config.periodSizeInFrames = static_cast<ma_uint32>(std::max(64, options.periodFrames));
-    config.dataCallback = &Impl::dataCallback;
-    config.notificationCallback = &Impl::notificationCallback;
-    config.pUserData = &d;
-    config.noPreSilencedOutputBuffer = MA_TRUE;
-    config.noClip = MA_TRUE;
-    ma_device_info* playbackDevices = nullptr;
-    ma_uint32 playbackCount = 0;
     d.selectedDevice = false;
-    if (!manual && hasOutputDeviceProvider() &&
-        ma_context_get_devices(&d.context, &playbackDevices, &playbackCount, nullptr, nullptr) == MA_SUCCESS) {
-        std::vector<std::string> names;
-        names.reserve(playbackCount);
-        for (ma_uint32 i = 0; i < playbackCount; ++i) { names.emplace_back(playbackDevices[i].name); }
-        if (const auto selected = selectedOutputDevice(names)) {
-            config.playback.pDeviceID = &playbackDevices[*selected].id;
-            d.selectedDevice = true;
-        }
-    }
     if (manual) {
         d.sampleRate = options.sampleRate > 0 ? options.sampleRate : kDefaultMixRate;
         d.devicePeriodFrames = options.periodFrames > 0 ? options.periodFrames : kMixBlockFrames;
     } else {
-        if (ma_device_init(&d.context, &config, &d.device) != MA_SUCCESS) return fail("cannot open the audio device");
-        d.deviceReady = true;
-        d.sampleRate = static_cast<double>(d.device.sampleRate);
-        const int internalPeriod = static_cast<int>(d.device.playback.internalPeriodSizeInFrames);
+        PlaybackDevice::Config config;
+        config.backend = options.backend == Backend::Null ? PlaybackDevice::Backend::Null : PlaybackDevice::Backend::System;
+        config.sampleRate = options.sampleRate;
+        config.periodFrames = options.periodFrames;
+        config.channels = 2;
+        PlaybackDevice::Selector select;
+        if (hasOutputDeviceProvider()) {
+            select = [](std::span<const std::string> names) { return selectedOutputDevice(names); };
+        }
+        std::string why;
+        // stop() joins the worker and closes the device before destroying d.
+        d.device = PlaybackDevice::open(config, {&Impl::dataCallback, &Impl::notificationCallback, &d}, select, &why);
+        if (!d.device) return fail(why);
+        d.selectedDevice = d.device->selectedDevice();
+        d.sampleRate = d.device->sampleRate();
+        const int internalPeriod = d.device->periodFrames();
         d.devicePeriodFrames = internalPeriod > 0 ? internalPeriod : std::max(64, options.periodFrames);
     }
     prepareMixPlan(*d.plan, d.sampleRate, d.devicePeriodFrames);
     armMixPlanForPlayback(*d.plan);
-    // Before the device starts, so the callback never sees a half-built meter or limiter.
+    // Prepare meters and limiter before the callback starts.
     d.liveLoudness.reset();
     d.meterPlaying = false;
     if (options.loudness) {
@@ -1466,8 +1437,8 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     d.limiterSeq = 0;
     d.scrubLimiterSeq = 0;
     d.scrubMeterSeq = 0;
-    d.backendName = manual ? "manual" : ma_get_backend_name(d.context.backend);
-    d.deviceName = manual ? "manual" : d.device.playback.name;
+    d.backendName = manual ? "manual" : d.device->backendName();
+    d.deviceName = manual ? "manual" : d.device->deviceName();
     const double initialDevLatency = d.queryLatency();
     const int initialPdc = planLatencySamples(*d.plan);
     const int initialLimiter = d.plan->masterLimiterEnabled ? d.masterLimiter->latencySamples() : 0;
@@ -1509,7 +1480,7 @@ bool AudioEngine::start(const Options& options, std::string* error) {
         d.stopWorker = false;
     }
     d.worker = std::jthread([&d]() { d.workerLoop(); });
-    if (!manual && ma_device_start(&d.device) != MA_SUCCESS) return fail("cannot start the audio device");
+    if (!manual && !d.device->start()) return fail("cannot start the audio device");
     return true;
 }
 
@@ -1523,14 +1494,6 @@ void AudioEngine::stop() {
     Impl& d = *m_impl;
     const bool wasRunning = d.running.exchange(false);
     d.wake.notify_all();
-    if (d.deviceReady) {
-        ma_device_uninit(&d.device);
-        d.deviceReady = false;
-    }
-    if (d.contextReady) {
-        ma_context_uninit(&d.context);
-        d.contextReady = false;
-    }
     if (d.worker.joinable()) {
         {
             std::lock_guard lock(d.mutex);
@@ -1538,6 +1501,11 @@ void AudioEngine::stop() {
         }
         d.wake.notify_all();
         d.worker.join();
+    }
+    // The worker may query latency, so keep the device alive until it joins.
+    if (d.device) {
+        d.device->close();
+        d.device.reset();
     }
     // Device and worker are both joined; no other writer to feed.device exists.
     if (wasRunning) d.publishDevice(false);
@@ -1569,7 +1537,7 @@ void AudioEngine::simulateDeviceChange(double latencySec) {
     Impl& d = *m_impl;
     if (d.options.backend == Backend::System) return;
     d.pendingSimulatedLatencySec.store(latencySec, std::memory_order_release);
-    const std::uint64_t targetSeq = d.onNotification(ma_device_notification_type_rerouted);
+    const std::uint64_t targetSeq = d.onNotification(PlaybackDevice::Notification::Rerouted);
     std::unique_lock lock(d.mutex);
     d.wake.notify_all();
     d.wake.wait(lock, [&d, targetSeq] {
@@ -1581,7 +1549,7 @@ void AudioEngine::simulateDeviceNotification(bool started) {
     Impl& d = *m_impl;
     if (d.options.backend == Backend::System) return;
     const std::uint64_t targetSeq = d.onNotification(
-        started ? ma_device_notification_type_started : ma_device_notification_type_stopped);
+        started ? PlaybackDevice::Notification::Started : PlaybackDevice::Notification::Stopped);
     std::unique_lock lock(d.mutex);
     d.wake.notify_all();
     d.wake.wait(lock, [&d, targetSeq] {
@@ -1592,7 +1560,7 @@ void AudioEngine::simulateDeviceNotification(bool started) {
 void AudioEngine::simulateDeviceNotificationAsync(bool started) noexcept {
     Impl& d = *m_impl;
     if (d.options.backend == Backend::System) return;
-    (void)d.onNotification(started ? ma_device_notification_type_started : ma_device_notification_type_stopped);
+    (void)d.onNotification(started ? PlaybackDevice::Notification::Started : PlaybackDevice::Notification::Stopped);
 }
 
 AudioEngine::Stats AudioEngine::stats() const {
