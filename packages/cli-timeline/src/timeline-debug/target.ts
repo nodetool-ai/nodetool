@@ -113,6 +113,21 @@ function asDocument(raw: JsonValue): TimelineDocument {
   return document;
 }
 
+/**
+ * `preview_storyboard_design` wraps the sequence under `{ timeline: { type: "timeline", data: { ... } } }`.
+ * Unwrap that envelope so `timeline validate`, `timeline render`, and `timeline debug` accept preview JSON directly.
+ */
+function unwrapTimelinePreview(parsed: unknown): unknown {
+  if (!isRecord(parsed)) {
+    return parsed;
+  }
+  const envelope = parsed.timeline;
+  if (isRecord(envelope) && envelope.type === "timeline" && isRecord(envelope.data)) {
+    return envelope.data;
+  }
+  return parsed;
+}
+
 /** Resolve a timeline target: a JSON file path or a sequence row id. */
 export async function resolveTimelineTarget(
   ref: string,
@@ -125,15 +140,16 @@ export async function resolveTimelineTarget(
     } catch (e) {
       throw new Error(`${ref} is not valid JSON: ${(e as Error).message}`);
     }
-    const raw = documentOf(parsed);
+    const unwrapped = unwrapTimelinePreview(parsed);
+    const raw = documentOf(unwrapped);
     if (!looksLikeDocument(raw)) {
       throw new Error(
         `${ref} is not a timeline document (no \`tracks\`/\`clips\` arrays, and no \`document\` field carrying them).`
       );
     }
     const name =
-      isRecord(parsed) && isString(parsed.name)
-        ? parsed.name
+      isRecord(unwrapped) && isString(unwrapped.name)
+        ? unwrapped.name
         : undefined;
     const target: TimelineDebugTarget = { kind: "file", ref };
     if (name) {
@@ -143,7 +159,7 @@ export async function resolveTimelineTarget(
       target,
       raw,
       document: asDocument(raw),
-      meta: { ...settingsOf(parsed), ...settingsOf(raw) }
+      meta: { ...settingsOf(unwrapped), ...settingsOf(raw) }
     };
   }
 

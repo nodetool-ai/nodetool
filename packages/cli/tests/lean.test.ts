@@ -283,4 +283,11 @@ describe("lean execution CLI", () => {
     await expect(program.parseAsync(["node", "nodetool", "jobs", "list"])).rejects.toThrow("NODETOOL_API_TOKEN");
     expect(requested).toBe(false);
   });
+  it("documents the storyboard tools entry point on `nodetool storyboard`", async () => {
+    const stdout: string[] = [];
+    await createProgram({ env: {}, stdout: text => stdout.push(text) }).parseAsync(["node", "nodetool", "storyboard"]);
+    const help = stdout.join("");
+    expect(help).toContain("nodetool tools list storyboard");
+    expect(help).toContain("create_storyboard");
+  });
 });

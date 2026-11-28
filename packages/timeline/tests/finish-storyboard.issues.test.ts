@@ -78,4 +78,25 @@ describe("validateProducedTimeline issue sequence", () => {
   it("reports a layer outside the canvas", () => {
     expect(issues((doc) => { doc.clips[2].transform!.position.x = 100000; }).map(([code, id]) => [code, id])).toEqual([["missing_element", "price"]]);
   });
+  it("explains both media and graphics_first recovery paths when a planned shot has no source", () => {
+    const plannedShot: Shot = {
+      type: "shot",
+      id: "shot-1",
+      index: 0,
+      action: "Opening title card",
+      status: "planned",
+      duration_seconds: 1.5
+    };
+    const result = materializeStoryboard({ boardId: "board", shots: [plannedShot], width: 1920, height: 1080 });
+    expect(result.validation).toHaveLength(1);
+    expect(result.validation[0]).toMatchObject({
+      code: "missing_element",
+      shotId: "shot-1",
+      elementId: "$source"
+    });
+    expect(result.validation[0].message).toContain("shot-1");
+    expect(result.validation[0].message).toContain("media source");
+    expect(result.validation[0].message).toContain("graphics_first");
+    expect(result.validation[0].message).toContain("graphics.elements");
+  });
 });

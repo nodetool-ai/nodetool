@@ -567,6 +567,20 @@ export function createProgram(options: CliOptions = {}): Command {
     argv.splice(index, 2);
     await feature.run(argv.slice(2));
   });
+  const storyboard = program
+    .command("storyboard")
+    .description("Storyboard authoring runs through `nodetool tools` (requires cli-chat)")
+    .addHelpText(
+      "after",
+      "\nStoryboard tools live under `nodetool tools` (requires the cli-chat feature):\n" +
+        "  nodetool tools list storyboard\n" +
+        "  nodetool tools info create_storyboard\n" +
+        "  nodetool tools call create_storyboard --args '{\"name\":\"Intro\"}'\n" +
+        "  nodetool tools call preview_storyboard_design --args '{\"storyboardId\":\"<id>\",\"expectedStoryboardRevision\":1}'\n"
+    )
+    .action(() => {
+      storyboard.outputHelp();
+    });
   const envCommandDeps: EnvCommandDeps = {
     env, cwd: options.cwd ?? process.cwd(), print, output, secretStoreState,
     storeSecrets: async pairs => {

@@ -1,4 +1,4 @@
-import sharp from "sharp";
+import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { z } from "zod";
 import { gameLutPreparation, gameSheetPreparation, gameTilesetPreparation } from "@nodetool-ai/protocol";
 import type { PreparedFrame, PreparedImage } from "./image-preparation.js";
@@ -6,6 +6,7 @@ import type { PreparedFrame, PreparedImage } from "./image-preparation.js";
 const MAX_PIXELS = 4096 * 4096;
 
 async function encode(pixels: Uint8Array, width: number, height: number): Promise<Uint8Array> {
+  const sharp = await loadSharpOrThrow();
   return sharp(pixels, { raw: { width, height, channels: 4 } })
     .png({ compressionLevel: 9, palette: false }).toBuffer();
 }
@@ -19,6 +20,7 @@ export async function prepareSheet(bytes: Uint8Array, width: number, height: num
   const cellHeight = height / settings.rows;
   const baseline = settings.baseline ?? cellHeight - 1;
   if (baseline >= cellHeight) { throw new Error("Sprite sheet baseline must lie inside each cell"); }
+  const sharp = await loadSharpOrThrow();
   const source = await sharp(bytes, { limitInputPixels: MAX_PIXELS }).ensureAlpha().raw().toBuffer();
   const output = Buffer.alloc(width * height * 4);
   const frames: PreparedFrame[] = [];
@@ -63,6 +65,7 @@ export async function prepareTileset(bytes: Uint8Array, originalWidth: number, o
   const tileHeight = settings.tileHeight;
   const width = tileWidth * 4;
   const height = tileHeight * 4;
+  const sharp = await loadSharpOrThrow();
   const source = await sharp(bytes, { limitInputPixels: MAX_PIXELS }).ensureAlpha()
     .resize(tileWidth, tileHeight, { fit: "cover", kernel: sampling === "nearest" ? "nearest" : "lanczos3" })
     .raw().toBuffer();
