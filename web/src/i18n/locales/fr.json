@@ -13975,6 +13975,8 @@
         "revoice": "Re-ligne vocale",
         "voice": "Ligne vocale",
         "assignVoiceFirst": "Attribuez d'abord une voix à ce haut-parleur",
+        "writeLineFirst": "Écrivez d'abord la réplique",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "Plus d'actions de ligne",
         "pauseOption": {
           "0": "Pas de pause après",
@@ -17425,7 +17427,6 @@
       "takeCount_many": "{{count}} prend"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Pas encore exprimé",
       "playTake": "Jouer à prendre"
     }
   },

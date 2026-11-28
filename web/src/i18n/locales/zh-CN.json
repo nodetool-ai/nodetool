@@ -13754,6 +13754,8 @@
         "revoice": "重新合成此行",
         "voice": "合成此行语音",
         "assignVoiceFirst": "请先为此说话人分配语音",
+        "writeLineFirst": "请先写下这句台词",
+        "voiceShortcut": "{{action}}（{{shortcut}}）",
         "moreActions": "更多台词操作",
         "pauseOption": {
           "0": "后面不暂停",
@@ -17131,7 +17133,6 @@
       "takeCount_other": "{{count}} 个片段"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "尚未配音",
       "playTake": "播放片段"
     }
   },

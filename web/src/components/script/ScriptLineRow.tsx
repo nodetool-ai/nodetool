@@ -56,6 +56,7 @@ import { voiceLine } from "../../stores/script/scriptVoicing";
 import { playTake } from "../../stores/script/playTake";
 import { getErrorMessage } from "../../utils/errorHandling";
 import { formatDuration } from "../../utils/formatUtils";
+import { isMac } from "../../utils/platform";
 import ScriptTakeGallery from "./ScriptTakeGallery";
 import { takeWorkflowMedia } from "./scriptWorkflowMedia";
 import { SendToWorkflowButton } from "../workflows/SendToWorkflowMenu";
@@ -135,6 +136,12 @@ const NARROW_BELOW = 560;
  */
 export const TEXT_INSET = DRAG_RAIL + COLUMN_GAP + GUTTER + COLUMN_GAP;
 
+/**
+ * Below this column width an inline take strip leaves the waveform too little
+ * room beside the status and the voice button, so it wraps under them.
+ */
+const WAVE_ROW_BELOW = 360;
+
 const PAUSE_AFTER_MS = [0, 500, 1000, 2000] as const;
 
 /**
@@ -195,11 +202,48 @@ const ScriptLineRow = ({
     [patchLine, scriptId, line.id]
   );
 
+  const onDirectionChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      // Keep the field mounted while it is edited: clearing the note to
+      // retype it must not unmount the input under the caret.
+      setDirectionOpen(true);
+      patchLine(scriptId, line.id, { direction: e.target.value });
+    },
+    [patchLine, scriptId, line.id]
+  );
+
+  const onVoice = useCallback(async () => {
+    setVoiceError(null);
+    try {
+      await voiceLine(scriptId, line.id);
+    } catch (error) {
+      setVoiceError(getErrorMessage(error, t("i18n-next25.script.line.voicingFailed")));
+    }
+  }, [scriptId, line.id, t]);
+
+  // Voicing needs a voice and some text; the button says which is missing.
+  const hasText = line.text.trim() !== "";
+  const canVoice = !!voice && hasText && !voicing;
+
   // Text-field keyboard shortcuts (ElevenLabs-Studio feel). The row reads the
   // caret from the textarea and bubbles an intent; the pane applies it.
   const onTextKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      if (readOnly || !onKeyNav) return;
+      if (readOnly) return;
+      // Mod+Enter voices the line being written, so a creator can hear it
+      // without leaving the keyboard.
+      if (
+        e.key === "Enter" &&
+        (e.metaKey || e.ctrlKey) &&
+        !e.nativeEvent.isComposing
+      ) {
+        e.preventDefault();
+        if (canVoice) {
+          void onVoice();
+        }
+        return;
+      }
+      if (!onKeyNav) return;
       const el = e.target as HTMLTextAreaElement;
       // Enter splits the line at the caret; Shift+Enter keeps a soft newline.
       // Skip while an IME composition is open so committing a candidate with
@@ -227,27 +271,8 @@ const ScriptLineRow = ({
         onKeyNav(line.id, { type: "focus", dir: 1 });
       }
     },
-    [readOnly, onKeyNav, line.id, line.takes.length]
+    [readOnly, canVoice, onVoice, onKeyNav, line.id, line.takes.length]
   );
-
-  const onDirectionChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      // Keep the field mounted while it is edited: clearing the note to
-      // retype it must not unmount the input under the caret.
-      setDirectionOpen(true);
-      patchLine(scriptId, line.id, { direction: e.target.value });
-    },
-    [patchLine, scriptId, line.id]
-  );
-
-  const onVoice = useCallback(async () => {
-    setVoiceError(null);
-    try {
-      await voiceLine(scriptId, line.id);
-    } catch (error) {
-      setVoiceError(getErrorMessage(error, t("i18n-next25.script.line.voicingFailed")));
-    }
-  }, [scriptId, line.id, t]);
 
   const playCurrent = useCallback(async () => {
     const take = line.takes.find((t) => t.id === line.currentTakeId);
@@ -467,11 +492,17 @@ const ScriptLineRow = ({
     !readOnly && (
       <Tooltip
         title={
-          voice
-            ? status === "stale"
-              ? t("i18n-next25.script.line.revoice")
-              : t("i18n-next25.script.line.voice")
-            : t("i18n-next25.script.line.assignVoiceFirst")
+          !voice
+            ? t("i18n-next25.script.line.assignVoiceFirst")
+            : !hasText
+              ? t("i18n-next25.script.line.writeLineFirst")
+              : t("i18n-next25.script.line.voiceShortcut", {
+                  action:
+                    status === "stale"
+                      ? t("i18n-next25.script.line.revoice")
+                      : t("i18n-next25.script.line.voice"),
+                  shortcut: `${isMac() ? "⌘" : "Ctrl"}+Enter`
+                })
         }
       >
         <span>
@@ -479,7 +510,7 @@ const ScriptLineRow = ({
             size="small"
             variant="outlined"
             aria-label={t("i18n-next25.script.line.voice")}
-            disabled={!voice}
+            disabled={!voice || !hasText}
             onClick={() => void onVoice()}
             startIcon={<MicNoneIcon />}
             sx={{
@@ -590,24 +621,39 @@ const ScriptLineRow = ({
 
   const speakerColor = speaker?.color ?? "var(--palette-text-secondary)";
 
+  // The take strip: status, length, the waveform once a take exists, and the
+  // voice button. A line with no take shows no strip at all, so a freshly
+  // written script reads as tight as the page it came from. When the column
+  // drops under the dialogue, the strip shares one row with the status.
+  const waveform = currentTake ? (
+    <Box className="script-line-take-wave" sx={{ minWidth: 0 }}>
+      <ScriptTakeWaveform
+        take={currentTake}
+        color={speakerColor}
+        stale={status === "stale"}
+        onPlay={() => void playCurrent()}
+      />
+    </Box>
+  ) : null;
+
   const takeColumn = (
     <FlexColumn
       className="script-line-take"
       gap={SPACING.sm}
       sx={{ minWidth: 0 }}
     >
-      <FlexRow align="center" gap={SPACING.md} fullWidth>
+      <FlexRow
+        className="script-line-take-head"
+        align="center"
+        gap={SPACING.md}
+        fullWidth
+      >
         {statusIndicator}
         {duration}
-        <Box sx={{ flex: 1 }} />
-        {voiceButton}
+        <Box className="script-line-take-spacer" sx={{ flex: 1 }} />
+        <Box className="script-line-take-voice">{voiceButton}</Box>
       </FlexRow>
-      <ScriptTakeWaveform
-        take={currentTake}
-        color={speakerColor}
-        stale={status === "stale"}
-        onPlay={hasCurrentTake ? () => void playCurrent() : undefined}
-      />
+      {waveform}
     </FlexColumn>
   );
 
@@ -651,6 +697,7 @@ const ScriptLineRow = ({
           paddingX: SPACING.md,
           paddingY: SPACING.lg,
           transition: MOTION.background,
+          ...inlineTakeSx(hasCurrentTake),
           ...activeSx
         }}
       >
@@ -660,20 +707,7 @@ const ScriptLineRow = ({
           {actions}
         </FlexRow>
         {textColumn}
-        <FlexColumn gap={SPACING.sm} fullWidth>
-          <FlexRow align="center" gap={SPACING.md} fullWidth>
-            {statusIndicator}
-            {duration}
-            <Box sx={{ flex: 1 }} />
-            {voiceButton}
-          </FlexRow>
-          <ScriptTakeWaveform
-            take={currentTake}
-            color={speakerColor}
-            stale={status === "stale"}
-            onPlay={hasCurrentTake ? () => void playCurrent() : undefined}
-          />
-        </FlexColumn>
+        {takeColumn}
         {gallery}
       </FlexColumn>
     );
@@ -698,8 +732,9 @@ const ScriptLineRow = ({
         [`@container script-lines (max-width: ${STACK_BELOW}px)`]: {
           gridTemplateColumns: `${DRAG_RAIL}px ${GUTTER}px minmax(0, 1fr)`,
           alignItems: "start",
-          "& .script-line-take": { gridColumn: "3 / 4" },
-          "& .script-line-toolbar": { right: `${SPACING_PX.xl}px` }
+          "& .script-line-toolbar": { right: `${SPACING_PX.xl}px` },
+          ...inlineTakeSx(hasCurrentTake),
+          "& .script-line-take": { ...INLINE_TAKE, gridColumn: "3 / 4" }
         },
         [`@container script-lines (max-width: ${NARROW_BELOW}px)`]: {
           gridTemplateColumns: `${DRAG_RAIL}px minmax(0, 1fr)`,
@@ -778,6 +813,34 @@ const ScriptLineRow = ({
     </Box>
   );
 };
+
+/**
+ * Lays the take strip out as one row (status, length, waveform, voice button)
+ * for a row whose take column sits under the dialogue. The head row dissolves
+ * into the strip so the waveform can sit between the length and the button.
+ */
+const INLINE_TAKE = {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  alignItems: "center",
+  columnGap: SPACING.md,
+  rowGap: SPACING.sm
+} as const;
+
+const inlineTakeSx = (hasTake: boolean) =>
+  ({
+    "& .script-line-take": INLINE_TAKE,
+    "& .script-line-take-head": { display: "contents" },
+    "& .script-line-take-spacer": hasTake ? { display: "none" } : {},
+    "& .script-line-take-wave": { flex: 1, order: 1 },
+    "& .script-line-take-wave > *": { height: CONTROL.height.sm },
+    "& .script-line-take-voice": { order: 2 },
+    // Too narrow to fit the strip beside the status: it takes its own row.
+    [`@container script-lines (max-width: ${WAVE_ROW_BELOW}px)`]: {
+      "& .script-line-take-spacer": { display: "block" },
+      "& .script-line-take-wave": { order: 3, flexBasis: "100%" }
+    }
+  }) as const;
 
 /** Take status pills read in the row's sans label type, icon first. */
 const pillSx = {

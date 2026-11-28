@@ -13754,6 +13754,8 @@
         "revoice": "Re-voice linje",
         "voice": "Röstlinje",
         "assignVoiceFirst": "Tilldela en röst till den här högtalaren först",
+        "writeLineFirst": "Skriv repliken först",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "Fler linjeåtgärder",
         "pauseOption": {
           "0": "Ingen paus efteråt",
@@ -17131,7 +17133,6 @@
       "takeCount_other": "{{count}} tar"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Inte uttalat än",
       "playTake": "Spela ta"
     }
   },
