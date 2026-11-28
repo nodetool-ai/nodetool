@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli-timeline",
-  "version": "0.8.18",
+  "version": "0.8.19",
   "description": "Independent timeline command feature for NodeTool",
   "type": "module",
   "engines": {
