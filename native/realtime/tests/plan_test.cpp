@@ -86,6 +86,10 @@ int main() {
         rejected(candidate, "audio-out", "missing_producer");
         candidate = base; candidate["audio"]["nodes"][1]["params"][0] = 55;
         rejected(candidate, "gain", "missing_param");
+        candidate = base; candidate["params"][0]["sync"] = "immediate";
+        rejected(candidate, "gain", "param_sync");
+        candidate = base; candidate["params"][0]["sync"] = "synced";
+        require(loadPlan(candidate.dump(), registry()).plan != nullptr, "A synced audio parameter was rejected");
         candidate = base; candidate["audio"]["nodes"][1]["in"][0]["output"] = 55;
         rejected(candidate, "gain", "port");
         candidate = base; std::swap(candidate["audio"]["nodes"][0], candidate["audio"]["nodes"][1]);

@@ -95,7 +95,8 @@
           "sync": {
             "enum": [
               "immediate",
-              "audio"
+              "audio",
+              "synced"
             ]
           },
           "value": {

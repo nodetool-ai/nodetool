@@ -3,6 +3,7 @@
 // prepare thread, an audio render thread with the buffered driver, and the
 // playback device. The render thread and its surface are WP14. The param
 // table is WP13, and state follow on swap is WP18.
+#include "params.h"
 #include "plan.h"
 #include "audio/PlaybackDevice.h"
 #include <chrono>
@@ -20,6 +21,8 @@ struct LiveConfig {
     unsigned minLeadQuanta = 8;  // The ring lead is two device periods and at least this.
     unsigned maxLeadQuanta = 32; // Underruns raise the lead by one quantum up to this.
     unsigned maxSlots = 8;
+    unsigned maxParams = 1024;    // Size of the param table. Every plan slot must be below it.
+    unsigned eventCapacity = 256; // Events queued for the audio render thread.
     bool requestRealtimeClass = true;
 };
 
@@ -34,6 +37,11 @@ struct LiveStats {
     std::uint64_t nonFiniteSamples = 0;
     std::uint64_t controlRejections = 0;
     std::uint64_t deferredTakes = 0;
+    std::uint64_t paramReadFailures = 0;
+    std::uint64_t syncedParamsApplied = 0;
+    std::uint64_t lateEvents = 0;
+    std::uint64_t rejectedEvents = 0;
+    std::uint64_t droppedEvents = 0;
     bool realtimeRequested = false;
     bool realtimeGranted = false;
     // Device callback.
@@ -61,7 +69,9 @@ struct LiveAudioThreadHooks {
 
 // Thread affinity: `open`, `update` and the destructor run on the host GUI
 // thread. `stats`, `lastRejection` and `waitForRevision` are thread-safe
-// (seqlocks, a mutex for the diagnostic). The session owns its threads, the
+// (seqlocks, a mutex for the diagnostic). `setParam` and `sendEvent` are
+// thread-safe for the host and the runner worker (a writer mutex that no
+// realtime thread takes). The session owns its threads, the
 // device and every plan. The destructor stops the device, then joins the
 // audio render thread and the prepare thread in that order, and the prepare
 // thread destroys every plan before it exits.
@@ -84,6 +94,15 @@ public:
     std::optional<Diagnostic> lastRejection() const;
     // True once the audio render thread runs a plan with this revision.
     bool waitForRevision(std::uint64_t revision, std::chrono::milliseconds timeout) const;
+    // Writes a param (section 11.1). False when the slot is outside the table
+    // or the value has 0 or more than 4 lanes. The latest value wins.
+    bool setParam(std::uint32_t slot, std::span<const double> lanes);
+    // Queues an event for the audio render thread (section 10.3). False when
+    // the queue is full and the event was dropped.
+    bool sendEvent(const AudioEvent& event);
+    // The tables a render thread reads (WP14). Valid while the session lives.
+    const ParamTable& params() const;
+    const AudioAppliedTable& audioApplied() const;
     // Tests only: what the device reports on a reroute.
     void simulateDeviceChangeForTest();
 

@@ -146,20 +146,21 @@ void slotValueSharedByTwoDomains() {
     require(first.expired(), "the prepare thread released the first value");
 }
 
-std::string tonePlan(std::uint64_t revision, double gain, double frequency = 440) {
+std::string tonePlan(std::uint64_t revision, double gain, double frequency = 440, const char* sync = "audio",
+                     unsigned gainSlot = 1) {
     nlohmann::json plan = {
         {"schemaVersion", 1}, {"revision", revision},
         {"session", {{"sampleRate", 48000}, {"quantum", 128}, {"channels", "stereo"}, {"width", 64}, {"height", 64}, {"seed", 1}}},
         {"params", nlohmann::json::array({
             {{"slot", 0}, {"node", "tone"}, {"field", "frequency"}, {"smooth", "none"}, {"sync", "audio"}, {"value", frequency}},
-            {{"slot", 1}, {"node", "tone"}, {"field", "amplitude"}, {"smooth", "none"}, {"sync", "audio"}, {"value", gain}}})},
+            {{"slot", gainSlot}, {"node", "tone"}, {"field", "amplitude"}, {"smooth", "none"}, {"sync", sync}, {"value", gain}}})},
         {"slots", nlohmann::json::array()},
         {"control", {{"registers", 0}, {"ops", nlohmann::json::array()}, {"stateful", nlohmann::json::array()}}},
         {"render", {{"passes", nlohmann::json::array()}}},
         {"audio", {
             {"buffers", nlohmann::json::array({{{"id", 0}, {"channels", "stereo"}}})},
             {"nodes", nlohmann::json::array({{{"node", "tone"}, {"kernel", "oscillator"}, {"stateVersion", 1},
-                {"in", nlohmann::json::array()}, {"out", {0}}, {"params", {0, 1}}}})},
+                {"in", nlohmann::json::array()}, {"out", {0}}, {"params", {0, gainSlot}}}})},
             {"sinks", nlohmann::json::array({{{"node", "out"}, {"buffer", 0}, {"kind", "device"}, {"subgraphHash", "00000001"}}})}}}};
     return plan.dump();
 }
@@ -255,6 +256,67 @@ void sessionOnNullDevice() {
 }
 } // namespace
 
+// WP13 on the null device: plan values enter the param table, a host write
+// of a synced param reaches the audio-applied table with its quantum, the
+// applied plan state names the running revision, a plan slot outside the
+// table is rejected, and an event the plan cannot take is dropped without
+// stopping the sound.
+void sessionParamsAndEvents() {
+    LiveConfig config;
+    config.sampleRate = 48000;
+    config.maxParams = 4;
+    std::string error;
+    auto session = LiveSession::open(config, &error);
+    require(session != nullptr, "open failed: " + error);
+    session->update(tonePlan(1, 0.25, 440, "synced"));
+    require(session->waitForRevision(1, 5s), "the synced plan never ran");
+    ParamValue frequency;
+    require(session->params().tryLoad(0, frequency) && frequency.lanes[0] == 440, "plan values did not enter the table");
+    AppliedPlans plans;
+    require(session->audioApplied().tryLoadPlans(plans) && plans.recent[0].planRevision == 1,
+            "the applied plan state does not name the running revision");
+
+    const double gain[] = {0.5};
+    require(session->setParam(1, gain), "a param write failed");
+    require(!session->setParam(4, gain), "a write outside the table succeeded");
+    const auto deadline = std::chrono::steady_clock::now() + 5s;
+    AppliedParam applied;
+    while (std::chrono::steady_clock::now() < deadline &&
+           !(session->audioApplied().tryLoadParam(1, applied) && applied.lanes[0] == 0.5)) {
+        std::this_thread::sleep_for(1ms);
+    }
+    require(applied.lanes[0] == 0.5 && applied.revision != 0 && applied.streamFrame > 0,
+            "the synced write did not reach the audio-applied table");
+    require(applied.streamFrame % 128 == 0, "the applied stream frame is not a quantum start");
+
+    ParamValue before;
+    require(session->params().tryLoad(1, before), "param read failed");
+    session->update(tonePlan(2, 0.5, 440, "synced"));
+    require(session->waitForRevision(2, 5s), "the second plan never ran");
+    ParamValue after;
+    require(session->params().tryLoad(1, after) && after.revision == before.revision,
+            "a plan with the same value replaced the host write");
+
+    session->update(tonePlan(3, 0.25, 440, "synced", 4));
+    const auto rejectDeadline = std::chrono::steady_clock::now() + 5s;
+    while (session->stats().rejectedPlans == 0 && std::chrono::steady_clock::now() < rejectDeadline) {
+        std::this_thread::sleep_for(1ms);
+    }
+    const auto rejection = session->lastRejection();
+    require(rejection && rejection->reason == "param_slot", "a slot outside the table was not rejected");
+
+    const auto quanta = session->stats().quanta;
+    require(session->sendEvent({0, 999, 0, 0}), "the event was not queued");
+    const auto eventDeadline = std::chrono::steady_clock::now() + 5s;
+    while (session->stats().rejectedEvents == 0 && std::chrono::steady_clock::now() < eventDeadline) {
+        std::this_thread::sleep_for(1ms);
+    }
+    std::this_thread::sleep_for(50ms);
+    const auto stats = session->stats();
+    require(stats.rejectedEvents == 1 && stats.quanta > quanta + 4, "a rejected event stopped the sound");
+    require(stats.syncedParamsApplied >= 1 && stats.paramReadFailures == 0, "unexpected param counters");
+}
+
 int main() {
     try {
 #ifndef NT_SANITIZED
@@ -264,6 +326,7 @@ int main() {
         fullRetireQueueRefuses();
         slotValueSharedByTwoDomains();
         sessionOnNullDevice();
+        sessionParamsAndEvents();
         std::cout << "realtime-live: all checks passed\n";
         return 0;
     } catch (const std::exception& failure) {

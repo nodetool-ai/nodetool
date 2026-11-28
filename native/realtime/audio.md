@@ -85,9 +85,10 @@ the IR default. Vector parameters cannot bind to audio kernels.
 
 The host is responsible for taking the snapshot without concurrent mutation.
 Seqlock acquisition, applied revisions, control-register bindings and
-cross-domain synchronization are not implemented here.
-WP09 composes execution; WP13 supplies the parameter handoffs. The executor does
-not invent synchronization for borrowed spans.
+cross-domain synchronization are not implemented here. WP09 composes execution.
+The live session's [param reader](README.md#params-synced-changes-and-events)
+supplies the snapshot. The executor does not invent synchronization for
+borrowed spans.
 
 Events identify a prepared node index and absolute stream frame. They are sorted
 by stream frame, with input order retained for ties. Oscillator and noise support

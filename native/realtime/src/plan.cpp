@@ -115,6 +115,7 @@ void acyclic(const std::vector<std::vector<std::size_t>>& edges, const std::vect
 
 void semantics(const Json& plan, const Registry& registry, const Plan* previous, std::vector<Diagnostic>& warnings) {
     std::unordered_set<unsigned> params;
+    std::unordered_set<unsigned> immediateParams;
     std::unordered_map<std::string, unsigned> identities;
     for (const auto& param : plan["params"]) {
         const auto node = param["node"].get<std::string>();
@@ -124,6 +125,7 @@ void semantics(const Json& plan, const Registry& registry, const Plan* previous,
         const auto key = Json::array({param["node"], param["field"]}).dump();
         const auto slot = param["slot"].get<unsigned>();
         if (!params.insert(slot).second || !identities.emplace(key, slot).second) { reject(node, "duplicate_param", key); }
+        if (param["sync"] == "immediate") { immediateParams.insert(slot); }
     }
     if (previous) {
         for (const auto& param : (*previous)["params"]) {
@@ -265,6 +267,9 @@ void semantics(const Json& plan, const Registry& registry, const Plan* previous,
         }
         for (const auto& param : node["params"]) {
             if (!params.contains(param.get<unsigned>())) { reject(name, "missing_param", "Kernel parameter slot is undeclared"); }
+            if (immediateParams.contains(param.get<unsigned>())) {
+                reject(name, "param_sync", "An audio kernel cannot read an immediate parameter");
+            }
         }
     }
     acyclic(audioEdges, audioNames);
