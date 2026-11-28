@@ -191,6 +191,7 @@ export interface LegacyFolder {
  */
 export class ProjectDirectoryResolver {
   private readonly paths = new Map<string, string>();
+  private cutCycle = false;
 
   constructor(
     private readonly projectId: string,
@@ -232,13 +233,21 @@ export class ProjectDirectoryResolver {
     const known = this.paths.get(folder.id);
     if (known !== undefined) return known;
     // A parent cycle ends at the root rather than recursing forever.
-    if (seen.has(folder.id)) return "";
+    if (seen.has(folder.id)) {
+      this.cutCycle = true;
+      return "";
+    }
+    const outermost = seen.size === 0;
+    if (outermost) this.cutCycle = false;
     seen.add(folder.id);
     const path = joinDirectory(
       this.resolve(folder.parent_id, seen),
       folderNameAsDirectory(folder.name)
     );
-    this.paths.set(folder.id, path);
+    // A path cut short by a cycle is right only for the folder the walk
+    // started from, so it is not cached: a cached value would make the path
+    // of every folder on the cycle depend on which was asked first.
+    if (!this.cutCycle) this.paths.set(folder.id, path);
     return path;
   }
 }

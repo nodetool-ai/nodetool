@@ -103,6 +103,28 @@ describe("the directory an asset sits in", () => {
     );
   });
 
+  it("gives a folder on a parent cycle the same directory in any lookup order", () => {
+    const folders: LegacyFolder[] = [
+      { id: "f1", name: "A", parent_id: "f2" },
+      { id: "f2", name: "B", parent_id: "f3" },
+      { id: "f3", name: "C", parent_id: "f1" }
+    ];
+    const ids = folders.map((folder) => folder.id);
+    const fresh = ids.map((id) => resolver(folders).directoryOfParent(id));
+    const orders = [
+      [0, 1, 2],
+      [2, 1, 0],
+      [1, 0, 2],
+      [1, 2, 0]
+    ];
+    for (const order of orders) {
+      const shared = resolver(folders);
+      for (const index of order) {
+        expect(shared.directoryOfParent(ids[index])).toBe(fresh[index]);
+      }
+    }
+  });
+
   it("puts an unknown parent at the root", () => {
     expect(resolver().directoryOf({ id: "a", parent_id: "gone" })).toBe("");
   });
