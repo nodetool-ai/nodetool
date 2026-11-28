@@ -279,6 +279,9 @@ if(PROJECT_IS_TOP_LEVEL)
   # The host capabilities (src/host/), called from JavaScript.
   add_executable(gr_host_tests unittests/host.cpp)
   target_link_libraries(gr_host_tests PRIVATE gr_kernel gr_js nodetool_kernels)
+  # The address table fixture shared with packages/runtime-core/src/safe-url.ts.
+  target_compile_definitions(gr_host_tests PRIVATE
+    GR_IP_LITERAL_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/../../packages/runtime-core/tests/fixtures/ip-literals.json")
   if(CURL_FOUND)
     target_compile_definitions(gr_host_tests PRIVATE GR_HAVE_CURL)
   endif()

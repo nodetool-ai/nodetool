@@ -44,10 +44,15 @@ that replaces a trusted `lib.http` node. It reads the same address table.
 
 `isBlockedIpLiteral` in `packages/runtime-core/src/safe-url.ts` decides which literals are
 internal. It covers IPv4 (loopback, 0.0.0.0/8, RFC1918, 169.254/16, CGNAT,
-198.18/15), the alternate spellings the WHATWG parser normalizes for us
-(decimal, hex, octal, short form), IPv6 loopback/unspecified/ULA/link-local, and
-the IPv6 forms that carry an IPv4 inside them — IPv4-mapped, IPv4-compatible,
-6to4, NAT64.
+192.0.0/24, the documentation ranges, 198.18/15, multicast, 240/4 and
+broadcast), the alternate spellings the WHATWG parser normalizes for us
+(decimal, hex, octal, short form), IPv6 unspecified, loopback, discard-only
+(100::/64), Teredo (2001::/32), documentation (2001:db8::/32), local-use NAT64
+(64:ff9b:1::/48), ULA, link-local, site-local and multicast, and the IPv6 forms
+that carry an IPv4 inside them — IPv4-mapped, IPv4-compatible, 6to4, NAT64.
+The native graph runner's `isBlockedIpLiteral`
+(`native/graph-runner/src/host/http.cpp`) is the same table. Both tests read
+`packages/runtime-core/tests/fixtures/ip-literals.json`.
 
 Four tables existed before: this one, the sandbox's in
 `packages/agents/src/network-guard.ts` (which now imports it), a private copy

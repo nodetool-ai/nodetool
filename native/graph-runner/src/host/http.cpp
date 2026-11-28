@@ -53,17 +53,30 @@ using nodetool::jobs::NativeJob;
 namespace gr::host {
 namespace {
 
+// The address table of isBlockedIpLiteral in
+// packages/runtime-core/src/safe-url.ts, kept in step with it by the shared
+// fixture packages/runtime-core/tests/fixtures/ip-literals.json.
+//
+// IPv4 outside public unicast: 0/8, 10/8, 100.64/10, 127/8, 169.254/16,
+// 172.16/12, 192.0.0/24, 192.0.2/24, 192.168/16, 198.18/15, 198.51.100/24,
+// 203.0.113/24, 224/4 (multicast), 240/4 (reserved) and broadcast.
 bool isPrivateIpv4(uint32_t addr) {  // host byte order
-  uint8_t a = addr >> 24, b = (addr >> 16) & 0xff;
+  uint8_t a = addr >> 24, b = (addr >> 16) & 0xff, c = (addr >> 8) & 0xff;
   if (a == 0 || a == 10 || a == 127) return true;
   if (a == 169 && b == 254) return true;
   if (a == 172 && b >= 16 && b <= 31) return true;
   if (a == 192 && b == 168) return true;
+  if (a == 192 && b == 0 && (c == 0 || c == 2)) return true;
   if (a == 100 && b >= 64 && b <= 127) return true;
   if (a == 198 && (b == 18 || b == 19)) return true;
+  if (a == 198 && b == 51 && c == 100) return true;
+  if (a == 203 && b == 0 && c == 113) return true;
+  if (a >= 224) return true;
   return false;
 }
 
+// IPv6 outside public unicast, and the forms that carry an IPv4, blocked when
+// that IPv4 is.
 bool isBlockedIpv6(const uint8_t* b) {
   auto zero = [b](int from, int to) {
     for (int i = from; i < to; ++i) {
@@ -75,14 +88,21 @@ bool isBlockedIpv6(const uint8_t* b) {
     return (uint32_t(b[i]) << 24) | (uint32_t(b[i + 1]) << 16) | (uint32_t(b[i + 2]) << 8) | b[i + 3];
   };
   if (zero(0, 15) && (b[15] == 0 || b[15] == 1)) return true;  // :: and ::1
-  if ((b[0] & 0xfe) == 0xfc) return true;                         // fc00::/7
-  if (b[0] == 0xfe && (b[1] & 0xc0) == 0x80) return true;         // fe80::/10
-  if (b[0] == 0x20 && b[1] == 0x02) return isPrivateIpv4(v4At(2));  // 6to4
   if (zero(0, 10) && b[10] == 0xff && b[11] == 0xff) return isPrivateIpv4(v4At(12));  // mapped
   if (zero(0, 12)) return isPrivateIpv4(v4At(12));  // IPv4-compatible
-  if (b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b && zero(4, 12)) {
-    return isPrivateIpv4(v4At(12));  // NAT64 64:ff9b::/96
+  if (b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xff && b[3] == 0x9b) {
+    if (b[4] == 0x00 && b[5] == 0x01) return true;                // 64:ff9b:1::/48
+    if (zero(4, 12)) return isPrivateIpv4(v4At(12));             // NAT64 64:ff9b::/96
+    return false;
   }
+  if (b[0] == 0x01 && b[1] == 0x00 && zero(2, 8)) return true;    // 100::/64
+  if (b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x00 && b[3] == 0x00) return true;  // Teredo 2001::/32
+  if (b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x0d && b[3] == 0xb8) return true;  // 2001:db8::/32
+  if (b[0] == 0x20 && b[1] == 0x02) return isPrivateIpv4(v4At(2));  // 6to4
+  if ((b[0] & 0xfe) == 0xfc) return true;                         // fc00::/7
+  if (b[0] == 0xfe && (b[1] & 0xc0) == 0x80) return true;         // fe80::/10
+  if (b[0] == 0xfe && (b[1] & 0xc0) == 0xc0) return true;         // fec0::/10
+  if (b[0] == 0xff) return true;                                  // ff00::/8
   return false;
 }
 

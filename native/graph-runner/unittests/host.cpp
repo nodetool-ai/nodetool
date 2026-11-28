@@ -10,6 +10,11 @@
 #include "js/engine.h"
 #include "nodetool/kernels.h"
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <nlohmann/json.hpp>
+#include <sys/socket.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
@@ -17,6 +22,7 @@
 #include <barrier>
 #include <fstream>
 #include <map>
+#include <optional>
 #include <thread>
 #include <functional>
 #include <string>
@@ -876,6 +882,45 @@ void httpPolicyMatchesSafeFetch() {
 #endif
 }
 
+// The address table agrees with isBlockedIpLiteral in
+// packages/runtime-core/src/safe-url.ts: both read the same fixture. Literals
+// that inet_pton accepts are also checked as connection addresses.
+void httpAddressTableMatchesTheSharedFixture() {
+  std::ifstream in(GR_IP_LITERAL_FIXTURE);
+  CHECK(in.good());
+  if (!in.good()) return;
+  auto fixture = nlohmann::json::parse(in);
+  auto socketAllowed = [](const std::string& host) -> std::optional<bool> {
+    sockaddr_in v4{};
+    v4.sin_family = AF_INET;
+    if (inet_pton(AF_INET, host.c_str(), &v4.sin_addr) == 1) {
+      return gr::host::isPublicSocketAddress(reinterpret_cast<const sockaddr*>(&v4));
+    }
+    sockaddr_in6 v6{};
+    v6.sin6_family = AF_INET6;
+    if (inet_pton(AF_INET6, host.c_str(), &v6.sin6_addr) == 1) {
+      return gr::host::isPublicSocketAddress(reinterpret_cast<const sockaddr*>(&v6));
+    }
+    return std::nullopt;
+  };
+  int listed = 0;
+  for (const auto& [key, blocked] : {std::pair{"blocked", true}, std::pair{"allowed", false}}) {
+    for (const auto& entry : fixture.at(key)) {
+      const std::string host = entry.get<std::string>();
+      ++listed;
+      if (gr::host::isBlockedIpLiteral(host) != blocked) {
+        std::fprintf(stderr, "address table: %s should be %s\n", host.c_str(), key);
+        CHECK(false);
+      }
+      if (auto allowed = socketAllowed(host); allowed && *allowed == blocked) {
+        std::fprintf(stderr, "socket address: %s should be %s\n", host.c_str(), key);
+        CHECK(false);
+      }
+    }
+  }
+  CHECK(listed > 100);
+}
+
 }  // namespace
 
 // --- kernels ----------------------------------------------------------------
@@ -1174,6 +1219,7 @@ int main() {
       {"secretsComeFromTheEmbedderOnly", secretsComeFromTheEmbedderOnly},
       {"httpIsOffByDefault", httpIsOffByDefault},
       {"httpPolicyMatchesSafeFetch", httpPolicyMatchesSafeFetch},
+      {"httpAddressTableMatchesTheSharedFixture", httpAddressTableMatchesTheSharedFixture},
       {"kernelsMatchTheCFunctions", kernelsMatchTheCFunctions},
       {"kernelsRefuseBadArguments", kernelsRefuseBadArguments},
       {"streamingKernelsMatchTheCFunctions", streamingKernelsMatchTheCFunctions},
