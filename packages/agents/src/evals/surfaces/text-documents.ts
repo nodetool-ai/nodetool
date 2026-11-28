@@ -21,7 +21,6 @@ import {
   type ProcessingContext,
   type Workspace
 } from "@nodetool-ai/runtime";
-import { UNGATED, createCapabilityRun } from "../../capabilities/invoke.js";
 import { toolForCapabilityName } from "../../capabilities/lazy-tool.js";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
 import type {
@@ -120,9 +119,7 @@ export function createTextDocumentsToolBridge(
 
   const invoke: SeedCall = async (name, args, turn) => {
     const context = contextFor(workspace, turn);
-    const tool = toolForCapabilityName(name, () =>
-      createCapabilityRun({ context, gate: UNGATED })
-    );
+    const tool = toolForCapabilityName(name);
     return (await tool.process(context, args)) as Record<string, unknown>;
   };
 
