@@ -18,6 +18,46 @@ async function goto(page: Page, url: string): Promise<void> {
   await waitForAppReady(page);
 }
 
+/**
+ * Shows the project's Files panel. The rail button toggles, and the app
+ * remembers whether the panel was open.
+ */
+export async function showProjectFiles(page: Page): Promise<Locator> {
+  const button = page.getByRole("button", { name: "Files", exact: true });
+  await button.waitFor({ state: "visible" });
+  if ((await button.getAttribute("aria-pressed")) !== "true") {
+    await button.click();
+  }
+  const tree = page.getByLabel("Project files", { exact: true });
+  await tree.waitFor({ state: "visible" });
+  return tree;
+}
+
+/** A file row in the Files panel, by its path in the project folder. */
+export function projectFileRow(page: Page, path: string): Locator {
+  return page
+    .getByLabel("Project files", { exact: true })
+    .locator(`[role="treeitem"][data-itemid="${path}"]`);
+}
+
+/**
+ * Opens a document from the Files panel the way a user does: expand its
+ * folder, then double-click the file. Workflows live under `Workflows/`, apps
+ * under `Apps/`, storyboards under `Storyboards/`.
+ */
+export async function openProjectFile(
+  page: Page,
+  folder: string,
+  fileName: string
+): Promise<void> {
+  await showProjectFiles(page);
+  const row = projectFileRow(page, `${folder}/${fileName}`);
+  if (!(await row.isVisible())) {
+    await projectFileRow(page, folder).click();
+  }
+  await row.dblclick({ timeout: 30_000 });
+}
+
 /** The workflow editor: the graph canvas, the node menu and the run controls. */
 export class EditorPage {
   constructor(private readonly page: Page) {}
@@ -314,25 +354,23 @@ export class ChatPage {
  * A mini app, opened the way a user opens one.
  *
  * An app is its own resource: there is no standalone `/apps/<id>` route any
- * more. A user reaches one from the editor's left rail — Documents → the app —
- * which opens it as a workspace tab in Design mode, then switches that tab to
- * Run. Apps are grouped under Documents with the other project documents.
+ * more. A user reaches one from the Files panel — Apps → `<name>.app.json` —
+ * which opens it as a workspace tab.
  */
 export class MiniAppPage {
   constructor(private readonly page: Page) {}
 
-  /** Open the app named `appName`. A tab opens in View mode, on the Run surface. */
+  /**
+   * Open the app named `appName` on its Run surface. The Files panel opens an
+   * app in Design mode, and the toolbar's Run opens its default instance.
+   */
   async open(appName: string): Promise<void> {
     await goto(this.page, "/workspace");
+    await openProjectFile(this.page, "Apps", `${appName}.app.json`);
     await this.page
-      .getByRole("button", { name: "Documents", exact: true })
+      .getByRole("toolbar", { name: `${appName} document` })
+      .getByRole("button", { name: "Run", exact: true })
       .click();
-    await this.page
-      .locator('[role="treeitem"][aria-level="1"]')
-      .filter({ hasText: /^Apps/ })
-      .locator('[role="treeitem"][aria-level="2"]')
-      .filter({ hasText: appName })
-      .click({ timeout: 30_000 });
 
     await this.runButton().waitFor({ state: "visible", timeout: 30_000 });
   }
@@ -370,45 +408,36 @@ export class MiniAppPage {
 }
 
 /**
- * The workflow library — the editor's Documents tree.
+ * The workflow library: the Workflows folder in the project's Files panel.
  *
- * This is the surface that actually lists a user's saved workflows. The
- * dashboard's own list is a different thing: it leads with templates and
- * starters, and in the seeded fixture it renders an empty state, so asserting
- * against it would test the fixture rather than the app.
+ * This is the surface that lists a user's saved workflows. Each one is a
+ * `Workflows/<name>.workflow.json` file in the project folder.
  */
 export class LibraryPage {
   constructor(private readonly page: Page) {}
 
-  /** Open the editor on `workflowId`, then open the Documents panel. */
+  /** Open the editor on `workflowId`, then show the Workflows folder. */
   async open(workflowId: string): Promise<void> {
     const editor = new EditorPage(this.page);
     await editor.open(workflowId);
-    await this.page
-      .getByRole("button", { name: "Documents", exact: true })
-      .click();
-    await this.searchBox().waitFor({ state: "visible", timeout: 30_000 });
-  }
-
-  searchBox(): Locator {
-    return this.page.getByPlaceholder("Search documents").first();
-  }
-
-  async search(query: string): Promise<void> {
-    await this.searchBox().fill(query);
+    await showProjectFiles(this.page);
+    const children = this.page
+      .getByLabel("Project files", { exact: true })
+      .locator('[role="treeitem"][data-itemid^="Workflows/"]');
+    // The row carries no expanded state, and the app remembers open folders.
+    if ((await children.count()) === 0) {
+      await projectFileRow(this.page, "Workflows").click();
+    }
+    await children.first().waitFor({ state: "visible", timeout: 30_000 });
   }
 
   /** A workflow entry in the panel, by name. */
   entry(name: string): Locator {
-    return this.page
-      .getByRole("tree", { name: "Project documents" })
-      .locator('[role="treeitem"][aria-level="2"]')
-      .filter({ hasText: name })
-      .first();
+    return projectFileRow(this.page, `Workflows/${name}.workflow.json`);
   }
 
   async openWorkflow(name: string): Promise<void> {
-    await this.entry(name).first().click();
+    await this.entry(name).dblclick();
   }
 }
 
@@ -422,7 +451,7 @@ export class AssetsPage {
   }
 
   searchBox(): Locator {
-    return this.page.getByRole("textbox", { name: "Search current folder" });
+    return this.page.getByRole("textbox", { name: "Search all assets" });
   }
 
   async search(query: string): Promise<void> {
@@ -440,8 +469,7 @@ export class StoryboardPage {
 
   async open(name: string): Promise<void> {
     await goto(this.page, "/workspace");
-    await this.page.getByRole("button", { name: "Documents", exact: true }).click();
-    await this.page.getByRole("treeitem", { name: `${name} Storyboard`, exact: true }).click();
+    await openProjectFile(this.page, "Storyboards", `${name}.storyboard.json`);
   }
 
   firstShot(): Locator {
@@ -761,7 +789,7 @@ export class ProjectFilesPage {
     await goto(this.page, "/workspace");
   }
 
-  railButton(name: "Chats" | "Documents" | "Files"): Locator {
+  railButton(name: "Chats" | "Files"): Locator {
     return this.page.getByRole("button", { name, exact: true });
   }
 

@@ -60,6 +60,7 @@ import { tmpdir } from "node:os";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const USER_ID = "1";
+const PERSONAL_PROJECT_ID = `personal:${USER_ID}`;
 const PORT = Number(process.env.PORT ?? 7777);
 const HOST = process.env.HOST ?? "127.0.0.1";
 
@@ -1553,7 +1554,13 @@ if (VECTOR_DIR) {
 
 async function seedDatabase(): Promise<void> {
   // Workflows
-  for (const wf of [...MOCK_WORKFLOWS, ...MOCK_TEMPLATES]) {
+  // A user's workflows belong to their personal project, so each one has a
+  // file under Workflows/ in that project's folder, as a saved workflow does.
+  // Files is the panel that lists them.
+  for (const wf of MOCK_WORKFLOWS) {
+    await Workflow.create({ ...wf, project_id: PERSONAL_PROJECT_ID });
+  }
+  for (const wf of MOCK_TEMPLATES) {
     await Workflow.create(wf);
   }
 
