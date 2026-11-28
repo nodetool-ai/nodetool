@@ -3208,8 +3208,34 @@ refusal outside production.
 
 The `public-app-deployments` entry in the
 [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-harness/src/harness/registry.ts)
-selects this check. What a logged-out browser loads from the hidden link has
-no harness yet.
+selects this check and the browser suite below.
+
+### Public app link in a logged-out browser
+
+```bash
+npm run test:public-app --workspace=web
+```
+
+The route walk proves what the auth hook does with a token. This suite checks
+what a person with the link sees. Its global setup starts the real server with
+`NODETOOL_ENV=production`, `NODETOOL_TRUST_LOCALHOST=false` and an owner
+`SERVER_AUTH_TOKEN`, so a request without a token is refused even from the
+Vite proxy on loopback. The owner then creates an Echo workflow and an app,
+sets a budget, publishes and deploys it. Vite starts on its own port and
+proxies to that server through `PROXY_API_TARGET`.
+
+Each test starts from a browser context with no session:
+
+- The visitor opens `/a/<token>`, types into the app and runs it, and the
+  output shows the echoed text. Every tRPC call the page shell makes along the
+  way must be refused, and the page must throw no error.
+- A link that was never minted shows the unavailable page.
+- The session the link mints, and no token at all, both get 401 or worse from
+  the owner's library procedures and `/api/workflows`.
+
+The suite runs in the `User Journeys` workflow after the journey suite. With
+`NODETOOL_TRUST_LOCALHOST=true` the first and third tests fail, which is how
+the suite was checked to catch an open server.
 
 
 ### Native graph runner

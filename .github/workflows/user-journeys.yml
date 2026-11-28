@@ -17,10 +17,12 @@ on:
     paths:
       - "web/src/**"
       - "web/tests/journeys/**"
+      - "web/tests/public-app/**"
       - "web/tests/latency/**"
       - "web/tests/globalSetup.ts"
       - "web/tests/benchmarks/helpers/**"
       - "web/playwright.journeys.config.ts"
+      - "web/playwright.public-app.config.ts"
       - "web/playwright.latency.config.ts"
       - "web/tsconfig.playwright.json"
       - "web/package.json"
@@ -114,6 +116,17 @@ jobs:
           # Never use in production.
           SECRETS_MASTER_KEY: "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE="
         run: npm run test:journeys
+
+      # A deployed app link, opened by a browser with no account, against a
+      # production-mode server with auth enforced. Runs even when a journey
+      # failed, since it starts its own servers.
+      - name: Run public app link suite
+        if: ${{ !cancelled() }}
+        working-directory: web
+        env:
+          CI: "true"
+          SECRETS_MASTER_KEY: "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE="
+        run: npm run test:public-app
 
       - name: Upload journey report
         if: always()
