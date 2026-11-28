@@ -18,7 +18,7 @@ import VideogameAssetOutlinedIcon from "@mui/icons-material/VideogameAssetOutlin
 
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 
-import { CONTROL, Divider, EditorButton, FlexRow, MenuItemPrimitive, SaveState, SaveStatus, SPACING, Text, Toolbar, ToolbarDivider, ToolbarIconButton,
+import { Divider, EditorButton, FlexRow, MenuItemPrimitive, SaveState, SaveStatus, SPACING, Text, Toolbar, ToolbarDivider, ToolbarIconButton,
   UndoRedoButtons, type DocumentBarRender, type SaveStatusValue } from "../../ui_primitives";
 import { DocumentMoreMenu } from "../../workspace/documentBarParts";
 import { useGameCommandShortcut } from "./useGameCommands";
@@ -60,8 +60,7 @@ interface GameToolbarProps {
   layoutMenu?: ReactNode;
   /**
    * Draws the workspace document bar. The toolbar then hands it the save
-   * status, Undo/Redo, the panel toggles, Publish and ⋮, and keeps only the
-   * transport row.
+   * status, Undo/Redo, the play controls, the panel toggles, Publish and ⋮.
    */
   documentBar?: DocumentBarRender;
 }
@@ -83,9 +82,7 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
   const { t } = useTranslation();
   const redoShortcut = useGameCommandShortcut("edit.redo");
   const paletteShortcut = useGameCommandShortcut("editor.commandPalette");
-  const transport = <FlexRow gap={SPACING.micro} align="center" role="group" aria-label={t("screen_game.toolbar.playControls")} sx={{
-      p: SPACING.micro, borderRadius: CONTROL.radius, bgcolor: "action.hover", border: 1, borderColor: "divider"
-    }}>
+  const transport = <FlexRow gap={SPACING.micro} align="center" role="group" aria-label={t("screen_game.toolbar.playControls")}>
       <ToolbarIconButton icon={playing ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
         tooltip={playing ? t("screen_game.toolbar.pause") : t("screen_game.toolbar.play")} onClick={onPlay} disabled={loading} active={playSession}
         sx={playSession ? { bgcolor: "primary.main", color: "primary.contrastText", "&:hover": { bgcolor: "primary.dark", color: "primary.contrastText" } } : undefined} />
@@ -97,11 +94,12 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
 
   if (documentBar) {
     const playInNewTab = saveStatus === "saved" && !saving;
-    return <>
-      {documentBar({
+    return documentBar({
         status: <SaveStatus state={BAR_SAVE_STATUS[saveStatus] ?? "dirty"} />,
         history: onUndo && onRedo ? <UndoRedoButtons canUndo={canUndo} canRedo={canRedo} onUndo={onUndo} onRedo={onRedo} /> : undefined,
         view: <>
+          {transport}
+          <ToolbarDivider />
           <ToolbarIconButton icon={<AccountTreeOutlinedIcon fontSize="small" />} tooltip={t("screen_game.toolbar.toggleSceneTree")}
             aria-pressed={sceneTreeOpen} active={sceneTreeOpen} onClick={onSceneTree} />
           <ToolbarIconButton icon={<TuneOutlinedIcon fontSize="small" />} tooltip={t("screen_game.toolbar.toggleInspector")}
@@ -134,9 +132,7 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
               onClick={() => { close(); onCommandPalette(); }} />] : [])
           ]} />
         </>
-      })}
-      <Toolbar component="div" sx={{ justifyContent: "center" }}>{transport}</Toolbar>
-    </>;
+      });
   }
 
   return <Toolbar component="header" sx={{

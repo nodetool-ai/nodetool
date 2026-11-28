@@ -95,8 +95,8 @@ does not use is empty and takes no width.
   outcomes go in ⋮.
 - **D7.** Editing tools stay inside the surface: the timeline tool row, the
   sketch tool rail, the audio edit tools, the 3D transform tools, the text
-  formatting toolbar, and all transports. The document bar holds only
-  document-level controls.
+  formatting toolbar, and all transports except the game's (see
+  [Game](#game)). The document bar holds only document-level controls.
 - **D8.** Remove every button that repeats the View/Edit toggle (F5): Done,
   Close, and Back.
 
@@ -292,13 +292,13 @@ These four share one shape.
 | Identity | Title, `SaveStatus` (map the draft states to the shared vocabulary) |
 | History | Undo, Redo |
 | Mode | View/Edit |
-| View | Scene tree, Inspector, Assistant toggles, Layout menu |
+| View | Play/Pause, Step, Stop, Restart, then Scene tree, Inspector, Assistant toggles, Layout menu |
 | Actions | **Publish**, ⋮ |
 
 - ⋮ holds Export, Save play state, Load play state, Play in new tab, and
   Commands.
-- Play, Pause, Step, Stop, and Restart stay as a transport row inside the
-  surface (D7).
+- The play controls lead the View slot instead of a transport row inside
+  the surface, so the editor keeps its full height for the panels.
 
 ### Types with no document bar
 
