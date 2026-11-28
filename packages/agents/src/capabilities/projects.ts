@@ -13,7 +13,7 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { Project } from "@nodetool-ai/models";
+import type { Project, ProjectSummary } from "@nodetool-ai/models";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -22,6 +22,8 @@ import type {
 import {
   listProjectsSpec,
   searchProjectsSpec,
+  getProjectSpec,
+  summarizeProjectsSpec,
   createProjectSpec,
   updateProjectSpec,
   moveToProjectSpec,
@@ -65,7 +67,7 @@ const notFound = (id: string): ToolError => ({
   error: `Project ${id} was not found.`
 });
 
-function summarizeProject(project: Project) {
+function projectFields(project: Project) {
   const response = project.toResponse();
   return {
     id: response.id,
@@ -93,7 +95,7 @@ const listProjects: CapabilityExport = {
       limit,
       params["archived"] === true
     );
-    return { projects: rows.map(summarizeProject) };
+    return { projects: rows.map(projectFields) };
   }
 };
 
@@ -121,7 +123,94 @@ const searchProjects: CapabilityExport = {
       const haystack = `${project.name} ${project.kind}`.toLowerCase();
       return words.every((word) => haystack.includes(word));
     });
-    return { projects: matches.slice(0, limit).map(summarizeProject) };
+    return { projects: matches.slice(0, limit).map(projectFields) };
+  }
+};
+
+/** Rounds a USD amount to cents, so a sum of float prices reads cleanly. */
+const usd = (amount: number): number => Math.round(amount * 100) / 100;
+
+/**
+ * A summary without the card art: thumbnails and previews are for the
+ * overview's montage, and a run reads a document it needs through its own
+ * capability.
+ */
+function describeContents(summary: ProjectSummary) {
+  return {
+    documents: summary.documents.map((document) => ({
+      type: document.type,
+      id: document.ref,
+      name: document.name,
+      updated_at: document.updatedAt,
+      file: document.file?.path ?? undefined,
+      status: document.status ?? undefined,
+      spend_usd: usd(document.spendUsd),
+      unpriced_count: document.unpricedCount
+    })),
+    documents_partial: summary.documentsPartial,
+    entities: summary.entities.map((entity) => ({
+      id: entity.id,
+      name: entity.name,
+      kind: entity.kind
+    })),
+    spend: {
+      total_usd: usd(summary.spend.totalUsd),
+      unpriced_count: summary.spend.unpricedCount,
+      partial: summary.spend.partial,
+      by_category: summary.spend.byCategory.map((row) => ({
+        category: row.category,
+        usd: usd(row.usd),
+        unpriced_count: row.unpricedCount
+      }))
+    }
+  };
+}
+
+const getProject: CapabilityExport = {
+  spec: getProjectSpec,
+  impl: async (run, params) => {
+    const userId = userOf(run);
+    if (isError(userId)) return userId;
+    const id = projectIdOf(params);
+    if (isError(id)) return id;
+    const { Project, summarizeProject } = await import("@nodetool-ai/models");
+    await Project.migrateToPersonal(userId);
+    const project = await Project.findOwned(userId, id);
+    if (!project) return notFound(id);
+    const summary = await summarizeProject(userId, project.id);
+    return { project: projectFields(project), ...describeContents(summary) };
+  }
+};
+
+const summarizeProjects: CapabilityExport = {
+  spec: summarizeProjectsSpec,
+  impl: async (run, params) => {
+    const userId = userOf(run);
+    if (isError(userId)) return userId;
+    const { Project, summarizeProject } = await import("@nodetool-ai/models");
+    await Project.migrateToPersonal(userId);
+    const limit = clamp(params["limit"], 20, MAX_PROJECTS_PER_CALL);
+    const rows = await Project.listByUser(userId, limit, false);
+    const projects = [];
+    // One project at a time: each summary reads every document table and
+    // the spend ledger, and a parallel fan-out would hold that many reads open.
+    for (const project of rows) {
+      const summary = await summarizeProject(userId, project.id);
+      const documentsByType: Record<string, number> = {};
+      for (const document of summary.documents) {
+        documentsByType[document.type] = (documentsByType[document.type] ?? 0) + 1;
+      }
+      projects.push({
+        ...projectFields(project),
+        documents_by_type: documentsByType,
+        documents_partial: summary.documentsPartial,
+        entity_count: summary.entities.length,
+        spend_usd: usd(summary.spend.totalUsd),
+        unpriced_count: summary.spend.unpricedCount,
+        spend_partial: summary.spend.partial
+      });
+    }
+    return { projects };
   }
 };
 
@@ -183,7 +272,7 @@ const updateProject: CapabilityExport = {
       updated = await Project.restoreOwned(userId, existing.id);
     }
     if (!updated) return notFound(id);
-    return { project: summarizeProject(updated) };
+    return { project: projectFields(updated) };
   }
 };
 
@@ -227,7 +316,7 @@ const createProject: CapabilityExport = {
         error: `The project folder could not be created: ${error instanceof Error ? error.message : String(error)}`
       };
     }
-    return { project: summarizeProject(project) };
+    return { project: projectFields(project) };
   }
 };
 
@@ -364,6 +453,8 @@ const deleteProject: CapabilityExport = {
 export const PROJECT_CAPABILITIES: readonly CapabilityExport[] = [
   listProjects,
   searchProjects,
+  getProject,
+  summarizeProjects,
   createProject,
   updateProject,
   moveToProject,
@@ -378,6 +469,8 @@ export const module: CapabilityModule = {
 export {
   listProjects,
   searchProjects,
+  getProject,
+  summarizeProjects,
   createProject,
   updateProject,
   moveToProject,

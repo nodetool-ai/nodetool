@@ -1037,17 +1037,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "reads the file through its workspace, and `render_sketch` renders a " +
       "sketch it needs to see."
   },
-  "projects.get": {
-    gap:
-      "Same grouping surface as `projects.create`. Carries the derived " +
-      "status and the spend rollup, both over rows the caller owns."
-  },
+  "projects.get": { capability: "get_project" },
   "projects.list": { capability: "list_projects" },
-  "projects.summaries": {
-    gap:
-      "Same grouping surface as `projects.create`. The whole list of " +
-      "rollups `projects.get` returns one at a time."
-  },
+  "projects.summaries": { capability: "summarize_projects" },
   "projects.migration.confirm": {
     withheld:
       "Starts moving the user's project files into a new folder layout. " +
@@ -1436,12 +1428,8 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "games.installCandidate": { capability: "install_native_game_asset" },
   "games.installExample": { capability: "install_example_game" },
-  "games.list": {
-    gap: "The agent can read a known game but cannot list a project's games yet."
-  },
-  "games.listAll": {
-    gap: "The agent can read a known game but cannot list the user's games across projects yet."
-  },
+  "games.list": { capability: "list_native_games" },
+  "games.listAll": { capability: "list_native_games" },
   "games.playSession": {
     withheld:
       "Mints a signed play link that serves the build without a session; anyone holding it can load the game until it expires, so a run may not hand one out."

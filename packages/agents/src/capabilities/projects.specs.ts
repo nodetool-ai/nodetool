@@ -202,10 +202,54 @@ export const moveToProjectSpec: CapabilitySpec = {
     `Moving ${String(params["type"])} ${String(params["id"])} to project ${String(params["project_id"])}`
 };
 
+export const GET_PROJECT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    project_id: { type: "string", description: "Project id." }
+  },
+  required: ["project_id"]
+};
+
+export const SUMMARIZE_PROJECTS_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    limit: {
+      type: "number",
+      description: `Max projects to return (default 20, max ${MAX_PROJECTS_PER_CALL}).`
+    }
+  }
+};
+
+export const getProjectSpec: CapabilitySpec = {
+  name: "get_project",
+  description:
+    "Read one project you own with what it holds: its storyboards, scripts, " +
+    "timelines, sketches, workflows, apps and JS scripts with each one's " +
+    "status and spend, its entities, and its spend by category. Spend is in " +
+    "USD and is a lower bound when unpriced_count is above zero or partial " +
+    "is true. A project you do not own is reported as missing.",
+  inputSchema: GET_PROJECT_SCHEMA,
+  category: "read",
+  userMessage: (params) => `Reading project ${String(params["project_id"])}`
+};
+
+export const summarizeProjectsSpec: CapabilitySpec = {
+  name: "summarize_projects",
+  description:
+    "Roll up each active project you own, most recently updated first: its " +
+    "document count by type, entity count and total spend. Use get_project " +
+    "for one project's documents.",
+  inputSchema: SUMMARIZE_PROJECTS_SCHEMA,
+  category: "read",
+  userMessage: () => "Summarizing projects"
+};
+
 /** Every spec this module declares, in declaration order. */
 export const projectsSpecs: readonly CapabilitySpec[] = [
   listProjectsSpec,
   searchProjectsSpec,
+  getProjectSpec,
+  summarizeProjectsSpec,
   createProjectSpec,
   updateProjectSpec,
   moveToProjectSpec,

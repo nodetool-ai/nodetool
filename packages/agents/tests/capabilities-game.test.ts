@@ -53,8 +53,39 @@ describe("native game capabilities", () => {
       "install_native_game_asset", "playtest_native_game", "build_native_game",
       "edit_native_game", "capture_native_game_frame", "generate_game_asset",
       "list_example_games", "get_example_game", "install_example_game", "autoplay_native_game",
-      "preview_native_game_authoring", "apply_native_game_authoring", "browse_native_game_assets"
+      "list_native_games", "preview_native_game_authoring", "apply_native_game_authoring", "browse_native_game_assets"
     ]);
+  });
+
+  it("lists owned games in one project or across projects", async () => {
+    const agent = run();
+    const first = await agent.invoke("create_native_game", { project_id: PROJECT, name: "First" }) as GameReply;
+    const second = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Second" }) as GameReply;
+    const otherDir = await mkdtemp(join(tmpdir(), "nodetool-game-agent-other-"));
+    try {
+      await Project.insertNew({ id: "other-project", user_id: USER, name: "Other", kind: "game" });
+      await Workspace.create({ user_id: USER, project_id: "other-project", name: "Other files", path: otherDir, is_default: false });
+      const elsewhere = await agent.invoke("create_native_game", { project_id: "other-project", name: "Elsewhere" }) as GameReply;
+
+      type Listed = { games: { id: string; project_id: string; revision: string; draft_updated_at: string }[]; truncated: boolean };
+      const inProject = await agent.invoke("list_native_games", { project_id: PROJECT }) as Listed;
+      expect(inProject.games.map((game) => game.id).sort()).toEqual([first.game.id, second.game.id].sort());
+      expect(inProject.games[0]?.draft_updated_at).toEqual(expect.any(String));
+
+      const everywhere = await agent.invoke("list_native_games", {}) as Listed;
+      expect(everywhere.games.map((game) => game.id)).toEqual(expect.arrayContaining([first.game.id, second.game.id, elsewhere.game.id]));
+      expect(everywhere.truncated).toBe(false);
+
+      const one = await agent.invoke("list_native_games", { limit: 1 }) as Listed;
+      expect(one.games).toHaveLength(1);
+      expect(one.truncated).toBe(true);
+
+      // A game counts only while its project is the caller's.
+      expect(await run("someone-else").invoke("list_native_games", {})).toEqual({ games: [], truncated: false });
+      expect(await run("someone-else").invoke("list_native_games", { project_id: PROJECT })).toEqual({ error: "Project not found" });
+    } finally {
+      await rm(otherDir, { recursive: true, force: true });
+    }
   });
 
   it("reports a missing draft source as a recoverable capability result", async () => {

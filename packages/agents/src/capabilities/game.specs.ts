@@ -125,6 +125,13 @@ export const gameSpecs: readonly CapabilitySpec[] = [
     category: "execute",
     userMessage: () => "Finding a game route"
   },
+  {
+    name: "list_native_games",
+    description: "List the caller's built-in games, most recently updated first: id, name, project id, current revision and draft time. Pass project_id to list one project's games, or omit it to list games across every project the caller owns.",
+    inputSchema: { type: "object", properties: { project_id: { type: "string", description: "Only games in this project (use list_projects to find one)." }, limit: { type: "integer", minimum: 1, maximum: 200, description: "Max games to return (default 50, max 200)." } } },
+    category: "read",
+    userMessage: () => "Listing games"
+  },
   previewGameAuthoringSpec,
   applyGameAuthoringSpec,
   browseGameAssetsSpec

@@ -16,6 +16,7 @@ import { join } from "node:path";
 import {
   Asset,
   ModelObserver,
+  Prediction,
   Project,
   Setting,
   Storyboard,
@@ -33,6 +34,8 @@ import type { ProjectDeleter } from "../src/tools/mcp-tools.js";
 const NAMES = [
   "list_projects",
   "search_projects",
+  "get_project",
+  "summarize_projects",
   "create_project",
   "update_project",
   "move_to_project",
@@ -171,12 +174,73 @@ describe("projects capability behaviour", () => {
     );
   });
 
+  it("reads a project's documents and spend, without card art", async () => {
+    const project = await makeProject("p-read", "Coffee spot");
+    const board = await Storyboard.create<Storyboard>({
+      user_id: "u1",
+      project_id: project.id,
+      name: "Opening board",
+      document: JSON.stringify({ shots: [] })
+    });
+    await Prediction.create<Prediction>({
+      user_id: "u1",
+      project_id: project.id,
+      document_id: board.id,
+      status: "completed",
+      cost: 0.125
+    });
+
+    const read = (await run().invoke("get_project", {
+      project_id: project.id
+    })) as {
+      project: { id: string; name: string };
+      documents: Record<string, unknown>[];
+      spend: { total_usd: number; unpriced_count: number };
+    };
+    expect(read.project).toMatchObject({ id: "p-read", name: "Coffee spot" });
+    expect(read.documents).toHaveLength(1);
+    expect(read.documents[0]).toMatchObject({
+      type: "storyboard",
+      id: board.id,
+      name: "Opening board",
+      spend_usd: 0.13
+    });
+    expect(read.documents[0]).not.toHaveProperty("thumbnails");
+    expect(read.documents[0]).not.toHaveProperty("preview");
+    expect(read.spend.total_usd).toBe(0.13);
+  });
+
+  it("rolls up every active project you own", async () => {
+    await makeProject("p-a", "Alpha");
+    await makeProject("p-b", "Beta");
+    await makeProject("p-theirs", "Theirs", { userId: "u2" });
+    await Storyboard.create<Storyboard>({
+      user_id: "u1",
+      project_id: "p-a",
+      name: "Board",
+      document: JSON.stringify({ shots: [] })
+    });
+
+    const rolled = (await run().invoke("summarize_projects", {})) as {
+      projects: { id: string; documents_by_type: Record<string, number> }[];
+    };
+    const ids = rolled.projects.map((p) => p.id);
+    expect(ids).toEqual(expect.arrayContaining(["p-a", "p-b"]));
+    expect(ids).not.toContain("p-theirs");
+    expect(rolled.projects.find((p) => p.id === "p-a")?.documents_by_type).toEqual({
+      storyboard: 1
+    });
+  });
+
   it("reads another user's project as missing", async () => {
     await makeProject("p-other", "Theirs", { userId: "u2" });
     expect(
       await run().invoke("update_project", { project_id: "p-other", name: "Mine" })
     ).toEqual({ error: "Project p-other was not found." });
     expect((await Project.findOwned("u2", "p-other"))?.name).toBe("Theirs");
+    expect(
+      await run().invoke("get_project", { project_id: "p-other" })
+    ).toEqual({ error: "Project p-other was not found." });
   });
 
   it("delegates delete to the host and maps its refusals", async () => {

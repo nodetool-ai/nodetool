@@ -136,7 +136,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "create_native_game", "get_native_game", "edit_native_game", "publish_native_game",
     "install_native_game_asset", "playtest_native_game", "capture_native_game_frame",
     "generate_game_asset", "build_native_game", "list_example_games", "get_example_game",
-    "install_example_game", "autoplay_native_game", "preview_native_game_authoring", "apply_native_game_authoring",
+    "install_example_game", "autoplay_native_game", "list_native_games", "preview_native_game_authoring", "apply_native_game_authoring",
     "browse_native_game_assets"
   ],
   timelines: [
@@ -1348,6 +1348,8 @@ const nodetool = (() => {
     },
 
     games: {
+      /** Owned games, newest first; pass {project_id} for one project. */
+      list: (opts) => __need("list_native_games")(__merge(opts)),
       create: (name, opts) =>
         __need("create_native_game")(__named(name, opts, "games.create")),
       get: (id, opts) => __need("get_native_game")(__merge(opts, { game_id: id })),
@@ -2015,8 +2017,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "games",
     skill: "api-games",
-    line: `built-in games: create, get, edit, setDocument, previewAuthoring, applyAuthoring, browseAssets, generateAsset, installAsset, playtest, autoplay, capture, publish, build, listExamples, getExample, installExample`,
-    doc: `- \`nodetool.games\` — built-in games: \`create(name, {project_id})\`,
+    line: `built-in games: list, create, get, edit, setDocument, previewAuthoring, applyAuthoring, browseAssets, generateAsset, installAsset, playtest, autoplay, capture, publish, build, listExamples, getExample, installExample`,
+    doc: `- \`nodetool.games\` — built-in games: \`list({project_id})\`, \`create(name, {project_id})\`,
   \`get(id)\`, \`edit(id, ops)\`, \`setDocument(id, document)\`,
   \`previewAuthoring(id, {program})\`, \`applyAuthoring(id, candidate)\`,
   \`browseAssets(id, {query, kind, digest, slot})\` (before regenerating art),

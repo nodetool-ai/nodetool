@@ -15,6 +15,7 @@ Every `id` is the full game id or its exact 12-character prefix.
 
 | Call | Does |
 | :--- | :--- |
+| `list({project_id, limit})` | Lists your games, newest first, with each one's project, current revision and `draft_updated_at`. Omit `project_id` to list games in every project you own. |
 | `create(name, {project_id, dimension, template})` | Creates a game in a project. `dimension` is `2d` (default, a playable top-down room) or `3d` (an exploration blockout). `template` is `topdown` or `exploration`. Answers the full id and the revision. |
 | `get(id, {source, revision, view, entity_id})` | Reads the draft (default) or a revision. `view` is `outline` (default), `entity` or `full`. |
 | `edit(id, ops, {base_updated_at})` | Applies ordered edits to the draft atomically. Issues come back with the op index and path. It does not publish. |
