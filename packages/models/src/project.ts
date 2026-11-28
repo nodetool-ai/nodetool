@@ -397,12 +397,33 @@ export class Project extends DBModel {
       "nodetool_workspaces",
       "nodetool_predictions"
     ];
+    const claimedIds: string[] = [];
     for (const table of tables) {
       const result = await executeRaw(
         `UPDATE ${table} SET project_id = '${target}' ` +
           `WHERE user_id = '${owner}' AND ${LOOSE_ROW_SQL} RETURNING id`
       );
       migrated += result.rows.length;
+      for (const row of result.rows) {
+        const id = (row as { id?: unknown }).id;
+        if (typeof id === "string") claimedIds.push(id);
+      }
+    }
+    // The library index files each item under its row's project. These
+    // statements bypass the models, so the index is not told, and a moved
+    // row keeps its source version, so a reconcile would not see it either.
+    // Move the claimed rows' items with them, or every search scoped to
+    // Personal, such as the References list, misses them.
+    for (let i = 0; i < claimedIds.length; i += ID_CHUNK) {
+      const list = claimedIds
+        .slice(i, i + ID_CHUNK)
+        .map((id) => `'${id.replace(/'/g, "''")}'`)
+        .join(", ");
+      await executeRaw(
+        `UPDATE nodetool_search_items SET project_id = '${target}' ` +
+          `WHERE user_id = '${owner}' AND ${LOOSE_ROW_SQL} ` +
+          `AND resource_id IN (${list}) RETURNING id`
+      );
     }
     // Dangling non-default ids are intentionally left in place. They need a
     // repair decision, and moving them would hide a broken legacy reference.
