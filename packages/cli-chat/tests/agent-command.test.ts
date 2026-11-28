@@ -10,7 +10,7 @@
  * with the final assistant text, and that `create_plan`/`execute_plan` reach
  * the belt a plan-shaped objective needs.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("@nodetool-ai/models", async () => import("../../cli-common/tests/__stubs__/nodetool.js"));
 
@@ -226,7 +226,8 @@ const scriptedCalls: unknown[][] = [];
 vi.mock("@nodetool-ai/cli-providers", () => ({
   buildConfiguredProviders: async () => ({}),
   createProvider: async () => currentProvider,
-  resolveDefaultModel: async (providerId: string) => (providerId === "claude_agent_sdk" ? "sonnet" : undefined)
+  resolveDefaultModel: async (providerId: string) => (providerId === "claude_agent_sdk" ? "sonnet" : undefined),
+  sessionDefaultProvider: () => (process.env["CLAUDECODE"] === "1" ? "claude_agent_sdk" : undefined)
 }));
 
 const { ScriptedProvider, textScript, toolCallScript } = await import(
@@ -492,6 +493,50 @@ describe("the budget a CLI run holds", () => {
     ).rejects.toThrow(/--max-iterations must be an integer/);
     expect(provider.callLog).toHaveLength(0);
   });
+  describe("without --provider", () => {
+    const saved = process.env["CLAUDECODE"];
+    afterEach(() => {
+      if (saved === undefined) { delete process.env["CLAUDECODE"]; } else { process.env["CLAUDECODE"] = saved; }
+    });
+
+    async function runBare(provider: InstanceType<typeof ScriptedProvider>): Promise<{ code: number; stderr: string }> {
+      currentProvider = provider;
+      const stderr: string[] = [];
+      const outSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+      const errSpy = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
+        stderr.push(String(chunk));
+        return true;
+      });
+      try {
+        const code = await runAgentCommand({ objective: "say hi", json: true });
+        return { code, stderr: stderr.join("") };
+      } finally {
+        outSpy.mockRestore();
+        errSpy.mockRestore();
+      }
+    }
+
+    it("uses claude_agent_sdk and its default model when Claude Code started the command", async () => {
+      process.env["CLAUDECODE"] = "1";
+      const provider = new ScriptedProvider([textScript("hi")]);
+
+      const { code, stderr } = await runBare(provider);
+
+      expect(code).toBe(0);
+      expect(stderr).toContain("Using claude_agent_sdk, the Claude Code session's login");
+      expect(stderr).toContain("Using default model sonnet for claude_agent_sdk");
+      expect(JSON.stringify(provider.callLog[0]?.messages)).toContain('\\"provider\\":\\"claude_agent_sdk\\",\\"id\\":\\"sonnet\\"');
+    });
+
+    it("still requires --provider outside Claude Code", async () => {
+      delete process.env["CLAUDECODE"];
+      const provider = new ScriptedProvider([textScript("never reached")]);
+
+      await expect(runBare(provider)).rejects.toThrow("No provider specified. Use --provider <id>.");
+      expect(provider.callLog).toHaveLength(0);
+    });
+  });
+
   it("uses the provider's default model when --model is omitted", async () => {
     await expect(resolveAgentModel("claude_agent_sdk", undefined)).resolves.toBe("sonnet");
     await expect(resolveAgentModel("claude_agent_sdk", "opus")).resolves.toBe("opus");

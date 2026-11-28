@@ -1070,18 +1070,22 @@ function num(value: unknown): number {
 }
 
 /**
- * `CLAUDE_CODE_OAUTH_TOKEN` matches {@link NESTED_SESSION_ENV} but is the CLI's
- * credential, not session leakage: on a headless host (CI) with no interactive
- * `~/.claude` login it is the *only* way the child authenticates. Keep it.
+ * Credential settings that match {@link NESTED_SESSION_ENV} but are not
+ * session leakage, so the child signs in the way the parent Claude Code
+ * session does. `CLAUDE_CODE_OAUTH_TOKEN` is the only credential on a headless
+ * host (CI) with no `~/.claude` login. `CLAUDE_CODE_USE_BEDROCK`, `_VERTEX` and
+ * `_FOUNDRY` route the child through the parent's cloud account, and the
+ * matching `CLAUDE_CODE_SKIP_*_AUTH` keep a gateway setup working.
  */
-const CHILD_ENV_ALLOWLIST = /^CLAUDE_CODE_OAUTH_TOKEN$/;
+const CHILD_ENV_ALLOWLIST =
+  /^CLAUDE_CODE_(OAUTH_TOKEN|USE_(BEDROCK|VERTEX|FOUNDRY)|SKIP_(BEDROCK|VERTEX|FOUNDRY)_AUTH)$/;
 
 /**
  * A copy of the current environment with nested-session leakage stripped, for
  * the CLI process. `ANTHROPIC_BASE_URL` and the `HTTP(S)_PROXY` vars are
  * preserved (they are not matched by {@link NESTED_SESSION_ENV}) so API routing
- * keeps working; `CLAUDE_CODE_OAUTH_TOKEN` is explicitly allowlisted so
- * token-based auth survives on headless hosts.
+ * keeps working, and {@link CHILD_ENV_ALLOWLIST} keeps the parent's credential
+ * settings.
  */
 function buildChildEnv() {
   const env: Record<string, string> = {};

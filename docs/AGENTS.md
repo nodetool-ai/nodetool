@@ -696,6 +696,8 @@ the concrete model the CLI resolves an alias to.
 
 The `CLAUDE_CLI_PATH` setting (Settings → Integrations, or the environment)
 pins the executable. It must exist. When it is unset, the provider takes the
+binary of the Claude Code session that started the process
+(`CLAUDE_CODE_EXECPATH`, used only when the file is named `claude`), then the
 first `claude` on `PATH`, then the install locations: `~/.local/bin/claude`
 (native installer), `~/.claude/local/claude`, `/opt/homebrew/bin/claude`,
 `/usr/local/bin/claude`, `/usr/bin/claude`, and the npm, Bun and Volta bin
@@ -718,7 +720,13 @@ card on the Models & Providers settings page. Implementation and protocol notes:
 
 `CLAUDE_CODE_OAUTH_TOKEN` remains the alternative on hosts with no interactive
 login. It is explicitly allowlisted through the nested-session env stripping
-below.
+below, together with `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX`,
+`CLAUDE_CODE_USE_FOUNDRY` and the matching `CLAUDE_CODE_SKIP_*_AUTH`, so a
+nested CLI signs in the way its parent session does.
+
+The command line (`nodetool chat`, `nodetool agent run`) defaults to this
+provider when Claude Code started it (`CLAUDECODE=1`) and no `--provider` is
+given. See `sessionDefaultProvider` in `packages/cli-providers`.
 
 ### Nested sessions
 

@@ -1,5 +1,5 @@
 import { accessSync, constants, readFileSync, statSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import { basename, delimiter, join } from "node:path";
 import { runtimeLocations, sdServerPath } from "@nodetool-ai/config";
 import { z } from "zod";
 
@@ -108,11 +108,14 @@ function isExecutable(file: string): boolean {
   }
 }
 
-/** The `claude` executable: CLAUDE_CLI_PATH, then PATH, then the native installer location. */
+/** The `claude` executable: CLAUDE_CLI_PATH, then the parent Claude Code session's binary, then PATH, then the native installer location. */
 export function findClaudeCli(env: NodeJS.ProcessEnv): string | null {
   const pinned = env.CLAUDE_CLI_PATH?.trim();
   if (pinned) { return isExecutable(pinned) ? pinned : null; }
   const name = process.platform === "win32" ? "claude.exe" : "claude";
+  // The binary of the Claude Code session that started this process (mirrors `parentSessionCandidate` in the runtime).
+  const parent = env.CLAUDE_CODE_EXECPATH?.trim();
+  if (parent && basename(parent).toLowerCase() === name && isExecutable(parent)) { return parent; }
   const directories = (env.PATH ?? "").split(delimiter).filter(Boolean);
   if (env.HOME) { directories.push(join(env.HOME, ".local", "bin"), join(env.HOME, ".claude", "local")); }
   for (const directory of directories) {
