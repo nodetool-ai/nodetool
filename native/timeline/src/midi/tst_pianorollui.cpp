@@ -199,6 +199,111 @@ Item {
             renderTarget->render();
         }
     }
+    void splitAndGlueUseAtomicPatchesAndPreserveExpression() {
+        setNotes(R"([{"id":"a","pitch":60,"velocity":90,"startTick":0,"durationTick":480,
+            "expression":{"pitch":[{"tick":0,"value":0},{"tick":120,"value":1},{"tick":360,"value":2}]}},
+            {"id":"other","pitch":62,"velocity":80,"startTick":960,"durationTick":120}])");
+        auto* controller = item("panel")->findChild<PianoRollController*>();
+        QVERIFY(controller);
+        const auto original = notes();
+        const int before = model.undoStack()->count();
+        const auto ids = controller->splitNotes({"a"}, 240);
+        QCOMPARE(ids.size(), 2);
+        QCOMPARE(notes().size(), 3);
+        QCOMPARE(notes()[1], original[1]);
+        QCOMPARE(notes()[0].toObject().value("durationTick").toInt(), 240);
+        QCOMPARE(notes()[2].toObject().value("expression").toObject().value("pitch").toArray(),
+            QJsonArray{QJsonObject({{"tick", 120}, {"value", 2}})});
+        QCOMPARE(model.undoStack()->count(), before + 1);
+        model.undoStack()->undo(); QCOMPARE(notes(), original);
+        model.undoStack()->redo();
+        QVERIFY(controller->glueNotes(ids));
+        QCOMPARE(notes().size(), 2);
+        QCOMPARE(notes()[0].toObject().value("durationTick").toInt(), 480);
+        QCOMPARE(notes()[1], original[1]);
+    }
+
+    void toolPatchesCrossOnlyChangedNotes() {
+        // UI-thread only. Owned by this test and shared with the model's measurement registration.
+        struct Observer final : TimelineModel::MeasurementObserver {
+            mutable int bytes = 0;
+            mutable int count = 0;
+            mutable bool fullList = false;
+            void phase(const char*, bool) const noexcept override {}
+            void crossing(const char* site, const QJsonValue& value) const noexcept override {
+                ++count;
+                bytes += QJsonDocument(value.toObject()).toJson(QJsonDocument::Compact).size();
+                fullList = fullList || QByteArray(site).contains("reloadNotes") || QByteArray(site).contains("setNotes");
+            }
+        };
+        QJsonArray dense;
+        for (int i = 0; i < 2000; ++i) {
+            dense.append(QJsonObject{{"id", QString::number(i)}, {"pitch", 60}, {"velocity", 90},
+                {"startTick", i * 960}, {"durationTick", 480}});
+        }
+        setNotes(QString::fromUtf8(QJsonDocument(dense).toJson()));
+        auto* controller = item("panel")->findChild<PianoRollController*>();
+        QVERIFY(controller);
+        const auto observer = std::make_shared<Observer>();
+        QVERIFY(model.setMeasurementObserver(observer));
+        const int before = model.undoStack()->count();
+        QVERIFY(controller->beginTool("pencil"));
+        const auto id = controller->previewAdd(62, 10, 120);
+        QVERIFY(!id.isEmpty());
+        controller->previewLength(id, 240);
+        QCOMPARE(notes().size(), 2000);
+        QVERIFY(controller->commitTool());
+        QCOMPARE(notes().size(), 2001);
+        QCOMPARE(model.undoStack()->count(), before + 1);
+        QVERIFY(controller->beginTool("erase"));
+        controller->previewErase(id);
+        QVERIFY(controller->commitTool());
+        QCOMPARE(notes().size(), 2000);
+        QCoreApplication::processEvents();
+        qInfo() << "F4: crossings" << observer->count << "bytes" << observer->bytes << "for 2000 notes";
+        QCOMPARE(observer->count, 2);
+        QVERIFY(observer->bytes < 512);
+        QVERIFY(!observer->fullList);
+        QVERIFY(model.clearMeasurementObserver());
+    }
+
+    void visibleNoteRenderingDoesNotVisitOffscreenNotes() {
+        QJsonArray dense;
+        for (int i = 0; i < 2000; ++i) {
+            dense.append(QJsonObject{{"id", QString::number(i)}, {"pitch", 60}, {"velocity", 90},
+                {"startTick", i * 10000}, {"durationTick", i == 0 ? 20000000 : 120}});
+        }
+        setNotes(QString::fromUtf8(QJsonDocument(dense).toJson()));
+        auto* panel = item("panel");
+        panel->setProperty("topPitch", 64);
+        panel->setProperty("pxPerTick", 0.2);
+        panel->setProperty("scrollTick", 0);
+        auto* grid = qobject_cast<NoteLayerItem*>(item("pianoRollNoteLayer"));
+        auto* velocity = qobject_cast<NoteLayerItem*>(item("pianoRollVelocity"));
+        QVERIFY(grid); QVERIFY(velocity);
+        capture();
+        const int gridBefore = grid->noteVisitCount(), velocityBefore = velocity->noteVisitCount();
+        const int gridIndexBefore = grid->intervalVisitCount(), velocityIndexBefore = velocity->intervalVisitCount();
+        panel->setProperty("scrollTick", 10000000.0);
+        capture();
+        const int gridVisits = grid->noteVisitCount() - gridBefore;
+        const int velocityVisits = velocity->noteVisitCount() - velocityBefore;
+        qInfo() << "F17: notes" << gridVisits << "velocity" << velocityVisits << "of" << dense.size();
+        const int gridIndexVisits = grid->intervalVisitCount() - gridIndexBefore;
+        const int velocityIndexVisits = velocity->intervalVisitCount() - velocityIndexBefore;
+        qInfo() << "F17: interval visits" << gridIndexVisits << velocityIndexVisits;
+        QVERIFY(gridIndexVisits < 80); QVERIFY(velocityIndexVisits < 80);
+        QVERIFY(gridVisits > 0); QVERIFY(gridVisits <= 4);
+        QVERIFY(velocityVisits > 0); QVERIFY(velocityVisits <= 4);
+        auto* controller = panel->findChild<PianoRollController*>();
+        const auto snapshot = controller->noteStorage();
+        QVERIFY(snapshot);
+        QCOMPARE(snapshot.get(), model.findClip("c")->notes.get());
+        QVERIFY(model.applyEdit("midi.moveNotes", {{"clipId", "c"}, {"notes", QJsonArray{QJsonObject{{"id", "0"}, {"startTick", 20}}}}}));
+        QCOMPARE(snapshot->front().startTick, 0.0);
+        QCOMPARE(controller->noteStorage()->front().startTick, 20.0);
+    }
+
     void marqueeIncludesBottomRightCorner() {
         auto layer = std::make_unique<NoteLayerItem>();
         layer->setParentItem(window->contentItem());
@@ -623,7 +728,7 @@ Item {
         }
         if (trigger == "delete") {
             QVERIFY(model.applyEdit("test.delete", {}, [](QJsonObject raw, const QJsonObject&) { raw.insert("clips", QJsonArray{}); return raw; }));
-            QQmlExpression empty(QQmlEngine::contextForObject(panel), panel, "committedNotes.length === 0");
+            QQmlExpression empty(QQmlEngine::contextForObject(panel), panel, "allIds().length === 0");
             QVERIFY(empty.evaluate().toBool());
             QVERIFY(panel->property("selectedIds").toStringList().isEmpty());
         }
@@ -1030,7 +1135,7 @@ Item {
     // ── Logic-style piano roll (LP1-LP21) ─────────────────────────────────
     void setNotes(const QString& json) {
         const auto list = QJsonDocument::fromJson(json.toUtf8()).array().toVariantList();
-        QVERIFY(QMetaObject::invokeMethod(item("panel"), "write", Q_ARG(QVariant, list)));
+        model.applyEdit("midi.setNotes", {{"clipId", "c"}, {"notes", QJsonArray::fromVariantList(list)}});
         QTRY_COMPARE(notes().size(), list.size());
     }
     void setProp(const char* name, const QVariant& value) { QVERIFY(item("panel")->setProperty(name, value)); }
@@ -2251,7 +2356,10 @@ Item {
         framed();
         setNotes(R"([{"id":"a","pitch":60,"velocity":100,"startTick":0,"durationTick":480}])");
         setProp("collapseMode", true);
-        setProp("liveNotes", QVariantList{QVariantMap{{"id", "a"}, {"pitch", 70}, {"velocity", 100}, {"startTick", 0}, {"durationTick", 480}}});
+        auto* controller = item("panel")->findChild<PianoRollController*>();
+        QVERIFY(controller);
+        QVERIFY(controller->beginNoteDrag({"a"}, "move"));
+        controller->updateNoteDrag(0, 10);
         const auto rows = item("panel")->property("rowSet").toMap()["pitches"].toList();
         QCOMPARE(rows.size(), 1);
         QCOMPARE(rows[0].toInt(), 60);

@@ -252,8 +252,8 @@ Rectangle {
         if (!linkOn || !gestures || !gestures.selection || gestures.selection.length !== 1) {
             return;
         }
-        const id = gestures.selection[0], clip = gestures.clipData(id);
-        if (clip && clip.mediaType === "midi") {
+        const id = gestures.selection[0];
+        if (gestures.clipMediaType(id) === "midi") {
             clipId = id;
         }
     }

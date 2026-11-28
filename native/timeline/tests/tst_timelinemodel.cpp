@@ -234,7 +234,8 @@ private slots:
             {"midi.resizeNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"durationTick", 120}}}}}},
             {"midi.setNoteVelocities", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}}}}},
             {"midi.addNotes", {{"notes", QJsonArray{QJsonObject{{"id", "new"}, {"pitch", 62}, {"velocity", 80}, {"startTick", 960}, {"durationTick", 240}}}}}},
-            {"midi.patchNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 61}, {"startTick", 60}, {"durationTick", 480}, {"velocity", 90}}}}}},
+            {"midi.patchNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 61}, {"startTick", 60}, {"durationTick", 480}, {"velocity", 90}}}},
+                {"addedNotes", QJsonArray{QJsonObject{{"id", "right"}, {"pitch", 61}, {"startTick", 540}, {"durationTick", 240}, {"velocity", 90}}}}}},
             {"midi.removeNotes", {{"noteIds", QJsonArray{"n"}}}}
         };
         QFile manifest(QDir(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath()).filePath("../resources/chat/tool-manifest.json"));
@@ -540,6 +541,7 @@ private slots:
         auto clip = clips[0].toObject();
         clip.insert("mediaType", "audio");
         clip.insert("durationMs", 8000);
+        clip.insert("activeTakeId", "take");
         clip.insert("versions", QJsonArray{QJsonObject{{"id", "take"}, {"label", "Take"},
             {"musicGeneration", QJsonObject{{"task", "repaint"}, {"contextStartFrame", 0},
                 {"contextEndFrame", 384000}, {"alignment", QJsonObject{{"drifting", true}, {"lastBeatErrorMs", 42}}}}}}});
@@ -556,6 +558,13 @@ private slots:
         panel.setSelection(&selection);
         QCOMPARE(panel.takes().size(), 1);
         const auto takes = panel.takes();
+        QVERIFY(panel.metaObject()->indexOfProperty("activeTakeContext") >= 0);
+        const auto context = panel.property("activeTakeContext").toMap();
+        QCOMPARE(context.value("id").toString(), QStringLiteral("take"));
+        QCOMPARE(context.value("endFrame").toDouble(), 384000.0);
+        QVariantMap found;
+        QVERIFY(QMetaObject::invokeMethod(&panel, "takeById", Q_RETURN_ARG(QVariantMap, found), Q_ARG(QString, "take")));
+        QCOMPARE(found, takes[0].toMap());
         QVERIFY(takes[0].toMap().value("drifting").toBool());
         selection.set("track-0", 48000, 96000);
         QCOMPARE(panel.takes(), takes);
@@ -576,6 +585,9 @@ private slots:
         selection.set("track-0", 480000, 528000);
         QVERIFY(panel.takes().isEmpty());
         QCOMPARE(panel.takeRows()->rowCount(), 0);
+        QVERIFY(panel.property("activeTakeContext").toMap().isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(&panel, "takeById", Q_RETURN_ARG(QVariantMap, found), Q_ARG(QString, "take")));
+        QVERIFY(found.isEmpty());
     }
 
     void takeRowsShrinkDuplicateIds() {

@@ -22,7 +22,8 @@ private:
     QString m_path;
     QString m_lastError;
     QByteArray bytes() const;
-    QByteArray m_committedBytes;
+    // Implicitly shared snapshot excludes later, uncommitted previews.
+    QJsonObject m_committedDocument;
     // The envelope of a project folder timeline file; empty for a plain document.
     QJsonObject m_timelineFile;
     QTimer m_timer;

@@ -24,7 +24,6 @@ class NoteLayerItem : public QQuickItem {
     Q_PROPERTY(int topPitch READ topPitch WRITE setTopPitch NOTIFY topPitchChanged)
     Q_PROPERTY(int collapseTopRow READ collapseTopRow WRITE setCollapseTopRow NOTIFY collapseTopRowChanged)
     Q_PROPERTY(QStringList selectedIds MEMBER m_selectedIds NOTIFY selectedIdsChanged)
-    Q_PROPERTY(bool hasPreview MEMBER m_hasPreview NOTIFY hasPreviewChanged)
     Q_PROPERTY(bool clipColors MEMBER m_clipColors NOTIFY clipColorsChanged)
     Q_PROPERTY(bool noteLabels MEMBER m_noteLabels NOTIFY noteLabelsChanged)
     Q_PROPERTY(bool dark MEMBER m_dark NOTIFY darkChanged)
@@ -74,12 +73,13 @@ public:
     PianoRollController* controller() const { return m_controller; }
     void setController(PianoRollController* controller);
     // Encodes the source row and its resize grip. Zero means no hit.
+    int intervalVisitCount() const { return m_intervalVisitCount.load(std::memory_order_relaxed); }
+    int noteVisitCount() const { return m_noteVisitCount.load(std::memory_order_relaxed); }
     int contentBuildCount() const { return m_contentBuildCount.load(std::memory_order_relaxed); }
     int overlayBuildCount() const { return m_overlayBuildCount.load(std::memory_order_relaxed); }
     Q_INVOKABLE int hitNote(double x, double y);
+    Q_INVOKABLE QVariantMap noteNear(double x, double radius);
     Q_INVOKABLE void requestPaint();
-    // JSON boundary for the existing pencil/brush and controller-lane tools.
-    Q_INVOKABLE void setPreviewNotes(const QVariantList& notes);
     Q_INVOKABLE void setCurvePoints(const QVariantList& points);
     Q_INVOKABLE void setCollapsePitches(const QList<int>& pitches);
     Q_INVOKABLE QStringList notesInRect(double from, double to, int pitchA, int pitchB);
@@ -93,7 +93,6 @@ signals:
     void pxPerTickChanged();
     void rowHeightChanged();
     void selectedIdsChanged();
-    void hasPreviewChanged();
     void clipColorsChanged();
     void noteLabelsChanged();
     void darkChanged();
@@ -146,12 +145,17 @@ private:
     qreal m_rasterDpr = 0;
     void prepareText(const QString& value);
     void repaintNotes();
-    std::vector<nt::MidiNote> m_renderNotes;
+    // Shared with immutable model snapshots so GUI edits cannot invalidate render-sync reads.
+    // Published in GUI polish, read only during blocked-GUI render sync, released by the item.
+    std::shared_ptr<const std::vector<nt::MidiNote>> m_renderNotes;
+    std::vector<int> visibleRows(double from, double to, int lowPitch, int highPitch, bool onsetsOnly = false) const;
     QHash<QString, NoteDragValue> m_dragValues;
     QHash<QString, int> m_dragRows;
     QStringList m_dragIds;
     bool m_valid = false;
     bool m_dragging = false;
+    std::vector<nt::MidiNote> m_toolNotes;
+    QSet<QString> m_toolHidden;
     bool m_snapshotNotesDirty = true;
     bool m_collapsed = false;
     QString m_drawingKind = "notes";
@@ -162,8 +166,6 @@ private:
     QList<int> m_collapsePitches = {};
     int m_collapseTopRow = 0;
     QStringList m_selectedIds = {};
-    std::vector<nt::MidiNote> m_previewNotes;
-    bool m_hasPreview = false;
     bool m_clipColors = false;
     bool m_noteLabels = false;
     bool m_dark = true;
@@ -218,6 +220,8 @@ private:
     };
     ClipViewKey m_clipViewKey;
     QPointer<PianoRollController> m_controller;
+    mutable std::atomic<int> m_intervalVisitCount = 0;
+    std::atomic<int> m_noteVisitCount = 0;
     std::atomic<int> m_contentBuildCount = 0;
     std::atomic<int> m_overlayBuildCount = 0;
     bool m_dirty = true;

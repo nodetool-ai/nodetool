@@ -2329,6 +2329,18 @@ export const controllerLaneParams = z.object({
  * function on a selection, or writes controller lanes. One tool because the
  * three are one surface in the editor: a clip's content.
  */
+const completeNotePatch = z.object({
+  id: z.string().min(1),
+  pitch: z.number().int().min(0).max(127),
+  velocity: z.number().int().min(1).max(127),
+  startTick: z.number().int().nonnegative(),
+  durationTick: z.number().int().positive(),
+  muted: z.boolean().optional(),
+  channel: z.number().int().min(0).max(15).optional(),
+  releaseVelocity: z.number().int().min(0).max(127).optional(),
+  expression: midiNoteExpression.optional()
+}).strict();
+
 export const notePatchParams = z.discriminatedUnion("edit", [
   z.object({
     edit: z.literal("midi.moveNotes"),
@@ -2372,43 +2384,12 @@ export const notePatchParams = z.discriminatedUnion("edit", [
   }),
   z.object({
     edit: z.literal("midi.addNotes"),
-    notes: z
-      .array(
-        z
-          .object({
-            id: z.string().min(1),
-            pitch: z.number().int().min(0).max(127),
-            velocity: z.number().int().min(1).max(127),
-            startTick: z.number().int().nonnegative(),
-            durationTick: z.number().int().positive(),
-            muted: z.boolean().optional(),
-            channel: z.number().int().min(0).max(15).optional(),
-            releaseVelocity: z.number().int().min(0).max(127).optional(),
-            expression: midiNoteExpression.optional()
-          })
-          .strict()
-      )
-      .max(MIDI_MAX_NOTES_PER_CLIP)
+    notes: z.array(completeNotePatch).max(MIDI_MAX_NOTES_PER_CLIP)
   }),
   z.object({
     edit: z.literal("midi.patchNotes"),
-    notes: z
-      .array(
-        z
-          .object({
-            id: z.string().min(1),
-            pitch: z.number().int().min(0).max(127),
-            velocity: z.number().int().min(1).max(127),
-            startTick: z.number().int().nonnegative(),
-            durationTick: z.number().int().positive(),
-            muted: z.boolean().optional(),
-            channel: z.number().int().min(0).max(15).optional(),
-            releaseVelocity: z.number().int().min(0).max(127).optional(),
-            expression: midiNoteExpression.optional()
-          })
-          .strict()
-      )
-      .max(MIDI_MAX_NOTES_PER_CLIP),
+    notes: z.array(completeNotePatch).max(MIDI_MAX_NOTES_PER_CLIP),
+    addedNotes: z.array(completeNotePatch).max(MIDI_MAX_NOTES_PER_CLIP).optional(),
     noteIds: z.array(z.string().min(1)).max(MIDI_MAX_NOTES_PER_CLIP).optional()
   }),
   z.object({
@@ -2468,7 +2449,7 @@ export const setNotesParams = z.object({
 export type SetNotesParams = z.infer<typeof setNotesParams>;
 
 export const SET_NOTES_DESCRIPTION =
-  "Write a midi clip's content. Send patch with edit midi.moveNotes, midi.resizeNotes, midi.setNoteVelocities, midi.addNotes or midi.removeNotes to change only named notes. midi.patchNotes combines full changed notes and optional removed noteIds atomically. Unknown note IDs are errors. Use midi.addNotes to insert notes. " +
+  "Write a midi clip's content. Send patch with edit midi.moveNotes, midi.resizeNotes, midi.setNoteVelocities, midi.addNotes or midi.removeNotes to change only named notes. midi.patchNotes combines full changed notes, optional addedNotes and removed noteIds atomically. Unknown note IDs are errors. Use midi.addNotes to insert notes. " +
   "Send `notes` to replace the whole list, not " +
   "merge: every note the clip should keep, each with `pitch`, `start_tick` and " +
   "`duration_tick` (960 ticks = one quarter note, from the clip's content " +

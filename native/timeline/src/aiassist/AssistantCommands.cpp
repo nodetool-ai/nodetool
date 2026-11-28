@@ -146,7 +146,7 @@ QJsonObject parameterSchema(const Param& param) {
 QJsonObject notePatchSchema(const QString& edit, const QString& parameter) {
     const QJsonObject id{{"type", "string"}, {"minLength", 1}};
     QJsonObject item = id;
-    if (parameter == "notes") {
+    if (parameter == "notes" || parameter == "addedNotes") {
         const auto integer = [](double minimum, double maximum) {
             return QJsonObject{{"type", "integer"}, {"minimum", minimum}, {"maximum", maximum}};
         };
@@ -194,7 +194,7 @@ QJsonObject commandEntry(const Command& command, ClipGestureController& gestures
         for (const auto& param : command.params) {
             auto schema = parameterSchema(param);
             const QSet<QString> noteEdits{"midi.moveNotes", "midi.resizeNotes", "midi.setNoteVelocities", "midi.addNotes", "midi.patchNotes", "midi.removeNotes"};
-            if (noteEdits.contains(command.id) && (param.name == "notes" || param.name == "noteIds")) {
+            if (noteEdits.contains(command.id) && (param.name == "notes" || param.name == "addedNotes" || param.name == "noteIds")) {
                 schema = notePatchSchema(command.id, param.name);
             }
             properties.insert(param.name, schema);

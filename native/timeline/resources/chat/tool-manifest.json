@@ -16261,7 +16261,7 @@
   },
   {
     "name": "ui_timeline_set_notes",
-    "description": "Write a midi clip's content. Send patch with edit midi.moveNotes, midi.resizeNotes, midi.setNoteVelocities, midi.addNotes or midi.removeNotes to change only named notes. midi.patchNotes combines full changed notes and optional removed noteIds atomically. Unknown note IDs are errors. Use midi.addNotes to insert notes. Send `notes` to replace the whole list, not merge: every note the clip should keep, each with `pitch`, `start_tick` and `duration_tick` (960 ticks = one quarter note, from the clip's content start), and a note's `id` to keep it. Send `function` instead to run a piano-roll note function on a selection: scale_quantize, legato, remove_overlaps, delete_duplicates, glue, mute, unmute, delete or set_velocity. Select with `note_ids`, with `pitches` (a step-editor row) or both, else every note is acted on. Send `controllers` to write CC, pitch bend or pressure lanes. Read the current notes and lanes with ui_timeline_get_state and `clip`.",
+    "description": "Write a midi clip's content. Send patch with edit midi.moveNotes, midi.resizeNotes, midi.setNoteVelocities, midi.addNotes or midi.removeNotes to change only named notes. midi.patchNotes combines full changed notes, optional addedNotes and removed noteIds atomically. Unknown note IDs are errors. Use midi.addNotes to insert notes. Send `notes` to replace the whole list, not merge: every note the clip should keep, each with `pitch`, `start_tick` and `duration_tick` (960 ticks = one quarter note, from the clip's content start), and a note's `id` to keep it. Send `function` instead to run a piano-roll note function on a selection: scale_quantize, legato, remove_overlaps, delete_duplicates, glue, mute, unmute, delete or set_velocity. Select with `note_ids`, with `pitches` (a step-editor row) or both, else every note is acted on. Send `controllers` to write CC, pitch bend or pressure lanes. Read the current notes and lanes with ui_timeline_get_state and `clip`.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -16552,6 +16552,149 @@
                   "const": "midi.patchNotes"
                 },
                 "notes": {
+                  "maxItems": 4096,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pitch": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 127
+                      },
+                      "velocity": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 127
+                      },
+                      "startTick": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "durationTick": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "muted": {
+                        "type": "boolean"
+                      },
+                      "channel": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 15
+                      },
+                      "releaseVelocity": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 127
+                      },
+                      "expression": {
+                        "type": "object",
+                        "properties": {
+                          "pitch": {
+                            "maxItems": 256,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "tick": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "value": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "tick",
+                                "value"
+                              ]
+                            }
+                          },
+                          "volume": {
+                            "maxItems": 256,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "tick": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "value": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "tick",
+                                "value"
+                              ]
+                            }
+                          },
+                          "pan": {
+                            "maxItems": 256,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "tick": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "value": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "tick",
+                                "value"
+                              ]
+                            }
+                          },
+                          "brightness": {
+                            "maxItems": 256,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "tick": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "value": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "tick",
+                                "value"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "pitch",
+                      "velocity",
+                      "startTick",
+                      "durationTick"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "addedNotes": {
                   "maxItems": 4096,
                   "type": "array",
                   "items": {

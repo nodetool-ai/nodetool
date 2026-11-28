@@ -206,6 +206,8 @@ public:
 
 signals:
     void stateChanged();
+    // Measurement seam: one serialization and SHA-256 pass for save identity.
+    void contentHashed() const;
     void saved(const QString& updatedAt);
     void conflictDetected();
     void strippedWarning(const QStringList& paths);
@@ -281,6 +283,9 @@ private:
     QElapsedTimer m_fetchElapsed;
     int m_retryBaseMs = 1000;
     int m_retryAttempt = 0;
+    // UI-thread cache includes previews and row settings, independently of undo indices.
+    mutable QJsonObject m_hashDocument;
+    mutable QByteArray m_currentHash;
     QByteArray m_ackHash;  // the content the server acknowledged (or the load)
     QByteArray m_committedHash;  // updated only by committed-change notifications
     bool m_ackComplete = true;  // false when the server stripped fields

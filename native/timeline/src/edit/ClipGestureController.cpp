@@ -2323,6 +2323,33 @@ void ClipGestureController::redo() {
     if (m_timeline) m_timeline->undoStack()->redo();
 }
 
+QString ClipGestureController::clipMediaType(const QString& id) const {
+    const auto* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
+    if (!clip) { return {}; }
+    switch (clip->mediaType) {
+    case nt::MediaType::Image: return QStringLiteral("image");
+    case nt::MediaType::Video: return QStringLiteral("video");
+    case nt::MediaType::Audio: return QStringLiteral("audio");
+    case nt::MediaType::Overlay: return QStringLiteral("overlay");
+    case nt::MediaType::Text: return QStringLiteral("text");
+    case nt::MediaType::Shape: return QStringLiteral("shape");
+    case nt::MediaType::Model3d: return QStringLiteral("model3d");
+    case nt::MediaType::Group: return QStringLiteral("group");
+    case nt::MediaType::Adjustment: return QStringLiteral("adjustment");
+    case nt::MediaType::Midi: return QStringLiteral("midi");
+    }
+    return {};
+}
+
+QString ClipGestureController::clipTrack(const QString& id) const {
+    const auto* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
+    return clip ? QString::fromStdString(clip->trackId) : QString();
+}
+
+bool ClipGestureController::hasClip(const QString& id) const {
+    return m_timeline && m_timeline->findClip(id);
+}
+
 QVariantMap ClipGestureController::clipData(const QString& id) const {
     const nt::Clip* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
     if (clip) { m_timeline->crossing("ClipGesture.clipData", [clip] { return clip->raw; }); }

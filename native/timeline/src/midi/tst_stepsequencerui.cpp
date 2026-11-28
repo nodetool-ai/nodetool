@@ -236,6 +236,8 @@ Item {
     property var gestures: QtObject {
         property var selection: []
         function clipData(id) { return {mediaType: "midi", trackId: "m"} }
+        function clipMediaType(id) { return "midi" }
+        function clipTrack(id) { return "m" }
     }
     property var viewState: null
     Ui.EditorButton {
@@ -746,6 +748,8 @@ QtObject {
         property var raw
         property var selection: []
         function clipData(id) { return raw }
+        function clipMediaType(id) { return raw ? raw.mediaType : "" }
+        function clipTrack(id) { return raw ? raw.trackId : "" }
     }
 })", QUrl());
         std::unique_ptr<QObject> region(regionComponent.create());

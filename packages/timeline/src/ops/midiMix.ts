@@ -395,6 +395,11 @@ export function runSetNotes(scope: MidiMixScope, op: SetNotesOp): TimelineOpResu
           throw new Error(`Invalid removed note id: ${id}`);
         }
       }
+      const additions = patch.addedNotes ?? [];
+      const addedIds = new Set(additions.map((note) => note.id));
+      if (addedIds.size !== additions.length || additions.some((note) => positions.has(note.id))) {
+        throw new Error("Duplicate added note id.");
+      }
       const updates = new Map(patch.notes.map((note) => [note.id, note]));
       notes = notes
         .filter((note) => !removed.has(note.id))
@@ -403,6 +408,7 @@ export function runSetNotes(scope: MidiMixScope, op: SetNotesOp): TimelineOpResu
           updates.delete(note.id);
           return update ? fitExpressionToDuration(update) : note;
         });
+      notes.push(...additions);
     } else {
       for (const update of patch.notes) {
         const index = positions.get(update.id);

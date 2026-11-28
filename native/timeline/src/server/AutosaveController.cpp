@@ -548,7 +548,15 @@ void AutosaveController::clearLocalCopyIfClean() {
     }
 }
 
-QByteArray AutosaveController::currentHash() const { return contentHash(saveContent(m_document())); }
+QByteArray AutosaveController::currentHash() const {
+    const auto document = m_document();
+    if (m_currentHash.isEmpty() || document != m_hashDocument) {
+        m_hashDocument = document;
+        m_currentHash = contentHash(saveContent(document));
+        emit contentHashed();
+    }
+    return m_currentHash;
+}
 
 bool AutosaveController::dirty() const { return currentHash() != m_ackHash; }
 

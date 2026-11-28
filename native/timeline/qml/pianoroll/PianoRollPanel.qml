@@ -121,9 +121,6 @@ Rectangle {
         Connections {
             target: root
             function onRowSetChanged() { drawing.setCollapsePitches(root.rowSet ? root.rowSet.pitches : []) }
-            function onLiveNotesChanged() {
-                if (drawing.drawingKind === "notes" || drawing.drawingKind === "velocity") { drawing.setPreviewNotes(root.liveNotes || []) }
-            }
             function onLanePointsChanged() { if (drawing.drawingKind === "curve") { drawing.setCurvePoints(root.lanePoints) } }
         }
         controller: root.noteController
@@ -134,7 +131,6 @@ Rectangle {
         topPitch: root.topPitch
         collapseTopRow: root.geometry.topRow
         selectedIds: root.selectedIds
-        hasPreview: (drawingKind === "notes" || drawingKind === "velocity") && root.liveNotes !== null
         clipColors: root.noteColorMode === "clip"
         noteLabels: root.noteLabels
         dark: Ui.Theme.dark
@@ -202,8 +198,7 @@ Rectangle {
         if (!gestures || !linkOn) return
         const selection = gestures.selection || []
         if (selection.length !== 1) return
-        const clip = gestures.clipData(selection[0])
-        if (clip && clip.mediaType === "midi" && controller.clipId !== selection[0]) controller.clipId = selection[0]
+        if (gestures.clipMediaType(selection[0]) === "midi" && controller.clipId !== selection[0]) controller.clipId = selection[0]
     }
     onLinkOnChanged: followSelection()
     Connections {
@@ -227,15 +222,9 @@ Rectangle {
         id: controller
         timeline: root.editor ? root.editor.timeline : null
         onClipIdChanged: root.framed = false
-        onNotesReset: {
-            root.cancelNotePreview()
-            const next = Array.from(controller.notes, note => Notes.copyNote(note, {}))
-            const rows = Object.create(null)
-            for (let i = 0; i < next.length; ++i) { rows[next[i].id] = i }
-            root.noteState = {notes: next, rows: rows}
-            root.pruneSelection()
-        }
-        onNotesPatched: ids => root.applyNotePatch(ids)
+        onNotesReset: { root.cancelNotePreview(); root.pruneSelection() }
+        onNotesPatched: ids => { root.cancelNotePreview(); root.pruneSelection() }
+        onToolChanged: root.toolRevision += 1
         onControllersChanged: root.pruneSelection()
         onClipChanged: {
             root.cancelNotePreview()
@@ -273,14 +262,16 @@ Rectangle {
     property int collapseTopRow: 0
     property bool framed: false
     property var selectedIds: []
-    // A gesture draws from these notes and writes them once, on release.
-    property var liveNotes: null
-    property var noteState: ({notes: [], rows: {}})
-    readonly property var committedNotes: noteState.notes
-    readonly property var notes: liveNotes !== null ? liveNotes : root.committedNotes
+    property int toolRevision: 0
     readonly property var selectedSet: Notes.idSet(selectedIds)
-    // Collapse Mode rows come from the committed notes, never from a drag preview.
-    readonly property var rowSet: collapseMode ? Tools.rowSet(root.committedNotes) : null
+    readonly property var rowSet: {
+        if (!collapseMode) return null
+        const pitches = controller.noteSummary.pitches
+        if (pitches.length === 0) return null
+        const index = {}
+        for (let i = 0; i < pitches.length; ++i) index[pitches[i]] = i
+        return {pitches: pitches, index: index}
+    }
     readonly property var geometry: ({pxPerTick: pxPerTick, scrollTick: scrollTick, rowHeight: rowHeight, topPitch: topPitch,
                                       rows: rowSet, topRow: rowSet ? Math.max(0, Math.min(collapseTopRow, rowSet.pitches.length - Math.floor(gridArea.height / rowHeight))) : 0})
     readonly property real beatTicks: controller.valid ? controller.gridStepTicks("beat") : 960
@@ -345,7 +336,7 @@ Rectangle {
         if (!controller.valid) return ""
         let pitch = null, tick = null
         if (dragIds.length > 0) {
-            const note = controller.noteDragActive ? controller.previewNote(dragIds[0]) : notes.find(n => n.id === dragIds[0])
+            const note = controller.noteDragActive ? controller.previewNote(dragIds[0]) : controller.noteById(dragIds[0])
             if (note && note.pitch >= 0) { pitch = note.pitch; tick = note.startTick }
         } else if (hoverPitch >= 0) {
             pitch = hoverPitch
@@ -364,21 +355,19 @@ Rectangle {
         const span = Math.max(1, controller.windowToTick - controller.windowFromTick)
         pxPerTick = Math.min(maxPxPerTick, Math.max(minPxPerTick, gridArea.width / span))
         scrollTick = controller.windowFromTick
-        topPitch = Notes.initialTopPitch(root.committedNotes, gridArea.height / rowHeight)
+        topPitch = initialTopPitch()
         collapseTopRow = 0
         selectedIds = []
     }
     function setZoomFromSlider(t) { pxPerTick = Tools.sliderToZoom(t, minPxPerTick, maxPxPerTick) }
     function zoomToFit() {
         if (!controller.valid || gridArea.width <= 0) return
-        const list = root.committedNotes
-        let low = Infinity, high = 0
-        for (const note of list) { low = Math.min(low, note.startTick); high = Math.max(high, note.startTick + note.durationTick) }
-        if (list.length === 0) { low = controller.windowFromTick; high = controller.windowToTick }
+        const summary = controller.noteSummary
+        const low = summary.from, high = summary.to
         const span = Math.max(1, high - low)
         pxPerTick = Math.min(maxPxPerTick, Math.max(minPxPerTick, gridArea.width / (span * 1.1)))
         scrollTick = Math.max(0, low - span * 0.05)
-        topPitch = Notes.initialTopPitch(list, gridArea.height / rowHeight)
+        topPitch = initialTopPitch()
         collapseTopRow = 0
     }
 
@@ -388,34 +377,23 @@ Rectangle {
             gridMouse.drag = null
         }
         gridMouse.marquee = null
-        root.liveNotes = null
+        controller.cancelTool()
         root.dragIds = []
         root.velocityGesture = null
         velocityMouse.gesture = null
         controller.cancelNoteDrag()
     }
 
-    function applyNotePatch(ids) {
-        root.cancelNotePreview()
-        const rows = root.noteState.rows
-        const next = root.committedNotes.slice()
-        for (const id of ids) {
-            const row = rows[id]
-            if (row === undefined) { continue }
-            const note = controller.previewNote(id)
-            next[row] = Notes.copyNote(next[row], {startTick: note.startTick, durationTick: note.durationTick,
-                pitch: note.pitch, velocity: note.velocity})
-        }
-        root.noteState = {notes: next, rows: rows}
-        root.pruneSelection()
+    function initialTopPitch() {
+        const summary = controller.noteSummary
+        const rows = Math.max(1, Math.floor(gridArea.height / rowHeight))
+        return Notes.clampTopPitch(Math.round((summary.low + summary.high) / 2 + rows / 2), rows)
     }
 
     function pruneSelection() {
         // A pending refresh must not remove the ids owned by an uncommitted gesture.
-        if (gridMouse.drag || controller.noteDragActive || liveNotes !== null || liveControllers !== null) { return }
-        const rows = root.noteState.rows
-        const notes = root.committedNotes
-        const keptIds = root.selectedIds.filter(id => rows[id] !== undefined)
+        if (gridMouse.drag || controller.noteDragActive || controller.toolActive || liveControllers !== null) { return }
+        const keptIds = controller.selectNotes("keep", root.selectedIds)
         if (keptIds.length !== root.selectedIds.length) { root.selectedIds = keptIds }
         if (root.laneInfo.type === "controller") {
             const pointIds = {}
@@ -423,7 +401,7 @@ Rectangle {
             root.selectedPointIds = root.selectedPointIds.filter(id => pointIds[id])
         } else if (root.laneInfo.type === "expression") {
             // Expression points carry index ids. Keep the ones the edited note still has.
-            const target = root.selectedIds.length === 1 ? notes[rows[root.selectedIds[0]]] : null
+            const target = root.selectedIds.length === 1 ? controller.noteById(root.selectedIds[0]) : null
             const curve = target && target.expression ? target.expression[root.laneInfo.key] : null
             const count = curve ? curve.length : 0
             root.selectedPointIds = root.selectedPointIds.filter(id => parseInt(String(id).substring(1), 10) < count)
@@ -432,10 +410,8 @@ Rectangle {
         }
     }
 
-    function write(next) {
-        liveNotes = null
-        if (next.length > controller.maxNotes) return false
-        return controller.patchNotes(next)
+    function write(next, replacedIds) {
+        return controller.patchSelection(next, replacedIds === undefined ? selectedIds : replacedIds)
     }
     function writeControllers(next) {
         liveControllers = null
@@ -452,8 +428,7 @@ Rectangle {
             if (!existed && newLaneStep && points.length > 0) next = Lanes.setInterpolation(next, laneInfo.spec, "step")
             liveControllers = next
         } else if (laneInfo.type === "expression" && editingNote) {
-            const target = editingNote.id
-            liveNotes = notes.map(note => note.id === target ? Lanes.setNoteExpression(note, laneInfo.key, points) : note)
+            controller.previewExpression(editingNote.id, laneInfo.key, points)
             if (chosen) selectedPointIds = chosen.map(id => points.findIndex(point => point.id === id)).filter(i => i >= 0).map(i => "e" + i)
         }
         curveLane.requestPaint()
@@ -461,9 +436,9 @@ Rectangle {
     // Writes the lane gesture as one undo entry.
     function commitLane() {
         if (liveControllers !== null) writeControllers(liveControllers)
-        else if (liveNotes !== null) write(liveNotes)
+        else if (controller.toolActive) controller.commitTool()
         liveControllers = null
-        liveNotes = null
+        controller.cancelTool()
         curveLane.requestPaint()
     }
     function setInterpolation(next) {
@@ -483,31 +458,23 @@ Rectangle {
     function scaled(pitch) { return snapToScale && scaleActive ? Notes.snapPitchToScale(pitch, scaleRoot, scaleIv) : pitch }
     function playheadTick() { return clock ? Math.round(controller.timelineMsToTick(clock.time)) : 0 }
     function pickNote(x, y, geo) {
-        // Preview arrays change each drag frame. Keep the committed index out of that rebuild path.
-        if (liveNotes !== null) { return Notes.hitTest(notes, x, y, geo) }
         const hit = grid.hitNote(x, y)
-        const note = hit === 0 ? null : committedNotes[Math.floor((hit - 1) / 2)]
-        return note ? {note: note, edge: hit % 2 === 0 ? "end" : "body"} : null
+        const note = hit === 0 ? null : controller.noteAtRow(Math.floor((hit - 1) / 2))
+        return note && note.id ? {note: note, edge: hit % 2 === 0 ? "end" : "body"} : null
     }
     function selectedNotes() {
-        if (liveNotes !== null) { return notes.filter(note => selectedSet[note.id]) }
-        const state = noteState
-        const rows = state.rows
-        const list = state.notes
-        const indices = []
-        for (const id of selectedIds) {
-            const row = rows[id]
-            if (row !== undefined) { indices.push(row) }
-        }
-        indices.sort((a, b) => a - b)
-        return indices.map(row => list[row])
+        // Scalar notification dependencies keep inspector values current without a note-list binding.
+        const revision = controller.noteRevision
+        const active = controller.toolActive
+        const toolRevision = root.toolRevision
+        return controller.selectedNotes(selectedIds)
     }
     function newId() { return controller.newNoteId() }
-    function allIds() { return root.committedNotes.map(note => note.id) }
+    function allIds() { return controller.selectNotes("all") }
     function setNoteField(field, value) {
         const patch = {}
         patch[field] = value
-        write(Notes.patchNotes(notes, selectedIds, patch))
+        write(Notes.patchNotes(selectedNotes(), selectedIds, patch))
     }
 
     // ── Functions ────────────────────────────────────────────────────────
@@ -519,7 +486,7 @@ Rectangle {
     function quantize(target, ids) {
         const chosen = ids || (selectedIds.length > 0 ? selectedIds : allIds())
         if (chosen.length === 0 || !controller.editable) return
-        write(Notes.quantizeWith(root.committedNotes, chosen, quantizeOptions(target)))
+        write(Notes.quantizeWith(controller.selectedNotes(chosen), chosen, quantizeOptions(target)), chosen)
     }
     function chooseQuantizeValue(value) {
         quantizeValue = value
@@ -528,7 +495,7 @@ Rectangle {
     function scaleQuantize() {
         if (!scaleActive || !controller.editable) return
         const chosen = selectedIds.length > 0 ? selectedIds : allIds()
-        if (chosen.length > 0) write(Notes.scaleQuantizeNotes(root.committedNotes, scaleRoot, scaleIv, chosen))
+        if (chosen.length > 0) write(Notes.scaleQuantizeNotes(controller.selectedNotes(chosen), scaleRoot, scaleIv, chosen), chosen)
     }
     property var velocityGesture: null
     function velocityBegin() {
@@ -551,7 +518,7 @@ Rectangle {
     function velocityCancel() { velocityGesture = null; controller.cancelNoteDrag() }
 
     function runAction(id) {
-        const current = root.committedNotes, ids = selectedIds
+        const current = selectedNotes(), ids = selectedIds
         if (!controller.valid) return
         switch (id) {
         case "undo": if (undoStack) undoStack.undo(); return
@@ -559,10 +526,10 @@ Rectangle {
         case "copy": if (ids.length > 0) clipboard = selectedNotes(); return
         case "selectAll": selectedIds = allIds(); return
         case "deselectAll": selectedIds = []; return
-        case "selectFollowing": selectedIds = Tools.selectFollowing(current, ids, playheadTick()); return
-        case "selectSamePitch": selectedIds = Tools.selectSamePitch(current, ids); return
-        case "selectMuted": selectedIds = Tools.selectMuted(current); return
-        case "invertSelection": selectedIds = Tools.invertSelection(current, ids); return
+        case "selectFollowing": selectedIds = controller.selectNotes("following", ids, playheadTick()); return
+        case "selectSamePitch": selectedIds = controller.selectNotes("samePitch", ids); return
+        case "selectMuted": selectedIds = controller.selectNotes("muted"); return
+        case "invertSelection": selectedIds = controller.selectNotes("invert", ids); return
         case "inspector": inspectorVisible = !inspectorVisible; return
         case "draw": drawVisible = !drawVisible; return
         case "noteLabels": noteLabels = !noteLabels; return
@@ -580,24 +547,23 @@ Rectangle {
         if (id === "paste") {
             if (clipboard.length === 0) return
             const copies = Notes.pasteNotes(clipboard, playheadTick(), newId)
-            if (write(current.concat(copies))) selectedIds = copies.map(note => note.id)
+            if (write(copies, [])) selectedIds = copies.map(note => note.id)
             return
         }
         if (ids.length === 0) return
         switch (id) {
-        case "cut": clipboard = selectedNotes(); write(Notes.removeNotes(current, ids)); selectedIds = []; break
-        case "delete": write(Notes.removeNotes(current, ids)); selectedIds = []; break
+        case "cut": clipboard = selectedNotes(); controller.removeNotes(ids); selectedIds = []; break
+        case "delete": controller.removeNotes(ids); selectedIds = []; break
         case "mute": write(Notes.toggleMute(current, ids)); break
         case "transposeUp": write(Notes.moveNotes(current, ids, 0, 1)); break
         case "transposeDown": write(Notes.moveNotes(current, ids, 0, -1)); break
         case "octaveUp": write(Notes.moveNotes(current, ids, 0, 12)); break
         case "octaveDown": write(Notes.moveNotes(current, ids, 0, -12)); break
-        case "forceLegato": write(Notes.forceLegato(current, ids)); break
-        case "removeOverlaps": write(Notes.removeOverlaps(current, ids)); break
+        case "forceLegato": controller.finishNotes("forceLegato", ids); break
+        case "removeOverlaps": controller.finishNotes("removeOverlaps", ids); break
         case "deleteDuplicates":
-            write(Notes.deleteDuplicates(current, ids))
-            const surviving = new Set(root.committedNotes.map(note => note.id))
-            selectedIds = selectedIds.filter(id => surviving.has(id))
+            controller.finishNotes("deleteDuplicates", ids)
+            selectedIds = controller.selectNotes("keep", selectedIds)
             break
         }
     }
@@ -609,7 +575,7 @@ Rectangle {
         const shift = (event.modifiers & Qt.ShiftModifier) !== 0
         const alt = (event.modifiers & Qt.AltModifier) !== 0
         const ids = root.selectedIds
-        const current = root.notes
+        const current = root.selectedNotes()
         if (event.key === Qt.Key_Escape && (controller.noteDragActive || gridMouse.drag || root.velocityGesture)) {
             root.cancelNotePreview()
             event.accepted = true
@@ -648,15 +614,14 @@ Rectangle {
             root.runAction("mute")
             event.accepted = true
         } else if (ctrl && event.key === Qt.Key_T) {
-            const split = Notes.splitNotes(current, ids, root.playheadTick(), root.newId)
-            if (root.write(split.notes)) root.selectedIds = split.ids
+            root.selectedIds = controller.splitNotes(ids, root.playheadTick())
             event.accepted = true
         } else if (ctrl && (event.key === Qt.Key_D || event.key === Qt.Key_R)) {
             const chosen = root.selectedNotes()
             let low = Infinity, high = 0
             for (const note of chosen) { low = Math.min(low, note.startTick); high = Math.max(high, note.startTick + note.durationTick) }
             const next = Notes.duplicateNotes(current, ids, high - low, root.newId)
-            if (root.write(next)) root.selectedIds = next.slice(current.length).map(note => note.id)
+            if (root.write(next.slice(current.length), [])) root.selectedIds = next.slice(current.length).map(note => note.id)
             event.accepted = true
         } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
             const increment = (alt && !ctrl) || !root.snapOn ? 1 : root.gridStepTicks
@@ -730,7 +695,7 @@ Rectangle {
                     root.forceActiveFocus()
                     const pitch = pitchAt(mouse.x, mouse.y)
                     keyboard.pressedPitch = pitch
-                    const ids = root.notes.filter(note => note.pitch === pitch).map(note => note.id)
+                    const ids = controller.selectNotes("pitch", [], pitch)
                     root.selectedIds = mouse.modifiers & Qt.ShiftModifier
                         ? Array.from(new Set(root.selectedIds.concat(ids))) : ids
                 }
@@ -869,7 +834,7 @@ Rectangle {
                 function eraseAt(x, y) {
                     const hit = root.pickNote(x, y, root.geometry)
                     if (!hit) return
-                    root.liveNotes = Notes.removeNotes(root.notes, [hit.note.id])
+                    controller.previewErase(hit.note.id)
                     root.selectedIds = root.selectedIds.filter(id => id !== hit.note.id)
                     drag.changed = true
                 }
@@ -901,16 +866,11 @@ Rectangle {
                         for (let i = 1; i <= count; ++i) positions.push(from + direction * i * step)
                         if (pitch !== drag.lastPitch && positions.indexOf(start) < 0) positions.push(start)
                     }
-                    let list = root.notes
                     for (const at of positions) {
-                        if (at >= 0 && !Tools.hasNoteAt(list, pitch, at) && list.length < controller.maxNotes) {
-                            list = Tools.addStepNote(list, root.newId(), pitch, at, step)
-                            drag.changed = true
-                        }
+                        if (at >= 0 && controller.previewAdd(pitch, at, step, true)) drag.changed = true
                         drag.lastStart = at
                     }
-                    if (positions.length > 0) { drag.lastPitch = pitch }
-                    if (drag.changed) root.liveNotes = list
+                    if (positions.length > 0) drag.lastPitch = pitch
                 }
 
                 onPressed: mouse => {
@@ -953,19 +913,21 @@ Rectangle {
                         if (applied < 0 || applied > 127) return
                         const start = root.stepStart(tick, bypass)
                         const step = Math.max(1, Math.round(root.gridStepTicks))
-                        const note = {id: root.newId(), pitch: applied, velocity: 100, startTick: start,
-                                      durationTick: step}
-                        drag = Object.assign({kind: "pencil", note: note, start: start, step: step, baseline: root.notes.slice()}, base)
-                        root.liveNotes = root.notes.concat([note])
-                        root.selectedIds = [note.id]
+                        if (!controller.beginTool("pencil")) return
+                        const id = controller.previewAdd(applied, start, step)
+                        if (!id) { controller.cancelTool(); return }
+                        drag = Object.assign({kind: "pencil", noteId: id, start: start, step: step}, base)
+                        root.selectedIds = [id]
                         return
                     }
                     if (tool === "eraser") {
+                        if (!controller.beginTool("erase")) return
                         drag = Object.assign({kind: "erase", changed: false}, base)
                         eraseAt(mouse.x, mouse.y)
                         return
                     }
                     if (tool === "brush") {
+                        if (!controller.beginTool("brush")) return
                         drag = Object.assign({kind: "brush", changed: false, lastStart: null}, base)
                         brushAt(mouse.x, mouse.y, bypass)
                         return
@@ -973,17 +935,13 @@ Rectangle {
                     if (!hit) return
                     const clicked = hit.note.id
                     if (tool === "scissors") {
-                        const split = Notes.splitNotes(root.notes, [clicked], root.snapOrNot(tick, bypass), root.newId)
-                        if (split.notes.length !== root.notes.length && root.write(split.notes)) root.selectedIds = split.ids
+                        root.selectedIds = controller.splitNotes([clicked], root.snapOrNot(tick, bypass))
                     } else if (tool === "glue") {
-                        const glued = Notes.glueNotes(root.notes, root.selectedIds, clicked)
-                        if (glued.length !== root.notes.length && root.write(glued)) {
-                            const kept = {}
-                            for (const note of glued) kept[note.id] = true
-                            root.selectedIds = root.selectedIds.filter(id => kept[id])
-                        }
+                        const ids = Array.from(new Set(root.selectedIds.concat([clicked])))
+                        if (controller.glueNotes(ids)) root.selectedIds = controller.selectNotes("keep", root.selectedIds)
                     } else if (tool === "mute") {
-                        root.write(Tools.toggleMuteAt(root.notes, clicked, root.selectedIds))
+                        const ids = root.selectedSet[clicked] ? root.selectedIds : [clicked]
+                        root.write(Tools.toggleMuteAt(controller.selectedNotes(ids), clicked, ids), ids)
                     } else if (tool === "velocity") {
                         const ids = root.selectedSet[clicked] ? root.selectedIds : [clicked]
                         if (!root.selectedSet[clicked]) root.selectedIds = ids
@@ -1018,7 +976,7 @@ Rectangle {
                         drag.moved = true
                         const snapped = root.snapOn && !root.bypassing(mouse)
                         const length = Math.max(snapped ? drag.step : 1, root.snapOrNot(tick, root.bypassing(mouse)) - drag.start)
-                        root.liveNotes = drag.baseline.concat([Notes.copyNote(drag.note, {durationTick: length})])
+                        controller.previewLength(drag.noteId, length)
                         return
                     }
                     if (drag.kind === "velocity") {
@@ -1068,26 +1026,21 @@ Rectangle {
                         else { controller.cancelNoteDrag() }
                         return
                     }
-                    const live = root.liveNotes
-                    root.liveNotes = null
-                    if (live === null) return
                     if (ended.kind === "pencil") {
-                        if (root.write(live)) lastClick = {id: ended.note.id, time: Date.now()}
+                        if (controller.commitTool()) lastClick = {id: ended.noteId, time: Date.now()}
                         else root.selectedIds = ended.selectionBefore
                     } else if (ended.kind === "erase" || ended.kind === "brush") {
-                        if (ended.changed) root.write(live)
-                    } else if (ended.moved) {
-                        // No Overlap trims the notes the moved ones landed on, in the same undo step.
-                        if (!root.write(root.dragMode === "nooverlap" && ended.kind !== "velocity" ? Notes.applyNoOverlap(live, ended.ids) : live) && ended.duplicate) root.selectedIds = ended.selectionBefore
+                        if (ended.changed) controller.commitTool()
+                        else controller.cancelTool()
                     }
                 }
                 onExited: root.hoverPitch = -1
                 onCanceled: {
-                    if (drag) root.selectedIds = drag.selectionBefore.filter(id => root.committedNotes.some(note => note.id === id))
+                    if (drag) root.selectedIds = controller.selectNotes("keep", drag.selectionBefore)
                     drag = null
                     marquee = null
                     root.dragIds = []
-                    root.liveNotes = null
+                    controller.cancelTool()
                     controller.cancelNoteDrag()
                 }
                 onDoubleClicked: mouse => {
@@ -1097,14 +1050,14 @@ Rectangle {
                     drag = null
                     marquee = null
                     root.dragIds = []
-                    root.liveNotes = null
+                    controller.cancelTool()
                     if (!controller.editable) return
                     const hit = root.pickNote(mouse.x, mouse.y, root.geometry)
                     if (!hit) return
                     controller.cancelNoteDrag()
                     // The second click of a fast double-click on empty grid lands on the note the first one wrote.
                     if (lastClick && lastClick.id === hit.note.id && Date.now() - lastClick.time < 500) return
-                    root.write(Notes.removeNotes(root.notes, [hit.note.id]))
+                    controller.removeNotes([hit.note.id])
                     root.selectedIds = root.selectedIds.filter(id => id !== hit.note.id)
                 }
                 onWheel: wheel => {
@@ -1159,13 +1112,7 @@ Rectangle {
                 property var gesture: null
                 function velocityAt(y) { return Math.max(1, Math.min(127, Math.round(127 * (parent.height - y) / (parent.height - 2 * Ui.Metrics.xs)))) }
                 function noteNear(x) {
-                    const list = root.notes
-                    let best = null, bestDistance = Ui.Metrics.sm
-                    for (let i = list.length - 1; i >= 0; --i) {
-                        const distance = Math.abs(Notes.tickToX(list[i].startTick, root.geometry) - x)
-                        if (distance < bestDistance) { best = list[i]; bestDistance = distance }
-                    }
-                    return best
+                    return velocityLane.noteNear(x, Ui.Metrics.sm)
                 }
                 onPressed: mouse => {
                     root.forceActiveFocus()
@@ -1184,7 +1131,7 @@ Rectangle {
                 onReleased: {
                     if (gesture) { controller.commitNoteDrag() }
                     gesture = null
-                    root.liveNotes = null
+                    controller.cancelTool()
                 }
                 onCanceled: { gesture = null; controller.cancelNoteDrag() }
             }
@@ -1332,7 +1279,7 @@ Rectangle {
                     if (gesture && gesture.before) root.selectedPointIds = gesture.before
                     gesture = null
                     root.liveControllers = null
-                    root.liveNotes = null
+                    controller.cancelTool()
                     curveLane.requestPaint()
                 }
                 onDoubleClicked: mouse => {

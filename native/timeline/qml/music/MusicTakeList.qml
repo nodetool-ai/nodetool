@@ -25,10 +25,9 @@ Column {
     // The context window of the active take when its record is open, for the ruler bracket:
     // {label, startFrame, endFrame}, or null.
     readonly property var recordContext: {
-        for (const take of plan ? plan.takes : []) {
-            if (take.active && take.contextLabel !== "" && openIds.indexOf(take.id) >= 0)
-                return {label: take.contextLabel, startFrame: take.contextStartFrame, endFrame: take.contextEndFrame}
-        }
+        const context = plan ? plan.activeTakeContext : null
+        if (context && context.id && openIds.indexOf(context.id) >= 0)
+            return context
         return null
     }
     readonly property string clipId: plan ? plan.takeClipId : ""
@@ -45,7 +44,7 @@ Column {
         visible: text !== ""
         width: parent.width
         text: !root.plan || root.plan.takeClipId === "" ? qsTr("Select a range inside a clip to see its takes.")
-            : root.plan.takeClipPending || root.jobRunning && root.plan.takes.length === 0 ? qsTr("Takes appear here when the job finishes.")
+            : root.plan.takeClipPending || root.jobRunning && root.plan.takeCount === 0 ? qsTr("Takes appear here when the job finishes.")
             : ""
         wrapMode: Text.WordWrap
         role: Ui.Typography.SansCaption
@@ -219,7 +218,7 @@ Column {
     }
     function menuTargetValid() {
         return !!plan && plan.takeClipId === menuClipId
-            && plan.takes.some(take => take.id === menuTakeId && take.canRegenerate)
+            && plan.takeById(menuTakeId).canRegenerate === true
     }
     Connections {
         target: root.plan

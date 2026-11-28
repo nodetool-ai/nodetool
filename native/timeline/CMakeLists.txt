@@ -384,7 +384,8 @@ foreach(callback IN LISTS NT_TEST_CALLBACKS)
 endforeach()
 
 # Headless stress workload. Private profiler API is pinned by the Qt version above.
-qt_add_executable(tst_timeline_perf tests/tst_timeline_perf.cpp src/edit/tracks/TrackEditRegistrations.cpp)
+qt_add_executable(tst_timeline_perf tests/tst_timeline_perf.cpp src/edit/tracks/TrackEditRegistrations.cpp
+    src/app/startup/LocalDocumentSaver.h src/app/startup/LocalDocumentSaver.cpp)
 set_target_properties(tst_timeline_perf PROPERTIES MACOSX_BUNDLE FALSE)
 target_compile_options(tst_timeline_perf PRIVATE ${NT_WARNINGS})
 target_link_libraries(tst_timeline_perf PRIVATE timeline_core timeline_decode timeline_server

@@ -303,6 +303,14 @@ jobs:
           name: packages-dist
           path: packages
 
+      - name: Verify TypeScript automation parity
+        if: github.event_name != 'push' && matrix.os == 'ubuntu-24.04'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          NODETOOL_NATIVE_AUTOMATION_BINARY="$PWD/native/timeline/build-ci/tst_automation" \
+            npm run test --workspace=packages/timeline -- tests/ops.automation.test.ts
+
       - name: Verify prerequisites and prepare media
         if: github.event_name != 'push'
         run: |

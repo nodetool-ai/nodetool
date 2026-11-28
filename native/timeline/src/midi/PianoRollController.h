@@ -5,6 +5,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QPointer>
+#include <QSet>
+#include <memory>
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
 
@@ -50,7 +52,11 @@ class PianoRollController : public QObject {
     Q_PROPERTY(QString trackName READ trackName NOTIFY clipChanged)
     // The tonic of the document key ("C", "Eb", ...), or "" when the document has none.
     Q_PROPERTY(QString keyTonic READ keyTonic NOTIFY clipChanged)
+    // Legacy list access remains for the step editor and the frozen Canvas oracle.
     Q_PROPERTY(QVariantList notes READ notes NOTIFY notesChanged)
+    Q_PROPERTY(int noteRevision READ noteRevision NOTIFY notesChanged)
+    Q_PROPERTY(QVariantMap noteSummary READ noteSummary NOTIFY notesChanged)
+    Q_PROPERTY(bool toolActive READ toolActive NOTIFY toolChanged)
     Q_PROPERTY(bool noteDragActive READ noteDragActive NOTIFY noteDragChanged)
     // The controller lanes of the clip (cc, pitch bend, pressure), as stored.
     Q_PROPERTY(QVariantList controllers READ controllers NOTIFY controllersChanged)
@@ -75,6 +81,8 @@ class PianoRollController : public QObject {
     void setClipId(const QString& clipId);
 
     const std::vector<nt::MidiNote>& typedNotes() const;
+    // Model, controller consumers and render snapshots share immutable storage across edits.
+    std::shared_ptr<const std::vector<nt::MidiNote>> noteStorage() const;
     bool valid() const { return m_valid; }
     bool editable() const;
     QVariantMap regionParams() const { return m_regionParams; }
@@ -119,6 +127,28 @@ class PianoRollController : public QObject {
     // Writes a mixed note/controller selection as one undo entry.
     Q_INVOKABLE bool setEvents(const QVariantList& notes, const QVariantList& controllers);
     Q_INVOKABLE QString newNoteId() const;
+    int noteRevision() const { return m_noteRevision; }
+    QVariantMap noteSummary() const { return m_noteSummary; }
+    Q_INVOKABLE QVariantMap noteAtRow(int row) const;
+    Q_INVOKABLE QVariantMap noteById(const QString& id) const;
+    Q_INVOKABLE QVariantList selectedNotes(const QStringList& ids) const;
+    Q_INVOKABLE QStringList selectNotes(const QString& action, const QStringList& ids = {}, double tick = 0) const;
+    Q_INVOKABLE bool patchSelection(const QVariantList& values, const QStringList& replacedIds);
+    Q_INVOKABLE QStringList splitNotes(const QStringList& ids, double tick);
+    Q_INVOKABLE bool glueNotes(const QStringList& ids);
+    Q_INVOKABLE bool finishNotes(const QString& action, const QStringList& ids);
+    Q_INVOKABLE bool removeNotes(const QStringList& ids);
+    Q_INVOKABLE bool beginTool(const QString& kind);
+    Q_INVOKABLE QString previewAdd(int pitch, double tick, double duration, bool unique = false);
+    Q_INVOKABLE void previewLength(const QString& id, double duration);
+    Q_INVOKABLE void previewErase(const QString& id);
+    Q_INVOKABLE void previewExpression(const QString& id, const QString& key, const QVariantList& points);
+    Q_INVOKABLE bool commitTool();
+    Q_INVOKABLE void cancelTool();
+    bool toolActive() const { return !m_toolKind.isEmpty(); }
+    const std::vector<nt::MidiNote>& toolNotes() const { return m_toolNotes; }
+    QStringList toolHiddenIds() const;
+
 
   signals:
     void timelineChanged();
@@ -129,8 +159,18 @@ class PianoRollController : public QObject {
     void notesPatched(const QStringList& ids);
     void noteDragChanged();
     void controllersChanged();
+    void toolChanged();
 
   private:
+    QVariantMap computeNoteSummary() const;
+    QVariantMap m_noteSummary{{"low", 48}, {"high", 72}, {"from", 0}, {"to", 0}, {"pitches", QVariantList{}}};
+    QSet<QPair<int, double>> m_noteOnsets;
+    QSet<QPair<int, double>> m_toolOnsets;
+    int m_noteRevision = 0;
+    QString m_toolKind;
+    std::vector<nt::MidiNote> m_toolNotes;
+    QSet<QString> m_toolRemoved;
+    bool applyPatch(const QString& name, QJsonObject payload);
     struct DragNote {
         QString id;
         int row = 0;

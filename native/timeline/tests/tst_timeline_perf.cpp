@@ -2,10 +2,13 @@
 #include "DockLayoutStore.h"
 #include "measure/ObjectCreations.h"
 #include "measure/ValueWriteBacks.h"
+#include "app/startup/LocalDocumentSaver.h"
+#include "server/AutosaveController.h"
 #include "measure/OffscreenRhi.h"
 #include "preview/hw/HwWindow.h"
 #include <QAbstractItemModel>
 #include <QSignalSpy>
+#include <QStandardItemModel>
 #include "midi/PianoRollController.h"
 #include "midi/NoteLayerItem.h"
 // UI-thread-only stress driver. QPA stays offscreen in both render modes.
@@ -254,6 +257,108 @@ int measurementChecks() {
     if (!invoked || writeBacks.writes != 1
         || qobject_cast<ValueWriteProbe*>(probeObject.get())->value().pitch != 3
         || qobject_cast<ValueWriteProbe*>(probeObject.get())->setterCalls != 1) { return 30; }
+    int regressionFailures = 0;
+    StressStats checkStress;
+    model.setReadOnly(false);
+    model.setTimeline(*nt::parseTimeline(buildStressDocument(checkStress)).timeline);
+    PianoRollController piano;
+    piano.setTimeline(&model);
+    piano.setClipId("clip-midi-hero");
+    int incomingCrossings = 0;
+    const auto incomingNotes = piano.notes();
+    bool incomingPayloadMatches = false;
+    observer->onCrossing = [&](const char* site, const QJsonValue& value) {
+        if (QString::fromLatin1(site) == "PianoRoll.patchNotes") {
+            ++incomingCrossings;
+            incomingPayloadMatches = value == QJsonArray::fromVariantList(incomingNotes);
+        }
+    };
+    model.setMeasurementObserver(observer);
+    piano.patchNotes(incomingNotes);
+    if (incomingCrossings != 1 || !incomingPayloadMatches) { std::fprintf(stderr, "F3 incoming crossings: %d, expected 1\n", incomingCrossings); ++regressionFailures; }
+    model.clearMeasurementObserver();
+    ObjectCreations lateModels;
+    QObject modelRoot;
+    QObject modelConnections;
+    QSet<QAbstractItemModel*> observedModels;
+    int changedRows = 0;
+    lateModels.onObject = [&](QObject& object) {
+        auto* rows = qobject_cast<QAbstractItemModel*>(&object);
+        if (!rows || observedModels.contains(rows)) { return; }
+        observedModels.insert(rows);
+        QObject::connect(rows, &QAbstractItemModel::dataChanged, &modelConnections,
+            [&](const QModelIndex& first, const QModelIndex& last) { changedRows += last.row() - first.row() + 1; });
+    };
+    lateModels.observe(modelRoot);
+    QStandardItemModel lateModel(1, 1, &modelRoot);
+    QCoreApplication::processEvents();
+    lateModels.classify();
+    lateModel.setData(lateModel.index(0, 0), "changed");
+    if (changedRows != 1) { std::fprintf(stderr, "F3 late model rows: %d, expected 1\n", changedRows); ++regressionFailures; }
+    QTemporaryDir saveDir;
+    nt::server::AssetCacheRoot saveCache(saveDir.path());
+    auto hashDocument = model.timeline().raw;
+    const auto originalHashDocument = hashDocument;
+    nt::server::AutosaveController autosave(saveCache, {}, model.undoStack(),
+        [&] { return hashDocument; }, "base");
+    autosave.setExternalSync(false);
+    autosave.setAutosave(false);
+    QSignalSpy hashes(&autosave, &nt::server::AutosaveController::contentHashed);
+    autosave.documentChanged();
+    autosave.dirty();
+    autosave.dirty();
+    if (hashes.count() > 1) { std::fprintf(stderr, "F7 hashes for unchanged content: %d, expected <=1\n", int(hashes.count())); ++regressionFailures; }
+    hashes.clear();
+    hashDocument.insert("width", originalHashDocument.value("width").toInt() + 1);
+    if (!autosave.dirty()) { return 40; }
+    hashDocument = originalHashDocument;
+    if (autosave.dirty() || hashes.count() != 2) { return 41; }
+    int serializations = 0;
+    observer->onPhase = [&](const char* phase, bool begin) {
+        if (begin && QString::fromLatin1(phase) == "local_serialize") { ++serializations; }
+    };
+    model.setMeasurementObserver(observer);
+    nt::app::LocalDocumentSaver localSaver(model, saveDir.filePath("local.json"), 100000);
+    model.addMarker(123, "test");
+    const auto committedDocument = model.timeline().raw;
+    const int serializationsDuringEdit = serializations;
+    model.replaceClips(QJsonArray{}); // A preview must never replace the committed save snapshot.
+    const bool flushed = localSaver.flush();
+    QFile localFile(saveDir.filePath("local.json"));
+    const bool savedCommitted = localFile.open(QIODevice::ReadOnly)
+        && QJsonDocument::fromJson(localFile.readAll()).object() == committedDocument;
+    if (serializationsDuringEdit != 0 || !flushed || !savedCommitted || serializations != 1) {
+        std::fprintf(stderr, "F7 local serializations during edit: %d, expected 0\n", serializationsDuringEdit);
+        ++regressionFailures;
+    }
+    model.clearMeasurementObserver();
+    QQmlComponent lateDelegates(&engine);
+    lateDelegates.setData(R"(import QtQuick
+import VC1
+Item {
+    property int count: 0
+    Repeater {
+        model: parent.count
+        delegate: Item {
+            objectName: "lateDelegate"
+            property alias probe: writer
+            ValueWriteProbe { id: writer }
+        }
+    }
+})", QUrl());
+    std::unique_ptr<QObject> lateRoot(lateDelegates.create());
+    if (!lateRoot) { return 38; }
+    writeBacks.observe(*lateRoot);
+    lateRoot->setProperty("count", 1);
+    QCoreApplication::processEvents();
+    auto* delegate = findItemByName(qobject_cast<QQuickItem*>(lateRoot.get()), "lateDelegate");
+    auto* lateProbe = delegate ? delegate->property("probe").value<QObject*>() : nullptr;
+    if (!lateProbe) { return 39; }
+    QQmlExpression lateWrite(qmlContext(lateProbe), lateProbe, "value.pitch = 7");
+    lateWrite.evaluate();
+    if (lateWrite.hasError() || writeBacks.writes != 2
+        || qobject_cast<ValueWriteProbe*>(lateProbe)->setterCalls != 1
+        || qobject_cast<ValueWriteProbe*>(lateProbe)->value().pitch != 7) { std::fprintf(stderr, "F21 late writes: %lld, expected 2 total\n", writeBacks.writes); ++regressionFailures; }
     QQmlComponent repeatedLane(&engine);
     repeatedLane.setData(R"(import QtQuick
 import NodeTool.Timeline
@@ -277,6 +382,7 @@ Item {
     if (discovered) { return 32; }
     laneModel->setParent(repeatedRoot.get());
     if (!repeatedRoot->findChildren<LaneClipModel*>().contains(laneModel)) { return 33; }
+    if (regressionFailures) { return 34; }
     std::printf("measurement checks passed\n");
     return 0;
 }
@@ -348,6 +454,13 @@ int main(int argc, char* argv[]) try {
 
     QTemporaryDir tempCacheDir;
     nt::server::AssetCacheRoot cacheRoot(tempCacheDir.path());
+    nt::app::LocalDocumentSaver localSaver(model, tempCacheDir.filePath("local.json"));
+    nt::server::AutosaveController autosave(cacheRoot, {}, model.undoStack(),
+        [&] { return model.timeline().raw; }, "base");
+    autosave.setExternalSync(false);
+    autosave.setAutosave(false);
+    QObject::connect(&model, &TimelineModel::commandSettled, &autosave,
+        &nt::server::AutosaveController::documentChanged);
 
     std::unique_ptr<QQuickRenderControl> renderControl;
     if (gpu) { renderControl = std::make_unique<QQuickRenderControl>(); }
@@ -552,7 +665,8 @@ int main(int argc, char* argv[]) try {
     const int markerFlagCount = countItemsPrefix(root, QStringLiteral("timelineMarker"));
     const int markerBlockCount = countItemsPrefix(root, QStringLiteral("markerBlock"));
     const bool markerLaneShown = markerLane ? markerLane->property("shown").toBool() : false;
-    const int pianoRollNotesCount = pianoRoll ? pianoRoll->property("notes").toList().size() : 0;
+    auto* pianoController = pianoRoll ? pianoRoll->property("noteController").value<PianoRollController*>() : nullptr;
+    const int pianoRollNotesCount = pianoController ? static_cast<int>(pianoController->typedNotes().size()) : 0;
 
     view->zoomTo(15.0, 0.0);
     view->setScrollLeftPx(0);
@@ -656,7 +770,7 @@ int main(int argc, char* argv[]) try {
     valueWriteBacks.observe(model);
     QJsonObject phases, crossingSites;
     QJsonObject counters{{"jsonParses", 0}, {"crossings", 0}, {"payloadBytes", 0},
-        {"timelineSignals", 0}, {"clipSignals", 0}, {"markerSignals", 0}, {"sourceSignals", 0}, {"dataChangedRows", 0}};
+        {"localSerializations", 0}, {"saveHashes", 0}, {"timelineSignals", 0}, {"clipSignals", 0}, {"markerSignals", 0}, {"sourceSignals", 0}, {"dataChangedRows", 0}};
     struct PhaseFrame { QString name; double start; double children = 0; };
     std::vector<PhaseFrame> phaseStack;
     QObject counterContext;
@@ -675,6 +789,7 @@ int main(int argc, char* argv[]) try {
     observer->onPhase = [&](const char* name, bool begin) noexcept { // NOLINT(bugprone-exception-escape): allocation failure in the observer terminates the measurement.
         if (begin) {
             phaseStack.push_back({QString::fromLatin1(name), nowMs(), 0});
+            if (QString::fromLatin1(name) == "local_serialize") { counters["localSerializations"] = counters["localSerializations"].toInteger() + 1; }
             if (QString::fromLatin1(name) == "parse") { counters["jsonParses"] = counters["jsonParses"].toInteger() + 1; }
         } else {
             const auto frame = phaseStack.back(); phaseStack.pop_back();
@@ -695,35 +810,37 @@ int main(int argc, char* argv[]) try {
         crossingSites[key] = crossingSites[key].toInteger() + 1;
     };
     model.setMeasurementObserver(observer);
+    QObject::connect(&autosave, &nt::server::AutosaveController::contentHashed, &counterContext,
+        [&] { counters["saveHashes"] = counters["saveHashes"].toInteger() + 1; });
     QObject::connect(&model, &TimelineModel::timelineChanged, &counterContext, [&] { counters["timelineSignals"] = counters["timelineSignals"].toInteger() + 1; });
     QObject::connect(&model, &TimelineModel::clipsChanged, &counterContext, [&] { counters["clipSignals"] = counters["clipSignals"].toInteger() + 1; });
     qint64 reboundClipRows = 0;
     QJsonObject dataChangedRowsByModel;
-    {
-        auto rowModels = root->findChildren<QAbstractItemModel*>();
-        rowModels.append(model.findChildren<QAbstractItemModel*>());
-        for (auto* rows : rowModels) {
-            QObject::connect(rows, &QAbstractItemModel::dataChanged, &counterContext,
-                [&, clipRows = qobject_cast<LaneClipModel*>(rows)](const QModelIndex& first, const QModelIndex& last, const QList<int>& roles) {
-                    // A7 rebinds pooled presentation slots. Keep these visible
-                    // separately from the A4 budget for rows changed by edits.
-                    if (clipRows && roles.contains(LaneClipModel::ClipIdRole)) {
-                        reboundClipRows += last.row() - first.row() + 1;
-                        return;
-                    }
-                    const auto count = last.row() - first.row() + 1;
-                    const auto modelName = QString::fromLatin1(first.model()->metaObject()->className());
-                    dataChangedRowsByModel[modelName] = dataChangedRowsByModel[modelName].toInteger() + count;
-                    // Preserve the original gate's coverage. Repeater-owned
-                    // lanes were outside the QObject traversal (see selfcheck).
-                    // Pooled lanes now have an explicit QObject parent, so
-                    // report their newly observable edit rows separately.
-                    if (!clipRows) {
-                        counters["dataChangedRows"] = counters["dataChangedRows"].toInteger() + count;
-                    }
-                });
-        }
-    }
+    QSet<QAbstractItemModel*> observedRowModels;
+    ObjectCreations rowModelObservations;
+    rowModelObservations.onObject = [&](QObject& object) {
+        auto* rows = qobject_cast<QAbstractItemModel*>(&object);
+        if (!rows || observedRowModels.contains(rows)) { return; }
+        observedRowModels.insert(rows);
+        QObject::connect(rows, &QObject::destroyed, &counterContext,
+            [&, rows] { observedRowModels.remove(rows); });
+        QObject::connect(rows, &QAbstractItemModel::dataChanged, &counterContext,
+            [&, clipRows = qobject_cast<LaneClipModel*>(rows)](const QModelIndex& first, const QModelIndex& last, const QList<int>& roles) {
+                // Pooled presentation slots rebind during scrolling, independently of edits.
+                if (clipRows && roles.contains(LaneClipModel::ClipIdRole)) {
+                    reboundClipRows += last.row() - first.row() + 1;
+                    return;
+                }
+                const auto count = last.row() - first.row() + 1;
+                const auto modelName = QString::fromLatin1(first.model()->metaObject()->className());
+                dataChangedRowsByModel[modelName] = dataChangedRowsByModel[modelName].toInteger() + count;
+                counters["dataChangedRows"] = counters["dataChangedRows"].toInteger() + count;
+            });
+    };
+    rowModelObservations.observe(*root);
+    rowModelObservations.observe(model);
+    rowModelObservations.observe(window);
+    rowModelObservations.observe(engine);
     QObject::connect(&model, &TimelineModel::markersChanged, &counterContext, [&] { counters["markerSignals"] = counters["markerSignals"].toInteger() + 1; });
     QObject::connect(&model, &TimelineModel::sourceChanged, &counterContext, [&] { counters["sourceSignals"] = counters["sourceSignals"].toInteger() + 1; });
     const auto beforeDocument = model.documentJson();
@@ -752,6 +869,10 @@ int main(int argc, char* argv[]) try {
         return !result.contains("error");
     };
     ObjectCreations creations;
+    const QPointer<ObjectCreations> measuredCreations(&creations);
+    valueWriteBacks.interceptorCreated = [measuredCreations](QObject& object) {
+        if (measuredCreations) { measuredCreations->excludeFromCount(object); }
+    };
     {
         for (const auto& clip : model.timeline().clips) {
             creations.delegateNames.insert(QStringLiteral("clip-") + QString::fromStdString(clip.id));
@@ -871,7 +992,7 @@ int main(int argc, char* argv[]) try {
         }
     }
 
-    const int liveNoteCount = pianoRoll && scenario == "note_drag" ? pianoRoll->property("notes").toList().size() : 0;
+    const int liveNoteCount = pianoController && scenario == "note_drag" ? static_cast<int>(pianoController->typedNotes().size()) : 0;
     if (scenario == "note_drag") {
         const auto* controller = pianoRoll ? pianoRoll->findChild<PianoRollController*>() : nullptr;
         if (!controller || !controller->noteDragActive() || model.snapshot() != beforeSnapshot) { return 9; }
@@ -893,6 +1014,8 @@ int main(int argc, char* argv[]) try {
     if (scenario == QLatin1String("playback")) clock.pause();
 
     if (gpu) { rhiTarget->finish(); }
+    // Include deferred persistence in the work budget, including flush failures.
+    if (!localSaver.flush()) { return 11; }
     const double tWall1 = nowMs();
     model.clearMeasurementObserver();
     const bool changed = model.documentJson() != beforeDocument;

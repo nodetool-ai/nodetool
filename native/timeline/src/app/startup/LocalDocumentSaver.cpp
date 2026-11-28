@@ -19,7 +19,7 @@ LocalDocumentSaver::LocalDocumentSaver(TimelineModel& model, QString path, int d
     const auto schedule = [this] {
         if (!m_active) { return; }
         if (!m_model) { return; }
-        m_committedBytes = bytes();
+        m_committedDocument = m_model->timeline().raw;
         m_dirty = true;
         m_timer.start();
     };
@@ -38,8 +38,9 @@ LocalDocumentSaver::LocalDocumentSaver(TimelineModel& model, QString path, int d
 LocalDocumentSaver::~LocalDocumentSaver() { flush(); }
 
 QByteArray LocalDocumentSaver::bytes() const {
-    if (m_timelineFile.isEmpty()) { return m_model->documentJson(); }
-    return QJsonDocument(nt::timelineFileWithSequence(m_timelineFile, m_model->timeline().raw)).toJson();
+    const TimelineModel::Measurement measurement(*m_model, "local_serialize");
+    if (m_timelineFile.isEmpty()) { return QJsonDocument(m_committedDocument).toJson(QJsonDocument::Compact); }
+    return QJsonDocument(nt::timelineFileWithSequence(m_timelineFile, m_committedDocument)).toJson();
 }
 
 int exitCodeAfterLocalSave(LocalDocumentSaver* saver, int rc) {
@@ -50,7 +51,7 @@ bool LocalDocumentSaver::flush() {
     m_timer.stop();
     if (!m_active || !m_dirty || !m_model) { return true; }
     QSaveFile file(m_path);
-    const auto& bytes = m_committedBytes;
+    const auto bytes = this->bytes();
     if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit()) {
         m_lastError = QStringLiteral("Cannot save %1: %2").arg(m_path, file.errorString());
         emit saveFailed(m_lastError);

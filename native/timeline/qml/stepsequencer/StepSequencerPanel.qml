@@ -141,8 +141,7 @@ Rectangle {
     // clip when it is a MIDI track, else on the first MIDI track. Then select it.
     function newPatternRegion() {
         const selection = gestures ? (gestures.selection || []) : []
-        const selected = selection.length > 0 ? gestures.clipData(selection[0]) : null
-        const trackId = selected && selected.mediaType === "midi" ? selected.trackId : ""
+        const trackId = selection.length > 0 && gestures.clipMediaType(selection[0]) === "midi" ? gestures.clipTrack(selection[0]) : ""
         const ms = clock ? clock.time : 0
         const result = controller.createPatternRegion(trackId || "", ms)
         if (result.ok && gestures) gestures.selection = [result.clip.id]
@@ -152,9 +151,8 @@ Rectangle {
         if (!gestures || !linkOn) return
         const selection = gestures.selection || []
         if (selection.length !== 1) return
-        const clip = gestures.clipData(selection[0])
         // A plain MIDI region reaches the controller too, so the panel offers Convert.
-        if (clip && clip.mediaType === "midi" && controller.clipId !== selection[0]) controller.clipId = selection[0]
+        if (gestures.clipMediaType(selection[0]) === "midi" && controller.clipId !== selection[0]) controller.clipId = selection[0]
     }
     Connections {
         target: root.gestures

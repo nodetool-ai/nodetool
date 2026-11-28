@@ -6,6 +6,7 @@
 #include <QQuickItem>
 #include <QSet>
 #include <QThread>
+#include <functional>
 #include <private/qquickitem_p.h>
 #include <private/qquickitemchangelistener_p.h>
 
@@ -19,6 +20,8 @@ public:
     ObjectCreations& operator=(const ObjectCreations&) = delete;
     ObjectCreations(ObjectCreations&&) = delete;
     ObjectCreations& operator=(ObjectCreations&&) = delete;
+    // Retried when derived construction or QML setup changes the meta-object.
+    std::function<void(QObject&)> onObject;
     QSet<QString> delegateNames;
     qint64 objects = 0;
     qint64 delegates = 0;
@@ -34,6 +37,16 @@ public:
     void observe(QObject& root) {
         attach(&root, false);
         for (auto* child : root.findChildren<QObject*>()) { attach(child, false); }
+    }
+    // Measurement interceptors belong to the observer, not the scene workload.
+    void excludeFromCount(QObject& object) {
+        auto it = m_objects.find(&object);
+        if (it != m_objects.end() && it->measured) {
+            --objects;
+            it->measured = false;
+        }
+        // The interceptor may be created before its target joins the measured tree.
+        attach(&object, false);
     }
     void classify() {
         for (auto it = m_objects.begin(); it != m_objects.end(); ++it) { classify(it.key(), it.value()); }
@@ -60,7 +73,7 @@ protected:
     }
 
 private:
-    struct Entry { bool measured = false; bool classified = false; QPointer<QQuickItem> item; };
+    struct Entry { bool measured = false; bool classified = false; QPointer<QQuickItem> item; const QMetaObject* type = nullptr; };
     QHash<QObject*, Entry> m_objects;
 
     void classify(QObject* object, Entry& entry) {
@@ -73,6 +86,17 @@ private:
             entry.classified = true;
         }
     }
+    void notify(QObject* object) {
+        auto it = m_objects.find(object);
+        if (!onObject || it == m_objects.end() || it->type == object->metaObject()) { return; }
+        it->type = object->metaObject();
+        const QPointer<QObject> guard(object);
+        onObject(*object);
+        if (guard) {
+            // Interceptors can replace the dynamic meta-object during notification.
+            m_objects[object].type = object->metaObject();
+        }
+    }
     void itemChildAdded(QQuickItem*, QQuickItem* child) override { attach(child, true); }
     void attach(QObject* object, bool measured) {
         Q_ASSERT(QThread::currentThread() == thread());
@@ -82,13 +106,19 @@ private:
             classify(object, existing.value());
             // ChildAdded can arrive during QObject construction. Retry installing
             // the visual listener when the derived QQuickItem is available.
-            if (existing->item || !qobject_cast<QQuickItem*>(object)) { return; }
+            if (existing->item || !qobject_cast<QQuickItem*>(object)) { notify(object); return; }
         } else {
-            m_objects.insert(object, {measured, false, {}});
+            m_objects.insert(object, {measured, false, {}, nullptr});
             if (measured) { ++objects; }
             object->installEventFilter(this);
             const QPointer<ObjectCreations> self(this);
             const QPointer<QObject> watched(object);
+            // ChildAdded can precede derived construction and QML property setup.
+            if (onObject) {
+                QMetaObject::invokeMethod(this, [self, watched] {
+                    if (self && watched) { self->attach(watched, true); }
+                }, Qt::QueuedConnection);
+            }
             QObject::connect(object, &QObject::objectNameChanged, this, [self, watched] {
                 if (!self || !watched) { return; }
                 auto it = self->m_objects.find(watched);
@@ -105,5 +135,9 @@ private:
         }
         auto it = m_objects.find(object);
         classify(object, it.value());
+        if (onObject) {
+            for (auto* child : object->children()) { attach(child, measured); }
+        }
+        notify(object);
     }
 };

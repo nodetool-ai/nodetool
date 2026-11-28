@@ -23,6 +23,12 @@ import {
   type TimelineOpState
 } from "../src/ops/index.js";
 
+const nativeBinary = process.env.NODETOOL_NATIVE_AUTOMATION_BINARY;
+if (!nativeBinary) {
+  process.stderr.write(
+    "Native automation parity skipped: set NODETOOL_NATIVE_AUTOMATION_BINARY to tst_automation.\n"
+  );
+}
 const target = { kind: "mixer", param: "volumeDb" } as const;
 function state(): TimelineOpState {
   return {
@@ -93,9 +99,10 @@ async function expectNative(
   } catch (error) {
     out = { state: initial, error: String(error) };
   }
-  const binary = fileURLToPath(
-    new URL("../../../native/timeline/build/tst_automation", import.meta.url)
-  );
+  const binary = nativeBinary;
+  if (!binary) {
+    return out;
+  }
   const actual = JSON.parse(
     execFileSync(binary, ["--json"], {
       input: JSON.stringify([
@@ -147,6 +154,27 @@ async function expectNative(
 }
 
 describe("narrow automation edits", () => {
+  it("preserves close stored points when adding elsewhere in both engines", async () => {
+    const initial = state();
+    const points = [
+      { timeMs: 10, value: -12 },
+      { timeMs: 10.25, value: -6, easing: "linear" },
+      { timeMs: 20, value: 0 }
+    ];
+    initial.tracks[0]!.automation![0]!.points = points;
+    const payload = { target, points: [{ timeMs: 500, value: -3 }] };
+    const out = await run(initial, "automation.addPoints", payload);
+    expect(out.state.tracks[0]!.automation![0]!.points).toEqual([
+      ...points, { timeMs: 500, value: -3 }
+    ]);
+    await expectNative(initial, "automation.addPoints", payload);
+  });
+  it("requires an explicit native binary instead of a checkout build path", () => {
+    const source = readFileSync(fileURLToPath(import.meta.url), "utf8");
+    expect(source).not.toContain(
+      "../../../native/timeline/" + "build/tst_automation"
+    );
+  });
   it("resolves move collisions with moved points winning, last selected point winning ties", async () => {
     for (const [fromMs, toMs, deltaMs, expected] of [
       [10, 20, -100, [{ timeMs: 0, value: 0 }]],
@@ -387,25 +415,26 @@ describe("narrow automation edits", () => {
     ]);
     await expectNative(initial, "automation.addPoints", payload);
   });
-  it("shares native capacity and time limits with protocol validation", () => {
-    const binary = fileURLToPath(
-      new URL("../../../native/timeline/build/tst_automation", import.meta.url)
-    );
-    const actual = JSON.parse(
-      execFileSync(binary, ["--json"], {
-        input: JSON.stringify([["automationLimits", []]]),
-        encoding: "utf8",
-        env: { ...process.env, QT_QPA_PLATFORM: "offscreen" }
-      })
-    );
-    expect(actual).toEqual([
-      [
-        MAX_AUTOMATION_POINTS_PER_LANE,
-        MAX_AUTOMATION_LANES_PER_TRACK,
-        MAX_AUTOMATION_TIME_MS
-      ]
-    ]);
-  });
+  it.skipIf(!nativeBinary)(
+    "shares native capacity and time limits with protocol validation",
+    () => {
+      const binary = nativeBinary!;
+      const actual = JSON.parse(
+        execFileSync(binary, ["--json"], {
+          input: JSON.stringify([["automationLimits", []]]),
+          encoding: "utf8",
+          env: { ...process.env, QT_QPA_PLATFORM: "offscreen" }
+        })
+      );
+      expect(actual).toEqual([
+        [
+          MAX_AUTOMATION_POINTS_PER_LANE,
+          MAX_AUTOMATION_LANES_PER_TRACK,
+          MAX_AUTOMATION_TIME_MS
+        ]
+      ]);
+    }
+  );
   it("rejects malformed stored points before ordered merging", async () => {
     for (const timeMs of [NaN, Infinity, 1e308]) {
       const initial = state();
@@ -680,25 +709,8 @@ describe("narrow automation edits", () => {
   });
 });
 
-describe("native document parity", () => {
-  const binary = fileURLToPath(
-    new URL("../../../native/timeline/build/tst_automation", import.meta.url)
-  );
-  it("preserves close stored points when adding elsewhere in both engines", async () => {
-    const initial = state();
-    const points = [
-      { timeMs: 10, value: -12 },
-      { timeMs: 10.25, value: -6, easing: "linear" },
-      { timeMs: 20, value: 0 }
-    ];
-    initial.tracks[0]!.automation![0]!.points = points;
-    const payload = { target, points: [{ timeMs: 500, value: -3 }] };
-    const out = await run(initial, "automation.addPoints", payload);
-    expect(out.state.tracks[0]!.automation![0]!.points).toEqual([
-      ...points, { timeMs: 500, value: -3 }
-    ]);
-    await expectNative(initial, "automation.addPoints", payload);
-  });
+describe.skipIf(!nativeBinary)("native document parity", () => {
+  const binary = nativeBinary!;
   it("compares each named edit against the native edit implementation", async () => {
     expect(
       existsSync(binary),

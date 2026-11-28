@@ -598,3 +598,23 @@ it("patches the compact note ID returned to an agent and rejects ambiguous prefi
     expect(ambiguous.clips[0]?.notes).toHaveLength(2);
   }
 });
+
+it("patchNotes atomically splits one note without replacing unrelated notes", async () => {
+  const s = state([midi([note("a", 60, 0, 480), note("b", 62, 480, 480)])]);
+  const out = await run(s, "set_notes", {
+    clip: "m",
+    patch: { edit: "midi.patchNotes", notes: [note("a", 60, 0, 240)],
+      addedNotes: [note("right", 60, 240, 240)] }
+  });
+  expect(notesOf(out)).toEqual([note("a", 60, 0, 240), note("b", 62, 480, 480), note("right", 60, 240, 240)]);
+});
+
+it("rejects atomic additions that collide with existing or added note IDs", async () => {
+  const s = state([midi([note("a", 60, 0, 480)])]);
+  for (const addedNotes of [[note("a", 62, 480, 120)], [note("new", 62, 480, 120), note("new", 64, 600, 120)]]) {
+    await expect(run(s, "set_notes", {
+      clip: "m", patch: { edit: "midi.patchNotes", notes: [note("a", 60, 0, 240)], addedNotes }
+    })).rejects.toThrow(/Duplicate added note id/);
+    expect(s.clips[0]?.notes?.[0]?.durationTick).toBe(480);
+  }
+});

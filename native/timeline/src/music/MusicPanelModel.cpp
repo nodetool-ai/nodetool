@@ -312,6 +312,8 @@ void MusicPanelModel::refreshTakes(const QJsonObject& raw) {
     m_takeClipTitle.clear();
     m_takeClipPending = false;
     m_takes.clear();
+    m_takesById.clear();
+    m_activeTakeContext.clear();
     if (clip.isEmpty() || !tempo) { return; }
     m_takeClipId = clip.value(u"id").toString();
     m_takeClipTitle = (m_trackName.isEmpty() ? tr("Untitled track") : m_trackName) + QStringLiteral(" · ") + bars(clipFrames(clip), *tempo);
@@ -397,6 +399,11 @@ void MusicPanelModel::refreshTakes(const QJsonObject& raw) {
             {"contextStartFrame", static_cast<double>(heard.startFrame)},
             {"contextEndFrame", static_cast<double>(heard.endFrame)},
             {"record", rows}});
+        m_takesById.insert(id, m_takes.last().toMap());
+        if (isActive && !contextLabel.isEmpty()) {
+            m_activeTakeContext = {{"id", id}, {"label", contextLabel},
+                {"startFrame", static_cast<double>(heard.startFrame)}, {"endFrame", static_cast<double>(heard.endFrame)}};
+        }
     }
 }
 

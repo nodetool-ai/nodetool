@@ -9,6 +9,8 @@
 #include "wiring/WiringFixture.h"
 #include "TestHttpServer.h"
 #include "music/MusicPlan.h"
+#include "edit/ClipGestureController.h"
+#include "model/TimelineJson.h"
 #include "music/MusicBounce.h"
 #include "assets/AssetWav.h"
 #include "audio/AudioEngine.h"
@@ -144,6 +146,44 @@ class TestMusicUi : public WiringFixture {
         return panel ? named(panel, name) : nullptr;
     }
 private slots:
+    void narrowClipQueries() {
+        TimelineModel model;
+        auto parsed = nt::parseTimeline(musicDocument(false));
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        // UI-thread observer, shared with the model for the duration of this test.
+        struct Crossings final : TimelineModel::MeasurementObserver {
+            mutable int count = 0;
+            void phase(const char*, bool) const noexcept override {}
+            void crossing(const char*, const QJsonValue&) const noexcept override { ++count; }
+        };
+        const auto crossings = std::make_shared<Crossings>();
+        QVERIFY(model.setMeasurementObserver(crossings));
+        ClipGestureController gestures;
+        gestures.setTimeline(&model);
+        QVERIFY(!gestures.clipData(QStringLiteral("a1")).isEmpty());
+        QCOMPARE(crossings->count, 1);
+        crossings->count = 0;
+        QString media;
+        QVERIFY(QMetaObject::invokeMethod(&gestures, "clipMediaType", Q_RETURN_ARG(QString, media), Q_ARG(QString, "a1")));
+        QCOMPARE(media, QStringLiteral("audio"));
+        QString track;
+        QVERIFY(QMetaObject::invokeMethod(&gestures, "clipTrack", Q_RETURN_ARG(QString, track), Q_ARG(QString, "a1")));
+        QCOMPARE(track, QStringLiteral("a"));
+        bool exists = true;
+        QVERIFY(QMetaObject::invokeMethod(&gestures, "hasClip", Q_RETURN_ARG(bool, exists), Q_ARG(QString, "missing")));
+        QVERIFY(!exists);
+        QVERIFY(QMetaObject::invokeMethod(&gestures, "hasClip", Q_RETURN_ARG(bool, exists), Q_ARG(QString, "a1")));
+        QVERIFY(exists);
+        QVERIFY(QMetaObject::invokeMethod(&gestures, "clipMediaType", Q_RETURN_ARG(QString, media), Q_ARG(QString, "missing")));
+        QVERIFY(media.isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(&gestures, "clipTrack", Q_RETURN_ARG(QString, track), Q_ARG(QString, "missing")));
+        QVERIFY(track.isEmpty());
+        gestures.setTimeline(nullptr);
+        QVERIFY(QMetaObject::invokeMethod(&gestures, "hasClip", Q_RETURN_ARG(bool, exists), Q_ARG(QString, "a1")));
+        QVERIFY(!exists);
+        QCOMPARE(crossings->count, 0);
+    }
     void cleanup() { view.reset(); model.setReadOnly(false); }
 
     void reviewF1LoopedPatternJoin_data() {

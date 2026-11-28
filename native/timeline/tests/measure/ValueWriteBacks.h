@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ObjectCreations.h"
 #include <QMetaProperty>
 #include <QPointer>
 #include <QQmlProperty>
@@ -14,11 +15,21 @@
 // The target owns each interceptor. The counter can die before its targets.
 class ValueWriteBacks final : public QObject {
 public:
+    ValueWriteBacks() {
+        const QPointer<ValueWriteBacks> self(this);
+        m_objects.onObject = [self](QObject& object) {
+            if (self) { self->observeObject(object); }
+        };
+    }
+    std::function<void(QObject&)> interceptorCreated;
     qint64 writes = 0;
 
-    void observe(QObject& object) {
+    void observe(QObject& object) { m_objects.observe(object); }
+
+private:
+    ObjectCreations m_objects;
+    void observeObject(QObject& object) {
         auto* meta = QQmlInterceptorMetaObject::get(&object);
-        for (auto* child : object.children()) { observe(*child); }
         const auto* type = object.metaObject();
         for (int i = 0; i < type->propertyCount(); ++i) {
             const auto property = type->property(i);
@@ -36,6 +47,7 @@ public:
             // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): parented to object
             auto* interceptor = new GadgetWrite(&object, *this, target);
             meta->registerInterceptor(index, interceptor);
+            if (interceptorCreated) { interceptorCreated(*interceptor); }
         }
     }
 

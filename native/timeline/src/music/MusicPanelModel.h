@@ -87,6 +87,8 @@ class MusicPanelModel : public QObject {
     //   contextEndFrame}], in document order.
     Q_PROPERTY(QVariantList takes READ takes NOTIFY takesChanged)
     Q_PROPERTY(QAbstractItemModel* takeRows READ takeRows CONSTANT)
+    Q_PROPERTY(int takeCount READ takeCount NOTIFY takesChanged)
+    Q_PROPERTY(QVariantMap activeTakeContext READ activeTakeContext NOTIFY takesChanged)
 
 public:
     explicit MusicPanelModel(QObject* parent = nullptr);
@@ -126,6 +128,9 @@ public:
     bool takeClipPending() const { return m_takeClipPending; }
     QVariantList takes() const { return m_takes; }
     QAbstractItemModel* takeRows() { return &m_takeRows; }
+    int takeCount() const { return static_cast<int>(m_takes.size()); }
+    QVariantMap activeTakeContext() const { return m_activeTakeContext; }
+    Q_INVOKABLE QVariantMap takeById(const QString& id) const { return m_takesById.value(id); }
 
     // Writes the target track's role through the `music.setTrackRole` edit, one undo step.
     // An empty role removes it.
@@ -180,4 +185,6 @@ private:
     QJsonObject m_takeInputs;
     MusicTakeModel m_takeRows;
     QVariantList m_takes;
+    QHash<QString, QVariantMap> m_takesById;
+    QVariantMap m_activeTakeContext;
 };

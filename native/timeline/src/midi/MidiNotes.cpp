@@ -478,6 +478,19 @@ QJsonObject patchClipNotes(const QString& name, QJsonObject raw, const QJsonObje
         }
         notes = kept;
     }
+    if (name == "midi.patchNotes" && payload.contains("addedNotes")) {
+        if (!payload.value("addedNotes").isArray()) { return raw; }
+        for (const auto& value : payload.value("addedNotes").toArray()) {
+            if (!value.isObject()) { return raw; }
+            const auto patch = value.toObject();
+            const auto id = patch.value("id").toString();
+            if (id.isEmpty() || positions.contains(id) || seen.contains(id)) { return raw; }
+            const auto added = updatedNote("midi.addNotes", {}, patch, true);
+            if (!added) { return raw; }
+            seen.insert(id);
+            notes.append(*added);
+        }
+    }
     if (notes.size() > MAX_NOTES_PER_CLIP || notes == clip.value("notes").toArray()) { return raw; }
     clip.insert("notes", notes);
     clips.replace(index, clip);
@@ -531,6 +544,20 @@ nt::app::TypedEditResult patchTypedNotes(const QString& name, const nt::Timeline
             else { (*notes)[positions.value(noteId)] = std::move(note); }
         }
         if (name == "midi.patchNotes" && payload.contains("noteIds") && !remove(payload.value("noteIds"))) { throw std::invalid_argument("Invalid or duplicate removed note id."); }
+    }
+    if (name == "midi.patchNotes" && payload.contains("addedNotes")) {
+        if (!payload.value("addedNotes").isArray()) { throw std::invalid_argument("Invalid added notes."); }
+        for (const auto& value : payload.value("addedNotes").toArray()) {
+            if (!value.isObject()) { throw std::invalid_argument("Invalid added note."); }
+            const auto patch = value.toObject();
+            const auto noteId = patch.value("id").toString();
+            if (noteId.isEmpty() || positions.contains(noteId) || seen.contains(noteId)) { throw std::invalid_argument("Duplicate added note id."); }
+            const auto added = updatedNote("midi.addNotes", {}, patch, true);
+            if (!added) { throw std::invalid_argument("Invalid added note."); }
+            seen.insert(noteId);
+            notes->push_back({noteId, added->value("pitch").toInt(), added->value("velocity").toInt(),
+                added->value("startTick").toDouble(), added->value("durationTick").toDouble(), *added});
+        }
     }
     std::erase_if(*notes, [&removed](const nt::MidiNote& note) { return removed.contains(note.id); });
     if (notes->size() > MAX_NOTES_PER_CLIP) { throw std::invalid_argument("Invalid notes array or note limit exceeded."); }

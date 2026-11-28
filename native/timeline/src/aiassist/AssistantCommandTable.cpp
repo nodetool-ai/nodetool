@@ -84,6 +84,7 @@ QList<Command> buildAllowed() {
     }
     edit("midi.patchNotes", "Patch mixed MIDI notes", {clip,
         P{"notes", ParamKind::Array, true, "Full changed notes. Unknown ids are errors. Use midi.addNotes to insert notes."},
+        P{"addedNotes", ParamKind::Array, false, "Complete new notes to insert atomically with the updates."},
         P{"noteIds", ParamKind::Array, false, "Existing note ids to remove atomically with the updates."}});
     edit("midi.removeNotes", "Remove MIDI notes", {clip,
         P{"noteIds", ParamKind::Array, true, "Existing note ids to remove."}});

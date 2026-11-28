@@ -237,7 +237,6 @@ NoteLayerItem::NoteLayerItem(QQuickItem* parent) : QQuickItem(parent) {
         &NoteLayerItem::collapsedChanged,
         &NoteLayerItem::pxPerTickChanged,
         &NoteLayerItem::rowHeightChanged,
-        &NoteLayerItem::hasPreviewChanged,
         &NoteLayerItem::clipColorsChanged,
         &NoteLayerItem::noteLabelsChanged,
         &NoteLayerItem::darkChanged,
@@ -280,9 +279,9 @@ NoteLayerItem::NoteLayerItem(QQuickItem* parent) : QQuickItem(parent) {
             if ((signal == &NoteLayerItem::rowHeightChanged || signal == &NoteLayerItem::collapsedChanged) && !rows) { return; }
             if ((signal == &NoteLayerItem::stepTicksChanged || signal == &NoteLayerItem::phaseTickChanged) && m_drawingKind != "notes" && m_drawingKind != "ruler") { return; }
             if ((signal == &NoteLayerItem::hoverPitchChanged || signal == &NoteLayerItem::pressedPitchChanged || signal == &NoteLayerItem::darkChanged) && m_drawingKind != "keyboard") { return; }
-            if ((signal == &NoteLayerItem::clipColorsChanged || signal == &NoteLayerItem::clipAccentChanged || signal == &NoteLayerItem::noteLabelsChanged || signal == &NoteLayerItem::hasPreviewChanged) && !notes) { return; }
+            if ((signal == &NoteLayerItem::clipColorsChanged || signal == &NoteLayerItem::clipAccentChanged || signal == &NoteLayerItem::noteLabelsChanged) && !notes) { return; }
             if ((signal == &NoteLayerItem::curveMinChanged || signal == &NoteLayerItem::curveMaxChanged || signal == &NoteLayerItem::curveNeutralChanged || signal == &NoteLayerItem::curveBaseTickChanged || signal == &NoteLayerItem::curveEndTickChanged || signal == &NoteLayerItem::expressionChanged || signal == &NoteLayerItem::curveStepChanged || signal == &NoteLayerItem::selectedPointIdsChanged) && m_drawingKind != "curve") { return; }
-            if (notes && (signal == &NoteLayerItem::hasPreviewChanged || signal == &NoteLayerItem::clipColorsChanged || signal == &NoteLayerItem::clipAccentChanged || signal == &NoteLayerItem::noteLabelsChanged)) { repaintNotes(); return; }
+            if (notes && (signal == &NoteLayerItem::clipColorsChanged || signal == &NoteLayerItem::clipAccentChanged || signal == &NoteLayerItem::noteLabelsChanged)) { repaintNotes(); return; }
             requestPaint();
         });
     }
@@ -291,14 +290,6 @@ void NoteLayerItem::setCollapsePitches(const QList<int>& pitches) {
     if (m_collapsePitches == pitches) { return; }
     m_collapsePitches = pitches;
     if (m_drawingKind == "notes" || m_drawingKind == "keyboard") { requestPaint(); }
-}
-void NoteLayerItem::setPreviewNotes(const QVariantList& notes) {
-    m_previewNotes.clear(); m_previewNotes.reserve(static_cast<std::size_t>(notes.size()));
-    for (const auto& value : notes) {
-        const auto n = QJsonObject::fromVariantMap(value.toMap());
-        m_previewNotes.push_back({n.value("id").toString(),n.value("pitch").toInt(),n.value("velocity").toInt(),n.value("startTick").toDouble(),n.value("durationTick").toDouble(),n});
-    }
-    repaintNotes();
 }
 void NoteLayerItem::setCurvePoints(const QVariantList& points) {
     m_curvePoints.clear(); m_curvePoints.reserve(static_cast<std::size_t>(points.size()));
@@ -316,6 +307,7 @@ void NoteLayerItem::setController(PianoRollController* controller) {
     if (controller) {
         connect(controller, &PianoRollController::notesChanged, this, &NoteLayerItem::invalidateNotes);
         connect(controller, &PianoRollController::clipChanged, this, &NoteLayerItem::invalidateClip);
+        connect(controller, &PianoRollController::toolChanged, this, &NoteLayerItem::repaintNotes);
         connect(controller, &PianoRollController::noteDragChanged, this, &NoteLayerItem::invalidateOverlay);
         connect(controller, &QObject::destroyed, this, [this] { m_controller = nullptr; invalidateNotes(); invalidateClip(); requestPaint(); });
     }
@@ -356,9 +348,13 @@ void NoteLayerItem::updatePolish() {
     Q_ASSERT(QThread::currentThread() == thread());
     m_valid = m_controller && m_controller->valid();
     if (m_snapshotNotesDirty) {
-        m_renderNotes = m_valid ? m_controller->typedNotes() : std::vector<nt::MidiNote>{};
+        m_renderNotes = m_valid ? m_controller->noteStorage() : nullptr;
         m_snapshotNotesDirty = false;
     }
+    if (m_drawingKind == "notes" || m_drawingKind == "velocity") { rebuildIndex(); }
+    m_toolNotes = m_controller ? m_controller->toolNotes() : std::vector<nt::MidiNote>{};
+    const auto hidden = m_controller ? m_controller->toolHiddenIds() : QStringList{};
+    m_toolHidden = QSet<QString>(hidden.begin(), hidden.end());
     m_dragging = m_controller && m_controller->noteDragActive();
     m_dragIds = m_dragging ? m_controller->noteDragIds() : QStringList{};
     m_dragValues.clear(); m_dragRows.clear();
@@ -404,31 +400,75 @@ void NoteLayerItem::rebuildIndex() {
         }
         for (auto& row : m_index) {
             std::sort(row.begin(), row.end(), [](const auto& a, const auto& b) { return a.start < b.start; });
-            double end = 0;
-            for (auto& interval : row) { end = std::max(end, interval.end); interval.maxEnd = end; }
+            // Store subtree maxima in the implicit balanced tree. A long early note
+            // must not force a backward scan through every later offscreen note.
+            const auto build = [&](auto&& self, std::size_t begin, std::size_t end) -> double {
+                if (begin == end) { return 0; }
+                const auto middle = begin + (end - begin) / 2;
+                row[middle].maxEnd = std::max({row[middle].end, self(self, begin, middle), self(self, middle + 1, end)});
+                return row[middle].maxEnd;
+            };
+            build(build, 0, row.size());
         }
         m_indexDirty = false;
     }
 }
+std::vector<int> NoteLayerItem::visibleRows(double from, double to, int lowPitch, int highPitch, bool onsetsOnly) const {
+    std::vector<int> hits;
+    for (int pitch = std::max(0, lowPitch); pitch <= std::min(127, highPitch); ++pitch) {
+        const auto& row = m_index[static_cast<std::size_t>(pitch)];
+        if (onsetsOnly) {
+            auto it = std::lower_bound(row.begin(), row.end(), from, [this](const Interval& note, double tick) {
+                m_intervalVisitCount.fetch_add(1, std::memory_order_relaxed);
+                return note.start < tick;
+            });
+            for (; it != row.end() && it->start <= to; ++it) {
+                m_intervalVisitCount.fetch_add(1, std::memory_order_relaxed);
+                hits.push_back(it->row);
+            }
+            continue;
+        }
+        const auto query = [&](auto&& self, std::size_t begin, std::size_t end) -> void {
+            if (begin == end) { return; }
+            const auto middle = begin + (end - begin) / 2;
+            const auto& interval = row[middle];
+            m_intervalVisitCount.fetch_add(1, std::memory_order_relaxed);
+            if (interval.maxEnd < from) { return; }
+            self(self, begin, middle);
+            if (interval.start > to) { return; }
+            if (interval.end >= from) { hits.push_back(interval.row); }
+            self(self, middle + 1, end);
+        };
+        query(query, 0, row.size());
+    }
+    std::sort(hits.begin(), hits.end());
+    return hits;
+}
+
 QStringList NoteLayerItem::notesInRect(double from, double to, int pitchA, int pitchB) {
     if (!m_controller) { return {}; }
     rebuildIndex();
     const double lo = std::min(from,to), hi = std::max(from,to);
     const auto& notes = m_controller->typedNotes();
-    std::vector<int> hits;
-    for (int pitch = std::max(0,std::min(pitchA,pitchB)); pitch <= std::min(127,std::max(pitchA,pitchB)); ++pitch) {
-        const auto& row = m_index[static_cast<std::size_t>(pitch)];
-        auto it = std::upper_bound(row.begin(),row.end(),hi,[](double tick,const Interval& note) { return tick < note.start; });
-        while (it != row.begin()) {
-            --it;
-            if (it->maxEnd < lo) { break; }
-            if (it->end >= lo) { hits.push_back(it->row); }
-        }
-    }
-    std::sort(hits.begin(),hits.end());
+    const auto hits = visibleRows(lo, hi, std::min(pitchA, pitchB), std::max(pitchA, pitchB));
     QStringList result;
     for (const auto row : hits) { result.append(notes[static_cast<std::size_t>(row)].id); }
     return result;
+}
+
+QVariantMap NoteLayerItem::noteNear(double x, double radius) {
+    if (!m_controller || m_pxPerTick <= 0) { return {}; }
+    rebuildIndex();
+    const double tick = m_scrollTick + x / m_pxPerTick;
+    const auto rows = visibleRows(tick - radius / m_pxPerTick, tick + radius / m_pxPerTick, 0, 127, true);
+    const auto& notes = m_controller->typedNotes();
+    int best = -1;
+    for (auto it = rows.rbegin(); it != rows.rend(); ++it) {
+        const auto& note = notes[static_cast<std::size_t>(*it)];
+        const double distance = std::abs((note.startTick - tick) * m_pxPerTick);
+        if (distance < radius) { radius = distance; best = *it; }
+    }
+    return m_controller->noteAtRow(best);
 }
 
 int NoteLayerItem::hitNote(double x, double y) {
@@ -440,14 +480,13 @@ int NoteLayerItem::hitNote(double x, double y) {
     const int pitch = !m_collapsed ? m_topPitch - offset : m_collapsePitches.value(row, -1);
     if (pitch < 0 || pitch > 127) { return 0; }
     const double tick = m_scrollTick + x / m_pxPerTick;
-    const auto& intervals = m_index[static_cast<std::size_t>(pitch)];
-    auto it = std::upper_bound(intervals.begin(), intervals.end(), tick, [](double t, const Interval& n) { return t < n.start; });
+    const auto hiddenIds = m_controller->toolHiddenIds();
+    const QSet<QString> hidden(hiddenIds.begin(), hiddenIds.end());
     int hit = -1;
-    while (it != intervals.begin()) {
-        --it;
-        if (it->maxEnd + 1 / m_pxPerTick < tick) { break; }
-        const auto& n = notes[static_cast<std::size_t>(it->row)];
-        if (tick < n.startTick + std::max(1 / m_pxPerTick, n.durationTick)) { hit = std::max(hit, it->row); }
+    for (const int row : visibleRows(tick - 1 / m_pxPerTick, tick, pitch, pitch)) {
+        const auto& n = notes[static_cast<std::size_t>(row)];
+        if (hidden.contains(n.id)) { continue; }
+        if (tick < n.startTick + std::max(1 / m_pxPerTick, n.durationTick)) { hit = std::max(hit, row); }
     }
     if (hit < 0) { return 0; }
     const auto& n = notes[static_cast<std::size_t>(hit)];
@@ -645,9 +684,9 @@ QSGNode* NoteLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
         if (overlay && bounds.isEmpty()) { return std::make_unique<LayerNode>(); }
         Drawing draw(bounds,window()->effectiveDevicePixelRatio(),software);
         std::vector<nt::MidiNote> preview;
-        const auto* list = valid ? &m_renderNotes : &preview;
-        if (m_hasPreview) { list = &m_previewNotes; }
+        const auto* list = valid && m_renderNotes ? m_renderNotes.get() : &preview;
         const auto note = [&](const nt::MidiNote& original, const QString& id, bool useOverlay) {
+            m_noteVisitCount.fetch_add(1, std::memory_order_relaxed);
             double tick = original.startTick, duration = original.durationTick;
             int pitch = original.pitch, velocity = original.velocity;
             if (useOverlay) { const auto p = m_dragValues.value(id); tick=p.startTick; duration=p.durationTick; pitch=p.pitch; velocity=p.velocity; }
@@ -710,14 +749,32 @@ QSGNode* NoteLayerItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
                     }
                 }
             } else {
-                // Velocity stems draw selected notes last, as the Canvas did.
+                // Query only the buffered viewport. Velocity uses every pitch but the same time index.
+                std::vector<int> visible;
+                if (valid && m_renderNotes) {
+                    if (m_drawingKind == "velocity") {
+                        visible = visibleRows(root->tick - m_margin / m_pxPerTick, root->tick + root->span + m_margin / m_pxPerTick, 0, 127, true);
+                    } else if (collapsed) {
+                        for (int row = 0; row <= root->rows; ++row) {
+                            const int pitch = pitchOf(row);
+                            const auto hits = visibleRows(root->tick - 1 / m_pxPerTick, root->tick + root->span, pitch, pitch);
+                            visible.insert(visible.end(), hits.begin(), hits.end());
+                        }
+                        std::sort(visible.begin(), visible.end());
+                    } else {
+                        visible = visibleRows(root->tick - 1 / m_pxPerTick, root->tick + root->span, root->pitch - root->rows, root->pitch);
+                    }
+                }
+                // Velocity stems draw selected notes last, reusing the visible query.
                 for (int pass = 0; pass < (m_drawingKind == "velocity" ? 2 : 1); ++pass) {
-                    for (const auto& n : *list) {
+                    for (const int row : visible) {
+                        const auto& n = (*list)[static_cast<std::size_t>(row)];
                         if (m_drawingKind == "velocity" && selected.contains(n.id) != (pass == 1)) { continue; }
-                        if (!dragged.contains(n.id) || !selected.contains(n.id)) { note(n,n.id,false); }
+                        if (!m_toolHidden.contains(n.id) && (!dragged.contains(n.id) || !selected.contains(n.id))) { note(n,n.id,false); }
                     }
                 }
             }
+            if (!overlay) { for (const auto& n : m_toolNotes) { note(n, n.id, false); } }
             if (overlay && m_marqueeVisible && m_drawingKind == "notes") {
                 const double x1=xOf(m_marquee.left()), x2=xOf(m_marquee.right());
                 const double y1=yOf(static_cast<int>(std::max(m_marquee.top(),m_marquee.bottom())));

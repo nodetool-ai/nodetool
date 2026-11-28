@@ -201,6 +201,9 @@ public:
     // mode decides whether later clips follow. A `merge` folds into the previous
     // keyboard trim, for a held key. False when no edit point is selected.
     bool trimEditPoint(double edgeTargetMs, bool merge);
+    Q_INVOKABLE QString clipMediaType(const QString& clipId) const;
+    Q_INVOKABLE QString clipTrack(const QString& clipId) const;
+    Q_INVOKABLE bool hasClip(const QString& clipId) const;
     Q_INVOKABLE QVariantMap clipData(const QString& clipId) const;
     // True when the last clips change touched the clip (TimelineModel::clipTouched).
     Q_INVOKABLE bool clipTouched(const QString& clipId) const { return !m_timeline || m_timeline->clipTouched(clipId); }
