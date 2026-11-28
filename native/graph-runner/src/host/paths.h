@@ -87,4 +87,27 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd,
                  const std::string& path, Access access, const std::string& syscall,
                  bool noSymlinks = false);
 
+// A directory entry named by a path, for the operations that act on the
+// entry itself (unlink, rmdir, rename, rm): a symlink there is the link, not
+// what it points at.
+struct ResolvedEntry {
+  // The canonical directory holding the entry, inside a writable root.
+  std::string parent;
+  // The entry's name in `parent`. Never empty, "." or "..".
+  std::string leaf;
+  const Root* root = nullptr;
+
+  // `parent` joined with `leaf`. The leaf is not resolved.
+  std::string path() const;
+};
+
+// Resolves the parent of `path` (absolute, or relative to `cwd`) as confine()
+// resolves a write target's parent, and keeps the last component as it is.
+// Throws FsError EINVAL when the last component is empty, "." or "..",
+// EACCES when the entry is a granted root itself, lies outside every
+// writable root or in a workspace's `.nodetool/`, ENOENT when the parent is
+// missing. Whether the entry exists is left to the operation.
+ResolvedEntry confineEntry(const std::vector<Root>& roots, const std::string& cwd,
+                           const std::string& path, const std::string& syscall);
+
 }  // namespace gr::host

@@ -347,6 +347,93 @@ void filesReadRootsAreReadOnly() {
   CHECK(startsWith(run(*e, "__host.files.readFile('a.txt')"), "error: EACCES"));
 }
 
+// A write refuses a hard-linked file before it truncates it, and unlink,
+// rmdir, rm and rename act on a symlink itself, never on what it points at.
+void filesActOnLinksThemselves() {
+  TempDir t;
+  writeText(t.path("ws/target.txt"), "target");
+  writeText(t.path("ws/dir/kept.txt"), "kept");
+  writeText(t.path("ws/shared.txt"), "shared");
+  fs::create_directories(t.path("db"));
+  gr::HostOptions o;
+  o.workspaceDir = t.path("ws");
+  o.sqliteDirectory = t.path("db");
+  auto e = engineWith(o);
+
+  // writeFile on a file with a second hard link fails and keeps its content.
+  fs::create_hard_link(t.path("ws/shared.txt"), t.path("ws/shared-link.txt"));
+  const auto hardLinked = run(*e, "__host.files.writeFile('shared.txt', bytes('new'), false)");
+  CHECK(startsWith(hardLinked, "error: EACCES") && hardLinked.find("hard-linked file") != std::string::npos);
+  CHECK(readText(t.path("ws/shared.txt")) == "shared");
+  CHECK(startsWith(run(*e, "__host.files.writeFile('shared.txt', bytes('new'), true)"), "error: EACCES"));
+  CHECK(readText(t.path("ws/shared.txt")) == "shared");
+  // A plain file is still replaced, appended to and created exclusively.
+  writeText(t.path("ws/plain.txt"), "a much longer original text");
+  CHECK(run(*e, "__host.files.writeFile('plain.txt', bytes('short'), false)") == "ok");
+  CHECK(readText(t.path("ws/plain.txt")) == "short");
+  CHECK(run(*e, "__host.files.writeFile('plain.txt', bytes('+'), true)") == "ok");
+  CHECK(readText(t.path("ws/plain.txt")) == "short+");
+  CHECK(startsWith(run(*e, "__host.files.writeFile('plain.txt', bytes('x'), false, true)"), "error: EEXIST"));
+  CHECK(readText(t.path("ws/plain.txt")) == "short+");
+
+  // unlink removes the link, not its target.
+  fs::create_symlink(t.path("ws/target.txt"), t.path("ws/file-link"));
+  CHECK(run(*e, "__host.files.unlink('file-link')") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/file-link")) && readText(t.path("ws/target.txt")) == "target");
+  // A dangling link can be unlinked too.
+  fs::create_symlink(t.path("ws/missing.txt"), t.path("ws/dangling"));
+  CHECK(run(*e, "__host.files.unlink('dangling')") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/dangling")));
+
+  // rmdir of a symlink to a directory leaves the directory.
+  fs::create_directory_symlink(t.path("ws/dir"), t.path("ws/dir-link"));
+  CHECK(startsWith(run(*e, "__host.files.rmdir('dir-link')"), "error: ENOTDIR"));
+  CHECK(fs::is_directory(t.path("ws/dir")) && readText(t.path("ws/dir/kept.txt")) == "kept");
+  // rm of the same link removes the link and leaves the tree.
+  CHECK(run(*e, "__host.files.rm('dir-link', true, false)") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/dir-link")) && readText(t.path("ws/dir/kept.txt")) == "kept");
+
+  // rename moves the link, not its target.
+  fs::create_symlink(t.path("ws/target.txt"), t.path("ws/link-a"));
+  CHECK(run(*e, "__host.files.rename('link-a', 'link-b')") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/link-a")) && fs::is_symlink(t.path("ws/link-b")));
+  CHECK(fs::read_symlink(t.path("ws/link-b")) == fs::path(t.path("ws/target.txt")));
+  CHECK(readText(t.path("ws/target.txt")) == "target");
+  // A link at the destination is replaced, not written through.
+  writeText(t.path("ws/incoming.txt"), "incoming");
+  CHECK(run(*e, "__host.files.rename('incoming.txt', 'link-b')") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/link-b")) && readText(t.path("ws/link-b")) == "incoming");
+  CHECK(readText(t.path("ws/target.txt")) == "target");
+
+  // A granted root cannot be renamed, nor replaced by a rename.
+  const std::string db = fs::canonical(t.path("db")).string();
+  const std::string ws = fs::canonical(t.path("ws")).string();
+  CHECK(startsWith(run(*e, "__host.files.rename(" + lit(db) + ", 'moved-db')"), "error: EACCES"));
+  CHECK(startsWith(run(*e, "__host.files.rename('.', " + lit(db + "/moved-ws") + ")"), "error: EACCES"));
+  fs::create_directories(t.path("ws/empty"));
+  CHECK(startsWith(run(*e, "__host.files.rename('empty', " + lit(db) + ")"), "error: EACCES"));
+  CHECK(fs::is_directory(db) && fs::is_directory(ws) && !fs::exists(t.path("ws/moved-db")));
+  CHECK(startsWith(run(*e, "__host.files.rmdir(" + lit(db) + ")"), "error: EACCES"));
+  CHECK(startsWith(run(*e, "__host.files.unlink('..')"), "error: EACCES"));
+  CHECK(startsWith(run(*e, "__host.files.unlink('dir/..')"), "error: EACCES"));
+  CHECK(startsWith(run(*e, "__host.files.rmdir('dir/.')"), "error: EINVAL"));
+  CHECK(fs::is_directory(t.path("ws/dir")));
+
+  // Plain files and directories behave as before.
+  CHECK(run(*e, "__host.files.rename('plain.txt', 'dir/plain.txt')") == "ok");
+  CHECK(readText(t.path("ws/dir/plain.txt")) == "short+");
+  CHECK(run(*e, "__host.files.rename('dir/plain.txt', " + lit(db + "/plain.txt") + ")") == "ok");
+  CHECK(readText(t.path("db/plain.txt")) == "short+");
+  CHECK(run(*e, "__host.files.unlink(" + lit(db + "/plain.txt") + ")") == "ok");
+  CHECK(!fs::exists(t.path("db/plain.txt")));
+  CHECK(startsWith(run(*e, "__host.files.unlink('plain.txt')"), "error: ENOENT"));
+  CHECK(startsWith(run(*e, "__host.files.unlink('dir')"), "error: E"));
+  CHECK(startsWith(run(*e, "__host.files.rmdir('dir')"), "error: ENOTEMPTY"));
+  CHECK(run(*e, "__host.files.rmdir('empty')") == "ok");
+  CHECK(!fs::exists(t.path("ws/empty")));
+  CHECK(startsWith(run(*e, "__host.files.rmdir('nope/deeper')"), "error: ENOENT"));
+}
+
 void filesAcceptTheRootAsNamed() {
   // The workspace named through a symlink: paths under either spelling work.
   TempDir t;
@@ -1070,6 +1157,7 @@ int main() {
       {"filesRefuseTheReservedFolder", filesRefuseTheReservedFolder},
       {"filesRefuseTreesThatHoldReservedFolders", filesRefuseTreesThatHoldReservedFolders},
       {"filesReadRootsAreReadOnly", filesReadRootsAreReadOnly},
+      {"filesActOnLinksThemselves", filesActOnLinksThemselves},
       {"filesAcceptTheRootAsNamed", filesAcceptTheRootAsNamed},
       {"filesAllowOnlyTheGrantedSqliteDirectory", filesAllowOnlyTheGrantedSqliteDirectory},
       {"assetsGrantNothingByDefault", assetsGrantNothingByDefault},
