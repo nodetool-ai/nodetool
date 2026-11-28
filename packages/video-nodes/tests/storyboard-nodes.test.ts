@@ -1319,6 +1319,38 @@ describe("CreateStoryboardNode", () => {
     ]);
   });
 
+  it("drops preset ids the catalog does not know, so the stills still render", async () => {
+    h.withBoardListing();
+    const node = new CreateStoryboardNode();
+    node.assign({
+      screenplay: {
+        ...screenplay,
+        shots: [
+          {
+            action: "Nova waits on the pier",
+            look_preset_ids: ["fake", "look.arri-alexa"],
+            camera: { framing: "wide", preset_ids: ["fake", "camera.arc", "look.arri-alexa"] }
+          },
+          { action: "Nova checks the parcel", look_preset_ids: ["fake"] }
+        ]
+      },
+      image_model: imageModel
+    });
+
+    const out = await node.process(h.context);
+
+    const [first, second] = h.boards.get(out.storyboard.id!)!.document.shots;
+    expect(first.look_preset_ids).toEqual(["look.arri-alexa"]);
+    expect(first.camera).toEqual({ framing: "wide", preset_ids: ["camera.arc"] });
+    expect(second.look_preset_ids).toBeUndefined();
+
+    const stills = new RenderStillsNode();
+    stills.assign({ storyboard: out.storyboard });
+    const rendered = await stills.process(h.context);
+    expect(rendered.failed).toEqual([]);
+    expect(rendered.rendered).toHaveLength(2);
+  });
+
   it("returns the board it made last run instead of creating a second", async () => {
     h.withBoardListing();
     const first = new CreateStoryboardNode();
