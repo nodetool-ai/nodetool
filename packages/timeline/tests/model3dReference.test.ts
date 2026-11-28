@@ -13,6 +13,7 @@ import {
   computeModel3DReferenceHash,
   isModel3DReferenceStale,
   makeClip,
+  model3dBlockoutTakeKey,
   model3dReferenceSession,
   model3dReferenceSize,
   model3dReferenceStatus,
@@ -233,8 +234,35 @@ describe("model3dReferenceStatus", () => {
 
   it("is stale for a caller that asks for another pass", () => {
     const clip = withReference(blockoutClip());
-    expect(model3dReferenceStatus(clip, SEQUENCE, "clay")).toBe("current");
-    expect(model3dReferenceStatus(clip, SEQUENCE, "depth")).toBe("stale");
+    expect(model3dReferenceStatus(clip, SEQUENCE, { pass: "clay" })).toBe("current");
+    expect(model3dReferenceStatus(clip, SEQUENCE, { pass: "depth" })).toBe("stale");
+  });
+
+  // The set editor saves the model in place, so the asset id never changes.
+  it("goes stale when the set was saved after the render", () => {
+    const clip = withReference(blockoutClip());
+    const stored: TimelineClip = {
+      ...clip,
+      model3dStyle: {
+        ...clip.model3dStyle!,
+        reference: { ...clip.model3dStyle!.reference!, assetRevision: "2026-11-01T10:00:00Z" }
+      }
+    };
+    expect(model3dReferenceStatus(stored, SEQUENCE, { assetRevision: "2026-11-01T10:00:00Z" })).toBe("current");
+    expect(model3dReferenceStatus(stored, SEQUENCE, { assetRevision: "2026-11-02T09:00:00Z" })).toBe("stale");
+    expect(isModel3DReferenceStale(stored, SEQUENCE, "2026-11-02T09:00:00Z")).toBe(true);
+    // A caller that does not know the revision judges by the hash alone.
+    expect(model3dReferenceStatus(stored, SEQUENCE)).toBe("current");
+    // A reference stored before revisions were recorded is stale once one is known.
+    expect(model3dReferenceStatus(clip, SEQUENCE, { assetRevision: "2026-11-01T10:00:00Z" })).toBe("stale");
+  });
+});
+
+describe("model3dBlockoutTakeKey", () => {
+  it("adds the set revision to the hash, so a take made before a set edit reads as stale", () => {
+    expect(model3dBlockoutTakeKey("abc")).toBe("abc");
+    expect(model3dBlockoutTakeKey("abc", "r1")).toBe("abc@r1");
+    expect(model3dBlockoutTakeKey("abc", "r1")).not.toBe(model3dBlockoutTakeKey("abc", "r2"));
   });
 });
 

@@ -9,7 +9,7 @@
 
 import { HostBinaryMissingError, withSpan } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { isCloudProfileActive } from "@nodetool-ai/protocol";
+import { isCloudProfileActive, missingRuntimePackageOf } from "@nodetool-ai/protocol";
 
 import { resolveBlenderBinary } from "./blender-binary.js";
 import {
@@ -49,7 +49,8 @@ export async function resolveBlenderRunner(
       resolveBlenderBinary({ configuredPath: blenderPath }));
     return new LocalBlenderRunner({ binaryPath: blenderPath ?? undefined });
   } catch (err) {
-    if (!(err instanceof HostBinaryMissingError)) throw err;
+    // No Blender found, as opposed to a broken or too old one.
+    if (!(err instanceof HostBinaryMissingError) && missingRuntimePackageOf(err) !== "blender") throw err;
   }
   const workerUrl = process.env["NODETOOL_WORKER_URL"]?.trim();
   if (!workerUrl) {

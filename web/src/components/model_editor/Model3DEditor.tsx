@@ -143,6 +143,7 @@ import {
   bindTracksToUuids,
   cloneObjectDeep,
   computeSceneStats,
+  moveClearOfOthers,
   nextAvailableName,
   removeStrayLightChildren,
   restoreEditorSettings,
@@ -455,6 +456,16 @@ interface Model3DEditorProps {
    * into it, Close goes away, and the tool row keeps only the editing tools.
    */
   documentBar?: DocumentBarRender;
+  /**
+   * Look from this pose instead of framing the whole scene, when the model
+   * loads and whenever `nonce` changes. "Edit set" on a timeline 3D clip
+   * passes the shot's camera here.
+   */
+  viewRequest?: {
+    position: THREE.Vector3Tuple;
+    target: THREE.Vector3Tuple;
+    nonce: number;
+  };
 }
 
 const Model3DEditor = ({
@@ -469,7 +480,8 @@ const Model3DEditor = ({
   externallyChanged = false,
   onReloadExternal,
   onDismissExternal,
-  documentBar
+  documentBar,
+  viewRequest
 }: Model3DEditorProps) => {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -606,6 +618,21 @@ const Model3DEditor = ({
     },
     []
   );
+
+  const viewRequestRef = useRef(viewRequest);
+  viewRequestRef.current = viewRequest;
+  const viewNonce = viewRequest?.nonce;
+  // A request made while the editor is already open moves the view at once.
+  // The first one is applied by the model load, which frames the scene.
+  const appliedViewNonce = useRef(viewNonce);
+  useEffect(() => {
+    const view = viewRequestRef.current;
+    if (!view || appliedViewNonce.current === view.nonce) {
+      return;
+    }
+    appliedViewNonce.current = view.nonce;
+    requestCamera({ kind: "pose", position: view.position, target: view.target });
+  }, [viewNonce, requestCamera]);
 
   // --- History ---------------------------------------------------------------
 
@@ -756,7 +783,12 @@ const Model3DEditor = ({
         setSavedRevision(history.revision());
         setSelectedUuid(null);
         setIsLoading(false);
-        requestCamera({ kind: "frameAll", instant: true });
+        const view = viewRequestRef.current;
+        if (view) {
+          requestCamera({ kind: "pose", position: view.position, target: view.target });
+        } else {
+          requestCamera({ kind: "frameAll", instant: true });
+        }
         bump();
       },
       undefined,
@@ -824,6 +856,9 @@ const Model3DEditor = ({
         obj.updateMatrixWorld(true);
         const box = new THREE.Box3().setFromObject(obj);
         obj.position.y += -box.min.y;
+      }
+      if (!options.position) {
+        moveClearOfOthers(obj, root);
       }
       root.add(obj);
       if (obj instanceof THREE.Camera && options.camera) {

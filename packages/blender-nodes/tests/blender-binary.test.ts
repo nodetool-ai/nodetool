@@ -8,10 +8,11 @@
  * with fake `blender --version` scripts — no Blender needed.
  */
 
-import { mkdtempSync, writeFileSync, chmodSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
 
 import {
   BLENDER_MIN_VERSION,
@@ -77,4 +78,56 @@ describe("Blender version floor", () => {
     expect((err as Error).message).toContain("4.2.3");
     expect((err as Error).message).toContain("5.2.0");
   });
+});
+
+describe("Package Manager Blender", () => {
+  const saved: Record<string, string | undefined> = {};
+  const keys = ["PATH", "XDG_DATA_HOME", "NODETOOL_HOST"] as const;
+
+  beforeEach(() => {
+    for (const key of keys) saved[key] = process.env[key];
+    delete process.env["BLENDER_PATH"];
+    process.env["NODETOOL_HOST"] = "cli";
+    process.env["XDG_DATA_HOME"] = join(dir, "data");
+    // No Blender on PATH, so only the managed install can resolve.
+    process.env["PATH"] = join(dir, "empty-bin");
+  });
+
+  afterEach(() => {
+    for (const key of keys) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
+  it.skipIf(process.platform !== "linux")(
+    "resolves the Blender the Package Manager unpacked",
+    async () => {
+      const installDir = join(dir, "data", "nodetool", "blender");
+      mkdirSync(installDir, { recursive: true });
+      const binary = join(installDir, "blender");
+      writeFileSync(binary, `#!/bin/sh\necho "Blender 5.2.3 (hash deadbeef)"\n`);
+      chmodSync(binary, 0o755);
+      writeFileSync(join(installDir, "nodetool-runtime.json"), JSON.stringify({ version: "5.2.3" }));
+
+      const resolved = await resolveBlenderBinary();
+      expect(resolved.path).toBe(binary);
+      expect(resolved.version).toEqual([5, 2, 3]);
+    }
+  );
+
+  // A machine with Blender at a well-known path (CI installs one) resolves it.
+  it.skipIf(
+    process.platform !== "linux" || existsSync("/usr/bin/blender") || existsSync("/snap/bin/blender")
+  )(
+    "names the blender runtime package when nothing is installed",
+    async () => {
+      const err = await resolveBlenderBinary().then(
+        () => null,
+        (e: unknown) => e
+      );
+      expect(missingRuntimePackageOf(err)).toBe("blender");
+      expect((err as Error).message).toContain("nodetool runtime add blender");
+    }
+  );
 });

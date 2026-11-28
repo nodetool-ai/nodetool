@@ -33,9 +33,11 @@ export const BLOCKOUT_SET_LENS_MM = 35;
 
 /**
  * What a blockout clip clears the frame to. Scene content, not chrome: it is
- * the colour three.js and Blender clear to, so no theme token applies.
+ * the colour three.js and Blender clear to, so no theme token applies. It is
+ * darker than the lit grey of the ground and the shapes, so the horizon and
+ * every silhouette read in the first frame.
  */
-export const BLOCKOUT_SET_BACKGROUND_COLOR = "#d4d4d4";
+export const BLOCKOUT_SET_BACKGROUND_COLOR = "#7d828a";
 
 /**
  * The bytes of a new set: a GLB with one ground plane at the origin, so the
@@ -79,11 +81,14 @@ export function blockoutSetFile(name: string): File {
 export function blockoutSetClip(
   asset: Asset,
   trackId: string,
-  startMs: number
+  startMs: number,
+  name?: string
 ): TimelineClip {
   const clip = assetToClip(asset, trackId, startMs);
   return {
     ...clip,
+    // The clip names the set, not its file: "Blockout set", not "….glb".
+    name: name ?? clip.name.replace(/\.(glb|gltf)$/i, ""),
     model3dStyle: model3dStyleWithPatch(clip.model3dStyle, {
       camera: {
         mode: "free",

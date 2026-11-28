@@ -267,6 +267,116 @@ int main(int argc, char **argv) {
         throw std::runtime_error("5 MB bridge crossing took >= " +
                                  std::to_string(budget) + " ms");
     }
+    {
+      // Sandbox JSON input is limited to 256 levels of array/object nesting:
+      // bridge payloads, resume results, the globals option and the result.
+      const auto nested = [](size_t depth) {
+        return std::string(depth, '[') + "0" + std::string(depth, ']');
+      };
+      const auto expectRejected = [&](const char *what, auto &&call) {
+        try {
+          call();
+        } catch (const gr::js::JsError &error) {
+          if (std::string(error.what()).find("nesting depth limit exceeded") ==
+              std::string::npos)
+            throw std::runtime_error(std::string(what) +
+                                     " failed with another error: " +
+                                     error.what());
+          return;
+        }
+        throw std::runtime_error(std::string(what) +
+                                 " accepted a value nested past the limit");
+      };
+      const auto start = [&](const std::string &options) {
+        return engine->call(engine->get(sandbox, "start"), sandbox,
+                            {engine->string(options)});
+      };
+      const auto step = [&](const gr::js::Value &id) {
+        return Json::parse(engine->toString(
+            engine->call(engine->get(sandbox, "step"), sandbox, {id})));
+      };
+      const auto close = [&](const gr::js::Value &id) {
+        engine->call(engine->get(sandbox, "close"), sandbox, {id});
+      };
+      // Runs `code`, answering each bridge call with `answer`.
+      const auto drive = [&](const std::string &code,
+                             const std::string &answer) {
+        auto id = start(Json{{"code", code}}.dump());
+        for (int guard = 0; guard < 100; ++guard) {
+          auto out = step(id);
+          if (out.at("done").get<bool>()) {
+            close(id);
+            return out.at("result");
+          }
+          if (out.contains("event"))
+            engine->call(engine->get(sandbox, "resume"), sandbox,
+                         {id, engine->number(out.at("event").at("token")),
+                          engine->string(answer), engine->boolean(false)});
+        }
+        close(id);
+        throw std::runtime_error("Sandbox depth fixture did not settle");
+      };
+      const std::string build =
+          "const nest=n=>{let v=0;for(let i=0;i<n;i++)v=[v];return v;};"
+          "const depth=v=>{let d=0;while(Array.isArray(v)){v=v[0];++d;}return "
+          "d;};";
+      if (drive(build + "return typeof __nativeBridge + ':' + typeof __sync;",
+                "null")
+              .at("result") != "undefined:undefined")
+        throw std::runtime_error("Native bridge functions stayed global");
+      // output(name, value) sends [name, value], one level above the value.
+      auto atLimit =
+          drive(build + "await output('v', nest(255)); return 'sent';", "null");
+      if (atLimit.at("result") != "sent")
+        throw std::runtime_error("Bridge payload at the limit was rejected: " +
+                                 atLimit.dump().substr(0, 200));
+      // Bridge errors are InternalErrors, which end the run like the size limit.
+      auto overLimit =
+          drive(build + "await output('v', nest(256)); return 'sent';", "null");
+      if (overLimit.at("success") != false ||
+          overLimit.at("error").get<std::string>().find(
+              "nesting depth limit exceeded") == std::string::npos)
+        throw std::runtime_error("Bridge payload past the limit was accepted: " +
+                                 overLimit.dump().substr(0, 200));
+      auto resumed = drive(build + "return depth(await sleep(1));", nested(256));
+      if (resumed.at("result") != 256)
+        throw std::runtime_error("Resume result at the limit was rejected: " +
+                                 resumed.dump().substr(0, 200));
+      for (const size_t depth : {size_t(257), size_t(1000000)}) {
+        auto id = start(Json{{"code", "return await sleep(1);"}}.dump());
+        auto out = step(id);
+        expectRejected("Resume result", [&] {
+          engine->call(engine->get(sandbox, "resume"), sandbox,
+                       {id, engine->number(out.at("event").at("token")),
+                        engine->string(nested(depth)), engine->boolean(false)});
+        });
+        close(id);
+      }
+      // The globals object itself counts as one level.
+      const auto withGlobal = [&](size_t depth) {
+        return "{\"code\":\"return depth(g);\",\"bootstrap\":" +
+               Json(build).dump() + ",\"globals\":{\"g\":" + nested(depth) +
+               "}}";
+      };
+      {
+        auto id = start(withGlobal(255));
+        auto out = step(id);
+        close(id);
+        if (out.at("result").at("result") != 255)
+          throw std::runtime_error("Globals at the limit were rejected: " +
+                                   out.dump().substr(0, 200));
+      }
+      for (const size_t depth : {size_t(256), size_t(1000000)})
+        expectRejected("Globals option", [&] { start(withGlobal(depth)); });
+      if (drive(build + "return nest(256);", "null").at("success") != true)
+        throw std::runtime_error("Result at the limit was rejected");
+      auto deepResult = drive(build + "return nest(257);", "null");
+      if (deepResult.at("success") != false ||
+          deepResult.at("error").get<std::string>().find(
+              "nesting depth limit exceeded") == std::string::npos)
+        throw std::runtime_error("Result past the limit was accepted: " +
+                                 deepResult.dump().substr(0, 200));
+    }
     for (const char *bad : {"NaN", "-1", "1e20", "1.5", "Infinity"}) {
       for (const char *fn : {"step", "close"}) {
         try {

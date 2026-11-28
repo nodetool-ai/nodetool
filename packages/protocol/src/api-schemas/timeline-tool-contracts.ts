@@ -639,7 +639,13 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         pass: z
           .enum(["clay", "depth", "normal"])
           .optional()
-          .describe('What each frame draws. "clay" when absent.')
+          .describe('What each frame draws. "clay" when absent.'),
+        force: z
+          .boolean()
+          .optional()
+          .describe(
+            "Render even when the stored reference reads as current."
+          )
       },
       finalize: strictParams
     },

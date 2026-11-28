@@ -5682,7 +5682,7 @@
           "animationSpeed": "애니메이션 속도",
           "lighting": "조명",
           "lightingPreset": "조명 사전 설정",
-          "lightIntensity": "빛의 강도",
+          "lightIntensity": "강도",
           "transparentBackground": "투명한 배경",
           "backgroundColor": "배경색",
           "bake": "굽다",
@@ -5710,7 +5710,7 @@
           "applyMove": "무브 추가",
           "freeCameraHelp": "미리보기에서 Alt를 누른 채 드래그하면 궤도를 돌고, Shift를 더하면 옆으로 이동하고, 스크롤하면 앞뒤로 이동하며, 스크롤할 때 Ctrl을 더하면 렌즈가 바뀝니다.",
           "editSet": "세트 편집",
-          "editSetHelp": "이 클립의 3D 모델을 모델 편집기에서 엽니다",
+          "editSetHelp": "이 클립의 3D 모델을 모델 에디터에서 엽니다. 자유 카메라는 샷 시점으로 엽니다.",
           "moves": {
             "pan": "팬",
             "tilt": "틸트",
@@ -5722,7 +5722,9 @@
             "zoom": "줌",
             "dollyZoom": "달리 줌",
             "dutch": "더치 앵글"
-          }
+          },
+          "cameraDrag": "미리보기에서 카메라 드래그",
+          "cameraDragHelp": "미리보기에서 드래그하면 오빗, Shift를 더하면 트럭, 스크롤하면 돌리, 스크롤 중 Ctrl을 더하면 렌즈를 바꿉니다."
         },
         "reframe": {
           "title": "스마트 리프레임",
@@ -19298,7 +19300,9 @@
       "addText": "텍스트 추가",
       "addMidiClip": "MIDI 클립 추가",
       "addGeneratedClipHere": "생성된 클립을 여기에 추가하세요...",
-      "closeGap": "격차 해소"
+      "closeGap": "격차 해소",
+      "addBlockoutSet": "블록아웃 세트 추가",
+      "addBlockoutSetFailed": "블록아웃 세트를 추가하지 못했습니다: {{error}}"
     },
     "daw": {
       "resizeDock": "DAW 도크 크기 조정"
@@ -21541,7 +21545,8 @@
       "hide": "레퍼런스 숨기기",
       "stale": "레퍼런스가 오래되었습니다",
       "playerLabel": "블록아웃 레퍼런스",
-      "failed": "레퍼런스 렌더링 실패"
+      "failed": "레퍼런스 렌더링 실패",
+      "otherPass": "저장된 레퍼런스는 {{pass}} 패스입니다. 이 패스를 쓰려면 이 패스로 렌더링하세요."
     },
     "shot": {
       "label": "샷",
@@ -21566,7 +21571,8 @@
     },
     "render": {
       "withReference": "블록아웃의 레퍼런스 영상이 프롬프트와 함께 이 모델로 전송됩니다. 없거나 오래된 경우 먼저 렌더링됩니다.",
-      "promptOnly": "이 모델은 레퍼런스 영상을 받지 않습니다. 회색 렌더는 전송되지 않으며, 카메라 움직임이 프롬프트에 텍스트로 추가됩니다: {{move}}"
+      "promptOnly": "이 모델은 레퍼런스 영상을 받지 않습니다. 회색 렌더는 전송되지 않으며, 카메라 움직임이 프롬프트에 텍스트로 추가됩니다: {{move}}",
+      "tooLong": "블록아웃 길이는 {{blockout}}초이고 이 모델은 최대 {{max}}초 테이크를 만듭니다. 테이크는 카메라 무브의 시작 부분만 따릅니다. 3D 클립을 줄이세요."
     }
   }
 }

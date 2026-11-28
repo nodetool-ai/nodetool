@@ -1,7 +1,8 @@
 // The media fetch policy of `__host.http` (http.cpp), exposed for tests. It
 // is `safeFetch` from packages/runtime-core/src/safe-url.ts: https only, to
-// a host that is not loopback, link-local, private, CGNAT or benchmarking,
-// with every redirect hop checked again. The native runner also checks the
+// a host outside the address table of its `isBlockedIpLiteral` (loopback,
+// link-local, private, CGNAT, documentation, benchmarking, multicast and
+// reserved ranges), with every redirect hop checked again. The native runner also checks the
 // address each connection is made to, so a name that resolves to a blocked
 // address is refused too (the TypeScript side leaves DNS rebinding to the
 // deployment's egress control).
@@ -19,7 +20,9 @@ struct sockaddr;
 namespace gr::host {
 
 // Whether an IP literal (IPv4, or IPv6 with or without brackets and zone id)
-// is an internal address. Not an IP literal: false.
+// is an internal address. Not an IP literal: false. The same table as
+// isBlockedIpLiteral in packages/runtime-core/src/safe-url.ts; both are
+// checked against packages/runtime-core/tests/fixtures/ip-literals.json.
 bool isBlockedIpLiteral(const std::string& host);
 
 // Whether `url` is https to a host the policy allows, before DNS.

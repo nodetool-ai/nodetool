@@ -963,6 +963,16 @@ qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
 replacement = "Typed track-row geometry for pooled timeline lanes"
 
 [[file]]
+path = "native/timeline/qml/Tracks/ClipChrome.qml"
+category = "domain"
+controls = ["ClipChromeLayer"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/ClipBody.qml"]
+replacement = "TimelineVisuals/TimelineMetrics and Ui tokens passed to the C++ clip chrome layer"
+
+[[file]]
 path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
 category = "domain"
 controls = ["ClipFadeShapeMenu", "Rectangle", "MouseArea"]
@@ -4231,30 +4241,6 @@ owner = "Timeline document list"
 reason = "Right click augments the selectable document row with its actions menu; Menu key and Shift+F10 invoke the same menu."
 
 [[exception]]
-path = "native/timeline/qml/Tracks/ClipBody.qml"
-object = "body/headerRow/dot"
-binding = "radius"
-rule = "metric"
-owner = "Timeline clip rendering"
-reason = "The fx badge is a one-pixel-rounded box drawn on the clip fill, sized to the clip name band."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/ClipBody.qml"
-object = "body/headerRow/dot"
-binding = "border.width"
-rule = "metric"
-owner = "Timeline clip rendering"
-reason = "The one-pixel outline draws the fx badge on the clip fill inside the track lane."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/ClipBody.qml"
-object = "body/Rectangle[1]"
-binding = "border.width"
-rule = "metric"
-owner = "Timeline clip rendering"
-reason = "The clip selection border changes from one to one-and-a-half pixels to distinguish selected document content."
-
-[[exception]]
 path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
 object = "root/Repeater[0]/grip/Rectangle[0]"
 binding = "radius"
@@ -4301,14 +4287,6 @@ binding = "onClicked"
 rule = "manual-control"
 owner = "Timeline marker navigation"
 reason = "Clicking a marker glyph seeks to its document time, and Alt+drag sets its duration; the marker menu deletes it."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/TrackLane.qml"
-object = "lane/Rectangle[0]"
-binding = "color"
-rule = "color"
-owner = "Timeline gap selection"
-reason = "The translucent band shows a selected gap range in track coordinates."
 
 [[exception]]
 path = "native/timeline/qml/Tracks/TracksRegion.qml"

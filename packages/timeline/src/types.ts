@@ -402,13 +402,16 @@ export interface ClipModel3DStyle {
    * A grey render of this clip's span, kept as a video asset that a video
    * model follows when a storyboard shot is generated (Blockout 3D). It is
    * never drawn on the timeline. `dependencyHash` is
-   * `computeModel3DReferenceHash` at render time, so an edit to the set, the
-   * camera or the span marks it stale.
+   * `computeModel3DReferenceHash` at render time, so an edit to the camera,
+   * the span or the sequence marks it stale. `assetRevision` is the set
+   * asset's `updated_at` at render time: the set is saved in place under the
+   * same id, so the hash alone cannot see an edit to it.
    */
   reference?: {
     assetId: string;
     dependencyHash: string;
     pass: "clay" | "depth" | "normal";
+    assetRevision?: string;
   };
 }
 

@@ -430,14 +430,15 @@ struct FileGrants {
   bool writeFile(const std::string& path, const std::vector<uint8_t>& data, bool append,
                  const std::stop_token& stop = {}, bool exclusive = false) const {
     Resolved r = resolve(path, Access::Write, "open");
-    int flags = O_WRONLY | O_CREAT | O_NOFOLLOW | O_CLOEXEC |
-                (exclusive ? O_EXCL : (append ? O_APPEND : O_TRUNC));
+    // Opened without O_TRUNC: a hard-linked file is refused before any of
+    // its content is dropped, and only then truncated.
+    int flags = O_WRONLY | O_CREAT | O_NOFOLLOW | O_CLOEXEC | (exclusive ? O_EXCL : (append ? O_APPEND : 0));
     UniqueFd f(fsapi::open(r.real.c_str(), flags, 0644));
     if (!f) throwErrno(errno, "open", path);
     fsapi::FileStat st {};
-    if (fsapi::fstat(f.get(), &st) == 0 && st.st_nlink > 1) {
-      throw FsError("EACCES", "open", path, "hard-linked file");
-    }
+    if (fsapi::fstat(f.get(), &st) != 0) throwErrno(errno, "fstat", path);
+    if (st.st_nlink > 1) throw FsError("EACCES", "open", path, "hard-linked file");
+    if (!append && !exclusive && fsapi::ftruncate(f.get(), 0) != 0) throwErrno(errno, "open", path);
     size_t written = 0;
     while (written < data.size()) {
       if (stop.stop_requested()) return false;
@@ -643,54 +644,68 @@ struct FileGrants {
     }
   }
 
+  // The directory holding `entry`, opened for the *at() call that acts on
+  // the entry's leaf. Errors name `path`.
+  static UniqueFd openParent(const ResolvedEntry& entry, const std::string& path, const char* syscall) {
+    UniqueFd fd(fsapi::open(entry.parent.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC));
+    if (!fd) throwErrno(errno, syscall, path);
+    return fd;
+  }
+
+  // The removal, unlink, rmdir and rename below act on the entry a path
+  // names (confineEntry): a symlink there is removed or moved itself, and
+  // what it points at is left alone.
+
   // Returns false when `stop` ended a recursive removal part-way.
   bool rm(const std::string& path, bool recursive, bool force, const std::stop_token& stop = {}) const {
-    Resolved r;
+    ResolvedEntry entry;
     try {
-      r = resolve(path, Access::Write, "rm");
+      entry = confineEntry(roots, cwd, path, "rm");
     } catch (const FsError& e) {
       if (force && e.code == "ENOENT") return true;
       throw;
     }
-    if (!r.exists) {
-      if (force) return true;
-      throw FsError("ENOENT", "rm", path);
-    }
-    for (const auto& root : roots) {
-      if (root.dir == r.real) throw FsError("EACCES", "rm", path, "a granted directory itself");
-    }
+    const std::string real = entry.path();
     fsapi::FileStat st {};
-    if (fsapi::lstat(r.real.c_str(), &st) != 0) throwErrno(errno, "rm", path);
+    if (fsapi::lstat(real.c_str(), &st) != 0) {
+      if (force && errno == ENOENT) return true;
+      throwErrno(errno, "rm", path);
+    }
     if (S_ISDIR(st.st_mode) && !recursive) {
       throw FsError("EISDIR", "rm", path);  // Node: ERR_FS_EISDIR
     }
-    if (S_ISDIR(st.st_mode)) refuseHeldReserved(r.real, path, "rm");
-    return removeTree(r.real, path, guarded(r.real), stop);
+    if (S_ISDIR(st.st_mode)) refuseHeldReserved(real, path, "rm");
+    return removeTree(real, path, guarded(real), stop);
   }
 
+  // A symlink to a directory is not a directory: ENOTDIR, as rmdir(2).
   void rmdir(const std::string& path) const {
-    Resolved r = resolve(path, Access::Write, "rmdir");
-    if (!r.exists) throw FsError("ENOENT", "rmdir", path);
-    for (const auto& root : roots) {
-      if (root.dir == r.real) throw FsError("EACCES", "rmdir", path, "a granted directory itself");
-    }
-    if (fsapi::rmdir(r.real.c_str()) != 0) throwErrno(errno, "rmdir", path);
+    const ResolvedEntry entry = confineEntry(roots, cwd, path, "rmdir");
+    UniqueFd parent = openParent(entry, path, "rmdir");
+    if (fsapi::unlinkat(parent.get(), entry.leaf.c_str(), AT_REMOVEDIR) != 0) throwErrno(errno, "rmdir", path);
   }
 
   void unlink(const std::string& path) const {
-    Resolved r = resolve(path, Access::Write, "unlink");
-    if (!r.exists) throw FsError("ENOENT", "unlink", path);
-    if (fsapi::unlink(r.real.c_str()) != 0) throwErrno(errno, "unlink", path);
+    const ResolvedEntry entry = confineEntry(roots, cwd, path, "unlink");
+    UniqueFd parent = openParent(entry, path, "unlink");
+    if (fsapi::unlinkat(parent.get(), entry.leaf.c_str(), 0) != 0) throwErrno(errno, "unlink", path);
   }
 
+  // Neither side may be a granted root (confineEntry). A symlink at `to` is
+  // replaced, not followed.
   void rename(const std::string& from, const std::string& to) const {
-    Resolved a = resolve(from, Access::Write, "rename");
-    if (!a.exists) throw FsError("ENOENT", "rename", from);
-    Resolved b = resolve(to, Access::Write, "rename");
+    const ResolvedEntry a = confineEntry(roots, cwd, from, "rename");
+    const ResolvedEntry b = confineEntry(roots, cwd, to, "rename");
+    UniqueFd fromParent = openParent(a, from, "rename");
     fsapi::FileStat st {};
-    if (fsapi::lstat(a.real.c_str(), &st) != 0) throwErrno(errno, "rename", from);
-    if (S_ISDIR(st.st_mode)) refuseHeldReserved(a.real, from, "rename");
-    if (fsapi::rename(a.real.c_str(), b.real.c_str()) != 0) throwErrno(errno, "rename", from);
+    if (fsapi::fstatat(fromParent.get(), a.leaf.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0) {
+      throwErrno(errno, "rename", from);
+    }
+    if (S_ISDIR(st.st_mode)) refuseHeldReserved(a.path(), from, "rename");
+    UniqueFd toParent = openParent(b, to, "rename");
+    if (fsapi::renameat(fromParent.get(), a.leaf.c_str(), toParent.get(), b.leaf.c_str()) != 0) {
+      throwErrno(errno, "rename", from);
+    }
   }
 
   void copyFile(const std::string& from, const std::string& to) const {

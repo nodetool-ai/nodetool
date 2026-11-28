@@ -21,11 +21,13 @@
  * pointer up, so its commit trails the last notch by
  * {@link WHEEL_COMMIT_IDLE_MS}.
  *
- * Alt is the whole gate, and the overlay is never a hit target: it renders
+ * Alt is the gate, and the overlay is never a hit target: it renders
  * `pointer-events: none` and listens on its host element in the capture phase,
- * returning immediately unless `altKey` is down. The 2D transform gizmo's
- * drags, clicks and context menu therefore reach it exactly as before, and a
- * clip that is not `model3d` renders nothing at all.
+ * returning immediately unless `altKey` is down or the user turned on camera
+ * drag in the inspector (`Model3DCameraDragStore`), which stands in for Alt.
+ * Without either, the 2D transform gizmo's drags, clicks and context menu
+ * reach it exactly as before, and a clip that is not `model3d` renders
+ * nothing at all.
  *
  * The camera terms come from `model3dOrbitGesture.ts` and
  * `model3dFreeCameraGesture.ts`. The orbit write path is the inspector's
@@ -55,6 +57,7 @@ import {
 } from "@nodetool-ai/timeline";
 import { PREVIEW_OVERLAY_Z } from "@nodetool-ai/timeline/render";
 
+import { useModel3DCameraDragStore } from "../../../stores/timeline/Model3DCameraDragStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelineInstance";
 import {
@@ -155,6 +158,10 @@ export const Model3DOrbitOverlay: React.FC<Model3DOrbitOverlayProps> = memo(
     const [freeReadout, setFreeReadout] = useState<string | null>(null);
 
     const enabled = clip.mediaType === "model3d";
+    // With camera drag on, the gestures need no Alt (see the store).
+    const cameraDrag = useModel3DCameraDragStore((s) => s.enabled);
+    const cameraDragRef = useRef(cameraDrag);
+    cameraDragRef.current = cameraDrag;
 
     // Everything the listeners read, mirrored into refs so they are attached
     // once per mount instead of re-bound on every camera edit and every frame
@@ -356,7 +363,11 @@ export const Model3DOrbitOverlay: React.FC<Model3DOrbitOverlayProps> = memo(
       }
 
       const onPointerDown = (e: PointerEvent) => {
-        if (!e.altKey || e.button !== 0 || dragRef.current) {
+        if (
+          !(e.altKey || cameraDragRef.current) ||
+          e.button !== 0 ||
+          dragRef.current
+        ) {
           return;
         }
         // Claim the gesture before the transform gizmo's handles see it.
@@ -396,7 +407,7 @@ export const Model3DOrbitOverlay: React.FC<Model3DOrbitOverlayProps> = memo(
       const onWheel = (e: WheelEvent) => {
         // A drag commits azimuth and elevation only, so a wheel mid-drag would
         // show a zoom that is then dropped. Leave it to the browser.
-        if (!e.altKey || dragRef.current) {
+        if (!(e.altKey || cameraDragRef.current) || dragRef.current) {
           return;
         }
         e.preventDefault();

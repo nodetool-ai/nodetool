@@ -1,9 +1,11 @@
 /**
  * The runtime packages the CLI installs through `@nodetool-ai/runtime-install`,
  * the installer the desktop app uses: the conda packages (Python, yt-dlp,
- * Rust), the uv tools (ManimGX) and the Python node packs.
+ * Rust), the uv tools (ManimGX), the downloaded applications (Blender,
+ * Chrome) and the Python node packs.
  */
 import {
+  AppBinaryRuntimePackage,
   CondaRuntimePackage,
   RUNTIME_PACKAGES,
   UvToolRuntimePackage,
@@ -31,10 +33,14 @@ export function cliRuntimeRegistry(): RuntimeRegistry {
   return runtimeRegistryFor(cliRuntimeHost());
 }
 
-/** Ids of the conda and uv tool packages that run on this platform. */
+/** Ids of the conda, uv tool and downloaded application packages that run on this platform. */
 export function managedRuntimeIds(platform: NodeJS.Platform = process.platform): RuntimePackageId[] {
   return Object.entries(RUNTIME_PACKAGES)
-    .filter(([, pkg]) => pkg instanceof CondaRuntimePackage || pkg instanceof UvToolRuntimePackage)
+    .filter(([, pkg]) =>
+      pkg instanceof CondaRuntimePackage ||
+      pkg instanceof UvToolRuntimePackage ||
+      pkg instanceof AppBinaryRuntimePackage
+    )
     .filter(([, pkg]) => !pkg.platforms || pkg.platforms.includes(platform))
     .map(([id]) => id)
     .filter(isKnownRuntimePackageId);
@@ -73,7 +79,8 @@ export async function addManagedRuntimes(ids: readonly RuntimePackageId[], reins
       return;
     }
     const size = pkg.approxSizeMB ? ` (about ${pkg.approxSizeMB} MB)` : "";
-    console.error(`Installing ${pkg.name}${size} into ${cliRuntimeHost().condaEnvPath()}`);
+    const target = pkg instanceof AppBinaryRuntimePackage ? cliRuntimeHost().dataDir : cliRuntimeHost().condaEnvPath();
+    console.error(`Installing ${pkg.name}${size} into ${target}`);
     const result = await registry.runToCompletion(id, status.installed ? "repair" : "install", (event) => {
       if (event.type === "stage") {
         console.error(event.label);

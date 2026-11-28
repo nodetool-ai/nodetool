@@ -5689,7 +5689,7 @@
           "animationSpeed": "Animation speed",
           "lighting": "Lighting",
           "lightingPreset": "Lighting preset",
-          "lightIntensity": "Light intensity",
+          "lightIntensity": "Intensity",
           "transparentBackground": "Transparent background",
           "backgroundColor": "Background color",
           "bake": "Bake",
@@ -5717,7 +5717,7 @@
           "applyMove": "Add move",
           "freeCameraHelp": "In the preview, hold Alt and drag to orbit, add Shift to truck, scroll to dolly, and add Ctrl while scrolling to change the lens.",
           "editSet": "Edit set",
-          "editSetHelp": "Open this clip's 3D model in the model editor",
+          "editSetHelp": "Open this clip's 3D model in the model editor. A free camera opens it looking through the shot.",
           "moves": {
             "pan": "Pan",
             "tilt": "Tilt",
@@ -5729,7 +5729,9 @@
             "zoom": "Zoom",
             "dollyZoom": "Dolly zoom",
             "dutch": "Dutch angle"
-          }
+          },
+          "cameraDrag": "Drag camera in preview",
+          "cameraDragHelp": "In the preview, drag to orbit, add Shift to truck, scroll to dolly, and add Ctrl while scrolling to change the lens."
         },
         "reframe": {
           "title": "Smart reframe",
@@ -19337,7 +19339,9 @@
       "addText": "Add text",
       "addMidiClip": "Add MIDI clip",
       "addGeneratedClipHere": "Add generated clip here…",
-      "closeGap": "Close gap"
+      "closeGap": "Close gap",
+      "addBlockoutSet": "Add blockout set",
+      "addBlockoutSetFailed": "Could not add the blockout set: {{error}}"
     },
     "daw": {
       "resizeDock": "Resize DAW dock"
@@ -21615,7 +21619,8 @@
       "hide": "Hide reference",
       "stale": "Reference out of date",
       "playerLabel": "Blockout reference",
-      "failed": "Reference render failed"
+      "failed": "Reference render failed",
+      "otherPass": "The stored reference is in {{pass}}. Render one in this pass to use it."
     },
     "shot": {
       "label": "Shot",
@@ -21640,7 +21645,8 @@
     },
     "render": {
       "withReference": "The blockout's reference video is sent to this model with the prompt. It is rendered first when it is missing or out of date.",
-      "promptOnly": "This model does not take a reference video. The grey render is not sent, and the camera move is added to the prompt as text: {{move}}"
+      "promptOnly": "This model does not take a reference video. The grey render is not sent, and the camera move is added to the prompt as text: {{move}}",
+      "tooLong": "The blockout runs {{blockout}} s, and this model makes takes of at most {{max}} s. The take follows only the start of the camera move. Shorten the 3D clip to fit."
     }
   }
 }

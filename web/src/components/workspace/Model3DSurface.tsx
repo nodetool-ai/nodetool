@@ -7,6 +7,7 @@ import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { useAssetById } from "../../serverState/useAssetById";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetRevisionStore } from "../../stores/AssetRevisionStore";
+import { useModel3DViewRequestStore } from "../../stores/Model3DViewRequestStore";
 import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
@@ -110,6 +111,8 @@ const withVersion = (url: string, version: string): string =>
  * the bar with the title and View/Edit.
  */
 const Model3DSurface = ({ refId, mode, active, tab }: Model3DSurfaceProps) => {
+  // "Edit set" on a timeline clip opens the set at the shot's camera.
+  const viewRequest = useModel3DViewRequestStore((s) => s.requests[refId]);
   const { t } = useTranslation();
   const { data: asset, isPending, refetch } = useAssetById(refId);
 
@@ -253,6 +256,7 @@ const Model3DSurface = ({ refId, mode, active, tab }: Model3DSurfaceProps) => {
           externallyChanged={externallyChanged}
           onReloadExternal={reloadExternal}
           onDismissExternal={dismissExternal}
+          viewRequest={viewRequest}
         />
       </Suspense>
     );

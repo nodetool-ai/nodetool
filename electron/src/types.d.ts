@@ -1275,6 +1275,8 @@ export type RuntimePackageId =
   | "manimgx"
   | "sd-cpp"
   | "acestep"
+  | "blender"
+  | "chrome"
   | "wan2gp"
   | "transformers-js"
   | "node-llama-cpp"

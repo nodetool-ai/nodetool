@@ -28,6 +28,7 @@ import {
 } from "../../../stores/timeline/BlockoutReferenceStore";
 import { useBlockoutReference } from "../../../hooks/timeline/useBlockoutReference";
 import { useBlockoutLink } from "../../../hooks/timeline/useBlockoutLink";
+import { useModel3DAssetRevision } from "../../../hooks/timeline/useModel3DAssetRevision";
 import ErrorBanner from "../../support/ErrorBanner";
 import {
   Button,
@@ -75,8 +76,13 @@ export const BlockoutReferenceSection: React.FC<BlockoutReferenceSectionProps> =
     const pass = pickedPass ?? reference?.pass ?? DEFAULT_MODEL3D_REFERENCE_PASS;
     const [playing, setPlaying] = useState(false);
 
-    // "stale" covers an edit to the clip and a pass other than the stored one.
-    const status = model3dReferenceStatus(clip, sequence, pass);
+    const assetRevision = useModel3DAssetRevision(
+      clip.currentAssetId ?? undefined
+    );
+    // "stale" covers an edit to the clip, the span or the set. A pass other
+    // than the stored one is not stale: it has simply not been rendered.
+    const status = model3dReferenceStatus(clip, sequence, { assetRevision });
+    const otherPass = reference !== undefined && reference.pass !== pass;
     const rendering = render !== undefined;
     const clipId = clip.id;
 
@@ -151,56 +157,65 @@ export const BlockoutReferenceSection: React.FC<BlockoutReferenceSectionProps> =
     const progress = render?.progress;
     return (
       <>
+        {/* The pass is a row of its own, so its label sits beside the
+            select; the actions and the status line run below it. */}
         <InspectorRow label={t("blockout3d.reference.label")}>
-          <FlexColumn gap={SPACING.xs} sx={{ minWidth: 0 }}>
-            <InspectorSelect
-              label={t("blockout3d.reference.pass")}
-              value={pass}
-              options={passOptions}
-              onChange={handlePassChange}
-              disabled={rendering}
-            />
-            <FlexRow gap={SPACING.sm} wrap align="center">
+          <InspectorSelect
+            label={t("blockout3d.reference.pass")}
+            value={pass}
+            options={passOptions}
+            onChange={handlePassChange}
+            disabled={rendering}
+          />
+        </InspectorRow>
+        <FlexColumn gap={SPACING.xs} sx={{ px: SPACING.xs, minWidth: 0 }}>
+          <FlexRow gap={SPACING.sm} wrap align="center">
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={rendering ? handleCancel : handleRender}
+              // Rendering turns the button into Cancel, so it stays enabled.
+              startIcon={rendering ? <ButtonSpinner /> : undefined}
+              disabled={!rendering && !clip.currentAssetId}
+              data-testid="blockout-render-reference"
+            >
+              {rendering
+                ? progress && progress.total > 0
+                  ? t("blockout3d.reference.cancelProgress", progress)
+                  : t("blockout3d.reference.cancel")
+                : status === "missing" || otherPass
+                  ? t("blockout3d.reference.render")
+                  : t("blockout3d.reference.renderAgain")}
+            </Button>
+            {reference && !rendering && (
               <Button
                 size="small"
-                variant="outlined"
-                onClick={rendering ? handleCancel : handleRender}
-                // Rendering turns the button into Cancel, so it stays enabled.
-                startIcon={rendering ? <ButtonSpinner /> : undefined}
-                disabled={!rendering && !clip.currentAssetId}
-                data-testid="blockout-render-reference"
+                variant="text"
+                onClick={togglePlaying}
+                aria-expanded={playing}
+                data-testid="blockout-play-reference"
               >
-                {rendering
-                  ? progress && progress.total > 0
-                    ? t("blockout3d.reference.cancelProgress", progress)
-                    : t("blockout3d.reference.cancel")
-                  : status === "missing"
-                    ? t("blockout3d.reference.render")
-                    : t("blockout3d.reference.renderAgain")}
+                {playing
+                  ? t("blockout3d.reference.hide")
+                  : t("blockout3d.reference.play")}
               </Button>
-              {reference && !rendering && (
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={togglePlaying}
-                  aria-expanded={playing}
-                  data-testid="blockout-play-reference"
-                >
-                  {playing
-                    ? t("blockout3d.reference.hide")
-                    : t("blockout3d.reference.play")}
-                </Button>
-              )}
-            </FlexRow>
-            {status === "stale" && !rendering && (
-              <Chip
-                compact
-                color="warning"
-                label={t("blockout3d.reference.stale")}
-              />
             )}
-          </FlexColumn>
-        </InspectorRow>
+          </FlexRow>
+          {otherPass && !rendering && (
+            <Caption color="muted">
+              {t("blockout3d.reference.otherPass", {
+                pass: t(`blockout3d.pass.${reference.pass}.label`)
+              })}
+            </Caption>
+          )}
+          {status === "stale" && !otherPass && !rendering && (
+            <Chip
+              compact
+              color="warning"
+              label={t("blockout3d.reference.stale")}
+            />
+          )}
+        </FlexColumn>
         <Caption color="muted">{t(`blockout3d.pass.${pass}.hint`)}</Caption>
         {reference && playing && !rendering && (
           <VideoPlayer

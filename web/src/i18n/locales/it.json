@@ -5758,7 +5758,7 @@
           "animationSpeed": "Velocità di animazione",
           "lighting": "Illuminazione",
           "lightingPreset": "Preimpostazione dell'illuminazione",
-          "lightIntensity": "Intensità della luce",
+          "lightIntensity": "Intensità",
           "transparentBackground": "Sfondo trasparente",
           "backgroundColor": "Colore di sfondo",
           "bake": "Cuocere",
@@ -5786,7 +5786,7 @@
           "applyMove": "Aggiungi movimento",
           "freeCameraHelp": "Nell'anteprima, tieni premuto Alt e trascina per orbitare, aggiungi Maiusc per la carrellata laterale, usa la rotellina per avanzare e aggiungi Ctrl con la rotellina per cambiare obiettivo.",
           "editSet": "Modifica set",
-          "editSetHelp": "Apri il modello 3D di questa clip nell'editor dei modelli",
+          "editSetHelp": "Apri il modello 3D di questa clip nell'editor di modelli. Con una camera libera si apre guardando attraverso l'inquadratura.",
           "moves": {
             "pan": "Panoramica",
             "tilt": "Inclinazione",
@@ -5798,7 +5798,9 @@
             "zoom": "Zoom",
             "dollyZoom": "Dolly zoom",
             "dutch": "Inquadratura olandese"
-          }
+          },
+          "cameraDrag": "Trascina la camera nell'anteprima",
+          "cameraDragHelp": "Nell'anteprima trascina per orbitare, aggiungi Maiusc per una carrellata laterale, scorri per il dolly e aggiungi Ctrl mentre scorri per cambiare obiettivo."
         },
         "reframe": {
           "title": "Riformulazione intelligente",
@@ -19608,7 +19610,9 @@
       "addText": "Aggiungi testo",
       "addMidiClip": "Aggiungi clip MIDI",
       "addGeneratedClipHere": "Aggiungi la clip generata qui...",
-      "closeGap": "Chiudere il divario"
+      "closeGap": "Chiudere il divario",
+      "addBlockoutSet": "Aggiungi set di blockout",
+      "addBlockoutSetFailed": "Impossibile aggiungere il set di blockout: {{error}}"
     },
     "daw": {
       "resizeDock": "Ridimensiona il dock DAW"
@@ -21859,7 +21863,8 @@
       "hide": "Nascondi riferimento",
       "stale": "Riferimento non aggiornato",
       "playerLabel": "Riferimento del blockout",
-      "failed": "Rendering del riferimento non riuscito"
+      "failed": "Rendering del riferimento non riuscito",
+      "otherPass": "Il riferimento salvato è in {{pass}}. Esegui il rendering in questo passaggio per usarlo."
     },
     "shot": {
       "label": "Inquadratura",
@@ -21884,7 +21889,8 @@
     },
     "render": {
       "withReference": "Il video di riferimento del blockout viene inviato a questo modello con il prompt. Viene renderizzato prima se manca o non è aggiornato.",
-      "promptOnly": "Questo modello non accetta un video di riferimento. Il rendering grigio non viene inviato e il movimento di camera viene aggiunto al prompt come testo: {{move}}"
+      "promptOnly": "Questo modello non accetta un video di riferimento. Il rendering grigio non viene inviato e il movimento di camera viene aggiunto al prompt come testo: {{move}}",
+      "tooLong": "Il blockout dura {{blockout}} s e questo modello genera riprese di al massimo {{max}} s. La ripresa segue solo l'inizio del movimento di camera. Accorcia la clip 3D per farla rientrare."
     }
   }
 }

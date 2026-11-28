@@ -14,6 +14,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 #if !defined(_WIN32)
 #include <pthread.h>
@@ -56,6 +57,38 @@ size_t bounded(const Json& value, const char* key, size_t fallback, size_t lo, s
   const auto n = value.at(key).get<double>();
   if (!std::isfinite(n)) throw std::runtime_error("Sandbox limit must be finite");
   return size_t(std::clamp(n,double(lo),double(hi)));
+}
+// The deepest array and object nesting accepted in JSON that enters a session:
+// bridge payloads from the guest, resume results, the globals option and the
+// run result. Deeper values are rejected as invalid input before parsing.
+constexpr size_t kMaxJsonDepth = 256;
+// True when the arrays and objects in `encoded` nest at most `limit` deep. A
+// linear scan of the brackets outside strings, so it needs no recursion and
+// runs before any parser. Malformed input is left for the parser to reject.
+bool withinJsonDepth(std::string_view encoded, size_t limit = kMaxJsonDepth) {
+  size_t depth = 0;
+  bool inString = false, escaped = false;
+  for (const char c : encoded) {
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c == '\\') escaped = true;
+      else if (c == '"') inString = false;
+    } else if (c == '"') {
+      inString = true;
+    } else if (c == '[' || c == '{') {
+      if (++depth > limit) return false;
+    } else if ((c == ']' || c == '}') && depth > 0) {
+      --depth;
+    }
+  }
+  return true;
+}
+// Parses JSON that must nest at most `limit` deep, and names `what` in the
+// error otherwise.
+Json parseBounded(const std::string& encoded, const char* what, size_t limit = kMaxJsonDepth) {
+  if (!withinJsonDepth(encoded, limit))
+    throw std::runtime_error(std::string(what) + " nesting depth limit exceeded");
+  return Json::parse(encoded);
 }
 unsigned idArg(js::Engine& en,const js::Value& v) {
   const double d=en.toNumber(v);
@@ -158,12 +191,14 @@ struct Session {
       const auto operation = text(ctx,args[0]);
       const auto payload = text(ctx,args[1]);
       if (payload.size() > 10 * 1024 * 1024) throw std::runtime_error("Sandbox bridge size limit exceeded");
+      // Parse before the promise exists, so a rejected payload leaves nothing pending.
+      auto parsed = parseBounded(payload,"Sandbox bridge payload");
       // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
       JSValue functions[2];
       auto promise = JS_NewPromiseCapability(ctx,functions);
       session.pending.emplace(session.serial,std::pair{functions[0],functions[1]});
       if(operation=="take") {if(session.inputWaits.empty())session.suspendedAt=Clock::now();session.inputWaits.insert(session.serial);}
-      session.events.push_back({{"token",session.serial},{"operation",operation},{"args",Json::parse(payload)}});
+      session.events.push_back({{"token",session.serial},{"operation",operation},{"args",std::move(parsed)}});
       return promise;
     } catch(const std::exception& error) { return JS_ThrowInternalError(ctx,"%s",error.what()); }
   }
@@ -241,7 +276,8 @@ const __revive=value=>{
 };
 for(const key of Object.keys(globalThis))if(key!=='__nativeBridge')globalThis[key]=__revive(globalThis[key]);
 globalThis.__revive=__revive;
-const __bridge = (op,args=[]) => __nativeBridge(op,__serialize(args));
+// The native bridges live only in these closures; the globals are deleted below.
+const __bridge = (native => (op,args=[]) => native(op,__serialize(args)))(__nativeBridge);
 globalThis.output = (name,value) => __bridge('output',[name,value]);
 globalThis.emit = (name,value) => __bridge('emit',[name,value]);
 globalThis.__callTool = (name,args) => __bridge('tool',[name,args]);
@@ -260,8 +296,13 @@ globalThis.fetch = async (...args)=>{
  return {...response,text:async()=>response.body,json:async()=>JSON.parse(response.body),bytes:async()=>bytes,arrayBuffer:async()=>bytes.buffer};
 };
 for(const namespace of ['format','crypto','image','canvas','audio','video','media'])globalThis[namespace]=new Proxy({}, {get(target,member){if(Object.hasOwn(target,member))return target[member];if(member==='then')return undefined;return (...args)=>__bridge('helper',[namespace,member,args]);}});
-globalThis.crypto.randomUUID = ()=>__sync('randomUUID','[]');
-globalThis.crypto.getRandomValues = size=>__revive(__sync('randomBytes',JSON.stringify([size])));
+{
+ const sync=__sync;
+ globalThis.crypto.randomUUID = ()=>sync('randomUUID','[]');
+ globalThis.crypto.getRandomValues = size=>__revive(sync('randomBytes',JSON.stringify([size])));
+}
+delete globalThis.__nativeBridge;
+delete globalThis.__sync;
 globalThis.stream = name => ({async *[Symbol.asyncIterator]() { for (;;) {const item=await __bridge('take',[name]);if(item.done)return;yield item.value;} }});
 globalThis.stream.any = () => ({async *[Symbol.asyncIterator]() {for(;;){const item=await __bridge('take',[null]);if(item.done)return;yield [item.handle,item.value];} }});
 globalThis.stream.first = async name => {const item=await __bridge('take',[name]);return item.done?undefined:item.value;};
@@ -304,7 +345,7 @@ globalThis.__runDone = false;
     }
     if(!error.empty()) return {{"done",true},{"result",{{"success",false},{"error",error}}}};
     if(!events.empty()) {
-      auto event=events.front();events.pop_front();
+      auto event=std::move(events.front());events.pop_front();
       const auto op=event.at("operation").get<std::string>();
       if(op=="output" || op=="emit") {
         const auto& args=event.at("args");
@@ -335,11 +376,16 @@ globalThis.__runDone = false;
         JS_FreeValue(context,serializer);
         if(JS_IsException(encoded)) {auto ex=JS_GetException(context);result={{"success",false},{"error",text(context,ex)}};JS_FreeValue(context,ex);}
         else {
-          result={{"success",true},{"result",JS_IsUndefined(encoded)?Json():Json::parse(text(context,encoded))},{"outputs",outputs},{"emitted",emitted},{"logs",logs}};
+          const auto body=JS_IsUndefined(encoded)?std::string():text(context,encoded);
           auto state=JS_GetPropertyStr(context,global,"state");
           auto stateJson=JS_JSONStringify(context,state,JS_UNDEFINED,JS_UNDEFINED);
-          if(!JS_IsUndefined(stateJson) && !JS_IsException(stateJson))result["state"]=Json::parse(text(context,stateJson));
+          const auto stateBody=JS_IsUndefined(stateJson) || JS_IsException(stateJson)?std::string():text(context,stateJson);
           JS_FreeValue(context,stateJson);JS_FreeValue(context,state);
+          if(!withinJsonDepth(body) || !withinJsonDepth(stateBody)) result={{"success",false},{"error","Sandbox result nesting depth limit exceeded"}};
+          else {
+            result={{"success",true},{"result",body.empty()?Json():Json::parse(body)},{"outputs",outputs},{"emitted",emitted},{"logs",logs}};
+            if(!stateBody.empty())result["state"]=Json::parse(stateBody);
+          }
         }
         JS_FreeValue(context,encoded);JS_FreeValue(context,value);
       }
@@ -379,13 +425,14 @@ void installSandboxSessions(js::Engine& engine,const js::Value& object,std::func
       // native-rules #12: stored callback captures an Engine reference and runs later
       open=[&en,callback](const std::string& name){return en.toBoolean(en.call(callback,en.undefined(),{en.string(name)}));};
     }
-    const auto id=++*next; sessions->emplace(id,std::make_unique<Session>(Json::parse(en.toString(args[0])),cancelled,std::move(open),args.size()>2 && en.isFunction(args[2]) ? std::function<std::string(const std::string&,const std::string&)>([&en,callback=args[2]](const std::string& name,const std::string& payload){return en.toString(en.call(callback,en.undefined(),{en.string(name),en.string(payload)}));}):std::function<std::string(const std::string&,const std::string&)>{}));return en.number(id);
+    // The globals option sits one level inside the options object.
+    const auto id=++*next; sessions->emplace(id,std::make_unique<Session>(parseBounded(en.toString(args[0]),"Sandbox options",kMaxJsonDepth+1),cancelled,std::move(open),args.size()>2 && en.isFunction(args[2]) ? std::function<std::string(const std::string&,const std::string&)>([&en,callback=args[2]](const std::string& name,const std::string& payload){return en.toString(en.call(callback,en.undefined(),{en.string(name),en.string(payload)}));}):std::function<std::string(const std::string&,const std::string&)>{}));return en.number(id);
   }));
   engine.set(object,"step",engine.function("step",1,[sessions](js::Engine& en,const std::vector<js::Value>& args){
     const auto id=idArg(en,args.at(0));return en.string(sessions->at(id)->step().dump());
   }));
   engine.set(object,"resume",engine.function("resume",4,[sessions](js::Engine& en,const std::vector<js::Value>& args){
-    sessions->at(idArg(en,args.at(0)))->resume(idArg(en,args.at(1)),Json::parse(en.toString(args.at(2))),en.toBoolean(args.at(3)));return en.undefined();
+    sessions->at(idArg(en,args.at(0)))->resume(idArg(en,args.at(1)),parseBounded(en.toString(args.at(2)),"Sandbox resume result"),en.toBoolean(args.at(3)));return en.undefined();
   }));
   engine.set(object,"close",engine.function("close",1,[sessions](js::Engine& en,const std::vector<js::Value>& args){
     sessions->erase(idArg(en,args.at(0)));return en.undefined();

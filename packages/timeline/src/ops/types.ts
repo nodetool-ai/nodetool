@@ -416,6 +416,13 @@ export interface TimelineOpContext {
     request: TimelineOpRenderModel3DReferenceRequest
   ): Promise<TimelineOpRenderModel3DReferenceResult>;
   /**
+   * The `updated_at` of a 3D model asset, which changes when the set is saved
+   * in place. `render_model3d_reference` compares it with the revision the
+   * stored reference was rendered at. Absent, or null for an asset it cannot
+   * read, means the op relies on the dependency hash alone.
+   */
+  model3dAssetRevision?(assetId: string): Promise<string | null>;
+  /**
    * The host's SVG path parser (`parseSvgPath` from `./scene`). Passed in
    * rather than imported: the parser lives under `src/render`, which this
    * module stays clear of to avoid loading the renderer in edit hosts (AS2).

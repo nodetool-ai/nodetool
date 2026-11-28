@@ -44,9 +44,8 @@ import { trpc } from "../../trpc/client";
 import { trpcClient } from "../../trpc/client";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
-import { useAssetStore } from "../../stores/AssetStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
+import { useAddBlockoutSet } from "../../hooks/timeline/useAddBlockoutSet";
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import ImageModelSelect from "../properties/ImageModelSelect";
@@ -59,7 +58,6 @@ import type {
 } from "../../stores/ApiTypes";
 import { clipFitsTrack, makeClip } from "@nodetool-ai/timeline";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
-import { blockoutSetClip, blockoutSetFile } from "./model3dSet";
 
 /**
  * An adjustment layer draws nothing of its own — like an authored text or
@@ -459,8 +457,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
     const addClip = useTimelineStore((s) => s.addClip);
     const selectClip = useTimelineUIStore((s) => s.selectClip);
-    const createAsset = useAssetStore((s) => s.createAsset);
-    const activeProjectId = useWorkspaceTabsStore((s) => s.activeProjectId);
+    const addBlockoutSet = useAddBlockoutSet();
     const directGen = useTimelineDirectGenJob();
 
     // ── Data fetching ──────────────────────────────────────────────────────
@@ -605,17 +602,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       setIsAdding(true);
       setError(null);
       try {
-        const asset = await createAsset(
-          blockoutSetFile(t("i18n-next6.addClip.blockoutSet")),
-          undefined,
-          undefined,
-          undefined,
-          "file",
-          activeProjectId ?? undefined
-        );
-        const clip = blockoutSetClip(asset, trackId, startMs);
-        addClip(clip);
-        selectClip(clip.id);
+        await addBlockoutSet(trackId, startMs);
         onClose();
       } catch (err) {
         setError(
@@ -626,16 +613,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       } finally {
         setIsAdding(false);
       }
-    }, [
-      activeProjectId,
-      addClip,
-      createAsset,
-      onClose,
-      selectClip,
-      startMs,
-      t,
-      trackId
-    ]);
+    }, [addBlockoutSet, onClose, startMs, t, trackId]);
 
     const handleTabChange = useCallback((tab: string) => {
       setActiveTab(tab as "templates" | "all");

@@ -3,9 +3,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useMemo, useRef, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { useTranslation } from "react-i18next";
-import type { ChatSource } from "@nodetool-ai/protocol";
+import { isModelSelected, type ChatSource } from "@nodetool-ai/protocol";
 import {
   Node,
   Edge,
@@ -246,7 +246,18 @@ type ChatViewProps = {
   focusMessage?: { messageId: string; requestId: number } | null;
   /** A deterministic replay owns thread scrolling. */
   externalScroll?: boolean;
+  /**
+   * A prompt to send on the user's behalf as soon as the view is connected
+   * and has a model. `claim` returns false when another surface already sent
+   * it, so two mounted views never send it twice.
+   */
+  autoSend?: ChatAutoSend | null;
 };
+
+export interface ChatAutoSend {
+  prompt: string;
+  claim: () => boolean;
+}
 
 /**
  * Only a surface that names no thread follows the store's current one. `null`
@@ -311,7 +322,8 @@ const ChatView = ({
   showNewChatButton = false,
   showTitleMenu = false,
   threadId,
-  focusMessage
+  focusMessage,
+  autoSend
 }: ChatViewProps) => {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -369,6 +381,18 @@ const ChatView = ({
     },
     [sendMessage, buildOutgoing, addNotification, effectiveThreadId, t]
   );
+
+  const autoSentRef = useRef<ChatAutoSend | null>(null);
+  const autoSendReady = status === "connected" && isModelSelected(model);
+  useEffect(() => {
+    if (!autoSend || !autoSendReady || autoSentRef.current === autoSend) {
+      return;
+    }
+    autoSentRef.current = autoSend;
+    if (autoSend.claim()) {
+      void handleSendMessage([{ type: "text", text: autoSend.prompt }]);
+    }
+  }, [autoSend, autoSendReady, handleSendMessage]);
 
   const compactThread = useGlobalChatStore((state) => state.compactThread);
   const handleCompact = useCallback(async () => {

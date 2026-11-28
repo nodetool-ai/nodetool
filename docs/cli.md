@@ -1212,13 +1212,15 @@ Render the Blockout reference of a 3D clip: a grey video of the clip's span
 that a video model follows. The command takes a `timeline_sequences` row id and
 the clip's id or name. It runs the `render_model3d_reference` op against the
 local database, stores the video as an asset and records it on the clip. A
-reference that still matches the clip is reused. It needs a local Chrome, as
-`preview_timeline_frame` does for 3D clips.
+reference that still matches the clip and its set is reused. It needs Chrome,
+as `preview_timeline_frame` does for 3D clips. Install it from the Package
+Manager when the machine has none.
 
 | Flag | Purpose |
 |---|---|
 | `--pass <pass>` | `clay`, `depth` or `normal`. Default `clay`. |
 | `--out <path>` | Also write the MP4 to this file. |
+| `--force` | Render even when the stored reference is current. |
 | `--json` | Print the stored reference as JSON. |
 
 ```bash
@@ -3311,7 +3313,7 @@ install policy.
 | Command | Behavior |
 |---|---|
 | `runtime list [--json]` | Show every runtime package, whether it is installed, and the conda environment path. |
-| `runtime add <ids...> [--reinstall]` | Install npm runtime libraries, `sd-cpp`, `acestep`, `wan2gp`, and the conda and uv packages (`python`, `yt-dlp`, `rust`, `manimgx`). Dependencies install first. `--reinstall` installs an installed conda or uv package again. |
+| `runtime add <ids...> [--reinstall]` | Install npm runtime libraries, `sd-cpp`, `acestep`, `wan2gp`, the conda and uv packages (`python`, `yt-dlp`, `rust`, `manimgx`), and the downloaded applications (`blender`, `chrome`). Dependencies install first. `--reinstall` installs an installed conda, uv or application package again. |
 | `runtime remove <ids...>` | Uninstall the packages. |
 | `runtime path` | Print the npm root runtime libraries install into. |
 | `runtime python-packs list [--json]` | Show the Python node packs in the Python runtime. |
@@ -3324,6 +3326,12 @@ install policy.
 downloads micromamba into its data directory to create it. Python pack
 installs keep every installed pack in each resolve and take torch from the
 detected PyTorch index, with a CPU fallback.
+
+`blender` installs the newest Blender 5.2 release from download.blender.org
+after checking it against the SHA-256 file Blender publishes. `chrome`
+installs the current stable Chrome for Testing build. Both unpack into the
+NodeTool data directory, where the Blender nodes and the headless 3D renders
+look for them after `BLENDER_PATH` and `CHROME_PATH`.
 
 ### `nodetool reliability`
 
