@@ -38,6 +38,12 @@
       "import": "./dist/sd-cpp-runtime.js",
       "default": "./dist/sd-cpp-runtime.js"
     },
+    "./app-binary-runtime": {
+      "nodetool-dev": "./src/app-binary-runtime.ts",
+      "types": "./dist/app-binary-runtime.d.ts",
+      "import": "./dist/app-binary-runtime.js",
+      "default": "./dist/app-binary-runtime.js"
+    },
     "./wan2gp-runtime": {
       "nodetool-dev": "./src/wan2gp-runtime.ts",
       "types": "./dist/wan2gp-runtime.d.ts",

@@ -25,6 +25,7 @@ import {
   useBlockoutReferenceStore
 } from "../../stores/timeline/BlockoutReferenceStore";
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { renderBlockoutReference } from "../../components/timeline/render/renderBlockoutReference";
 import { getAssetUrl } from "../../utils/assetHelpers";
 
@@ -32,10 +33,19 @@ export type BlockoutReference = NonNullable<
   NonNullable<TimelineClip["model3dStyle"]>["reference"]
 >;
 
-/** Renders in flight, so a second request for the same clip joins the first. */
+/**
+ * The render in flight for each clip. A request joins it only when it asks for
+ * the same picture: the same pass, dependency hash and set revision. Any other
+ * request waits for it to settle and then renders, so a result is never stored
+ * under a hash or a pass it was not drawn at.
+ */
 const inFlight = new Map<
   string,
-  { controller: AbortController; promise: Promise<BlockoutReference> }
+  {
+    requestKey: string;
+    controller: AbortController;
+    promise: Promise<BlockoutReference>;
+  }
 >();
 
 export interface UseBlockoutReferenceResult {
@@ -45,8 +55,9 @@ export interface UseBlockoutReferenceResult {
     pass?: Model3DReferencePass
   ) => Promise<BlockoutReference>;
   /**
-   * The clip's reference, rendered first when it is missing or stale. Keeps
-   * the stored pass, and uses the default pass when there is none.
+   * The clip's reference, rendered first when it is missing or stale, or when
+   * the set was saved since it was rendered. Keeps the stored pass, and uses
+   * the default pass when there is none.
    */
   ensureReference: (clipId: string) => Promise<BlockoutReference>;
   /**
@@ -69,38 +80,53 @@ export function useBlockoutReference(): UseBlockoutReferenceResult {
   const createAsset = useAssetStore((s) => s.createAsset);
 
   const renderReferenceAsset = useCallback(
-    (
+    async (
       clip: TimelineClip,
       sequence: { fps: number; width: number; height: number },
       pass: Model3DReferencePass
     ): Promise<BlockoutReference> => {
+      const style = clip.model3dStyle;
+      if (clip.mediaType !== "model3d" || !style) {
+        throw new Error(
+          `Clip "${clip.name}" is not a 3D clip, so it has no reference to render.`
+        );
+      }
+      const assetId = clip.currentAssetId;
+      if (!assetId) {
+        throw new Error(`Clip "${clip.name}" has no glTF asset to render.`);
+      }
+      // Read fresh: the set is saved in place, and its `updated_at` is the
+      // only thing that shows an edit to it.
+      const asset = await getAsset(assetId);
+      const assetRevision = asset.updated_at ?? undefined;
+      const dependencyHash = computeModel3DReferenceHash(clip, sequence, pass);
       const key = blockoutReferenceKey(timeline.getState().sequenceId, clip.id);
+      const requestKey = JSON.stringify([pass, dependencyHash, assetRevision]);
+
       const running = inFlight.get(key);
-      if (running) {
+      if (running?.requestKey === requestKey) {
         return running.promise;
       }
 
       const controller = new AbortController();
-      const status = useBlockoutReferenceStore.getState();
+      const previous = running?.promise.catch(() => undefined);
       const run = async (): Promise<BlockoutReference> => {
-        const style = clip.model3dStyle;
-        if (clip.mediaType !== "model3d" || !style) {
-          throw new Error(
-            `Clip "${clip.name}" is not a 3D clip, so it has no reference to render.`
+        await previous;
+        if (controller.signal.aborted) {
+          throw new DOMException(
+            "The reference render was cancelled.",
+            "AbortError"
           );
         }
-        const assetId = clip.currentAssetId;
-        if (!assetId) {
-          throw new Error(`Clip "${clip.name}" has no glTF asset to render.`);
-        }
-        const dependencyHash = computeModel3DReferenceHash(clip, sequence, pass);
-
-        const asset = await getAsset(assetId);
+        useBlockoutReferenceStore.getState().start(key);
         const url = getAssetUrl(asset);
         if (!url) {
           throw new Error(`The glTF asset ${assetId} has no URL.`);
         }
-        const response = await fetch(url, { signal: controller.signal });
+        const response = await fetch(url, {
+          signal: controller.signal,
+          cache: "no-cache"
+        });
         if (!response.ok) {
           throw new Error(`Could not read the glTF asset (${response.status}).`);
         }
@@ -112,27 +138,45 @@ export function useBlockoutReference(): UseBlockoutReferenceResult {
           pass,
           glb,
           signal: controller.signal,
-          onProgress: (done, total) => status.setProgress(key, done, total)
+          onProgress: (done, total) =>
+            useBlockoutReferenceStore.getState().setProgress(key, done, total)
         });
+        // Stored in the project the set and the timeline belong to.
+        const projectId =
+          useWorkspaceTabsStore.getState().activeProjectId ?? undefined;
         const stored = await createAsset(
           new File(
             [video.bytes as BlobPart],
             `${clip.name || "clip"}-reference-${pass}.mp4`,
             { type: video.mimeType }
-          )
+          ),
+          undefined,
+          undefined,
+          undefined,
+          "file",
+          projectId
         );
-        return { assetId: stored.id, dependencyHash, pass };
+        return {
+          assetId: stored.id,
+          dependencyHash,
+          pass,
+          ...(assetRevision !== undefined && { assetRevision })
+        };
       };
 
-      status.start(key);
+      const settle = (): void => {
+        if (inFlight.get(key)?.controller === controller) {
+          inFlight.delete(key);
+        }
+      };
       const promise = run().then(
         (reference) => {
-          inFlight.delete(key);
+          settle();
           useBlockoutReferenceStore.getState().finish(key);
           return reference;
         },
         (error: unknown) => {
-          inFlight.delete(key);
+          settle();
           const message = error instanceof Error ? error.message : String(error);
           if (controller.signal.aborted) {
             useBlockoutReferenceStore.getState().finish(key);
@@ -142,7 +186,7 @@ export function useBlockoutReference(): UseBlockoutReferenceResult {
           throw error instanceof Error ? error : new Error(message);
         }
       );
-      inFlight.set(key, { controller, promise });
+      inFlight.set(key, { requestKey, controller, promise });
       return promise;
     },
     [timeline, getAsset, createAsset]
@@ -190,12 +234,19 @@ export function useBlockoutReference(): UseBlockoutReferenceResult {
         height: store.height
       };
       const reference = clip.model3dStyle?.reference;
-      if (reference && model3dReferenceStatus(clip, sequence) === "current") {
-        return reference;
+      if (reference && clip.currentAssetId) {
+        // The set is saved in place: ask for its revision, not the cache.
+        const asset = await getAsset(clip.currentAssetId);
+        const status = model3dReferenceStatus(clip, sequence, {
+          assetRevision: asset.updated_at ?? undefined
+        });
+        if (status === "current") {
+          return reference;
+        }
       }
       return renderReference(clipId, reference?.pass);
     },
-    [timeline, renderReference]
+    [timeline, renderReference, getAsset]
   );
 
   const cancel = useCallback(

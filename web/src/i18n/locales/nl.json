@@ -5478,7 +5478,7 @@
           "animationSpeed": "Animatiesnelheid",
           "lighting": "Verlichting",
           "lightingPreset": "Verlichting vooraf ingesteld",
-          "lightIntensity": "Lichtintensiteit",
+          "lightIntensity": "Intensiteit",
           "transparentBackground": "Transparante achtergrond",
           "backgroundColor": "Achtergrondkleur",
           "bake": "Bak",
@@ -5506,7 +5506,7 @@
           "applyMove": "Beweging toevoegen",
           "freeCameraHelp": "In de voorvertoning: houd Alt ingedrukt en sleep om rond het doel te draaien, voeg Shift toe om zijwaarts te rijden, scrol om dichterbij te rijden en voeg Ctrl toe tijdens het scrollen om de lens te wijzigen.",
           "editSet": "Set bewerken",
-          "editSetHelp": "Het 3D-model van deze clip openen in de modeleditor",
+          "editSetHelp": "Open het 3D-model van deze clip in de modeleditor. Met een vrije camera opent het door het shot gezien.",
           "moves": {
             "pan": "Pan",
             "tilt": "Tilt",
@@ -5518,7 +5518,9 @@
             "zoom": "Zoom",
             "dollyZoom": "Dollyzoom",
             "dutch": "Dutch angle"
-          }
+          },
+          "cameraDrag": "Camera slepen in voorbeeld",
+          "cameraDragHelp": "Sleep in het voorbeeld om te orbiten, houd Shift ingedrukt om te trucken, scroll om te dollyen en houd Ctrl ingedrukt tijdens het scrollen om de lens te wijzigen."
         },
         "reframe": {
           "title": "Slim herkaderen",
@@ -19074,7 +19076,9 @@
       "addText": "Voeg tekst toe",
       "addMidiClip": "MIDI-clip toevoegen",
       "addGeneratedClipHere": "Voeg hier de gegenereerde clip toe...",
-      "closeGap": "Gat dichten"
+      "closeGap": "Gat dichten",
+      "addBlockoutSet": "Blockout-set toevoegen",
+      "addBlockoutSetFailed": "Kan de blockout-set niet toevoegen: {{error}}"
     },
     "daw": {
       "resizeDock": "Formaat van DAW-dock wijzigen"
@@ -21007,7 +21011,8 @@
       "hide": "Referentie verbergen",
       "stale": "Referentie verouderd",
       "playerLabel": "Blockout-referentie",
-      "failed": "Renderen van de referentie mislukt"
+      "failed": "Renderen van de referentie mislukt",
+      "otherPass": "De opgeslagen referentie is in {{pass}}. Render er een in deze pass om die te gebruiken."
     },
     "shot": {
       "label": "Shot",
@@ -21032,7 +21037,8 @@
     },
     "render": {
       "withReference": "De referentievideo van de blockout wordt met de prompt naar dit model gestuurd. Hij wordt eerst gerenderd als hij ontbreekt of verouderd is.",
-      "promptOnly": "Dit model accepteert geen referentievideo. De grijze render wordt niet verstuurd, en de camerabeweging wordt als tekst aan de prompt toegevoegd: {{move}}"
+      "promptOnly": "Dit model accepteert geen referentievideo. De grijze render wordt niet verstuurd, en de camerabeweging wordt als tekst aan de prompt toegevoegd: {{move}}",
+      "tooLong": "De blockout duurt {{blockout}} s en dit model maakt takes van hooguit {{max}} s. De take volgt alleen het begin van de camerabeweging. Kort de 3D-clip in zodat hij past."
     }
   }
 }

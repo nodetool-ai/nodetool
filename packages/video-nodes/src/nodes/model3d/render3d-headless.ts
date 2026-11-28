@@ -7,13 +7,18 @@
  * over CDP. SwiftShader flags keep WebGL working on GPU-less servers. Later
  * renders reuse that browser until it has been idle for a minute.
  *
- * Chrome discovery follows the automation nodes: `CHROME_PATH` when set,
- * otherwise chrome-launcher's platform search. Everything here is
- * lazy-imported so merely registering the node never requires Chrome.
+ * Chrome discovery: `CHROME_PATH` when set, then the Chrome the Package
+ * Manager installed (`runtimeLocations().chrome`), otherwise chrome-launcher's
+ * platform search. When none is found the render throws a
+ * `MissingRuntimePackageError` for `chrome`, so the editor offers the
+ * install. Everything here is lazy-imported so merely registering the node
+ * never requires Chrome.
  */
 
 import { readFile } from "node:fs/promises";
-import { resolvePackageAssetPath } from "@nodetool-ai/config";
+import { resolvePackageAssetPath, runtimeLocations } from "@nodetool-ai/config";
+import { installedAppBinary } from "@nodetool-ai/config/app-binary-runtime";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import {
   renderFrameFromRender3DOptions,
   sessionOptionsFromRender3DOptions,
@@ -233,6 +238,27 @@ let browserPromise: Promise<RenderBrowser> | null = null;
 let activeRenders = 0;
 let idleTimer: NodeJS.Timeout | undefined;
 
+/** `CHROME_PATH`, then the Package Manager's Chrome, else chrome-launcher searches. */
+export async function renderChromePath(): Promise<string | undefined> {
+  const configured = process.env.CHROME_PATH?.trim();
+  if (configured) return configured;
+  try {
+    return (await installedAppBinary("chrome", runtimeLocations().chrome)) ?? undefined;
+  } catch {
+    // An unknown NODETOOL_HOST has no runtime root; chrome-launcher still searches.
+    return undefined;
+  }
+}
+
+/** chrome-launcher's error when its platform search finds no Chrome. */
+function isChromeNotInstalled(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    (("code" in err && err.code === "ERR_LAUNCHER_NOT_INSTALLED") ||
+      /No Chrome installations found/i.test(err.message))
+  );
+}
+
 async function launchRenderBrowser(
   chromePath: string | undefined
 ): Promise<RenderBrowser> {
@@ -240,7 +266,12 @@ async function launchRenderBrowser(
   const { launch } = await import("chrome-launcher");
   const chrome = await launchChromeWithRetry(() =>
     launch({ chromeFlags: CHROME_FLAGS, chromePath })
-  );
+  ).catch((err: unknown) => {
+    if (!chromePath && isChromeNotInstalled(err)) {
+      throw missingRuntimePackageError("chrome", "chrome", err);
+    }
+    throw err;
+  });
   // An idle browser must not outlive the process: the idle timer is unref'd.
   const onExit = () => {
     try {
@@ -362,7 +393,7 @@ export async function renderGlbFramesHeadless(
   frames: readonly Model3DRenderFrame[]
 ): Promise<Uint8Array[]> {
   if (frames.length === 0) return [];
-  const chromePath = process.env.CHROME_PATH || undefined;
+  const chromePath = await renderChromePath();
 
   clearTimeout(idleTimer);
   activeRenders += 1;

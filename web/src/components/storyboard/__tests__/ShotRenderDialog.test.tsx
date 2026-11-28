@@ -43,7 +43,12 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   })
 }));
 
+const mockMediaOptions: { durations?: number[] } = {};
+
 jest.mock("../../../hooks/useModelsByProvider", () => ({
+  useMediaOptions: (query: { model?: string | null }) => ({
+    data: query.model ? mockMediaOptions : undefined
+  }),
   useImageModelsByProvider: () => ({
     models: [
       { id: "flux", provider: "fal", name: "Flux" },
@@ -64,6 +69,12 @@ jest.mock("../../../hooks/useModelsByProvider", () => ({
         provider: "gemini",
         name: "Veo",
         supported_tasks: ["image_to_video", "text_to_video"]
+      },
+      {
+        id: "refvid",
+        provider: "fal",
+        name: "RefVid",
+        supported_tasks: ["image_to_video", "reference_to_video"]
       }
     ]
   })
@@ -105,6 +116,7 @@ jest.mock("../../properties/VideoModelSelect", () => ({
 }));
 
 import ShotCard from "../ShotCard";
+import { ShotRenderDialog } from "../ShotRenderDialog";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { useStoryboardRenderPrefsStore } from "../../../stores/storyboard/StoryboardRenderPrefsStore";
@@ -145,6 +157,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  delete mockMediaOptions.durations;
   useStoryboardStore.getState().removeBoard(BOARD);
   useStoryboardRenderPrefsStore.setState({ clipResolution: "1080p" });
 });
@@ -326,5 +339,40 @@ describe("ShotCard render dialog", () => {
     expect(
       screen.getByRole("menuitem", { name: "Render clip…" })
     ).toHaveAttribute("aria-disabled", "true");
+  });
+});
+
+describe("ShotRenderDialog with a linked blockout", () => {
+  const renderBlockout = (durationMs: number) => {
+    const shot = seedShot({
+      clip_model: { id: "refvid", provider: "fal", name: "RefVid" }
+    });
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ShotRenderDialog
+          boardId={BOARD}
+          shot={shot}
+          step="clip"
+          onClose={() => undefined}
+          blockout={{
+            cameraMove: "The camera pushes in.",
+            durationMs,
+            prepare: async () => ({ kind: "prompt", cameraMove: "The camera pushes in." }) as never
+          }}
+        />
+      </ThemeProvider>
+    );
+  };
+
+  it("warns when the reference runs longer than the model's longest take", () => {
+    mockMediaOptions.durations = [5, 8];
+    renderBlockout(12000);
+    expect(screen.getByTestId("shot-render-blockout-too-long")).toHaveTextContent("12.0");
+  });
+
+  it("stays quiet when the reference fits", () => {
+    mockMediaOptions.durations = [5, 8];
+    renderBlockout(6000);
+    expect(screen.queryByTestId("shot-render-blockout-too-long")).toBeNull();
   });
 });

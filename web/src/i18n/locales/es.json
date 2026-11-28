@@ -5555,7 +5555,7 @@
           "animationSpeed": "Velocidad de animación",
           "lighting": "Iluminación",
           "lightingPreset": "Preajuste de iluminación",
-          "lightIntensity": "Intensidad de la luz",
+          "lightIntensity": "Intensidad",
           "transparentBackground": "fondo transparente",
           "backgroundColor": "Color de fondo",
           "bake": "hornear",
@@ -5583,7 +5583,7 @@
           "applyMove": "Añadir movimiento",
           "freeCameraHelp": "En la vista previa, mantén Alt y arrastra para orbitar, añade Mayús para desplazar, usa la rueda para acercar y añade Ctrl con la rueda para cambiar la lente.",
           "editSet": "Editar set",
-          "editSetHelp": "Abrir el modelo 3D de este clip en el editor de modelos",
+          "editSetHelp": "Abre el modelo 3D de este clip en el editor de modelos. Con una cámara libre se abre mirando a través del plano.",
           "moves": {
             "pan": "Paneo",
             "tilt": "Inclinación",
@@ -5595,7 +5595,9 @@
             "zoom": "Zoom",
             "dollyZoom": "Dolly zoom",
             "dutch": "Plano holandés"
-          }
+          },
+          "cameraDrag": "Arrastrar la cámara en la vista previa",
+          "cameraDragHelp": "En la vista previa, arrastra para orbitar, añade Mayús para un travelling lateral, desplaza para el dolly y añade Ctrl al desplazar para cambiar la lente."
         },
         "reframe": {
           "title": "Replanteo inteligente",
@@ -19385,7 +19387,9 @@
       "addText": "Agregar texto",
       "addMidiClip": "Agregar clip MIDI",
       "addGeneratedClipHere": "Agregue el clip generado aquí...",
-      "closeGap": "Cerrar la brecha"
+      "closeGap": "Cerrar la brecha",
+      "addBlockoutSet": "Añadir set de blockout",
+      "addBlockoutSetFailed": "No se pudo añadir el set de blockout: {{error}}"
     },
     "daw": {
       "resizeDock": "Cambiar el tamaño de la base DAW"
@@ -21326,7 +21330,8 @@
       "hide": "Ocultar referencia",
       "stale": "Referencia desactualizada",
       "playerLabel": "Referencia de blockout",
-      "failed": "Falló el render de la referencia"
+      "failed": "Falló el render de la referencia",
+      "otherPass": "La referencia guardada está en {{pass}}. Renderiza una en este pase para usarlo."
     },
     "shot": {
       "label": "Plano",
@@ -21351,7 +21356,8 @@
     },
     "render": {
       "withReference": "El vídeo de referencia del blockout se envía a este modelo con el prompt. Se renderiza primero si falta o está desactualizado.",
-      "promptOnly": "Este modelo no acepta un vídeo de referencia. El render gris no se envía, y el movimiento de cámara se añade al prompt como texto: {{move}}"
+      "promptOnly": "Este modelo no acepta un vídeo de referencia. El render gris no se envía, y el movimiento de cámara se añade al prompt como texto: {{move}}",
+      "tooLong": "El blockout dura {{blockout}} s y este modelo genera tomas de {{max}} s como máximo. La toma solo sigue el inicio del movimiento de cámara. Acorta el clip 3D para que quepa."
     }
   }
 }

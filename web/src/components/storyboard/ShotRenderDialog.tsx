@@ -42,6 +42,7 @@ import { useStoryboardRenderPrefsStore } from "../../stores/storyboard/Storyboar
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import {
   useImageModelsByProvider,
+  useMediaOptions,
   useVideoModelsByProvider
 } from "../../hooks/useModelsByProvider";
 import { modelMatchesTask } from "../../hooks/modelTaskMatching";
@@ -70,6 +71,8 @@ export type ShotRenderStep = "still" | "clip";
 export interface ShotRenderBlockout {
   /** The clip's camera move as a sentence, shown before the render starts. */
   cameraMove: string;
+  /** The clip's length, the length of the reference video. */
+  durationMs?: number;
   /**
    * Resolve what the render sends. Renders the reference first when the model
    * takes one and the stored reference is missing or stale.
@@ -242,17 +245,33 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
     : (resolutionOptions[0]?.value ?? CLIP_RESOLUTION);
 
   // Decided from the tasks the catalog reports for the model, never its name.
-  const takesReferenceVideo = useMemo(
+  const clipModel = useMemo(
     () =>
-      modelTakesReferenceVideo(
-        videoModels.find(
-          (model) =>
-            model.id === clipSelection?.id &&
-            model.provider === clipSelection?.provider
-        )?.supported_tasks
+      videoModels.find(
+        (model) =>
+          model.id === clipSelection?.id &&
+          model.provider === clipSelection?.provider
       ),
     [videoModels, clipSelection?.id, clipSelection?.provider]
   );
+  const takesReferenceVideo = modelTakesReferenceVideo(
+    clipModel?.supported_tasks
+  );
+  // A model that declares its output lengths makes nothing longer than the
+  // longest one, so a longer reference is followed only up to there.
+  const { data: clipMediaOptions } = useMediaOptions({
+    provider: blockout ? clipSelection?.provider : null,
+    model: blockout ? clipSelection?.id : null,
+    task: "video"
+  });
+  const durations = clipMediaOptions?.durations;
+  const longestTakeSec =
+    durations && durations.length > 0 ? Math.max(...durations) : undefined;
+  const blockoutTooLong =
+    takesReferenceVideo &&
+    blockout?.durationMs !== undefined &&
+    longestTakeSec !== undefined &&
+    blockout.durationMs > longestTakeSec * 1000;
 
   const shots = useMemo(() => [shot], [shot]);
   const modelForShot = useCallback(() => selection, [selection]);
@@ -366,6 +385,17 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
                   : t("blockout3d.render.promptOnly", {
                       move: blockout.cameraMove
                     })}
+              </AlertBanner>
+            )}
+            {blockout?.durationMs !== undefined && blockoutTooLong && (
+              <AlertBanner
+                severity="warning"
+                data-testid="shot-render-blockout-too-long"
+              >
+                {t("blockout3d.render.tooLong", {
+                  blockout: (blockout.durationMs / 1000).toFixed(1),
+                  max: longestTakeSec
+                })}
               </AlertBanner>
             )}
             <SelectField

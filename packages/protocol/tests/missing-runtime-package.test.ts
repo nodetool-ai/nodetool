@@ -75,7 +75,16 @@ describe("host-aware missing runtime details", () => {
     expect(runtimePackageForBinary("yt-dlp")).toBe("yt-dlp");
     // libav runs in process: no runtime package installs ffmpeg any more.
     expect(runtimePackageForBinary("ffprobe")).toBeNull();
-    expect(runtimePackageForBinary("blender")).toBeNull();
+    expect(runtimePackageForBinary("blender")).toBe("blender");
+  });
+
+  it("offers the Package Manager installs for Blender and Chrome", () => {
+    const blender = missingRuntimePackageDetails("blender", "blender", {}, { NODETOOL_HOST: "cli" });
+    expect(blender.managed).toBe("nodetool runtime add blender");
+    expect(blender.bringYourOwn).toContain("BLENDER_PATH");
+    const chrome = missingRuntimePackageDetails("chrome", "chrome", {}, { NODETOOL_HOST: "desktop" });
+    expect(chrome.managed).toBe("Install Chrome (headless renders) in Settings › Packages.");
+    expect(chrome.bringYourOwn).toContain("CHROME_PATH");
   });
 
   it("keeps details and the reason through wrapped errors", () => {

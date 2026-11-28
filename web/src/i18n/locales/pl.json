@@ -5632,7 +5632,7 @@
           "animationSpeed": "Szybkość animacji",
           "lighting": "Oświetlenie",
           "lightingPreset": "Wstępnie ustawione oświetlenie",
-          "lightIntensity": "Intensywność światła",
+          "lightIntensity": "Natężenie",
           "transparentBackground": "Przezroczyste tło",
           "backgroundColor": "Kolor tła",
           "bake": "Piec",
@@ -5660,7 +5660,7 @@
           "applyMove": "Dodaj ruch",
           "freeCameraHelp": "W podglądzie przytrzymaj Alt i przeciągnij, aby okrążać cel, dodaj Shift, aby przesuwać w bok, przewijaj, aby najeżdżać, i dodaj Ctrl podczas przewijania, aby zmienić obiektyw.",
           "editSet": "Edytuj scenografię",
-          "editSetHelp": "Otwórz model 3D tego klipu w edytorze modeli",
+          "editSetHelp": "Otwórz model 3D tego klipu w edytorze modeli. Swobodna kamera otwiera go z widokiem przez ujęcie.",
           "moves": {
             "pan": "Panorama",
             "tilt": "Pochylenie",
@@ -5672,7 +5672,9 @@
             "zoom": "Zoom",
             "dollyZoom": "Dolly zoom",
             "dutch": "Kadr holenderski"
-          }
+          },
+          "cameraDrag": "Przeciągaj kamerę w podglądzie",
+          "cameraDragHelp": "W podglądzie przeciągnij, aby krążyć, dodaj Shift, aby przesuwać w bok, przewijaj, aby wykonać najazd, i dodaj Ctrl podczas przewijania, aby zmienić obiektyw."
         },
         "reframe": {
           "title": "Inteligentne przeramowanie",
@@ -19696,7 +19698,9 @@
       "addText": "Dodaj tekst",
       "addMidiClip": "Dodaj klip MIDI",
       "addGeneratedClipHere": "Dodaj tutaj wygenerowany klip…",
-      "closeGap": "Zamknij lukę"
+      "closeGap": "Zamknij lukę",
+      "addBlockoutSet": "Dodaj scenografię blockout",
+      "addBlockoutSetFailed": "Nie udało się dodać scenografii blockout: {{error}}"
     },
     "daw": {
       "resizeDock": "Zmień rozmiar stacji dokującej DAW"
@@ -21645,7 +21649,8 @@
       "hide": "Ukryj referencję",
       "stale": "Referencja nieaktualna",
       "playerLabel": "Referencja blockoutu",
-      "failed": "Renderowanie referencji nie powiodło się"
+      "failed": "Renderowanie referencji nie powiodło się",
+      "otherPass": "Zapisana referencja jest w przebiegu {{pass}}. Wyrenderuj ją w tym przebiegu, aby go użyć."
     },
     "shot": {
       "label": "Ujęcie",
@@ -21670,7 +21675,8 @@
     },
     "render": {
       "withReference": "Wideo referencyjne blockoutu jest wysyłane do tego modelu razem z promptem. Jeśli go brakuje lub jest nieaktualne, zostanie najpierw wyrenderowane.",
-      "promptOnly": "Ten model nie przyjmuje wideo referencyjnego. Szary render nie jest wysyłany, a ruch kamery jest dodawany do promptu jako tekst: {{move}}"
+      "promptOnly": "Ten model nie przyjmuje wideo referencyjnego. Szary render nie jest wysyłany, a ruch kamery jest dodawany do promptu jako tekst: {{move}}",
+      "tooLong": "Blockout trwa {{blockout}} s, a ten model tworzy ujęcia najwyżej {{max}} s. Ujęcie podąża tylko za początkiem ruchu kamery. Skróć klip 3D, aby się zmieścił."
     }
   }
 }

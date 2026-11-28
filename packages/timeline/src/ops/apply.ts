@@ -1731,7 +1731,15 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       height: state.height
     };
     const dependencyHash = computeModel3DReferenceHash(clip, sequence, pass);
-    if (model3dReferenceStatus(clip, sequence, pass) === "current") {
+    // The set is saved in place, so only the asset's revision shows an edit
+    // to it. A host that cannot read the asset skips that check.
+    const assetRevision =
+      (await scope.ctx.model3dAssetRevision?.(clip.currentAssetId)) ?? undefined;
+    if (
+      !op.force &&
+      model3dReferenceStatus(clip, sequence, { pass, assetRevision }) ===
+        "current"
+    ) {
       return {
         ok: true,
         clip: scope.clipOut(clip),
@@ -1754,7 +1762,12 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       pass,
       dependencyHash
     });
-    const reference = { assetId: rendered.assetId, dependencyHash, pass };
+    const reference = {
+      assetId: rendered.assetId,
+      dependencyHash,
+      pass,
+      ...(assetRevision !== undefined && { assetRevision })
+    };
     clip.model3dStyle = { ...style, reference };
     scope.touch(clip.id);
     return {

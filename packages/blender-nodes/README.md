@@ -4,9 +4,10 @@ Headless Blender nodes for NodeTool: render glTF scenes to images, image
 sequences and render passes, and prepare meshes for a game engine.
 
 The nodes shell out to a Blender binary, resolved by `blender-binary.ts` from
-`BLENDER_PATH` or the platform's usual install locations. Without a
-Blender install the nodes fail their preflight with the path they looked for —
-they never silently produce an empty render.
+`BLENDER_PATH`, the Blender the Package Manager installs
+(`nodetool runtime add blender`), or the platform's usual install locations.
+Without a Blender install the nodes fail their preflight with a missing-package
+error that offers the install. They never silently produce an empty render.
 
 ## Nodes
 

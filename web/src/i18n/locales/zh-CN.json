@@ -5478,7 +5478,7 @@
           "animationSpeed": "动画速度",
           "lighting": "光照",
           "lightingPreset": "光照预设",
-          "lightIntensity": "光照强度",
+          "lightIntensity": "强度",
           "transparentBackground": "透明背景",
           "backgroundColor": "背景颜色",
           "bake": "烘焙",
@@ -5506,7 +5506,7 @@
           "applyMove": "添加运镜",
           "freeCameraHelp": "在预览中按住 Alt 拖动可环绕目标,加按 Shift 可横移,滚动可推拉,滚动时加按 Ctrl 可更换镜头。",
           "editSet": "编辑场景",
-          "editSetHelp": "在模型编辑器中打开此片段的 3D 模型",
+          "editSetHelp": "在模型编辑器中打开此片段的 3D 模型。自由摄像机会以镜头视角打开它。",
           "moves": {
             "pan": "摇镜",
             "tilt": "俯仰",
@@ -5518,7 +5518,9 @@
             "zoom": "变焦",
             "dollyZoom": "滑动变焦",
             "dutch": "荷兰角"
-          }
+          },
+          "cameraDrag": "在预览中拖动摄像机",
+          "cameraDragHelp": "在预览中拖动可环绕，加 Shift 可横移，滚动可推拉，滚动时加 Ctrl 可更换镜头。"
         },
         "reframe": {
           "title": "智能重构图",
@@ -19074,7 +19076,9 @@
       "addText": "添加文本",
       "addMidiClip": "添加 MIDI 片段",
       "addGeneratedClipHere": "在此处添加生成的片段…",
-      "closeGap": "关闭间隙"
+      "closeGap": "关闭间隙",
+      "addBlockoutSet": "添加白模场景",
+      "addBlockoutSetFailed": "无法添加白模场景：{{error}}"
     },
     "daw": {
       "resizeDock": "调整 DAW 停靠面板大小"
@@ -21007,7 +21011,8 @@
       "hide": "隐藏参考",
       "stale": "参考已过期",
       "playerLabel": "Blockout 参考",
-      "failed": "参考渲染失败"
+      "failed": "参考渲染失败",
+      "otherPass": "已保存的参考为 {{pass}}。要使用此通道，请用此通道渲染一个参考。"
     },
     "shot": {
       "label": "镜头",
@@ -21032,7 +21037,8 @@
     },
     "render": {
       "withReference": "Blockout 的参考视频会随提示词一起发送给此模型。如果参考缺失或已过期，会先进行渲染。",
-      "promptOnly": "此模型不接受参考视频。灰色渲染不会发送，镜头运动会以文字形式添加到提示词中：{{move}}"
+      "promptOnly": "此模型不接受参考视频。灰色渲染不会发送，镜头运动会以文字形式添加到提示词中：{{move}}",
+      "tooLong": "白模时长 {{blockout}} 秒，而此模型生成的镜头最长 {{max}} 秒。镜头只会跟随运镜的开头。请缩短 3D 片段。"
     }
   }
 }

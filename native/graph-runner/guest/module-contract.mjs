@@ -341,6 +341,7 @@ export const MODULES = {
       redactTraceText: pure("a helper of the config package's trace redaction"),
       registerUserCredentialKey: impl("shims/config.cjs"),
       resolvePackageAssetPath: unavailable("server-only", "resolves package files on the server's disk instead of the packageAssets capability"),
+      runtimeLocations: unavailable("server-only", "the server's runtime install directories"),
       safeProcessEnv: impl("shims/config.cjs"),
       setLogHook: pure("a hook of the config package's logger"),
       settingCatalog: pure("the config package's settings catalog"),
@@ -542,6 +543,10 @@ export const MODULES = {
     whole: unavailable("server-only", "keeps asset files in the server's project folders"),
     subpaths: true
   },
+  "@nodetool-ai/config/app-binary-runtime": {
+    whole: unavailable("host-binary", "finds and installs Blender and Chrome on the server")
+  },
+
   "@nodetool-ai/huggingface": {
     whole: unavailable("server-only", "downloads into the server's Hugging Face cache"),
     subpaths: true

@@ -5,8 +5,9 @@
  * path an agent takes, against the local database: the clip's span is drawn by
  * the headless three.js host in grey on a neutral background, encoded to MP4
  * in process, stored as a video asset, and recorded on the clip as
- * `model3dStyle.reference`. A reference that still matches the clip is
- * reused. `--out` also copies the video to a local file.
+ * `model3dStyle.reference`. A reference that still matches the clip and its
+ * set is reused unless `--force` is given. `--out` also copies the video to a
+ * local file.
  */
 import type { Command } from "commander";
 import { printCommandError } from "@nodetool-ai/pack-manager/command-errors";
@@ -18,6 +19,7 @@ interface TimelineReferenceCliOptions {
   pass?: string;
   out?: string;
   json?: boolean;
+  force?: boolean;
 }
 
 /** The part of the op result this command reads. */
@@ -93,7 +95,8 @@ async function renderReference(
       {
         op: "render_model3d_reference",
         target: clip,
-        ...(pass && { pass })
+        ...(pass && { pass }),
+        ...(options.force && { force: true })
       }
     ]
   })) as EditTimelineResult;
@@ -165,6 +168,7 @@ export function registerTimelineReferenceCommand(timeline: Command): void {
       `${PASSES.join(", ")} (default clay)`
     )
     .option("--out <path>", "Also write the MP4 to this file")
+    .option("--force", "Render even when the stored reference is current")
     .option("--json", "Print the op result as JSON")
     .action(
       async (

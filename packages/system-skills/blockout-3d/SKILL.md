@@ -141,7 +141,8 @@ them as one contact sheet. A pass applies to 3D layers only. Any other layer
 draws as usual and is listed under `degraded`, with a reason that says the
 pass was not applied.
 A frame reported as `model3d_unavailable` means the host has no headless
-Chrome, so no 3D layer was drawn.
+Chrome, so no 3D layer was drawn. Ask the user to install Chrome from the
+Package Manager, or to run `nodetool runtime add chrome`.
 
 Check each frame for three things: every figure is inside the frame at the
 start and the end of each move, no wall sits between the eye and the subject,
@@ -153,11 +154,12 @@ and the horizon is level unless a `dutch` was meant.
 {"op": "render_model3d_reference", "target": "<clip id>", "pass": "clay"}
 ```
 
-The result carries `reference` (`assetId`, `dependencyHash`, `pass`) and
-`cameraMove`. The reference covers the clip as it stands and goes stale when
-the model, the camera, the span or the sequence settings change. Render it
-again after any such edit. A call on a current reference renders nothing and
-returns the stored one.
+The result carries `reference` (`assetId`, `dependencyHash`, `pass`,
+`assetRevision`) and `cameraMove`. The reference covers the clip as it stands
+and goes stale when the set is saved (`edit_model3d`), or when the camera, the
+span or the sequence settings change. Render it again after any such edit. A
+call on a current reference renders nothing and returns the stored one. Pass
+`"force": true` to render it anyway.
 
 Pick the model with `find_model` and `capability: "reference_to_video"`.
 
