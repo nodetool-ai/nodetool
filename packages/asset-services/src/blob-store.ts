@@ -85,7 +85,10 @@ export interface StageBlobInput {
 
 /**
  * Stages the bytes for the transfer. Answers `already_present` when the
- * store held the object already, `stored` when it wrote it. Throws
+ * owner already had a committed row for the hash and the store held its
+ * object, `stored` otherwise. Whether the object existed for another owner
+ * does not change the answer, since it would tell the caller that someone
+ * on the server holds the file (review F7). Throws
  * {@link BlobStageError} with `HASH_MISMATCH` when the bytes are not what the
  * client declared, and writes nothing in that case.
  */
@@ -104,6 +107,7 @@ export async function stageBlob(
       received
     );
   }
+  const held = (await committedHashesOfOwner(input.userId, [input.hash])).has(input.hash);
   await stageProjectBlob({
     projectId: input.projectId,
     userId: input.userId,
@@ -111,7 +115,8 @@ export async function stageBlob(
     size: input.size,
     transferId: input.transferId
   });
-  return storeNamedBlob(adapter, input.hash, input.bytes, input.transferId);
+  const outcome = await storeNamedBlob(adapter, input.hash, input.bytes, input.transferId);
+  return held && outcome === "already_present" ? "already_present" : "stored";
 }
 
 /**

@@ -13958,6 +13958,8 @@
         "revoice": "Re-stemme linje",
         "voice": "Stemmelinje",
         "assignVoiceFirst": "Tildel en stemme til denne høyttaleren først",
+        "writeLineFirst": "Skriv replikken først",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "Flere linjehandlinger",
         "pauseOption": {
           "0": "Ingen pause etterpå",
@@ -17335,7 +17337,6 @@
       "takeCount_other": "{{count}} tar"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Ikke uttalt ennå",
       "playTake": "Spill take"
     }
   },

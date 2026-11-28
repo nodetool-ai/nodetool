@@ -26,7 +26,7 @@ const installPins = [
 const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: "1.0.0", owners: {}, packs: [pack], installPins };
 
 /** A pack project generation with the document pack and its pdf-js runtime installed. */
-async function doctor(options: { readonly mismatchedRuntime?: boolean; readonly missingPack?: boolean; readonly deletedGeneration?: boolean } = {}) {
+async function doctor(options: { readonly mismatchedRuntime?: boolean; readonly missingPack?: boolean; readonly deletedGeneration?: boolean; readonly pack?: string[]; readonly loadChecked?: string[][] } = {}) {
   const root = await mkdtemp(join(tmpdir(), "pack-doctor-project-"));
   roots.push(root);
   const cliRoot = join(root, "cli");
@@ -50,8 +50,9 @@ async function doctor(options: { readonly mismatchedRuntime?: boolean; readonly 
   await writeFile(join(project, "node_modules/.package-lock.json"), JSON.stringify({ packages: lock }));
   const mode = { kind: "global" as const, cliRoot, packsRoot, legacyInstallRoot: cliRoot, coreVersion: "1.0.0", pathStyle: "posix" as const };
   const services = await createPackCommandServices({ snapshot: readInstalledPacks(mode, catalog), catalog, stateFile: join(root, "cli-packs.json"),
-    operations: { ...DEFAULT_INSTALLER_OPERATIONS, npmVersion: async () => "11.21.0" } });
-  return services.doctor({});
+    operations: { ...DEFAULT_INSTALLER_OPERATIONS, npmVersion: async () => "11.21.0",
+      loadCheck: async (_roots, ids) => { options.loadChecked?.push([...ids]); } } });
+  return services.doctor(options.pack ? { pack: options.pack } : {});
 }
 
 it("reports a project that matches its catalog pins as healthy", async () => {
@@ -74,4 +75,18 @@ it("reports a pointer to a deleted generation instead of failing to start", asyn
   expect(await doctor({ deletedGeneration: true })).toMatchObject({ healthy: false, projectRoot: null, issues: [{
     kind: "project", message: expect.stringContaining("missing generation")
   }] });
+});
+
+it("tells an unknown --pack id from a known pack that is not installed, and load-checks only installed packs", async () => {
+  const loadChecked: string[][] = [];
+  const unknownCatalog = await doctor({ pack: ["documnet"], loadChecked });
+  expect(unknownCatalog).toMatchObject({ healthy: false, issues: [{ kind: "unknown_pack", packId: "documnet", hint: expect.stringContaining("nodetool packs list") }] });
+  expect(loadChecked).toEqual([]);
+  const missing = await doctor({ pack: ["document"], missingPack: true, loadChecked });
+  expect(missing).toMatchObject({ healthy: false });
+  expect((missing as { issues: Array<{ kind: string }> }).issues).toContainEqual(expect.objectContaining({ kind: "pack_not_installed", packId: "document", hint: 'Install it with "nodetool packs add document --yes".' }));
+  expect((missing as { issues: Array<{ kind: string }> }).issues.some(issue => issue.kind === "registration")).toBe(false);
+  expect(loadChecked).toEqual([]);
+  expect(await doctor({ pack: ["document"], loadChecked })).toMatchObject({ healthy: true, issues: [] });
+  expect(loadChecked).toEqual([["document"]]);
 });

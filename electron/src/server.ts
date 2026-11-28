@@ -39,6 +39,7 @@ import path from "path";
 import { pathToFileURL } from "url";
 import { emitServerStateChanged } from "./tray";
 import { getLocalClientToken } from "./localClientToken";
+import { getServerProofSecret, probeServerProof, setTrustedServerPort } from "./serverProof";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
@@ -213,6 +214,26 @@ async function promptUserAboutExistingServer(pid: number): Promise<boolean> {
   });
 
   return result.response === 0;
+}
+
+/**
+ * Asks what to do about a process on the port that answers /health but does
+ * not prove it was started by this app.
+ * @returns true if the user wants to stop that process, false to leave it and
+ * start on another port
+ */
+async function promptUserAboutUnknownServer(pid: number, port: number): Promise<boolean> {
+  const result = await dialog.showMessageBox({
+    type: "warning",
+    title: "Port In Use",
+    message: `Port ${port} is used by another server.`,
+    detail: `Process ${pid} answers on port ${port} but was not started by this copy of NodeTool, so NodeTool will not connect to it. NodeTool can start its own server on another port, or try to stop that process first.`,
+    buttons: ["Start on Another Port", "Stop It and Start New"],
+    defaultId: 0,
+    cancelId: 0,
+  });
+
+  return result.response === 1;
 }
 
 /**
@@ -405,6 +426,9 @@ async function startServer(): Promise<void> {
     NODETOOL_PACKS_REQUIRE_ALLOWLIST: "1",
     // Proves the app's own windows to the backend (see localClientToken.ts).
     NODETOOL_LOCAL_CLIENT_TOKEN: getLocalClientToken(),
+    // Lets the backend prove on /health that this user's app started it
+    // (see serverProof.ts).
+    NODETOOL_SERVER_PROOF_KEY: getServerProofSecret(),
     // Keep the full node catalog and the local providers (Ollama, LM Studio,
     // llama.cpp, vLLM, the Claude subscription) — the desktop app is the one
     // surface where they are the point. Set `NODETOOL_NODE_PROFILE=cloud` in
@@ -621,18 +645,20 @@ async function initializeBackendServerNow(): Promise<void> {
       // Try to connect to the default port to verify it's actually running
       const defaultPort = 7777;
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const response = await fetch(`http://127.0.0.1:${defaultPort}/health`, {
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          logMessage(`Existing server is responsive on port ${defaultPort}`);
-          
-          // Prompt the user
-          const shouldKillExisting = await promptUserAboutExistingServer(existingPid);
+        const probe = await probeServerProof(defaultPort);
+
+        if (probe.ok) {
+          logMessage(
+            probe.verified
+              ? `Existing server is responsive on port ${defaultPort}`
+              : `Server on port ${defaultPort} did not prove it was started by this app; it will not be reused`,
+            probe.verified ? "info" : "warn"
+          );
+
+          // Prompt the user. Only a server that proved itself can be reused.
+          const shouldKillExisting = probe.verified
+            ? await promptUserAboutExistingServer(existingPid)
+            : await promptUserAboutUnknownServer(existingPid, defaultPort);
           if (shutdownRequested) {
             return;
           }
@@ -682,14 +708,18 @@ async function initializeBackendServerNow(): Promise<void> {
                 "error"
               );
             }
-          } else {
+          } else if (probe.verified) {
             // User wants to use the existing server
             logMessage("User chose to use existing server");
             serverState.serverPort = defaultPort;
             serverState.initialURL = `http://127.0.0.1:${defaultPort}`;
+            setTrustedServerPort(defaultPort);
             emitServerStarted();
             emitServerStateChanged();
             return;
+          } else {
+            logMessage(`Leaving PID ${existingPid} on port ${defaultPort} alone; starting on another port`);
+            existingPid = null;
           }
         }
       } catch {
@@ -748,8 +778,9 @@ async function initializeBackendServerNow(): Promise<void> {
       }
     }
     
-    // Check if watchdog thinks server is running
-    if (await isServerRunning()) {
+    // Check if watchdog thinks server is running. A server this app did not
+    // start counts only when it proves it was started with this user's secret.
+    if (await isServerRunning() && (await serverProvesItself(serverState.serverPort ?? 7777))) {
       logMessage("Watchdog indicates server is running, waiting for health check...");
       await waitForServer();
       return;
@@ -805,7 +836,22 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
     return;
   }
   logMessage(`Server endpoint is available at ${readyUrl}`);
+  const port = serverState.serverPort ?? 7777;
+  if (!(await serverProvesItself(port))) {
+    throw new Error(
+      `The server on port ${port} did not prove it was started by this app`
+    );
+  }
+  setTrustedServerPort(port);
   emitServerStarted();
+}
+
+async function serverProvesItself(port: number): Promise<boolean> {
+  try {
+    return (await probeServerProof(port, 3000)).verified;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -825,6 +871,7 @@ async function stopServerNow(): Promise<void> {
     logMessage(`Error during shutdown: ${errorMessage(error)}`, "error");
   }
 
+  setTrustedServerPort(null);
   serverState.isStarted = false;
   serverState.status = "idle";
   emitServerStateChanged();

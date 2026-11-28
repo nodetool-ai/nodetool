@@ -191,6 +191,7 @@ export {
   removeDocumentSharing,
   type SharedDocumentType
 } from "./document-sharing.js";
+export { ShareRoleLimit } from "./share-role-limit.js";
 export {
   DocumentRefs,
   type DocumentRefScopeValue,
@@ -252,6 +253,11 @@ export {
   credentialSource
 } from "./secret-helper.js";
 export type { CredentialSource } from "./secret-helper.js";
+export {
+  userSettingCatalog,
+  refusedHostSettingKeys,
+  hostSettingsRefusalMessage
+} from "./host-settings.js";
 export {
   isOnePasswordReference,
   parseOnePasswordReference,
@@ -879,6 +885,8 @@ export {
   STORAGE_WARNING_FRACTION,
   exceedsStorageAllowance,
   parseStorageAllowance,
+  stageExceedsStorageAllowance,
+  transferAddedBytes,
   setStorageAllowanceBytes,
   storageAllowanceBytes,
   storageFiles,
@@ -898,6 +906,7 @@ export {
   type AccessKey
 } from "./access-epoch.js";
 export {
+  declaredTransferFiles,
   findCloudTransferAttempt,
   getCloudTransfer,
   listCloudTransferAttempts,
@@ -908,7 +917,8 @@ export {
   setCloudTransferState,
   type CloudTransferAttemptRow,
   type CloudTransferRow,
-  type CloudTransferState
+  type CloudTransferState,
+  type DeclaredTransferFiles
 } from "./cloud-transfer.js";
 export {
   addTransferPlacements,

@@ -972,14 +972,17 @@ export const workflowsRouter = router({
         )) as WorkflowVersionModel | null;
         if (!version)
           throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
-        if (version.user_id !== ctx.userId) {
-          // The workflow owner may prune versions saved by collaborators.
-          const parent = (await Workflow.get(
-            version.workflow_id
-          )) as WorkflowModel | null;
-          if (!parent || parent.user_id !== ctx.userId) {
-            throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
-          }
+        // The owner may prune any version. A collaborator may delete the
+        // versions they saved only while they still hold editor.
+        const parent = (await Workflow.get(
+          version.workflow_id
+        )) as WorkflowModel | null;
+        const role = parent ? await resolveWorkflowRole(parent, ctx.userId) : null;
+        const allowed =
+          role === "owner" ||
+          (role === "editor" && version.user_id === ctx.userId);
+        if (!allowed) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
         }
         await version.delete();
         return { ok: true as const };
@@ -1118,14 +1121,16 @@ export const workflowsRouter = router({
           userId: input.user_id,
           role: grant.role,
           invitedBy: grant.invited_by,
-          options: input.options
+          options: input.options,
+          keepRoleLimit: true
         });
         invalidateSharedAssets(input.user_id);
         const [item] = await withPersonNames([toCollaboratorItem(updated)]);
         return item;
       }),
 
-    // Change a collaborator's role on every grant they hold. Owner only.
+    // Change a collaborator's role on every grant they hold. Owner only. A
+    // link the person kept grants them no more than this role afterwards.
     setRole: protectedProcedure
       .input(sharingSetRoleInput)
       .output(collaboratorItem)
@@ -1134,7 +1139,8 @@ export const workflowsRouter = router({
         const grants = await WorkflowCollaborator.setRole(
           input.id,
           input.user_id,
-          input.role
+          input.role,
+          ctx.userId
         );
         if (grants.length === 0) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
@@ -1144,7 +1150,8 @@ export const workflowsRouter = router({
       }),
 
     // Remove a collaborator. Owner removes anyone; a collaborator may
-    // remove themself ("leave").
+    // remove themself ("leave"). The owner removing someone keeps them out
+    // of every link until the owner invites them again.
     removeCollaborator: protectedProcedure
       .input(sharingRemoveCollaboratorInput)
       .output(sharingOkOutput)
@@ -1154,7 +1161,8 @@ export const workflowsRouter = router({
         }
         const removed = await WorkflowCollaborator.remove(
           input.id,
-          input.user_id
+          input.user_id,
+          ctx.userId
         );
         if (!removed) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
@@ -1185,7 +1193,14 @@ export const workflowsRouter = router({
         }
         // The owner opening their own link is a no-op, not a grant.
         if (workflow.user_id !== ctx.userId) {
-          await WorkflowCollaborator.redeem(share, ctx.userId);
+          // The owner removed this person: the link admits them no more than
+          // a disabled one would.
+          if (!(await WorkflowCollaborator.redeem(share, ctx.userId))) {
+            throwApiError(
+              ApiErrorCode.NOT_FOUND,
+              "Share link is invalid or revoked"
+            );
+          }
           invalidateSharedAssets(ctx.userId);
         }
         const access = await effectiveAccess(

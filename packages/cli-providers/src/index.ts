@@ -41,6 +41,11 @@ import { getSecret, Setting } from "@nodetool-ai/models";
 import { resolveCodexCliAccessToken } from "./codex-cli-login.js";
 
 export { codexCliAuthPath, resolveCodexCliAccessToken } from "./codex-cli-login.js";
+export {
+  CLAUDE_CODE_SESSION_PROVIDER,
+  isClaudeCodeSession,
+  sessionDefaultProvider
+} from "./claude-code-session.js";
 export type InferenceEvent =
   | { readonly type: "chunk"; readonly content: string }
   | { readonly type: "tool_call"; readonly id: string; readonly name: string; readonly args: ToolCall["args"] }

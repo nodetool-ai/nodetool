@@ -37,6 +37,11 @@ jest.mock("net", () => ({
   }
 }));
 jest.mock("../watchdog", () => ({ Watchdog: jest.fn() }));
+jest.mock("../serverProof", () => ({
+  getServerProofSecret: () => "0".repeat(64),
+  probeServerProof: jest.fn().mockResolvedValue({ ok: false, verified: false }),
+  setTrustedServerPort: jest.fn()
+}));
 
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolve!: () => void;

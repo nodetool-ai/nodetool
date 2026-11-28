@@ -1,7 +1,7 @@
 import { realpathSync } from "node:fs";
 import * as nodeModule from "node:module";
 import { createRequire, isBuiltin } from "node:module";
-import { dirname, join, relative, isAbsolute, sep } from "node:path";
+import { basename, dirname, join, relative, isAbsolute, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 /**
@@ -122,11 +122,32 @@ export function activatePackResolution(resolution: PackResolution): void {
   process.env[PACKS_CLI_ROOT_ENV] = cliRoot;
 }
 
-/** The real root of the package `name` as seen from `directory`, or null. */
+/** Ancestor `node_modules` directories searched by ESM resolution from `directory`. */
+function ancestorNodeModules(directory: string): string[] {
+  const roots: string[] = [];
+  let current = directory;
+  for (;;) {
+    if (basename(current) !== "node_modules") {
+      roots.push(join(current, "node_modules"));
+    }
+    const parent = dirname(current);
+    if (parent === current) { return roots; }
+    current = parent;
+  }
+}
+
+/** The real root of the package `name` reachable via ancestor `node_modules` from `directory`, or null. */
 export function findPackageRoot(name: string, directory: string): string | null {
-  for (const lookup of createRequire(join(directory, "package.json")).resolve.paths(`${name}/package.json`) ?? []) {
-    try { return realpathSync(join(lookup, name)); }
-    catch (error) { if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) { throw error; } }
+  for (const lookup of ancestorNodeModules(directory)) {
+    const candidate = join(lookup, name);
+    try {
+      realpathSync(join(candidate, "package.json"));
+      return realpathSync(candidate);
+    } catch (error) {
+      if (!(error instanceof Error && "code" in error && (error.code === "ENOENT" || error.code === "ENOTDIR"))) {
+        throw error;
+      }
+    }
   }
   return null;
 }

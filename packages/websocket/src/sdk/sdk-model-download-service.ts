@@ -11,8 +11,7 @@ import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import {
   getDownloadManager,
   getExistingDownloadManager,
-  resolveWorkerHfToken,
-  resolveStoredHfEndpoint,
+  resolveHfHubAccess,
   type DownloadStateSnapshot,
   type DownloadUpdate
 } from "@nodetool-ai/huggingface";
@@ -141,20 +140,23 @@ export function createSdkV1ModelDownloadService(
   const byUser = new Map<string, Map<string, DownloadRun>>();
   const startHuggingFaceDownload =
     options.startHuggingFaceDownload ??
-    (async (userId, request, onProgress) =>
-      getDownloadManager(userId).startDownload(request.repo_id, {
+    (async (userId, request, onProgress) => {
+      const access = await resolveHfHubAccess(
+        (key) => getStoredSecret(key, userId),
+        "download"
+      );
+      return getDownloadManager(userId).startDownload(request.repo_id, {
         path: request.path ?? null,
-        token:
-          (await resolveWorkerHfToken((key) => getStoredSecret(key, userId))) ??
-          null,
-        endpoint: await resolveStoredHfEndpoint((key) => getStoredSecret(key, userId)),
+        token: access.token ?? false,
+        endpoint: access.endpoint,
         allowPatterns: request.path
           ? [request.path]
           : (request.allow_patterns ?? null),
         ignorePatterns: request.path ? [] : (request.ignore_patterns ?? null),
         modelType: request.model_type,
         onProgress
-      }));
+      });
+    });
   const cancelHuggingFaceDownload =
     options.cancelHuggingFaceDownload ??
     ((userId, request) =>
@@ -168,7 +170,12 @@ export function createSdkV1ModelDownloadService(
         signal,
         onProgress,
         userId
-          ? await resolveStoredHfEndpoint((key) => getStoredSecret(key, userId))
+          ? (
+              await resolveHfHubAccess(
+                (key) => getStoredSecret(key, userId),
+                "download"
+              )
+            ).endpoint
           : undefined
       ));
   const listHuggingFaceDownloads =

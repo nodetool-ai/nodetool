@@ -265,14 +265,16 @@ export const documentSharingRouter = router({
         userId: input.user_id,
         role: grant.role,
         invitedBy: grant.invited_by,
-        options: input.options
+        options: input.options,
+        keepRoleLimit: true
       });
       invalidateSharedAssets(input.user_id);
       const [item] = await withPersonNames([toCollaboratorItem(updated)]);
       return item;
     }),
 
-  // Sets the role on every grant the person holds.
+  // Sets the role on every grant the person holds. A link the person kept
+  // grants them no more than this role afterwards.
   setRole: protectedProcedure
     .input(documentSharingSetRoleInput)
     .output(documentCollaboratorItem)
@@ -282,7 +284,8 @@ export const documentSharingRouter = router({
         input.type,
         document.id,
         input.user_id,
-        input.role
+        input.role,
+        ctx.userId
       );
       if (grants.length === 0) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
@@ -302,10 +305,13 @@ export const documentSharingRouter = router({
         input.user_id !== ctx.userId
           ? (await requireOwner(input.type, input.id, ctx.userId)).id
           : ((await loadSharedDocument(input.type, input.id))?.id ?? input.id);
+      // The owner removing someone keeps them out of every link until the
+      // owner invites them again. Leaving on one's own keeps nobody out.
       const removed = await DocumentCollaborator.remove(
         input.type,
         documentId,
-        input.user_id
+        input.user_id,
+        ctx.userId
       );
       if (!removed) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
@@ -334,7 +340,14 @@ export const documentSharingRouter = router({
       if (document.user_id === ctx.userId) {
         return toSharedItem(share.document_type, document, "editor");
       }
-      await DocumentCollaborator.redeem(share, ctx.userId);
+      // The owner removed this person: the link admits them no more than a
+      // disabled one would.
+      if (!(await DocumentCollaborator.redeem(share, ctx.userId))) {
+        throwApiError(
+          ApiErrorCode.NOT_FOUND,
+          "Share link is invalid or revoked"
+        );
+      }
       // The new document's media must load on the very next request.
       invalidateSharedAssets(ctx.userId);
       const access = await effectiveAccess(

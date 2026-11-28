@@ -80,7 +80,8 @@ Server-owned, in `packages/models/src/credits.ts` (`@nodetool-ai/models`):
   id `nodetool`): each curated model (`NODETOOL_MODELS` in
   `@nodetool-ai/protocol`) names a delegate provider+model, and the provider
   runs the delegate on platform-owned keys (`NODETOOL_PLATFORM_FAL_KEY`,
-  `NODETOOL_PLATFORM_ANTHROPIC_KEY`) rather than the user's. Cost is absorbed
+  `NODETOOL_PLATFORM_ANTHROPIC_KEY`, `NODETOOL_PLATFORM_OPENROUTER_KEY`)
+  rather than the user's. Cost is absorbed
   from the delegate at the delegate's price, and
   `@nodetool-ai/model-pricing` translates `nodetool/...` ids to the delegate
   before lookup so estimates are real numbers. Models appear in the pickers

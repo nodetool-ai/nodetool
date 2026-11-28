@@ -9,7 +9,7 @@
  * - **ingest** (`NODETOOL_ANALYTICS_INGEST=1`): stored through
  *   `recordAnalyticsEvents` — raw rows for 30 days, daily counts after;
  * - **relay** (the default): forwarded to `NODETOOL_ANALYTICS_ENDPOINT`
- *   (default analytics.nodetool.ai) with the validated body only, so no
+ *   (default api.nodetool.ai) with the validated body only, so no
  *   browser header, cookie, Origin, Referer or user agent travels on;
  * - **off** (`NODETOOL_ANALYTICS_RELAY=0` without ingest): accepted and
  *   discarded, so clients stop retrying.

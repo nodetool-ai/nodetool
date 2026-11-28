@@ -14,6 +14,7 @@ import {
   Message,
   Thread,
   setDocumentRetentionDays,
+  setStorageAllowanceBytes,
   Project,
   readableProjectBlob,
   TimelineSequence,
@@ -789,6 +790,123 @@ describe("cloud transfers on PostgreSQL", { timeout: 30_000 }, () => {
     await expect(
       openTransfer(host, OWNER, { transfer_id: id(), project_id: projectId, first_publication: true, manifest: manifestFor([]) })
     ).rejects.toMatchObject({ code: "CONFLICT" });
+  });
+});
+
+describe("staged files and the storage allowance on PostgreSQL", { timeout: 30_000 }, () => {
+  const OTHER = "user-other";
+  let host: TestHost;
+
+  beforeEach(async () => {
+    await initPgliteDb();
+    host = testHost();
+  });
+
+  afterEach(async () => {
+    setStorageAllowanceBytes(null);
+    await closeDb();
+  });
+
+  /** Opens a transfer that creates a workflow showing one file with `bytes`. */
+  async function openWithFile(
+    userId: string,
+    projectId: string,
+    firstPublication: boolean,
+    bytes: Uint8Array
+  ): Promise<{ transferId: string; hash: string; input: () => CommitTransferInput }> {
+    const transferId = id();
+    const workflowId = id();
+    const assetId = id();
+    const hash = sha(bytes);
+    const payload = workflowPayload("With a file", assetId);
+    const manifest = manifestFor(
+      [{ op: "create_document", kind: "workflow", document_id: workflowId, captured_hash: identityHash(payload) }],
+      [{ asset_id: assetId, hash, size: bytes.byteLength, documents: [{ kind: "workflow", document_id: workflowId }] }],
+      "Project"
+    );
+    await openTransfer(host, userId, { transfer_id: transferId, project_id: projectId, first_publication: firstPublication, manifest });
+    return {
+      transferId,
+      hash,
+      input: () => commitInput(transferId, manifest, [{ kind: "workflow", document_id: workflowId, document: payload }])
+    };
+  }
+
+  function stage(userId: string, transferId: string, bytes: Uint8Array) {
+    return stageTransferFile(host, userId, { transfer_id: transferId, hash: sha(bytes), size: bytes.byteLength, bytes });
+  }
+
+  it("checks the storage allowance on a commit into an existing project, counting only the bytes it adds", async () => {
+    const { projectId } = await publishedProject(host);
+    const bytes = new Uint8Array(randomBytes(64));
+    const later = await openWithFile(OWNER, projectId, false, bytes);
+    expect(await stage(OWNER, later.transferId, bytes)).toBe("stored");
+
+    setStorageAllowanceBytes(32);
+    expect(await commitTransfer(host, OWNER, later.input())).toMatchObject({
+      outcome: "refused",
+      failures: [{ code: "STORAGE_EXCEEDED" }]
+    });
+
+    setStorageAllowanceBytes(64);
+    expect((await commitTransfer(host, OWNER, later.input())).outcome).toBe("committed");
+
+    // A file the owner already holds adds nothing, so a full allowance still admits it.
+    const again = await openWithFile(OWNER, projectId, false, bytes);
+    expect((await commitTransfer(host, OWNER, again.input())).outcome).toBe("committed");
+  });
+
+  it("stages only the files the transfer's manifest lists", async () => {
+    const { projectId } = await publishedProject(host);
+    const listed = new Uint8Array(randomBytes(32));
+    const unlisted = new Uint8Array(randomBytes(32));
+    const transfer = await openWithFile(OWNER, projectId, false, listed);
+
+    await expect(stage(OWNER, transfer.transferId, unlisted)).rejects.toMatchObject({ code: "INVALID" });
+    expect(await readableProjectBlob({ projectId, hash: sha(unlisted), transferId: transfer.transferId })).toBeNull();
+    expect(await stage(OWNER, transfer.transferId, listed)).toBe("stored");
+
+    // Opening the transfer again with a manifest that lists more files admits them.
+    await openTransfer(host, OWNER, {
+      transfer_id: transfer.transferId,
+      project_id: projectId,
+      first_publication: false,
+      manifest: manifestFor([], [{ asset_id: id(), hash: sha(unlisted), size: unlisted.byteLength, documents: [] }])
+    });
+    expect(await stage(OWNER, transfer.transferId, unlisted)).toBe("stored");
+  });
+
+  it("refuses a stage that would take the owner over the allowance, counting files staged in open transfers", async () => {
+    const { projectId } = await publishedProject(host);
+    setStorageAllowanceBytes(100);
+    const first = new Uint8Array(randomBytes(60));
+    const second = new Uint8Array(randomBytes(60));
+    const a = await openWithFile(OWNER, projectId, false, first);
+    expect(await stage(OWNER, a.transferId, first)).toBe("stored");
+
+    const b = await openWithFile(OWNER, projectId, false, second);
+    await expect(stage(OWNER, b.transferId, second)).rejects.toMatchObject({ code: "STORAGE_EXCEEDED" });
+    expect(await readableProjectBlob({ projectId, hash: sha(second), transferId: b.transferId })).toBeNull();
+
+    // The same file in another open transfer counts once.
+    const c = await openWithFile(OWNER, projectId, false, first);
+    expect(await stage(OWNER, c.transferId, first)).toBe("stored");
+  });
+
+  it("staging answers the same whether or not another account holds the bytes", async () => {
+    const bytes = new Uint8Array(randomBytes(64));
+    const ownerProject = id();
+    const published = await openWithFile(OWNER, ownerProject, true, bytes);
+    expect(await stage(OWNER, published.transferId, bytes)).toBe("stored");
+    expect((await commitTransfer(host, OWNER, published.input())).outcome).toBe("committed");
+
+    // Another account holds no committed row for the hash, so it hears "stored".
+    const other = await openWithFile(OTHER, id(), true, bytes);
+    expect(await stage(OTHER, other.transferId, bytes)).toBe("stored");
+
+    // The owner already holds the file, so its own later stage hears "already_present".
+    const later = await openWithFile(OWNER, ownerProject, false, bytes);
+    expect(await stage(OWNER, later.transferId, bytes)).toBe("already_present");
   });
 });
 

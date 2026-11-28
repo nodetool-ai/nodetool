@@ -43,7 +43,7 @@ vi.mock("@nodetool-ai/search-services", () => ({
   searchAssets: vi.fn()
 }));
 
-import { Asset } from "@nodetool-ai/models";
+import { Asset, Project } from "@nodetool-ai/models";
 import { searchAssets } from "@nodetool-ai/search-services";
 import { getAssetAdapter } from "../src/lib/storage.js";
 import { storeAssetThumbnail } from "../src/lib/thumbnail.js";
@@ -544,6 +544,30 @@ describe("assets router", () => {
         workflowId: "wf-1"
       });
       expect(result.is_global_search).toBe(false);
+    });
+
+    it("claims loose rows for Personal before a search scoped to Personal", async () => {
+      searchMock().mockResolvedValue(found([]));
+      const order: string[] = [];
+      const migrate = vi
+        .spyOn(Project, "migrateToPersonal")
+        .mockImplementation(async () => {
+          order.push("migrate");
+          return {} as Awaited<ReturnType<typeof Project.migrateToPersonal>>;
+        });
+      searchMock().mockImplementation(async () => {
+        order.push("search");
+        return found([]);
+      });
+
+      const caller = createCaller(makeCtx());
+      await caller.assets.search({ query: "", project_id: "personal:user-1" });
+      expect(order).toEqual(["migrate", "search"]);
+
+      migrate.mockClear();
+      await caller.assets.search({ query: "", project_id: "project-a" });
+      expect(migrate).not.toHaveBeenCalled();
+      migrate.mockRestore();
     });
 
     it("forwards the filters and returns what matched", async () => {

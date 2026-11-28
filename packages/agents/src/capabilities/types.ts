@@ -63,9 +63,11 @@ export interface CapabilitySpec {
    * `auto` mode and even if the capability appears in `sessionAllow` or
    * `alwaysAllow`. Approval answers are never added to `sessionAllow`, so each
    * call requires fresh explicit user confirmation. Plan mode
-   * (`decision === "block"`) still blocks before prompting.
+   * (`decision === "block"`) still blocks before prompting. A function
+   * decides per call from the validated arguments, for a capability where
+   * only some targets need that confirmation (`set_setting` on a host path).
    */
-  readonly alwaysAsk?: boolean;
+  readonly alwaysAsk?: boolean | ((args: Record<string, unknown>) => boolean);
   /**
    * The capability nests the events of what it runs under the call that
    * started it, so it needs the caller's tool-call id. It arrives in the args

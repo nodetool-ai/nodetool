@@ -3,8 +3,6 @@ import { memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box,
-  FlexRow,
-  Caption,
   BORDER_RADIUS,
   CONTROL,
   MOTION,
@@ -56,7 +54,7 @@ const normalise = (peaks: Float32Array): number[] => {
 };
 
 interface ScriptTakeWaveformProps {
-  take: ScriptTake | undefined;
+  take: ScriptTake;
   /** The speaker's colour; the strip is tinted with it. */
   color: string;
   /** The take no longer matches the line's text or voice. */
@@ -68,7 +66,7 @@ interface ScriptTakeWaveformProps {
 /**
  * The current take as a strip of bars in the speaker's colour, the way the
  * script reads at a glance: which lines have audio, how long each runs, and
- * which takes are out of date. An unvoiced line gets an empty dashed strip.
+ * which takes are out of date.
  */
 const ScriptTakeWaveform = ({
   take,
@@ -77,13 +75,10 @@ const ScriptTakeWaveform = ({
   onPlay
 }: ScriptTakeWaveformProps) => {
   const { t } = useTranslation();
-  const url = useAssetUrl(take?.assetId);
-  const { peaks, durationMs } = useAudioPeaks(take?.assetId, url);
+  const url = useAssetUrl(take.assetId);
+  const { peaks, durationMs } = useAudioPeaks(take.assetId, url);
 
   const bars = useMemo(() => {
-    if (!take) {
-      return [];
-    }
     if (peaks && peaks.length > 0 && durationMs) {
       return normalise(
         samplePeaksWindow(peaks, durationMs, 0, durationMs, WAVEFORM_BARS)
@@ -91,26 +86,6 @@ const ScriptTakeWaveform = ({
     }
     return wordEnvelope(take, WAVEFORM_BARS);
   }, [take, peaks, durationMs]);
-
-  if (!take) {
-    return (
-      <FlexRow
-        align="center"
-        justify="center"
-        fullWidth
-        sx={{
-          height: CONTROL.height.xl,
-          borderRadius: BORDER_RADIUS.sm,
-          border: "1px dashed",
-          borderColor: "divider"
-        }}
-      >
-        <Caption color="secondary">
-          {t("i18n-next62.scriptTakeWaveform.notVoicedYet")}
-        </Caption>
-      </FlexRow>
-    );
-  }
 
   const interactive = !!onPlay;
 

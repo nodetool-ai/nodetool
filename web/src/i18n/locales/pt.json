@@ -14178,6 +14178,8 @@
         "revoice": "Linha de voz repetida",
         "voice": "Linha de voz",
         "assignVoiceFirst": "Atribua uma voz a este alto-falante primeiro",
+        "writeLineFirst": "Escreva a fala primeiro",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "Mais ações de linha",
         "pauseOption": {
           "0": "Sem pausa depois",
@@ -17628,7 +17630,6 @@
       "takeCount_many": "{{count}} leva"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Ainda não foi dublado",
       "playTake": "Jogue, pegue"
     }
   },

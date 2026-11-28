@@ -76,6 +76,8 @@ const createCaller = createCallerFactory(appRouter);
 function makeCtx(userId: string | null): Context {
   return {
     userId,
+    // A browser sign-in session, the caller the settings UI runs as.
+    authKind: "session",
     registry: {} as never,
     apiOptions: { metadataRoots: [], registry: {} as never } as never,
     pythonBridge: {} as never,

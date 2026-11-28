@@ -354,6 +354,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Share links on this person's documents. The owner is `created_by`. `token` is a live bearer credential and is withheld from the export."
   },
   {
+    table: "nodetool_share_role_limits",
+    schemaExport: "shareRoleLimits",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "The most a share link may grant a person on a document or workflow, left by the owner lowering their role or removing them. Erasure removes the rows naming this person and the rows this person set as an owner (`set_by`), since those point at documents about to be deleted. The export holds only rows whose user_id is the subject."
+  },
+  {
     table: "nodetool_workflow_shares",
     schemaExport: "workflowShares",
     disposition: "delete",

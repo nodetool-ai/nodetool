@@ -706,8 +706,9 @@ tool: pass an inline `document` to check a timeline being built, or a
 timeline assistant is told to call it after edits, before the user renders.
 
 The bundle (`nodetool-debug/timeline-<id>-<ts>/`) holds `report.json`,
-`report.md`, and `timeline.json` (the input document). Exit code 0 only when
-the verdict is ok. Validation and report rules live in
+`report.md`, and `timeline.json`: the document after the last interaction,
+wrapped with the target's size, frame rate and duration so `timeline render`
+reads it unchanged. Exit code 0 only when the verdict is ok. Validation and report rules live in
 `@nodetool-ai/execution/timeline-debug`; the CLI keeps target resolution, the
 interaction script, and the bundle.
 
@@ -737,6 +738,20 @@ Video exports mix audio-track clips, MIDI clips, and embedded video audio at
 their timeline offsets. Stills, contact sheets, PNG sequences, and video frame
 selections carry no audio. Flags are in
 [CLI Reference](cli.md#nodetool-timeline-render-timeline_id_or_file).
+
+### nodetool timeline preflight (Export Check)
+
+Renders a built-in shape-and-text timeline to a small MP4 through the real
+compositor and encoder, and exits `1` with the error and the configured Vulkan
+driver manifest when the machine cannot export. Run it before a long render on
+a new host. Its selfcheck runs the command from source, so the harness gate
+exercises a real render wherever it has a WebGPU adapter, as in the CI image.
+The no-root lavapipe setup is in
+[Headless Linux rendering](cli.md#headless-linux-rendering).
+
+```bash
+npm run dev:nodetool -- timeline preflight --json
+```
 
 ### nodetool timeline score (Timeline Craft Scorecard)
 
@@ -2136,7 +2151,11 @@ holds without their values, and there is **no `set_secret`**. The definitions
 come from `settingCatalog()` in `@nodetool-ai/config` — the same table the tRPC
 settings router answers `settings.list` from — so the capability knows which
 names hold credentials instead of guessing from the name, and refuses to read or
-write one.
+write one. On the cloud profile it applies the router's boundary: the host
+groups in `CLOUD_HIDDEN_SETTING_GROUPS` are neither listed, read nor written, and
+no value falls back to the server's environment. `set_setting` on a setting the
+catalog marks `hostPath` (a program or a path on the server's disk) asks the user
+every time, even in `auto`.
 
 Setting a secret goes through a bespoke dialog. `request_secret` takes a name, a
 reason and a help URL — never a value. The host sends a `secret_request` frame,

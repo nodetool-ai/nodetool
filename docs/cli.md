@@ -196,7 +196,10 @@ the argument, or from stdin when it is omitted or `-`.
 
 The key is read from the local encrypted secret store when `SECRETS_MASTER_KEY`
 is set and the store holds `OPENAI_API_KEY`, otherwise from the environment.
-`OPENAI_BASE_URL` selects another OpenAI-compatible endpoint.
+`OPENAI_BASE_URL` selects another OpenAI-compatible endpoint. The shared
+outbound URL policy requires `https` and a public host, so the CLI refuses
+loopback, private, link-local, `.local` and `.internal` endpoints before it
+sends a request.
 
 ```bash
 nodetool text "Write a haiku about rivers"
@@ -213,6 +216,10 @@ their property and output types, as JSON. `--example` prints a runnable workflow
 nodetool nodes --example > flow.json
 nodetool run flow.json --params '{"topic":"rivers"}'
 ```
+
+`--params` keys are matched to input-node names. A key that matches no input is
+ignored, and `nodetool run` prints a warning on stderr that names it and lists
+the declared inputs. Stdout stays the run's JSON result.
 
 ### `nodetool serve`
 
@@ -474,6 +481,9 @@ Fullscreen terminal chat with a scrollable transcript, multiline composer, tool 
 **Options:**
 
 - `-p, --provider <provider>` — LLM provider (e.g., `anthropic`, `openai`, `ollama`).
+  Started from Claude Code (`CLAUDECODE=1`), a local chat without this flag
+  uses `claude_agent_sdk`, which signs in with the session's own login, ahead
+  of the saved provider.
 - `-m, --model <model>` — model ID.
 - `-a, --agent` — **deprecated, no-op.** Every chat session runs the unified agent loop; this flag has no effect.
 - `-u, --url <url>` — WebSocket server URL (default: uses a local provider).
@@ -1101,8 +1111,11 @@ nodetool timeline debug sequence.json \
   session:  1 step(s), 0 failed
 ```
 
-The bundle holds `report.json`, `report.md`, and `timeline.json` (the input
-document). The command exits `0` only when the verdict is ok.
+The bundle holds `report.json`, `report.md`, and `timeline.json`: the document
+after the last interaction (the input when none ran), wrapped with the target's
+`name`, `width`, `height`, `fps` and `durationMs`, so `nodetool timeline render`
+reads it at the original settings. The command exits `0` only when the verdict
+is ok.
 
 #### `nodetool timeline render <timeline_id_or_file>`
 
@@ -1136,10 +1149,62 @@ nodetool timeline render sequence.json --frames coverage:build-sequence.ts --she
 nodetool timeline render sequence.json --only title,logo --frames 60,120 --sheet 2
 ```
 
-The command needs a WebGPU adapter. On a headless
-machine, install a Vulkan ICD such as lavapipe
-([headless WebGPU setup](dev-environment.md#webgpu-on-a-headless-machine)).
-The first frame compiles the GPU pipelines, so progress starts after a delay.
+The command needs a WebGPU adapter. Run `nodetool timeline preflight` first
+on a new machine, and see [Headless Linux rendering](#headless-linux-rendering)
+when it fails. The first frame compiles the GPU pipelines, so progress starts
+after a delay.
+
+#### `nodetool timeline preflight`
+
+Renders a built-in timeline with one shape clip and one text clip to a
+160 × 90 MP4 in a temporary directory, through the same GPU compositor and
+encoder as `nodetool timeline render`. It exits `0` when the export works and
+`1` when it does not, with the error and the Vulkan driver manifest the loader
+was pointed at (`VK_DRIVER_FILES`, then `VK_ICD_FILENAMES`). It needs the
+`video` pack and no media-generation packs or provider keys.
+
+- `--json` — print `{ok, vulkanDriverFiles, frames, width, height, elapsedMs}`, or `{ok, vulkanDriverFiles, error}` on failure.
+
+```bash
+nodetool timeline preflight --json
+```
+
+#### Headless Linux rendering
+
+Dawn, the WebGPU implementation behind the compositor, reaches the GPU through
+a Vulkan driver and has no software fallback. A headless Linux host with no
+Vulkan driver fails with `No WebGPU adapter available (Node/Dawn)`. Lavapipe,
+the CPU Vulkan driver in Mesa, renders without a GPU or a display. It is slower
+than a GPU and gives the same pixels on every run.
+
+With root on Debian or Ubuntu:
+
+```bash
+sudo apt-get install -y mesa-vulkan-drivers
+nodetool timeline preflight
+```
+
+Without root, download the driver and the Vulkan loader, extract them into a
+directory you own, and point the loader at the extracted driver. The shipped
+manifest names the library by file name only, so write a copy with the
+absolute path:
+
+```bash
+mkdir -p ~/.local/vulkan && cd ~/.local/vulkan
+apt-get download mesa-vulkan-drivers libvulkan1
+for deb in *.deb; do dpkg-deb -x "$deb" root; done
+lib="$PWD/root/usr/lib/$(uname -m)-linux-gnu"
+sed "s|\"libvulkan_lvp.so\"|\"$lib/libvulkan_lvp.so\"|" \
+  root/usr/share/vulkan/icd.d/lvp_icd.json > lvp_icd.json
+export VK_DRIVER_FILES="$PWD/lvp_icd.json"
+export LD_LIBRARY_PATH="$lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+nodetool timeline preflight
+```
+
+`LD_LIBRARY_PATH` is needed only when the host has no `libvulkan.so.1`. Unset
+`DISPLAY` on a host that has one but no running X server. `apt-get download`
+works without root but needs the distribution's package index, so run it on a
+matching release if the host has none.
 
 #### `nodetool timeline reference <timeline_id> <clip>`
 
@@ -2513,7 +2578,9 @@ Runs one CodeAct turn over the default toolbelt. `create_plan` and `execute_plan
 
 **Subcommands:** `run`, `diagnose`
 
-`-p/--provider` is required. Without `-m/--model`, `run` uses the provider's
+`-p/--provider` is required, except when Claude Code started the command
+(`CLAUDECODE=1`): then `run` uses `claude_agent_sdk`, which signs in with the
+session's own login. Without `-m/--model`, `run` uses the provider's
 default model (for example `sonnet` for `claude_agent_sdk`) and says so on
 stderr. A provider with no default model fails with the command that lists its
 models, `nodetool models list --provider <id>`.

@@ -513,5 +513,9 @@ the ordinary staging checks before promoting the CLI last. Recovery does not
 rebuild, repack, or publish package versions.
 
 Registry reads use exact-version metadata and share a bounded readiness
-deadline. Integrity and provenance failures stop verification. The trusted
+deadline. When a version is still missing at the deadline (a transient 404,
+429 or 5xx, or a timeout), `promote-staging.mjs` waits five minutes and runs
+the whole verification again over the same staged artifacts, up to three
+passes, before it fails. Integrity, provenance and authorization failures stop
+verification at once. A run that still fails needs the manual recovery above. The trusted
 publisher still needs dist-tag permission for every package in the cohort.

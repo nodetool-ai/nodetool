@@ -5,7 +5,8 @@ import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { hasReleaseProvenance, RELEASE_REPOSITORY, RELEASE_WORKFLOW, stagingPins, verifyRegistryInstall, verifyStaging } from "../release/verify-staging.mjs";
-import { promoteStaging, promotionOrder, releaseTag } from "../release/promote-staging.mjs";
+import { promoteStaging, promotionOrder, releaseTag, verifyWithRecovery } from "../release/promote-staging.mjs";
+import { RegistryNotReadyError } from "../release/registry.mjs";
 import { assertPublishTag, stageExistingVersion } from "../publish-packages.mjs";
 
 const version = "1.2.3";
@@ -204,6 +205,31 @@ describe("verified promotion", () => {
     await promoteStaging(catalogFixture(), artifacts, { dryRun: true, verify: async () => {}, run });
     expect(run).not.toHaveBeenCalled();
   });
+  it("starts a new verification pass of the staged artifacts when the registry was not ready, then promotes", async () => {
+    const events = [];
+    let passes = 0;
+    const sleep = vi.fn(async () => { events.push("waited"); });
+    await promoteStaging(catalogFixture(), artifacts, {
+      verify: async () => { passes += 1; events.push(`verify ${passes}`); if (passes < 3) { throw new RegistryNotReadyError("npm registry returned HTTP 404: /@nodetool-ai%2Fwebsocket/1.0.0"); } },
+      run: async (_command, args) => { events.push(args[2]); },
+      recovery: { sleep, log: () => {} }
+    });
+    expect(events.slice(0, 5)).toEqual(["verify 1", "waited", "verify 2", "waited", "verify 3"]);
+    expect(events.at(-1)).toBe(`@nodetool-ai/cli@${version}`);
+  });
+
+  it("stops after the last pass, and never retries integrity or provenance failures", async () => {
+    const run = vi.fn();
+    const sleep = vi.fn(async () => {});
+    const notReady = vi.fn(async () => { throw new RegistryNotReadyError("npm registry readiness deadline exceeded: /pkg/1.0.0"); });
+    await expect(promoteStaging(catalogFixture(), artifacts, { verify: notReady, run, recovery: { sleep, log: () => {} } })).rejects.toThrow("readiness deadline exceeded");
+    expect(notReady).toHaveBeenCalledTimes(3);
+    expect(run).not.toHaveBeenCalled();
+    const mismatch = vi.fn(async () => { throw new Error("Registry integrity differs from release pin: pkg@1.0.0"); });
+    await expect(verifyWithRecovery(mismatch, { sleep, log: () => {} })).rejects.toThrow("integrity differs");
+    expect(mismatch).toHaveBeenCalledOnce();
+  });
+
   it("keeps the CLI unpromoted if an earlier promotion fails", async () => {
     const run = vi.fn(async () => { throw new Error("registry refused promotion"); });
     await expect(promoteStaging(catalogFixture(), artifacts, { verify: async () => {}, run })).rejects.toThrow("registry refused");

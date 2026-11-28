@@ -8,6 +8,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { initTestDb, readableProjectBlob } from "@nodetool-ai/models";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
+import { stageTransferFile } from "@nodetool-ai/project-services/cloud-transfer";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -24,6 +25,7 @@ vi.mock("../src/lib/transfer-host.js", () => ({
 }));
 
 const { default: transferRoutes } = await import("../src/routes/transfers.js");
+const { transferHost } = await import("../src/lib/transfer-host.js");
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -142,5 +144,67 @@ describe("transfer API", () => {
         payloads: []
       })
     ).rejects.toMatchObject({ cause: { apiCode: "SERVICE_UNAVAILABLE" } });
+  });
+
+  /** Opens a transfer of USER whose manifest lists one file with `bytes`. */
+  async function openWithFile(userId: string, bytes: Buffer): Promise<{ transferId: string; hash: string }> {
+    const transferId = id();
+    const hash = createHash("sha256").update(bytes).digest("hex");
+    await createCaller(makeCtx(userId)).transfers.open({
+      transfer_id: transferId,
+      project_id: id(),
+      first_publication: true,
+      manifest: { operations: [], required_files: [{ asset_id: id(), hash, size: bytes.byteLength, documents: [] }] }
+    });
+    return { transferId, hash };
+  }
+
+  it("refuses a body larger than the declared file, and a file the manifest does not list", async () => {
+    const bytes = Buffer.from("staged bytes");
+    const { transferId, hash } = await openWithFile(USER, bytes);
+    app = await routeApp();
+
+    const larger = await app.inject({
+      method: "PUT",
+      url: `/api/transfers/${transferId}/files/${hash}`,
+      headers: { "content-type": "application/octet-stream" },
+      payload: Buffer.concat([bytes, Buffer.from(" and more")])
+    });
+    expect(larger.statusCode).toBe(413);
+    expect(larger.json()).toMatchObject({ code: "FILE_TOO_LARGE" });
+
+    const unlisted = Buffer.from("unlisted bytes");
+    const notListed = await app.inject({
+      method: "PUT",
+      url: `/api/transfers/${transferId}/files/${createHash("sha256").update(unlisted).digest("hex")}`,
+      headers: { "content-type": "application/octet-stream" },
+      payload: unlisted
+    });
+    expect(notListed.statusCode).toBe(400);
+    expect(notListed.json()).toMatchObject({ code: "INVALID" });
+  });
+
+  it("staging answers the same whether or not another account holds the bytes", async () => {
+    const bytes = randomBytes(64);
+    const other = await openWithFile("someone-else", bytes);
+    expect(
+      await stageTransferFile(transferHost(), "someone-else", {
+        transfer_id: other.transferId,
+        hash: other.hash,
+        size: bytes.byteLength,
+        bytes: new Uint8Array(bytes)
+      })
+    ).toBe("stored");
+
+    const { transferId, hash } = await openWithFile(USER, bytes);
+    app = await routeApp();
+    const staged = await app.inject({
+      method: "PUT",
+      url: `/api/transfers/${transferId}/files/${hash}`,
+      headers: { "content-type": "application/octet-stream" },
+      payload: bytes
+    });
+    expect(staged.statusCode).toBe(201);
+    expect(staged.json()).toEqual({ outcome: "stored" });
   });
 });

@@ -16,6 +16,10 @@
  * A person holds at most one invitation (`share_id` null) and one grant per
  * link they redeemed. A link grant reads its options from the link at every
  * request; an invitation carries its own.
+ *
+ * The owner lowering a person's role or removing them leaves a
+ * ShareRoleLimit, so a link the person kept grants no more than the owner
+ * left them. Inviting them again or setting their role to editor lifts it.
  */
 
 import { randomBytes } from "node:crypto";
@@ -29,6 +33,7 @@ import {
 } from "./schema/document-sharing.js";
 import type { CollaboratorRole } from "./workflow-collaborator.js";
 import { changingAccess } from "./access-epoch.js";
+import { ShareRoleLimit, limitLinkRole } from "./share-role-limit.js";
 
 /** Document kinds shared through these tables. Workflows have their own. */
 export const SHARED_DOCUMENT_TYPES = [
@@ -197,7 +202,8 @@ export class DocumentCollaborator extends DBModel {
 
   /**
    * Give a person an invitation with exactly `role`, and the options given.
-   * An option left out keeps its value.
+   * An option left out keeps its value. Inviting lifts the person's role
+   * limit unless `keepRoleLimit` is set, as when only options change.
    */
   static async invite(opts: {
     documentType: SharedDocumentType;
@@ -206,8 +212,16 @@ export class DocumentCollaborator extends DBModel {
     role: CollaboratorRole;
     invitedBy: string;
     options?: Partial<ShareOptions>;
+    keepRoleLimit?: boolean;
   }): Promise<DocumentCollaborator> {
     return changingAccess([{ kind: opts.documentType, id: opts.documentId }], async () => {
+      if (!opts.keepRoleLimit) {
+        await ShareRoleLimit.clear(
+          opts.documentType,
+          opts.documentId,
+          opts.userId
+        );
+      }
       const grant =
         (await DocumentCollaborator.findInvitation(
           opts.documentType,
@@ -229,12 +243,13 @@ export class DocumentCollaborator extends DBModel {
 
   /**
    * The grant that redeeming `share` gives the user, created once. Its role
-   * is the link's, and its options are read from the link.
+   * is the link's, lowered to the user's role limit, and its options are
+   * read from the link. Null when the limit admits the user through no link.
    */
   static async redeem(
     share: DocumentShare,
     userId: string
-  ): Promise<DocumentCollaborator> {
+  ): Promise<DocumentCollaborator | null> {
     const grants = await DocumentCollaborator.listFor(
       share.document_type,
       share.document_id,
@@ -242,22 +257,32 @@ export class DocumentCollaborator extends DBModel {
     );
     const existing = grants.find((g) => g.share_id === share.id);
     if (existing) return existing;
+    const role = limitLinkRole(
+      share.role,
+      await ShareRoleLimit.find(share.document_type, share.document_id, userId)
+    );
+    if (role === null) return null;
     return await DocumentCollaborator.create({
       document_type: share.document_type,
       document_id: share.document_id,
       user_id: userId,
-      role: share.role,
+      role,
       invited_by: share.created_by,
       share_id: share.id
     });
   }
 
-  /** Set the role on every grant the user holds. Returns the grants. */
+  /**
+   * Set the role on every grant the user holds. Returns the grants. Only the
+   * owner sets roles: "viewer" also limits what a link the user kept grants
+   * them, and "editor" lifts the limit.
+   */
   static async setRole(
     documentType: SharedDocumentType,
     documentId: string,
     userId: string,
-    role: CollaboratorRole
+    role: CollaboratorRole,
+    setBy?: string
   ): Promise<DocumentCollaborator[]> {
     return changingAccess([{ kind: documentType, id: documentId }], async () => {
       const grants = await DocumentCollaborator.listFor(
@@ -271,15 +296,33 @@ export class DocumentCollaborator extends DBModel {
           await grant.save();
         }
       }
+      if (grants.length > 0) {
+        if (role === "editor") {
+          await ShareRoleLimit.clear(documentType, documentId, userId);
+        } else {
+          await ShareRoleLimit.set({
+            documentType,
+            documentId,
+            userId,
+            role,
+            setBy: setBy ?? grants[0].invited_by
+          });
+        }
+      }
       return grants;
     });
   }
 
-  /** Remove every grant a user holds. Returns true if a row was deleted. */
+  /**
+   * Remove every grant a user holds. Returns true if a row was deleted.
+   * When `removedBy` is someone other than the user (the owner), no link
+   * admits the user again until the owner invites them.
+   */
   static async remove(
     documentType: SharedDocumentType,
     documentId: string,
-    userId: string
+    userId: string,
+    removedBy?: string
   ): Promise<boolean> {
     return changingAccess([{ kind: documentType, id: documentId }], async () => {
       const grants = await DocumentCollaborator.listFor(
@@ -288,6 +331,15 @@ export class DocumentCollaborator extends DBModel {
         userId
       );
       for (const grant of grants) await grant.delete();
+      if (grants.length > 0 && removedBy !== undefined && removedBy !== userId) {
+        await ShareRoleLimit.set({
+          documentType,
+          documentId,
+          userId,
+          role: null,
+          setBy: removedBy
+        });
+      }
       return grants.length > 0;
     });
   }
@@ -435,4 +487,5 @@ export async function removeDocumentSharing(
         eq(documentShares.document_id, documentId)
       )
     );
+  await ShareRoleLimit.removeForDocuments(documentType, [documentId]);
 }

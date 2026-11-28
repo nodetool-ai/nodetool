@@ -3,10 +3,12 @@ name: Mutation Testing (merged changes)
 # Runs nodetool-mutator once a day on the functions that commits merged to
 # main added or rewrote in the mutation-tested packages, and lists the
 # mutants their tests fail to kill. Per-PR runs cost too much runner time.
-# The base is the head of the last successful scheduled run, so a failed or
-# skipped day is covered by the next one. Without such a run, the base is the
-# last main commit from before the previous 24 hours. Dispatch with `base` to
-# choose it. Only functions whose text differs from the base are mutated
+# The base is the head of the last successful run, scheduled or dispatched, so
+# a failed or skipped day is covered by the next one. Without such a run, the
+# base is the last main commit from before the previous 24 hours. Dispatch
+# with `base` to choose it, for example to drop a backlog left by failed days.
+# A partition whose unmutated tests already fail is skipped and listed in the
+# summary instead of failing the run. Only functions whose text differs from the base are mutated
 # (`--base`), so the cost follows the size of the day's changes. Advisory: a
 # survivor is a question for the authors, not a failed build.
 
@@ -16,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       base:
-        description: "Commit to diff against (default: head of the last successful scheduled run)"
+        description: "Commit to diff against (default: head of the last successful run)"
         required: false
         default: ""
 
@@ -69,7 +71,7 @@ jobs:
           fetch-depth: 0
           filter: blob:none
       - uses: ./.github/actions/setup-build
-      - name: Find the head of the last successful scheduled run
+      - name: Find the head of the last successful run
         id: previous
         env:
           GH_TOKEN: ${{ github.token }}
@@ -80,7 +82,7 @@ jobs:
             exit 0
           fi
           HEAD_SHA=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow mutation-changed.yml \
-            --branch main --event schedule --status success --limit 1 \
+            --branch main --status success --limit 1 \
             --json headSha --jq '.[0].headSha // ""')
           echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
       - name: Resolve the base commit

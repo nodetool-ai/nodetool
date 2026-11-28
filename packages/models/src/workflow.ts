@@ -31,6 +31,7 @@ import {
 import type { GraphLink } from "@nodetool-ai/protocol";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { workflowCollaborators, workflowShares } from "./schema/workflow-sharing.js";
+import { shareRoleLimits } from "./schema/document-sharing.js";
 import {
   deleteDocumentKeeping,
   documentRefTables,
@@ -893,6 +894,11 @@ function workflowDependents(id: string): DependentTable[] {
       where: eq(workflowCollaborators.workflow_id, id)
     },
     { name: "workflow_shares", table: workflowShares, where: eq(workflowShares.workflow_id, id) },
+    {
+      name: "share_role_limits",
+      table: shareRoleLimits,
+      where: and(eq(shareRoleLimits.document_type, "workflow"), eq(shareRoleLimits.document_id, id)) as SQL
+    },
     ...documentRefTables("workflow", id)
   ];
 }

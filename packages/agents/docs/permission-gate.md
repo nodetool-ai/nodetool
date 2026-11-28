@@ -143,13 +143,19 @@ about one target of a tool narrows it: the Apify actor policy asks with
 `run_apify_actor:<actor>`, so "Always allow" approves that actor, not every
 actor.
 
+A spec's `alwaysAsk` can also be a function of the call's arguments, checked
+through `capabilityAlwaysAsks`. Such a call asks even in `auto` and with a
+standing rule, and the chat turn saves no rule from its answer. `set_setting`
+uses it for every setting the catalog marks `hostPath` (a program or a path on
+the server's disk). Other settings follow the table below.
+
 How a saved rule meets each mode:
 
 | Mode | Tool set to Ask | Tool set to Always allow |
 |---|---|---|
 | `plan` | blocked | blocked, because the category decides before any allow-list is read |
 | `default` | prompt | runs |
-| `auto` | runs, except the escalations (`admitCodeAction` for a high-risk `execute_code`, an un-allowlisted Apify actor, every `download_hf_model` call) | runs, and the escalation for that key is skipped |
+| `auto` | runs, except the escalations (`admitCodeAction` for a high-risk `execute_code`, an un-allowlisted Apify actor, every `download_hf_model` call, `set_setting` on a `hostPath` setting) | runs, and the escalation for that key is skipped, except for an `alwaysAsk` call |
 
 Read-class tools never ask, so they have no rule. Hosts other than the chat
 turn set no `alwaysAllow`, and their behaviour is unchanged.

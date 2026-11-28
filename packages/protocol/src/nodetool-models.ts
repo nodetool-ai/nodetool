@@ -69,6 +69,13 @@ export const NODETOOL_MODELS: readonly NodetoolModelDef[] = [
     delegate: { provider: "anthropic", model: "claude-sonnet-5" }
   },
   {
+    id: "nodetool/free",
+    name: "NodeTool Free",
+    kind: "language",
+    blurb: "Free text models, chosen by OpenRouter. Uses no credits.",
+    delegate: { provider: "openrouter", model: "openrouter/free" }
+  },
+  {
     id: "nodetool/flux-schnell",
     name: "Fast",
     kind: "image",

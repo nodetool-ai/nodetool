@@ -26,7 +26,7 @@ import {
   isSafePublicHttpsUrl,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
-import { isAuthEnforced } from "@nodetool-ai/config";
+import { isAuthEnforced, mayUseServerCredential } from "@nodetool-ai/config";
 import { mimeForPath } from "../sandbox-media-ref.js";
 import {
   LOCAL_SCREENSHOT_DISABLED_ERROR,
@@ -39,6 +39,7 @@ import type {
 import {
   SERP_PROVIDER_SEARCH_TYPES,
   createSerpProvider,
+  hostCliSearchAvailable,
   serpProviderConfigured
 } from "../tools/serp-providers/index.js";
 import { isModelSearchProvider } from "../tools/serp-providers/model-search.js";
@@ -94,7 +95,7 @@ async function getSerpApiKey(context: ProcessingContext): Promise<string> {
   const fromCtx = await context.getSecret("SERPAPI_API_KEY");
   if (fromCtx) return fromCtx;
 
-  const fromEnv = process.env.SERPAPI_API_KEY;
+  const fromEnv = serverSerpApiKey();
   if (fromEnv) return fromEnv;
 
   throw new Error(
@@ -110,7 +111,14 @@ export async function serpApiConfigured(
     isFunction(context?.getSecret)
       ? await context.getSecret("SERPAPI_API_KEY")
       : null;
-  return Boolean(fromCtx ?? process.env.SERPAPI_API_KEY);
+  return Boolean(fromCtx || serverSerpApiKey());
+}
+
+/** The server's own SerpAPI key, unless the cloud profile withholds it. */
+function serverSerpApiKey(): string | undefined {
+  return mayUseServerCredential("SERPAPI_API_KEY")
+    ? process.env.SERPAPI_API_KEY || undefined
+    : undefined;
 }
 
 /** What a caller asked to search over. */
@@ -646,18 +654,26 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
           return withSources(text, result.sources);
         }
       },
-      modelSearchBackend(
-        "antigravity",
-        "the Antigravity CLI (agy), installed and signed in"
-      ),
+      ...(hostCliSearchAvailable()
+        ? [
+            modelSearchBackend(
+              "antigravity",
+              "the Antigravity CLI (agy), installed and signed in"
+            )
+          ]
+        : []),
       modelSearchBackend(
         "codex",
         "a ChatGPT sign-in for Codex (CODEX_ACCESS_TOKEN)"
       ),
-      modelSearchBackend(
-        "claude",
-        "the Claude Code CLI (claude), installed and signed in"
-      )
+      ...(hostCliSearchAvailable()
+        ? [
+            modelSearchBackend(
+              "claude",
+              "the Claude Code CLI (claude), installed and signed in"
+            )
+          ]
+        : [])
     ];
 
     return runFirstConfiguredBackend(
@@ -834,6 +850,15 @@ const browser: CapabilityExport = {
 // take_screenshot
 // ---------------------------------------------------------------------------
 
+/**
+ * The file name a remote browser service is given: the last path segment
+ * only, with the default name when nothing usable is left.
+ */
+function screenshotFileName(outputFile: string): string {
+  const name = outputFile.split(/[\\/]/).pop()?.trim() ?? "";
+  return name && name !== "." && name !== ".." ? name : "screenshot.png";
+}
+
 const takeScreenshot: CapabilityExport = {
   spec: takeScreenshotSpec,
   impl: async (run, params) => {
@@ -844,6 +869,27 @@ const takeScreenshot: CapabilityExport = {
     }
     const outputFile = (params.output_file as string) ?? "screenshot.png";
 
+    let scheme: string;
+    try {
+      scheme = new URL(url).protocol;
+    } catch {
+      return { error: `Invalid URL: ${url}`, url };
+    }
+    if (scheme !== "http:" && scheme !== "https:") {
+      return { error: `Only http and https URLs can be screenshotted: ${url}`, url };
+    }
+    // The URL comes from the model, so on a shared deployment it gets the same
+    // SSRF policy safeFetch applies, whichever browser renders it. A real
+    // browser would otherwise render the host's metadata service and hand the
+    // picture back. A local install trusts loopback already, and
+    // screenshotting the app on localhost is the main reason to take one.
+    if (isAuthEnforced() && !isSafePublicHttpsUrl(url)) {
+      return {
+        error: `Refusing to screenshot an unsafe URL (must be https to a public host): ${url}`,
+        url
+      };
+    }
+
     const browserUrl = process.env.BROWSER_URL;
     if (browserUrl) {
       try {
@@ -853,7 +899,10 @@ const takeScreenshot: CapabilityExport = {
         const response = await fetch(browserUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, output_file: outputFile }),
+          body: JSON.stringify({
+            url,
+            output_file: screenshotFileName(outputFile)
+          }),
           signal: requestSignal(context, 30_000)
         });
 
@@ -874,27 +923,6 @@ const takeScreenshot: CapabilityExport = {
 
     if (!isHostAccessEnabled()) {
       return { error: LOCAL_SCREENSHOT_DISABLED_ERROR, url };
-    }
-
-    let scheme: string;
-    try {
-      scheme = new URL(url).protocol;
-    } catch {
-      return { error: `Invalid URL: ${url}`, url };
-    }
-    if (scheme !== "http:" && scheme !== "https:") {
-      return { error: `Only http and https URLs can be screenshotted: ${url}`, url };
-    }
-    // The URL comes from the model, so on a shared deployment it gets the same
-    // SSRF policy safeFetch applies — a real browser would otherwise render the
-    // host's metadata service and hand the picture back. A local install
-    // trusts loopback already, and screenshotting the app on localhost is the
-    // main reason to take one.
-    if (isAuthEnforced() && !isSafePublicHttpsUrl(url)) {
-      return {
-        error: `Refusing to screenshot an unsafe URL (must be https to a public host): ${url}`,
-        url
-      };
     }
 
     try {

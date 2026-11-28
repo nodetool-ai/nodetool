@@ -26,7 +26,7 @@ import { processChat } from "@nodetool-ai/chat";
 import { initMigratedDb } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { type ProcessingMessage } from "@nodetool-ai/protocol";
-import { createProvider, buildConfiguredProviders, resolveDefaultModel } from "@nodetool-ai/cli-providers";
+import { createProvider, buildConfiguredProviders, resolveDefaultModel, sessionDefaultProvider } from "@nodetool-ai/cli-providers";
 import { buildFullRegistry } from "@nodetool-ai/cli-execution/node-registry";
 import { buildCliToolbelt } from "../agent-toolbelt.js";
 import {
@@ -244,10 +244,15 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     /* fallback to env vars */
   }
 
-  if (!opts.provider) {
+  // Started from Claude Code, the run uses the session's own login.
+  const requestedProvider = opts.provider ?? sessionDefaultProvider();
+  if (!requestedProvider) {
     throw new Error("No provider specified. Use --provider <id>.");
   }
-  const providerId = normalizeProvider(opts.provider);
+  const providerId = normalizeProvider(requestedProvider);
+  if (!opts.provider) {
+    process.stderr.write(`Using ${providerId}, the Claude Code session's login (pass --provider to change it).\n`);
+  }
   const modelId = await resolveAgentModel(providerId, opts.model);
   if (!opts.model) {
     process.stderr.write(`Using default model ${modelId} for ${providerId} (pass --model to change it).\n`);
@@ -629,7 +634,7 @@ export function registerAgentCommands(program: Command): void {
       "Run an agent over the default toolbelt (objective via --objective or stdin)"
     )
     .option("-o, --objective <text>", "Objective for the agent")
-    .option("-p, --provider <id>", "Provider id")
+    .option("-p, --provider <id>", "Provider id (default when started from Claude Code: claude_agent_sdk)")
     .option("-m, --model <id>", "Model id")
     .option("-w, --workspace <path>", "Workspace dir (default: cwd)")
     .option(

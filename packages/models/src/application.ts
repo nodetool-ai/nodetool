@@ -38,7 +38,8 @@ import { appInstances } from "./schema/app-instances.js";
 import { applicationDeployments } from "./schema/application-deployments.js";
 import {
   documentCollaborators,
-  documentShares
+  documentShares,
+  shareRoleLimits
 } from "./schema/document-sharing.js";
 import {
   applicationBudgets,
@@ -418,6 +419,14 @@ export class Application extends DBModel {
           and(
             eq(documentShares.document_type, "application"),
             eq(documentShares.document_id, id)
+          )
+        ),
+      tx
+        .delete(shareRoleLimits)
+        .where(
+          and(
+            eq(shareRoleLimits.document_type, "application"),
+            eq(shareRoleLimits.document_id, id)
           )
         ),
       tx.delete(applications).where(eq(applications.id, id))

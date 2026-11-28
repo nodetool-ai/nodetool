@@ -400,7 +400,12 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     const protectedInputs = new Map((resolveEffectiveProductionRequirement(input.production, shot.production)?.protected_inputs ?? []).map((value) => [value.id, value]));
     const source = sourceClips.get(shot.id);
     if (!window) {
-      conflicts.push({ code: "missing_element", shotId: shot.id, elementId: "$source", message: `Shot ${shot.id} has no source allowed by its media strategy.` });
+      conflicts.push({
+        code: "missing_element",
+        shotId: shot.id,
+        elementId: "$source",
+        message: `Shot ${shot.id} has no source allowed by its media strategy. Attach a supported media source, or for graphics-only shots set graphics.mode to "graphics_first" and add an explicit text or shape element in graphics.elements.`
+      });
     }
     const elements = [...activeStoryboardGraphics(shot)];
     if (source) {

@@ -225,6 +225,11 @@ PY
 export VK_DRIVER_FILES=/tmp/vk/lvp_icd.json
 ```
 
+If the host also lacks the loader (`libvulkan.so.1`), extract `libvulkan1`
+the same way and add its library directory to `LD_LIBRARY_PATH`, as in
+[Headless Linux rendering](cli.md#headless-linux-rendering).
+`nodetool timeline preflight` checks the result with one short render.
+
 Then run the tests as usual. Lavapipe is a software rasterizer, so it is slow
 but exact — pixel comparisons (`nodetool.compare.CompareImages`) are
 reproducible under it, which is what

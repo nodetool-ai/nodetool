@@ -1179,7 +1179,7 @@ describe("workflows router", () => {
     });
 
     describe("delete", () => {
-      it("deletes a version by id", async () => {
+      it("lets an editor delete a version they saved", async () => {
         const ver = makeVersion({
           id: "ver-1",
           user_id: "user-1",
@@ -1188,6 +1188,12 @@ describe("workflows router", () => {
         (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(
           ver
         );
+        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          makeWorkflow({ id: "wf-1", user_id: "other-owner" })
+        );
+        (
+          WorkflowCollaborator.findFor as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({ role: "editor" });
 
         const caller = createCaller(makeCtx());
         const result = await caller.workflows.versions.delete({
@@ -1196,6 +1202,32 @@ describe("workflows router", () => {
         });
         expect(result).toEqual({ ok: true });
         expect(ver.delete).toHaveBeenCalled();
+      });
+
+      it("keeps a version from its author once they no longer hold editor", async () => {
+        const ver = makeVersion({
+          id: "ver-1",
+          user_id: "user-1",
+          workflow_id: "wf-1"
+        });
+        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          ver
+        );
+        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          makeWorkflow({ id: "wf-1", user_id: "other-owner" })
+        );
+        (
+          WorkflowCollaborator.findFor as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({ role: "viewer" });
+
+        const caller = createCaller(makeCtx());
+        await expect(
+          caller.workflows.versions.delete({
+            id: "wf-1",
+            version_id: "ver-1"
+          })
+        ).rejects.toMatchObject({ code: "NOT_FOUND" });
+        expect(ver.delete).not.toHaveBeenCalled();
       });
 
       it("throws NOT_FOUND when version does not exist", async () => {
@@ -1650,9 +1682,11 @@ describe("workflows.sharing router", () => {
         user_id: "user-2"
       });
       expect(result.ok).toBe(true);
+      // The remover is passed so the removal holds against a kept link.
       expect(WorkflowCollaborator.remove).toHaveBeenCalledWith(
         "wf-1",
-        "user-2"
+        "user-2",
+        "user-1"
       );
     });
 

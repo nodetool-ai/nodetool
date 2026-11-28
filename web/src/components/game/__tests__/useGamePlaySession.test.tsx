@@ -11,7 +11,7 @@ import { loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
 import { FixedTickClock } from "@nodetool-ai/game-renderer";
 
-const mockRenderers: Array<{ assets: (slot: string) => Promise<HTMLImageElement | null>; invalidateAsset: jest.Mock; render: jest.Mock }> = [];
+const mockRenderers: Array<{ assets: (slot: string) => Promise<ImageBitmap | null>; invalidateAsset: jest.Mock; render: jest.Mock }> = [];
 
 jest.mock("@nodetool-ai/game-runtime", () => {
   const runtime = jest.requireActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
@@ -40,7 +40,7 @@ jest.mock("@nodetool-ai/game-renderer/audio", () => ({ gameAudioSpatialView2D: j
 
 jest.mock("@nodetool-ai/game-renderer/browser", () => ({
   loadBrowserGameFonts: jest.fn(async () => ({ diagnostics: [], dispose: jest.fn() })),
-  createGameRenderer: jest.fn(async ({ canvas, assets }: { canvas: HTMLCanvasElement; assets: (slot: string) => Promise<HTMLImageElement | null> }) => {
+  createGameRenderer: jest.fn(async ({ canvas, assets }: { canvas: HTMLCanvasElement; assets: (slot: string) => Promise<ImageBitmap | null> }) => {
     const renderer = { canvas, assets, invalidateAsset: jest.fn(), backend: "canvas2d", capabilities: { gpuEffects: false },
       resize: jest.fn(), render: jest.fn(async (_frame: GameRenderFrame) => {}), setEffects: jest.fn(), dispose: jest.fn() };
     mockRenderers.push(renderer);

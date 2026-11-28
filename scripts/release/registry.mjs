@@ -4,6 +4,19 @@ import { setTimeout } from "node:timers/promises";
 export const REGISTRY_READINESS_MS = 600_000;
 const TRANSIENT_STATUSES = new Set([404, 408, 429, 500, 502, 503, 504]);
 
+/**
+ * The registry has not served a published version yet: a transient status
+ * outlasted the readiness deadline, or the request timed out. A later
+ * verification pass over the same staged artifacts can succeed, unlike an
+ * integrity, provenance or authorization failure.
+ */
+export class RegistryNotReadyError extends Error {
+  constructor(message, options) {
+    super(message, options);
+    this.name = "RegistryNotReadyError";
+  }
+}
+
 /** Bound publication visibility waits without retrying validation failures. */
 export async function loadRegistryResponse(url, {
   fetchImpl = fetch, sleep = setTimeout, now = Date.now,
@@ -16,18 +29,28 @@ export async function loadRegistryResponse(url, {
   }
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const remaining = deadline - now();
-    if (remaining <= 0) { throw new Error(`npm registry readiness deadline exceeded: ${endpoint.pathname}`); }
-    const response = await fetchImpl(endpoint.href, {
-      signal: AbortSignal.timeout(Math.min(30_000, remaining)), redirect: "error"
-    });
+    if (remaining <= 0) { throw new RegistryNotReadyError(`npm registry readiness deadline exceeded: ${endpoint.pathname}`); }
+    let response;
+    try {
+      response = await fetchImpl(endpoint.href, {
+        signal: AbortSignal.timeout(Math.min(30_000, remaining)), redirect: "error"
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "TimeoutError") {
+        throw new RegistryNotReadyError(`npm registry request timed out: ${endpoint.pathname}`, { cause: error });
+      }
+      throw error;
+    }
     if (response.ok) { return response; }
     await response.body?.cancel();
-    if (!TRANSIENT_STATUSES.has(response.status) || attempt === maxAttempts || deadline - now() <= retryDelayMs) {
-      throw new Error(`npm registry returned HTTP ${response.status}: ${endpoint.pathname}`);
+    const transient = TRANSIENT_STATUSES.has(response.status);
+    if (!transient || attempt === maxAttempts || deadline - now() <= retryDelayMs) {
+      const message = `npm registry returned HTTP ${response.status}: ${endpoint.pathname}`;
+      throw transient ? new RegistryNotReadyError(message) : new Error(message);
     }
     await sleep(retryDelayMs);
   }
-  throw new Error("npm registry readiness attempts exhausted");
+  throw new RegistryNotReadyError("npm registry readiness attempts exhausted");
 }
 
 export async function loadRegistryJson(url, options) {

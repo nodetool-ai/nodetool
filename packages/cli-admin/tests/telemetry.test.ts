@@ -189,10 +189,10 @@ describe("CLI telemetry payloads", () => {
   });
 
   it("only accepts https or local endpoints", () => {
-    expect(cliAnalyticsEndpoint({})).toMatch(/^https:\/\/analytics\.nodetool\.ai\//);
+    expect(cliAnalyticsEndpoint({})).toMatch(/^https:\/\/api\.nodetool\.ai\/api\/analytics\//);
     expect(
       cliAnalyticsEndpoint({ NODETOOL_ANALYTICS_ENDPOINT: "http://evil.example/x" })
-    ).toMatch(/^https:\/\/analytics\.nodetool\.ai\//);
+    ).toMatch(/^https:\/\/api\.nodetool\.ai\/api\/analytics\//);
     expect(
       cliAnalyticsEndpoint({
         NODETOOL_ANALYTICS_ENDPOINT: "http://localhost:7777/api/analytics/v1/events"

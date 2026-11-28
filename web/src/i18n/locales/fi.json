@@ -13958,6 +13958,8 @@
         "revoice": "Äänitä repliikki uudelleen",
         "voice": "Äänitä repliikki",
         "assignVoiceFirst": "Määritä ensin ääni tälle puhujalle",
+        "writeLineFirst": "Kirjoita repliikki ensin",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "Lisää repliikin toimintoja",
         "pauseOption": {
           "0": "Ei taukoa jälkeen",
@@ -17335,7 +17337,6 @@
       "takeCount_other": "{{count}} ottoa"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Ei vielä äänitetty",
       "playTake": "Toista otto"
     }
   },

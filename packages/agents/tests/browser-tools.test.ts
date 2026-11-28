@@ -271,6 +271,53 @@ describe("ScreenshotTool", () => {
     );
   });
 
+  it("applies the scheme check before calling the browser service", async () => {
+    process.env.BROWSER_URL = "http://localhost:9222/screenshot";
+    const result = (await tool.process(mockContext, {
+      url: "file:///etc/hosts"
+    })) as any;
+    expect(result.error).toMatch(/Only http and https/);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("applies the public-host check before calling the browser service", async () => {
+    process.env.BROWSER_URL = "http://localhost:9222/screenshot";
+    process.env.SUPABASE_URL = "https://project.supabase.co";
+    process.env.SUPABASE_KEY = "key";
+    try {
+      const result = (await tool.process(mockContext, {
+        url: "http://10.0.0.5/status"
+      })) as any;
+      expect(result.error).toMatch(/Refusing to screenshot an unsafe URL/);
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.SUPABASE_URL;
+      delete process.env.SUPABASE_KEY;
+    }
+  });
+
+  it.each([
+    ["../../shots/page.png", "page.png"],
+    ["C:\\shots\\page.png", "page.png"],
+    ["/abs/dir/page.png", "page.png"],
+    ["..", "screenshot.png"],
+    ["shots/", "screenshot.png"]
+  ])("sends the browser service only a file name for %s", async (given, sent) => {
+    process.env.BROWSER_URL = "http://localhost:9222/screenshot";
+    (globalThis.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({})
+    });
+
+    await tool.process(mockContext, {
+      url: "https://example.com",
+      output_file: given
+    });
+
+    const body = JSON.parse((globalThis.fetch as any).mock.calls[0][1].body);
+    expect(body).toEqual({ url: "https://example.com", output_file: sent });
+  });
+
   it("returns error when browser service fails", async () => {
     process.env.BROWSER_URL = "http://localhost:9222/screenshot";
     (globalThis.fetch as any).mockRejectedValueOnce(

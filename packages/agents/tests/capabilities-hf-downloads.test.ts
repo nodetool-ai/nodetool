@@ -17,16 +17,14 @@ const hf = vi.hoisted(() => ({
   getDownloadState: vi.fn(),
   getDownloadManager: vi.fn(),
   getExistingDownloadManager: vi.fn(),
-  resolveWorkerHfToken: vi.fn(),
-  resolveStoredHfEndpoint: vi.fn()
+  resolveHfHubAccess: vi.fn()
 }));
 
 vi.mock("@nodetool-ai/huggingface", () => ({
   planHfDownload: hf.planHfDownload,
   getDownloadManager: hf.getDownloadManager,
   getExistingDownloadManager: hf.getExistingDownloadManager,
-  resolveWorkerHfToken: hf.resolveWorkerHfToken,
-  resolveStoredHfEndpoint: hf.resolveStoredHfEndpoint
+  resolveHfHubAccess: hf.resolveHfHubAccess
 }));
 
 import { createCapabilityRun } from "../src/capabilities/index.js";
@@ -38,6 +36,17 @@ import {
 } from "../src/capabilities/hf-downloads.js";
 
 const GB = 1024 ** 3;
+const GATE_ENV = [
+  "NODETOOL_ENV",
+  "NODETOOL_NODE_PROFILE",
+  "SUPABASE_URL",
+  "SUPABASE_KEY",
+  "OIDC_ISSUER",
+  "OIDC_CLIENT_ID"
+];
+const savedGateEnv: Record<string, string | undefined> = Object.fromEntries(
+  GATE_ENV.map((key) => [key, process.env[key]])
+);
 const ctx = {
   userId: "hf-user",
   getSecret: async (key: string) => (key === "HF_TOKEN" ? "hf_secret" : null)
@@ -69,11 +78,14 @@ beforeEach(() => {
   answer = "allow";
   freeBytes = 100 * GB;
   previousProbe = setFreeBytesProbeForTesting(async () => freeBytes);
-  delete process.env["NODETOOL_ENV"];
-  hf.resolveWorkerHfToken.mockImplementation(async (read: (k: string) => Promise<string | null>) =>
-    (await read("HF_TOKEN")) ?? undefined
+  for (const key of GATE_ENV) delete process.env[key];
+  hf.resolveHfHubAccess.mockImplementation(
+    async (read: (k: string) => Promise<string | null>) => ({
+      endpoint: "https://huggingface.co",
+      token: (await read("HF_TOKEN")) ?? undefined,
+      userEndpoint: false
+    })
   );
-  hf.resolveStoredHfEndpoint.mockResolvedValue("https://huggingface.co");
   hf.planHfDownload.mockResolvedValue({
     files: [
       { path: "config.json", size: 1024 },
@@ -89,7 +101,10 @@ beforeEach(() => {
 
 afterEach(() => {
   setFreeBytesProbeForTesting(previousProbe);
-  delete process.env["NODETOOL_ENV"];
+  for (const key of GATE_ENV) {
+    if (savedGateEnv[key] === undefined) delete process.env[key];
+    else process.env[key] = savedGateEnv[key];
+  }
 });
 
 describe("download_hf_model", () => {
@@ -177,13 +192,38 @@ describe("download_hf_model", () => {
     expect(hf.startDownload).not.toHaveBeenCalled();
   });
 
-  it("refuses on a production server without listing the repository", async () => {
-    process.env["NODETOOL_ENV"] = "production";
+  it.each([
+    ["a production server", { NODETOOL_ENV: "production" }],
+    ["the cloud profile", { NODETOOL_ENV: "staging", NODETOOL_NODE_PROFILE: "cloud" }],
+    ["enforced Supabase auth", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "k" }],
+    ["enforced OIDC auth", { OIDC_ISSUER: "https://id.example.com", OIDC_CLIENT_ID: "c" }]
+  ])("refuses on %s without listing the repository", async (_label, env) => {
+    Object.assign(process.env, env);
 
     const result = await toolFor("download_hf_model").process(ctx, { repo_id: "org/model" });
 
-    expect(result).toEqual({ error: "Hugging Face downloads are disabled on a production server." });
+    expect(result).toEqual({ error: "Hugging Face downloads are disabled on a shared server." });
     expect(hf.planHfDownload).not.toHaveBeenCalled();
+  });
+
+  it("resolves the Hub access for a download and sends no implicit token", async () => {
+    hf.resolveHfHubAccess.mockResolvedValue({
+      endpoint: "https://mirror.example.com",
+      token: undefined,
+      userEndpoint: true
+    });
+
+    await toolFor("download_hf_model").process(ctx, { repo_id: "org/model" });
+
+    expect(hf.resolveHfHubAccess).toHaveBeenCalledWith(expect.any(Function), "download");
+    expect(hf.planHfDownload).toHaveBeenCalledWith("org/model", expect.objectContaining({
+      token: null,
+      endpoint: "https://mirror.example.com"
+    }));
+    expect(hf.startDownload).toHaveBeenCalledWith("org/model", expect.objectContaining({
+      token: false,
+      endpoint: "https://mirror.example.com"
+    }));
   });
 
   it("rejects repository ids and paths that are not inside a repository", async () => {

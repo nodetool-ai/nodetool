@@ -497,6 +497,33 @@ describe("Project model", () => {
     expect(await Project.listByUser("empty")).toEqual([]);
   });
 
+  it("moves the library index items of the rows it claims", async () => {
+    const loose = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "marta.png",
+      content_type: "image/png",
+      project_id: LOOSE_PROJECT_ID
+    });
+    const now = new Date().toISOString();
+    const item = (id: string, resource: string, user: string): string =>
+      `INSERT INTO nodetool_search_items (id, user_id, project_id, resource_type, resource_id, kind, created_at, updated_at) ` +
+      `VALUES ('${id}', '${user}', 'default', 'asset', '${resource}', 'image', '${now}', '${now}') RETURNING id`;
+    await executeRaw(item("item-mine", loose.id, "u1"));
+    await executeRaw(item("item-theirs", loose.id, "u2"));
+
+    const { project } = await Project.migrateToPersonal("u1");
+
+    const rows = (
+      await executeRaw(
+        `SELECT id, project_id FROM nodetool_search_items ORDER BY id`
+      )
+    ).rows as Array<{ id: string; project_id: string }>;
+    expect(rows).toEqual([
+      { id: "item-mine", project_id: project.id },
+      { id: "item-theirs", project_id: "default" }
+    ]);
+  });
+
   it("leaves an assigned thread where it is, even when a project names it", async () => {
     const owner = await Project.create<Project>({
       id: "owner",

@@ -29,7 +29,8 @@ const API_CODE_BY_TRANSFER_CODE: Record<TransferRequestError["code"], ApiErrorCo
   CONFLICT: ApiErrorCode.ALREADY_EXISTS,
   INVALID: ApiErrorCode.INVALID_INPUT,
   ATTEMPT_CONTENT_MISMATCH: ApiErrorCode.ATTEMPT_CONTENT_MISMATCH,
-  NEEDS_POSTGRES: ApiErrorCode.SERVICE_UNAVAILABLE
+  NEEDS_POSTGRES: ApiErrorCode.SERVICE_UNAVAILABLE,
+  STORAGE_EXCEEDED: ApiErrorCode.FORBIDDEN
 };
 
 /** Runs `body`, rethrowing a {@link TransferRequestError} as its API refusal. */

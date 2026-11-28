@@ -143,5 +143,12 @@ export interface RealtimePlan {
 }
 export type RenderPlan = RealtimePlan;
 export interface BatchBoundary { readonly node: string; readonly output: string; readonly slot: string; readonly reason: "no_live_descriptor"; }
-export type CompileResult = { readonly status: "ok"; readonly plan: RealtimePlan; readonly boundaries: readonly BatchBoundary[]; readonly warnings: readonly Diagnostic[]; readonly allocation: ParameterAllocation; readonly stateKeys: readonly StateKey[] } |
-  { readonly status: "error"; readonly diagnostics: readonly Diagnostic[] };
+export interface CompileSuccess {
+  readonly status: "ok";
+  readonly plan: RealtimePlan;
+  readonly boundaries: readonly BatchBoundary[];
+  readonly warnings: readonly Diagnostic[];
+  readonly allocation: ParameterAllocation;
+  readonly stateKeys: readonly StateKey[];
+}
+export type CompileResult = CompileSuccess | { readonly status: "error"; readonly diagnostics: readonly Diagnostic[] };

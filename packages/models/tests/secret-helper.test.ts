@@ -6,6 +6,8 @@ vi.mock("node:child_process", async (orig) => ({
   execFile: execFileMock
 }));
 import { setMasterKey } from "@nodetool-ai/security";
+import { isCloudProfileActive } from "@nodetool-ai/protocol";
+import { isCloudProfileEnv, registerUserCredentialKey } from "@nodetool-ai/config";
 import { initTestDb } from "../src/db.js";
 import { Secret } from "../src/secret.js";
 import { Setting } from "../src/setting.js";
@@ -38,6 +40,115 @@ describe("secret-helper", () => {
     it("returns env value when DB has no row", async () => {
       process.env.TEST_ENV_SECRET = "from-env";
       expect(await getSecret("TEST_ENV_SECRET", "user-1")).toBe("from-env");
+    });
+
+    describe("provider credentials on the cloud profile", () => {
+      const KEY = "LEAK_TEST_PROVIDER_API_KEY";
+      beforeEach(() => {
+        registerUserCredentialKey(KEY);
+        process.env[KEY] = "server-key";
+      });
+      afterEach(() => {
+        delete process.env[KEY];
+        delete process.env.NODETOOL_NODE_PROFILE;
+      });
+
+      it("withholds the server's key from a user who saved none", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        expect(await getSecret(KEY, "user-1")).toBeNull();
+        expect(await hasSecret(KEY, "user-1")).toBe(false);
+      });
+
+      it("still serves the user's own saved key", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        await Secret.upsert({ userId: "user-1", key: KEY, value: "user-key" });
+        expect(await getSecret(KEY, "user-1")).toBe("user-key");
+      });
+
+      it("falls back to the server's key off the cloud profile", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "full";
+        expect(await getSecret(KEY, "user-1")).toBe("server-key");
+      });
+
+      it("keeps the environment fallback for keys nothing registered", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        process.env.TEST_ENV_SECRET = "from-env";
+        expect(await getSecret("TEST_ENV_SECRET", "user-1")).toBe("from-env");
+      });
+
+      it("detects the cloud profile exactly as the protocol does", () => {
+        for (const [profile, env] of [
+          [undefined, undefined],
+          [undefined, "production"],
+          ["cloud", undefined],
+          ["full", "production"],
+          ["", "production"],
+          ["other", undefined]
+        ] as const) {
+          expect(
+            isCloudProfileEnv({ NODETOOL_NODE_PROFILE: profile, NODETOOL_ENV: env })
+          ).toBe(isCloudProfileActive(profile, env));
+        }
+      });
+    });
+
+    describe("program paths on a shared server", () => {
+      const KEY = "CLAUDE_CLI_PATH";
+      const DEPLOYMENT = [
+        "NODETOOL_NODE_PROFILE",
+        "NODETOOL_ENV",
+        "OIDC_ISSUER",
+        "OIDC_CLIENT_ID",
+        "SUPABASE_KEY",
+        KEY
+      ];
+      const saved: Record<string, string | undefined> = {};
+      beforeEach(async () => {
+        for (const name of DEPLOYMENT) {
+          saved[name] = process.env[name];
+          delete process.env[name];
+        }
+        process.env.NODETOOL_NODE_PROFILE = "full";
+        await Setting.upsert({ userId: "user-1", key: KEY, value: "/home/u/claude" });
+      });
+      afterEach(() => {
+        for (const name of DEPLOYMENT) {
+          if (saved[name] === undefined) delete process.env[name];
+          else process.env[name] = saved[name];
+        }
+      });
+
+      it("serves the user's own path on a single-user install", async () => {
+        expect(await getSecret(KEY, "user-1")).toBe("/home/u/claude");
+        expect(await hasSecret(KEY, "user-1")).toBe(true);
+      });
+
+      it("reads only the environment on the cloud profile", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        await Secret.upsert({ userId: "user-1", key: KEY, value: "/home/u/other" });
+        expect(await getSecret(KEY, "user-1")).toBeNull();
+        expect(await hasSecret(KEY, "user-1")).toBe(false);
+        process.env[KEY] = "/usr/local/bin/claude";
+        expect(await getSecret(KEY, "user-1")).toBe("/usr/local/bin/claude");
+      });
+
+      it("reads only the environment when auth is enforced", async () => {
+        process.env.OIDC_ISSUER = "https://sso.example";
+        process.env.OIDC_CLIENT_ID = "nodetool";
+        expect(await getSecret(KEY, "user-1")).toBeNull();
+        process.env[KEY] = "/usr/local/bin/claude";
+        expect(await getSecret(KEY, "user-1")).toBe("/usr/local/bin/claude");
+      });
+
+      it("keeps the user's value for a setting that names no program", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        await Setting.upsert({
+          userId: "user-1",
+          key: "AUTOSAVE_INTERVAL_MINUTES",
+          value: "3"
+        });
+        expect(await getSecret("AUTOSAVE_INTERVAL_MINUTES", "user-1")).toBe("3");
+      });
     });
 
     it("returns default when neither DB nor env has it", async () => {

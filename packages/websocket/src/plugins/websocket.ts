@@ -285,7 +285,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       log.info("Download WebSocket client connected");
 
       import("@nodetool-ai/huggingface")
-        .then(({ getDownloadManager, resolveWorkerHfToken, resolveStoredHfEndpoint }) => {
+        .then(({ getDownloadManager, resolveHfHubAccess }) => {
           // TJS downloads are bookkept here so cancel can abort them.
           const tjsAborts = new Map<string, AbortController>();
           // In-flight worker-scoped downloads, keyed by the same composite id
@@ -323,8 +323,9 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                   return;
                 }
                 if (modelType && modelType.startsWith("tjs.")) {
-                  const endpoint = await resolveStoredHfEndpoint((key) =>
-                    getStoredSecret(key, req.userId ?? "1")
+                  const { endpoint } = await resolveHfHubAccess(
+                    (key) => getStoredSecret(key, req.userId ?? "1"),
+                    "download"
                   );
                   await handleTjsDownload(
                     socket,
@@ -342,19 +343,17 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                 }
                 const userId = req.userId ?? "1";
                 const manager = await getDownloadManager(userId);
-                // The token pasted in Settings lives in the secret store, not
-                // in this process's environment, so resolve it per user.
-                const token = await resolveWorkerHfToken((key) =>
-                  getStoredSecret(key, userId)
-                );
-                // A mirror set in Settings (HF_ENDPOINT) is per user too.
-                const endpoint = await resolveStoredHfEndpoint((key) =>
-                  getStoredSecret(key, userId)
+                // The token and mirror saved in Settings live in the secret
+                // store, so resolve them per user. Server credentials go only
+                // to the operator endpoint.
+                const access = await resolveHfHubAccess(
+                  (key) => getStoredSecret(key, userId),
+                  "download"
                 );
                 await manager.startDownload(repoId, {
                   path: msg.path ?? null,
-                  token: token ?? null,
-                  endpoint,
+                  token: access.token ?? false,
+                  endpoint: access.endpoint,
                   allowPatterns: msg.allow_patterns ?? null,
                   ignorePatterns: msg.ignore_patterns ?? null,
                   // No client-chosen cache_dir: the Model Manager, the

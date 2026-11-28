@@ -89,6 +89,44 @@ describe("resolveTimelineTarget", () => {
     expect(resolved.document.tracks[0].id).toBe("t1");
   });
 
+  it("unwraps a preview_storyboard_design envelope and keeps resolution, fps, duration, and clip timing", async () => {
+    const file = writeJson("preview.json", {
+      timeline: {
+        type: "timeline",
+        data: {
+          id: "board-1",
+          name: "Design preview: Launch",
+          width: 1920,
+          height: 1080,
+          fps: 30,
+          durationMs: 4000,
+          tracks: [
+            { id: "t-text", name: "Text", type: "overlay", index: 0, visible: true, locked: false }
+          ],
+          clips: [
+            { id: "c1", trackId: "t-text", name: "Shot 1", startMs: 0, durationMs: 500, mediaType: "text", sourceType: "text", status: "generated", locked: false, versions: [] },
+            { id: "c2", trackId: "t-text", name: "Shot 2", startMs: 500, durationMs: 1000, mediaType: "text", sourceType: "text", status: "generated", locked: false, versions: [] },
+            { id: "c3", trackId: "t-text", name: "Shot 3", startMs: 1500, durationMs: 2500, mediaType: "text", sourceType: "text", status: "generated", locked: false, versions: [] }
+          ],
+          markers: []
+        }
+      },
+      storyboardRevision: 4,
+      validation: []
+    });
+    const resolved = await resolveTimelineTarget(file, {
+      loadSequence: noSequences
+    });
+
+    expect(resolved.target).toEqual({ kind: "file", ref: file, name: "Design preview: Launch" });
+    expect(resolved.meta).toEqual({ width: 1920, height: 1080, fps: 30, durationMs: 4000 });
+    expect(resolved.document.clips.map((clip) => ({ id: clip.id, startMs: clip.startMs, durationMs: clip.durationMs }))).toEqual([
+      { id: "c1", startMs: 0, durationMs: 500 },
+      { id: "c2", startMs: 500, durationMs: 1000 },
+      { id: "c3", startMs: 1500, durationMs: 2500 }
+    ]);
+  });
+
   it("loads a row id through the injected loader", async () => {
     const loadSequence = vi.fn(async (id: string) => ({
       id,

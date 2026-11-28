@@ -470,6 +470,7 @@
         "packages/pack-core/src/**",
         "packages/pack-host/src/**",
         "packages/protocol/src/**",
+        "packages/provider-anthropic/src/**",
         "packages/replicate-nodes/src/**",
         "packages/reve-nodes/src/**",
         "packages/sdk/src/**",

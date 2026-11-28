@@ -1662,7 +1662,16 @@ export const assetsRouter = router({
       // one is shown under and the total across pages.
       const options: AssetSearchOptions = { limit: input.page_size };
       if (input.content_type) options.contentType = input.content_type;
-      if (input.project_id !== undefined) options.projectId = input.project_id;
+      if (input.project_id !== undefined) {
+        // A search scoped to Personal must see the loose rows Personal is
+        // about to claim. Otherwise the first scoped search, such as the
+        // References list, answers empty and the client caches that. Claim
+        // them first, as threads.list and documents.index do.
+        if (input.project_id === `personal:${ctx.userId}`) {
+          await Project.migrateToPersonal(ctx.userId);
+        }
+        options.projectId = input.project_id;
+      }
       if (input.workflow_id) options.workflowId = input.workflow_id;
       if (input.cursor) options.cursor = input.cursor;
       const filter: NonNullable<AssetSearchOptions["filter"]> = {};

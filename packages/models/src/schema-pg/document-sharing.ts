@@ -81,3 +81,31 @@ export const documentShares = pgTable(
       .where(sql`disabled_at IS NULL`)
   ]
 );
+
+/**
+ * The most a person may receive from redeeming a link, set when the owner
+ * lowers their role or removes them. `role` null admits them through no
+ * link. Serves documents and workflows: `document_type` is "workflow" or a
+ * shared document kind. The owner inviting the person or setting their role
+ * to editor deletes the row.
+ */
+export const shareRoleLimits = pgTable(
+  "nodetool_share_role_limits",
+  {
+    id: text("id").primaryKey(),
+    document_type: text("document_type").notNull(),
+    document_id: text("document_id").notNull(),
+    user_id: text("user_id").notNull(),
+    role: text("role"),
+    set_by: text("set_by").notNull(),
+    created_at: text("created_at").notNull()
+  },
+  (table) => [
+    uniqueIndex("idx_srlimit_document_user").on(
+      table.document_type,
+      table.document_id,
+      table.user_id
+    ),
+    index("idx_srlimit_user_id").on(table.user_id)
+  ]
+);

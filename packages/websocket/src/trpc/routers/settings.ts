@@ -19,7 +19,10 @@ import {
   isOnePasswordReference,
   resolveUserSecretValue,
   getSecret,
-  getSecrets
+  getSecrets,
+  hostSettingsRefusalMessage,
+  refusedHostSettingKeys,
+  userSettingCatalog
 } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
 import {
@@ -40,7 +43,7 @@ import { onePasswordRouter } from "./onepassword.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-import { settingCatalog } from "@nodetool-ai/config";
+import { mayUseServerCredential, settingCatalog } from "@nodetool-ai/config";
 import { isCloudProvider, isCloudSettingGroup, isCustomProviderId } from "@nodetool-ai/protocol";
 import { isCloudProfile } from "../../lib/cloud-profile.js";
 import type { SettingWithValue } from "../../settings-registry.js";
@@ -123,7 +126,8 @@ const secretsRouter = router({
 
     // Registry secrets: mark configured if in map, else placeholder. A key
     // set only in the process environment counts as configured because
-    // getSecret falls back to process.env.
+    // getSecret falls back to process.env, except where the cloud profile
+    // withholds a provider credential from users.
     const registrySecrets = settingCatalog().filter((d) => d.isSecret);
     const normalizedResults: SecretResponse[] = await Promise.all(
       registrySecrets.map(async (def) => {
@@ -131,7 +135,9 @@ const secretsRouter = router({
         if (configured) {
           return toSecretResponse(configured);
         }
-        const fromServer = process.env[def.envVar] !== undefined;
+        const fromServer =
+          process.env[def.envVar] !== undefined &&
+          mayUseServerCredential(def.envVar);
         const placeholder: SecretResponse = {
           key: def.envVar,
           user_id: ctx.userId,
@@ -171,6 +177,10 @@ const secretsRouter = router({
     .output(secretResponse)
     .mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.userId, "manage_own_keys");
+      const refused = refusedHostSettingKeys([input.key]);
+      if (refused.length > 0) {
+        throwApiError(ApiErrorCode.FORBIDDEN, hostSettingsRefusalMessage(refused));
+      }
       const upsertInput: Parameters<typeof Secret.upsert>[0] = {
         userId: ctx.userId,
         key: input.key,
@@ -448,9 +458,7 @@ export const settingsRouter = router({
     // back to the server's environment: those values are the operator's, not
     // the tenant's.
     const cloud = isCloudProfile();
-    const catalog = cloud
-      ? settingCatalog().filter((def) => isCloudSettingGroup(def.group))
-      : settingCatalog();
+    const catalog = userSettingCatalog();
 
     // Non-secret settings: read from DB then env.
     for (const def of catalog) {
@@ -490,21 +498,12 @@ export const settingsRouter = router({
     .input(updateInput)
     .output(updateOutput)
     .mutation(async ({ ctx, input }) => {
-      if (isCloudProfile()) {
-        const keys = [
-          ...Object.keys(input.settings ?? {}),
-          ...Object.keys(input.secrets ?? {})
-        ];
-        const hidden = keys.filter((key) => {
-          const def = settingCatalog().find((d) => d.envVar === key);
-          return def !== undefined && !isCloudSettingGroup(def.group);
-        });
-        if (hidden.length > 0) {
-          throwApiError(
-            ApiErrorCode.FORBIDDEN,
-            `These settings configure the server host and cannot be changed on this deployment: ${hidden.join(", ")}`
-          );
-        }
+      const hidden = refusedHostSettingKeys([
+        ...Object.keys(input.settings ?? {}),
+        ...Object.keys(input.secrets ?? {})
+      ]);
+      if (hidden.length > 0) {
+        throwApiError(ApiErrorCode.FORBIDDEN, hostSettingsRefusalMessage(hidden));
       }
 
       // Non-secret settings → Setting.upsert

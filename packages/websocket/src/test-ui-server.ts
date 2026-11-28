@@ -1505,8 +1505,12 @@ export async function createTestUiServer(options: TestUiServerOptions = {}) {
     createContext: ({ req }) => {
       // SAFETY: the test-UI server has no auth plugin, so it attaches the
       // single-user id the context reads directly onto the request.
-      const authedReq = req as IncomingMessage & { userId?: string };
+      const authedReq = req as IncomingMessage & {
+        userId?: string;
+        authKind?: "local";
+      };
       authedReq.userId = "1";
+      authedReq.authKind = "local";
       return trpcContextFactory({ req: authedReq });
     }
   });

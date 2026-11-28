@@ -17,6 +17,7 @@
 
 import {
   NODETOOL_PROVIDER_ID,
+  nodetoolModelById,
   nodetoolModelsOfKind,
   type NodetoolModelDef
 } from "@nodetool-ai/protocol";
@@ -55,11 +56,16 @@ const toTTSModel = (def: NodetoolModelDef, voice?: string): TTSModelValue => ({
 });
 
 /** Directs screenplays and drives the in-editor assistants. Not selectable. */
+const DIRECTOR_DEF = nodetoolModelById("nodetool/director");
+if (!DIRECTOR_DEF) {
+  throw new Error("The nodetool catalog has no nodetool/director entry.");
+}
+
 export const STUDIO_DIRECTOR_MODEL: LanguageModelValue = {
   type: "language_model",
-  id: nodetoolModelsOfKind("language")[0].id,
+  id: DIRECTOR_DEF.id,
   provider,
-  name: nodetoolModelsOfKind("language")[0].name
+  name: DIRECTOR_DEF.name
 };
 
 export interface CuratedOption<T> {

@@ -133,6 +133,7 @@ import {
   GOOGLE_WORKSPACE_TOOL_NAMES,
   APIFY_TOOL_NAMES,
   SERPAPI_TOOL_NAMES,
+  capabilityAlwaysAsks,
   capabilityForName,
   capabilitySpec,
   capabilityProviderTool,
@@ -2247,9 +2248,10 @@ export class ChatTurnHandler {
         request: ApprovalRequest
       ): Promise<ApprovalDecision> => {
         const decision = await this.requestToolApproval(threadId, request);
+        const spec = capabilitySpec(request.toolName);
         if (
           decision === "allow_always" &&
-          !capabilitySpec(request.toolName)?.alwaysAsk
+          !(spec && capabilityAlwaysAsks(spec, request.args))
         ) {
           const ruleKey = request.ruleKey ?? request.toolName;
           alwaysAllow.add(ruleKey);

@@ -16,7 +16,7 @@
 import {
   appendDocumentActivity,
   commitProjectBlobs,
-  committedHashesOfOwner,
+  declaredTransferFiles,
   deletedDocumentExists,
   deleteStagedBlobsOfTransfer,
   deleteStagedErasedBlobs,
@@ -36,7 +36,9 @@ import {
   recordMissingFiles,
   removeMissingFiles,
   setCloudTransferState,
+  stageExceedsStorageAllowance,
   storageAllowanceStatus,
+  transferAddedBytes,
   withTransaction,
   type AccessKey
 } from "@nodetool-ai/models";
@@ -92,7 +94,13 @@ export interface TransferHost {
 /** A request the server refuses before it records anything. */
 export class TransferRequestError extends Error {
   constructor(
-    readonly code: "NOT_FOUND" | "CONFLICT" | "INVALID" | "ATTEMPT_CONTENT_MISMATCH" | "NEEDS_POSTGRES",
+    readonly code:
+      | "NOT_FOUND"
+      | "CONFLICT"
+      | "INVALID"
+      | "ATTEMPT_CONTENT_MISMATCH"
+      | "NEEDS_POSTGRES"
+      | "STORAGE_EXCEEDED",
     message: string
   ) {
     super(message);
@@ -149,7 +157,8 @@ export async function openTransfer(
     id: input.transfer_id,
     userId,
     projectId: input.project_id,
-    firstPublication: input.first_publication
+    firstPublication: input.first_publication,
+    declaredFiles: Object.fromEntries(stagedFiles(input.manifest, new Set()).map((file) => [file.hash, file.size]))
   });
   if (!transfer) throw new TransferRequestError("CONFLICT", "The transfer id is taken");
   if (transfer.state !== "open") throw new TransferRequestError("CONFLICT", `The transfer is ${transfer.state}`);
@@ -177,19 +186,47 @@ export async function openTransfer(
   };
 }
 
-/** Stages the bytes of one file of an open transfer. */
+/** The open transfer of the caller and the size its manifest declares for `hash`. */
+async function declaredFile(userId: string, transferId: string, hash: string) {
+  const transfer = await ownedTransfer(userId, transferId);
+  if (transfer.state !== "open") throw new TransferRequestError("CONFLICT", `The transfer is ${transfer.state}`);
+  const declared = declaredTransferFiles(transfer);
+  // A transfer opened before files were recorded gets them when the client opens it again.
+  if (declared === null) throw new TransferRequestError("CONFLICT", "Open the transfer again before staging files");
+  const size = Object.hasOwn(declared, hash) ? declared[hash] : undefined;
+  if (size === undefined) throw new TransferRequestError("INVALID", "The transfer's manifest does not list this file");
+  return { transfer, size };
+}
+
+/**
+ * The size the open transfer's manifest declares for `hash`. Refuses a
+ * transfer that is not the caller's or not open, and a hash its manifest
+ * does not list, so a stage never holds bytes no manifest asked for.
+ */
+export async function declaredFileSize(userId: string, transferId: string, hash: string): Promise<number> {
+  return (await declaredFile(userId, transferId, hash)).size;
+}
+
+/**
+ * Stages the bytes of one file of an open transfer. The file must be one
+ * the manifest lists, with its declared size, and its bytes must keep the
+ * owner's committed and staged files within the storage allowance.
+ */
 export async function stageTransferFile(
   host: TransferHost,
   userId: string,
   input: { transfer_id: string; hash: string; size: number; bytes: Uint8Array }
 ): Promise<"stored" | "already_present"> {
-  const transfer = await ownedTransfer(userId, input.transfer_id);
-  if (transfer.state !== "open") throw new TransferRequestError("CONFLICT", `The transfer is ${transfer.state}`);
+  const { transfer, size } = await declaredFile(userId, input.transfer_id, input.hash);
+  if (await stageExceedsStorageAllowance(userId, input.hash, size)) {
+    throw new TransferRequestError("STORAGE_EXCEEDED", "The file would take the owner over the storage allowance");
+  }
+  // Checked against the declared size, so bytes of another size are a mismatch.
   return stageBlob(host.storage, {
     projectId: transfer.project_id,
     userId,
     hash: input.hash,
-    size: input.size,
+    size,
     transferId: transfer.id,
     bytes: input.bytes
   });
@@ -469,17 +506,20 @@ export async function commitTransfer(
     const project = await Project.get<Project>(projectId);
     if (transfer.first_publication) {
       if (project) return refuse([failure("PROJECT_EXISTS", "A project with this id exists")]);
-      const committed = await committedHashesOfOwner(userId, requiredHashes(input.manifest, erased.hashes));
-      const sizes = new Map(stagedFiles(input.manifest, erased.hashes).map((file) => [file.hash, file.size]));
-      let added = 0;
-      for (const [hash, size] of sizes) if (!committed.has(hash)) added += size;
-      if (await exceedsStorageAllowance(userId, added)) {
-        return refuse([failure("STORAGE_EXCEEDED", "The files would take the owner over the storage allowance")]);
-      }
     } else if (!project || project.deleted_at) {
       return refuse([failure("PROJECT_NOT_FOUND", "The project is gone")]);
     } else if (project.user_id !== userId) {
       return refuse([failure("ACCESS_REMOVED", "The sender may no longer write to the project")]);
+    }
+    // Every commit, not only a first publication: the bytes it adds are the
+    // staged files the owner holds no committed row for. Erased files lose
+    // their staged rows below, unless the transfer also puts them.
+    const putHashes = new Set(
+      (input.manifest.file_operations ?? []).flatMap((op) => (op.op === "delete_workspace_file" ? [] : [op.hash]))
+    );
+    const dropped = new Set([...erased.hashes].filter((hash) => !putHashes.has(hash)));
+    if (await exceedsStorageAllowance(userId, await transferAddedBytes(userId, transfer.id, dropped))) {
+      return refuse([failure("STORAGE_EXCEEDED", "The files would take the owner over the storage allowance")]);
     }
 
     // Step 5: membership, deleted state, role and the attach rule per operation.
@@ -789,12 +829,7 @@ export async function commitTransfer(
     }
     // The erased list wins over a file staged before the erase (TC81). A
     // file the transfer also puts in the folder keeps its row for the placement.
-    const putHashes = new Set(fileOperations.flatMap((op) => (op.op === "delete_workspace_file" ? [] : [op.hash])));
-    await deleteStagedErasedBlobs(
-      projectId,
-      transfer.id,
-      new Set([...erased.hashes].filter((hash) => !putHashes.has(hash)))
-    );
+    await deleteStagedErasedBlobs(projectId, transfer.id, dropped);
     await commitProjectBlobs(projectId, transfer.id);
     // The Incomplete list: the files this attempt confirmed missing, less
     // those the transfer supplied (X7).

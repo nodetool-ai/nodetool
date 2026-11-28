@@ -430,8 +430,24 @@ export function pathCandidates(lookup: ClaudeCliLookupEnv): string[] {
 }
 
 /**
+ * The `claude` binary of the Claude Code session that started this process.
+ * Claude Code sets `CLAUDE_CODE_EXECPATH` for the commands it runs. That
+ * binary holds the session's login, and a desktop or remote session often has
+ * it outside PATH. An npm install sets the variable to `node`, which is not
+ * the CLI, so only a file named `claude` counts.
+ */
+export function parentSessionCandidate(lookup: ClaudeCliLookupEnv): string | null {
+  const execPath = lookup.env["CLAUDE_CODE_EXECPATH"]?.trim();
+  if (!execPath) return null;
+  const name = execPath.split(/[\\/]/).pop() ?? "";
+  const expected = lookup.platform === "win32" ? "claude.exe" : "claude";
+  return name.toLowerCase() === expected ? execPath : null;
+}
+
+/**
  * The CLI executable: the configured path when set (it must exist), else the
- * first `claude` on PATH, else the first known install location.
+ * binary of the Claude Code session that started this process, else the first
+ * `claude` on PATH, else the first known install location.
  */
 export async function resolveClaudeCliPath(
   configured: string | undefined,
@@ -444,7 +460,9 @@ export async function resolveClaudeCliPath(
       `CLAUDE_CLI_PATH points to ${pinned}, which is not an executable file.`
     );
   }
+  const parent = parentSessionCandidate(lookup);
   for (const candidate of [
+    ...(parent ? [parent] : []),
     ...pathCandidates(lookup),
     ...claudeCliCandidates(lookup)
   ]) {

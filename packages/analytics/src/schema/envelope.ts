@@ -33,8 +33,12 @@ export interface AnalyticsBatch {
 /** The ingestion path, relative to a NodeTool server or the analytics host. */
 export const ANALYTICS_INGEST_PATH = "/api/analytics/v1/events";
 
-/** Where relaying servers and the CLI send batches unless configured otherwise. */
-export const DEFAULT_ANALYTICS_ENDPOINT = `https://analytics.nodetool.ai${ANALYTICS_INGEST_PATH}`;
+/**
+ * Where relaying servers and the CLI send batches unless configured otherwise.
+ * The cloud API at this host runs in ingest mode (`NODETOOL_ANALYTICS_INGEST=1`),
+ * so it stores what it receives instead of relaying it on.
+ */
+export const DEFAULT_ANALYTICS_ENDPOINT = `https://api.nodetool.ai${ANALYTICS_INGEST_PATH}`;
 
 /** The envelope keys, in serialization order. Nothing else is accepted. */
 export const ENVELOPE_KEYS = [

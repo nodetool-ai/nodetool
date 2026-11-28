@@ -12,7 +12,9 @@
  * 2. It refuses when the download would leave less than
  *    {@link MIN_FREE_BYTES_AFTER_DOWNLOAD} free on the cache's file system.
  * 3. It refuses on a production server, where `/ws/download` is not
- *    registered either.
+ *    registered either, and on any shared server: the cloud profile or
+ *    enforced authentication. There the approval prompt reaches the user who
+ *    asked, not the operator whose disk and cache the download fills.
  *
  * The download itself runs on the same per-user `DownloadManager` the Model
  * Manager's `/ws/download` socket uses, so the app's download list shows it.
@@ -21,7 +23,12 @@
 
 import { statfs } from "node:fs/promises";
 import { dirname } from "node:path";
-import { getHfHubCacheDir } from "@nodetool-ai/config";
+import { getHfHubCacheDir, isAuthEnforced } from "@nodetool-ai/config";
+import {
+  CLOUD_PROFILE_ENV,
+  NODE_ENV_VAR,
+  isCloudProfileActive
+} from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
 import { userIdOf } from "../tools/mcp-tool-support.js";
@@ -34,8 +41,11 @@ export const MIN_FREE_BYTES_AFTER_DOWNLOAD = 5 * 1024 ** 3;
 
 const REPO_ID = /^[A-Za-z0-9][\w.-]*\/[\w.-]+$/;
 
-const isProductionServer = (): boolean =>
-  process.env["NODETOOL_ENV"] === "production";
+/** True where downloads into the host cache are refused. */
+export const isSharedDownloadHost = (): boolean =>
+  process.env["NODETOOL_ENV"] === "production" ||
+  isCloudProfileActive(process.env[CLOUD_PROFILE_ENV], process.env[NODE_ENV_VAR]) ||
+  isAuthEnforced();
 
 /** Test seam: the free bytes on the file system holding `dir`. */
 export type FreeBytesProbe = (dir: string) => Promise<number>;
@@ -118,8 +128,8 @@ async function approve(run: CapabilityRun, repoId: string, message: string): Pro
 const downloadHfModel: CapabilityExport = {
   spec: downloadHfModelSpec,
   impl: async (run, params) => {
-    if (isProductionServer()) {
-      return { error: "Hugging Face downloads are disabled on a production server." };
+    if (isSharedDownloadHost()) {
+      return { error: "Hugging Face downloads are disabled on a shared server." };
     }
     const repoId = readRepoId(params);
     if (typeof repoId !== "string") return repoId;
@@ -130,8 +140,8 @@ const downloadHfModel: CapabilityExport = {
 
     const hf = await import("@nodetool-ai/huggingface");
     const readSecret = secretReader(run.context);
-    const token = (await hf.resolveWorkerHfToken(readSecret)) ?? null;
-    const endpoint = await hf.resolveStoredHfEndpoint(readSecret);
+    const access = await hf.resolveHfHubAccess(readSecret, "download");
+    const endpoint = access.endpoint;
 
     let plan: Awaited<ReturnType<typeof hf.planHfDownload>>;
     try {
@@ -139,7 +149,7 @@ const downloadHfModel: CapabilityExport = {
         path,
         allowPatterns,
         ignorePatterns,
-        token,
+        token: access.token ?? null,
         endpoint
       });
     } catch (error) {
@@ -190,7 +200,8 @@ const downloadHfModel: CapabilityExport = {
       path,
       allowPatterns,
       ignorePatterns,
-      token,
+      // `false`: no implicit fallback to the server's token in the manager.
+      token: access.token ?? false,
       endpoint
     });
     return {

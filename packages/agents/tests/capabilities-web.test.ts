@@ -472,6 +472,87 @@ describe("behaviour through toolFromCapability", () => {
   });
 });
 
+describe("web_search on a shared server", () => {
+  const DEPLOYMENT_KEYS = [
+    "NODETOOL_NODE_PROFILE",
+    "NODETOOL_ENV",
+    "OIDC_ISSUER",
+    "OIDC_CLIENT_ID",
+    "SUPABASE_URL",
+    "SUPABASE_KEY"
+  ] as const;
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const key of DEPLOYMENT_KEYS) {
+      saved[key] = process.env[key];
+      delete process.env[key];
+    }
+    process.env.NODETOOL_NODE_PROFILE = "full";
+  });
+
+  afterEach(() => {
+    for (const key of DEPLOYMENT_KEYS) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
+  it("offers no host CLI backend on the cloud profile", async () => {
+    process.env.NODETOOL_NODE_PROFILE = "cloud";
+    claude.available = true;
+    antigravity.available = true;
+    const tool = asTool(byName("web_search"));
+    for (const backend of ["claude", "antigravity"]) {
+      await expect(
+        tool.process(makeContext({ CLAUDE_CLI_PATH: "/opt/claude" }), {
+          query: "otters",
+          backend
+        })
+      ).rejects.toThrow(new RegExp(`unknown backend "${backend}"`));
+    }
+    expect(claude.answer).not.toHaveBeenCalled();
+    expect(antigravity.answer).not.toHaveBeenCalled();
+  });
+
+  it("reads the Claude CLI path from the environment when auth is enforced", async () => {
+    process.env.OIDC_ISSUER = "https://sso.example";
+    process.env.OIDC_CLIENT_ID = "nodetool";
+    process.env.CLAUDE_CLI_PATH = "/usr/local/bin/claude";
+    claude.available = true;
+    claude.answer.mockResolvedValue({ text: "Otters.", citations: [], raw: {} });
+    const tool = asTool(byName("web_search"));
+    await tool.process(makeContext({ CLAUDE_CLI_PATH: "/home/user/claude" }), {
+      query: "otters",
+      backend: "claude"
+    });
+    expect(claude.cliPath).toBe("/usr/local/bin/claude");
+  });
+
+  it("does not use the server's SerpAPI key on the cloud profile", async () => {
+    process.env.NODETOOL_NODE_PROFILE = "cloud";
+    process.env.SERPAPI_API_KEY = "operator-key";
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const tool = asTool(byName("web_search"));
+    await expect(
+      tool.process(makeContext(), { query: "otters", backend: "serpapi" })
+    ).rejects.toThrow(/"serpapi" is not configured/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses the server's SerpAPI key on a full profile", async () => {
+    process.env.SERPAPI_API_KEY = "local-key";
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ organic_results: [] })
+    } as unknown as Response);
+    const tool = asTool(byName("web_search"));
+    await tool.process(makeContext(), { query: "otters", backend: "serpapi" });
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain("api_key=local-key");
+  });
+});
+
 describe("spec text the shipped skills rely on", () => {
   it("the browser tool sends search pages to web_search", async () => {
     const spec = capabilitySpec("browser");
