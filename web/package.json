@@ -122,6 +122,7 @@
     "e2e-suite:prepare": "tsx tests/e2e-runner/prepareSuite.ts",
     "test:smoke": "playwright test -c playwright.smoke.config.ts",
     "test:journeys": "playwright test -c playwright.journeys.config.ts",
+    "test:public-app": "playwright test -c playwright.public-app.config.ts",
     "test:journeys:headed": "playwright test -c playwright.journeys.config.ts --headed",
     "test:journeys:ui": "playwright test -c playwright.journeys.config.ts --ui",
     "test:latency": "playwright test -c playwright.latency.config.ts",

@@ -545,6 +545,14 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "public-app-browser",
+    title: "Deployed app link opened and run by a logged-out browser",
+    command: "npm run test:public-app --workspace=web",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Deployed app session walk"
+  },
+  {
     id: "run-traces",
     title: "Durable app trace, content policy and ancestry check",
     command: "npm run test --workspace=packages/execution --workspace=packages/runtime --workspace=packages/models --workspace=packages/websocket -- run-trace external-trace-privacy http-tracing",
@@ -3085,21 +3093,17 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "public-app-deployments",
     title: "Deployed mini apps (hidden URL, no login)",
-    harnesses: ["app-session-route-walk"],
+    harnesses: ["app-session-route-walk", "public-app-browser"],
     paths: [
       "packages/websocket/src/lib/app-deployment-service.ts",
       "packages/websocket/src/lib/app-session-scope.ts",
       "packages/websocket/src/routes/public-apps.ts",
       "packages/auth/src/providers/app-session-token-provider.ts",
       "packages/models/src/application-deployment.ts",
-      "web/src/components/applications/PublicAppPage.tsx"
+      "web/src/components/applications/PublicAppPage.tsx",
+      "web/tests/public-app/",
+      "web/playwright.public-app.config.ts"
     ],
-    gap:
-      "The route walk covers what the auth hook does with an `nda_` token " +
-      "on every registered path. Nothing covers what a real logged-out " +
-      "browser can load from the link. A browser harness would drive the " +
-      "deployed page with Playwright carrying no account session, the way " +
-      "the debug harness drives the graph canvas."
   },
   {
     id: "mobile",
