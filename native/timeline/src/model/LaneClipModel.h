@@ -6,8 +6,10 @@
 // clip under an active gesture (`pinnedClipId`), which stays even when it
 // leaves the window so its delegate keeps the pointer grab.
 //
-// A window change removes and inserts only the clips that leave or enter it;
-// the delegates of the clips that stay are kept. The model recomputes when the
+// With reuseDelegates, departed clips leave reusable presentation slots. Clips
+// that stay keep their slot, and entering clips take idle slots before the pool
+// grows. Idle slots have an empty clipId. Without reuse, rows remain in start
+// order and removals/insertions follow the window. The model recomputes when the
 // view state publishes a new clip window (at most once per frame), when the
 // clips change, or when the pin changes. Playback never touches it.
 
@@ -21,6 +23,8 @@
 
 #include <memory>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 
 // UI thread only. Lane delegates borrow rows held by the immutable snapshot.
 class LaneClipModel : public QAbstractListModel {
@@ -30,6 +34,9 @@ class LaneClipModel : public QAbstractListModel {
     Q_PROPERTY(QString trackId READ trackId WRITE setTrackId NOTIFY trackIdChanged)
     Q_PROPERTY(TimelineViewState* viewState READ viewState WRITE setViewState NOTIFY viewStateChanged)
     Q_PROPERTY(QString pinnedClipId READ pinnedClipId WRITE setPinnedClipId NOTIFY pinnedClipIdChanged)
+    Q_PROPERTY(QString detailPinnedClipId READ detailPinnedClipId WRITE setDetailPinnedClipId NOTIFY detailPinnedClipIdChanged)
+    Q_PROPERTY(bool pinnedClipInTrack READ pinnedClipInTrack NOTIFY recomputed)
+    Q_PROPERTY(bool reuseDelegates READ reuseDelegates WRITE setReuseDelegates NOTIFY reuseDelegatesChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(int trackClipCount READ trackClipCount NOTIFY countChanged)
     Q_PROPERTY(int recomputeCount READ recomputeCount NOTIFY recomputed)
@@ -71,6 +78,7 @@ public:
         ActiveTakeLabelRole,
         HasActiveTakeRole,
         ActiveTakeDriftingRole,
+        StackingIndexRole,
 
     };
 
@@ -84,6 +92,13 @@ public:
     void setViewState(TimelineViewState* view);
     QString pinnedClipId() const { return m_pinned; }
     void setPinnedClipId(const QString& id);
+    QString detailPinnedClipId() const { return m_detailPinned; }
+    void setDetailPinnedClipId(const QString& id);
+    bool pinnedClipInTrack() const {
+        return !m_pinned.isEmpty() && m_stackingIndices.contains(m_pinned.toStdString());
+    }
+    bool reuseDelegates() const { return m_reuseDelegates; }
+    void setReuseDelegates(bool reuse);
     int count() const { return rowCount(); }
     int trackClipCount() const { return static_cast<int>(m_clips.size()); }
     quint64 rebuildClipVisits() const { return m_rebuildClipVisits; }
@@ -104,26 +119,40 @@ signals:
     void viewStateChanged();
     void pinnedClipIdChanged();
     void countChanged();
+    void detailPinnedClipIdChanged();
+    void reuseDelegatesChanged();
     void recomputed();
 
 private:
     bool rebase();
     void rebuildClips();
     void recompute();
+    void recomputeRows();
+    void updatePool(const std::vector<const nt::Clip*>& next, bool newSnapshot,
+                    const std::unordered_set<std::string>& restacked);
 
     QPointer<TimelineModel> m_timeline;
     QPointer<TimelineViewState> m_view;
     QString m_trackId;
     QString m_pinned;
-    // The snapshot the clip pointers point into; kept alive while they are used.
+    QString m_detailPinned;
+    // Shared with TimelineModel and undo: rows must retain the old immutable
+    // snapshot until all slot comparisons and notifications have finished.
     std::shared_ptr<const nt::Timeline> m_snapshot;
     // The snapshot `m_clips` points into; the rows move to it in recompute().
     std::shared_ptr<const nt::Timeline> m_snapshotNext;
     // This track's clips sorted by start, and the running maximum of their ends.
     std::vector<const nt::Clip*> m_clips;
     std::vector<double> m_prefixMaxEnd;
+    std::unordered_map<std::string, int> m_stackingIndices;
+    std::unordered_set<std::string> m_restackedIds;
     // The rows: the clip shown by each delegate.
     std::vector<const nt::Clip*> m_rows;
+    // Idle slots borrow this GUI-owned value, never a released snapshot.
+    nt::Clip m_idleClip;
+    bool m_reuseDelegates = false;
+    bool m_recomputing = false;
+    bool m_recomputePending = false;
     quint64 m_rebuildClipVisits = 0;
     quint64 m_windowVisits = 0;
     quint64 m_rebuildCount = 0;

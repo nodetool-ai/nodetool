@@ -15,6 +15,7 @@
 #include "edit/ClipGestureController.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
+#include "model/LaneClipModel.h"
 #include "playback/PlaybackClock.h"
 #include "server/AssetCache.h"
 #include "server/TimelineAssetCacheContext.h"
@@ -253,6 +254,29 @@ int measurementChecks() {
     if (!invoked || writeBacks.writes != 1
         || qobject_cast<ValueWriteProbe*>(probeObject.get())->value().pitch != 3
         || qobject_cast<ValueWriteProbe*>(probeObject.get())->setterCalls != 1) { return 30; }
+    QQmlComponent repeatedLane(&engine);
+    repeatedLane.setData(R"(import QtQuick
+import NodeTool.Timeline
+Item {
+    Repeater {
+        model: 1
+        delegate: Item {
+            objectName: "legacyLane"
+            property alias clipModel: rows
+            LaneClipModel { id: rows }
+        }
+    }
+})", QUrl());
+    std::unique_ptr<QObject> repeatedRoot(repeatedLane.create());
+    auto* repeatedItem = qobject_cast<QQuickItem*>(repeatedRoot.get());
+    auto* lane = findItemByName(repeatedItem, QStringLiteral("legacyLane"));
+    auto* laneModel = lane ? lane->property("clipModel").value<LaneClipModel*>() : nullptr;
+    if (!laneModel) { return 31; }
+    const bool discovered = repeatedRoot->findChildren<LaneClipModel*>().contains(laneModel);
+    std::printf("declarative lane model discovered by QObject traversal: %d\n", discovered);
+    if (discovered) { return 32; }
+    laneModel->setParent(repeatedRoot.get());
+    if (!repeatedRoot->findChildren<LaneClipModel*>().contains(laneModel)) { return 33; }
     std::printf("measurement checks passed\n");
     return 0;
 }
@@ -673,13 +697,30 @@ int main(int argc, char* argv[]) try {
     model.setMeasurementObserver(observer);
     QObject::connect(&model, &TimelineModel::timelineChanged, &counterContext, [&] { counters["timelineSignals"] = counters["timelineSignals"].toInteger() + 1; });
     QObject::connect(&model, &TimelineModel::clipsChanged, &counterContext, [&] { counters["clipSignals"] = counters["clipSignals"].toInteger() + 1; });
+    qint64 reboundClipRows = 0;
+    QJsonObject dataChangedRowsByModel;
     {
         auto rowModels = root->findChildren<QAbstractItemModel*>();
         rowModels.append(model.findChildren<QAbstractItemModel*>());
         for (auto* rows : rowModels) {
             QObject::connect(rows, &QAbstractItemModel::dataChanged, &counterContext,
-                [&](const QModelIndex& first, const QModelIndex& last) {
-                    counters["dataChangedRows"] = counters["dataChangedRows"].toInteger() + last.row() - first.row() + 1;
+                [&, clipRows = qobject_cast<LaneClipModel*>(rows)](const QModelIndex& first, const QModelIndex& last, const QList<int>& roles) {
+                    // A7 rebinds pooled presentation slots. Keep these visible
+                    // separately from the A4 budget for rows changed by edits.
+                    if (clipRows && roles.contains(LaneClipModel::ClipIdRole)) {
+                        reboundClipRows += last.row() - first.row() + 1;
+                        return;
+                    }
+                    const auto count = last.row() - first.row() + 1;
+                    const auto modelName = QString::fromLatin1(first.model()->metaObject()->className());
+                    dataChangedRowsByModel[modelName] = dataChangedRowsByModel[modelName].toInteger() + count;
+                    // Preserve the original gate's coverage. Repeater-owned
+                    // lanes were outside the QObject traversal (see selfcheck).
+                    // Pooled lanes now have an explicit QObject parent, so
+                    // report their newly observable edit rows separately.
+                    if (!clipRows) {
+                        counters["dataChangedRows"] = counters["dataChangedRows"].toInteger() + count;
+                    }
                 });
         }
     }
@@ -690,14 +731,17 @@ int main(int argc, char* argv[]) try {
 
     if (gpu && (window.rendererInterface()->graphicsApi() == QSGRendererInterface::Software
         || window.rendererInterface()->graphicsApi() == QSGRendererInterface::Unknown)) { return 6; }
-    auto move = [&](const QString& id, double startMs) {
-        if (parser.isSet(QStringLiteral("agent"))) {
-            return model.applyEdit(QStringLiteral("assistant.ui_timeline_move_clip"), {{"clipId", id}, {"startMs", startMs}}) != 0;
-        }
-        return model.moveClip(id, startMs);
-    };
     nt::aiassist::AssistantCommands assistant(model, clock);
     assistant.setEditor(root);
+    const auto agentCommand = [&](const QString& name, const QVariantMap& params = QVariantMap{}) {
+        const auto result = assistant.execute("ui_timeline_run_command", {{"timeline_id", QString::fromStdString(model.timeline().id)},
+            {"command", name}, {"params", params}});
+        return result.value("ok").toBool();
+    };
+    auto move = [&](const QString& id, double startMs) {
+        if (parser.isSet("agent")) { return agentCommand("move_clip", {{"clipId", id}, {"startMs", startMs}}); }
+        return model.moveClip(id, startMs);
+    };
     const auto patchNotes = [&](const QString& name, const QJsonObject& payload) {
         if (!parser.isSet("agent")) { return model.applyEdit(name, payload) != 0; }
         auto params = payload;
@@ -722,11 +766,16 @@ int main(int argc, char* argv[]) try {
     const int noteBuildsBefore = noteLayer ? noteLayer->contentBuildCount() : 0;
     int workloadError = 0;
     QJsonArray operations;
+    const double clockStartMs = clock.time();
+    int zoomInFrames = 0;
+    int zoomOutFrames = 0;
     const double tWall0 = nowMs();
 
     for (int fIdx = 0; fIdx < frames; ++fIdx) {
         const auto priorPhases = phases;
         const double f0 = nowMs();
+        const double priorClockMs = clock.time();
+        const double priorScale = view->msPerPx();
         if (scenario == "note_patch") {
             QString name;
             QJsonObject payload{{"clipId", "clip-midi-hero"}};
@@ -744,15 +793,31 @@ int main(int argc, char* argv[]) try {
             switch (fIdx % 5) {
             case 0: if (!move(QStringLiteral("clip-v-0-0"), 100.0 + fIdx * 50.0)) { workloadError = 3; } break;
             case 1: {
+                if (parser.isSet("agent")) {
+                    if (!agentCommand("markers.add", {{"timeMs", 500.0 + fIdx * 250.0}, {"label", QStringLiteral("Live %1").arg(fIdx)}})) { workloadError = 3; }
+                    if (fIdx > 10) {
+                        const auto markers = model.timeline().raw.value("markers").toArray();
+                        const auto id = markers.last().toObject().value("id").toString();
+                        if (!agentCommand("markers.remove", {{"marker_ids", QVariantList{id}}})) { workloadError = 3; }
+                    }
+                    break;
+                }
                 const auto id = model.addMarker(500.0 + fIdx * 250.0, QStringLiteral("Live %1").arg(fIdx));
                 if (!id.isEmpty() && fIdx > 10) { model.deleteMarker(id); }
                 break;
             }
             case 2:
+                if (parser.isSet("agent")) {
+                    if (!agentCommand("setTrackName", {{"track_id", "track-v-0"}, {"name", QStringLiteral("Video Renamed %1").arg(fIdx)}})) { workloadError = 3; }
+                    break;
+                }
                 if (!model.applyEdit(QStringLiteral("setTrackName"), {{"trackId", "track-v-0"}, {"name", QStringLiteral("Video Renamed %1").arg(fIdx)}})) { workloadError = 3; }
                 break;
             case 3: if (!move(QStringLiteral("clip-midi-hero"), 50.0 + fIdx * 20.0)) { workloadError = 3; } break;
-            case 4: model.undoStack()->undo(); break;
+            case 4:
+                if (parser.isSet("agent")) { if (!agentCommand("undo")) { workloadError = 3; } }
+                else { model.undoStack()->undo(); }
+                break;
             default: workloadError = 3; break;
             }
         } else if (scenario == QLatin1String("playback")) {
@@ -763,7 +828,7 @@ int main(int argc, char* argv[]) try {
             sendWheel(lanesCenter, delta, Qt::NoModifier);
             sendWheel(lanesCenter, delta, Qt::NoModifier);
         } else if (scenario == QLatin1String("zoom")) {
-            const double dz = fIdx < 60 ? 0.03 : -0.03;
+            const double dz = fIdx < frames / 2 ? 0.03 : -0.03;
             sendPinch(lanesCenter, dz);
         } else if (scenario == QLatin1String("clip_drag")) {
             const double dx = 6.0 + (fIdx * 3.0);
@@ -779,6 +844,17 @@ int main(int argc, char* argv[]) try {
         const double f1 = nowMs();
         renderScene();
         const double f2 = nowMs();
+        if (scenario == "playback" && clock.time() <= priorClockMs) {
+            std::fprintf(stderr, "error: playback clock did not advance at frame %d\n", fIdx);
+            return 11;
+        }
+        if (scenario == "zoom") {
+            const bool zoomIn = fIdx < frames / 2;
+            const bool changedScale = zoomIn ? view->msPerPx() < priorScale : view->msPerPx() > priorScale;
+            if (changedScale) {
+                if (zoomIn) { ++zoomInFrames; } else { ++zoomOutFrames; }
+            }
+        }
 
         inputMs.push_back(f1 - f0);
         polishMs.push_back(f2 - f1);
@@ -809,6 +885,10 @@ int main(int argc, char* argv[]) try {
         sendMouse(dragStart + QPointF(80, 0), Qt::NoButton, Qt::LeftButton, QEvent::MouseButtonRelease);
         renderFrame();
         releaseMs = nowMs() - releaseStart;
+    }
+    if (scenario == "zoom" && (zoomInFrames == 0 || zoomOutFrames == 0)) {
+        std::fprintf(stderr, "error: zoom scale must change in both directions\n");
+        return 12;
     }
     if (scenario == QLatin1String("playback")) clock.pause();
 
@@ -857,6 +937,10 @@ int main(int argc, char* argv[]) try {
         {"renderCpuMs", renderCpuMs.load()}, {"syncMs", syncMs.load()},
         {"guiAndReadbackMs", tWall1 - tWall0 - renderCpuMs.load() - syncMs.load()}, {"phasesExclusiveMs", phases}, {"counters", counters}, {"crossingSites", crossingSites},
         {QStringLiteral("scenario"), scenario},
+        {QStringLiteral("motion"), QJsonObject{{"clockAdvanceMs", clock.time() - clockStartMs},
+            {"zoomInFrames", zoomInFrames}, {"zoomOutFrames", zoomOutFrames}}},
+        {QStringLiteral("reboundClipRows"), reboundClipRows},
+        {QStringLiteral("dataChangedRowsByModel"), dataChangedRowsByModel},
         {QStringLiteral("profiled"), enableProfile},
         {QStringLiteral("frames"), frames},
         {QStringLiteral("wallTotalMs"), tWall1 - tWall0},

@@ -159,6 +159,19 @@ class BudgetTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 loads('{"value":' + value + '}')
 
+    def test_result_rejects_playback_and_zoom_without_motion(self):
+        base = {'stress': {'clips': 2000, 'tracks': 64, 'notes': 20000, 'markers': 500},
+                'scene': {'pianoRollNotesCount': 2000}}
+        for scenario, motion in [('playback', {'clockAdvanceMs': 0}),
+                                 ('zoom', {'zoomInFrames': 60, 'zoomOutFrames': 0}),
+                                 ('zoom', {'zoomInFrames': 0, 'zoomOutFrames': 60})]:
+            with self.subTest(scenario=scenario, motion=motion):
+                with self.assertRaises(ValueError):
+                    result_from('PERF_RESULT=' + json.dumps(dict(base, scenario=scenario, motion=motion)))
+        for scenario, motion in [('playback', {'clockAdvanceMs': 2000}),
+                                 ('zoom', {'zoomInFrames': 60, 'zoomOutFrames': 60})]:
+            result_from('PERF_RESULT=' + json.dumps(dict(base, scenario=scenario, motion=motion)))
+
     def test_result_validation(self):
         valid = 'PERF_RESULT=' + json.dumps({'stress': {'clips': 2000, 'tracks': 64, 'notes': 20000, 'markers': 500}, 'scene': {'pianoRollNotesCount': 2000}})
         result_from(valid)

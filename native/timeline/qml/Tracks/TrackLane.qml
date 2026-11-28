@@ -11,6 +11,8 @@ import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: lane
+    property ClipLaneRow row: null
+    property string retainedTrackId: ""
     required property string trackId
     required property string trackType
     required property bool trackVisible
@@ -22,13 +24,23 @@ Rectangle {
     required property TimelineViewState viewState
     required property ClipGestureController gestures
 
+    signal clipMenuRequested(var context, Item area, real areaX, real areaY)
     signal laneMenuRequested(var context, Item area, real areaX, real areaY)
     signal editPointMenuRequested(var context, Item area, real areaX, real areaY)
 
+    property string detailClipId: ""
+    readonly property bool gesturePinned: gestures !== null && gestures.activeClipId !== ""
+        && clips.pinnedClipInTrack
+    readonly property bool retainedInteraction: gesturePinned || detailClipId !== ""
+    function releaseDetail(id: string): void {
+        if (detailClipId === id) { detailClipId = "" }
+    }
     readonly property alias clipModel: clips
+    readonly property bool mediaVisible: visible && (!viewState ||
+        (y + height > viewState.scrollTopPx && y < viewState.scrollTopPx + viewState.viewportHeightPx))
     readonly property bool mutedSoundTrack: (trackType === "audio" || trackType === "midi") && muted
 
-    objectName: "trackLane-" + trackId
+    objectName: visible && trackId !== "" ? "trackLane-" + trackId : "pooledLane"
     height: rowHeight
     color: Ui.Theme.surfaceCanvas
     opacity: trackVisible ? 1 : 0.55
@@ -36,11 +48,13 @@ Rectangle {
 
     LaneClipModel {
         id: clips
+        reuseDelegates: true
         timeline: lane.timeline
         trackId: lane.trackId
         viewState: lane.viewState
         // The clip under a gesture stays while it is outside the window (D28).
-        pinnedClipId: lane.gestures ? lane.gestures.activeClipId : ""
+        pinnedClipId: lane.gestures && lane.gestures.activeClipId !== "" ? lane.gestures.activeClipId : lane.detailClipId
+        detailPinnedClipId: lane.detailClipId
     }
 
     MouseArea {
@@ -84,12 +98,28 @@ Rectangle {
 
     Repeater {
         model: clips
+        onItemRemoved: (index, item) => {
+            const departing = item as Clip
+            if (departing) { departing.releaseIdentity() }
+        }
         delegate: Clip {
+            id: clipDelegate
+            required property int stackingIndex
+            stackOrder: stackingIndex
+            stackCount: clips.trackClipCount
+            onKeepDelegateChanged: {
+                if (keepDelegate) { lane.detailClipId = clipId }
+                else { lane.releaseDetail(clipId) }
+            }
+            onIdentityReleased: previousId => lane.releaseDetail(previousId)
+            laneActive: lane.visible
+            laneInViewport: lane.mediaVisible
             laneHeight: lane.height
             trackLocked: lane.locked
             mutedTrack: lane.mutedSoundTrack
             viewState: lane.viewState
             gestures: lane.gestures
+            onClipMenuRequested: (context, area, px, py) => lane.clipMenuRequested(context, area, px, py)
             onEditPointMenuRequested: (clipId, edge, area, areaX, areaY) => lane.openEditPointMenu(clipId, edge, area, areaX, areaY)
         }
     }

@@ -686,7 +686,6 @@
     "R5-canvas": 1
   },
   "native/timeline/qml/Tracks/ClipFadeGrips.qml": {
-    "R1": 1,
     "R2": 1
   },
   "native/timeline/qml/Tracks/ClipFadeShapeMenu.qml": {
@@ -703,7 +702,6 @@
     "R1": 5
   },
   "native/timeline/qml/Tracks/TimeRuler.qml": {
-    "R1": 2,
     "R2": 1
   },
   "native/timeline/qml/Tracks/TimelineScrollbar.qml": {
@@ -745,8 +743,7 @@
   },
   "native/timeline/qml/Tracks/automation/AutomationLaneView.qml": {
     "R1": 8,
-    "R2": 1,
-    "R5-canvas": 1
+    "R2": 1
   },
   "native/timeline/qml/Tracks/automation/AutomationLanes.qml": {
     "R1": 3,
@@ -967,13 +964,12 @@
     "R1": 2
   },
   "native/timeline/qml/markers/MarkerLane.qml": {
-    "R1": 4,
+    "R1": 2,
     "R2": 1
   },
   "native/timeline/qml/markers/MarkersPanel.qml": {
-    "K11": 2,
-    "R1": 8,
-    "R2": 4
+    "R1": 5,
+    "R2": 2
   },
   "native/timeline/qml/menus/ClipContextMenu.qml": {
     "R1": 12,
@@ -1399,7 +1395,7 @@
     "R4": 13
   },
   "native/timeline/src/markers/MarkerSession.h": {
-    "R3": 2
+    "R3": 1
   },
   "native/timeline/src/midi/BassSynthCatalog.h": {
     "R3": 4
@@ -1508,8 +1504,7 @@
     "R5-painted": 1
   },
   "native/timeline/src/ui/MonitorRulerCanvas.h": {
-    "R3": 1,
-    "R5-painted": 1
+    "R3": 1
   },
   "native/timeline/src/ui/MonitorViewState.h": {
     "R3": 1
@@ -1518,8 +1513,7 @@
     "R5-painted": 1
   },
   "native/timeline/src/ui/RulerCanvas.h": {
-    "R3": 2,
-    "R5-painted": 1
+    "R3": 1
   },
   "native/timeline/src/ui/Tempo/TempoGridQml.h": {
     "R3": 5

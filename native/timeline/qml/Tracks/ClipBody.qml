@@ -59,6 +59,23 @@ Item {
     property double visibleFromPx: 0
     property double visibleToPx: width
 
+    property bool laneInViewport: true
+    readonly property bool inViewport: laneInViewport && visible && clipId !== "" && (!viewState ||
+        (contentX + width > viewState.scrollLeftPx && contentX < viewState.scrollLeftPx + viewState.viewportWidthPx))
+    property bool detailGestureActive: false
+    property bool detailFocusActive: false
+    property bool detailMenuActive: false
+    property bool resettingParts: false
+    readonly property bool interactiveDetails: visible && clipId !== "" && (hovered || selected || detailGestureActive || detailFocusActive || detailMenuActive)
+    onClipIdChanged: {
+        resettingParts = true
+        detailGestureActive = false
+        detailFocusActive = false
+        detailMenuActive = false
+        Qt.callLater(body.finishReset)
+    }
+    function finishReset(): void { resettingParts = false }
+
     readonly property color accent: TimelineVisuals.clipAccent(mediaType)
     // The clip's colour label: a CSS colour, or empty.
     readonly property string clipLabel: labelColor
@@ -73,22 +90,23 @@ Item {
     readonly property bool showTrimHandles: width >= 28
     readonly property bool showFades: mediaType === "audio" || mediaType === "video" || mediaType === "midi"
 
+    readonly property real fadeGripSize: 9
+    readonly property real fadeGripMargin: 6
+    function fadeGripCenter(edge: string): real {
+        const offset = Math.min((edge === "in" ? fadeInMs : fadeOutMs) / msPerPx, width)
+        return Math.min(Math.max(edge === "in" ? offset : width - offset, fadeGripSize / 2), width - fadeGripSize / 2)
+    }
+
     // resolveClipFades over the on-screen duration, then the ramp widths of
     // deriveClipFadeMarkers (capped to the clip, dropped under 2 px).
     readonly property double spanMs: width * msPerPx
-    // JSON data from the document, controller, or shared JavaScript API.
-    readonly property var resolvedFades: {
-        const cap = ms => Math.min(spanMs, Math.max(0, ms))
-        let fin = cap(fadeInMs)
-        let fout = cap(fadeOutMs)
-        if (fin + fout > spanMs) {
-            fin = Math.min(fin, spanMs / 2)
-            fout = Math.min(fout, spanMs / 2)
-        }
-        return { fadeIn: fin, fadeOut: fout }
-    }
-    readonly property double fadeInPx: Math.min(width, resolvedFades.fadeIn / msPerPx)
-    readonly property double fadeOutPx: Math.min(width, resolvedFades.fadeOut / msPerPx)
+    readonly property double cappedFadeInMs: Math.min(spanMs, Math.max(0, fadeInMs))
+    readonly property double cappedFadeOutMs: Math.min(spanMs, Math.max(0, fadeOutMs))
+    readonly property bool overlappingFades: cappedFadeInMs + cappedFadeOutMs > spanMs
+    readonly property double fadeInPx: Math.min(width,
+        (overlappingFades ? Math.min(cappedFadeInMs, spanMs / 2) : cappedFadeInMs) / msPerPx)
+    readonly property double fadeOutPx: Math.min(width,
+        (overlappingFades ? Math.min(cappedFadeOutMs, spanMs / 2) : cappedFadeOutMs) / msPerPx)
     readonly property double transitionPx: Math.min(width, Math.max(0, transitionMs / msPerPx))
 
     opacity: disabled ? 0.4 : 1     // DISABLED_CLIP_OPACITY
@@ -108,16 +126,20 @@ Item {
         }
     }
 
-    // The filmstrip (video) or the picture (image): edge to edge under the
-    // 16 px name band.
+    // Pictures and audio are mutually exclusive, so share their loader.
     Loader {
-        active: body.mediaSource !== "" && (body.mediaType === "video" || body.mediaType === "overlay"
-                                            || body.mediaType === "image")
-        x: 1
+        readonly property bool audio: body.mediaType === "audio"
+        active: !body.resettingParts && body.inViewport && body.mediaSource !== ""
+            && (audio || body.mediaType === "video" || body.mediaType === "overlay" || body.mediaType === "image")
+        x: audio ? 0 : 1
         y: headerRow.height
-        width: Math.max(0, body.width - 2)
-        height: Math.max(0, body.height - headerRow.height - 1)
-        sourceComponent: FilmstripItem {
+        width: Math.max(0, body.width - (audio ? 0 : 2))
+        height: Math.max(0, body.height - headerRow.height - (audio ? 0 : 1))
+        sourceComponent: audio ? waveformComponent : pictureComponent
+    }
+    Component {
+        id: pictureComponent
+        FilmstripItem {
             objectName: "filmstrip"
             source: body.mediaSource
             kind: body.mediaType === "image" ? "image" : "video"
@@ -129,13 +151,9 @@ Item {
             viewState: body.viewState
         }
     }
-    // The waveform under the name band, the clip's in-point plus its duration.
-    Loader {
-        active: body.mediaSource !== "" && body.mediaType === "audio"
-        y: headerRow.height
-        width: body.width
-        height: Math.max(0, body.height - headerRow.height)
-        sourceComponent: WaveformItem {
+    Component {
+        id: waveformComponent
+        WaveformItem {
             objectName: "waveform"
             source: body.mediaSource
             inPointMs: body.inPointMs
@@ -148,7 +166,7 @@ Item {
     }
 
     Loader {
-        active: body.mediaType === "group"
+        active: !body.resettingParts && body.mediaType === "group"
         anchors.fill: parent
         sourceComponent: Item {
             GroupBracket {
@@ -171,7 +189,7 @@ Item {
     }
 
     Loader {
-        active: body.hasAnimations
+        active: !body.resettingParts && body.hasAnimations
         anchors.fill: parent
         z: TimelineMetrics.clipOverlayLayer
         sourceComponent: Item {
@@ -210,7 +228,7 @@ Item {
     // Loaders: most clips have no fade, transition or lock, and the delegate
     // is created on every scroll that brings a clip into the window.
     Loader {
-        active: body.showFades && body.fadeInPx >= 2
+        active: !body.resettingParts && body.showFades && body.fadeInPx >= 2
         width: body.fadeInPx
         height: body.height
         sourceComponent: FadeRamp {
@@ -219,7 +237,7 @@ Item {
         }
     }
     Loader {
-        active: body.showFades && body.fadeOutPx >= 2
+        active: !body.resettingParts && body.showFades && body.fadeOutPx >= 2
         x: body.width - width
         width: body.fadeOutPx
         height: body.height
@@ -231,7 +249,7 @@ Item {
 
     Loader {
         id: repeatLoader
-        active: body.repeatLengthMs > 0
+        active: !body.resettingParts && body.repeatLengthMs > 0
         x: active ? Math.max(0, (body.viewState ? body.viewState.scrollLeftPx : 0) - body.contentX) : 0
         width: active ? Math.max(0, Math.min(body.width - x, body.viewState ? body.viewState.viewportWidthPx : body.width)) : 0
         height: body.height
@@ -280,7 +298,7 @@ Item {
 
     // The incoming transition: a hatched wedge with an accent edge.
     Loader {
-        active: body.transitionType !== "" && body.transitionPx >= 2
+        active: !body.resettingParts && body.transitionType !== "" && body.transitionPx >= 2
         width: body.transitionPx
         height: body.height
         sourceComponent: transitionWedge
@@ -330,6 +348,16 @@ Item {
                 height: parent.height
                 color: body.accent
             }
+            function cancelTransition(): void {
+                transitionGrip.ownerClipId = ""
+                transitionEdits.cancelGesture()
+                body.detailGestureActive = false
+            }
+            Component.onDestruction: cancelTransition()
+            Connections {
+                target: body
+                function onClipIdChanged(): void { wedge.cancelTransition() }
+            }
             TransitionController { id: transitionEdits; model: body.timeline }
             MouseArea {
                 id: transitionGrip
@@ -338,6 +366,7 @@ Item {
                 property real startX: 0
                 property real startMs: 0
                 property real wantedMs: 0
+                property string ownerClipId: ""
                 x: parent.width - width + 3
                 width: 8
                 height: parent.height
@@ -350,19 +379,29 @@ Item {
                 Accessible.name: label
                 Ui.Tooltip { trigger: transitionGrip; visible: transitionGrip.containsMouse && !transitionGrip.pressed; text: transitionGrip.label }
                 onPressed: mouse => {
+                    ownerClipId = body.clipId
+                    body.detailGestureActive = true
                     startX = mapToItem(body, mouse.x, mouse.y).x
                     startMs = body.transitionMs
                     wantedMs = startMs
                     transitionEdits.beginGesture("setTransitionDuration", {clipId: body.clipId, durationMs: startMs})
                 }
                 onPositionChanged: mouse => {
-                    if (!pressed) return
+                    if (!pressed || ownerClipId !== body.clipId) return
                     const dx = mapToItem(body, mouse.x, mouse.y).x - startX
                     wantedMs = Math.max(Math.round(1000 / Math.max(1, body.timeline.fps)), Math.round(startMs + dx * body.msPerPx))
                     transitionEdits.preview({durationMs: wantedMs})
                 }
-                onReleased: transitionEdits.commit("setTransitionDuration", {durationMs: wantedMs})
-                onCanceled: transitionEdits.cancelGesture()
+                onReleased: {
+                    if (ownerClipId !== "" && ownerClipId === body.clipId) {
+                        transitionEdits.commit("setTransitionDuration", {durationMs: wantedMs})
+                    }
+                    ownerClipId = ""
+                    body.detailGestureActive = false
+                }
+                onCanceled: {
+                    wedge.cancelTransition()
+                }
             }
             Ui.Text {
                 visible: body.transitionPx >= 48       // TRANSITION_LABEL_MIN_PX
@@ -425,7 +464,7 @@ Item {
 
     // Trim grips: hidden until the clip is hovered or selected.
     Repeater {
-        model: body.showTrimHandles ? 2 : 0
+        model: body.showTrimHandles && body.interactiveDetails ? 2 : 0
         delegate: Rectangle {
             required property int index
             x: index === 0 ? 0 : body.width - width
@@ -437,7 +476,7 @@ Item {
     }
 
     Loader {
-        active: body.locked
+        active: !body.resettingParts && body.locked
         x: Ui.Metrics.md
         y: body.height - 4 - Ui.Metrics.iconXs
         sourceComponent: Ui.Icon {
@@ -448,12 +487,48 @@ Item {
         }
     }
 
-    SlotItems {
+    // Keep plugin contributions, but instantiate built-in panels only when
+    // their presentation can be used. A closed/irrelevant panel owns no items.
+    Item {
+        property string slot: "clipBody"
         anchors.fill: parent
-        slot: "clipBody"
-        overlay: true
-        slotProperties: ({ clip: body, timeline: body.timeline,
-                           gestures: body.gestures, viewState: body.viewState })
+        Repeater {
+            model: PanelRegistry.forSlot("clipBody")
+            delegate: Loader {
+                id: panel
+                required property var modelData
+                anchors.fill: parent
+                active: !body.resettingParts && body.clipId !== "" && body.panelNeeded(modelData.id)
+                property bool ready: false
+                function loadPanel(): void {
+                    if (!ready || !active) { return }
+                    const properties = {
+                        timeline: Qt.binding(() => body.timeline),
+                        gestures: Qt.binding(() => body.gestures), viewState: Qt.binding(() => body.viewState)
+                    }
+                    if (modelData.id === "clipFadeGrips") { properties.body = body }
+                    else { properties.clip = body }
+                    setSource(modelData.source, properties)
+                }
+                onActiveChanged: {
+                    if (active) { loadPanel() }
+                    else { source = "" }
+                }
+                Component.onCompleted: { ready = true; loadPanel() }
+            }
+        }
+    }
+    function panelNeeded(id: string): bool {
+        if (!visible || clipId === "") { return false }
+        switch (id) {
+        case "clipFadeGrips": return showFades && interactiveDetails
+        case "takeBadge": return takeBadge !== "" && audioRole !== "music"
+        case "midiNoteLines": return mediaType === "midi" && inViewport
+        case "musicClipJob": return audioRole === "music" || status === "queued"
+        case "trimEditMarks": return !!gestures && !!gestures.trimMode
+            && gestures.trimMode.marks[clipId] !== undefined
+        default: return true
+        }
     }
 
     // The border on top: 1 px darker fill, or 1.5 px white when selected.

@@ -953,6 +953,16 @@ qml_callers = ["native/timeline/qml/Tracks/Clip.qml"]
 replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
 
 [[file]]
+path = "native/timeline/qml/Tracks/ClipLaneRow.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_tracksui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "Typed track-row geometry for pooled timeline lanes"
+
+[[file]]
 path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
 category = "domain"
 controls = ["ClipFadeShapeMenu", "Rectangle", "MouseArea"]
@@ -4251,14 +4261,6 @@ binding = "radius"
 rule = "metric"
 owner = "Timeline clip fade editor"
 reason = "The nine-pixel fade curve handle is circular so its radius follows the plotted handle width."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
-object = "root/Repeater[0]/grip/pointer"
-binding = "anchors.margins"
-rule = "metric"
-owner = "Timeline clip fade editor"
-reason = "The negative margin enlarges the drag target around a fade point without moving the point in clip coordinates."
 
 [[exception]]
 path = "native/timeline/qml/Tracks/FadeRamp.qml"

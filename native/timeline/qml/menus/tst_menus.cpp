@@ -50,8 +50,8 @@ class TestMenus : public WiringFixture {
             surface->mapToScene({x < 0 ? surface->width() / 2 : x, surface->height() / 2}).toPoint());
         QCoreApplication::processEvents();
         activeMenu = surface->findChild<QObject*>(kind == "track" ? "trackHeaderMenu" : "registryContextMenu-" + kind);
-        if (!activeMenu && kind == "lane") {
-            activeMenu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-lane");
+        if (!activeMenu && (kind == "lane" || kind == "clip")) {
+            activeMenu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-" + kind);
         }
         return activeMenu && activeMenu->property("visible").toBool() ? activeMenu.data() : nullptr;
     }
@@ -659,7 +659,7 @@ private slots:
             list.removeIf([](const QString& entry) { return !entry.startsWith("registryMenu-clip-"); });
             return list;
         };
-        QVERIFY(!item("clip-c")->findChild<QObject*>("registryContextMenu-clip"));
+        QVERIFY(!item("tracksRegion")->findChild<QObject*>("registryContextMenu-clip"));
         auto* menu = popup("clip", "clip-c");
         QVERIFY(menu);
         QVERIFY(!registered(menu).isEmpty());

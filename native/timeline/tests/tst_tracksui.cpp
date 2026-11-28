@@ -17,6 +17,8 @@
 #include <QSemaphore>
 #include <QThreadPool>
 #include "edit/ClipGestureController.h"
+#include "edit/transitions/TransitionEdits.h"
+#include "edit/trim/TrimMode.h"
 #include "app/EditRegistry.h"
 #include "app/MenuRegistry.h"
 #include <QScopeGuard>
@@ -608,6 +610,8 @@ private slots:
     void trimOverlayRetainsClipIdentity() {
         load({1, 4}, 10, 0);
         seed(10, 0);
+        QVERIFY(!itemNamed("trimEditMarks-c-0-0"));
+        controller()->trimMode()->selectEdge("c-0-0", true, "trim", false, false);
         QTRY_VERIFY(itemNamed("trimEditMarks-c-0-0"));
     }
 
@@ -635,6 +639,403 @@ private slots:
         clips[1] = first;
         QVERIFY(doc.replaceClips(clips));
         QCOMPARE(updates.size(), 1);
+    }
+
+    void replacingDocumentReleasesExcessPooledLanes() {
+        load({64, 100}, 10, 0);
+        seed(10, 0);
+        vs->setScrollTopPx(2400);
+        frame();
+        model->setTimeline(makeTimeline({1, 2}));
+        frame();
+        frame();
+        QVERIFY(region->findChildren<LaneClipModel*>().size() <= 3);
+    }
+
+    void keyboardFocusedClipKeepsItsIdentityAcrossScroll() {
+        load({1, 400}, 10, 0);
+        seed(10, 0);
+        QPointer<QQuickItem> clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        clip->forceActiveFocus(Qt::TabFocusReason);
+        vs->setScrollLeftPx(20000);
+        frame();
+        QVERIFY(clip);
+        QCOMPARE(clip->property("clipId").toString(), QString("c-0-2"));
+        QVERIFY(clip->hasActiveFocus());
+        controller()->forceActiveFocus();
+        frame();
+        QVERIFY(!itemNamed("clip-c-0-2"));
+    }
+
+    void keyboardFocusSelectsAClipAndLoadsFadeDetails() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        auto* clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        QVERIFY(!itemNamed("fadeGrip-in-c-0-2"));
+        clip->forceActiveFocus(Qt::TabFocusReason);
+        QCOMPARE(controller()->selection(), QStringList{"c-0-2"});
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-2"));
+    }
+
+    void fadeTabReachesTheNextUnselectedClipInTimeOrder() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        QVERIFY(model->moveClip("c-0-2", 3500));
+        frame();
+        auto* earlier = itemNamed("clip-c-0-3");
+        auto* later = itemNamed("clip-c-0-2");
+        QVERIFY(earlier && later);
+        earlier->forceActiveFocus(Qt::TabFocusReason);
+        QTRY_VERIFY(itemNamed("fadeGrip-out-c-0-3"));
+        itemNamed("fadeGrip-out-c-0-3")->forceActiveFocus();
+        QTest::keyClick(view.get(), Qt::Key_Tab);
+        QVERIFY(later->hasActiveFocus());
+        QCOMPARE(controller()->selection(), QStringList{"c-0-2"});
+        QTest::keyClick(view.get(), Qt::Key_Tab);
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-2"));
+        QVERIFY(itemNamed("fadeGrip-in-c-0-2")->hasActiveFocus());
+    }
+
+    void fadeTabOrderFollowsTimelineAfterReuse() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        controller()->setSelection({"c-0-2", "c-0-3"});
+        QVERIFY(model->moveClip("c-0-2", 3500));
+        frame();
+        auto* earlierOut = itemNamed("fadeGrip-out-c-0-3");
+        auto* laterIn = itemNamed("fadeGrip-in-c-0-2");
+        QVERIFY(earlierOut && laterIn);
+        earlierOut->forceActiveFocus();
+        QTest::keyClick(view.get(), Qt::Key_Tab);
+        QVERIFY(itemNamed("clip-c-0-2")->hasActiveFocus());
+        QTest::keyClick(view.get(), Qt::Key_Tab);
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-2"));
+        laterIn = itemNamed("fadeGrip-in-c-0-2");
+        QVERIFY(laterIn->hasActiveFocus());
+        QTest::keyClick(view.get(), Qt::Key_Backtab);
+        QVERIFY(earlierOut->hasActiveFocus());
+    }
+
+    void transitionReuseCancelsItsPreview() {
+        if (!nt::app::findEdit("setTransitionDuration")) {
+            QVERIFY(nt::app::registerEdit("setTransitionDuration", nt::edit::transitions::setTransitionDuration));
+        }
+        load({1, 20}, 10, 0);
+        seed(10, 0);
+        auto values = model->clipsJson();
+        auto source = values[2].toObject();
+        source["transitionIn"] = QJsonObject{{"type", "crossfade"}, {"durationMs", 200}};
+        values[2] = source;
+        QVERIFY(model->replaceClips(values));
+        frame();
+        auto* grip = itemNamed("clip-transition-handle-c-0-2");
+        QVERIFY(grip);
+        const auto point = grip->mapToScene({4, 25}).toPoint();
+        QTest::mouseMove(view.get(), point);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, point);
+        QTest::mouseMove(view.get(), point + QPoint(10, 0));
+        QVERIFY(model->findClip("c-0-2")->transitionIn->durationMs > 200);
+        auto* clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        clip->setProperty("clipId", "c-0-3");
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, point + QPoint(10, 0));
+        QCOMPARE(model->findClip("c-0-2")->transitionIn->durationMs, 200.0);
+        QVERIFY(!model->findClip("c-0-3")->transitionIn);
+        QCOMPARE(model->undoStack()->count(), 0);
+    }
+
+    void returningTracksUseTheirRetainedLane() {
+        load({64, 100}, 10, 0);
+        seed(10, 0);
+        vs->setScrollTopPx(2400);
+        frame();
+        view->resize(kRegionWidth, 200);
+        frame();
+        for (const int offset : {0, 2800, 320, 960, 160, 2400, 640, 0, 1800, 3200, 0}) {
+            vs->setScrollTopPx(offset);
+            frame();
+            QSet<QString> tracks;
+            const auto lanes = region->findChildren<LaneClipModel*>();
+            QVERIFY(!lanes.isEmpty());
+            for (auto* lane : lanes) {
+                if (lane->trackId().isEmpty()) { continue; }
+                QVERIFY2(!tracks.contains(lane->trackId()), qPrintable(lane->trackId()));
+                tracks.insert(lane->trackId());
+            }
+        }
+    }
+
+    void reassignmentClearsToolHover() {
+        load({1, 400}, 10, 0);
+        seed(10, 0);
+        controller()->setActiveTool("cut");
+        QTest::mouseMove(view.get(), clipPoint("c-0-2", 30));
+        QVERIFY(controller()->previewsCut("c-0-2"));
+        QVERIFY(model->moveClip("c-0-2", 200000));
+        frame();
+        QVERIFY(!controller()->previewsCut("c-0-2"));
+    }
+
+    void idleSlotsNeverOwnAGesture() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        QVERIFY(model->moveClip("c-0-2", 90000));
+        frame();
+        const auto idle = itemsNamed("pooledClip");
+        QVERIFY(!idle.isEmpty());
+        for (auto* item : idle) { QVERIFY(!item->property("underGesture").toBool()); }
+    }
+
+    void verticalScrollKeepsTheGestureLane() {
+        load({64, 100}, 10, 0);
+        seed(10, 0);
+        QPointer<QQuickItem> clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        const auto point = clipPoint("c-0-2", 30);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, point);
+        QCOMPARE(controller()->activeClipId(), QString("c-0-2"));
+        vs->setScrollTopPx(2400);
+        frame();
+        QVERIFY(clip);
+        QCOMPARE(clip->property("clipId").toString(), QString("c-0-2"));
+        QVERIFY(clip->isVisible());
+        QCOMPARE(controller()->activeClipId(), QString("c-0-2"));
+        controller()->cancelGesture();
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, point);
+    }
+
+    void detailPinClearsOnlyItsOwnerAndOnDeletion() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        auto* first = itemNamed("clip-c-0-1");
+        auto* second = itemNamed("clip-c-0-2");
+        QVERIFY(first && second);
+        auto bodyOf = [](QQuickItem* clip) {
+            for (auto* child : clip->childItems()) {
+                if (child->metaObject()->indexOfProperty("detailFocusActive") >= 0) { return child; }
+            }
+            return static_cast<QQuickItem*>(nullptr);
+        };
+        auto* a = bodyOf(first);
+        auto* b = bodyOf(second);
+        QVERIFY(a && b);
+        auto* lane = itemNamed("trackLane-track-0");
+        a->setProperty("detailFocusActive", true);
+        b->setProperty("detailFocusActive", true);
+        a->setProperty("detailFocusActive", false);
+        QCOMPARE(lane->property("detailClipId").toString(), QString("c-0-2"));
+        const auto point = clipPoint("c-0-3", 30);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, point);
+        auto* clips = lane->property("clipModel").value<LaneClipModel*>();
+        QCOMPARE(clips->pinnedClipId(), QString("c-0-3"));
+        vs->setScrollLeftPx(5000);
+        vs->flush();
+        QVERIFY(clips->clipIds().contains("c-0-2"));
+        QVERIFY(clips->clipIds().contains("c-0-3"));
+        controller()->cancelGesture();
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, point);
+        auto raw = model->clipsJson();
+        for (qsizetype i = raw.size(); i-- > 0;) {
+            if (raw[i].toObject().value("id") == "c-0-2") { raw.removeAt(i); }
+        }
+        QVERIFY(model->replaceClips(raw));
+        frame();
+        QVERIFY(lane->property("detailClipId").toString().isEmpty());
+    }
+
+    void reentrantEditsNotifyEveryRestackedClip() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 4}));
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        QSet<QString> notified;
+        bool edited = false;
+        connect(&lane, &QAbstractItemModel::dataChanged, &lane,
+            [&](const QModelIndex& first, const QModelIndex& last, const QList<int>& roles) {
+                if (roles.contains(LaneClipModel::StackingIndexRole)) {
+                    for (int row = first.row(); row <= last.row(); ++row) {
+                        notified.insert(lane.data(lane.index(row), LaneClipModel::ClipIdRole).toString());
+                    }
+                }
+                if (edited) { return; }
+                edited = true;
+                auto values = doc.clipsJson();
+                auto renamed = values[0].toObject();
+                renamed["name"] = "Renamed during notification";
+                values[0] = renamed;
+                QVERIFY(doc.replaceClips(values));
+            });
+        QVERIFY(doc.moveClip("c-0-3", 500));
+        QVERIFY(edited);
+        QCOMPARE(notified, (QSet<QString>{"c-0-1", "c-0-2", "c-0-3"}));
+    }
+
+    void poolNotificationsExposeACompleteWindow() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 100}));
+        TimelineViewState state;
+        state.setViewportWidthPx(1000);
+        state.setContentEndMs(doc.contentEndMs());
+        state.flush();
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setViewState(&state);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        QStringList observed;
+        connect(&lane, &QAbstractItemModel::dataChanged, &lane, [&] {
+            if (observed.isEmpty()) { observed = lane.clipIds(); }
+        });
+        state.setScrollLeftPx(5000);
+        state.flush();
+        QVERIFY(!observed.isEmpty());
+        observed.sort();
+        auto finalIds = lane.clipIds();
+        finalIds.sort();
+        QCOMPARE(observed, finalIds);
+    }
+
+    void reassignedClipRecreatesItsPanels() {
+        load({1, 400}, 10, 0);
+        seed(10, 0);
+        controller()->setSelection({"c-0-2", "c-0-200"});
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-2"));
+        QPointer<QQuickItem> oldGrip = itemNamed("fadeGrip-in-c-0-2");
+        QPointer<QQuickItem> clip = itemNamed("clip-c-0-2");
+        auto changed = model->clipsJson();
+        for (qsizetype i = 0; i < changed.size(); ++i) {
+            auto value = changed[i].toObject();
+            if (value["id"] == "c-0-2") { value["startMs"] = 200001; }
+            if (value["id"] == "c-0-200") { value["startMs"] = 2000; }
+            changed[i] = value;
+        }
+        QVERIFY(model->replaceClips(changed));
+        frame();
+        QVERIFY(!oldGrip);
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-200"));
+        QVERIFY(clip);
+    }
+
+    void releasingAPinDuringSlotRebindingKeepsTheWindowConsistent() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 50}));
+        bool released = false;
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        lane.setPinnedClipId("c-0-49");
+        TimelineViewState state;
+        state.setContentEndMs(doc.contentEndMs());
+        state.setViewportWidthPx(1000);
+        state.flush();
+        lane.setViewState(&state);
+        connect(&lane, &QAbstractItemModel::dataChanged, &lane, [&lane, &released] {
+            if (released) { return; }
+            released = true;
+            lane.setPinnedClipId({});
+        });
+        state.setScrollLeftPx(1000);
+        state.flush();
+        QVERIFY(released);
+        LaneClipModel expected;
+        expected.setTrackId("track-0");
+        expected.setTimeline(&doc);
+        expected.setViewState(&state);
+        auto actualIds = lane.clipIds();
+        auto expectedIds = expected.clipIds();
+        actualIds.sort();
+        expectedIds.sort();
+        QCOMPARE(actualIds, expectedIds);
+    }
+
+    void largeClipPoolShrinksOnlyAfterItsPinIsReleased() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 5000}));
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        QCOMPARE(lane.rowCount(), 5000);
+        lane.setPinnedClipId("c-0-4999");
+        const QPersistentModelIndex pin = lane.index(4999);
+        TimelineViewState state;
+        state.setContentEndMs(doc.contentEndMs());
+        state.setViewportWidthPx(1000);
+        state.flush();
+        lane.setViewState(&state);
+        QVERIFY(pin.isValid());
+        QCOMPARE(lane.data(pin, LaneClipModel::ClipIdRole).toString(), QString("c-0-4999"));
+        lane.setPinnedClipId({});
+        QVERIFY(lane.rowCount() <= 16);
+        QVERIFY(!lane.clipIds().contains("c-0-4999"));
+        QVERIFY(lane.clipIds().contains("c-0-0"));
+    }
+
+    void clipSlotsReuseAcrossScrollAndTrackChanges() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({4, 400}));
+        TimelineViewState state;
+        state.setViewportWidthPx(1000);
+        state.setContentEndMs(doc.contentEndMs());
+        state.flush();
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setViewState(&state);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        const int slotCount = lane.rowCount();
+        QVERIFY(slotCount > 0);
+        lane.setPinnedClipId("c-0-2");
+        const auto pin = lane.clipIds().indexOf("c-0-2");
+        QVERIFY(pin >= 0);
+        QSignalSpy removed(&lane, &QAbstractItemModel::rowsRemoved);
+        state.setScrollLeftPx(20000);
+        state.flush();
+        QCOMPARE(lane.data(lane.index(pin), LaneClipModel::ClipIdRole).toString(), QString("c-0-2"));
+        lane.setPinnedClipId({});
+        const int capacity = lane.rowCount();
+        lane.setTrackId("track-1");
+        QCOMPARE(lane.rowCount(), capacity);
+        QCOMPARE(removed.size(), 0);
+        QVERIFY(!lane.clipIds().isEmpty());
+        for (const auto& id : lane.clipIds()) { QVERIFY(id.startsWith("c-1-")); }
+        lane.setTrackId("");
+        QVERIFY(lane.rowCount() <= capacity);
+        QVERIFY(lane.rowCount() <= 16);
+        QVERIFY(lane.clipIds().isEmpty());
+        const std::weak_ptr<const nt::Timeline> previous = doc.snapshot();
+        auto raw = doc.timeline().raw;
+        raw["name"] = "Rename while pooled";
+        QVERIFY(doc.settleDocument(raw));
+        doc.trackClipIndices("track-0");
+        QVERIFY(previous.expired());
+        lane.setTrackId("track-0");
+        QVERIFY(!lane.clipIds().isEmpty());
+    }
+
+    void lanesAndClipsSurviveVerticalScroll() {
+        load({64, 400}, 10, 0);
+        seed(10, 0);
+        QList<QPointer<QQuickItem>> previous;
+        for (auto* lane : itemsNamed("trackLane-")) { previous.append(lane); }
+        QVERIFY(!previous.isEmpty());
+        vs->setScrollTopPx(2400);
+        frame();
+        frame();
+        for (const auto& lane : previous) { QVERIFY(lane); }
+        QCOMPARE(itemsNamed("clip-").size(), expectedClipItems());
+        // A reused slot follows the new clip's selection and presentation.
+        auto* clip = itemsNamed("clip-").first();
+        const auto id = clip->property("clipId").toString();
+        controller()->setSelection({id});
+        frame();
+        QVERIFY(clip->property("selected").toBool());
+        QCOMPARE(clip->property("name").toString(), QString::fromStdString(model->findClip(id)->name));
     }
 
     void laneReleasesSnapshotAfterMetadataEdit() {
@@ -1245,6 +1646,63 @@ private slots:
         QCOMPARE(model->documentJson(), before);
         QCOMPARE(model->undoStack()->count(), 0);
     }
+    void reusedClipsKeepTheirOverlapOrder() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        auto clips = model->clipsJson();
+        for (int i = 0; i < clips.size(); ++i) {
+            auto clip = clips[i].toObject();
+            const auto id = clip.value("id").toString();
+            if (id != "c-0-10" && id != "c-0-33") { continue; }
+            clip["durationMs"] = 100000;
+            clips[i] = clip;
+        }
+        QVERIFY(model->replaceClips(clips));
+        QPointer<QQuickItem> earlier = itemNamed("clip-c-0-10");
+        QVERIFY(earlier);
+        vs->setScrollLeftPx(3200);
+        frame();
+        frame();
+        auto* later = itemNamed("clip-c-0-33");
+        auto* lane = itemNamed("trackLane-track-0");
+        QVERIFY(earlier);
+        QVERIFY(later);
+        QVERIFY(lane);
+        QVERIFY(later->z() > earlier->z());
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, later->mapToScene(QPointF(20, 20)).toPoint());
+        QCOMPARE(controller()->selection(), QStringList{"c-0-33"});
+        QVERIFY(model->moveClip("c-0-33", 9500));
+        frame();
+        QVERIFY(earlier->z() > later->z());
+        const double withinEarlier = vs->scrollLeftPx() - earlier->x() + 100;
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, earlier->mapToScene(QPointF(withinEarlier, 20)).toPoint());
+        QCOMPARE(controller()->selection(), QStringList{"c-0-10"});
+    }
+
+    void sharedClipMenuClosesWhenItsSlotIsReassigned() {
+        load({2, 400}, 10, 0);
+        seed(10, 0);
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, clipPoint("c-0-2", 30));
+        auto* menu = region->findChild<QObject*>("registryContextMenu-clip");
+        QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QPointer<QQuickItem> anchor = itemNamed("clip-c-0-2");
+        auto changed = model->clipsJson();
+        for (qsizetype i = 0; i < changed.size(); ++i) {
+            auto value = changed[i].toObject();
+            if (value["id"] == "c-0-2") { value["startMs"] = 200001; }
+            if (value["id"] == "c-0-200") { value["startMs"] = 2000; }
+            changed[i] = value;
+        }
+        QVERIFY(model->replaceClips(changed));
+        QVERIFY(anchor);
+        QVERIFY(anchor->isVisible());
+        QCOMPARE(anchor->property("clipId").toString(), QString("c-0-200"));
+        frame();
+        QVERIFY(model->findClip("c-0-2"));
+        QTRY_VERIFY_WITH_TIMEOUT(!menu->property("visible").toBool(), 1000);
+    }
+
     void contextMenuKeepsTheMultiSelectionAndUsesItForDelete() {
         load({2, 10}, 10, 0);
         seed(10, 0);
@@ -1258,12 +1716,19 @@ private slots:
         auto* clip = itemNamed("clip-c-0-2");
         QVERIFY(clip);
         QTest::mouseClick(view.get(), Qt::RightButton, {}, first);
-        auto* menu = clip->findChild<QObject*>("registryContextMenu-clip");
+        auto* menu = region->findChild<QObject*>("registryContextMenu-clip");
         QVERIFY(menu);
         QTRY_VERIFY(menu->property("opened").toBool());
         QCOMPARE(controller()->selection(), selected);
         QTest::keyClick(view.get(), Qt::Key_Delete);
         QCOMPARE(model->documentJson(), before);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, second);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QCOMPARE(menu->property("context").toMap().value("clipId").toString(), QString("c-0-3"));
+        QCOMPARE(region->findChildren<QObject*>("registryContextMenu-clip").size(), 1);
+        QCOMPARE(controller()->selection(), selected);
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QTRY_VERIFY(!menu->property("visible").toBool());
         // The clip menu is taller than the default window, and this test clicks its last row.
@@ -1529,9 +1994,8 @@ private slots:
         QCOMPARE(clip->x() - vs->scrollLeftPx(), expectedStart / 10.0 - scroll);
     }
 
-    // The same drag with the pin removed: the delegate dies with the window.
-    // This is the failure the pin prevents.
-    void withoutThePinTheDelegateDies() {
+    // Without the pin a pooled delegate can be reassigned to another clip.
+    void withoutThePinTheDelegateIsReassigned() {
         load({4, 400}, 10, 0);
         seed(10, 0);
         QPointer<QQuickItem> clip = itemNamed(QStringLiteral("clip-c-0-2"));
@@ -1543,7 +2007,8 @@ private slots:
         vs->setScrollLeftPx(20000);
         frame();
         frame();
-        QVERIFY(!clip);
+        QVERIFY(clip);
+        QVERIFY(clip->property("clipId").toString() != "c-0-2");
         QTest::mouseRelease(view.get(), Qt::LeftButton, {}, press + QPoint(40, 0));
     }
 

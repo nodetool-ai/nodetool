@@ -88,6 +88,11 @@ def result_from(stdout):
     actual = loads(lines[0])
     if actual['stress'] != {'clips': 2000, 'tracks': 64, 'notes': 20000, 'markers': 500} or actual['scene']['pianoRollNotesCount'] != 2000:
         raise ValueError(f'Incomplete stress scene: {actual["scene"]}')
+    motion = actual.get('motion', {})
+    if actual.get('scenario') == 'playback' and motion.get('clockAdvanceMs', 0) <= 0:
+        raise ValueError('Playback clock did not advance')
+    if actual.get('scenario') == 'zoom' and (motion.get('zoomInFrames', 0) <= 0 or motion.get('zoomOutFrames', 0) <= 0):
+        raise ValueError('Zoom must change scale in both directions')
     return actual
 
 

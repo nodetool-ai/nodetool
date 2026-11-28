@@ -119,6 +119,42 @@ Rectangle {
         }
     }
 
+    function focusNextClipDetail(current: Item, forward: bool): bool {
+        function position(item) {
+            const clip = item.previousClipId !== undefined
+            return { row: item.mapToItem(region, 0, 0).y, start: clip ? item.startMs : item.parent.body.startMs,
+                id: clip ? item.clipId : item.parent.body.clipId, edge: clip ? -1 : item.edge === "in" ? 0 : 1 }
+        }
+        function compare(a, b) {
+            if (Math.abs(a.row - b.row) > 1) { return a.row - b.row }
+            if (a.start !== b.start) { return a.start - b.start }
+            const id = a.id.localeCompare(b.id)
+            return id !== 0 ? id : a.edge - b.edge
+        }
+        const here = position(current)
+        const direction = forward ? 1 : -1
+        let next = null
+        let nextPosition = null
+        function visit(item) {
+            if (!item.visible) { return }
+            if (item.objectName.startsWith("fadeGrip-")
+                || (item.previousClipId !== undefined && item.activeFocusOnTab)) {
+                const at = position(item)
+                if (!(direction < 0 && at.id === here.id && at.edge === -1)
+                    && compare(at, here) * direction > 0
+                    && (!next || compare(at, nextPosition) * direction < 0)) {
+                    next = item
+                    nextPosition = at
+                }
+            }
+            for (const child of item.children) { visit(child) }
+        }
+        visit(lanesContent)
+        if (!next) { return false }
+        next.forceActiveFocus(Qt.TabFocusReason)
+        return true
+    }
+
     function focusTrackResize(id) {
         for (let i = 0; i < headerRepeater.count; ++i) {
             const header = headerRepeater.itemAt(i)
@@ -154,11 +190,46 @@ Rectangle {
         lanesViewport: lanesArea
     }
 
+    property Item clipMenuOwner: null
+    property Item laneMenuOwner: null
+    function ownerOf(area: Item, identity: string): Item {
+        let owner = area
+        while (owner && owner[identity] === undefined) { owner = owner.parent }
+        return owner
+    }
+    Connections {
+        target: region.clipMenuOwner
+        ignoreUnknownSignals: true
+        function onClipIdChanged(): void { region.closeSharedMenus() }
+    }
+    Connections {
+        target: region.laneMenuOwner
+        ignoreUnknownSignals: true
+        function onTrackIdChanged(): void { region.closeSharedMenus() }
+    }
+    property ClipContextMenu clipMenu: null
+    Component { id: clipMenuComponent; ClipContextMenu { gestures: clipGestures } }
+    function openClipMenu(context: var, area: Item, px: real, py: real): void {
+        if (!clipMenu) { clipMenu = clipMenuComponent.createObject(region) }
+        if (!clipMenu) { return }
+        clipMenuOwner = ownerOf(area, "clipId")
+        clipMenu.retarget(area, anchor => {
+            region.clipMenu.context = context
+            region.clipMenu.popupAt(anchor, px, py)
+        })
+    }
     property TrackLaneContextMenu laneMenu: null
     property RegistryContextMenu editPointMenu: null
     Component { id: laneMenuComponent; TrackLaneContextMenu { gestures: clipGestures } }
     Component { id: editPointMenuComponent; RegistryContextMenu { kind: "editPoint"; gestures: clipGestures } }
     function closeSharedMenus() {
+        clipMenuOwner = null
+        laneMenuOwner = null
+        if (clipMenu) {
+            clipMenu.cancelRetarget()
+            clipMenu.close()
+            clipMenu.context = ({})
+        }
         if (laneMenu) {
             laneMenu.cancelRetarget()
             laneMenu.close()
@@ -183,6 +254,10 @@ Rectangle {
         target: region.timeline
         function onDocumentReplaced() { region.closeSharedMenus() }
         function onClipsChanged() {
+            if (region.clipMenu && region.clipMenu.visible && region.clipMenu.context.clipId && !clipGestures.clipData(region.clipMenu.context.clipId).id) {
+                region.clipMenu.close()
+                region.clipMenu.context = ({})
+            }
             if (!region.editPointMenu || !region.editPointMenu.visible) return
             if (!region.editPointExists(region.editPointMenu.context)) region.editPointMenu.close()
         }
@@ -190,6 +265,7 @@ Rectangle {
     function openLaneMenu(context, area, px, py) {
         if (!laneMenu) laneMenu = laneMenuComponent.createObject(region)
         if (!laneMenu) return
+        laneMenuOwner = ownerOf(area, "trackId")
         laneMenu.retarget(area, anchor => {
             laneMenu.context = context
             laneMenu.openAt(anchor, px, py)
@@ -398,7 +474,6 @@ Rectangle {
         gestures: clipGestures
         timeline: region.timeline
         fps: region.timeline.fps
-        markers: region.timeline.markers
         onSeekRequested: ms => region.clock.seek(ms)
         onScrubRequested: ms => region.clock.scrub(ms)
         onDeleteMarkerRequested: id => region.timeline.deleteMarker(id)
@@ -581,37 +656,93 @@ Rectangle {
             y: -view.scrollTopPx
             width: Math.max(view.totalWidthPx, lanesArea.width)
             height: rowModel.contentHeight
+            property list<TrackLane> lanePool
+            function acquireLane(row: ClipLaneRow): TrackLane {
+                for (const lane of lanePool) {
+                    if (!lane.row && lane.retainedTrackId === row.trackId) {
+                        lane.row = row
+                        return lane
+                    }
+                }
+                for (const lane of lanePool) {
+                    if (!lane.row && !lane.retainedInteraction) {
+                        lane.row = row
+                        return lane
+                    }
+                }
+                const lane = laneComponent.createObject(lanesContent, { row: row }) as TrackLane
+                if (lane) { lanePool.push(lane) }
+                return lane
+            }
+            Timer {
+                id: poolCleanup
+                interval: 0
+                onTriggered: {
+                    const idleLimit = Math.max(2, rowModel.windowEnd - rowModel.windowStart)
+                    const retained = []
+                    let idleCount = 0
+                    for (const lane of lanesContent.lanePool) {
+                        if (lane.row || lane.retainedInteraction || idleCount++ < idleLimit) { retained.push(lane) }
+                        else { lane.destroy() }
+                    }
+                    lanesContent.lanePool = retained
+                }
+            }
+            Connections {
+                target: rowModel
+                function onTrackLayoutChanged(): void { poolCleanup.restart() }
+            }
+            Component {
+                id: laneComponent
+                TrackLane {
+                    property real retainedTop: 0
+                    property real retainedHeight: 0
+                    property string retainedType: ""
+                    property bool retainedLocked: false
+                    property bool retainedMuted: false
+                    property bool retainedVisible: false
+                    visible: row !== null || retainedInteraction
+                    y: row ? row.rowTop : retainedTop
+                    width: lanesContent.width
+                    rowHeight: row ? row.baseRowHeight : retainedHeight
+                    trackId: row ? row.trackId : retainedTrackId
+                    trackType: row ? row.trackType : retainedType
+                    trackVisible: row ? row.trackVisible : retainedVisible
+                    locked: row ? row.locked : retainedLocked
+                    muted: row ? row.muted : retainedMuted
+                    timeline: region.timeline
+                    clock: region.clock
+                    viewState: view
+                    gestures: clipGestures
+                    onClipMenuRequested: (context, area, px, py) => region.openClipMenu(context, area, px, py)
+                    onLaneMenuRequested: (context, area, px, py) => region.openLaneMenu(context, area, px, py)
+                    onEditPointMenuRequested: (context, area, px, py) => region.openEditPointMenu(context, area, px, py)
+                }
+            }
             Repeater {
                 model: rowModel
-                delegate: Item {
+                delegate: ClipLaneRow {
                     id: trackRow
-                    required property double rowTop
-                    required property double rowHeight
-                    required property double baseRowHeight
-                    required property string trackId
-                    required property string trackType
-                    required property bool trackVisible
-                    required property bool locked
-                    required property bool muted
-                    // JSON data from the document, controller, or shared JavaScript API.
+                    // Registry contributions still consume the track document.
                     required property var track
-                    y: rowTop
+                    z: Ui.Metrics.layerContent + 1
                     width: lanesContent.width
-                    height: rowHeight
-                    TrackLane {
-                        width: parent.width
-                        rowHeight: trackRow.baseRowHeight
-                        trackId: trackRow.trackId
-                        trackType: trackRow.trackType
-                        trackVisible: trackRow.trackVisible
-                        locked: trackRow.locked
-                        muted: trackRow.muted
-                        timeline: region.timeline
-                        clock: region.clock
-                        viewState: view
-                        gestures: clipGestures
-                        onLaneMenuRequested: (context, area, px, py) => region.openLaneMenu(context, area, px, py)
-                        onEditPointMenuRequested: (context, area, px, py) => region.openEditPointMenu(context, area, px, py)
+                    // The row is a cheap model adapter. The lane and its clip
+                    // slots live in the viewport pool across row removal.
+                    property TrackLane pooledLane: null
+                    Component.onCompleted: pooledLane = lanesContent.acquireLane(trackRow)
+                    Component.onDestruction: {
+                        if (pooledLane) {
+                            pooledLane.retainedTrackId = pooledLane.trackId
+                            pooledLane.retainedTop = pooledLane.y
+                            pooledLane.retainedHeight = pooledLane.rowHeight
+                            pooledLane.retainedType = pooledLane.trackType
+                            pooledLane.retainedLocked = pooledLane.locked
+                            pooledLane.retainedMuted = pooledLane.muted
+                            pooledLane.retainedVisible = pooledLane.trackVisible
+                            pooledLane.row = null
+                            poolCleanup.restart()
+                        }
                     }
                     // Contributions drawn over the base lane, such as the music range band.
                     SlotItems {
