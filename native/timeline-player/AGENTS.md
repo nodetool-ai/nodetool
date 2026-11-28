@@ -9,7 +9,7 @@ the [README](README.md) before changes. The [native rules](../AGENTS.md) apply.
 - Code here must not include or link the timeline app, the node editor or
   editing code. `TimelineModel`, the track list models and the edit registry
   stay in `native/timeline`.
-- `nodetool_timeline_scene` uses Qt Core and Yoga only.
+- `nodetool_timeline_scene` uses Qt Core, Yoga and [native/audio-io](../audio-io/AGENTS.md) only.
 - QML here imports `NodeTool.TimelinePlayer` and `NodeTool.UiPrimitives`,
   never `NodeTool.Timeline`. `TimelineSource` is registered with QML only in
   this module. See [QML module](README.md#qml-module).

@@ -82,6 +82,34 @@ private:
     std::atomic<std::uint64_t> m_words[kWords];
 };
 
+// The reader a realtime thread uses (realtime design 11.4, RT-F36): bounded
+// reads only. A read that overlaps a write `Attempts` times keeps the last
+// coherent value and adds to `failedReads()`. It has no blocking `load()`.
+// Thread affinity: one realtime thread owns the reader. The SeqLock it
+// borrows must outlive it.
+template <typename T, int Attempts = 64>
+class RealtimeSeqLockReader {
+    static_assert(Attempts > 0);
+
+public:
+    explicit RealtimeSeqLockReader(const SeqLock<T>& lock) : m_lock(lock) {}
+
+    // Copies the newest coherent value into `out`, or leaves `out` unchanged
+    // and returns false when every attempt overlapped a write.
+    bool tryLoad(T& out) {
+        if (m_lock.tryLoad(out, Attempts)) return true;
+        ++m_failedReads;
+        return false;
+    }
+
+    std::uint64_t failedReads() const { return m_failedReads; }
+    static constexpr int attempts() { return Attempts; }
+
+private:
+    const SeqLock<T>& m_lock;
+    std::uint64_t m_failedReads = 0;
+};
+
 // The newest transport request. `seq` grows by 1 per command. Every command
 // also carries the newest seek, so a rate change sent before a seek has
 // started cannot hide that seek.

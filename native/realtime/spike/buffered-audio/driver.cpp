@@ -1,6 +1,6 @@
 #include "core.h"
 #include "audio/PcmRing.h"
-#include "platform/SanitizerBuild.h"
+#include "audio/SanitizerBuild.h"
 #ifndef NT_SANITIZED
 #include "audio/TestAllocationCounter.h"
 #endif

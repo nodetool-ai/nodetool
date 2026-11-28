@@ -132,7 +132,7 @@ def module_policy(module):
         }
     if module.name == 'timeline-player':
         return {
-            'subdirs': {'../ui_primitives', '../kernels'},
+            'subdirs': {'../ui_primitives', '../kernels', '../audio-io'},
             'include_paths': {('nodetool_timeline_player_server', '../account/qt/include')},
             'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.TimelinePlayer'},
             'targets': {
@@ -142,6 +142,7 @@ def module_policy(module):
                 'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin', 'nodetool_kernels',
                 'nodetool_timeline_effects_registrar', 'nodetool_timeline_render2d_registrar',
                 'nodetool_timeline_playback_registrar',
+                'nodetool_audio_io', 'nodetool_audio_io_test_support',
                 'PkgConfig::FFMPEG', 'harfbuzz::harfbuzz', 'Freetype::Freetype',
             },
             # Values the hardware decode and audio link variables may hold.
@@ -153,8 +154,6 @@ def module_policy(module):
             },
             'qt': {'GuiPrivate', 'Network', 'ShaderTools'},
             'forbidden': FORBIDDEN_TIMELINE_PLAYER,
-            # Upstream documentation URLs contain /web/ path segments.
-            'vendored_sources': {'third_party/miniaudio.h'},
             # Yoga's upstream build file, vendored unchanged and never added.
             'unbuilt_cmake': {'third_party/yoga/yoga/CMakeLists.txt'},
         }

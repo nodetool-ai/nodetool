@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 # The timeline player shared by native/timeline and the node editor:
 # nodetool_timeline_scene (the timeline document, its JSON parser and scene
-# evaluation, with Qt Core and Yoga only) and nodetool_timeline_decode (the
+# evaluation, with Qt Core, Yoga and native/audio-io only) and nodetool_timeline_decode (the
 # media sources, the GPU effects, the hook registries and render2d),
 # nodetool_timeline_audio (the audio engine and mixer),
 # nodetool_timeline_player (the QML module NodeTool.TimelinePlayer: the clock,
@@ -49,6 +49,12 @@ if(MSVC)
 else()
     set(NT_PLAYER_WARNINGS -Wall -Wextra)
     set(NT_PLAYER_NO_WARNINGS -w)
+endif()
+
+# The audio device layer (native/audio-io): the miniaudio device, AudioClockFeed,
+# OutputLatency and PcmRing, shared with the realtime engine.
+if(NOT TARGET nodetool_audio_io)
+    add_subdirectory(../audio-io ${CMAKE_CURRENT_BINARY_DIR}/audio-io)
 endif()
 
 # Yoga 3.2.1, the flex layout of the web scene model (third_party/yoga).
@@ -110,13 +116,13 @@ add_library(nodetool_timeline_scene STATIC
     src/preview/transitions/TransitionResolver.cpp
     src/platform/CpuUsage.h
     src/platform/CpuUsage.cpp
-    src/playback/AudioClockFeed.h
-    src/playback/AudioClockFeed.cpp
     src/transcript/CaptionCues.h
     src/transcript/CaptionCues.cpp)
 set_target_properties(nodetool_timeline_scene PROPERTIES AUTOMOC ON)
 target_include_directories(nodetool_timeline_scene PUBLIC src)
-target_link_libraries(nodetool_timeline_scene PUBLIC Qt6::Core PRIVATE yogacore)
+# The scene carried AudioClockFeed before the extraction, so its consumers keep
+# the audio-io headers and symbols through it.
+target_link_libraries(nodetool_timeline_scene PUBLIC Qt6::Core nodetool_audio_io PRIVATE yogacore)
 target_compile_options(nodetool_timeline_scene PRIVATE ${NT_PLAYER_WARNINGS})
 if(NT_PORTABLE)
     target_compile_definitions(nodetool_timeline_scene PUBLIC NT_PORTABLE_PLATFORM)
@@ -293,9 +299,6 @@ add_library(nodetool_timeline_audio STATIC
     src/audio/LoopbackCapture.cpp
     src/audio/Mixer.h
     src/audio/Mixer.cpp
-    src/audio/OutputLatency.h
-    src/audio/OutputLatency.cpp
-    src/audio/PcmRing.h
     src/audio/ShuttleStretch.h
     src/audio/ShuttleStretch.cpp
     src/audio/effects/Effects.h
@@ -315,9 +318,7 @@ add_library(nodetool_timeline_audio STATIC
     src/audio/loudness/LiveLoudness.h
     src/audio/loudness/LiveLoudness.cpp
     src/audio/loudness/Loudness.h
-    src/audio/loudness/Loudness.cpp
-    src/audio/miniaudio.cpp)
-target_include_directories(nodetool_timeline_audio PRIVATE third_party)
+    src/audio/loudness/Loudness.cpp)
 target_link_libraries(nodetool_timeline_audio
     PUBLIC nodetool_timeline_scene PkgConfig::FFMPEG
     PRIVATE nodetool_kernels ${NT_PLAYER_AUDIO_PLATFORM_LIBS})
@@ -326,7 +327,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     # A superproject also needs the library when it links the audio target.
     target_link_options(nodetool_timeline_audio INTERFACE -fexperimental-library)
 endif()
-set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_PLAYER_NO_WARNINGS}")
 add_library(nodetool_timeline_playback_registrar OBJECT src/preview/PlaybackStartup.cpp)
 target_link_libraries(nodetool_timeline_playback_registrar PUBLIC nodetool_timeline_audio)
 
@@ -453,7 +453,7 @@ if(BUILD_TESTING)
     foreach(test_name tst_audioeffects tst_ducking tst_liveloudness tst_loudness tst_loudnessengine tst_shuttlestretch)
         set_target_properties(${test_name} PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC ON)
         target_compile_options(${test_name} PRIVATE ${NT_PLAYER_WARNINGS})
-        target_link_libraries(${test_name} PRIVATE nodetool_timeline_audio Qt6::Test)
+        target_link_libraries(${test_name} PRIVATE nodetool_timeline_audio nodetool_audio_io_test_support Qt6::Test)
         add_test(NAME ${test_name} COMMAND ${test_name})
         set_tests_properties(${test_name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     endforeach()

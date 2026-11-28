@@ -8,10 +8,10 @@ the native node editor. The
 
 | Target | Dependencies | Contents |
 |---|---|---|
-| `nodetool_timeline_scene` | Qt Core, Yoga | The document types (`model/TimelineTypes.h`), `TimelineJson`, `TimelineSource`, `StaticTimelineSource`, `TimelineDocumentLoader`, `scene/`, the motion headers, `SceneEval`, `SceneHooks`, crop and reframe evaluation, picture automation, `TransitionResolver`, `CaptionCues`, `CpuUsage` and `AudioClockFeed` |
+| `nodetool_timeline_scene` | Qt Core, Yoga, [`nodetool_audio_io`](../audio-io/README.md) | The document types (`model/TimelineTypes.h`), `TimelineJson`, `TimelineSource`, `StaticTimelineSource`, `TimelineDocumentLoader`, `scene/`, the motion headers, `SceneEval`, `SceneHooks`, crop and reframe evaluation, picture automation, `TransitionResolver`, `CaptionCues` and `CpuUsage`. `AudioClockFeed` comes from `nodetool_audio_io` |
 | `nodetool_timeline_decode` | `nodetool_timeline_scene`, Qt Gui and GuiPrivate (QRhi), FFmpeg, HarfBuzz, FreeType, the platform's hardware decode libraries | The media sources and their pools (`FfmpegSource`, `SourcePool`, `FrameCache`, `SurfacePool`, `RetireQueue`), the hardware interop (`preview/hw/`), the layer and compose hook registries, the effects, render2d and the effect shaders (`shaders/effects/`) |
 | `nodetool_timeline_effects_registrar`, `nodetool_timeline_render2d_registrar`, `nodetool_timeline_playback_registrar` | `nodetool_timeline_decode` or `nodetool_timeline_audio` | Object libraries that register the [standard hooks](#standard-hooks) for the process lifetime |
-| `nodetool_timeline_audio` | `nodetool_timeline_scene`, FFmpeg, `nodetool_kernels`, miniaudio, platform audio libraries | The playback engine, mixer, audio sources, shuttle stretch, effects, mix and output-device hooks, time-remapped audio, mixer automation, and loudness processing |
+| `nodetool_timeline_audio` | `nodetool_timeline_scene` (with `nodetool_audio_io`), FFmpeg, `nodetool_kernels`, platform audio libraries | The playback engine, mixer, audio sources, shuttle stretch, effects, mix and output-device hooks, time-remapped audio, mixer automation, and loudness processing |
 | `nodetool_timeline_hooks` | `nodetool_timeline_decode`, `nodetool_timeline_audio` | Explicit [standard hook](#standard-hooks) registration for hosts with or without QML |
 | `nodetool_timeline_player`, `nodetool_timeline_playerplugin` | `nodetool_timeline_decode`, `nodetool_timeline_audio`, `nodetool_ui_primitives`, Qt Qml and Quick | The [QML module](#qml-module) `NodeTool.TimelinePlayer`: `PlaybackClock`, `PreviewCompositor`, `HwWindow`, the composite shaders (`shaders/`), `TimelinePlayerController` and `TimelinePlayer.qml` |
 | `nodetool_timeline_player_server` | Qt Network, `nodetool_timeline_scene` | `ServerTimelineLoader`, tRPC, media resolution and cache leases |
@@ -195,9 +195,11 @@ with a remapped mix, track automation and a dynamic crop.
 
 ## Audio
 
-`AudioEngine` owns the device handle, the decode worker, and the playback
-buffers. Miniaudio manages the device callback thread and lends the engine an
-output buffer for each callback. The worker writes the PCM rings and the
+`AudioEngine` owns the device, the decode worker, and the playback buffers.
+The device is a `PlaybackDevice` from [native/audio-io](../audio-io/README.md),
+which also holds `AudioClockFeed`, `OutputLatency` and `PcmRing`. Miniaudio
+manages the device callback thread and lends the engine an output buffer for
+each callback. The worker writes the PCM rings and the
 callback reads them. The engine uninitializes the device and joins its worker
 before freeing the rings and callback state.
 
@@ -205,7 +207,7 @@ The timeline app's `AppAudio` feeds the engine from a `TimelineSource` and
 connects it to the app's `PlaybackClock`. The app also owns automation
 editing and the meter taps that supply its mixer UI.
 Miniaudio's license is at the end of
-[`third_party/miniaudio.h`](third_party/miniaudio.h).
+[`third_party/miniaudio.h`](../audio-io/third_party/miniaudio.h) in native/audio-io.
 
 ## Server loader
 

@@ -3,9 +3,9 @@
 
 #include "audio/AudioSource.h"
 #include "audio/ShuttleStretch.h"
+#include "audio/PlaybackDevice.h"
 #include "audio/hooks/OutputDevice.h"
 
-#include "miniaudio.h"
 
 #include <algorithm>
 #include <atomic>
@@ -148,11 +148,9 @@ struct AudioEngine::Impl {
     std::vector<float> chunk = std::vector<float>(static_cast<std::size_t>(kChunkFrames) * 2);
 
     // ---- device ----
-    // native-rules #6: ma_context and ma_device are freed by hand with uninit calls, no RAII wrapper
-    ma_context context{};
-    ma_device device{};
-    bool contextReady = false;
-    bool deviceReady = false;
+    // Opened in start() and closed in stop(), on the caller thread. close()
+    // returns after the device's callbacks have stopped.
+    std::unique_ptr<PlaybackDevice> device;
     std::string backendName;
     std::string deviceName;
     bool selectedDevice = false;
@@ -182,19 +180,13 @@ struct AudioEngine::Impl {
 
     double queryLatency() {
         if (options.backend == Backend::Null) return options.simulatedLatencySec;
-#if defined(MA_SUPPORT_COREAUDIO)
-        if (device.pContext->backend == ma_backend_coreaudio) {
-            const OutputLatency facts = queryCoreAudioOutputLatency(device.coreaudio.deviceObjectIDPlayback);
-            {
-                std::lock_guard lock(factsMutex);
-                coreAudio = facts;
-            }
-            if (facts.ok) return facts.seconds;
+        // On CoreAudio the device facts, elsewhere the device buffer.
+        const PlaybackDevice::Latency latency = device->outputLatency();
+        if (latency.coreAudio) {
+            std::lock_guard lock(factsMutex);
+            coreAudio = *latency.coreAudio;
         }
-#endif
-        // Elsewhere: the device buffer.
-        return static_cast<double>(device.playback.internalPeriodSizeInFrames * device.playback.internalPeriods) /
-               sampleRate;
+        return latency.seconds;
     }
 
     // ---- callback ----
@@ -334,24 +326,24 @@ struct AudioEngine::Impl {
         scrubPos += frames;
     }
 
-    static void dataCallback(ma_device* dev, void* output, const void*, ma_uint32 frames) {
-        static_cast<Impl*>(dev->pUserData)->render(static_cast<float*>(output), frames);
+    static void dataCallback(void* user, float* output, std::uint32_t frames) {
+        static_cast<Impl*>(user)->render(output, frames);
     }
 
-    static void notificationCallback(const ma_device_notification* n) {
-        static_cast<Impl*>(n->pDevice->pUserData)->onNotification(n->type);
+    static void notificationCallback(void* user, PlaybackDevice::Notification notification) {
+        static_cast<Impl*>(user)->onNotification(notification);
     }
 
-    void onNotification(ma_device_notification_type type) {
+    void onNotification(PlaybackDevice::Notification type) {
         switch (type) {
-            case ma_device_notification_type_rerouted:
+            case PlaybackDevice::Notification::Rerouted:
                 // D21 step 3: the latency is queried again; the clock sees a
                 // new generation and re-anchors (step 4).
                 latencySec.store(queryLatency());
                 generation.fetch_add(1);
                 publishDevice(true);
                 break;
-            case ma_device_notification_type_stopped:
+            case PlaybackDevice::Notification::Stopped:
                 // The device stopped on its own (a suspend, a lost device):
                 // the clock falls back to the monotonic clock.
                 if (running.load()) {
@@ -359,7 +351,7 @@ struct AudioEngine::Impl {
                     publishDevice(false);
                 }
                 break;
-            case ma_device_notification_type_started:
+            case PlaybackDevice::Notification::Started:
                 // A resume after such a stop (PulseAudio suspend and resume
                 // send the pair without a reroute). The device facts may have
                 // changed: query them again under a new generation, so the
@@ -753,38 +745,22 @@ bool AudioEngine::start(const Options& options, std::string* error) {
         stop();
         return false;
     };
-    ma_backend nullBackend[] = {ma_backend_null};
-    const ma_result ctx = options.backend == Backend::Null ? ma_context_init(nullBackend, 1, nullptr, &d.context)
-                                                           : ma_context_init(nullptr, 0, nullptr, &d.context);
-    if (ctx != MA_SUCCESS) return fail("cannot create the audio context");
-    d.contextReady = true;
-
-    ma_device_config config = ma_device_config_init(ma_device_type_playback);
-    config.playback.format = ma_format_f32;
-    config.playback.channels = 2;
-    config.sampleRate = static_cast<ma_uint32>(std::max(0, options.sampleRate));
-    config.periodSizeInFrames = static_cast<ma_uint32>(std::max(64, options.periodFrames));
-    config.dataCallback = &Impl::dataCallback;
-    config.notificationCallback = &Impl::notificationCallback;
-    config.pUserData = &d;
-    config.noPreSilencedOutputBuffer = MA_TRUE;
-    config.noClip = MA_TRUE;
-    ma_device_info* playbackDevices = nullptr;
-    ma_uint32 playbackCount = 0;
-    d.selectedDevice = false;
-    if (hasOutputDeviceProvider() &&
-        ma_context_get_devices(&d.context, &playbackDevices, &playbackCount, nullptr, nullptr) == MA_SUCCESS) {
-        std::vector<std::string> names;
-        names.reserve(playbackCount);
-        for (ma_uint32 i = 0; i < playbackCount; ++i) { names.emplace_back(playbackDevices[i].name); }
-        if (const auto selected = selectedOutputDevice(names)) {
-            config.playback.pDeviceID = &playbackDevices[*selected].id;
-            d.selectedDevice = true;
-        }
+    PlaybackDevice::Config config;
+    config.backend = options.backend == Backend::Null ? PlaybackDevice::Backend::Null : PlaybackDevice::Backend::System;
+    config.sampleRate = options.sampleRate;
+    config.periodFrames = options.periodFrames;
+    config.channels = 2;
+    PlaybackDevice::Selector select;
+    if (hasOutputDeviceProvider()) {
+        select = [](std::span<const std::string> names) { return selectedOutputDevice(names); };
     }
-    if (ma_device_init(&d.context, &config, &d.device) != MA_SUCCESS) return fail("cannot open the audio device");
-    d.deviceReady = true;
-    d.sampleRate = static_cast<double>(d.device.sampleRate);
+    d.selectedDevice = false;
+    std::string why;
+    // The device calls back into `d`, which outlives it: stop() closes the device first.
+    d.device = PlaybackDevice::open(config, {&Impl::dataCallback, &Impl::notificationCallback, &d}, select, &why);
+    if (!d.device) return fail(why);
+    d.selectedDevice = d.device->selectedDevice();
+    d.sampleRate = d.device->sampleRate();
     prepareMixPlan(*d.plan, d.sampleRate);
     // Before the device starts, so the callback never sees a half-built meter.
     d.liveLoudness.reset();
@@ -793,8 +769,8 @@ bool AudioEngine::start(const Options& options, std::string* error) {
         d.liveLoudness = std::make_unique<LiveLoudness>(*options.loudness);
         d.liveLoudness->prepare(d.sampleRate);
     }
-    d.backendName = ma_get_backend_name(d.context.backend);
-    d.deviceName = d.device.playback.name;
+    d.backendName = d.device->backendName();
+    d.deviceName = d.device->deviceName();
     d.latencySec.store(d.queryLatency());
     d.driver = std::make_unique<CallbackClockDriver>(d.feed);
     d.shuttleStamp.store(0);
@@ -816,7 +792,7 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     d.running.store(true);
     d.generation.fetch_add(1);
     d.publishDevice(true);
-    if (ma_device_start(&d.device) != MA_SUCCESS) return fail("cannot start the audio device");
+    if (!d.device->start()) return fail("cannot start the audio device");
     return true;
 }
 
@@ -824,13 +800,10 @@ void AudioEngine::stop() {
     Impl& d = *m_impl;
     const bool wasRunning = d.running.exchange(false);
     d.wake.notify_all();
-    if (d.deviceReady) {
-        ma_device_uninit(&d.device);
-        d.deviceReady = false;
-    }
-    if (d.contextReady) {
-        ma_context_uninit(&d.context);
-        d.contextReady = false;
+    if (d.device) {
+        // Closing first stops the callbacks, which may still query the device.
+        d.device->close();
+        d.device.reset();
     }
     if (d.worker.joinable()) {
         {
@@ -864,7 +837,7 @@ void AudioEngine::simulateDeviceChange(double latencySec) {
 void AudioEngine::simulateDeviceNotification(bool started) {
     Impl& d = *m_impl;
     if (d.options.backend != Backend::Null) return;
-    d.onNotification(started ? ma_device_notification_type_started : ma_device_notification_type_stopped);
+    d.onNotification(started ? PlaybackDevice::Notification::Started : PlaybackDevice::Notification::Stopped);
 }
 
 AudioEngine::Stats AudioEngine::stats() const {
