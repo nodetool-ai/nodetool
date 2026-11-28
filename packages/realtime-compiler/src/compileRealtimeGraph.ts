@@ -3,7 +3,7 @@ import { PLAN_SCHEMA } from "./generated/PlanSchema.js";
 import { compareNames, CompileFailure, fail, identity, integer, parameterAllocator, prepareGraph } from "./CompilerSupport.js";
 import { createControlCompiler } from "./ControlCompiler.js";
 import { compileAudioGraph } from "./compileAudioGraph.js";
-import type { BatchBoundary, CompileInput, CompileResult, Diagnostic, LiveDescriptor, RenderPass, RenderPlan, TextureContract } from "./Types.js";
+import type { BatchBoundary, CompileInput, CompileResult, CompileSuccess, Diagnostic, LiveDescriptor, RenderPass, RenderPlan, TextureContract } from "./Types.js";
 
 function copyTexture(texture: TextureContract, node: string): TextureContract {
   if (!PLAN_SCHEMA.properties.render.properties.passes.items.properties.output.properties.format.enum.some((value) => value === texture.format) ||
@@ -19,18 +19,49 @@ function copyTexture(texture: TextureContract, node: string): TextureContract {
     : { kind: "input", input: texture.size.input, scale: texture.size.scale };
   return { format: texture.format, alpha: texture.alpha, colorSpace: texture.colorSpace, size };
 }
-/** Compile one audio or render region without host I/O. Unsupported forms reject with graph-node diagnostics. */
+/** Compile a render region, audio regions or both without host I/O. Unsupported forms reject with graph-node diagnostics. */
 export function compileRealtimeGraph(input: CompileInput): CompileResult {
   try {
-    const root = input.graph.nodes.find((node) => node.id === input.outputs[0]);
-    return root && input.descriptors.get(root.type)?.kind === "audio-output" ? compileAudioGraph(input) : compile(input);
+    const types = new Map(input.graph.nodes.map((node) => [node.id, node.type]));
+    const audio = input.outputs.filter((id) => {
+      const type = types.get(id); return type !== undefined && input.descriptors.get(type)?.kind === "audio-output";
+    });
+    if (audio.length === input.outputs.length) { return compileAudioGraph(input); }
+    return audio.length === 0 ? compile(input) : compileMixed(input, audio);
   }
   catch (error) {
     if (error instanceof CompileFailure) { return { status: "error", diagnostics: [error.diagnostic] }; }
     throw error;
   }
 }
-function compile(input: CompileInput): CompileResult {
+// RT-F47: each domain lowers its own control region, so an analytic operation that both
+// domains read is placed in both. A stateful operation may run in one domain only. When both
+// domains read it, the audio thread must publish it through the signal history (WP22).
+function compileMixed(input: CompileInput, audioOutputs: readonly string[]): CompileSuccess {
+  const audioSet = new Set(audioOutputs);
+  const renderOutputs = input.outputs.filter((id) => !audioSet.has(id));
+  if (renderOutputs.length !== 1) { fail(renderOutputs[1], "outputs", "A plan has at most one render output"); }
+  const render = compile({ ...input, outputs: renderOutputs });
+  const audio = compileAudioGraph({ ...input, outputs: audioOutputs });
+  const audioStateful = new Set(audio.plan.control.stateful.map((op) => op.node));
+  const shared = render.plan.control.stateful.find((op) => audioStateful.has(op.node));
+  if (shared) { fail(shared.node, "stateful_domain", "A stateful control read by audio and render requires the signal history (WP22)"); }
+  const slots = new Map<string, RenderPlan["slots"][number]>(render.plan.slots.map((slot) => [slot.id, slot]));
+  const pcmSources = new Map(audio.boundaries.map((boundary) => [boundary.slot, boundary.node]));
+  for (const slot of audio.plan.slots) {
+    if (slots.has(slot.id)) { fail(pcmSources.get(slot.id) ?? slot.id, "identity_collision", `${slot.id} is both a texture and a PCM boundary`); }
+    slots.set(slot.id, slot);
+  }
+  const control = {
+    registers: Math.max(render.plan.control.registers, audio.plan.control.registers),
+    ops: [...render.plan.control.ops, ...audio.plan.control.ops],
+    stateful: [...render.plan.control.stateful, ...audio.plan.control.stateful]
+  };
+  const plan: RenderPlan = { ...audio.plan, slots: [...slots.values()].sort((a, b) => compareNames(a.id, b.id)), control, render: render.plan.render };
+  return { status: "ok", plan, boundaries: [...render.boundaries, ...audio.boundaries].sort((a, b) => compareNames(a.slot, b.slot)),
+    warnings: [...render.warnings, ...audio.warnings], allocation: audio.allocation, stateKeys: [...render.stateKeys, ...audio.stateKeys] };
+}
+function compile(input: CompileInput): CompileSuccess {
   const { descriptors, session } = input;
   const { nodes, incoming } = prepareGraph(input);
   const allocation = parameterAllocator(input.allocation);
@@ -50,7 +81,7 @@ function compile(input: CompileInput): CompileResult {
     if (!node) { fail(id, "missing_node", id); }
     const descriptor = descriptors.get(node.type);
     if (!descriptor) { continue; }
-    if (descriptor.kind === "dsp" || descriptor.kind === "audio-output") { fail(id, "unsupported", "Mixed audio/render graphs are deferred"); }
+    if (descriptor.kind === "dsp" || descriptor.kind === "audio-output") { fail(id, "unsupported", "Audio signals cannot feed the render region; analysis taps are WP22"); }
     live.add(id);
     const allowed = descriptor.kind === "render-output" ? [descriptor.input] : controls.inputPorts(descriptor, id);
     const names = new Set(allowed);
@@ -151,7 +182,7 @@ function compile(input: CompileInput): CompileResult {
         controls.uniform(node, field).index);
       passes.push({ node: id, module: descriptor.module, inputs: Object.fromEntries(inputs), uniforms, retention: descriptor.retention, output });
       textures.set(identity(id, descriptor.output), { id, contract: output, retained: descriptor.retention === "retained" });
-    } else { fail(id, "unsupported", "Mixed audio/render graphs are deferred"); }
+    } else { fail(id, "unsupported", "Audio signals cannot feed the render region; analysis taps are WP22"); }
   }
   const presented = texture(sinkEdge);
   const plan: RenderPlan = { schemaVersion: PLAN_SCHEMA.properties.schemaVersion.const, revision: input.revision,

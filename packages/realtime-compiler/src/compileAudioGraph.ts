@@ -1,7 +1,7 @@
 import type { Edge } from "@nodetool-ai/protocol";
 import { compareNames, fail, hash, identity, integer, parameterAllocator, prepareGraph, stateKey, values } from "./CompilerSupport.js";
 import { createControlCompiler } from "./ControlCompiler.js";
-import type { AudioNode, BatchBoundary, BatchPcm, CompileInput, CompileResult, DspDescriptor, DspKernel, PlanParameter, RealtimePlan, StateKey } from "./Types.js";
+import type { AudioNode, BatchBoundary, BatchPcm, CompileInput, CompileSuccess, DspDescriptor, DspKernel, PlanParameter, RealtimePlan, StateKey } from "./Types.js";
 
 // ABI 1 built-in contracts from native/realtime/audio.md. Product descriptors remain host supplied.
 const KERNELS: ReadonlyMap<DspKernel, readonly [number, number]> = new Map([
@@ -10,14 +10,14 @@ const KERNELS: ReadonlyMap<DspKernel, readonly [number, number]> = new Map([
   ["biquad.allpass", [1, 3]], ["biquad.peaking", [1, 3]], ["biquad.lowshelf", [1, 3]], ["biquad.highshelf", [1, 3]]
 ]);
 
-/** Audio-only DSP/control lowering with prepared PCM boundaries. Mixed domains and feedback reject. */
-export function compileAudioGraph(input: CompileInput): CompileResult {
+/** Audio DSP/control lowering with prepared PCM boundaries. Feedback rejects. */
+export function compileAudioGraph(input: CompileInput): CompileSuccess {
   const { nodes, incoming } = prepareGraph(input, true); const { descriptors, session } = input;
   const allocator = parameterAllocator(input.allocation);
   const controls = createControlCompiler("audio", input, nodes, incoming);
   const sinks = [...input.outputs].sort(compareNames).map((id) => {
     const node = nodes.get(id); const descriptor = node && descriptors.get(node.type);
-    if (!node || descriptor?.kind !== "audio-output") { return fail(id, "outputs", "Expected audio-output descriptors; mixed-domain outputs are deferred"); }
+    if (!node || descriptor?.kind !== "audio-output") { return fail(id, "outputs", "Expected audio-output descriptors"); }
     if (!["device", "tap", "record"].includes(descriptor.sink)) { fail(id, "descriptor", "Unsupported audio sink kind"); }
     const inputs = incoming.get(id); const edge = inputs?.get(descriptor.input);
     if (!edge || inputs?.size !== 1) { fail(id, "port", "Audio output requires its declared input only"); }
