@@ -11,7 +11,13 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 
-import { getHfHomeDir, resolveHfEndpoint } from "@nodetool-ai/config";
+import {
+  getHfHomeDir,
+  isAuthEnforced,
+  isCloudProfileEnv,
+  mayUseServerCredential,
+  resolveHfEndpoint
+} from "@nodetool-ai/config";
 
 // ---------------------------------------------------------------------------
 // In-memory cache
@@ -207,4 +213,75 @@ export async function resolveStoredHfEndpoint(
     }
   }
   return resolveHfEndpoint(stored);
+}
+
+// ---------------------------------------------------------------------------
+// Endpoint and token for one user's Hub request
+// ---------------------------------------------------------------------------
+
+/**
+ * What a Hub request is for. A `download` writes the process-wide Hub cache,
+ * which every user of the server reads; a `search` only reads the Hub.
+ */
+export type HfHubUse = "search" | "download";
+
+/** The host a user's Hub request goes to, and the token sent with it. */
+export interface HfHubAccess {
+  endpoint: string;
+  /** Bearer token for `endpoint`, or `undefined` to send none. */
+  token: string | undefined;
+  /** True when `endpoint` came from the user's setting, not the operator's. */
+  userEndpoint: boolean;
+}
+
+/**
+ * True when the server is shared between users: authentication is enforced
+ * or the cloud profile is active. One person's settings then must not decide
+ * what lands in the shared Hub cache.
+ */
+export function isSharedHfHost(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return isAuthEnforced(env) || isCloudProfileEnv(env);
+}
+
+/**
+ * Resolve the Hub host and token for one user's request.
+ *
+ * - The endpoint is the user's stored `HF_ENDPOINT`, else the operator's
+ *   (`HF_ENDPOINT` in the environment, else the public Hub). For a
+ *   `download` on a shared server the user's value is ignored and the
+ *   operator's endpoint is used.
+ * - The user's stored `HF_TOKEN` goes to whichever endpoint was resolved.
+ * - The server's own token (environment or HF token file, see
+ *   {@link getHfToken}) is sent only to the operator's endpoint, and only
+ *   where `mayUseServerCredential("HF_TOKEN")` allows it.
+ */
+export async function resolveHfHubAccess(
+  readSecret: SecretReader | undefined,
+  use: HfHubUse
+): Promise<HfHubAccess> {
+  const operatorEndpoint = resolveHfEndpoint(null);
+  const ignoreUserEndpoint = use === "download" && isSharedHfHost();
+  const endpoint = ignoreUserEndpoint
+    ? operatorEndpoint
+    : await resolveStoredHfEndpoint(readSecret);
+
+  const userEndpoint = endpoint !== operatorEndpoint;
+
+  if (readSecret) {
+    try {
+      const stored = (await readSecret("HF_TOKEN"))?.trim();
+      if (stored) return { endpoint, token: stored, userEndpoint };
+    } catch {
+      // A locked or missing secret store falls through, as in
+      // resolveWorkerHfToken. Never log: the failure can carry key material.
+    }
+  }
+
+  if (userEndpoint || !mayUseServerCredential("HF_TOKEN")) {
+    return { endpoint, token: undefined, userEndpoint };
+  }
+  const local = (await getHfToken())?.trim();
+  return { endpoint, token: local || undefined, userEndpoint };
 }

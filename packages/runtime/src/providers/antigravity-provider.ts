@@ -21,7 +21,8 @@
  * writes inside the active workspace. Shell commands stay soft-denied: the
  * provider never passes `--dangerously-skip-permissions`. Web searches
  * (`webSearch`) are one `stream-json` turn on the default agent, in their own
- * empty scratch directory, that must run the CLI's `search_web` tool.
+ * empty scratch directory, that must run the CLI's `search_web` tool and
+ * no other.
  */
 
 import {
@@ -478,7 +479,8 @@ export class AntigravityProvider extends AcpCliProvider {
    * Runs one headless turn on the CLI's default agent in an empty scratch
    * directory, with a `--json-schema` that makes the final result an answer
    * plus the pages it relied on. A run in which no `search_web` step ran is
-   * an error: its "results" would be the model's memory, not a search.
+   * an error: its "results" would be the model's memory, not a search. A run
+   * in which any other tool ran is an error too.
    */
   async webSearch(
     query: string,
@@ -561,6 +563,14 @@ export class AntigravityProvider extends AcpCliProvider {
       throw new AntigravityCliError(
         `agy answered without running ${AGY_WEB_SEARCH_TOOL} (ran ${ran})` +
           (stderr.trim() ? `: ${stderr.trim()}` : "")
+      );
+    }
+    const otherTools = toolNames.filter((name) => name !== AGY_WEB_SEARCH_TOOL);
+    if (otherTools.length > 0) {
+      // The search turn may only search. An answer that also used other
+      // tools is not returned.
+      throw new AntigravityCliError(
+        `agy ran tools other than ${AGY_WEB_SEARCH_TOOL} during the search (${otherTools.join(", ")})`
       );
     }
 

@@ -250,6 +250,11 @@ export {
 } from "./secret-helper.js";
 export type { CredentialSource } from "./secret-helper.js";
 export {
+  userSettingCatalog,
+  refusedHostSettingKeys,
+  hostSettingsRefusalMessage
+} from "./host-settings.js";
+export {
   isOnePasswordReference,
   parseOnePasswordReference,
   resolveOnePasswordReference,

@@ -255,6 +255,19 @@ export async function invokeCapability(
   });
 }
 
+/**
+ * Whether this call of `spec` must ask the user even in `auto` mode and
+ * despite a standing approval (see `CapabilitySpec.alwaysAsk`).
+ */
+export function capabilityAlwaysAsks(
+  spec: CapabilitySpec,
+  args: Record<string, unknown>
+): boolean {
+  return typeof spec.alwaysAsk === "function"
+    ? spec.alwaysAsk(args)
+    : spec.alwaysAsk === true;
+}
+
 async function invokeCapabilityImpl(
   run: CapabilityRun,
   entry: CapabilityExport,
@@ -267,7 +280,7 @@ async function invokeCapabilityImpl(
   const args = checked.args;
   const category = spec.category;
   const decision = decidePermission(run.gate.mode, category);
-  const alwaysAsk = spec.alwaysAsk === true;
+  const alwaysAsk = capabilityAlwaysAsks(spec, args);
 
   // Read-class capabilities go straight to the implementation, so the "never
   // consulted by the monitor" invariant holds by construction.

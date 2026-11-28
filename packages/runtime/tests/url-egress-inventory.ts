@@ -1260,6 +1260,19 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "provider keys",
     "Provider catalog endpoints from constants; Hub search uses huggingface.co or the operator's HF_ENDPOINT mirror."
   ),
+  {
+    file: "packages/websocket/src/trpc/routers/models.ts",
+    owner: "Hugging Face Hub search on a user's HF_ENDPOINT",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope:
+      "The user's own HF_TOKEN, if saved. The server's HF token goes only to the operator endpoint.",
+    redirects: "checked-per-hop",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["safeFetch"],
+    note: "On a shared server (auth enforced or cloud profile), Hub search against an endpoint from the user's settings goes through safeFetch. The operator endpoint, and any endpoint on a single-user install, uses the global fetch."
+  },
   fixedHost(
     "packages/runtime/src/providers/kie-provider.ts",
     "KIE provider API calls",

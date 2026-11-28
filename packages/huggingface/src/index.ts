@@ -6,9 +6,11 @@ export {
   resolveHfToken,
   clearHfTokenCache,
   resolveWorkerHfToken,
-  resolveStoredHfEndpoint
+  resolveStoredHfEndpoint,
+  resolveHfHubAccess,
+  isSharedHfHost
 } from "./hf-auth.js";
-export type { SecretReader } from "./hf-auth.js";
+export type { SecretReader, HfHubAccess, HfHubUse } from "./hf-auth.js";
 
 export { HfFastCache } from "./hf-cache.js";
 

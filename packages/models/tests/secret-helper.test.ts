@@ -92,6 +92,65 @@ describe("secret-helper", () => {
       });
     });
 
+    describe("program paths on a shared server", () => {
+      const KEY = "CLAUDE_CLI_PATH";
+      const DEPLOYMENT = [
+        "NODETOOL_NODE_PROFILE",
+        "NODETOOL_ENV",
+        "OIDC_ISSUER",
+        "OIDC_CLIENT_ID",
+        "SUPABASE_KEY",
+        KEY
+      ];
+      const saved: Record<string, string | undefined> = {};
+      beforeEach(async () => {
+        for (const name of DEPLOYMENT) {
+          saved[name] = process.env[name];
+          delete process.env[name];
+        }
+        process.env.NODETOOL_NODE_PROFILE = "full";
+        await Setting.upsert({ userId: "user-1", key: KEY, value: "/home/u/claude" });
+      });
+      afterEach(() => {
+        for (const name of DEPLOYMENT) {
+          if (saved[name] === undefined) delete process.env[name];
+          else process.env[name] = saved[name];
+        }
+      });
+
+      it("serves the user's own path on a single-user install", async () => {
+        expect(await getSecret(KEY, "user-1")).toBe("/home/u/claude");
+        expect(await hasSecret(KEY, "user-1")).toBe(true);
+      });
+
+      it("reads only the environment on the cloud profile", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        await Secret.upsert({ userId: "user-1", key: KEY, value: "/home/u/other" });
+        expect(await getSecret(KEY, "user-1")).toBeNull();
+        expect(await hasSecret(KEY, "user-1")).toBe(false);
+        process.env[KEY] = "/usr/local/bin/claude";
+        expect(await getSecret(KEY, "user-1")).toBe("/usr/local/bin/claude");
+      });
+
+      it("reads only the environment when auth is enforced", async () => {
+        process.env.OIDC_ISSUER = "https://sso.example";
+        process.env.OIDC_CLIENT_ID = "nodetool";
+        expect(await getSecret(KEY, "user-1")).toBeNull();
+        process.env[KEY] = "/usr/local/bin/claude";
+        expect(await getSecret(KEY, "user-1")).toBe("/usr/local/bin/claude");
+      });
+
+      it("keeps the user's value for a setting that names no program", async () => {
+        process.env.NODETOOL_NODE_PROFILE = "cloud";
+        await Setting.upsert({
+          userId: "user-1",
+          key: "AUTOSAVE_INTERVAL_MINUTES",
+          value: "3"
+        });
+        expect(await getSecret("AUTOSAVE_INTERVAL_MINUTES", "user-1")).toBe("3");
+      });
+    });
+
     it("returns default when neither DB nor env has it", async () => {
       expect(await getSecret("MISSING_KEY", "user-1", "fallback")).toBe(
         "fallback"

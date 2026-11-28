@@ -43,6 +43,8 @@ export {
   withheldServerCredentials
 } from "./server-credentials.js";
 
+export { isSharedServer, isServerEnvOnlySetting } from "./host-settings.js";
+
 export { isGoogleWorkspaceEnabled } from "./google-workspace.js";
 
 export { isAutomaticStorageCleanupEnabled } from "./retention.js";
