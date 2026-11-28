@@ -52,6 +52,9 @@ QJsonObject saveContent(const QJsonObject& raw) {
 bool transient(const QueryResult& r) {
     if (r.error.code == u"WRONG_SERVER") return false;  // never written, never retried
     const int status = r.error.httpStatus;
+    if (status >= 400 && status < 500) {
+        return status == 408 || status == 429;
+    }
     return r.error.code == u"NETWORK" || r.error.code == u"TIMEOUT" || r.error.code == u"TOO_MANY_REQUESTS" ||
            r.error.code == u"INTERNAL_SERVER_ERROR" || status == 0 || status == 429 || status >= 500;
 }

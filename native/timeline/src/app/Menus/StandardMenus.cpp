@@ -36,8 +36,10 @@ const bool saveKeyRegistered = nt::wiring::registerKeyAction({"saveDocument", "S
     [](ClipGestureController& gestures, const QVariantMap&) {
         auto* host = nt::wiring::w::windowItem(&gestures, QStringLiteral("timelineEditor"));
         QVariant result;
+        // Dispatch consumes the key even when saving fails. Returning the
+        // save result lets the same event bubble and invoke Save again.
         return host && host->property("canSaveDocument").toBool()
-            && QMetaObject::invokeMethod(host, "saveDocument", Q_RETURN_ARG(QVariant, result)) && result.toBool();
+            && QMetaObject::invokeMethod(host, "saveDocument", Q_RETURN_ARG(QVariant, result));
     }});
 const bool saveRegistered = registerShellMenuItem({"File", "saveDocument", "Save", {}, {}, "save", -10,
     [](const QVariantMap& context) {

@@ -376,6 +376,23 @@ private slots:
         QCOMPARE(requests, 4);
         QTRY_VERIFY_WITH_TIMEOUT(!view->rootObject()->property("manualSaved").toBool(), 3000);
     }
+    void failedManualSaveConsumesShortcut() {
+        QQmlComponent component(view->engine());
+        component.setData("import QtQml\nQtObject { property int calls: 0; property bool conflict: false; property var stripped: []; property string lastError: \"\"; function saveDocument() { ++calls; return {ok: false, error: \"Save rejected\"}; } }", QUrl());
+        std::unique_ptr<QObject> saver(component.create());
+        QVERIFY2(saver, qPrintable(component.errorString()));
+        QVERIFY(view->rootObject()->setProperty("saver", QVariant::fromValue(saver.get())));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        const auto key = QKeySequence(QKeySequence::Save)[0];
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QCOMPARE(saver->property("calls").toInt(), 1);
+        QVERIFY(!view->rootObject()->property("manualSaveError").toString().isEmpty());
+        const auto& actions = nt::wiring::keyActions();
+        const auto action = std::find_if(actions.begin(), actions.end(), [](const auto& entry) { return entry.name == "saveDocument"; });
+        QVERIFY(action != actions.end());
+        QVERIFY(action->handler(*gestures(), {}));
+        QCOMPARE(saver->property("calls").toInt(), 2);
+    }
     void closedMenusCreateNoItemsDuringEditsAndScroll() {
         MenuItemCreationProbe probe;
         const auto teardown = qScopeGuard([this] { view.reset(); });

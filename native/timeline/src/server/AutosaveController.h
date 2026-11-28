@@ -23,7 +23,7 @@
 //     The conflict property stays true throughout recovery until the merged
 //     document is saved or clean again, and while recovery is stopped.
 //   - any other failure: the current document is written to
-//     `<id>.recovery.json`; a transient one (no answer, 5xx, 429) is retried
+//     `<id>.recovery.json`; a transient one (no answer, 5xx, 408, 429) is retried
 //     with a doubling delay, up to 30 s.
 // A recovery or conflict file that cannot be written is reported
 // (`recoveryError`, `lastError`). The client never saves without a base.
