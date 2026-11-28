@@ -61,9 +61,10 @@ All three ops run through `edit_timeline` headlessly and through the matching
   easing?}`. The move starts from the camera as it stands at `startMs`, so
   moves chain. It replaces the keys its channels had inside the span. The
   result carries the pose at both ends.
-- `render_model3d_reference {target, pass?}`. `pass` is `clay` (default),
-  `depth` or `normal`. The result carries `reference {assetId,
-  dependencyHash, pass}` and `cameraMove`.
+- `render_model3d_reference {target, pass?, force?}`. `pass` is `clay`
+  (default), `depth` or `normal`. The result carries `reference {assetId,
+  dependencyHash, pass, assetRevision}` and `cameraMove`. A current reference
+  is returned without a render unless `force` is true.
 
 Each refusal names the field and the fix. A move on an orbit camera, for
 example, answers with the `set_model3d_style` patch that puts the clip in free
@@ -102,6 +103,25 @@ node name with a space ("Camera 2" becomes "Camera_2"). `selectSceneCamera`
 matches the name the document holds first, then the rewritten form, so a
 `scene` camera is picked by the name `get_model3d` reports.
 
+**D6. A set edit is read from the asset's revision.** The set editor and
+`edit_model3d` save the glTF in place under the same asset id, so the
+dependency hash cannot see an edit to the set. The reference records the
+asset's `updated_at` as `assetRevision`. `model3dReferenceStatus` takes the
+current revision and reads the reference as stale when the two differ. A
+take made from the blockout is keyed by `model3dBlockoutTakeKey`, the hash
+plus the revision. Both hosts read the revision through the op context hook
+`model3dAssetRevision`. The Blender bake hash has the same gap and is not
+changed yet.
+
+**D7. Blender and Chrome come from the Package Manager.** `blender` and
+`chrome` are runtime packages (`AppBinaryRuntimePackage`). Blender is the
+newest 5.2 release, checked against Blender's SHA-256 file. Chrome is the
+current stable Chrome for Testing build. Both unpack into the runtime root
+(`runtimeLocations().blender` and `.chrome`), and both lookups try that
+location after `BLENDER_PATH` and `CHROME_PATH`. When neither finds an
+executable, the error is a `MissingRuntimePackageError`, so the editor offers
+the install.
+
 ## What remains
 
 1. **Native viewport and panels.** The native timeline has no 3D renderer, no
@@ -123,6 +143,9 @@ matches the name the document holds first, then the rewritten form, so a
 6. **Native op conformance.** The new ops have TypeScript parity fixtures
    (`packages/timeline/src/testing/ops.ts`). The native conformance run needs
    the native binaries and was not extended.
+7. **The bake hash ignores set edits.** `computeModel3DBakeHash` hashes the
+   asset id only, so a Blender bake of a set saved in place reads as current.
+   The fix is the revision check D6 applies to the reference.
 
 ## Verification
 

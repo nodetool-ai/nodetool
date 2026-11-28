@@ -42,4 +42,9 @@ describe("blockoutSetClip", () => {
     // Shaded, so a box in front of a wall of the same grey keeps its edges.
     expect(style.lighting).toBe("studio");
   });
+
+  it("names the clip after the set, not its file", () => {
+    expect(blockoutSetClip(asset, "track", 0).name).toBe("Blockout set");
+    expect(blockoutSetClip(asset, "track", 0, "Kitchen").name).toBe("Kitchen");
+  });
 });

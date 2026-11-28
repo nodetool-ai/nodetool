@@ -4,6 +4,7 @@ import {
   bindTracksToUuids,
   cloneObjectDeep,
   computeSceneStats,
+  moveClearOfOthers,
   nextAvailableName,
   removeStrayLightChildren,
   restoreEditorSettings,
@@ -250,5 +251,51 @@ describe("stampObjectIds", () => {
     expect(car.userData.nodetool_id).toBe("node-1");
     expect(tagged.userData.nodetool_id).toBe("abc");
     expect(findSceneObject(scene, "node-0")).toBe(wheel);
+  });
+});
+
+describe("moveClearOfOthers", () => {
+  const box = (size = 1): THREE.Mesh => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(size, size, size));
+    mesh.position.y = size / 2;
+    return mesh;
+  };
+
+  it("moves a new object off one standing at the same spot", () => {
+    const root = new THREE.Group();
+    root.add(box());
+    const added = box();
+    moveClearOfOthers(added, root);
+    expect(added.position.x).toBeGreaterThanOrEqual(1);
+    expect(added.position.z).toBe(0);
+  });
+
+  it("keeps clear of a row of objects", () => {
+    const root = new THREE.Group();
+    const first = box();
+    const second = box();
+    second.position.x = 1.25;
+    root.add(first, second);
+    const added = box();
+    moveClearOfOthers(added, root);
+    expect(added.position.x - 0.5).toBeGreaterThanOrEqual(1.75);
+  });
+
+  it("stands on a floor without moving", () => {
+    const root = new THREE.Group();
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(12, 12));
+    ground.rotation.x = -Math.PI / 2;
+    root.add(ground);
+    const added = box();
+    moveClearOfOthers(added, root);
+    expect(added.position.x).toBe(0);
+  });
+
+  it("leaves an object with no geometry where it is", () => {
+    const root = new THREE.Group();
+    root.add(box());
+    const light = new THREE.PointLight();
+    moveClearOfOthers(light, root);
+    expect(light.position.x).toBe(0);
   });
 });

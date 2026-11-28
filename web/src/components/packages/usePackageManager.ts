@@ -43,6 +43,8 @@ const RUNTIME_GROUP: Record<string, RuntimeGroup> = {
   rust: "language",
   "yt-dlp": "media",
   manimgx: "media",
+  blender: "media",
+  chrome: "media",
   "transformers-js": "ai",
   "node-llama-cpp": "ai",
   "whisper-cpp": "ai",

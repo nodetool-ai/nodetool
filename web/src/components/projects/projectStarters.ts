@@ -28,7 +28,11 @@ export interface ProjectStarter {
  * agent is handed and what the user would type themselves.
  */
 export const starterLabel = (name: string): string => {
-  const words = name.replace(/[-_]+/g, " ").trim();
+  // "3d" and "2d" are abbreviations, so "blockout-3d" reads "Blockout 3D".
+  const words = name
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .replace(/\b([23])d\b/g, "$1D");
   return words.length === 0 ? name : words[0].toUpperCase() + words.slice(1);
 };
 

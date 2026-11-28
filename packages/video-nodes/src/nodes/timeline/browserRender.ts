@@ -35,7 +35,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 
-import { importOptionalModule } from "@nodetool-ai/config";
+import { importOptionalModule, runtimeLocations } from "@nodetool-ai/config";
+import { installedAppBinary } from "@nodetool-ai/config/app-binary-runtime";
 import { transcodeVideo } from "@nodetool-ai/runtime/media";
 import {
   BUNDLED_FONT_FILES,
@@ -172,15 +173,26 @@ const CHROMIUM_ARGS = [
 /**
  * The browsers to try, in order. `CHROME_PATH` names the host's Chromium
  * (the Docker image sets it). `chrome` is an installed Google Chrome, whose
- * WebCodecs encode H.264; the Playwright build cannot. The bundled Chromium
+ * WebCodecs encode H.264; the Playwright build cannot. The Chrome for Testing
+ * build the Package Manager installs encodes H.264 too. The bundled Chromium
  * is the last resort.
  */
-function launchCandidates(): { label: string; options: { channel?: string; executablePath?: string } }[] {
-  const candidates: { label: string; options: { channel?: string; executablePath?: string } }[] = [];
+type LaunchOptions = { channel?: string; executablePath?: string };
+
+function launchCandidates(): { label: string; options: () => Promise<LaunchOptions | null> }[] {
+  const candidates: { label: string; options: () => Promise<LaunchOptions | null> }[] = [];
   const executablePath = process.env["CHROME_PATH"]?.trim();
-  if (executablePath) candidates.push({ label: executablePath, options: { executablePath } });
-  candidates.push({ label: "chrome", options: { channel: "chrome" } });
-  candidates.push({ label: "bundled", options: { channel: "chromium" } });
+  if (executablePath) candidates.push({ label: executablePath, options: async () => ({ executablePath }) });
+  candidates.push({ label: "chrome", options: async () => ({ channel: "chrome" }) });
+  // Looked up only when reached, so a host with Chrome never touches the disk.
+  candidates.push({
+    label: "managed chrome",
+    options: async () => {
+      const managed = await installedAppBinary("chrome", runtimeLocations().chrome).catch(() => null);
+      return managed ? { executablePath: managed } : null;
+    }
+  });
+  candidates.push({ label: "bundled", options: async () => ({ channel: "chromium" }) });
   return candidates;
 }
 
@@ -199,11 +211,13 @@ async function launchBrowser(): Promise<{ browser: PlaywrightBrowser; label: str
   }
   const failures: string[] = [];
   for (const candidate of launchCandidates()) {
+    const options = await candidate.options();
+    if (!options) { continue; }
     try {
       const browser = await playwright.chromium.launch({
         headless: true,
         args: CHROMIUM_ARGS,
-        ...candidate.options
+        ...options
       });
       return { browser, label: candidate.label };
     } catch (error) {

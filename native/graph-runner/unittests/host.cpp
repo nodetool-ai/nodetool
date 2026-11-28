@@ -10,6 +10,11 @@
 #include "js/engine.h"
 #include "nodetool/kernels.h"
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <nlohmann/json.hpp>
+#include <sys/socket.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
@@ -17,6 +22,7 @@
 #include <barrier>
 #include <fstream>
 #include <map>
+#include <optional>
 #include <thread>
 #include <functional>
 #include <string>
@@ -345,6 +351,93 @@ void filesReadRootsAreReadOnly() {
   CHECK(!fs::exists(t.path("library/b.txt")) && fs::exists(t.path("library/a.txt")));
   // Without a workspace there is no directory for relative paths.
   CHECK(startsWith(run(*e, "__host.files.readFile('a.txt')"), "error: EACCES"));
+}
+
+// A write refuses a hard-linked file before it truncates it, and unlink,
+// rmdir, rm and rename act on a symlink itself, never on what it points at.
+void filesActOnLinksThemselves() {
+  TempDir t;
+  writeText(t.path("ws/target.txt"), "target");
+  writeText(t.path("ws/dir/kept.txt"), "kept");
+  writeText(t.path("ws/shared.txt"), "shared");
+  fs::create_directories(t.path("db"));
+  gr::HostOptions o;
+  o.workspaceDir = t.path("ws");
+  o.sqliteDirectory = t.path("db");
+  auto e = engineWith(o);
+
+  // writeFile on a file with a second hard link fails and keeps its content.
+  fs::create_hard_link(t.path("ws/shared.txt"), t.path("ws/shared-link.txt"));
+  const auto hardLinked = run(*e, "__host.files.writeFile('shared.txt', bytes('new'), false)");
+  CHECK(startsWith(hardLinked, "error: EACCES") && hardLinked.find("hard-linked file") != std::string::npos);
+  CHECK(readText(t.path("ws/shared.txt")) == "shared");
+  CHECK(startsWith(run(*e, "__host.files.writeFile('shared.txt', bytes('new'), true)"), "error: EACCES"));
+  CHECK(readText(t.path("ws/shared.txt")) == "shared");
+  // A plain file is still replaced, appended to and created exclusively.
+  writeText(t.path("ws/plain.txt"), "a much longer original text");
+  CHECK(run(*e, "__host.files.writeFile('plain.txt', bytes('short'), false)") == "ok");
+  CHECK(readText(t.path("ws/plain.txt")) == "short");
+  CHECK(run(*e, "__host.files.writeFile('plain.txt', bytes('+'), true)") == "ok");
+  CHECK(readText(t.path("ws/plain.txt")) == "short+");
+  CHECK(startsWith(run(*e, "__host.files.writeFile('plain.txt', bytes('x'), false, true)"), "error: EEXIST"));
+  CHECK(readText(t.path("ws/plain.txt")) == "short+");
+
+  // unlink removes the link, not its target.
+  fs::create_symlink(t.path("ws/target.txt"), t.path("ws/file-link"));
+  CHECK(run(*e, "__host.files.unlink('file-link')") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/file-link")) && readText(t.path("ws/target.txt")) == "target");
+  // A dangling link can be unlinked too.
+  fs::create_symlink(t.path("ws/missing.txt"), t.path("ws/dangling"));
+  CHECK(run(*e, "__host.files.unlink('dangling')") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/dangling")));
+
+  // rmdir of a symlink to a directory leaves the directory.
+  fs::create_directory_symlink(t.path("ws/dir"), t.path("ws/dir-link"));
+  CHECK(startsWith(run(*e, "__host.files.rmdir('dir-link')"), "error: ENOTDIR"));
+  CHECK(fs::is_directory(t.path("ws/dir")) && readText(t.path("ws/dir/kept.txt")) == "kept");
+  // rm of the same link removes the link and leaves the tree.
+  CHECK(run(*e, "__host.files.rm('dir-link', true, false)") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/dir-link")) && readText(t.path("ws/dir/kept.txt")) == "kept");
+
+  // rename moves the link, not its target.
+  fs::create_symlink(t.path("ws/target.txt"), t.path("ws/link-a"));
+  CHECK(run(*e, "__host.files.rename('link-a', 'link-b')") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/link-a")) && fs::is_symlink(t.path("ws/link-b")));
+  CHECK(fs::read_symlink(t.path("ws/link-b")) == fs::path(t.path("ws/target.txt")));
+  CHECK(readText(t.path("ws/target.txt")) == "target");
+  // A link at the destination is replaced, not written through.
+  writeText(t.path("ws/incoming.txt"), "incoming");
+  CHECK(run(*e, "__host.files.rename('incoming.txt', 'link-b')") == "ok");
+  CHECK(!fs::is_symlink(t.path("ws/link-b")) && readText(t.path("ws/link-b")) == "incoming");
+  CHECK(readText(t.path("ws/target.txt")) == "target");
+
+  // A granted root cannot be renamed, nor replaced by a rename.
+  const std::string db = fs::canonical(t.path("db")).string();
+  const std::string ws = fs::canonical(t.path("ws")).string();
+  CHECK(startsWith(run(*e, "__host.files.rename(" + lit(db) + ", 'moved-db')"), "error: EACCES"));
+  CHECK(startsWith(run(*e, "__host.files.rename('.', " + lit(db + "/moved-ws") + ")"), "error: EACCES"));
+  fs::create_directories(t.path("ws/empty"));
+  CHECK(startsWith(run(*e, "__host.files.rename('empty', " + lit(db) + ")"), "error: EACCES"));
+  CHECK(fs::is_directory(db) && fs::is_directory(ws) && !fs::exists(t.path("ws/moved-db")));
+  CHECK(startsWith(run(*e, "__host.files.rmdir(" + lit(db) + ")"), "error: EACCES"));
+  CHECK(startsWith(run(*e, "__host.files.unlink('..')"), "error: EACCES"));
+  CHECK(startsWith(run(*e, "__host.files.unlink('dir/..')"), "error: EACCES"));
+  CHECK(startsWith(run(*e, "__host.files.rmdir('dir/.')"), "error: EINVAL"));
+  CHECK(fs::is_directory(t.path("ws/dir")));
+
+  // Plain files and directories behave as before.
+  CHECK(run(*e, "__host.files.rename('plain.txt', 'dir/plain.txt')") == "ok");
+  CHECK(readText(t.path("ws/dir/plain.txt")) == "short+");
+  CHECK(run(*e, "__host.files.rename('dir/plain.txt', " + lit(db + "/plain.txt") + ")") == "ok");
+  CHECK(readText(t.path("db/plain.txt")) == "short+");
+  CHECK(run(*e, "__host.files.unlink(" + lit(db + "/plain.txt") + ")") == "ok");
+  CHECK(!fs::exists(t.path("db/plain.txt")));
+  CHECK(startsWith(run(*e, "__host.files.unlink('plain.txt')"), "error: ENOENT"));
+  CHECK(startsWith(run(*e, "__host.files.unlink('dir')"), "error: E"));
+  CHECK(startsWith(run(*e, "__host.files.rmdir('dir')"), "error: ENOTEMPTY"));
+  CHECK(run(*e, "__host.files.rmdir('empty')") == "ok");
+  CHECK(!fs::exists(t.path("ws/empty")));
+  CHECK(startsWith(run(*e, "__host.files.rmdir('nope/deeper')"), "error: ENOENT"));
 }
 
 void filesAcceptTheRootAsNamed() {
@@ -789,6 +882,45 @@ void httpPolicyMatchesSafeFetch() {
 #endif
 }
 
+// The address table agrees with isBlockedIpLiteral in
+// packages/runtime-core/src/safe-url.ts: both read the same fixture. Literals
+// that inet_pton accepts are also checked as connection addresses.
+void httpAddressTableMatchesTheSharedFixture() {
+  std::ifstream in(GR_IP_LITERAL_FIXTURE);
+  CHECK(in.good());
+  if (!in.good()) return;
+  auto fixture = nlohmann::json::parse(in);
+  auto socketAllowed = [](const std::string& host) -> std::optional<bool> {
+    sockaddr_in v4{};
+    v4.sin_family = AF_INET;
+    if (inet_pton(AF_INET, host.c_str(), &v4.sin_addr) == 1) {
+      return gr::host::isPublicSocketAddress(reinterpret_cast<const sockaddr*>(&v4));
+    }
+    sockaddr_in6 v6{};
+    v6.sin6_family = AF_INET6;
+    if (inet_pton(AF_INET6, host.c_str(), &v6.sin6_addr) == 1) {
+      return gr::host::isPublicSocketAddress(reinterpret_cast<const sockaddr*>(&v6));
+    }
+    return std::nullopt;
+  };
+  int listed = 0;
+  for (const auto& [key, blocked] : {std::pair{"blocked", true}, std::pair{"allowed", false}}) {
+    for (const auto& entry : fixture.at(key)) {
+      const std::string host = entry.get<std::string>();
+      ++listed;
+      if (gr::host::isBlockedIpLiteral(host) != blocked) {
+        std::fprintf(stderr, "address table: %s should be %s\n", host.c_str(), key);
+        CHECK(false);
+      }
+      if (auto allowed = socketAllowed(host); allowed && *allowed == blocked) {
+        std::fprintf(stderr, "socket address: %s should be %s\n", host.c_str(), key);
+        CHECK(false);
+      }
+    }
+  }
+  CHECK(listed > 100);
+}
+
 }  // namespace
 
 // --- kernels ----------------------------------------------------------------
@@ -1070,6 +1202,7 @@ int main() {
       {"filesRefuseTheReservedFolder", filesRefuseTheReservedFolder},
       {"filesRefuseTreesThatHoldReservedFolders", filesRefuseTreesThatHoldReservedFolders},
       {"filesReadRootsAreReadOnly", filesReadRootsAreReadOnly},
+      {"filesActOnLinksThemselves", filesActOnLinksThemselves},
       {"filesAcceptTheRootAsNamed", filesAcceptTheRootAsNamed},
       {"filesAllowOnlyTheGrantedSqliteDirectory", filesAllowOnlyTheGrantedSqliteDirectory},
       {"assetsGrantNothingByDefault", assetsGrantNothingByDefault},
@@ -1086,6 +1219,7 @@ int main() {
       {"secretsComeFromTheEmbedderOnly", secretsComeFromTheEmbedderOnly},
       {"httpIsOffByDefault", httpIsOffByDefault},
       {"httpPolicyMatchesSafeFetch", httpPolicyMatchesSafeFetch},
+      {"httpAddressTableMatchesTheSharedFixture", httpAddressTableMatchesTheSharedFixture},
       {"kernelsMatchTheCFunctions", kernelsMatchTheCFunctions},
       {"kernelsRefuseBadArguments", kernelsRefuseBadArguments},
       {"streamingKernelsMatchTheCFunctions", streamingKernelsMatchTheCFunctions},

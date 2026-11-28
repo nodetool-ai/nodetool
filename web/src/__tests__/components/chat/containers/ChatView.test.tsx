@@ -515,6 +515,73 @@ describe("ChatView", () => {
     });
   });
 
+  describe("Auto-send", () => {
+    it("sends the prompt once when connected with a model", async () => {
+      const claim = jest.fn(() => true);
+      const autoSend = { prompt: "Finish the game", claim };
+      const { rerender } = renderWithProviders(
+        <ChatView {...baseProps} autoSend={autoSend} />
+      );
+
+      await waitFor(() => {
+        expect(mockSendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            content: [{ type: "text", text: "Finish the game" }],
+            model: "gpt-4"
+          })
+        );
+      });
+      rerender(
+        <ThemeProvider theme={mockTheme}>
+          <KeyboardProvider>
+            <ChatView {...baseProps} status="streaming" autoSend={autoSend} />
+          </KeyboardProvider>
+        </ThemeProvider>
+      );
+      rerender(
+        <ThemeProvider theme={mockTheme}>
+          <KeyboardProvider>
+            <ChatView {...baseProps} autoSend={autoSend} />
+          </KeyboardProvider>
+        </ThemeProvider>
+      );
+      expect(claim).toHaveBeenCalledTimes(1);
+      expect(mockSendMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not send what another view already claimed", async () => {
+      const claim = jest.fn(() => false);
+      renderWithProviders(
+        <ChatView {...baseProps} autoSend={{ prompt: "Finish", claim }} />
+      );
+
+      await waitFor(() => expect(claim).toHaveBeenCalled());
+      expect(mockSendMessage).not.toHaveBeenCalled();
+    });
+
+    it("waits while there is no model or connection", () => {
+      const claim = jest.fn(() => true);
+      const autoSend = { prompt: "Finish", claim };
+      const { rerender } = renderWithProviders(
+        <ChatView
+          {...baseProps}
+          model={{ ...mockModel, provider: "empty", id: "" }}
+          autoSend={autoSend}
+        />
+      );
+      rerender(
+        <ThemeProvider theme={mockTheme}>
+          <KeyboardProvider>
+            <ChatView {...baseProps} status="connecting" autoSend={autoSend} />
+          </KeyboardProvider>
+        </ThemeProvider>
+      );
+
+      expect(claim).not.toHaveBeenCalled();
+      expect(mockSendMessage).not.toHaveBeenCalled();
+    });
+  });
+
   describe("Progress and Planning Updates", () => {
     it("passes progress information to ChatThreadView", () => {
       const messages: Message[] = [

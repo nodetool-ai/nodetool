@@ -114,6 +114,7 @@ const Root* rootOf(const std::vector<Root>& roots, const std::string& real) {
 
 const char* kOutside = "outside the directories the native runner grants";
 const char* kReserved = "NodeTool reserves .nodetool/ for its own files";
+const char* kGrantedRoot = "a granted directory itself";
 
 // Whether a segment of `path` below the root `dir` is `.nodetool`, compared
 // without case because macOS and Windows folders ignore it.
@@ -248,8 +249,14 @@ bool isWithin(const std::string& dir, const std::string& path) {
                          path[dir.size()] == '/');
 }
 
-Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const std::string& path,
-                 Access access, const std::string& syscall, bool noSymlinks) {
+namespace {
+
+// The normalized absolute form of `path` (absolute, or relative to `cwd`),
+// after the checks that need no file system access: it must lie lexically
+// inside a root and outside every reserved folder. Throws FsError naming
+// `path`.
+std::string lexicalFor(const std::vector<Root>& roots, const std::string& cwd, const std::string& path,
+                       const std::string& syscall) {
   if (path.empty()) throw FsError("ENOENT", syscall, path);
   if (path.find('\0') != std::string::npos) throw FsError("EINVAL", syscall, path);
   std::string absolute;
@@ -285,7 +292,12 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
   for (const auto& r : roots) inside = inside || isWithinInput(r.dir, lexical) || isWithinInput(r.given, lexical);
   if (!inside) throw FsError("EACCES", syscall, path, kOutside);
   refuseReserved(roots, lexical, syscall, path);
+  return lexical;
+}
 
+// confine() for the already checked `lexical` form. Errors name `path`.
+Resolved confineLexical(const std::vector<Root>& roots, const std::string& lexical, const std::string& path,
+                        Access access, const std::string& syscall, bool noSymlinks) {
   auto check = [&](const std::string& real, const std::string& lexicalForm) -> const Root* {
     const Root* root = rootOf(roots, real);
     if (!root) throw FsError("EACCES", syscall, path, kOutside);
@@ -333,6 +345,51 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
     tail = leafOf(ancestor) + "/" + tail;
     ancestor = parentOf(ancestor);
   }
+}
+
+}  // namespace
+
+Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const std::string& path,
+                 Access access, const std::string& syscall, bool noSymlinks) {
+  return confineLexical(roots, lexicalFor(roots, cwd, path, syscall), path, access, syscall, noSymlinks);
+}
+
+std::string ResolvedEntry::path() const { return joinPath(parent, leaf); }
+
+ResolvedEntry confineEntry(const std::vector<Root>& roots, const std::string& cwd, const std::string& path,
+                           const std::string& syscall) {
+  const std::string lexical = lexicalFor(roots, cwd, path, syscall);
+  const auto isRoot = [&](const std::string& form) {
+    return std::any_of(roots.begin(), roots.end(), [&](const Root& r) {
+      return (isWithinInput(r.dir, form) && isWithinInput(form, r.dir)) ||
+             (!r.given.empty() && isWithinInput(r.given, form) && isWithinInput(form, r.given));
+    });
+  };
+  if (isRoot(lexical)) throw FsError("EACCES", syscall, path, kGrantedRoot);
+  // The last component as written, before normalization folded it away.
+  std::string_view written(path);
+#ifdef _WIN32
+  constexpr std::string_view separators = "/\\";
+#else
+  constexpr std::string_view separators = "/";
+#endif
+  while (written.size() > 1 && separators.find(written.back()) != std::string_view::npos) written.remove_suffix(1);
+  const auto cut = written.find_last_of(separators);
+  const std::string_view writtenLeaf = cut == std::string_view::npos ? written : written.substr(cut + 1);
+  const std::string leaf = leafOf(lexical);
+  if (writtenLeaf.empty() || writtenLeaf == "." || writtenLeaf == ".." || leaf.empty() || leaf == "." ||
+      leaf == "..") {
+    throw FsError("EINVAL", syscall, path);
+  }
+  // The parent must be an existing directory inside a writable root. The
+  // leaf itself is never resolved, so a symlink there names the link.
+  Resolved parent = confineLexical(roots, parentOf(lexical), path, Access::Write, syscall, false);
+  if (!parent.exists) throw FsError("ENOENT", syscall, path);
+  ResolvedEntry entry {parent.real, leaf, parent.root};
+  const std::string joined = entry.path();
+  if (isRoot(joined)) throw FsError("EACCES", syscall, path, kGrantedRoot);
+  refuseReserved(roots, joined, syscall, path);
+  return entry;
 }
 
 }  // namespace gr::host

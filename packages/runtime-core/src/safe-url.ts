@@ -20,9 +20,10 @@
  * operation that actually goes out calls that.
  *
  * The check is conservative: unparseable URLs, non-https schemes, and literal
- * IP addresses in loopback / link-local / RFC1918 / CGNAT / benchmarking ranges
- * (including IPv4-mapped IPv6 literals and IPv4 embedded in 6to4 / NAT64
- * transition addresses) are refused. Alternate IPv4 spellings — decimal, hex,
+ * IP addresses outside public unicast space (loopback, link-local, RFC1918,
+ * CGNAT, documentation, benchmarking, multicast and reserved ranges, including
+ * IPv4-mapped IPv6 literals and IPv4 embedded in 6to4 / NAT64 transition
+ * addresses) are refused. The native graph runner applies the same table. Alternate IPv4 spellings — decimal, hex,
  * octal, short form — are normalized by the WHATWG URL parser before the table
  * sees them.
  *
@@ -79,10 +80,17 @@ function expandIpv6(host: string): number[] | null {
 }
 
 /**
- * True for IPv4 octet pairs in loopback / RFC1918 / link-local / CGNAT /
- * benchmarking ranges.
+ * True for an IPv4 address in a range that is not public unicast: this
+ * network (0/8), RFC1918, CGNAT (100.64/10), loopback, link-local
+ * (169.254/16), IETF protocol assignments (192.0.0/24), the documentation
+ * ranges (192.0.2/24, 198.51.100/24, 203.0.113/24), benchmarking (198.18/15),
+ * multicast (224/4), reserved (240/4) and broadcast.
+ *
+ * The native graph runner's `isPrivateIpv4` in
+ * `native/graph-runner/src/host/http.cpp` is the same table. Both are checked
+ * against `packages/runtime-core/tests/fixtures/ip-literals.json`.
  */
-function isPrivateIpv4(a: number, b: number): boolean {
+function isPrivateIpv4(a: number, b: number, c: number): boolean {
   // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8
   if (a === 0 || a === 10 || a === 127) return true;
   // 169.254.0.0/16 (link-local, incl. the 169.254.169.254 metadata service)
@@ -91,17 +99,33 @@ function isPrivateIpv4(a: number, b: number): boolean {
   if (a === 172 && b >= 16 && b <= 31) return true;
   // 192.168.0.0/16
   if (a === 192 && b === 168) return true;
+  // 192.0.0.0/24 (IETF protocol assignments), 192.0.2.0/24 (documentation)
+  if (a === 192 && b === 0 && (c === 0 || c === 2)) return true;
   // 100.64.0.0/10 (CGNAT)
   if (a === 100 && b >= 64 && b <= 127) return true;
   // 198.18.0.0/15 (benchmarking)
   if (a === 198 && (b === 18 || b === 19)) return true;
+  // 198.51.100.0/24, 203.0.113.0/24 (documentation)
+  if (a === 198 && b === 51 && c === 100) return true;
+  if (a === 203 && b === 0 && c === 113) return true;
+  // 224.0.0.0/4 (multicast), 240.0.0.0/4 (reserved), 255.255.255.255
+  if (a >= 224) return true;
   return false;
 }
 
+/** {@link isPrivateIpv4} for an IPv4 carried in two IPv6 hextets. */
+function isPrivateIpv4Hextets(hi: number, lo: number): boolean {
+  return isPrivateIpv4(hi >> 8, hi & 0xff, lo >> 8);
+}
+
 /**
- * True when `host` is a literal IPv4/IPv6 address in a loopback, link-local,
- * private, CGNAT or benchmarking range — including the IPv6 spellings that
- * carry an IPv4 inside them (IPv4-mapped, IPv4-compatible, 6to4, NAT64).
+ * True when `host` is a literal IPv4/IPv6 address outside public unicast
+ * space: the IPv4 ranges of {@link isPrivateIpv4}, and for IPv6 unspecified,
+ * loopback, discard-only (100::/64), Teredo (2001::/32), documentation
+ * (2001:db8::/32), local-use NAT64 (64:ff9b:1::/48), ULA (fc00::/7),
+ * link-local (fe80::/10), site-local (fec0::/10) and multicast (ff00::/8).
+ * The IPv6 spellings that carry an IPv4 inside them (IPv4-mapped,
+ * IPv4-compatible, 6to4, NAT64 64:ff9b::/96) are blocked when that IPv4 is.
  *
  * This is the address table, not a policy: it says nothing about schemes,
  * hostnames or redirects, and a caller that allows private networks on purpose
@@ -117,39 +141,51 @@ export function isBlockedIpLiteral(host: string): boolean {
     .replace(/^\[|\]$/g, "")
     .split("%")[0]
     .toLowerCase();
-  // IPv4 in dotted form, standalone or as an IPv6 tail (`::ffff:127.0.0.1`).
-  const dotted = h.match(/(?:^|:)((?:\d{1,3}\.){3}\d{1,3})$/);
+  // IPv4 in dotted form. An IPv6 literal with a dotted tail
+  // (`::ffff:127.0.0.1`) is expanded below, so its prefix is checked too.
+  const dotted = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (dotted) {
-    const [a, b] = dotted[1].split(".").map((n) => parseInt(n, 10));
-    return isPrivateIpv4(a, b);
+    const [a, b, c, d] = dotted.slice(1).map((n) => parseInt(n, 10));
+    if (a > 255 || b > 255 || c > 255 || d > 255) return false;
+    return isPrivateIpv4(a, b, c);
   }
-  if (!h.includes(":")) return false;
-  if (h === "::" || h === "::1") return true; // unspecified / loopback
-  if (h.startsWith("fc") || h.startsWith("fd")) return true; // ULA fc00::/7
-  // link-local fe80::/10 — the first hextet spans fe80–febf, so the first three
-  // hex digits are fe8/fe9/fea/feb; "fe80" alone is too narrow.
-  if (/^fe[89ab]/.test(h)) return true;
-  // IPv4 embedded in a hex-serialized IPv6 literal. The WHATWG parser rewrites
-  // `::ffff:127.0.0.1` to `::ffff:7f00:1`, which the dotted regex above no
-  // longer matches, and the transition prefixes hide an IPv4 in the same way:
-  // IPv4-mapped/-compatible and NAT64 (64:ff9b::/96) in the low 32 bits, 6to4
-  // (2002:WWXX:YYZZ::/16) in the second and third hextets.
+  // The WHATWG parser rewrites `::ffff:127.0.0.1` to `::ffff:7f00:1`, so the
+  // checks work on the expanded hextets, never on the spelling.
   const hextets = expandIpv6(h);
   if (!hextets) return false;
   const isZero = (from: number, to: number): boolean =>
     hextets.slice(from, to).every((n) => n === 0);
-  let embedded: number | null = null;
-  if (hextets[0] === 0x2002) {
-    embedded = hextets[1];
-  } else if (isZero(0, 5) && hextets[5] === 0xffff) {
-    embedded = hextets[6]; // ::ffff:a.b.c.d
-  } else if (isZero(0, 6)) {
-    embedded = hextets[6]; // ::a.b.c.d (IPv4-compatible, deprecated)
-  } else if (hextets[0] === 0x64 && hextets[1] === 0xff9b && isZero(2, 6)) {
-    embedded = hextets[6]; // 64:ff9b::/96
+  const [h0, h1, h2] = hextets;
+  // ::, ::1, and ::a.b.c.d (IPv4-compatible, deprecated)
+  if (isZero(0, 6)) {
+    if (hextets[6] === 0 && hextets[7] <= 1) return true;
+    return isPrivateIpv4Hextets(hextets[6], hextets[7]);
   }
-  if (embedded === null) return false;
-  return isPrivateIpv4((embedded >> 8) & 0xff, embedded & 0xff);
+  // ::ffff:a.b.c.d (IPv4-mapped)
+  if (isZero(0, 5) && hextets[5] === 0xffff) {
+    return isPrivateIpv4Hextets(hextets[6], hextets[7]);
+  }
+  if (h0 === 0x64 && h1 === 0xff9b) {
+    // 64:ff9b:1::/48 (local-use NAT64)
+    if (h2 === 1) return true;
+    // 64:ff9b::/96 (NAT64)
+    if (isZero(2, 6)) return isPrivateIpv4Hextets(hextets[6], hextets[7]);
+    return false;
+  }
+  // 100::/64 (discard-only)
+  if (h0 === 0x100 && isZero(1, 4)) return true;
+  // 2001::/32 (Teredo) and 2001:db8::/32 (documentation). The rest of
+  // 2001::/23 is not blocked.
+  if (h0 === 0x2001 && (h1 === 0 || h1 === 0xdb8)) return true;
+  // 2002:WWXX:YYZZ::/16 (6to4)
+  if (h0 === 0x2002) return isPrivateIpv4Hextets(h1, h2);
+  // fc00::/7 (ULA)
+  if ((h0 & 0xfe00) === 0xfc00) return true;
+  // fe80::/10 (link-local) and fec0::/10 (site-local)
+  if ((h0 & 0xffc0) === 0xfe80 || (h0 & 0xffc0) === 0xfec0) return true;
+  // ff00::/8 (multicast)
+  if ((h0 & 0xff00) === 0xff00) return true;
+  return false;
 }
 
 /**

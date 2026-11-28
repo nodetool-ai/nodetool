@@ -30,6 +30,7 @@ import type {
 } from "@nodetool-ai/timeline";
 import {
   computeModel3DBakeHash,
+  model3dKeyframedFreeCameraPose,
   model3dStyleWithPatch
 } from "@nodetool-ai/timeline";
 
@@ -43,6 +44,8 @@ import {
   LOOSE_PROJECT_ID,
   useWorkspaceTabsStore
 } from "../../../stores/WorkspaceTabsStore";
+import { useModel3DViewRequestStore } from "../../../stores/Model3DViewRequestStore";
+import { useModel3DCameraDragStore } from "../../../stores/timeline/Model3DCameraDragStore";
 import ErrorBanner from "../../support/ErrorBanner";
 import {
   Button,
@@ -104,6 +107,8 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
     const editClipKeyframes = useTimelineStore((s) => s.editClipKeyframes);
     const playbackApi = useTimelinePlaybackStoreApi();
     const docApi = useTimelineStoreApi();
+    const cameraDrag = useModel3DCameraDragStore((s) => s.enabled);
+    const setCameraDrag = useModel3DCameraDragStore((s) => s.setEnabled);
     const [open, setOpen] = usePersistedFold("model3d");
     const [moveAnchor, setMoveAnchor] = useState<HTMLElement | null>(null);
     const clipEndMs = clip.startMs + clip.durationMs;
@@ -210,6 +215,18 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
       if (!assetId) {
         return;
       }
+      // A free camera opens the set looking through the shot, at the playhead
+      // or at the clip's start, so the staging is done in the shot's framing.
+      const current = docApi
+        .getState()
+        .clips.find((c) => c.id === clipIdRef.current);
+      if (current?.model3dStyle?.camera.mode === "free") {
+        const pose = model3dKeyframedFreeCameraPose(current, playheadNow() ?? 0);
+        useModel3DViewRequestStore.getState().request(assetId, {
+          position: [...pose.position],
+          target: [...pose.target]
+        });
+      }
       useWorkspaceTabsStore.getState().openTab({
         type: "model3d",
         ref: assetId,
@@ -217,7 +234,7 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
         title: clipName,
         projectId
       });
-    }, [assetId, clipName, projectId]);
+    }, [assetId, clipName, projectId, docApi, playheadNow]);
     const handleSceneCameraChange = useCallback(
       (value: string) =>
         patchStyle({
@@ -368,14 +385,24 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
                     {t("pass3_25.timeline.inspector.model3d.cameraMove")}
                   </Button>
                 </FlexRow>
+                <InspectorToggleRow
+                  label={t("pass3_25.timeline.inspector.model3d.cameraDrag")}
+                  checked={cameraDrag}
+                  onChange={setCameraDrag}
+                />
                 <Caption color="muted">
-                  {t("pass3_25.timeline.inspector.model3d.freeCameraHelp")}
+                  {cameraDrag
+                    ? t("pass3_25.timeline.inspector.model3d.cameraDragHelp")
+                    : t("pass3_25.timeline.inspector.model3d.freeCameraHelp")}
                 </Caption>
                 <Model3DCameraMoveMenu
                   clip={clip}
                   anchorEl={moveAnchor}
                   onClose={handleCloseMoveMenu}
                 />
+                {/* A free camera is a blockout: its reference and shot link
+                    come before the look rows, which it rarely needs. */}
+                <BlockoutReferenceSection clip={clip} />
               </>
             )}
 
@@ -505,7 +532,7 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
                 {bake.state.error}
               </ErrorBanner>
             )}
-            <BlockoutReferenceSection clip={clip} />
+            {camera.mode !== "free" && <BlockoutReferenceSection clip={clip} />}
           </FlexColumn>
         </CollapsibleSection>
         <InspectorDivider />

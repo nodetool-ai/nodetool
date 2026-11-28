@@ -19,8 +19,10 @@ contract, local and worker runner implementations, `runBlenderJob`, and the
   declare is ignored at warn, and nothing in `result.json` is ever opened
   as a path. `tests/runner.test.ts` pins this with a fake blender.
 - **Binary discovery order**: a user-scoped `BLENDER_PATH` setting outside the
-  cloud profile, then process `BLENDER_PATH`, then `blender` on PATH, then
-  well-known OS locations. Stored paths are ignored under the cloud profile
+  cloud profile, then process `BLENDER_PATH`, then the Blender the Package
+  Manager installed (`runtimeLocations().blender`), then `blender` on PATH, then
+  well-known OS locations. Nothing found throws `MissingRuntimePackageError`
+  for `blender`, whose cause is a `HostBinaryMissingError`. Stored paths are ignored under the cloud profile
   and are never copied into process environment. Floor is Blender 5.2
   (`BlenderVersionError`).
 - **No flag-injection check here**: Blender's argv is fixed in

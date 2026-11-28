@@ -1,10 +1,13 @@
 /**
  * Blender executable discovery (D3).
  *
- * Order: `BLENDER_PATH`, then `blender` on PATH, then the well-known
+ * Order: `BLENDER_PATH`, then the Blender the Package Manager installed
+ * (`runtimeLocations().blender`), then `blender` on PATH, then the well-known
  * locations for macOS, Linux, and Windows. The first candidate whose
  * `--version` runs wins. Below the 5.2 floor throws `BlenderVersionError`
- * naming both versions; nothing found throws `HostBinaryMissingError`.
+ * naming both versions; nothing found throws a `MissingRuntimePackageError`
+ * for `blender`, so the editor offers the install. Its cause is a
+ * `HostBinaryMissingError`.
  *
  * The result is cached per process and invalidated when `BLENDER_PATH`
  * changes, so tests pointing `BLENDER_PATH` at a fake re-resolve.
@@ -15,6 +18,12 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { installedAppBinary } from "@nodetool-ai/config/app-binary-runtime";
+import { runtimeLocations } from "@nodetool-ai/config";
+import {
+  type MissingRuntimePackageError,
+  missingRuntimePackageError
+} from "@nodetool-ai/protocol";
 import { HostBinaryMissingError } from "@nodetool-ai/runtime";
 
 const execFileAsync = promisify(execFile);
@@ -40,7 +49,7 @@ export class BlenderVersionError extends Error {
     const minimum = BLENDER_MIN_VERSION.join(".");
     super(
       `Blender ${found} is too old: NodeTool needs Blender ${minimum} or newer. ` +
-        `Install a newer Blender or point BLENDER_PATH at one.`
+        `Install Blender from the Package Manager, or point BLENDER_PATH at a newer one.`
     );
     this.name = "BlenderVersionError";
     this.found = found;
@@ -131,10 +140,22 @@ async function windowsCandidates(): Promise<string[]> {
   return found;
 }
 
+/** The Package Manager's Blender, or null on a host without one (Docker). */
+async function managedBlender(): Promise<string | null> {
+  try {
+    return await installedAppBinary("blender", runtimeLocations().blender);
+  } catch {
+    // An unknown NODETOOL_HOST has no runtime root; the other candidates remain.
+    return null;
+  }
+}
+
 async function candidates(): Promise<string[]> {
   const list: string[] = [];
   const envPath = process.env["BLENDER_PATH"];
   if (envPath !== undefined && envPath !== "") list.push(envPath);
+  const managed = await managedBlender();
+  if (managed) list.push(managed);
   list.push("blender");
   if (process.platform === "darwin") {
     list.push("/Applications/Blender.app/Contents/MacOS/Blender");
@@ -149,16 +170,14 @@ async function candidates(): Promise<string[]> {
 let cached: { blenderPathEnv: string | undefined; binary: BlenderBinary } | null =
   null;
 
-function missingError(failures: ProbeFailure[], configuredPath?: string | null): HostBinaryMissingError {
-  const err = new HostBinaryMissingError("blender");
+function missingError(failures: ProbeFailure[], configuredPath?: string | null): MissingRuntimePackageError {
+  const err = missingRuntimePackageError("blender", "blender", new HostBinaryMissingError("blender"));
   const envPath = process.env["BLENDER_PATH"];
   const probeNote = failures
     .filter((f) => f.candidate === envPath || f.candidate === configuredPath)
     .map((f) => ` BLENDER_PATH=${JSON.stringify(f.candidate)} failed: ${f.detail}`)
     .join("");
-  err.message =
-    `blender was not found. Install Blender 5.2 or newer and add it to PATH, ` +
-    `or set BLENDER_PATH to the Blender executable.${probeNote}`;
+  err.message += probeNote;
   return err;
 }
 

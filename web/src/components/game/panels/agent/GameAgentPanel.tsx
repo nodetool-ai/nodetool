@@ -5,6 +5,11 @@ import type { UiContext, UiDocumentRef } from "@nodetool-ai/protocol";
 import { FlexColumn } from "../../../ui_primitives";
 import AssistantChatPanel from "../../../chat/assistant/AssistantChatPanel";
 import { gameAssistantPrompt } from "../../gameAssistantPrompt";
+import type { ChatAutoSend } from "../../../chat/containers/ChatView";
+import {
+  useGameAssistantKickoffStore,
+  usePendingGameKickoff
+} from "../../../../stores/game/GameAssistantKickoffStore";
 
 interface GameAgentPanelProps {
   gameId: string;
@@ -21,6 +26,10 @@ function GameAgentPanel({ gameId, name, selectedEntityIds, behaviorIndex, onThre
   const systemPrompt = useMemo(() => gameAssistantPrompt(gameId), [gameId]);
   const getSelection = useCallback((): UiContext["selection"] => ({ entity_ids: [...selectedEntityIds],
     behavior_index: behaviorIndex }), [selectedEntityIds, behaviorIndex]);
+  // A game the Game flow just built is owed its first turn: finish the game.
+  const kickoff = usePendingGameKickoff(gameId);
+  const autoSend = useMemo<ChatAutoSend | null>(() => kickoff === null ? null : {
+    prompt: kickoff, claim: () => useGameAssistantKickoffStore.getState().claim(gameId) !== null }, [gameId, kickoff]);
 
   return (
     <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0, height: "100%" }}>
@@ -34,6 +43,7 @@ function GameAgentPanel({ gameId, name, selectedEntityIds, behaviorIndex, onThre
       systemPrompt={systemPrompt}
       welcomeTitle={t("screen_game.agent.welcomeTitle")}
       welcomeBody={t("screen_game.agent.welcomeBody")}
+      autoSend={autoSend}
     />
     </FlexColumn>
   );

@@ -1065,7 +1065,7 @@ export const RENDER_MODEL3D_REFERENCE_DESCRIPTION =
   "The longest side is at most 1280 px. A later change to the model, the " +
   "camera, the span or the sequence settings makes the reference stale. " +
   "A call on a clip whose stored reference is current renders nothing and " +
-  "returns it. The result carries `reference` {assetId, dependencyHash, " +
+  "returns it, unless `force` is true. The result carries `reference` {assetId, dependencyHash, " +
   "pass} and `cameraMove`, a one-sentence description of the camera move.";
 
 /**

@@ -2472,7 +2472,8 @@ export const clipModel3DStyle = z.object({
     .object({
       assetId: z.string(),
       dependencyHash: z.string(),
-      pass: z.enum(["clay", "depth", "normal"])
+      pass: z.enum(["clay", "depth", "normal"]),
+      assetRevision: z.string().optional()
     })
     .optional()
 });

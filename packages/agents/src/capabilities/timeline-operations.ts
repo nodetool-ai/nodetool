@@ -144,12 +144,6 @@ export interface ApplyOutcome {
   state: TimelineBridgeFinalState;
 }
 
-/**
- * Read one of the caller's assets for `add_media_clip`.
- *
- * The ref a model has in hand is whatever `list_assets` printed — a bare id or
- * an `asset://<id>.<ext>` URI — so both resolve here.
- */
 /** Largest audio file a chord read loads (bytes). */
 const MAX_DECODE_BYTES = 300 * 1024 * 1024;
 
@@ -219,6 +213,28 @@ async function decodeTimelineClipAudio(
   return { samples: audio.samples, sampleRate: audio.sampleRate, startMs: audio.startSec * 1000 };
 }
 
+/**
+ * The `updated_at` of the caller's 3D model asset, or null when it is not
+ * theirs or not there. A set is saved in place, so this is what shows a
+ * Blockout reference that an edit to the set has made stale.
+ */
+async function timelineModel3DAssetRevision(
+  run: CapabilityRun,
+  assetId: string
+): Promise<string | null> {
+  const userId = run.context.userId;
+  if (!userId) return null;
+  const { Asset } = await import("@nodetool-ai/models");
+  const asset = await Asset.find(userId, assetId);
+  return asset?.updated_at ?? null;
+}
+
+/**
+ * Read one of the caller's assets for `add_media_clip`.
+ *
+ * The ref a model has in hand is whatever `list_assets` printed — a bare id or
+ * an `asset://<id>.<ext>` URI — so both resolve here.
+ */
 async function resolveTimelineAsset(
   run: CapabilityRun,
   ref: string
@@ -1389,6 +1405,8 @@ export async function applyOps(
     if (options.renderModel3DReference) {
       init.renderModel3DReference = options.renderModel3DReference;
     }
+    init.model3dAssetRevision = (assetId) =>
+      timelineModel3DAssetRevision(run, assetId);
     const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
     const generate = options.generateMediaEdit ?? timelineMediaEditGenerator(run);
     init.generateMediaEdit = (request) => generate(request, operationIndex);

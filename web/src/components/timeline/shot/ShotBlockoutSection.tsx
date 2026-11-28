@@ -98,7 +98,9 @@ export const ShotBlockoutSection: React.FC<ShotBlockoutSectionProps> = memo(
     }, [linkedId]);
 
     const takeStale =
-      blockout !== null && isBlockoutTakeStale(shot.clip, blockout.referenceHash);
+      blockout !== null &&
+      !blockout.revisionPending &&
+      isBlockoutTakeStale(shot.clip, blockout.referenceHash);
     const noChoice = candidates.length === 0 && !blockout;
 
     return (

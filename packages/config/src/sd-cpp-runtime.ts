@@ -192,6 +192,8 @@ export async function uninstallSdCpp(installDir: string): Promise<void> {
 interface ZipEntry {
   name: string;
   data: Uint8Array;
+  /** The Unix mode the archive recorded, or 0 when it recorded none. */
+  mode: number;
 }
 
 /**
@@ -226,6 +228,8 @@ export function readZipEntries(
     const nameLength = archive.readUInt16LE(offset + 28);
     const extraLength = archive.readUInt16LE(offset + 30);
     const commentLength = archive.readUInt16LE(offset + 32);
+    // Only an archive made on Unix (host byte 3) keeps a mode in the external attributes.
+    const mode = archive.readUInt8(offset + 5) === 3 ? archive.readUInt32LE(offset + 38) >>> 16 : 0;
     const localOffset = archive.readUInt32LE(offset + 42);
     const name = archive.toString("utf8", offset + 46, offset + 46 + nameLength);
     offset += 46 + nameLength + extraLength + commentLength;
@@ -235,9 +239,9 @@ export function readZipEntries(
     const start = localOffset + 30 + localNameLength + localExtraLength;
     const raw = archive.subarray(start, start + compressedSize);
     if (method === 0) {
-      entries.push({ name, data: raw });
+      entries.push({ name, data: raw, mode });
     } else if (method === 8) {
-      entries.push({ name, data: zlib.inflateRawSync(raw) });
+      entries.push({ name, data: zlib.inflateRawSync(raw), mode });
     } else {
       throw new Error(`Unsupported zip compression method ${method} for ${name}`);
     }

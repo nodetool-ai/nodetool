@@ -3114,8 +3114,6 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/base-nodes/nodetool/examples/recipes/",
       "packages/protocol/src/api-schemas/recipes.ts",
       "packages/websocket/src/lib/example-recipes.ts",
-      "web/src/components/portal/DashboardRecipes.tsx",
-      "web/src/hooks/useRecipeActions.ts",
       "marketing/scripts/generate-recipes.mjs",
       "marketing/scripts/recipes.mjs",
       "marketing/src/app/recipes/",

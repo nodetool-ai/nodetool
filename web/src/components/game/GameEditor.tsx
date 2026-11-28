@@ -31,7 +31,7 @@ import GameScriptPane from "./panels/scripts/GameScriptPane";
 import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
 import GameEditorShell, { withGameDocumentBar } from "./shell/GameEditorShell";
 import type { GameCommandHandler, GameCommandHandlers } from "./shell/gameCommands";
-import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
+import { useGameAssistantDraft, useRevealAssistantForKickoff } from "./panels/agent/useGameAssistantDraft";
 import GameConsolePanel from "./panels/console/GameConsolePanel";
 import { gameValidationConsoleEntries } from "./panels/console/gameConsoleModel";
 import { useGameConsoleFeed } from "./panels/console/useGameConsoleFeed";
@@ -84,6 +84,7 @@ const LegacyGameEditor = ({ refId, active, documentBar }: GameEditorProps) => {
   useGameConsoleFeed(refId, { runtimeError: error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: playState.tick, scriptLogs });
   const layoutStore = useGamePanelLayoutStore();
   const assistant = useGameAssistantDraft(layoutStore);
+  useRevealAssistantForKickoff(refId, layoutStore);
   const canUndo = useStore(getGameDraftStore(refId), (state) => state.canUndo);
   const canRedo = useStore(getGameDraftStore(refId), (state) => state.canRedo);
   const assistantOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("assistant"));
