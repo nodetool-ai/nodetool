@@ -138,7 +138,8 @@ backend ── in process ──▶ relay or store
   user. It reads only the body, validates it, and then acts by mode:
   - relay (default): forwards the validated body to
     `NODETOOL_ANALYTICS_ENDPOINT` (default
-    `https://analytics.nodetool.ai/api/analytics/v1/events`). No browser header
+    `https://api.nodetool.ai/api/analytics/v1/events`, the cloud API, which
+    runs in ingest mode). No browser header
     travels on.
   - ingest (`NODETOOL_ANALYTICS_INGEST=1`): stores the batch.
   - off (`NODETOOL_ANALYTICS_RELAY=0`): accepts and discards.

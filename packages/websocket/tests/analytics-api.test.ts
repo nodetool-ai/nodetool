@@ -230,9 +230,9 @@ describe("configuration", () => {
   });
 
   it("relays only to https endpoints", () => {
-    expect(analyticsRelayEndpoint({})).toMatch(/^https:\/\/analytics\.nodetool\.ai\//);
+    expect(analyticsRelayEndpoint({})).toMatch(/^https:\/\/api\.nodetool\.ai\/api\/analytics\//);
     expect(analyticsRelayEndpoint({ NODETOOL_ANALYTICS_ENDPOINT: "http://10.0.0.1/x" })).toMatch(
-      /^https:\/\/analytics\.nodetool\.ai\//
+      /^https:\/\/api\.nodetool\.ai\/api\/analytics\//
     );
   });
 });
