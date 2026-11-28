@@ -815,3 +815,37 @@ The Linux `SCHED_FIFO` request is exercised. The macOS time-constraint and
 Windows MMCSS paths are not compiled by Linux CI. Device-timing qualification
 needs the hardware of WP02 and WP15.
 
+
+## WP14 visual clock and submit gate (part 1)
+
+[`VisualClock`](include/nodetool/realtime/visual_clock.h) and
+[`SubmitGate`](include/nodetool/realtime/submit_gate.h) are the headless parts
+of WP14. `realtime-render-loop` passes with GCC Release, ASan/UBSan and TSan,
+and with Clang TSan. It checks:
+
+- Ten minutes of frames on a 59.94 Hz display reported as 60 Hz, with 0.3 ms
+  acquire jitter, an audio clock 100 ppm fast and 1.5 ms jitter in the
+  predicted audio position. After 600 frames the clock stays within 1 ms of
+  the true audio position at each presentation, never steps, and its frame
+  steps vary by less than a tenth of the prediction's. The measured period
+  converges to within 0.05% of the display's.
+- A frame that misses two refreshes advances three periods and counts two
+  misses. A device change without a re-anchor steps once and counts it, and
+  with a re-anchor sets the clock to the prediction. The first frame after an
+  idle skip anchors without counting misses. A non-finite or backward
+  observation leaves the clock unchanged.
+- The gate, deterministic: with a device slower than one frame, no two batch
+  units sit between frames, and no unit is submitted before the one before it
+  is done. Under threads: four batch threads queue 2,000 units, no two are
+  ever in flight, no frame has more than one unit before it, and in
+  unsanitized builds the render thread allocates nothing for a unit.
+
+Inverted checks: a gate that ignores the in-flight unit, a clock without error
+correction, and an estimator that keeps the mode period each fail the test.
+
+Not covered: the surface presenter and its adapter check, the change that
+routes the graph runner GPU host's batch uploads through the gate, device
+polling on the prepare thread, resize, surface loss, adaptive render scale and
+device-lost handling. The WP01 spike has no committed measurements to compare
+the gate against, so that exit check is open. Frame timing on a real display
+is not measured.

@@ -31,6 +31,24 @@ these on the null device. The render thread and surface (WP14), the param table
 (WP13), state follow on swap (WP18), tap and capture rings (WP22, WP26) and live
 slot replacement inside the executors (WP19) are not part of it.
 
+## Visual clock and submit gate
+
+WP14 starts with the parts of the render loop that need no display.
+[visual_clock.h](include/nodetool/realtime/visual_clock.h) is the visual clock
+of design D7c to D7e. It anchors to the audio position predicted for the
+presentation time on play, reset, a device change, or the first active frame
+after an idle skip. It advances by whole refresh periods, removes 5% of its
+error each frame, and removes an error over half a period in one counted step.
+The refresh period starts at the display mode's period and is refined from the
+intervals between paced acquires. The presentation time is the acquire time
+plus one period plus the host's offset for the output device.
+[submit_gate.h](include/nodetool/realtime/submit_gate.h) is the gate of
+section 9.2 rules 1 and 2. The render thread submits its frame first. After
+the present it submits at most one queued batch unit, and the next waits until
+the device reports the one before as done. The surface presenter, the GPU host
+change, device polling, resize and surface loss handling, adaptive render scale
+and device-lost handling are not part of it yet.
+
 ## Build and test
 
 For the headless M1 core alone, without Node, Qt, GPU or audio dependencies:
