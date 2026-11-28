@@ -5,6 +5,7 @@ import NodeTool.Timeline
 Item {
     id: host
     required property string slot
+    // Dynamic initial-property map includes QObject references for registered panels.
     property var slotProperties: ({})
     property bool overlay: false
     property bool vertical: false
@@ -16,6 +17,10 @@ Item {
         id: panels
         model: PanelRegistry.forSlot(host.slot)
         delegate: Loader {
+            id: panelLoader
+            // Dynamic QObject initial-property map crosses the Loader.setSource boundary.
+            readonly property var panelProperties: host.slotProperties
+            // JSON record supplied by the delegate model.
             required property var modelData
             required property int index
             anchors.fill: host.overlay ? host : null
@@ -24,12 +29,19 @@ Item {
             y: !host.overlay && host.vertical && index > 0 ? panels.itemAt(index - 1).y + panels.itemAt(index - 1).height : 0
             function initialProperties() {
                 const properties = {}
-                for (const name of Object.keys(host.slotProperties)) {
-                    properties[name] = Qt.binding(() => host.slotProperties[name])
+                for (const name of Object.keys(panelProperties)) {
+                    properties[name] = Qt.binding(() => panelLoader.panelProperties[name])
                 }
                 return properties
             }
-            Component.onCompleted: Qt.callLater(() => setSource(modelData.source, initialProperties()))
+            // A timer the delegate owns, unlike Qt.callLater, dies with it, so a
+            // delegate the Repeater drops before the next turn never loads.
+            Timer {
+                id: loadLater
+                interval: 0
+                onTriggered: panelLoader.setSource(panelLoader.modelData.source, panelLoader.initialProperties())
+            }
+            Component.onCompleted: loadLater.start()
         }
     }
 }

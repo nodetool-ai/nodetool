@@ -5,6 +5,12 @@ import NodeTool.UiPrimitives as Ui
 Basic.Menu {
     id: root
     property Item returnFocusTo: null
+    property Item popupAnchor: null
+    onPopupAnchorChanged: if (!popupAnchor && visible) close()
+    Connections {
+        target: root.popupAnchor
+        function onVisibleChanged() { if (root.popupAnchor && !root.popupAnchor.visible) root.close() }
+    }
     parent: Basic.Overlay.overlay
     padding: Metrics.xs
     // A menu taller than the window scrolls inside it.
@@ -27,28 +33,76 @@ Basic.Menu {
         onTriggered: if (root.visible && !root.destroying) root.measureItems()
     }
     onCountChanged: if (visible && !destroying) measurement.restart()
-    onAboutToShow: if (!destroying) measureItems()
+    onAboutToShow: {
+        if (!destroying) {
+            if (entriesBuilt || (entries && entries.length > 0)) rebuild()
+            measureItems()
+        }
+    }
     Component.onDestruction: {
         destroying = true
         measurement.stop()
+        retargeting.stop()
+        pendingTarget = null
     }
     implicitWidth: {
         const desired = widestItem + leftPadding + rightPadding
         return parent ? Math.min(desired, parent.width) : desired
     }
+    property Item pendingAnchor: null
+    component RetargetRequest: QtObject { signal configure(Item anchor) }
+    Component { id: retargetRequest; RetargetRequest {} }
+    property RetargetRequest pendingTarget: null
+    function cancelRetarget() {
+        retargeting.stop()
+        pendingAnchor = null
+        if (pendingTarget) pendingTarget.destroy()
+        pendingTarget = null
+    }
+    // Finish closing before replacing a shared menu's target, including during exit.
+    function retarget(anchor, configure) {
+        cancelRetarget()
+        if (!visible) {
+            configure(anchor)
+            return
+        }
+        pendingAnchor = anchor
+        pendingTarget = retargetRequest.createObject(root)
+        pendingTarget.configure.connect(configure)
+        close()
+    }
+    Timer {
+        id: retargeting
+        interval: 0
+        onTriggered: {
+            const anchor = root.pendingAnchor
+            const request = root.pendingTarget
+            root.pendingAnchor = null
+            root.pendingTarget = null
+            if (request) {
+                if (anchor) request.configure(anchor)
+                request.destroy()
+            }
+        }
+    }
     function openAt(item) {
+        popupAnchor = item
         returnFocusTo = item
+        open()
+        measureItems()
         const point = item.mapToItem(parent, 0, item.height)
         x = Math.max(0, Math.min(point.x, parent.width - width))
         y = Math.max(0, Math.min(point.y + height <= parent.height ? point.y : point.y - item.height - height, parent.height - height))
-        open()
     }
     // Opens at a point of `item`, as a right-click on it wants. The window keeps the whole menu.
     function popupAt(item, itemX, itemY) {
+        popupAnchor = item
+        returnFocusTo = null
+        open()
+        measureItems()
         const point = item.mapToItem(parent, itemX, itemY)
         x = Math.max(0, Math.min(point.x, parent.width - width))
         y = Math.max(0, Math.min(point.y, parent.height - height))
-        open()
     }
     delegate: Ui.MenuItem {}
 
@@ -57,7 +111,8 @@ Basic.Menu {
     // list, one with only `separator: true` is a divider and one with only `header`
     // is a section label. A chosen entry emits entryTriggered(id). Items get the
     // objectName "menu-item-<id>" and a submenu "menu-<id>". Setting `entries`
-    // rebuilds the menu, also while it is open.
+    // rebuilds the menu while open. Closed data menus have count 0 and itemFor()
+    // returns null. They read the latest entries on open.
     property var entries: []
     property real submenuMinimumWidth: Metrics.xxxl * 5.625
     property var itemsById: ({})
@@ -70,8 +125,7 @@ Basic.Menu {
         entriesBuilt = true
         buildEntries(root, entries)
     }
-    onEntriesChanged: if (entriesBuilt || (entries && entries.length > 0)) rebuild()
-    Component.onCompleted: if (entries && entries.length > 0) rebuild()
+    onEntriesChanged: if (visible) rebuild()
     function buildEntries(target, list) {
         // removeItem and removeMenu destroy what they remove, so nothing is destroyed twice.
         while (target.count > 0) {
@@ -85,13 +139,13 @@ Basic.Menu {
         for (let index = 0; index < list.length; ++index) {
             const entry = list[index]
             if (entry.separator === true) {
-                target.addItem(separatorComponent.createObject(null))
+                target.addItem(separatorComponent.createObject(target))
             } else if (entry.header !== undefined) {
-                target.addItem(headerComponent.createObject(null, { text: entry.header }))
+                target.addItem(headerComponent.createObject(target, { text: entry.header }))
             } else if (entry.submenu !== undefined) {
                 addSubmenu(target, entry)
             } else {
-                const row = itemComponent.createObject(null, entryProperties(entry))
+                const row = itemComponent.createObject(target, entryProperties(entry))
                 row.triggered.connect(() => root.entryTriggered(entry.id))
                 target.addItem(row)
                 itemsById[entry.id] = row
@@ -148,6 +202,13 @@ Basic.Menu {
     background: Rectangle { color: Theme.surfaceOverlay; radius: Metrics.radiusOverlay; border.width: Metrics.border; border.color: Theme.borderControl }
     onClosed: {
         measurement.stop()
+        if (entriesBuilt) {
+            buildEntries(root, [])
+            entriesBuilt = false
+        }
         if (returnFocusTo && returnFocusTo.visible && returnFocusTo.enabled) returnFocusTo.forceActiveFocus(Qt.PopupFocusReason)
+        returnFocusTo = null
+        popupAnchor = null
+        if (pendingTarget) retargeting.restart()
     }
 }

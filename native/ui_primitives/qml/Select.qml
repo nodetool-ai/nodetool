@@ -1,9 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 Basic.ComboBox {
     id: root
+    focusPolicy: editable ? Qt.StrongFocus : Qt.TabFocus
     property var value
     property var options: []
     property string accessibleName: ""
@@ -106,10 +108,23 @@ Basic.ComboBox {
         return Math.ceil(widest)
     }
     popup: Basic.Popup {
+        focus: true
         property real optionWidth: 0
+        property Item returnFocusTo: null
         y: root.height; width: Math.max(root.width, optionWidth + Metrics.md * 2 + leftPadding + rightPadding); padding: Metrics.xs
-        onAboutToShow: optionWidth = root.widestOption()
-        onClosed: root.forceActiveFocus(Qt.PopupFocusReason)
+        onAboutToShow: {
+            optionWidth = root.widestOption()
+            returnFocusTo = root.Window.window ? root.Window.window.activeFocusItem : null
+        }
+        onClosed: {
+            const active = root.Window.window ? root.Window.window.activeFocusItem : null
+            let insidePopup = false
+            for (let item = active; item; item = item.parent) {
+                if (item === contentItem || item === contentItem.parent) { insidePopup = true; break }
+            }
+            if ((!active || insidePopup) && returnFocusTo && returnFocusTo.visible && returnFocusTo.enabled) returnFocusTo.forceActiveFocus(Qt.PopupFocusReason)
+            returnFocusTo = null
+        }
         onOpened: { if (root.readOnly) { close(); return }; list.currentIndex = root.currentIndex; list.forceActiveFocus() }
         contentItem: ListView {
             id: list

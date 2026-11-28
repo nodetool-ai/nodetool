@@ -15,13 +15,21 @@ QtObject {
     // source patch boxes share one blue.
     readonly property color editBlue: "#2d8ceb"
     readonly property color targetFill: "#1f5c9e"
-    readonly property color clipText: "#141414"
+    // The music range band (docs/MUSIC-MODE.md section 7): editBlue at 18%.
+    readonly property color rangeFill: "#2e2d8ceb"
+    // Clip text on the muted region band: light on the dark scheme, as the web regions.
+    readonly property color clipText: Ui.Theme.dark ? Ui.Theme.textPrimary : "#141414"
     readonly property color audioWave: "#7cf2c4"
+    readonly property color loopRepeatFill: Ui.Theme.scrimMedia
     readonly property color fxBadge: "#e8d44d"
+
+    function alphaColor(value: color, alpha: real): color { return Qt.alpha(value, alpha) }
+    function lighterColor(value: color, factor: real): color { return Qt.lighter(value, factor) }
+    function darkerColor(value: color, factor: real): color { return Qt.darker(value, factor) }
 
     // The solid clip fill by media type, as the label colours of a
     // conventional NLE: violet video, teal audio.
-    function clipFill(mediaType) {
+    function clipFill(mediaType: string): color {
         switch (mediaType) {
         case "video": case "image": return "#a39ae6"
         case "audio": return "#1d9c80"
@@ -30,6 +38,23 @@ QtObject {
         case "adjustment": return "#e0b45c"
         default: return "#9a9aa6"
         }
+    }
+
+    // Region colours (web regionColors.ts): the hue kept, about half the
+    // saturation, a fixed lightness, so neighbouring regions read as one palette.
+    function regionBand(base: color): color {
+        const c = Qt.darker(base, 1)
+        c.hslSaturation = Math.min(c.hslSaturation, 0.85) * (Ui.Theme.dark ? 0.5 : 0.55)
+        c.hslLightness = Ui.Theme.dark ? 0.4 : 0.62
+        return c
+    }
+    // The body under the band: the band toward the canvas.
+    function regionBody(base: color): color {
+        return Qt.tint(regionBand(base), Qt.alpha(Ui.Theme.surfaceCanvas, Ui.Theme.dark ? 0.5 : 0.62))
+    }
+    // Note lines, curves and waveforms on the body.
+    function regionContent(base: color): color {
+        return Qt.tint(regionBand(base), Qt.alpha(Ui.Theme.textPrimary, Ui.Theme.dark ? 0.72 : 0.6))
     }
 
     function trackAccent(type) {
@@ -62,7 +87,7 @@ QtObject {
         default: return "videocam"
         }
     }
-    function clipAccent(mediaType) {
+    function clipAccent(mediaType: string): color {
         switch (mediaType) {
         case "audio": return audio
         case "overlay": case "text": case "shape": case "group": return overlay
@@ -81,7 +106,7 @@ QtObject {
         default: return Qt.rgba(1, 1, 1, 0.04)
         }
     }
-    function clipBorderTint(mediaType) {
+    function clipBorderTint(mediaType: string): color {
         switch (mediaType) {
         case "video": case "image": return Qt.rgba(34 / 255, 211 / 255, 238 / 255, 0.35)
         case "audio": return Qt.rgba(80 / 255, 250 / 255, 123 / 255, 0.35)

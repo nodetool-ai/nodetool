@@ -114,13 +114,18 @@ private slots:
     void imageShowsThePicture() {
         QTemporaryDir directory; QVERIFY(directory.isValid());
         const auto path = directory.filePath("still.png");
-        QImage picture(320, 180, QImage::Format_RGB32); picture.fill(Qt::darkCyan); QVERIFY(picture.save(path));
+        QImage picture(6000, 4000, QImage::Format_RGB32); picture.fill(Qt::darkCyan); QVERIFY(picture.save(path));
         QVariantMap still{{"id", "still"}, {"name", "still.png"}, {"content_type", "image/png"}};
         state->setAsset(still);
         state->monitor()->openLocal(still, path, {});
         QTRY_VERIFY_WITH_TIMEOUT(state->monitor()->ready() && !state->monitor()->busy(), 10000);
         auto* poster = item("sourcePoster"); QVERIFY(poster); QVERIFY(poster->isVisible());
         QTRY_COMPARE(poster->property("status").toInt(), 1);
+        const auto decode = poster->property("sourceSize").toSize();
+        QVERIFY(decode.width() > 0 && decode.height() > 0);
+        qInfo() << "Source decode bounds: 24000000 ->" << decode.width() * decode.height() << "pixels";
+        QVERIFY(decode.width() <= std::ceil(poster->width() * view->devicePixelRatio() / 128) * 128);
+        QVERIFY(decode.height() <= std::ceil(poster->height() * view->devicePixelRatio() / 128) * 128);
         QVERIFY(!item("sourceScrub")->isVisible());
         QTest::qWait(100);
         shot("source-image");

@@ -14,7 +14,12 @@ import { OUT_NAMES, pad, PAD_COUNT } from "../fablesynth/drum/params";
 import { loadDrumAssets, workletAssetLists } from "../fablesynth/drum/engine/drumAssets";
 import type { LiveDeviceFactory, LiveDeviceOptions } from "./liveDevice";
 import { loadFableWorklets } from "./loadFableWorklets";
-import { encodeLiveEvents, WorkletInstrumentDevice } from "./workletDevice";
+import {
+  encodeLiveControllers,
+  encodeLiveEvents,
+  encodeLivePitchOffsets,
+  WorkletInstrumentDevice
+} from "./workletDevice";
 import { dr1ParamsFromInstrument } from "./dr1Params";
 
 export interface Dr1VizMessage {
@@ -223,6 +228,14 @@ export async function createDr1DeviceInstance(
   };
   if (options.events?.length) {
     processorOptions.events = encodeLiveEvents(options.events, ctx.sampleRate);
+    const pitchOffsets = encodeLivePitchOffsets(options.events);
+    if (pitchOffsets) processorOptions.eventPitchOffsets = pitchOffsets;
+  }
+  if (options.controllers?.length) {
+    processorOptions.controllers = encodeLiveControllers(
+      options.controllers,
+      ctx.sampleRate
+    );
   }
   const node = new AudioWorkletNode(ctx, "fable-dr", {
     numberOfInputs: 0,

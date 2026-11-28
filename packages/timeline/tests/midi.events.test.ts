@@ -22,10 +22,10 @@ describe("midiClipNoteEvents", () => {
 
   it("places notes on the timeline from the clip's in-point and clamps offs to its end", () => {
     expect(midiClipNoteEvents(clip, 120)).toEqual([
-      { timeMs: 1000, pitch: 62, velocity: 90, on: true },
-      { timeMs: 1500, pitch: 62, velocity: 0, on: false },
-      { timeMs: 2500, pitch: 64, velocity: 90, on: true },
-      { timeMs: 3000, pitch: 64, velocity: 0, on: false }
+      { timeMs: 1000, pitch: 62, velocity: 90, on: true, channel: 0 },
+      { timeMs: 1500, pitch: 62, velocity: 0, on: false, channel: 0 },
+      { timeMs: 2500, pitch: 64, velocity: 90, on: true, channel: 0 },
+      { timeMs: 3000, pitch: 64, velocity: 0, on: false, channel: 0 }
     ]);
   });
 

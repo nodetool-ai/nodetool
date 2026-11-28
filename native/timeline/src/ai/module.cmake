@@ -35,6 +35,8 @@ function(nt_ai_tests)
         src/ai/GenerationController.h src/ai/GenerationController.cpp
         src/aiassist/AssistantSession.h src/aiassist/AssistantSession.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_ai_controller PRIVATE nodetool_timeline_player timeline_core timeline_decode timeline_server timeline_audio
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::WebSockets Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})

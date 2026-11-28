@@ -50,9 +50,7 @@ void InspectorEdits::refresh() {
     if (groups != m_groupClips) { m_groupClips = groups; emit groupClipsChanged(); }
     if (children != m_childCount) { m_childCount = children; emit childCountChanged(); }
 }
-QVariantMap InspectorEdits::document() const {
-    return m_model ? m_model->timeline().raw.toVariantMap() : QVariantMap{};
-}
+
 bool InspectorEdits::apply(const QString& action, const QJsonObject& payload) {
     return m_model && m_model->applyEdit(action, payload);
 }

@@ -1,7 +1,11 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import "../../vst"
 Item {
     id: root
+    property string trackId: ""
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var effect
     property bool disabled: false
     signal preview(var patch)
@@ -22,6 +26,8 @@ Item {
             case "sharpen": return editor6
             case "vignette": return editor7
             case "chromaKey": return editor8
+            case "fable": return editorFable
+            case "vst": return editorVst
             default: return null
             }
         }
@@ -114,6 +120,32 @@ Item {
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
             onEditCanceled: root.editCanceled()
+        }
+    }
+    Component {
+        id: editorFable
+        FableEffectEditor {
+            effect: root.effect
+            disabled: root.disabled
+            onPreview: patch => root.preview(patch)
+            onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
+        }
+    }
+    Component {
+        id: editorVst
+        VstPluginControl {
+            instrumentMode: false
+            instanceId: root.trackId !== "" && root.effect && root.effect.id ? ("fx:" + root.trackId + ":" + root.effect.id) : ""
+            editorTitle: root.effect && root.effect.plugin && root.effect.plugin.name ? root.effect.plugin.name : "VST3 Effect"
+            plugin: root.effect ? (root.effect.plugin || null) : null
+            pluginState: root.effect ? (root.effect.state || "") : ""
+            wet: root.effect && root.effect.wet !== undefined ? root.effect.wet : 1.0
+            disabled: root.disabled
+            onPluginChosen: pluginRef => root.commit({ plugin: pluginRef, state: null })
+            onParameterPreviewed: patch => root.preview(patch)
+            onEditCanceled: root.editCanceled()
+            onWetChangedRequested: value => root.commit({ wet: value })
         }
     }
 }

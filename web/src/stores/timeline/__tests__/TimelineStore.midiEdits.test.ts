@@ -171,3 +171,14 @@ describe("TimelineStore — scaleClipVelocity", () => {
     expect(read().notes![0].velocity).toBe(80);
   });
 });
+
+describe("TimelineStore — note validation", () => {
+  it("refuses a note whose expression runs past its end", () => {
+    const { store, clipId, read } = seed([{ pitch: 60, startTick: 0, durationTick: 960 }]);
+    const [note] = read().notes!;
+    store.getState().setClipNotes(clipId, [
+      { ...note, expression: { pitch: [{ tick: 1440, value: 1 }] } }
+    ]);
+    expect(read().notes![0].expression).toBeUndefined();
+  });
+});

@@ -149,6 +149,7 @@ void LoudnessMeter::clearWindows() noexcept {
         channel.energy = 0;
         channel.history.fill(0);
         channel.position = 0;
+        channel.samplesSinceClipReset = kTaps;
     }
     subPosition_ = ringPosition_ = 0;
     subblocksSeen_ = 0;
@@ -161,8 +162,17 @@ void LoudnessMeter::reset() noexcept {
     rangeHist_.clear();
     for (auto& channel : channels_) {
         channel.samplePeak = channel.truePeak = 0;
+        channel.samplesSinceClipReset = kTaps;
     }
     maxMomentary_ = maxShortTerm_ = kNone;
+    clipped_ = false;
+}
+
+void LoudnessMeter::resetClip() noexcept {
+    clipped_ = false;
+    for (auto& channel : channels_) {
+        channel.samplesSinceClipReset = factor_ != 1 ? 0 : kTaps;
+    }
 }
 
 void LoudnessMeter::feed(Channel& channel, float x) noexcept {
@@ -174,6 +184,7 @@ void LoudnessMeter::feed(Channel& channel, float x) noexcept {
     const float absolute = std::abs(x);
     channel.samplePeak = std::max(channel.samplePeak, absolute);
     float peak = absolute;
+    float clipPeak = absolute;
     if (factor_ != 1) {
         channel.position = channel.position == 0 ? kTaps - 1 : channel.position - 1;
         channel.history[channel.position] = channel.history[channel.position + kTaps] = x;
@@ -189,8 +200,32 @@ void LoudnessMeter::feed(Channel& channel, float x) noexcept {
             const float value = (acc[0] + acc[4]) + (acc[1] + acc[5]) + (acc[2] + acc[6]) + (acc[3] + acc[7]);
             peak = std::max(peak, std::abs(value));
         }
+        if (channel.samplesSinceClipReset >= kTaps) {
+            clipPeak = peak;
+        } else {
+            const int postSamples = ++channel.samplesSinceClipReset;
+            // The polyphase FIR is centred at kTaps / 2: earlier outputs evaluate pre-reset
+            // audio. Once the centre enters post-reset audio, bound against a post-reset-only
+            // FIR evaluation so neither pre-reset residual energy nor a synthetic step on
+            // continuous non-clipping audio false-latches CLIP.
+            if (postSamples > kTaps / 2) {
+                float postPeak = absolute;
+                for (int p = 0; p < factor_; ++p) {
+                    const float* c = coefficients_.data() + p * kTaps;
+                    float sum = 0.0f;
+                    for (int j = 0; j < postSamples; ++j) {
+                        sum += c[j] * history[j];
+                    }
+                    postPeak = std::max(postPeak, std::abs(sum));
+                }
+                clipPeak = std::max(absolute, std::min(peak, postPeak));
+            }
+        }
     }
     channel.truePeak = std::max(channel.truePeak, peak);
+    if (clipPeak > 1.0f) {
+        clipped_ = true;
+    }
 }
 
 void LoudnessMeter::processPlanar(const float* const* channels, int frames) noexcept {

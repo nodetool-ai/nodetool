@@ -1,3 +1,4 @@
+#include "model/StepPatternValidation.h"
 #include "model/TimelineJson.h"
 
 #include "scene/ClipScene.h"
@@ -10,8 +11,41 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <cmath>
+
 namespace nt {
 namespace {
+
+bool validAutomationMode(const QJsonValue& value) {
+    if (value.isUndefined()) { return true; }
+    if (!value.isString()) { return false; }
+    const auto mode = value.toString();
+    return mode == u"off" || mode == u"read" || mode == u"touch" || mode == u"latch" || mode == u"write";
+}
+
+bool validFableEffectKind(const QString& kind) {
+    return kind == u"eq" || kind == u"ott" || kind == u"comp" || kind == u"drive" ||
+           kind == u"lab" || kind == u"chorus" || kind == u"echo" || kind == u"reverb" ||
+           kind == u"limiter";
+}
+
+bool validFableEffects(const QJsonArray& effects) {
+    for (const QJsonValue& ev : effects) {
+        const QJsonObject e = ev.toObject();
+        if (e.value(u"type").toString() != u"fable") { continue; }
+        if (!validFableEffectKind(e.value(u"kind").toString())) { return false; }
+        const QJsonValue params = e.value(u"params");
+        if (!params.isUndefined()) {
+            if (!params.isObject()) { return false; }
+            const QJsonObject obj = params.toObject();
+            for (auto it = obj.begin(); it != obj.end(); ++it) {
+                const bool ok = it.value().isBool() || (it.value().isDouble() && std::isfinite(it.value().toDouble()));
+                if (!ok) { return false; }
+            }
+        }
+    }
+    return true;
+}
 
 std::optional<TrackType> trackTypeFrom(const QString& s) {
     if (s == u"video") return TrackType::Video;
@@ -90,6 +124,15 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         return result;
     }
 
+    if (!validAutomationMode(root.value(u"master").toObject().value(u"automationMode"))) {
+        result.error = QStringLiteral("master: invalid automationMode");
+        return result;
+    }
+    if (!validFableEffects(root.value(u"master").toObject().value(u"effects").toArray())) {
+        result.error = QStringLiteral("master: invalid fable effect");
+        return result;
+    }
+
     for (const QJsonValue& tv : root.value(u"tracks").toArray()) {
         const QJsonObject t = tv.toObject();
         Track track;
@@ -108,6 +151,20 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         track.solo = t.value(u"solo").toBool(false);
         track.volumeDb = t.value(u"volumeDb").toDouble(0.0);
         track.pan = t.value(u"pan").toDouble(0.0);
+        if (!validAutomationMode(t.value(u"automationMode"))) {
+            result.error = QStringLiteral("track %1: invalid automationMode").arg(QString::fromStdString(track.id));
+            return result;
+        }
+        if (!validFableEffects(t.value(u"effects").toArray())) {
+            result.error = QStringLiteral("track %1: invalid fable effect").arg(QString::fromStdString(track.id));
+            return result;
+        }
+        const auto stepTemplate = t.value(u"stepTemplate");
+        if (!stepTemplate.isUndefined() && (!stepTemplate.isObject() ||
+            !midi::validateStoredStepPattern(stepTemplate.toObject()).isEmpty())) {
+            result.error = QStringLiteral("track %1: invalid step template").arg(QString::fromStdString(track.id));
+            return result;
+        }
         track.raw = t;
         tl.tracks.push_back(std::move(track));
     }
@@ -134,6 +191,8 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         clip.opacity = c.value(u"opacity").toDouble(1.0);
         clip.fadeInMs = c.value(u"fadeInMs").toDouble(0.0);
         clip.fadeOutMs = c.value(u"fadeOutMs").toDouble(0.0);
+        clip.hasFadeInMs = c.contains(u"fadeInMs");
+        clip.hasFadeOutMs = c.contains(u"fadeOutMs");
         clip.fadeInShape = c.value(u"fadeInShape").toString().toStdString();
         clip.fadeOutShape = c.value(u"fadeOutShape").toString().toStdString();
         clip.speedMultiplier = c.value(u"speedMultiplier").toDouble(1.0);
@@ -177,6 +236,18 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         const QString audioPath = c.value(u"audioPath").toString();
         if (!audioPath.isEmpty()) clip.audioPath = local(audioPath);
         clip.raw = c;
+        if (clip.mediaType == MediaType::Midi) {
+            auto notes = std::make_shared<std::vector<MidiNote>>();
+            const auto values = c.value("notes").toArray();
+            notes->reserve(static_cast<std::size_t>(values.size()));
+            for (const auto& value : values) {
+                const auto note = value.toObject();
+                notes->push_back({note.value("id").toString(), note.value("pitch").toInt(),
+                    note.value("velocity").toInt(), note.value("startTick").toDouble(),
+                    note.value("durationTick").toDouble(), note});
+            }
+            clip.notes = std::move(notes);
+        }
         clip.scene = scene::parseClipScene(c);
         if (!tl.findTrack(clip.trackId)) {
             result.error = QStringLiteral("clip %1: unknown trackId").arg(QString::fromStdString(clip.id));
@@ -185,6 +256,46 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         if (clip.durationMs <= 0.0) {
             result.error = QStringLiteral("clip %1: durationMs must be positive").arg(QString::fromStdString(clip.id));
             return result;
+        }
+        const QJsonValue patternVal = c.value(u"pattern");
+        const bool hasPattern = !patternVal.isUndefined();
+        if (hasPattern && !patternVal.isObject()) {
+            result.error = QStringLiteral("clip %1: pattern must be an object").arg(QString::fromStdString(clip.id));
+            return result;
+        }
+        const QJsonValue notesVal = c.value(u"notes");
+        const bool hasNotes = !notesVal.isUndefined();
+        if (hasPattern && hasNotes) {
+            result.error = QStringLiteral("clip %1: cannot hold both pattern and notes").arg(QString::fromStdString(clip.id));
+            return result;
+        }
+        if ((hasNotes && !notesVal.isArray()) ||
+            (hasPattern && (clip.mediaType != MediaType::Midi || c.contains(u"controllers") ||
+                            !midi::validateStoredStepPattern(patternVal.toObject()).isEmpty()))) {
+            result.error = QStringLiteral("clip %1: invalid MIDI pattern or notes").arg(QString::fromStdString(clip.id));
+            return result;
+        }
+        const auto nonnegativeInteger = [](const QJsonValue& value) {
+            return value.isDouble() && std::isfinite(value.toDouble()) && value.toDouble() >= 0 &&
+                   value.toDouble() <= 9007199254740991.0 && std::floor(value.toDouble()) == value.toDouble();
+        };
+        if (c.contains(u"patternPhaseTicks") && !nonnegativeInteger(c.value(u"patternPhaseTicks"))) {
+            result.error = QStringLiteral("patternPhaseTicks must be a nonnegative integer.");
+            return result;
+        }
+        if (c.contains(u"patternRowCycles")) {
+            const auto cycles = c.value(u"patternRowCycles");
+            if (!cycles.isObject()) { result.error = "patternRowCycles must be an object."; return result; }
+            const auto states = cycles.toObject();
+            for (auto it = states.begin(); it != states.end(); ++it) {
+                const auto state = it.value().toObject();
+                if (!it.value().isObject() || !nonnegativeInteger(state.value(u"cycleOffset")) ||
+                    (state.contains(u"lastCycle") && !nonnegativeInteger(state.value(u"lastCycle"))) ||
+                    (state.contains(u"wanderPos") && !nonnegativeInteger(state.value(u"wanderPos")))) {
+                    result.error = "Invalid pattern row cycle state.";
+                    return result;
+                }
+            }
         }
         tl.clips.push_back(std::move(clip));
     }

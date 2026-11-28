@@ -11,16 +11,22 @@
 import {
   DEFAULT_MIDI_INSTRUMENT,
   effectiveAssetId,
+  applyAutoCrossfade,
+  autoCrossfadeMsOf,
   harmonizeClips,
+  instrumentCutoffControls,
+  mergeTrackMidiControllers,
   midiClipFrames,
   midiClipVoiceEvents,
   renderMidiClip,
   resolveTempo,
+  tracksWithPatternAutomation,
   videoClipsWithOwnAudio
 } from "@nodetool-ai/timeline";
 import type {
   TimelineClip,
   TimelineMasterChannel,
+  TimelineMusic,
   TimelineTempo,
   TimelineTrack
 } from "@nodetool-ai/timeline";
@@ -42,6 +48,8 @@ interface RenderAudioOptions {
   sampleRate?: number;
   /** Tempo the midi clips are read against. Defaults to `DEFAULT_TEMPO`. */
   tempo?: TimelineTempo;
+  /** The document's music marker. A music project crossfades touching audio clips (CE7). */
+  music?: TimelineMusic;
   /** The document's master channel: its inserts and fader run on the mix. */
   master?: TimelineMasterChannel;
   /** Aborts the mixdown between steps and while assets are loading. */
@@ -85,8 +93,12 @@ function abortable<T>(
 
 function isPlayableAudioClip(clip: TimelineClip): boolean {
   if (clip.muted || clip.startMs + clip.durationMs <= 0) return false;
-  // A midi clip's notes are its content: no asset, nothing to generate.
-  if (clip.mediaType === "midi") return (clip.notes?.length ?? 0) > 0;
+  // A midi clip's notes or controller lanes are its content: no asset to fetch.
+  if (clip.mediaType === "midi") {
+    return (
+      (clip.notes?.length ?? 0) > 0 || (clip.controllers?.length ?? 0) > 0
+    );
+  }
   return clip.mediaType === "audio" && effectiveAssetId(clip) !== undefined;
 }
 
@@ -98,9 +110,21 @@ export async function renderTimelineAudio(
   opts: RenderAudioOptions
 ): Promise<AudioBuffer | null> {
   const { tracks, durationMs, resolveUrl, signal } = opts;
+  const effectiveTracks = tracksWithPatternAutomation(tracks, opts.clips, {
+    tracks,
+    tempo: opts.tempo
+  });
+  const tempo = resolveTempo({ tempo: opts.tempo });
+  const instrumentOf = (trackId: string) =>
+    tracks.find((t) => t.id === trackId)?.instrument ?? DEFAULT_MIDI_INSTRUMENT;
   // A midi clip with `harmony` plays its arp or comp expansion, here and in
-  // what the live devices are preloaded with.
-  const clips = harmonizeClips(opts.clips, { tracks, tempo: opts.tempo });
+  // what the live devices are preloaded with. Pre-rendered tracks also merge
+  // overlapping same-track controller clips onto note-bearing clips.
+  const clips = mergeTrackMidiControllers(
+    harmonizeClips(opts.clips, { tracks, tempo: opts.tempo }),
+    tempo,
+    { shouldMergeTrack: (trackId) => !liveDeviceFactory(instrumentOf(trackId)) }
+  );
   const sampleRate = opts.sampleRate ?? 48_000;
 
   if (durationMs <= 0) return null;
@@ -119,28 +143,26 @@ export async function renderTimelineAudio(
   );
   // A video clip with no extracted-audio partner sounds its own audio, as it
   // does in the server export; its mute and solo are decided by the shared rule.
-  const audioClips = [
+  const audioClips = applyAutoCrossfade([
     ...videoClipsWithOwnAudio(clips, tracks).filter(
       (clip) => clip.startMs + clip.durationMs > 0
     ),
     ...clips.filter(
       (clip) => isPlayableAudioClip(clip) && audibleTrackIds.has(clip.trackId)
     )
-  ];
+  ], autoCrossfadeMsOf({ music: opts.music })) as TimelineClip[];
   if (audioClips.length === 0) return null;
 
   const length = Math.max(1, Math.round((durationMs / 1000) * sampleRate));
   const offline = new OfflineAudioContext(2, length, sampleRate);
-  const bpm = resolveTempo({ tempo: opts.tempo }).bpm;
-  const instrumentOf = (trackId: string) =>
-    tracks.find((t) => t.id === trackId)?.instrument ?? DEFAULT_MIDI_INSTRUMENT;
+  const { bpm, offsetMs: gridOffsetMs } = tempo;
 
   const resolved = await abortable(
     Promise.all(
       audioClips.map(async (clip): Promise<ScheduledAudioClip | null> => {
         throwIfAborted(signal);
         if (clip.mediaType === "midi" && liveDeviceFactory(instrumentOf(clip.trackId))) {
-          return { clip, live: { bpm } };
+          return { clip, live: { bpm, gridOffsetMs } };
         }
         if (clip.mediaType === "midi") {
           const instrument = instrumentOf(clip.trackId);
@@ -150,7 +172,7 @@ export async function renderTimelineAudio(
             const buffer = await renderVstBuffer(
               offline,
               instrument,
-              midiClipVoiceEvents(clip, bpm, sampleRate),
+              midiClipVoiceEvents(clip, bpm, sampleRate, gridOffsetMs, instrument),
               midiClipFrames(clip, sampleRate)
             ).catch((error: unknown) => {
               throw new Error(
@@ -164,16 +186,23 @@ export async function renderTimelineAudio(
           // path, and one context per render makes a worker round trip pure cost.
           const recordings = await getSamplerAudio(
             offline,
-            instrumentOf(clip.trackId),
+            instrument,
             resolveUrl
           );
           // A cancelled export has already returned; do not render the notes.
           throwIfAborted(signal);
+          const track = effectiveTracks.find((t) => t.id === clip.trackId);
+          const controls =
+            instrument.type === "subtractive"
+              ? instrumentCutoffControls(track, clip, sampleRate)
+              : undefined;
           const samples = renderMidiClip({
             clip,
             bpm,
-            instrument: instrumentOf(clip.trackId),
+            gridOffsetMs,
+            instrument,
             samples: recordings,
+            controls,
             sampleRate
           });
           const buffer = offline.createBuffer(
@@ -211,16 +240,22 @@ export async function renderTimelineAudio(
   // can finish before a message posted after it starts is delivered.
   await abortable(
     graph.preloadLiveDevices(
-      tracks.filter((track) => audibleTrackIds.has(track.id)),
+      effectiveTracks.filter((track) => audibleTrackIds.has(track.id)),
       audioClips,
-      bpm
+      bpm,
+      gridOffsetMs
     ),
     signal
   );
   // currentTimeMs = 0: the renderer always mixes the whole timeline from t=0,
   // so each clip is scheduled at its absolute startMs on the offline clock.
   await abortable(
-    graph.scheduleClips(validClips, tracks, 0, () => signal?.aborted === true),
+    graph.scheduleClips(
+      validClips,
+      effectiveTracks,
+      0,
+      () => signal?.aborted === true
+    ),
     signal
   );
   throwIfAborted(signal);

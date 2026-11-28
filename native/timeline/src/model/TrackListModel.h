@@ -42,6 +42,9 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
+signals:
+    void trackDocumentChanged(int row);
+
 private:
     const nt::Timeline* m_timeline = nullptr;
     std::vector<const nt::Track*> m_rows;

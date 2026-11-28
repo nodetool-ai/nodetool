@@ -10,11 +10,16 @@ function(nt_clipboard_tests)
     set_target_properties(structure-ops PROPERTIES MACOSX_BUNDLE FALSE)
 
     qt_add_executable(tst_fclipboard src/edit/clipboard/tst_fclipboard.cpp
-        src/model/TimelineModel.cpp src/model/TimelineModel.h
+        src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
+        src/model/TimelineModel.h
         src/model/TrackListModel.cpp src/model/TrackListModel.h src/app/BuiltinEdits.cpp)
     nt_target_sources(tst_fclipboard)
     nodetool_use_ui_primitives(tst_fclipboard)
-    target_link_libraries(tst_fclipboard PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
+    target_link_libraries(tst_fclipboard PRIVATE timeline_core timeline_audio Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
     target_compile_definitions(tst_fclipboard PRIVATE NT_QML_DIR="${CMAKE_CURRENT_SOURCE_DIR}/qml")
     set_target_properties(tst_fclipboard PROPERTIES MACOSX_BUNDLE FALSE
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/F-tests")

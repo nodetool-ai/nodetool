@@ -82,7 +82,7 @@ Rectangle {
                     required property int index
                     readonly property string panelId: root.panels[index]
                     readonly property bool selected: root.activeId === panelId
-                    readonly property bool closable: panelId !== "program" && panelId !== "tracks"
+                    readonly property bool closable: panelId !== "tracks"
                     readonly property bool showClose: closable && selected
                     objectName: "dockTab_" + panelId
                     width: Math.min(Ui.Metrics.small * 10 + Ui.Metrics.md,
@@ -151,7 +151,6 @@ Rectangle {
                             if (dragged) root.dock.finishDrag()
                             else if (event.button === Qt.MiddleButton && tab.closable) root.dock.store.dispatch({type: "hide", panelId: tab.panelId})
                             else if (event.button === Qt.RightButton) root.groupView.openMenu(tab.panelId, tab)
-                            else tab.forceActiveFocus()
                         }
                         onCanceled: root.dock.cancelDrag()
                     }
@@ -172,7 +171,7 @@ Rectangle {
                         else if ((event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) && closable) root.dock.store.dispatch({type: "hide", panelId})
                         else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier)) root.groupView.openMenu(panelId, tab)
                         else if (event.key === Qt.Key_Space && event.modifiers & Qt.ShiftModifier) root.dock.toggleMaximize(root.groupView.group.id)
-                        else if (event.modifiers === Qt.NoModifier && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space)) tab.activate()
+                        else if (event.modifiers === Qt.NoModifier && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) tab.activate()
                         else return
                         event.accepted = true
                     }

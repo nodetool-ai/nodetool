@@ -33,6 +33,7 @@ import { makeClip } from "@nodetool-ai/timeline";
 import {
   contextSecretAvailability,
   createCapabilityRun,
+  createServerStepPatternLibrary,
   gateFromContext
 } from "@nodetool-ai/agents";
 import {
@@ -46,6 +47,8 @@ import { computeDependencyHash } from "@nodetool-ai/timeline/dependencyHash.js";
 import {
   createClipInput,
   createTimelineInput,
+  deleteStepPatternFolderInput,
+  deleteStepPatternFolderOutput,
   exampleTimelineSummary,
   installExampleTimelineInput,
   createTimelineVersionInput,
@@ -53,6 +56,8 @@ import {
   getTimelineVersionInput,
   listTimelineVersionsInput,
   patchTimelineInput,
+  renameStepPatternFolderInput,
+  renameStepPatternFolderOutput,
   restoreTimelineVersionInput,
   timelineClipResponse,
   timelineSequenceListItem,
@@ -85,6 +90,8 @@ import {
   publishSave,
   ensureVersionSets
 } from "../../lib/document-refs.js";
+import { getAssetAdapter } from "../../lib/storage.js";
+import { serverModelInterfaces } from "../../session/model-interfaces.js";
 
 const log = createLogger("nodetool.websocket.trpc.timeline");
 
@@ -479,6 +486,39 @@ async function mutateTimelineDocument<T>(
 
 // ── router ──────────────────────────────────────────────────────────────────
 
+function stepPatternFolderContext(userId: string): ProcessingContext {
+  const context = new ProcessingContext({
+    jobId: `step-pattern-folder-${Date.now()}`,
+    userId,
+    secretResolver: getSecret,
+    assetStorage: getAssetAdapter()
+  });
+  context.setModelInterfaces(serverModelInterfaces());
+  return context;
+}
+
+function rethrowStepPatternFolderError(error: unknown): never {
+  const message = error instanceof Error ? error.message : String(error);
+  if (
+    /^No step pattern folder found|^Parent step pattern folder .* was not found/i.test(
+      message
+    )
+  ) {
+    throwApiError(ApiErrorCode.NOT_FOUND, message);
+  }
+  if (/already exists\.?$/i.test(message)) {
+    throwApiError(ApiErrorCode.ALREADY_EXISTS, message);
+  }
+  if (
+    /^(Step pattern folder|Pattern folder|Invalid step pattern folder|Short folder id|Folder "|Cannot modify root folder)/i.test(
+      message
+    )
+  ) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, message);
+  }
+  throw error;
+}
+
 export const timelineRouter = router({
   examples: protectedProcedure
     .output(z.array(exampleTimelineSummary))
@@ -604,6 +644,7 @@ export const timelineRouter = router({
           scriptEnabled: input.document.scriptEnabled ?? current.scriptEnabled,
           tempo: input.document.tempo ?? current.tempo,
           master: input.document.master ?? current.master,
+          music: input.document.music ?? current.music,
           camera2d: input.document.camera2d === undefined ? current.camera2d : input.document.camera2d,
           setup: input.document.setup ?? current.setup,
           mediaTracks: input.document.mediaTracks ?? current.mediaTracks,
@@ -1022,6 +1063,43 @@ export const timelineRouter = router({
         }
 
         return newClip;
+      })
+  }),
+
+  stepPatternFolders: router({
+    rename: protectedProcedure
+      .input(renameStepPatternFolderInput)
+      .output(renameStepPatternFolderOutput)
+      .mutation(async ({ ctx, input }) => {
+        const library = createServerStepPatternLibrary({
+          context: stepPatternFolderContext(ctx.userId!)
+        });
+        try {
+          return await library.renameFolder({
+            folder: input.folder,
+            newName: input.newName,
+            kind: input.kind
+          });
+        } catch (error) {
+          rethrowStepPatternFolderError(error);
+        }
+      }),
+
+    delete: protectedProcedure
+      .input(deleteStepPatternFolderInput)
+      .output(deleteStepPatternFolderOutput)
+      .mutation(async ({ ctx, input }) => {
+        const library = createServerStepPatternLibrary({
+          context: stepPatternFolderContext(ctx.userId!)
+        });
+        try {
+          return await library.deleteFolder({
+            folder: input.folder,
+            kind: input.kind
+          });
+        } catch (error) {
+          rethrowStepPatternFolderError(error);
+        }
       })
   })
 });

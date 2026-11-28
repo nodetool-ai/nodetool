@@ -12,6 +12,7 @@ FocusScope {
     property bool resetOnDoubleTap: false
     property string accessibleName: ""
     property int density: Ui.EditorButton.Standard
+    property bool cancelOnFocusLoss: false
     property bool editing: false
     property real draft: value
     signal editStarted()
@@ -32,7 +33,7 @@ FocusScope {
     function cancel() { tapCommitTimer.stop(); resetTap.previousTapAt = 0; resetTap.doubleTapPending = false; if (editing) { editing = false; editCanceled() } }
     function reset() { begin(); draft = Math.max(Math.min(from, to), Math.min(Math.max(from, to), resetValue)); valuePreviewed(draft); finish() }
     onEnabledChanged: if (!enabled) cancel()
-    onActiveFocusChanged: if (!activeFocus && editing) { if (enabled) finish(); else cancel() }
+    onActiveFocusChanged: if (!activeFocus && editing) { if (enabled && !cancelOnFocusLoss) finish(); else cancel() }
     Timer { id: tapCommitTimer; interval: Qt.styleHints.mouseDoubleClickInterval; onTriggered: root.finish() }
     Basic.Slider {
         id: control

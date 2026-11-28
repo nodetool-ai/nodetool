@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Mirrors web/src/components/timeline/TimelineShortcutsDialog.tsx: every
 // timeline shortcut, grouped by task, with the keyboard-layout switch at the
 // top, in a two-column sheet. The rows and the keys come from the web
@@ -15,6 +16,7 @@ Item {
     objectName: "shortcutsSheet"
     required property ClipGestureController gestures
     property bool open: false
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var content: open && gestures.keyboardPreset !== "" ? gestures.shortcutSheet() : ({ groups: [] })
 
     onOpenChanged: {
@@ -26,7 +28,8 @@ Item {
     // ShortcutHint: a key chip per key, "+" between them, Shift as ⇧.
     component KeyChips: Row {
         id: chips
-        property var keys: []
+        property list<string> keys: []
+        // JSON key-name lookup used by the shortcut-sheet records.
         readonly property var symbols: ({ shift: "⇧", arrowup: "↑", arrowdown: "↓", arrowleft: "←",
                                           arrowright: "→", enter: "↵", escape: "⎋", esc: "⎋",
                                           backspace: "⌫", "delete": "⌦", tab: "⇥", space: "␣" })
@@ -34,11 +37,12 @@ Item {
         Repeater {
             model: chips.keys
             delegate: Row {
+                id: keyChip
                 required property string modelData
                 required property int index
                 spacing: Ui.Metrics.micro
                 Ui.Text {
-                    visible: parent.index > 0
+                    visible: keyChip.index > 0
                     anchors.verticalCenter: parent.verticalCenter
                     text: "+"
                     opacity: 0.7
@@ -53,8 +57,8 @@ Item {
                     Ui.ShortcutHint {
                         id: keyText
                         anchors.centerIn: parent
-                        text: chips.symbols[parent.parent.modelData.toLowerCase()]
-                              ?? parent.parent.modelData.charAt(0).toUpperCase() + parent.parent.modelData.slice(1)
+                        text: chips.symbols[keyChip.modelData.toLowerCase()]
+                              ?? keyChip.modelData.charAt(0).toUpperCase() + keyChip.modelData.slice(1)
                         tone: Ui.Text.Primary
                     }
                 }
@@ -161,6 +165,7 @@ Item {
                 id: groupDelegate
                 Column {
                     id: group
+                    // JSON record supplied by the delegate model.
                     required property var modelData
                     width: body.columnWidth
                     spacing: Ui.Metrics.micro
@@ -173,6 +178,7 @@ Item {
                         model: group.modelData.rows
                         delegate: Item {
                             id: row
+                            // JSON record supplied by the delegate model.
                             required property var modelData
                             required property int index
                             width: body.columnWidth
@@ -199,6 +205,7 @@ Item {
                                 Repeater {
                                     model: row.modelData.combos
                                     delegate: Row {
+                                        // JSON record supplied by the delegate model.
                                         required property var modelData
                                         required property int index
                                         spacing: Ui.Metrics.xs

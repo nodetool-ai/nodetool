@@ -60,7 +60,10 @@ function(nt_export_tests)
     add_test(NAME tst_exportdialog COMMAND tst_exportdialog dialog panelContext controllerCancelBeforeFrames
         snapshotKeepsRelativeMatte refusesUnavailableServerOriginal audioOnlyExportAllowsMissingPictureOriginal
         cancelExportDuringAudio cancelBlockedAudio cancelOfflineMix stuckChildTeardownCleansStaging
-        fitFrameModes)
+        fitFrameModes wav24WritesA24BitPcmHeaderAndRoundTrips wav16UsesTpdfDitherAnd24BitClamps
+        d17_wav16TpdfDitherSanitizesNanSamples d18_wav16TpdfDitherIgnoresAmbientRoundingMode
+        wav24SettingsReachTheCommandLine dsp2_f5_wav32FloatAndSampleRateRoundTrip
+        dsp2_fix1_d10_d12_exportEdgeCasesAndUi)
     set_tests_properties(tst_exportdialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     qt_add_executable(tst_framecapture src/export/tst_framecapture.cpp src/export/OffscreenFrames.cpp)
     set_target_properties(tst_framecapture PROPERTIES MACOSX_BUNDLE FALSE)
@@ -109,7 +112,12 @@ nt_tests(nt_export_tests)
 function(nt_export_snapshot_tests)
     qt_add_executable(tst_exportsnapshot src/export/tst_exportsnapshot.cpp
         src/export/ExportController.cpp src/export/ExportSettings.cpp
-        src/model/TimelineModel.cpp src/model/TrackListModel.cpp)
+        src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
+        src/model/TrackListModel.cpp)
     target_link_libraries(tst_exportsnapshot PRIVATE timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::Qml Qt6::Test)
     add_test(NAME tst_exportsnapshot COMMAND tst_exportsnapshot)
@@ -119,7 +127,12 @@ nt_tests(nt_export_snapshot_tests)
 function(nt_export_queue_tests)
     qt_add_executable(tst_exportqueue src/export/tst_exportqueue.cpp
         src/export/ExportQueue.cpp src/export/ExportPresets.cpp src/export/ExportSettings.cpp
-        src/export/ExportController.cpp src/model/TimelineModel.cpp src/model/TrackListModel.cpp)
+        src/export/ExportController.cpp src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
+        src/model/TrackListModel.cpp)
     set_target_properties(tst_exportqueue PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_definitions(tst_exportqueue PRIVATE
         NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
@@ -138,7 +151,10 @@ function(nt_frameexport_tests)
         src/export/FrameExporter.h src/export/FrameExporter.cpp src/export/FrameCapture.h src/export/FrameCapture.cpp
         src/export/ExportController.h src/export/ExportController.cpp
         src/export/ExportSettings.h src/export/ExportSettings.cpp
-        src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp)
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_frameexport PRIVATE nodetool_timeline_player timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})
     target_compile_definitions(tst_frameexport PRIVATE NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"

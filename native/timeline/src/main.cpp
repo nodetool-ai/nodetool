@@ -13,6 +13,7 @@
 // --screenshot grabs the window after a few frames, saves it, and exits.
 // --dump-plan prints the FramePlan JSON at the given times (ms), no window.
 
+#include "midi/PatternOps.h"
 #include "app/CliModes.h"
 #include "motion/capturedeadline/CaptureDeadline.h"
 #include "model/TimelineJson.h"
@@ -46,6 +47,7 @@
 #include <QCryptographicHash>
 #include "server/ServerSource.h"
 #include "server/TimelineAssetCacheContext.h"
+#include "music/MusicJobs.h"
 #include "server/TimelineList/TimelineSession.h"
 #include "takes/TakeSwitcher.h"
 
@@ -76,6 +78,7 @@ extern "C" {
 #include <QTimer>
 #include <QFile>
 #include <QDir>
+#include <QStandardPaths>
 #include <QFileInfo>
 #include <QScreen>
 #include <QGuiApplication>
@@ -767,6 +770,9 @@ int main(int argc, char** argv) {
     nt::render2d::loadTimelineFonts();
     app.setApplicationName(QStringLiteral("nodetool-timeline"));
     app.setApplicationVersion(QStringLiteral(NT_APP_VERSION));
+    // The user step pattern library (SQ44): saved patterns and templates as JSON files.
+    nt::midi::setUserStepPatternLibraryRoot(
+        nt::midi::stepPatternLibraryRootForAppData(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)));
     const nt::server::AssetCacheRoot assetCache(nt::server::timelineCacheDirectory());
 
     QCommandLineParser parser;
@@ -1062,11 +1068,14 @@ int main(int argc, char** argv) {
     TimelineModel model;
     model.setTimeline(*loaded.timeline);
     TakeSwitcher::attach(model, assetCache);
+    nt::music::MusicJobs::attach(model, assetCache);
     PlaybackClock clock;
     clock.setDurationMs(model.durationMs());
     clock.seek(parser.value(seekOpt).toDouble());
     nt::audio::AppAudio audio;
     audio.setPublishLoudness(true);
+    // A music project mixes at 48 kHz on the system device (MUSIC-MODE.md 14.1).
+    audio.setFollowDocumentRate(true);
     {
         // From the parsed options, so `--opt=value` and `--opt value` agree.
         const QString mode = nt::audio::resolveAudioMode(parser);
@@ -1156,7 +1165,7 @@ int main(int argc, char** argv) {
         }
     };
     const bool allowLocalSave = !bench && !parser.isSet(realtimeOpt) && !parser.isSet(teardownOpt);
-    const auto attachLocal = [&localSaver, &matteResolver, &model, &app, allowLocalSave](const QString& path) {
+    const auto attachLocal = [&localSaver, &matteResolver, &model, &app, &session, allowLocalSave](const QString& path) {
         localSaver.reset();
         matteResolver.reset();
         if (allowLocalSave && QFileInfo(path).isFile()) {
@@ -1164,16 +1173,21 @@ int main(int argc, char** argv) {
             QObject::connect(localSaver.get(), &nt::app::LocalDocumentSaver::saveFailed, &app,
                              [](const QString& error) { qWarning().noquote() << error; });
         }
+        session.setFlushLocalCallback({});
+        if (localSaver) {
+            session.setFlushLocalCallback([&localSaver] { return localSaver->flush(); },
+                                          [&localSaver] { return localSaver->lastError(); });
+        }
     };
     refreshMedia();
     session.attachInitialServer(loaded.timeline->raw.value(u"updatedAt").toString());
     if (!session.autosaveController() && allowLocalSave && QFileInfo(source).isFile()) {
         attachLocal(source);
     }
-    session.setFlushLocalCallback([&localSaver] { return !localSaver || localSaver->flush(); });
     session.setAttachLocalCallback(attachLocal);
-    session.setRefreshMediaCallback([&localSaver, &refreshMedia] {
+    session.setRefreshMediaCallback([&localSaver, &refreshMedia, &session] {
         localSaver.reset();
+        session.setFlushLocalCallback({});
         refreshMedia();
     });
     QQuickView view;

@@ -28,7 +28,7 @@
 
 import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
+import type { AudioRef, DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
@@ -50,11 +50,22 @@ import {
   makeSequence,
   makeTrack,
   renderMidiClip,
+  applyAutoCrossfade,
+  autoCrossfadeMsOf,
+  automationBreakpoints,
+  automationModeOf,
+  automationModePlays,
   harmonizeClips,
+  instrumentCutoffControls,
+  isAutomationLaneActive,
   loadSamplerSamples,
+  mergeTrackMidiControllers,
+  tracksWithPatternAutomation,
+  type AutomationLane,
   type SamplerAudio,
   resolveTempo,
   timeRemapAudioSegments,
+  activeLoopMs,
   type TimeRemapAudioSegment,
   type TimelineClip,
   clipAudioTailSec,
@@ -75,6 +86,7 @@ import { atempoChain, videoRef } from "./video-helpers.js";
 import {
   concatSegments,
   decodeAudioToPcm,
+  encodeAudioToFile,
   muxAudioWithVideoCopy,
   openFilterComplex,
   probeDurationSec,
@@ -93,6 +105,7 @@ import {
 } from "./timeline/browserRender.js";
 import {
   ALPHA_OUTPUT_FORMATS,
+  DEFAULT_WAV_BIT_DEPTH,
   MissingEncoderError,
   resolveTimelineOutput,
   TIMELINE_OUTPUT_FORMATS,
@@ -169,11 +182,16 @@ function renderableVideoClips(seq: TimelineSequence): TimelineClip[] {
  * (they have no `currentAssetId` at all). An audio clip sounds under the same
  * status rule its picture would be drawn under (`effectiveAssetId`).
  */
-function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
+export function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
   const tracks = trackById(seq.tracks);
   const hasSolo = soundTrackSoloed(seq.tracks);
   // A midi clip with `harmony` plays its arp or comp expansion, not its written notes.
-  return harmonizeClips(seq.clips, seq)
+  // Overlapping same-track controller clips (e.g. controller-only pitch-bend
+  // patterns) merge onto each note-bearing clip before per-clip rendering.
+  const audible = mergeTrackMidiControllers(
+    harmonizeClips(seq.clips, seq),
+    resolveTempo(seq)
+  )
     .filter((clip) => {
       const track = tracks.get(clip.trackId);
       if (!track || track.muted === true || clip.muted || clip.hidden) {
@@ -182,7 +200,10 @@ function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
       if (hasSolo && !track.solo) return false;
       if (clip.durationMs <= 0) return false;
       if (track.type === "midi") {
-        return clip.mediaType === "midi" && (clip.notes?.length ?? 0) > 0;
+        return (
+          clip.mediaType === "midi" &&
+          ((clip.notes?.length ?? 0) > 0 || (clip.controllers?.length ?? 0) > 0)
+        );
       }
       return (
         track.type === "audio" &&
@@ -191,6 +212,8 @@ function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
       );
     })
     .sort((a, b) => a.startMs - b.startMs);
+  // CE7 (D54): a music project crossfades touching clips on one track.
+  return [...applyAutoCrossfade(audible, autoCrossfadeMsOf(seq))];
 }
 
 /** The detached-audio linkIds of a sequence; see the shared rule. */
@@ -224,6 +247,18 @@ function ffSeconds(ms: number): string {
 }
 
 /**
+ * An `adelay` value in milliseconds. It keeps a fraction (to the microsecond),
+ * so a clip lands where the document puts it: a whole-millisecond delay moves
+ * the edge of a 5 ms automatic crossfade by up to a tenth of its length.
+ */
+function adelayMs(ms: number): number {
+  return Number(Math.max(0, ms).toFixed(3));
+}
+
+/** The shortest fade `ffSeconds` can name. A shorter one prints `d=0.000`, which ffmpeg rejects. */
+const MIN_FADE_MS = 0.5;
+
+/**
  * `afade` steps for a clip's fades over a stream in which the clip begins at
  * `clipStartInStreamMs`. Both edges read the curve the document authored, the
  * same one the editor draws and the preview sounds: every `ClipFadeShape` maps
@@ -232,15 +267,15 @@ function ffSeconds(ms: number): string {
  * Lengths come from `resolveClipFades`, so two fades longer together than the
  * clip meet in its middle here exactly as they do on screen.
  */
-function clipFadeSteps(clip: TimelineClip, clipStartInStreamMs: number): string[] {
+export function clipFadeSteps(clip: TimelineClip, clipStartInStreamMs: number): string[] {
   const fades = resolveClipFades(clip, clip.durationMs);
   const steps: string[] = [];
-  if (fades.fadeInMs > 0) {
+  if (fades.fadeInMs >= MIN_FADE_MS) {
     steps.push(
       `afade=t=in:st=${ffSeconds(clipStartInStreamMs)}:d=${ffSeconds(fades.fadeInMs)}:curve=${ffmpegFadeCurve(fades.fadeInShape)}`
     );
   }
-  if (fades.fadeOutMs > 0) {
+  if (fades.fadeOutMs >= MIN_FADE_MS) {
     const startMs = clipStartInStreamMs + clip.durationMs - fades.fadeOutMs;
     steps.push(
       `afade=t=out:st=${ffSeconds(startMs)}:d=${ffSeconds(fades.fadeOutMs)}:curve=${ffmpegFadeCurve(fades.fadeOutShape)}`
@@ -252,7 +287,7 @@ function clipFadeSteps(clip: TimelineClip, clipStartInStreamMs: number): string[
 /** Whether either edge of the clip carries a fade worth rendering. */
 function hasClipFade(clip: TimelineClip): boolean {
   const fades = resolveClipFades(clip, clip.durationMs);
-  return fades.fadeInMs > 0 || fades.fadeOutMs > 0;
+  return fades.fadeInMs >= MIN_FADE_MS || fades.fadeOutMs >= MIN_FADE_MS;
 }
 
 /**
@@ -260,7 +295,7 @@ function hasClipFade(clip: TimelineClip): boolean {
  * timeline start. The fades precede the delay, so their times are measured
  * from the clip's own start.
  */
-function audioClipFilter(
+export function audioClipFilter(
   clip: TimelineClip,
   inputIndex: number,
   label: string
@@ -280,9 +315,16 @@ function audioClipFilter(
   if (isNumber(clip.volumeDb) && clip.volumeDb !== 0) {
     steps.push(`volume=${clip.volumeDb}dB`);
   }
-  steps.push(...clipFadeSteps(clip, 0));
+  // The source can end before the clip does (a rounded or baked out point).
+  // The fade-out then belongs at the end of the audio that plays.
+  const playedMs = (outS - inS) * 1000;
+  const faded =
+    !isMidi && playedMs > 0 && playedMs < clip.durationMs
+      ? { ...clip, durationMs: playedMs }
+      : clip;
+  steps.push(...clipFadeSteps(faded, 0));
   steps.push(...clipEffectChainSteps(clip));
-  const delay = Math.max(0, Math.round(clip.startMs));
+  const delay = adelayMs(clip.startMs);
   steps.push(`adelay=${delay}|${delay}`);
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
 }
@@ -311,7 +353,7 @@ function audioRemapSegmentFilter(
   if (isNumber(clip.volumeDb) && clip.volumeDb !== 0) {
     steps.push(`volume=${clip.volumeDb}dB`);
   }
-  const delay = Math.max(0, Math.round(segment.timelineStartMs));
+  const delay = adelayMs(segment.timelineStartMs);
   steps.push(`adelay=${delay}|${delay}`);
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
 }
@@ -358,15 +400,20 @@ function compressorMakeupGain(e: TrackCompressorEffect): number {
  * a bandpass Q is linear. The compressor detects peaks; its knee is capped at
  * the 18 dB `acompressor` allows.
  */
-function audioEffectSteps(effect: TrackEffect): string[] {
+function audioEffectStepsNamed(
+  effect: TrackEffect,
+  instancePrefix?: string
+): string[] {
+  const tag = (name: string, suffix = ""): string =>
+    instancePrefix ? `${name}@${instancePrefix}${suffix}` : name;
   switch (effect.type) {
     case "gain":
-      return [`volume=${effect.gainDb}dB`];
+      return [`${tag("volume")}=${effect.gainDb}dB`];
     case "eq3":
       return [
-        `lowshelf=f=${biquadHz(effect.lowFreq)}:g=${effect.lowGainDb}:t=s:w=1`,
-        `equalizer=f=${biquadHz(effect.midFreq)}:t=q:w=${Math.max(0.0001, effect.midQ)}:g=${effect.midGainDb}`,
-        `highshelf=f=${biquadHz(effect.highFreq)}:g=${effect.highGainDb}:t=s:w=1`
+        `${tag("lowshelf", "_lo")}=f=${biquadHz(effect.lowFreq)}:g=${effect.lowGainDb}:t=s:w=1`,
+        `${tag("equalizer", "_mid")}=f=${biquadHz(effect.midFreq)}:t=q:w=${Math.max(0.0001, effect.midQ)}:g=${effect.midGainDb}`,
+        `${tag("highshelf", "_hi")}=f=${biquadHz(effect.highFreq)}:g=${effect.highGainDb}:t=s:w=1`
       ];
     case "filter": {
       if (
@@ -380,7 +427,7 @@ function audioEffectSteps(effect: TrackEffect): string[] {
         effect.mode === "bandpass"
           ? Math.max(0.0001, effect.q)
           : Math.max(0.0001, Math.pow(10, effect.q / 20));
-      return [`${effect.mode}=f=${biquadHz(effect.frequency)}:t=q:w=${q}`];
+      return [`${tag(effect.mode)}=f=${biquadHz(effect.frequency)}:t=q:w=${q}`];
     }
     case "compressor":
       return [
@@ -403,6 +450,10 @@ function audioEffectSteps(effect: TrackEffect): string[] {
     default:
       return [];
   }
+}
+
+function audioEffectSteps(effect: TrackEffect): string[] {
+  return audioEffectStepsNamed(effect);
 }
 
 /** Most taps an `aecho` is given, so a long feedback echo stays cheap. */
@@ -491,18 +542,133 @@ function clipEffectChainSteps(clip: TimelineClip): string[] {
   ];
 }
 
+/** Build ffmpeg `asendcmd` commands for a track's automated effects and fader. */
+function buildTrackAutomationCmds(
+  lanes: readonly AutomationLane[],
+  effectTargets: Map<string, { effect: TrackEffect; prefix: string }>,
+  faderInstance: string | undefined
+): string[] {
+  const events: Array<{ timeSec: number; cmd: string }> = [];
+  const pushLane = (
+    lane: AutomationLane,
+    targetFilter: string,
+    command: string,
+    formatValue: (v: number) => string
+  ): void => {
+    const bps = automationBreakpoints(lane.points, 0, {
+      maxStepMs: 25,
+      subdivideLinear: true
+    });
+    // Deduplicate identical timestamps (hold jumps emit pre/post at the same ms):
+    // keep the last value at each instant so `asendcmd` jumps cleanly.
+    const dedup: Array<{ timeMs: number; value: number }> = [];
+    for (const bp of bps) {
+      const last = dedup[dedup.length - 1];
+      if (last && Math.abs(last.timeMs - bp.timeMs) < 1e-4) {
+        last.value = bp.value;
+      } else {
+        dedup.push({ timeMs: bp.timeMs, value: bp.value });
+      }
+    }
+    for (const pt of dedup) {
+      events.push({
+        timeSec: Math.max(0, pt.timeMs) / 1000,
+        cmd: `${(Math.max(0, pt.timeMs) / 1000).toFixed(4)} ${targetFilter} ${command} ${formatValue(pt.value)}`
+      });
+    }
+  };
+
+  for (const lane of lanes) {
+    if (!isAutomationLaneActive(lane)) continue;
+    if (lane.target.kind === "mixer" && lane.target.param === "volumeDb" && faderInstance) {
+      pushLane(lane, `volume@${faderInstance}`, "volume", (v) => `${clampTo(v, -96, 36).toFixed(3)}dB`);
+      continue;
+    }
+    if (lane.target.kind !== "device") continue;
+    const entry = effectTargets.get(lane.target.deviceId);
+    if (!entry) continue;
+    const { effect, prefix } = entry;
+    const param = lane.target.param;
+    if (effect.type === "filter") {
+      if (param === "frequency" || param === "cutoffHz") {
+        pushLane(lane, `${effect.mode}@${prefix}`, "f", (v) => biquadHz(v).toFixed(2));
+      } else if (param === "q") {
+        pushLane(lane, `${effect.mode}@${prefix}`, "w", (v) =>
+          (effect.mode === "bandpass"
+            ? Math.max(0.0001, v)
+            : Math.max(0.0001, Math.pow(10, v / 20))
+          ).toFixed(4)
+        );
+      }
+    } else if (effect.type === "gain" && param === "gainDb") {
+      pushLane(lane, `volume@${prefix}`, "volume", (v) => `${clampTo(v, -96, 36).toFixed(3)}dB`);
+    } else if (effect.type === "eq3") {
+      if (param === "lowFreq") pushLane(lane, `lowshelf@${prefix}_lo`, "f", (v) => biquadHz(v).toFixed(2));
+      else if (param === "lowGainDb") pushLane(lane, `lowshelf@${prefix}_lo`, "g", (v) => clampTo(v, -40, 40).toFixed(3));
+      else if (param === "midFreq") pushLane(lane, `equalizer@${prefix}_mid`, "f", (v) => biquadHz(v).toFixed(2));
+      else if (param === "midQ") pushLane(lane, `equalizer@${prefix}_mid`, "w", (v) => Math.max(0.0001, v).toFixed(4));
+      else if (param === "midGainDb") pushLane(lane, `equalizer@${prefix}_mid`, "g", (v) => clampTo(v, -40, 40).toFixed(3));
+      else if (param === "highFreq") pushLane(lane, `highshelf@${prefix}_hi`, "f", (v) => biquadHz(v).toFixed(2));
+      else if (param === "highGainDb") pushLane(lane, `highshelf@${prefix}_hi`, "g", (v) => clampTo(v, -40, 40).toFixed(3));
+    }
+  }
+  events.sort((a, b) => a.timeSec - b.timeSec);
+  return events.map((e) => e.cmd);
+}
+
 /**
  * The DSP chain of a track, in array order. Only audio and midi tracks carry
  * one, as in the preview, where `AudioGraph.updateTracks` applies effects to
- * those tracks alone.
+ * those tracks alone. Automated track effects and volume lanes drive runtime
+ * parameter updates via `asendcmd` (SQ41).
  */
-function trackEffectSteps(track: TimelineTrack | undefined): string[] {
+function trackEffectSteps(
+  track: TimelineTrack | undefined,
+  trackSlot = 0
+): string[] {
   if (!track || (track.type !== "audio" && track.type !== "midi")) return [];
-  return [
-    ...effectChainSteps(track.effects),
-    ...faderSteps(track.volumeDb),
-    ...panSteps(track.pan)
-  ];
+  const playsAuto = automationModePlays(automationModeOf(track));
+  const activeLanes = playsAuto
+    ? (track.automation ?? []).filter(isAutomationLaneActive)
+    : [];
+  const enabledEffects = (track.effects ?? []).filter((effect) => effect.enabled);
+  const automatedDeviceIds = new Set(
+    activeLanes
+      .filter((l) => l.target.kind === "device")
+      .map((l) => (l.target as { kind: "device"; deviceId: string }).deviceId)
+  );
+  const hasVolumeAuto = activeLanes.some(
+    (l) => l.target.kind === "mixer" && l.target.param === "volumeDb"
+  );
+
+  const effectTargets = new Map<string, { effect: TrackEffect; prefix: string }>();
+  const fxSteps: string[] = [];
+  enabledEffects.forEach((effect, idx) => {
+    const isAuto = automatedDeviceIds.has(effect.id);
+    const prefix = isAuto ? `t${trackSlot}_e${idx}` : undefined;
+    if (prefix) effectTargets.set(effect.id, { effect, prefix });
+    fxSteps.push(...audioEffectStepsNamed(effect, prefix));
+  });
+
+  const faderInstance = hasVolumeAuto ? `t${trackSlot}_fader` : undefined;
+  const fader = faderInstance
+    ? [`volume@${faderInstance}=${isNumber(track.volumeDb) ? track.volumeDb : 0}dB`]
+    : faderSteps(track.volumeDb);
+
+  const cmds =
+    activeLanes.length > 0
+      ? buildTrackAutomationCmds(activeLanes, effectTargets, faderInstance)
+      : [];
+
+  const chain: string[] = [];
+  if (fxSteps.length > 0 || cmds.length > 0) {
+    chain.push(`aresample=${EFFECT_SAMPLE_RATE}`);
+  }
+  if (cmds.length > 0) {
+    chain.push(`asendcmd=c='${cmds.join("; ")}'`);
+  }
+  chain.push(...fxSteps, ...fader, ...panSteps(track.pan));
+  return chain;
 }
 
 /** Enabled effects in array order, resampled first as the preview runs at 48 kHz. */
@@ -538,12 +704,16 @@ export function panSteps(pan: number | undefined): string[] {
 }
 
 /**
- * The master channel over the whole mix: its inserts, then its fader. A
- * `fable` insert passes the signal dry, as it does on a track.
+ * The master channel over the whole mix: its inserts, then its fader and pan.
+ * A `fable` insert passes the signal dry, as it does on a track.
  */
 function masterSteps(master: TimelineMasterChannel | undefined): string[] {
   if (!master) return [];
-  return [...effectChainSteps(master.effects), ...faderSteps(master.volumeDb)];
+  return [
+    ...effectChainSteps(master.effects),
+    ...faderSteps(master.volumeDb),
+    ...panSteps(master.pan)
+  ];
 }
 
 /**
@@ -603,6 +773,7 @@ class MidiFiles {
   private readonly tracks: Map<string, TimelineTrack>;
   private readonly samples = new Map<string, Promise<SamplerAudio>>();
   private readonly bpm: number;
+  private readonly gridOffsetMs: number;
 
   constructor(
     private readonly workDir: string,
@@ -611,7 +782,9 @@ class MidiFiles {
     private readonly signal?: AbortSignal
   ) {
     this.tracks = trackById(seq.tracks);
-    this.bpm = resolveTempo(seq).bpm;
+    const tempo = resolveTempo(seq);
+    this.bpm = tempo.bpm;
+    this.gridOffsetMs = tempo.offsetMs;
   }
 
   path(clip: TimelineClip): Promise<string> {
@@ -653,19 +826,25 @@ class MidiFiles {
 
   private async write(clip: TimelineClip): Promise<string> {
     // The instrument belongs to the track, not the clip.
-    const instrument =
-      this.tracks.get(clip.trackId)?.instrument ?? DEFAULT_MIDI_INSTRUMENT;
+    const track = this.tracks.get(clip.trackId);
+    const instrument = track?.instrument ?? DEFAULT_MIDI_INSTRUMENT;
     if (instrument.type === "vst") {
       // The plug-in is native code on the machine that chose it; only the
       // desktop editor's export can host it. Refuse rather than render silence.
       throw new Error(
-        `Track "${this.tracks.get(clip.trackId)?.name ?? clip.trackId}" plays a VST instrument, which renders only in the NodeTool desktop app's export. Export from the desktop editor, or mute the track.`
+        `Track "${track?.name ?? clip.trackId}" plays a VST instrument, which renders only in the NodeTool desktop app's export. Export from the desktop editor, or mute the track.`
       );
     }
+    const controls =
+      instrument.type === "subtractive"
+        ? instrumentCutoffControls(track, clip, MIDI_SAMPLE_RATE)
+        : undefined;
     const mono = renderMidiClip({
       clip,
       bpm: this.bpm,
+      gridOffsetMs: this.gridOffsetMs,
       samples: await loadSamplerSamples(instrument, id => this.loadSample(id)),
+      controls,
       instrument,
       sampleRate: MIDI_SAMPLE_RATE
     });
@@ -708,6 +887,7 @@ async function renderRoughCut(opts: {
   width: number;
   height: number;
   fps: number;
+  audioSampleRate?: number;
 }): Promise<string> {
   const { seq, clips, audioClips, assets, workDir, width, height, fps } = opts;
   const suppressedLinkIds = extractedAudioLinkIds(seq);
@@ -772,7 +952,8 @@ async function renderRoughCut(opts: {
     segments,
     videoFilter: segmentVideoFilter(width, height),
     video: { codec: "libx264", pixelFormat: "yuv420p", options: { preset: "veryfast" } },
-    audioCodec: "aac"
+    audioCodec: "aac",
+    audioSampleRate: opts.audioSampleRate
   });
   return basePath;
 }
@@ -786,36 +967,26 @@ async function renderRoughCut(opts: {
  * was encoded into and the audio codec has to be legal inside it — AAC is not a
  * WebM track, which is why `audioCodec` is passed rather than assumed.
  */
-async function mixAudioInto(opts: {
-  basePath: string;
-  clips: TimelineClip[];
-  /** The sequence's tracks, whose effect chains run over their clips' sum. */
-  tracks: TimelineTrack[];
-  /** The master channel, run over the whole mix. */
-  master?: TimelineMasterChannel;
+/**
+ * Build the libav filter_complex inputs and graph string for mixing `clips`,
+ * track effect chains, and master channel into `[aout]`. Returns `null` when
+ * none of `clips` resolved to an audible stream.
+ */
+async function buildAudioMixGraph(opts: {
+  basePath?: string;
   baseHasAudio: boolean;
+  clips: TimelineClip[];
+  tracks: TimelineTrack[];
+  master?: TimelineMasterChannel;
   assets: { path(assetId: string): Promise<string | null> };
   midi: MidiFiles;
-  workDir: string;
-  extension: string;
-  audioCodec: string;
-}): Promise<string> {
-  const {
-    basePath,
-    clips,
-    tracks,
-    master,
-    baseHasAudio,
-    assets,
-    midi,
-    workDir,
-    extension,
-    audioCodec
-  } = opts;
-  // Input 0 is the base, as it was on the CLI, so the labels keep their numbers.
-  const inputs: FilterComplexInput[] = baseHasAudio
-    ? [{ filePath: basePath, kind: "audio", label: "0:a" }]
-    : [];
+}): Promise<{ inputs: FilterComplexInput[]; graph: string } | null> {
+  const { basePath, baseHasAudio, clips, tracks, master, assets, midi } = opts;
+  // Input 0 is the base when present, so labels keep their numbers.
+  const inputs: FilterComplexInput[] =
+    baseHasAudio && basePath
+      ? [{ filePath: basePath, kind: "audio", label: "0:a" }]
+      : [];
   const filters: string[] = [];
   const labels: string[] = [];
   // Each clip's stream(s), grouped by track so a track's effect chain runs
@@ -843,7 +1014,12 @@ async function mixAudioInto(opts: {
     // Only a clip that plays at source rate can use the plain chain: a
     // speedMultiplier is a rate too, and without atempo (and the wider source
     // window it needs) a 2x clip's audio ran on past the clip.
-    if (!hasTimeRemap(clip) && sourceRate(clip) === 1) {
+    if (
+      !hasTimeRemap(clip) &&
+      sourceRate(clip) === 1 &&
+      // A midi clip's WAV already holds every repeat of its window.
+      (clip.mediaType === "midi" || activeLoopMs(clip) === undefined)
+    ) {
       inputs.push({ filePath: audioPath, kind: "audio", label: `${inputIndex}:a` });
       const label = `a${i}`;
       filters.push(audioClipFilter(clip, inputIndex, label));
@@ -891,8 +1067,9 @@ async function mixAudioInto(opts: {
     labelsOf(clip).push(...segmentLabels);
   }
   const byTrack = trackById(tracks);
+  let trackSlot = 0;
   for (const [trackId, streams] of trackLabels) {
-    const steps = trackEffectSteps(byTrack.get(trackId));
+    const steps = trackEffectSteps(byTrack.get(trackId), trackSlot++);
     if (steps.length === 0) {
       labels.push(...streams);
       continue;
@@ -905,7 +1082,7 @@ async function mixAudioInto(opts: {
     filters.push(`${streams.join("")}${[...head, ...steps].join(",")}[${label}]`);
     labels.push(`[${label}]`);
   }
-  if (labels.length === 0) return basePath;
+  if (labels.length === 0) return null;
 
   const sources = baseHasAudio ? [`[0:a]`, ...labels] : labels;
   const mixSteps = [
@@ -916,15 +1093,57 @@ async function mixAudioInto(opts: {
     "apad"
   ];
   const mix = `${sources.join("")}${mixSteps.join(",")}[aout]`;
+  return { inputs, graph: [...filters, mix].join(";") };
+}
+
+async function mixAudioInto(opts: {
+  basePath: string;
+  clips: TimelineClip[];
+  /** The sequence's tracks, whose effect chains run over their clips' sum. */
+  tracks: TimelineTrack[];
+  /** The master channel, run over the whole mix. */
+  master?: TimelineMasterChannel;
+  baseHasAudio: boolean;
+  assets: { path(assetId: string): Promise<string | null> };
+  midi: MidiFiles;
+  workDir: string;
+  extension: string;
+  audioCodec: string;
+  audioSampleRate?: number;
+}): Promise<string> {
+  const {
+    basePath,
+    clips,
+    tracks,
+    master,
+    baseHasAudio,
+    assets,
+    midi,
+    workDir,
+    extension,
+    audioCodec,
+    audioSampleRate = 48000
+  } = opts;
+  const built = await buildAudioMixGraph({
+    basePath,
+    baseHasAudio,
+    clips,
+    tracks,
+    master,
+    assets,
+    midi
+  });
+  if (!built) return basePath;
+
   const outPath = path.join(workDir, `mixed.${extension}`);
   const mixed = await openFilterComplex({
-    inputs,
-    graph: [...filters, mix].join(";"),
+    inputs: built.inputs,
+    graph: built.graph,
     output: "aout",
     outputKind: "audio"
   });
   try {
-    // The picture is copied; the mix is encoded beside it at 48 kHz stereo.
+    // The picture is copied; the mix is encoded beside it at `audioSampleRate` stereo.
     // `apad` runs the mix past the picture, and the mux stops it at the
     // picture's end, so the render is exactly as long as the video.
     await muxAudioWithVideoCopy({
@@ -932,7 +1151,55 @@ async function mixAudioInto(opts: {
       audio: mixed.frames(),
       outPath,
       codec: audioCodec,
-      sampleRate: 48000
+      sampleRate: audioSampleRate
+    });
+  } finally {
+    await mixed.close();
+  }
+  return outPath;
+}
+
+/** Mix audible timeline clips into an audio-only file (e.g. WAV PCM 16/24/32f). */
+async function renderAudioOnly(opts: {
+  clips: TimelineClip[];
+  tracks: TimelineTrack[];
+  master?: TimelineMasterChannel;
+  assets: { path(assetId: string): Promise<string | null> };
+  midi: MidiFiles;
+  workDir: string;
+  extension: string;
+  audioCodec: string;
+  audioSampleRate: number;
+  durationSec: number;
+  signal?: AbortSignal;
+}): Promise<string> {
+  const built = await buildAudioMixGraph({
+    baseHasAudio: false,
+    clips: opts.clips,
+    tracks: opts.tracks,
+    master: opts.master,
+    assets: opts.assets,
+    midi: opts.midi
+  });
+  if (!built) {
+    throw new Error("Timeline has no readable audio streams to export.");
+  }
+  const outPath = path.join(opts.workDir, `rendered.${opts.extension}`);
+  const mixed = await openFilterComplex({
+    inputs: built.inputs,
+    graph: built.graph,
+    output: "aout",
+    outputKind: "audio",
+    signal: opts.signal
+  });
+  try {
+    await encodeAudioToFile({
+      audio: mixed.frames(),
+      outPath,
+      codec: opts.audioCodec,
+      sampleRate: opts.audioSampleRate,
+      durationSec: opts.durationSec,
+      signal: opts.signal
     });
   } finally {
     await mixed.close();
@@ -952,17 +1219,23 @@ export async function mixCompositedTimelineAudio(opts: {
   if (output.format === "png_sequence") return basePath;
   const clips = [...embeddedAudioClips(sequence), ...mixableAudioClips(sequence)];
   if (clips.length === 0) return basePath;
+  const effectiveTracks = tracksWithPatternAutomation(
+    sequence.tracks,
+    sequence.clips,
+    sequence
+  );
   return mixAudioInto({
     basePath,
     clips,
-    tracks: sequence.tracks,
+    tracks: effectiveTracks,
     master: sequence.master,
     baseHasAudio: false,
     assets: { path: resolveAssetPath },
-    midi: new MidiFiles(workDir, sequence, resolveAssetPath),
+    midi: new MidiFiles(workDir, { ...sequence, tracks: effectiveTracks }, resolveAssetPath),
     workDir,
     extension: output.extension,
-    audioCodec: output.audioCodec ?? "aac"
+    audioCodec: output.audioCodec ?? "aac",
+    audioSampleRate: output.audioSampleRate
   });
 }
 
@@ -1013,6 +1286,7 @@ function evenScaled(edge: number, scale: number): number {
 type RenderTimelineNodeOutputs = {
   output: VideoRef;
   frames: TimelineFramesRef;
+  audio: AudioRef;
 };
 
 /** An unset ref on the handle this render did not fill. */
@@ -1022,6 +1296,10 @@ function emptyVideoRef(): VideoRef {
 
 function emptyFramesRef(): TimelineFramesRef {
   return { type: "document", uri: "", asset_id: null, data: null };
+}
+
+function emptyAudioRef(): AudioRef {
+  return { type: "audio", uri: "", asset_id: null, data: null };
 }
 
 /**
@@ -1066,7 +1344,8 @@ export class RenderTimelineNode extends BaseNode {
     "Render a timeline sequence to a video, composited exactly as the timeline editor previews it (tracks, transforms, transitions, effects, captions and text), with audio mixed in at each clip's offset. Writes MP4, WebM, MOV or a zipped PNG sequence, with an optional transparent background.\n    timeline, render, video, export, cut, alpha\n\n    Use cases:\n    - Turn an edit assembled in the timeline editor into a shareable video\n    - Export a title or lower third over transparency to composite elsewhere\n    - Feed a rough cut into captioning, review, or upload nodes\n    - Automate exports of timelines built by other workflow nodes";
   static readonly metadataOutputTypes = {
     output: "video",
-    frames: "document"
+    frames: "document",
+    audio: "audio"
   };
   static readonly inlineFields = ["timeline"];
   static readonly inputFields = [];
@@ -1092,7 +1371,7 @@ export class RenderTimelineNode extends BaseNode {
     default: "mp4",
     title: "Format",
     description:
-      "Output container. mp4 is H.264. webm is VP9, mov is ProRes, and png_sequence is a zip of PNGs with a manifest.json — those three carry alpha.",
+      "Output container. mp4 is H.264, webm is VP9, mov is ProRes, png_sequence is a zip of PNGs with a manifest.json (those three carry alpha), and wav writes uncompressed PCM audio.",
     values: [...TIMELINE_OUTPUT_FORMATS]
   })
   declare format: string;
@@ -1161,6 +1440,24 @@ export class RenderTimelineNode extends BaseNode {
   })
   declare preview_scale: number;
 
+  @prop({
+    type: "int",
+    default: 48000,
+    title: "Audio sample rate",
+    description:
+      "Output audio sample rate in Hz. wav accepts 44100, 48000, 88200, 96000, or 192000; mp4 and mov accept 44100, 48000, 88200, or 96000; webm accepts 48000 only; ignored for png_sequence."
+  })
+  declare audio_sample_rate: number;
+
+  @prop({
+    type: "int",
+    default: DEFAULT_WAV_BIT_DEPTH,
+    title: "Audio bit depth",
+    description:
+      "PCM bit depth for WAV exports: 16, 24, or 32 (32-bit IEEE 754 float). Ignored for video and PNG sequence formats."
+  })
+  declare audio_bit_depth: number;
+
   async process(
     context?: ProcessingContext
   ): Promise<RenderTimelineNodeOutputs> {
@@ -1174,27 +1471,31 @@ export class RenderTimelineNode extends BaseNode {
 
     const includeAudio = this.include_audio !== false;
     const audioClips = includeAudio ? mixableAudioClips(seq) : [];
-    if (!hasRenderableVisual(seq) && audioClips.length === 0) {
-      throw new Error(
-        `Timeline "${seq.name}" has no renderable clips with media — generate or import clip media first`
-      );
-    }
     const durationMs = totalDurationMs(seq);
-    if (durationMs <= 0) {
-      throw new Error(`Timeline "${seq.name}" has zero duration`);
-    }
 
-    // Resolved before anything is decoded: an impossible format/alpha pair, or
-    // a libav build with no encoder for it, must fail in a second rather than after
-    // a thousand composited frames.
+    // Resolved before anything is decoded: an impossible format/alpha/rate/bit-depth
+    // combination, or a libav build with no encoder for it, must fail immediately.
     const output = resolveTimelineOutput({
       format: this.format,
       alpha: this.alpha === true,
       videoCodec: this.video_codec,
       bitrate: this.bitrate,
       motionBlurSamples: this.motion_blur_samples,
-      shutterAngle: this.shutter_angle
+      shutterAngle: this.shutter_angle,
+      audioSampleRate: this.audio_sample_rate,
+      audioBitDepth: this.audio_bit_depth
     });
+    if (output.format === "wav" && !includeAudio) {
+      throw new Error("WAV export requires include_audio to be enabled.");
+    }
+    if (output.format !== "wav" && !hasRenderableVisual(seq) && audioClips.length === 0) {
+      throw new Error(
+        `Timeline "${seq.name}" has no renderable clips with media — generate or import clip media first`
+      );
+    }
+    if (durationMs <= 0) {
+      throw new Error(`Timeline "${seq.name}" has zero duration`);
+    }
     await this.assertEncoderAvailable(output);
 
     const workDir = await fs.mkdtemp(
@@ -1202,7 +1503,61 @@ export class RenderTimelineNode extends BaseNode {
     );
     try {
       const assets = new AssetFiles(workDir, ctx);
-      const midi = new MidiFiles(workDir, seq, id => assets.path(id), ctx.signal);
+      const effectiveTracks = tracksWithPatternAutomation(seq.tracks, seq.clips, seq);
+      const midi = new MidiFiles(
+        workDir,
+        { ...seq, tracks: effectiveTracks },
+        (id) => assets.path(id),
+        ctx.signal
+      );
+
+      if (output.format === "wav") {
+        const audioToMix = [...embeddedAudioClips(seq), ...audioClips];
+        if (audioToMix.length === 0) {
+          throw new Error(
+            `Timeline "${seq.name}" has no audible clips to export as WAV.`
+          );
+        }
+        const wavPath = await renderAudioOnly({
+          clips: audioToMix,
+          tracks: effectiveTracks,
+          master: seq.master,
+          assets,
+          midi,
+          workDir,
+          extension: output.extension,
+          audioCodec: output.audioCodec ?? "pcm_s16le",
+          audioSampleRate: output.audioSampleRate,
+          durationSec: durationMs / 1000,
+          signal: ctx.signal
+        });
+        const duration = (await probeDurationSec(wavPath)) ?? durationMs / 1000;
+        const stored = await storeRenderArtifact({
+          context: ctx,
+          filePath: wavPath,
+          name: `${seq.name || "timeline"}.${output.extension}`,
+          contentType: output.mimeType
+        });
+        return {
+          output: emptyVideoRef(),
+          frames: emptyFramesRef(),
+          audio: {
+            type: "audio",
+            asset_id: stored.asset_id,
+            uri: stored.uri,
+            data: stored.data,
+            duration: duration > 0 ? duration : null,
+            metadata: {
+              render_mode: "audio",
+              format: output.format,
+              audio_bit_depth: output.audioBitDepth,
+              audio_sample_rate: output.audioSampleRate,
+              audio_codec: output.audioCodec,
+              content_type: output.mimeType
+            }
+          }
+        };
+      }
       let basePath: string;
       let baseHasAudio: boolean;
       let audioToMix: TimelineClip[];
@@ -1324,7 +1679,8 @@ export class RenderTimelineNode extends BaseNode {
           workDir,
           width,
           height,
-          fps
+          fps,
+          audioSampleRate: output.audioSampleRate
         });
         renderMode = "rough_cut";
         baseHasAudio = true;
@@ -1361,7 +1717,8 @@ export class RenderTimelineNode extends BaseNode {
               alpha: output.alpha,
               content_type: output.mimeType
             }
-          }
+          },
+          audio: emptyAudioRef()
         };
       }
 
@@ -1370,14 +1727,15 @@ export class RenderTimelineNode extends BaseNode {
           ? await mixAudioInto({
               basePath,
               clips: audioToMix,
-              tracks: seq.tracks,
+              tracks: effectiveTracks,
               master: seq.master,
               baseHasAudio,
               assets,
               midi,
               workDir,
               extension: output.extension,
-              audioCodec: output.audioCodec ?? "aac"
+              audioCodec: output.audioCodec ?? "aac",
+              audioSampleRate: output.audioSampleRate
             })
           : basePath;
 
@@ -1405,7 +1763,8 @@ export class RenderTimelineNode extends BaseNode {
             alpha: output.alpha
           }
         },
-        frames: emptyFramesRef()
+        frames: emptyFramesRef(),
+        audio: emptyAudioRef()
       };
     } finally {
       await fs.rm(workDir, { recursive: true, force: true });

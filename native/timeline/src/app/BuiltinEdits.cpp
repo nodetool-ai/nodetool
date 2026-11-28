@@ -33,7 +33,9 @@ EditDoc document(const QJsonObject& raw) {
     return doc;
 }
 QJsonObject clipEdit(const QString& name, QJsonObject raw, const QJsonObject& p) {
-    const auto doc = document(raw);
+    auto doc = document(raw);
+    doc.bpm = raw.value("tempo").toObject().value("bpm").toDouble(120);
+    doc.splitCrossing = p.value("crossing").toString(QStringLiteral("shorten"));
     const auto id = p.value("clipId").toString();
     const auto selected = ids(p);
     const IdSet selectedSet(selected.begin(), selected.end());

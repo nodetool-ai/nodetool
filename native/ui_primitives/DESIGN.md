@@ -119,3 +119,5 @@ and overlay stacking levels are 0 and 100. When the preference is System, the
 current Qt 6.12 public-hint hosts resolve motion to Full because they do not
 receive a reduced-motion system hint. An explicit Reduce preference stops
 optional animation.
+
+Music editing surfaces follow the shared [music editor UI rules](../../docs/design/MUSIC_EDITOR_UI.md).

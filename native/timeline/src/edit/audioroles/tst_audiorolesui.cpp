@@ -5,6 +5,8 @@
 #include "AudioRoleJson.h"
 #include "AudioRoles.h"
 #include "AudioRolesTestSupport.h"
+#include "audio/loudness/AppReadout.h"
+#include "audio/loudness/LiveLoudness.h"
 #include "DockLayoutStore.h"
 #include "edit/ClipGestureController.h"
 #include "model/TimelineJson.h"
@@ -313,11 +315,66 @@ LoudnessMeterView { width: 320 })", QUrl());
         QCOMPARE(findItem(view, "meterVerdict")->property("message").toString(), QString("5.0 LU too loud"));
         read(-23.0, 1.5);
         QCOMPARE(findItem(view, "meterVerdict")->property("message").toString(), QString("Over -1 dBTP"));
+        // F3: clip indicator fed by the true-peak meter.
+        auto* clipIndicator = findItem(view, "meterClipIndicator");
+        QVERIFY2(clipIndicator != nullptr, "LoudnessMeterView must expose meterClipIndicator");
+        QVERIFY(clipIndicator->property("clipped").toBool());
+        meter->setProperty("reading", QVariantMap{{"available", true}, {"active", true}, {"momentary", -23.0},
+            {"shortTerm", -23.0}, {"integrated", -23.0}, {"truePeakDb", -1.2}, {"clipped", false}});
+        QVERIFY(!clipIndicator->property("clipped").toBool());
         meter->setProperty("standardId", "online");
         read(-16.3, -2);
         QCOMPARE(findItem(view, "meterVerdict")->property("message").toString(), QString("On target"));
         meter->setProperty("standardId", "none");
         QVERIFY(!findItem(view, "meterVerdict")->isVisible());
+    }
+
+    // D20: Clicking the latched CLIP indicator must clear only the clip latch, preserving integrated LUFS.
+    void d20_clickingClipIndicatorPreservesLoudnessMeasurements() {
+        auto& readout = nt::audio::appLoudnessReadout();
+        readout.requestReset();
+        nt::audio::LiveLoudness live(readout);
+        live.prepare(48000.0);
+        // Feed 0.6 s of hot (+6 dBFS) 1 kHz sine so integrated LUFS is finite and clip indicator latches.
+        constexpr int kFrames = 28800;
+        std::vector<float> hot(std::size_t{kFrames} * 2);
+        for (int i = 0; i < kFrames; ++i) {
+            const float s = static_cast<float>(2.0 * std::sin(2.0 * M_PI * 1000.0 * i / 48000.0));
+            hot[std::size_t{2} * i] = s;
+            hot[std::size_t{2} * i + 1] = s;
+        }
+        live.process(hot.data(), kFrames);
+        const auto before = readout.read();
+        QVERIFY(std::isfinite(before.integrated));
+        QVERIFY(before.clipped);
+
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+LoudnessMeterView { width: 320 })", QUrl());
+        std::unique_ptr<QObject> meter(component.create());
+        QVERIFY2(meter, qPrintable(component.errorString()));
+        auto* view = qobject_cast<QQuickItem*>(meter.get());
+        QVERIFY(QMetaObject::invokeMethod(view, "poll"));
+        auto* clipBtn = findItem(view, "meterClipIndicator");
+        QVERIFY(clipBtn != nullptr);
+        QVERIFY(clipBtn->property("clipped").toBool());
+        const QString integratedBefore = findItem(view, "meterValue-integrated")->property("text").toString();
+        QVERIFY(integratedBefore != "--");
+
+        // Trigger clip indicator click.
+        QMetaObject::invokeMethod(clipBtn, "clicked");
+        QVERIFY2(!clipBtn->property("clipped").toBool(), "clicking CLIP must clear the clip indicator");
+        const QString integratedAfter = findItem(view, "meterValue-integrated")->property("text").toString();
+        QCOMPARE(integratedAfter, integratedBefore);
+        // Feeding a quiet block afterwards must keep clipped==false and integrated intact.
+        std::vector<float> quiet(std::size_t{4800} * 2, 0.05f);
+        live.process(quiet.data(), 4800);
+        QVERIFY(QMetaObject::invokeMethod(view, "poll"));
+        QVERIFY2(!clipBtn->property("clipped").toBool(), "quiet block after clip reset must not re-latch CLIP");
+        QVERIFY(std::isfinite(readout.read().integrated));
+        readout.requestReset();
     }
 
     void screenshotOfThePanel() {

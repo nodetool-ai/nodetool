@@ -20,7 +20,7 @@ describe("timeline dock model", () => {
   it("names the editor, its storage key and its required panels", () => {
     expect(timelineDockLayoutModel.editorLabel).toBe("timeline");
     expect(timelineDockLayoutModel.persistKeyPrefix).toBe("nodetool.timeline-layout.v1");
-    expect(timelineDockLayoutModel.requiredPanels).toEqual(["program", "tracks"]);
+    expect(timelineDockLayoutModel.requiredPanels).toEqual(["tracks"]);
     expect(timelineDockLayoutModel.presets[0]).toBe("Editing");
   });
 

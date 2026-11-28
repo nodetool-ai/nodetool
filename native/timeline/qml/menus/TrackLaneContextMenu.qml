@@ -11,7 +11,9 @@ Ui.ContextMenu {
     property var context: ({})
     property bool hasGap: false
     readonly property var actionContext: Object.assign({}, context, { kind: "lane", gestures: gestures })
+    property bool preparing: false
     readonly property var webItems: {
+        if (!preparing && !visible) return []
         const items = []
         if (["overlay", "video"].includes(context.trackType)) items.push({ action: "addText", label: "Add text", icon: "title" })
         if (hasGap) {
@@ -23,11 +25,16 @@ Ui.ContextMenu {
     function openAt(area, px, py) {
         // A right-click on a gap selects it, as a click does, so the gap's items work on it.
         hasGap = gestures.selectGapAt(context.trackId, context.timeMs)
-        // Let the Instantiator settle the menu's size before placing the popup.
-        Qt.callLater(() => { if (count > 0) popupAt(area, px, py) })
+        preparing = true
+        if (webItems.length > 0 || MenuRegistry.query("lane", actionContext).length > 0) popupAt(area, px, py)
+        preparing = false
     }
     objectName: "registryContextMenu-lane"
     popupType: Popup.Item
+    Connections {
+        target: menu
+        function onClosed() { menu.context = ({}); menu.hasGap = false }
+    }
     Component { id: groupSeparator; MenuSeparator { contentItem: Ui.Separator {} } }
     Instantiator {
         property int separators: 0

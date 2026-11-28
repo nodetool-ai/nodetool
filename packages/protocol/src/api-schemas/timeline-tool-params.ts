@@ -37,11 +37,38 @@ import {
   clipShapeStyle,
   clipTextStyle,
   midiInstrument,
+  midiNoteExpression,
+  automationTarget,
+  midiControllerKind,
+  musicKey,
+  musicRole,
+  trackEffect,
+  MAX_AUTOMATION_LANES_PER_TRACK,
+  MAX_AUTOMATION_POINTS_PER_LANE,
+  MIDI_MAX_POINTS_PER_LANE,
+  MIDI_MAX_CONTROLLER_LANES_PER_CLIP,
+  mediaTrack,
+  timelineChord,
+  timelineClip,
+  timelineMarker,
   samplerMidiInstrument,
   samplerZone,
   KNOWN_CLIP_EFFECT_TYPE_LIST,
   KNOWN_TRANSITION_TYPE_LIST,
   MIDI_MAX_NOTES_PER_CLIP,
+  stepAutomationMode,
+  stepCondition,
+  stepDegree,
+  stepEditMode,
+  stepKey,
+  stepPitchSource,
+  stepPlaybackMode,
+  stepRate,
+  stepRowAssignment,
+  stepRowSort,
+  stepScaleId,
+  stepSwingDivision,
+  STEP_PATTERN_MAX_STEPS,
   type ClipMask,
   type ClipTimeRemap,
   type KnownClipEffect,
@@ -54,6 +81,26 @@ export const targetParam = z
   .describe(
     'Clip id, clip name (case-insensitive), or the literal "selected" for the currently-selected clip.'
   );
+
+/**
+ * A time given as a bar position, for the clip ops that take ms (D49). The ms
+ * form and this form are mutually exclusive; the op refuses both together.
+ */
+export const barTimeShape = {
+  atBar: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(
+      "A time as a bar position, counted from 1, resolved through the tempo map. Use it instead of the ms form, never together."
+    ),
+  beat: z
+    .number()
+    .min(1)
+    .optional()
+    .describe("The beat inside `atBar`, counted from 1. Default 1.")
+} as const;
 
 /** Explicit target and prompt for the nondestructive video-edit operation. */
 const requireProviderModelPair = (
@@ -136,17 +183,26 @@ export const clipOpacityParam = z
 export const clipTransformPatchParam = z
   .object({
     position: z
-      .object({ x: z.number().optional(), y: z.number().optional() })
+      .object({
+        x: z.number().finite().optional(),
+        y: z.number().finite().optional()
+      })
       .optional(),
     scale: z
-      .object({ x: z.number().optional(), y: z.number().optional() })
+      .object({
+        x: z.number().finite().optional(),
+        y: z.number().finite().optional()
+      })
       .optional(),
-    rotation: z.number().optional(),
-    rotationX: z.number().optional(),
-    rotationY: z.number().optional(),
-    perspective: z.number().positive().optional(),
+    rotation: z.number().finite().optional(),
+    rotationX: z.number().finite().optional(),
+    rotationY: z.number().finite().optional(),
+    perspective: z.number().finite().positive().optional(),
     anchor: z
-      .object({ x: z.number().optional(), y: z.number().optional() })
+      .object({
+        x: z.number().finite().optional(),
+        y: z.number().finite().optional()
+      })
       .optional()
   })
   .optional();
@@ -320,24 +376,47 @@ export function withFieldNotes<T extends z.ZodRawShape>(
  * complete description of a centred drop shadow, and demanding `offsetX: 0`
  * cost a round trip on a call that was already right.
  */
+const gradientStopParams = z.object({
+  offset: z.number().finite().min(0).max(1),
+  color: z.string()
+});
+
+export const styleFillParams = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("solid"), color: z.string() }),
+  z.object({
+    type: z.literal("linear"),
+    angle: z.number().finite(),
+    stops: z.array(gradientStopParams).min(2)
+  }),
+  z.object({
+    type: z.literal("radial"),
+    stops: z.array(gradientStopParams).min(2)
+  })
+]);
+
 const textShadowParams = z
   .object({
     color: z.string().default("#000000"),
-    blurPx: z.number().default(0),
-    offsetX: z.number().default(0).describe("Default 0."),
-    offsetY: z.number().default(0).describe("Default 0.")
+    blurPx: z.number().finite().min(0).default(0),
+    offsetX: z.number().finite().default(0).describe("Default 0."),
+    offsetY: z.number().finite().default(0).describe("Default 0.")
   })
   .strict();
 
 const textStrokeParams = z
-  .object({ color: z.string(), widthPx: z.number() })
+  .object({ color: z.string(), widthPx: z.number().finite().min(0) })
   .strict();
 
 const textBackgroundParams = z
   .object({
     color: z.string(),
-    paddingPx: z.number(),
-    radiusPx: z.number().optional().describe("Corner rounding, in sequence px.")
+    paddingPx: z.number().finite().min(0),
+    radiusPx: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Corner rounding, in sequence px.")
   })
   .strict();
 
@@ -372,26 +451,25 @@ const FONT_WEIGHT_KEYWORDS: Readonly<Record<string, number>> = {
 /** A weight written as a word (or a quoted number), as its number. */
 const writtenFontWeight = z
   .string()
-  .transform((raw) =>
-    raw
-      .trim()
-      .toLowerCase()
-      .replace(/[\s_-]/g, "")
-  )
+  .transform((raw) => raw.trim().toLowerCase())
   .refine(
-    (key) => FONT_WEIGHT_KEYWORDS[key] !== undefined || isFiniteWeight(key),
+    (raw) =>
+      FONT_WEIGHT_KEYWORDS[raw.replace(/[\s_-]/g, "")] !== undefined ||
+      isFiniteWeight(raw),
     {
-      message: `not a weight — use a number, or one of: ${Object.keys(FONT_WEIGHT_KEYWORDS).join(", ")}`
+      message: `not a weight — use a positive number, or one of: ${Object.keys(FONT_WEIGHT_KEYWORDS).join(", ")}`
     }
   )
-  .transform((key) => FONT_WEIGHT_KEYWORDS[key] ?? Number(key));
+  .transform(
+    (raw) => FONT_WEIGHT_KEYWORDS[raw.replace(/[\s_-]/g, "")] ?? Number(raw)
+  );
 
 const isFiniteWeight = (key: string): boolean =>
-  key !== "" && Number.isFinite(Number(key));
+  key !== "" && Number.isFinite(Number(key)) && Number(key) > 0;
 
 /** `fontWeight`, accepting the CSS keyword spellings as well as the number. */
 export const fontWeightParam = z
-  .union([z.number(), writtenFontWeight])
+  .union([z.number().finite().positive(), writtenFontWeight])
   .describe(
     "Numeric weight (400 regular, 600 semibold, 800 extrabold). The CSS " +
       'keywords ("bold", "semibold", …) are accepted and stored as their number.'
@@ -425,7 +503,34 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
    * Only the authoring surface is strict. Widening the document schema would
    * make an already-saved sequence carrying `"center"` fail to save.
    */
+  fontSizePx: z
+    .number()
+    .finite()
+    .positive()
+    .describe("Font size in sequence pixels, not CSS pixels."),
   fontWeight: fontWeightParam.optional(),
+  fontStyle: z
+    .enum(["normal", "italic"])
+    .optional()
+    .describe('"normal" (default) or "italic".'),
+  letterSpacingPx: z
+    .number()
+    .finite()
+    .optional()
+    .describe("Extra advance between glyphs, in sequence px. Default 0."),
+  lineHeight: z
+    .number()
+    .finite()
+    .positive()
+    .optional()
+    .describe("Line advance as a multiple of the font size. Default 1.2."),
+  maxWidthFrac: z
+    .number()
+    .finite()
+    .positive()
+    .max(1)
+    .optional()
+    .describe("Wrap width as a fraction of frame width."),
   verticalAlign: z
     .enum(["top", "middle", "bottom"])
     .optional()
@@ -448,6 +553,12 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
       "Scrim drawn behind the wrapped block: {color, paddingPx, radiusPx?}. " +
         "The rounding field is `radiusPx`, not `cornerRadius`. An 8-digit " +
         "hex or rgba() colour keeps the picture visible through it."
+    ),
+  fill: styleFillParams
+    .optional()
+    .describe(
+      'Gradient or solid fill, {type: "solid"|"linear"|"radial", ...}. ' +
+        "Wins over `color` when set."
     )
 });
 
@@ -499,7 +610,31 @@ export const partialTextStyleParams = textStyleParams
  * and a clip with no text style yet still needs the three required fields
  * before it draws anything.
  */
-export const textStylePatchParams = textStyleParams.partial();
+const textStylePatchShape = Object.fromEntries(
+  Object.entries(textStyleParams.shape).map(([key, schema]) => {
+    if (key === "text" || key === "fontSizePx" || key === "color") {
+      return [key, schema.optional()];
+    }
+    return [key, schema.nullable().optional()];
+  })
+) as {
+  [K in keyof typeof textStyleParams.shape]: K extends
+    | "text"
+    | "fontSizePx"
+    | "color"
+    ? z.ZodOptional<(typeof textStyleParams.shape)[K]>
+    : z.ZodOptional<z.ZodNullable<(typeof textStyleParams.shape)[K]>>;
+};
+export const textStylePatchParams = z.object(textStylePatchShape);
+
+const SHAPE_KIND_VALUES = [
+  "rect",
+  "ellipse",
+  "line",
+  "polygon",
+  "star",
+  "path"
+] as const;
 
 /** A shape clip's geometry and fill. */
 export const shapeStyleParams = withFieldNotes(clipShapeStyle, {
@@ -533,7 +668,115 @@ export const shapeStyleParams = withFieldNotes(clipShapeStyle, {
   // Strict for the same reason the text bags are: a geometry key spelled
   // wrong inside `shape` was stripped, and the shape drew at its default
   // somewhere else on the frame with nothing said about it.
-}).strict();
+})
+  .extend({
+    kind: z.enum(SHAPE_KIND_VALUES),
+    fill: z
+      .union([z.string(), styleFillParams])
+      .optional()
+      .describe(
+        "Solid colour string or linear/radial gradient object. Alpha belongs " +
+          "in the colour or gradient stop colours."
+      ),
+    fillStyle: styleFillParams
+      .optional()
+      .describe(
+        "Gradient or solid fill, wins over `fill` when set. A soft scrim is " +
+          '{type: "linear", angle: 90, stops: [{offset: 0, color: "#05070C00"}, ' +
+          '{offset: 1, color: "#05070CDD"}]} — the alpha lives in the stop colours.'
+      ),
+    strokeWidthPx: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Outline width in sequence pixels. Default 8."),
+    x: z
+      .number()
+      .finite()
+      .optional()
+      .describe("Left edge (or the line's first point), 0..1 of frame width."),
+    y: z
+      .number()
+      .finite()
+      .optional()
+      .describe("Top edge (or the line's first point), 0..1 of frame height."),
+    width: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Width, as a multiple of frame width (non-negative)."),
+    height: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Height, as a multiple of frame height (non-negative)."),
+    x2: z
+      .number()
+      .finite()
+      .optional()
+      .describe('kind "line" only: the second point, 0..1 of frame width.'),
+    y2: z
+      .number()
+      .finite()
+      .optional()
+      .describe('kind "line" only: the second point, 0..1 of frame height.'),
+    sides: z
+      .number()
+      .int()
+      .min(3)
+      .max(Math.floor(2147483647 / 2))
+      .optional()
+      .describe('Point count for kind "polygon" and "star".'),
+    innerRadius: z
+      .number()
+      .finite()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe('kind "star" only: inner radius as a fraction of the outer.'),
+    cornerRadius: z
+      .number()
+      .finite()
+      .min(0)
+      .optional()
+      .describe("Corner rounding, in the same normalized units."),
+    dash: z
+      .array(z.number().finite().min(0))
+      .optional()
+      .describe(
+        "Dash pattern in normalized units, as ctx.setLineDash takes it."
+      ),
+    lineCap: z
+      .enum(["butt", "round", "square"])
+      .optional()
+      .describe('"butt", "round" or "square".'),
+    lineJoin: z
+      .enum(["miter", "round", "bevel"])
+      .optional()
+      .describe('"miter", "round" or "bevel".'),
+    trimStart: z
+      .number()
+      .finite()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe(
+        "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1."
+      ),
+    trimEnd: z
+      .number()
+      .finite()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe(
+        "Stroke only the sub-range [trimStart, trimEnd] of the path, 0..1."
+      )
+  })
+  .strict();
 
 /**
  * What `add_text_clip` and `add_shape_clip` tell the model, shared so the
@@ -838,6 +1081,29 @@ export const captionStyleParams = withFieldNotes(captionStyle, {
   bottomMarginFrac:
     "Gap from the frame bottom, as a fraction of height. Default 0.12.",
   background: "Scrim behind the whole block."
+}).extend({
+  fontSizeFrac: z
+    .number()
+    .finite()
+    .positive()
+    .max(1)
+    .optional()
+    .describe("Font size as a fraction of frame height. Default 0.05."),
+  outline: textStrokeParams
+    .optional()
+    .describe("Outline under the glyphs. widthPx 0 draws none."),
+  bottomMarginFrac: z
+    .number()
+    .finite()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe(
+      "Gap from the frame bottom, as a fraction of height. Default 0.12."
+    ),
+  background: textBackgroundParams
+    .optional()
+    .describe("Scrim behind the whole block.")
 });
 
 // ── Transitions ─────────────────────────────────────────────────────────────
@@ -1759,7 +2025,27 @@ export const midiNoteParams = z.object({
     .number()
     .int()
     .positive()
-    .describe("How long the note is held, in ticks. 960 = one quarter note.")
+    .describe("How long the note is held, in ticks. 960 = one quarter note."),
+  muted: z.boolean().optional().describe("A muted note is not played."),
+  channel: z
+    .number()
+    .int()
+    .min(0)
+    .max(15)
+    .optional()
+    .describe("MIDI channel 0..15. Default 0."),
+  release_velocity: z
+    .number()
+    .int()
+    .min(0)
+    .max(127)
+    .optional()
+    .describe("Note-off velocity, 0..127."),
+  expression: midiNoteExpression
+    .optional()
+    .describe(
+      "Per-note curves (pitch in semitones, volume gain, pan, brightness). Point ticks count from the note's start."
+    )
 });
 export type MidiNoteParams = z.infer<typeof midiNoteParams>;
 
@@ -1792,18 +2078,13 @@ export const addMidiClipParams = z.object({
 });
 export type AddMidiClipParams = z.infer<typeof addMidiClipParams>;
 
-/** `set_notes`. Replaces the whole list — send every note the clip should keep. */
-export const setNotesParams = z.object({
-  clip: targetParam,
-  notes: notesParam.describe(
-    "The clip's complete note list; this replaces what is there. Pass a note's `id` to keep it."
-  )
-});
-export type SetNotesParams = z.infer<typeof setNotesParams>;
-
 /** `set_tempo`. One constant tempo for the document. */
 export const setTempoParams = z.object({
-  bpm: z.number().positive().describe("Beats per minute."),
+  bpm: z
+    .number()
+    .positive()
+    .optional()
+    .describe("Beats per minute. Omit to keep the current tempo."),
   offset_ms: z
     .number()
     .min(0)
@@ -1820,7 +2101,21 @@ export const setTempoParams = z.object({
     .int()
     .positive()
     .optional()
-    .describe("Time-signature denominator, e.g. 4 in 4/4. Default 4.")
+    .describe("Time-signature denominator, e.g. 4 in 4/4. Default 4."),
+  key: musicKey
+    .nullable()
+    .optional()
+    .describe(
+      "The project key, `{ tonic, mode }` with mode major or minor. `null` clears it. Omit to keep the current key."
+    ),
+  auto_crossfade_ms: z
+    .number()
+    .min(0)
+    .max(1000)
+    .optional()
+    .describe(
+      "Crossfade length in ms for audio clips that touch on one track. 0 turns it off. Default 10."
+    )
 });
 export type SetTempoParams = z.infer<typeof setTempoParams>;
 
@@ -1830,7 +2125,8 @@ export const SET_TEMPO_DESCRIPTION =
   "rescales every midi clip around `offset_ms` — halving the BPM doubles each " +
   "midi clip's start and length, and the notes keep their place inside it. " +
   "Clips that are not midi do not move, so a midi part re-tempoed against " +
-  "picture will no longer line up with it.";
+  "picture will no longer line up with it. The project `key` and the audio " +
+  "`auto_crossfade_ms` are set here too, and a tempo change keeps the key.";
 
 /** A voice named instead of spelled out. The id is one of the engine's
  * `MIDI_INSTRUMENT_PRESETS`; the handler resolves it to the full instrument
@@ -1880,6 +2176,14 @@ export const QUANTIZE_DIVISION_VALUES = [
 ] as const;
 
 /** `transpose_clip`. Moves every note in the clip, ids kept. */
+/** Narrows a note edit to the notes the piano roll would have selected. */
+const noteIdsParam = z
+  .array(z.string())
+  .optional()
+  .describe(
+    "Edit only these notes, by id. Omit to edit every note in the clip."
+  );
+
 export const transposeClipParams = z.object({
   clip: targetParam,
   semitones: z
@@ -1889,7 +2193,8 @@ export const transposeClipParams = z.object({
     .max(48)
     .describe(
       "Whole semitones to move every note by. 12 is an octave up, -12 an octave down."
-    )
+    ),
+  note_ids: noteIdsParam
 });
 export type TransposeClipParams = z.infer<typeof transposeClipParams>;
 
@@ -1920,7 +2225,16 @@ export const quantizeNotesParams = z.object({
     .optional()
     .describe(
       '"start" moves onsets only; "start_and_length" also rounds each held length to whole grid steps, never below one. Default "start".'
-    )
+    ),
+  swing: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe(
+      "Delay of every odd grid step, 0..1 of half a step. Only the onset moves. Default 0."
+    ),
+  note_ids: noteIdsParam
 });
 export type QuantizeNotesParams = z.infer<typeof quantizeNotesParams>;
 
@@ -1940,7 +2254,8 @@ export const scaleVelocityParams = z.object({
     .max(4)
     .describe(
       "Multiplier on every velocity. 1.2 plays the phrase harder, 0.8 softer."
-    )
+    ),
+  note_ids: noteIdsParam
 });
 export type ScaleVelocityParams = z.infer<typeof scaleVelocityParams>;
 
@@ -1948,6 +2263,358 @@ export const SCALE_VELOCITY_DESCRIPTION =
   "Scale how hard every note in a midi clip is struck. Velocities are clamped " +
   "to 1..127, so a large factor flattens the part's dynamics rather than " +
   "making it louder — set the track's `gainDb` for level.";
+
+/** The note functions the piano roll offers beyond quantize, transpose and velocity scaling. */
+export const EDIT_NOTES_FUNCTIONS = [
+  "scale_quantize",
+  "legato",
+  "remove_overlaps",
+  "delete_duplicates",
+  "glue",
+  "mute",
+  "unmute",
+  "delete",
+  "set_velocity"
+] as const;
+
+/** Scale ids `scale_quantize` snaps to. Mirrors `SCALES` in `@nodetool-ai/timeline`. */
+export const EDIT_NOTES_SCALES = [
+  "major", "minor", "dorian", "mixolydian", "phrygian", "lydian", "locrian",
+  "harmMinor", "melMinor", "phrygDom", "lydDom", "locrian2", "altered",
+  "wholeTone", "dimHW", "dimWH", "majPent", "minPent", "blues"
+] as const;
+
+/** One controller lane write of `set_notes`. */
+export const controllerLaneParams = z.object({
+  kind: midiControllerKind,
+  cc: z
+    .number()
+    .int()
+    .min(0)
+    .max(127)
+    .optional()
+    .describe("Controller number, 0..127. Required for kind `cc`, refused otherwise."),
+  pitch: z
+    .number()
+    .int()
+    .min(0)
+    .max(127)
+    .optional()
+    .describe("Note pitch the pressure follows. Required for kind `polyPressure`, refused otherwise."),
+  channel: z.number().int().min(0).max(15).optional().describe("MIDI channel 0..15. Default 0."),
+  interpolation: z
+    .enum(["linear", "step"])
+    .optional()
+    .describe("How the lane moves between points. Default linear."),
+  points: z
+    .array(
+      z.object({
+        tick: z
+          .number()
+          .int()
+          .min(0)
+          .describe("Ticks from the clip's content start, like a note's start_tick."),
+        value: z
+          .number()
+          .int()
+          .describe("0..127. Pitch bend runs -8192..8191, 0 at centre.")
+      })
+    )
+    .max(MIDI_MAX_POINTS_PER_LANE)
+    .describe("The lane's complete point list. An empty list removes the lane.")
+});
+
+/**
+ * `set_notes`. Replaces the whole note list, or runs a piano-roll note
+ * function on a selection, or writes controller lanes. One tool because the
+ * three are one surface in the editor: a clip's content.
+ */
+const completeNotePatch = z.object({
+  id: z.string().min(1),
+  pitch: z.number().int().min(0).max(127),
+  velocity: z.number().int().min(1).max(127),
+  startTick: z.number().int().nonnegative(),
+  durationTick: z.number().int().positive(),
+  muted: z.boolean().optional(),
+  channel: z.number().int().min(0).max(15).optional(),
+  releaseVelocity: z.number().int().min(0).max(127).optional(),
+  expression: midiNoteExpression.optional()
+}).strict();
+
+export const notePatchParams = z.discriminatedUnion("edit", [
+  z.object({
+    edit: z.literal("midi.moveNotes"),
+    notes: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            startTick: z.number().int().nonnegative().optional(),
+            pitch: z.number().int().min(0).max(127).optional()
+          })
+          .strict()
+      )
+      .max(MIDI_MAX_NOTES_PER_CLIP)
+  }),
+  z.object({
+    edit: z.literal("midi.resizeNotes"),
+    notes: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            durationTick: z.number().int().positive()
+          })
+          .strict()
+      )
+      .max(MIDI_MAX_NOTES_PER_CLIP)
+  }),
+  z.object({
+    edit: z.literal("midi.setNoteVelocities"),
+    notes: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            velocity: z.number().int().min(1).max(127)
+          })
+          .strict()
+      )
+      .max(MIDI_MAX_NOTES_PER_CLIP)
+  }),
+  z.object({
+    edit: z.literal("midi.addNotes"),
+    notes: z.array(completeNotePatch).max(MIDI_MAX_NOTES_PER_CLIP)
+  }),
+  z.object({
+    edit: z.literal("midi.patchNotes"),
+    notes: z.array(completeNotePatch).max(MIDI_MAX_NOTES_PER_CLIP),
+    addedNotes: z.array(completeNotePatch).max(MIDI_MAX_NOTES_PER_CLIP).optional(),
+    noteIds: z.array(z.string().min(1)).max(MIDI_MAX_NOTES_PER_CLIP).optional()
+  }),
+  z.object({
+    edit: z.literal("midi.removeNotes"),
+    noteIds: z.array(z.string().min(1)).max(MIDI_MAX_NOTES_PER_CLIP)
+  })
+]);
+
+export const setNotesParams = z.object({
+  clip: targetParam,
+  patch: notePatchParams.optional().describe("Apply one named MIDI patch with absolute values. Uses native edit payload fields (camelCase). Exclusive with notes, function and controllers."),
+  notes: notesParam
+    .optional()
+    .describe(
+      "The clip's complete note list; this replaces what is there. Pass a note's `id` to keep it. Omit it to leave the notes alone."
+    ),
+  function: z
+    .enum(EDIT_NOTES_FUNCTIONS)
+    .optional()
+    .describe(
+      "Run a note function instead of replacing the list. scale_quantize snaps pitches into `scale` on `root`. legato extends each note to the next onset. remove_overlaps cuts a note at the next note of the same pitch. delete_duplicates drops a note that repeats an earlier one. glue merges the named notes of one pitch and channel (needs `note_ids`). mute and unmute set the muted flag. delete removes notes. set_velocity writes one `velocity`. Never together with `notes`."
+    ),
+  note_ids: noteIdsParam,
+  pitches: z
+    .array(z.number().int().min(0).max(127))
+    .optional()
+    .describe(
+      "With `function`: act only on the notes on these pitches, the way a step-editor row does. Together with `note_ids` it keeps the notes in both. Omit both to act on every note."
+    ),
+  velocity: z
+    .number()
+    .int()
+    .min(1)
+    .max(127)
+    .optional()
+    .describe("set_velocity only: the velocity to write, 1..127."),
+  root: z
+    .number()
+    .int()
+    .min(0)
+    .max(11)
+    .optional()
+    .describe("scale_quantize only: the scale's root as a pitch class, 0 (C) to 11 (B). Default: project key tonic, or 0."),
+  scale: z
+    .enum(EDIT_NOTES_SCALES)
+    .optional()
+    .describe("scale_quantize only: the scale to snap to."),
+  controllers: z
+    .array(controllerLaneParams)
+    .min(1)
+    .max(MIDI_MAX_CONTROLLER_LANES_PER_CLIP)
+    .optional()
+    .describe(
+      "Controller lanes to write: CC, pitch bend, channel pressure or poly pressure. Each entry names a lane by `kind` (with `cc` or `pitch`) and `channel` and replaces that lane's whole point list. A lane that does not exist is created. An empty `points` list removes the lane. Lanes you do not name stay."
+    )
+});
+export type SetNotesParams = z.infer<typeof setNotesParams>;
+
+export const SET_NOTES_DESCRIPTION =
+  "Write a midi clip's content. Send patch with edit midi.moveNotes, midi.resizeNotes, midi.setNoteVelocities, midi.addNotes or midi.removeNotes to change only named notes. midi.patchNotes combines full changed notes, optional addedNotes and removed noteIds atomically. Unknown note IDs are errors. Use midi.addNotes to insert notes. " +
+  "Send `notes` to replace the whole list, not " +
+  "merge: every note the clip should keep, each with `pitch`, `start_tick` and " +
+  "`duration_tick` (960 ticks = one quarter note, from the clip's content " +
+  "start), and a note's `id` to keep it. Send `function` instead to run a " +
+  "piano-roll note function on a selection: scale_quantize, legato, " +
+  "remove_overlaps, delete_duplicates, glue, mute, unmute, delete or " +
+  "set_velocity. Select with `note_ids`, with `pitches` (a step-editor row) " +
+  "or both, else every note is acted on. Send `controllers` to write CC, pitch " +
+  "bend or pressure lanes. Read the current notes and lanes with " +
+  "ui_timeline_get_state and `clip`.";
+
+/** Narrow automation edits. Selection ranges include both endpoints. */
+/** Bounds sample conversion to safe integer magnitudes even at MHz sample rates. */
+export const MAX_AUTOMATION_TIME_MS = 1e12;
+const [mixerAutomationTarget, deviceAutomationTarget, clipAutomationTarget] =
+  automationTarget.options;
+const strictAutomationTarget = z.discriminatedUnion("kind", [
+  mixerAutomationTarget.strict(),
+  deviceAutomationTarget.strict(),
+  clipAutomationTarget.strict()
+]);
+export const automationEditSchemas = {
+  "automation.addPoints": z
+    .object({
+      edit: z.literal("automation.addPoints"),
+      target: strictAutomationTarget,
+      points: z
+        .array(
+          z
+            .object({
+              timeMs: z
+                .number()
+                .finite()
+                .min(-MAX_AUTOMATION_TIME_MS)
+                .max(MAX_AUTOMATION_TIME_MS),
+              value: z.number().finite(),
+              easing: z.string().min(1).max(256).optional()
+            })
+            .strict()
+        )
+        .min(1)
+        .max(MAX_AUTOMATION_POINTS_PER_LANE)
+    })
+    .strict(),
+  "automation.movePoints": z
+    .object({
+      edit: z.literal("automation.movePoints"),
+      target: strictAutomationTarget,
+      fromMs: z.number().finite().min(0).max(MAX_AUTOMATION_TIME_MS),
+      toMs: z.number().finite().min(0).max(MAX_AUTOMATION_TIME_MS),
+      deltaMs: z
+        .number()
+        .finite()
+        .min(-MAX_AUTOMATION_TIME_MS)
+        .max(MAX_AUTOMATION_TIME_MS),
+      deltaValue: z.number().finite()
+    })
+    .strict()
+    .refine((p) => p.toMs >= p.fromMs, {
+      message: "toMs must be at or after fromMs.",
+      path: ["toMs"]
+    }),
+  "automation.deletePoints": z
+    .object({
+      edit: z.literal("automation.deletePoints"),
+      target: strictAutomationTarget,
+      fromMs: z.number().finite().min(0).max(MAX_AUTOMATION_TIME_MS),
+      toMs: z.number().finite().min(0).max(MAX_AUTOMATION_TIME_MS)
+    })
+    .strict()
+    .refine((p) => p.toMs >= p.fromMs, {
+      message: "toMs must be at or after fromMs.",
+      path: ["toMs"]
+    }),
+  "automation.clearLane": z
+    .object({
+      edit: z.literal("automation.clearLane"),
+      target: strictAutomationTarget
+    })
+    .strict(),
+  "automation.setLaneEnabled": z
+    .object({
+      edit: z.literal("automation.setLaneEnabled"),
+      target: strictAutomationTarget,
+      enabled: z.boolean()
+    })
+    .strict(),
+  setTrackAutomationMode: z
+    .object({
+      edit: z.literal("setTrackAutomationMode"),
+      mode: z.enum(["off", "read", "touch", "latch", "write"])
+    })
+    .strict()
+};
+export const automationEditParams = z.discriminatedUnion("edit", [
+  automationEditSchemas["automation.addPoints"],
+  automationEditSchemas["automation.movePoints"],
+  automationEditSchemas["automation.deletePoints"],
+  automationEditSchemas["automation.clearLane"],
+  automationEditSchemas["automation.setLaneEnabled"],
+  automationEditSchemas["setTrackAutomationMode"]
+]);
+export type AutomationEditParams = z.infer<typeof automationEditParams>;
+
+/** The lanes one `set_track` call writes. */
+export const automationLaneParams = z.object({
+  target: automationTarget.describe(
+    "The control: `{kind:'mixer', param:'volumeDb'|'pan'}`, `{kind:'device', deviceId, param}` (deviceId `instrument` or a track effect id) or `{kind:'clip', property}` on a picture track."
+  ),
+  enabled: z
+    .boolean()
+    .optional()
+    .describe("false keeps the lane but plays the parameter's own value. Default true."),
+  points: z
+    .array(
+      z.object({
+        timeMs: z.number().finite().min(0).describe("Document time in ms."),
+        value: z.number().finite().describe("The parameter's value in its own unit."),
+        easing: z
+          .string()
+          .optional()
+          .describe("Easing of the segment that ends at this point. Default linear.")
+      })
+    )
+    .max(MAX_AUTOMATION_POINTS_PER_LANE)
+    .describe("The lane's complete point list. An empty list removes the lane.")
+});
+
+/** The mixer and music fields `set_track` takes beyond the plain channel settings. */
+export const setTrackMixShape = {
+  automationEdit: automationEditParams
+    .optional()
+    .describe(
+      "Narrow automation edit. Use alone with track. Moves/deletes select an inclusive fromMs/toMs range. Read lanes and points with get_state track."
+    ),
+
+  effects: z
+    .array(trackEffect)
+    .max(32)
+    .optional()
+    .describe("The whole insert chain, in order. [] removes it."),
+  folder: z
+    .string()
+    .min(1)
+    .nullable()
+    .optional()
+    .describe("A track folder by name, created when missing. null takes the track out of its folder."),
+  musicRole: musicRole
+    .nullable()
+    .optional()
+    .describe("The stem the track holds in a music project. null clears it."),
+  automationMode: z
+    .enum(["off", "read", "touch", "latch", "write"])
+    .optional()
+    .describe(
+      "How the track's lanes play and record. off plays none, read plays them, touch, latch and write also record a pass."
+    ),
+  automation: z
+    .array(automationLaneParams)
+    .max(MAX_AUTOMATION_LANES_PER_TRACK)
+    .optional()
+    .describe(
+      "Automation lanes to write. Each entry names its `target` and replaces that lane's whole point list, so moving, deleting and easing points are one write. A lane that does not exist is created. An empty `points` list removes the lane. Lanes you do not name stay. Points are sorted by time."
+    )
+};
 
 // ── Smart Reframe ───────────────────────────────────────────────────────────
 
@@ -1999,6 +2666,1279 @@ export const clearReframeParams = z
   .object({ clip_id: z.string().min(1) })
   .strict();
 export type ClearReframeParams = z.infer<typeof clearReframeParams>;
+
+// ── Chords ──────────────────────────────────────────────────────────────────
+
+const chordTrackIdParam = z
+  .string()
+  .min(1)
+  .optional()
+  .describe(
+    "The chord track, by id or name. Default: the first chord track (set_chords and apply_progression create one when none exists)."
+  );
+const barParam = z.number().int().min(1);
+const startBarParam = barParam
+  .optional()
+  .describe("First bar, counted from 1. Default 1.");
+const endBarParam = barParam
+  .optional()
+  .describe("Last bar, counted from 1 and included. Default: the end.");
+
+/** `set_chords`. A chart string or a chord list, never both. */
+export const setChordsParams = z.object({
+  trackId: chordTrackIdParam,
+  startBar: startBarParam,
+  chart: z
+    .string()
+    .optional()
+    .describe(
+      'A bar chart: "|" separates bars, the chords in one bar split it evenly, "%" holds the previous chord, "-" is a slot with no chord. Example "| Am | F | C G | % |". Chord symbols: C C# D Eb E F F# G Ab A Bb B plus m, dim, aug, sus2, sus4, 5, 6, m6, 7, maj7, m7, m(maj7), m7b5, dim7, aug7, 7sus4, add9, m(add9), 9, maj9, m9, 7b9, 7#9, m11, 11, maj13, 13, and a slash bass such as C/E. Send `chart` or `chords`, not both.'
+    ),
+  chords: z
+    .array(
+      z.object({
+        symbol: z.string().min(1).describe('A chord symbol, such as "Am7" or "C/E".'),
+        bars: z.number().positive().optional().describe("Length in bars."),
+        beats: z
+          .number()
+          .positive()
+          .optional()
+          .describe("Length in beats. Added to `bars`. Default: 1 bar.")
+      }).strict()
+    )
+    .optional()
+    .describe("Chords in order from `startBar`, each with a length. Send `chart` or `chords`, not both.")
+});
+export type SetChordsParams = z.infer<typeof setChordsParams>;
+
+export const SET_CHORDS_DESCRIPTION =
+  "Write chords on a chord track from a bar chart string or a chord list. The chords replace what the covered range held. The chord track is created when the document has none. Read the result's `chart` to check what was written.";
+
+/** `clear_chords`. */
+export const clearChordsParams = z.object({
+  trackId: chordTrackIdParam,
+  startBar: startBarParam,
+  endBar: endBarParam
+});
+export type ClearChordsParams = z.infer<typeof clearChordsParams>;
+
+export const CLEAR_CHORDS_DESCRIPTION =
+  "Remove the chords from bar `startBar` to bar `endBar` (both included) of a chord track. A chord that crosses the edge is trimmed. Without bars it clears the whole track.";
+
+/** `join_clips`. Join clips of one track into one clip (CE5, D52). */
+export const joinClipsParams = z.object({
+  clips: z
+    .array(targetParam)
+    .optional()
+    .describe(
+      "The clips to join, at least two, all on one track. Omit it to join the selected clips."
+    )
+});
+export type JoinClipsParams = z.infer<typeof joinClipsParams>;
+
+export const JOIN_CLIPS_DESCRIPTION =
+  'Join midi clips of one track into one clip from the first start to the last end. Notes, controllers and expression re-base to the new start, gaps stay silent, and harmony settings come from the first clip. Audio clips join only when they are adjacent pieces of one source with continuous source time (for example the halves of a split). Other audio joins are refused with "needs bounce". A looped clip is written out as plain copies first. Omit `clips` to join the selected clips.';
+
+/** `loop_clip`. Region loop on a midi or audio clip (CE3, D47). */
+export const loopClipParams = z.object({
+  clip: targetParam,
+  times: z
+    .number()
+    .positive()
+    .optional()
+    .describe(
+      "Play the loop window this many times. The clip then lasts `times` windows. A fraction ends part way through a window."
+    ),
+  untilMs: z
+    .number()
+    .finite()
+    .optional()
+    .describe("Extend the clip to end at this timeline time, in ms."),
+  untilBar: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(
+      "Extend the clip to end at the start of this bar, counted from 1, resolved through the tempo map."
+    ),
+  loopLengthMs: z
+    .number()
+    .positive()
+    .nullable()
+    .optional()
+    .describe(
+      "The length of one loop window in ms, taken from the clip's in-point. Default: the current loop length, or the clip's whole length for a clip that does not loop. `null` removes the loop and keeps the clip's length."
+    )
+});
+export type LoopClipParams = z.infer<typeof loopClipParams>;
+
+export const LOOP_CLIP_DESCRIPTION =
+  "Loop a midi or audio clip. The window from the clip's in-point, `loopLengthMs` long (default: the clip as it is), repeats until the clip's end. Send `times`, `untilMs` or `untilBar` to set the end, or only `loopLengthMs` to change the window. Notes and audio that cross a repeat boundary are cut there. `loopLengthMs: null` removes the loop. get_state shows `loopLengthMs` and `loopRepeats`. Splitting, joining or trimming a looped clip first writes it out as plain copies.";
+
+/** The tracks a section edit acts on (CE4, D48). */
+const sectionTrackIdsShape = {
+  trackIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .optional()
+    .describe(
+      "Track ids or names. Omit to edit every track, and also the markers. With trackIds only those tracks change."
+    )
+};
+
+const sectionRangeShape = {
+  fromBar: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("The range starts at the start of this bar, counted from 1."),
+  toBar: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(
+      "The range ends at the start of this bar (not included), counted from 1. Needs fromBar."
+    ),
+  fromMs: z.number().finite().min(0).optional().describe("Range start, in ms."),
+  toMs: z.number().finite().min(0).optional().describe("Range end, in ms. Needs fromMs."),
+  ...sectionTrackIdsShape
+};
+
+/** `insert_time`. Insert silence across tracks (CE4, D48). */
+export const insertTimeParams = z.object({
+  ...barTimeShape,
+  atMs: z.number().finite().min(0).optional().describe("Insert point, in ms. Send this or atBar."),
+  bars: z
+    .number()
+    .positive()
+    .finite()
+    .optional()
+    .describe("Length of the silence in bars of the current time signature. Send this or ms."),
+  ms: z.number().positive().finite().optional().describe("Length of the silence, in ms."),
+  ...sectionTrackIdsShape
+});
+export type InsertTimeParams = z.infer<typeof insertTimeParams>;
+
+export const INSERT_TIME_DESCRIPTION =
+  "Insert silence. Content at or after the point moves later by the length. A clip that crosses the point splits there. Send `atBar` (with optional `beat`) or `atMs`, and `bars` or `ms`. Without `trackIds` every track changes, and so do the chords, markers and automation points. Locked clips move with the inserted time.";
+
+/** `delete_time`. Remove a range across tracks and close it (CE4, D48). */
+export const deleteTimeParams = z.object(sectionRangeShape);
+export type DeleteTimeParams = z.infer<typeof deleteTimeParams>;
+
+export const DELETE_TIME_DESCRIPTION =
+  "Remove a time range and close it. Send `fromBar` and `toBar` (the range ends at the start of toBar) or `fromMs` and `toMs`. Clips that cross an edge are trimmed, clips inside are removed, and later content moves earlier. Without `trackIds` every track changes, and so do the chords, markers and automation points. It refuses when it would cut or remove a locked clip, and the error names the clips.";
+
+/** `duplicate_range`. Copy a section and insert the copy after it (CE4, D48). */
+export const duplicateRangeParams = z.object(sectionRangeShape);
+export type DuplicateRangeParams = z.infer<typeof duplicateRangeParams>;
+
+export const DUPLICATE_RANGE_DESCRIPTION =
+  "Copy a section and insert the copy right after it. Send `fromBar` and `toBar` (the range ends at the start of toBar) or `fromMs` and `toMs`. Later content moves later by the section length. Without `trackIds` every track is copied, with the chords, markers and automation points inside the range.";
+
+/**
+ * What `paste_range` places: a section's content, as `readSectionContent`
+ * reads it (CE4, D61). Times are relative to the start of the section.
+ */
+export const sectionContentShape = z.object({
+  lengthMs: z.number().positive().finite().describe("Length of the section, in ms."),
+  clips: z
+    .array(timelineClip)
+    .describe("Copied clips. `startMs` counts from the start of the section."),
+  mediaTracks: z
+    .array(mediaTrack)
+    .optional()
+    .describe("Tracking resources the copied clips own, by `clipId`."),
+  chords: z
+    .array(z.object({ trackId: z.string().min(1), chords: z.array(timelineChord) }))
+    .optional()
+    .describe("Chords by chord track. `startTick` counts from the start of the section."),
+  automation: z
+    .array(
+      z.object({
+        trackId: z.string().min(1),
+        laneId: z.string().min(1).optional(),
+        target: automationTarget,
+        enabled: z.boolean().optional(),
+        points: z.array(
+          z.object({
+            timeMs: z.number().finite().min(0),
+            value: z.number().finite(),
+            easing: z.string().optional()
+          })
+        )
+      })
+    )
+    .optional()
+    .describe("Automation points by track and lane. `timeMs` counts from the start of the section."),
+  markers: z
+    .array(timelineMarker)
+    .optional()
+    .describe("Markers. `timeMs` counts from the start of the section.")
+});
+export type SectionContentParams = z.infer<typeof sectionContentShape>;
+
+/** `paste_range`. Place copied section content at a time, in one edit (CE4, D61). */
+export const pasteRangeParams = z.object({
+  ...barTimeShape,
+  atMs: z.number().finite().min(0).optional().describe("Paste point, in ms. Send this or atBar."),
+  mode: z
+    .enum(["insert", "overwrite"])
+    .optional()
+    .describe(
+      "`insert` (default) opens a gap of the section length at the point and places the content in it. `overwrite` replaces what the range covers on the tracks that receive content, and moves nothing."
+    ),
+  content: sectionContentShape
+});
+export type PasteRangeParams = z.infer<typeof pasteRangeParams>;
+
+export const PASTE_RANGE_DESCRIPTION =
+  "Paste copied section content (clips with their tracking resources, chords, automation points, markers) at a time, as one edit and one undo step. Send `atBar` (with optional `beat`) or `atMs`, the `content`, and optionally `mode`. Insert mode shifts later content like insert_time. Overwrite mode replaces the range on the tracks that receive content. It refuses when a destination track is locked.";
+
+/** `list_progressions`. */
+export const LIST_PROGRESSIONS_DESCRIPTION =
+  "List the progression library: id, name, family, numerals and length in bars. Pass an id or a name to ui_timeline_apply_progression.";
+
+/** `apply_progression`. */
+export const applyProgressionParams = z.object({
+  progression: z
+    .string()
+    .min(1)
+    .describe("A progression id or name from ui_timeline_list_progressions."),
+  key: z
+    .string()
+    .optional()
+    .describe(
+      'The key: "A minor", "C", "F# major", "Bb". Default: the document key, else C major.'
+    ),
+  startBar: startBarParam,
+  barsPerChord: z
+    .number()
+    .positive()
+    .optional()
+    .describe("Stretch each chord to this many bars. Default: the progression's own lengths."),
+  repeat: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("How many times the progression plays in a row. Default 1."),
+  trackId: chordTrackIdParam
+});
+export type ApplyProgressionParams = z.infer<typeof applyProgressionParams>;
+
+export const APPLY_PROGRESSION_DESCRIPTION =
+  "Write a library progression in a key onto a chord track. The chords replace what the covered range held. The chord track is created when the document has none.";
+
+/** `transpose_chords`. */
+export const transposeChordsParams = z.object({
+  semitones: z.number().int().describe("Semitones to move up (positive) or down (negative)."),
+  startBar: startBarParam,
+  endBar: endBarParam,
+  includeNotes: z
+    .boolean()
+    .optional()
+    .describe(
+      "True also transposes the written notes of midi clips that do not follow the chord track, inside the range. Default false."
+    ),
+  trackId: chordTrackIdParam
+});
+export type TransposeChordsParams = z.infer<typeof transposeChordsParams>;
+
+export const TRANSPOSE_CHORDS_DESCRIPTION =
+  "Move the chords of a chord track by semitones. With `includeNotes` the written notes of midi clips that do not follow the chord track move with them.";
+
+/** `detect_chords`. */
+export const detectChordsParams = z.object({
+  clipIds: z
+    .array(z.string().min(1))
+    .optional()
+    .describe("Clips to read, by id or name. Send `clipIds` or `trackIds`."),
+  trackIds: z
+    .array(z.string().min(1))
+    .optional()
+    .describe("Tracks to read: every clip on them. Send `clipIds` or `trackIds`."),
+  startBar: startBarParam,
+  endBar: endBarParam,
+  resolution: z
+    .enum(["bar", "half", "beat"])
+    .optional()
+    .describe('One chord per "bar", per "half" bar, or per "beat". Default "bar".'),
+  write: z
+    .boolean()
+    .optional()
+    .describe(
+      "True (default) replaces the chords of the range on the chord track. False only returns the chart."
+    ),
+  chordTrackId: chordTrackIdParam
+});
+export type DetectChordsParams = z.infer<typeof detectChordsParams>;
+
+export const DETECT_CHORDS_DESCRIPTION =
+  "Find the chords of midi clips (from their notes) or audio clips (from the sound), one per bar, half bar or beat. Writes them to the chord track (created when the document has none) and returns the chart. Without `startBar` it starts at the bar of the first sounding note or clip, so chords before the source stay. Read midi and audio in separate calls. A track list skips drum tracks and muted clips.";
+
+/** `set_clip_harmony`. */
+export const setClipHarmonyParams = z.object({
+  clipId: z.string().min(1).describe("The midi clip, by id or name."),
+  style: z
+    .enum(["off", "arp", "comp"])
+    .optional()
+    .describe('"arp" plays an arpeggio of the chord, "comp" plays a comping pattern, "off" plays the written notes.'),
+  preset: z
+    .string()
+    .optional()
+    .describe("A comp pattern name from ui_timeline_list_harmony_presets. Implies style comp."),
+  order: z
+    .enum(["up", "down", "updown", "played", "random"])
+    .optional()
+    .describe("Arpeggio order. Default up."),
+  scale: z
+    .enum(["off", "key", "chords"])
+    .optional()
+    .describe('Snaps written notes: "key" to the key scale, "chords" to the scale of each chord.'),
+  octave: z.number().int().min(0).max(8).optional().describe("Octave of the chord voicing."),
+  chordTrackId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("The chord track the clip follows. Default: the first chord track.")
+});
+export type SetClipHarmonyParams = z.infer<typeof setClipHarmonyParams>;
+
+export const SET_CLIP_HARMONY_DESCRIPTION =
+  "Make a midi clip follow the chord track: arpeggiate it, comp it with a pattern, or snap its notes to the chords' scale. The fields you send merge into the clip's harmony. Use style off and scale off to stop following.";
+
+/** `list_harmony_presets`. */
+export const LIST_HARMONY_PRESETS_DESCRIPTION =
+  "List the comp pattern names (with their family) and the arpeggio orders that ui_timeline_set_clip_harmony accepts.";
+
+/** `fit_notes_to_chords`. */
+export const fitNotesToChordsParams = z.object({
+  clipIds: z.array(z.string().min(1)).min(1).describe("The midi clips, by id or name."),
+  mode: z
+    .enum(["chord-tones", "scale"])
+    .optional()
+    .describe(
+      '"scale" (default) moves each note to the nearest pitch of the chord\'s scale. "chord-tones" moves it to the nearest chord tone.'
+    ),
+  chordTrackId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("The chord track. Default: the first chord track.")
+});
+export type FitNotesToChordsParams = z.infer<typeof fitNotesToChordsParams>;
+
+export const FIT_NOTES_TO_CHORDS_DESCRIPTION =
+  "Rewrite the notes of midi clips so each one sits in the chord that sounds at its start. Ties go down. Notes outside every chord stay. This changes the written notes, so the piano roll shows the result.";
+
+// ── Step Sequencer (SQ48–SQ54) ──────────────────────────────────────────────
+
+const stepSelectionParam = z
+  .union([
+    z.string().min(1),
+    z.array(z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS)).min(1)
+  ])
+  .describe(
+    '1-based step indices: a range/list string like "1,5,9,13" or "1-4", or an integer array like [1, 5, 9].'
+  );
+
+const stepValuesPatchParam = z
+  .object({
+    on: z.boolean().optional(),
+    velocity: z.number().int().min(1).max(127).optional(),
+    gate: z.number().int().min(1).max(100).optional(),
+    tie: z.boolean().optional(),
+    note: z.number().int().min(-12).max(12).optional(),
+    octave: z.number().int().min(-2).max(8).optional(),
+    repeat: z.number().int().min(1).max(16).optional(),
+    chance: z.number().int().min(0).max(100).optional(),
+    offset: z.number().int().min(-50).max(50).optional(),
+    stepRate: stepRate.nullable().optional(),
+    skip: z.boolean().optional(),
+    value: z.number().finite().optional(),
+    condition: stepCondition.optional(),
+    midiChannel: z.number().int().min(1).max(16).optional(),
+    articulation: z.number().int().min(0).max(255).optional(),
+    velocityRamp: z.number().int().min(-100).max(100).optional(),
+    velocityCurve: z.number().int().min(-100).max(100).optional(),
+    distribution: z.number().int().min(-100).max(100).optional()
+  })
+  .strict();
+
+const stepRampField = z.enum([
+  "velocity",
+  "gate",
+  "note",
+  "octave",
+  "repeat",
+  "chance",
+  "offset",
+  "value",
+  "velocityRamp",
+  "velocityCurve",
+  "distribution"
+]);
+
+const stepRowSortBy = z.enum([
+  "type",
+  "typeAndNote",
+  "typeAndName",
+  "typeAndKitPad"
+]);
+
+const addPatternRowInputParam = z
+  .object({
+    assignment: stepRowAssignment
+      .optional()
+      .describe("Explicit row assignment (note, kit, melodic, degree, or automation)."),
+    pitch: z
+      .union([z.number().int().min(0).max(127), z.string().min(1)])
+      .optional()
+      .describe("Shorthand fixed note pitch (0..127 or note name like C3)."),
+    pad: z
+      .union([z.number().int().min(0).max(127), z.string().min(1)])
+      .optional()
+      .describe("Shorthand drum kit pad index or pad name."),
+    degree: z
+      .union([stepDegree, z.number().int().min(0).max(6)])
+      .optional()
+      .describe('Shorthand scale degree ("root".."7th" or 0..6).'),
+    octave: z
+      .number()
+      .int()
+      .min(-2)
+      .max(8)
+      .optional()
+      .describe("Octave for a degree row (-2..8). Default 3."),
+    cc: z
+      .number()
+      .int()
+      .min(0)
+      .max(127)
+      .optional()
+      .describe("Shorthand MIDI CC number 0..127 for an automation row."),
+    param: z
+      .string()
+      .min(1)
+      .optional()
+      .describe('Shorthand automation parameter ("pitchBend", "channelPressure", or a device param id).'),
+    deviceId: z
+      .string()
+      .min(1)
+      .optional()
+      .describe('Device id for a device automation row (default "instrument").'),
+    name: z.string().min(1).optional().describe("Row display label."),
+    text: z
+      .string()
+      .optional()
+      .describe('Initial step text for this row, e.g. "x... x... x... x...".'),
+    stepRate: stepRate.optional(),
+    lengthSteps: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+    playback: stepPlaybackMode.optional(),
+    mute: z.boolean().optional(),
+    solo: z.boolean().optional(),
+    loopStart: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+    loopEnd: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+    midiChannel: z.number().int().min(1).max(16).optional(),
+    automationMode: stepAutomationMode.optional(),
+    color: z.string().min(1).optional(),
+    subrows: z.array(stepEditMode).optional(),
+    subrowsExpanded: z.boolean().optional()
+  })
+  .strict();
+
+export const getPatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  modes: z
+    .array(stepEditMode)
+    .optional()
+    .describe("Optional edit modes to return per-step value arrays for each row.")
+});
+export type GetPatternParams = z.infer<typeof getPatternParams>;
+export const GET_PATTERN_DESCRIPTION =
+  "Read a step sequencer pattern region: settings, rows, pattern text, and optional per-mode step value arrays (1-based steps).";
+
+export const createPatternRegionParams = z.object({
+  trackId: z.string().min(1).describe("MIDI track id or name."),
+  ...barTimeShape,
+  atMs: z
+    .number()
+    .finite()
+    .min(0)
+    .optional()
+    .describe("Start time in ms. Use this or atBar, never both."),
+  bars: z
+    .number()
+    .positive()
+    .finite()
+    .optional()
+    .describe("Region length in bars of the current time signature. Default 1."),
+  name: z.string().min(1).optional().describe("Clip label."),
+  template: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('Library pattern/template id or name, or "track default".'),
+  text: z
+    .string()
+    .optional()
+    .describe("Optional step sequencer pattern text lines to populate rows.")
+});
+export type CreatePatternRegionParams = z.infer<typeof createPatternRegionParams>;
+export const CREATE_PATTERN_REGION_DESCRIPTION =
+  "Create a step sequencer pattern region on a MIDI track, defaulting to 1 bar and using the track template, drum kit pads, or pattern text.";
+
+export const convertPatternToMidiParams = z.object({
+  clipIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .describe("Pattern region clip ids or names to expand into editable MIDI clips.")
+});
+export type ConvertPatternToMidiParams = z.infer<typeof convertPatternToMidiParams>;
+export const CONVERT_PATTERN_TO_MIDI_DESCRIPTION =
+  "Convert step sequencer pattern regions into regular MIDI clips with expanded notes and controller lanes, keeping region params.";
+
+export const convertMidiToPatternParams = z.object({
+  clipIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .describe("MIDI clip ids or names to convert into step sequencer pattern regions."),
+  stepRate: stepRate
+    .optional()
+    .describe('Optional step grid rate; defaults to "1/16".')
+});
+export type ConvertMidiToPatternParams = z.infer<typeof convertMidiToPatternParams>;
+export const CONVERT_MIDI_TO_PATTERN_DESCRIPTION =
+  "Convert MIDI clips into step sequencer pattern regions (up to 64 steps), reporting any dropped notes or same-step collisions.";
+
+export const separatePatternRowsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name to split by row.")
+});
+export type SeparatePatternRowsParams = z.infer<typeof separatePatternRowsParams>;
+export const SEPARATE_PATTERN_ROWS_DESCRIPTION =
+  "Separate a step sequencer pattern region into one MIDI track per row below the source track and remove the source region.";
+
+export const setPatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  name: z.string().optional().describe("Pattern name."),
+  lengthSteps: z
+    .number()
+    .int()
+    .min(1)
+    .max(STEP_PATTERN_MAX_STEPS)
+    .optional()
+    .describe("Pattern length 1..64; growing repeats existing steps."),
+  stepRate: stepRate
+    .optional()
+    .describe("Pattern step rate; writes through to every row."),
+  playback: stepPlaybackMode
+    .optional()
+    .describe("Pattern playback order; writes through to every row."),
+  swing: z.number().int().min(0).max(100).optional().describe("Swing amount 0..100."),
+  swingDivision: stepSwingDivision.optional().describe("Swing grid division: 1/8 or 1/16."),
+  legato: z.boolean().optional().describe("Extend gate-100 notes by +1 tick so they overlap the next step."),
+  mono: z.boolean().optional().describe("Allow only one active note row per step on edits."),
+  midiChannel: z
+    .number()
+    .int()
+    .min(1)
+    .max(16)
+    .optional()
+    .describe("Default MIDI channel 1..16; writes through to every row."),
+  key: stepKey
+    .nullable()
+    .optional()
+    .describe('Pattern key { tonic (0..11), mode ("major" | "minor") }, or null to clear.'),
+  pitchSource: stepPitchSource
+    .optional()
+    .describe('Pitch source: "off", "key", or "chords".'),
+  scale: stepScaleId
+    .optional()
+    .describe("Scale id for degree rows and scale quantize."),
+  scaleQuantize: z
+    .boolean()
+    .optional()
+    .describe("Snap row pitches to the pattern scale."),
+  noTranspose: z
+    .boolean()
+    .optional()
+    .describe("When changing key, skip transposing existing notes."),
+  automationMode: stepAutomationMode
+    .optional()
+    .describe("Automation row interpolation: latch (step) or slide (linear)."),
+  loopStart: z
+    .number()
+    .int()
+    .min(1)
+    .max(STEP_PATTERN_MAX_STEPS)
+    .optional()
+    .describe("1-based loop start step; writes through to every row."),
+  loopEnd: z
+    .number()
+    .int()
+    .min(1)
+    .max(STEP_PATTERN_MAX_STEPS)
+    .optional()
+    .describe("1-based loop end step; writes through to every row.")
+});
+export type SetPatternParams = z.infer<typeof setPatternParams>;
+export const SET_PATTERN_DESCRIPTION =
+  "Update step sequencer pattern settings (length, step rate, playback, swing, legato, mono, key, automation mode, loop range).";
+
+export const setPatternSeedParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  seed: z
+    .number()
+    .int()
+    .min(0)
+    .max(0xffffffff)
+    .optional()
+    .describe("Optional uint32 seed; omit to generate and return a fresh seed.")
+});
+export type SetPatternSeedParams = z.infer<typeof setPatternSeedParams>;
+export const SET_PATTERN_SEED_DESCRIPTION =
+  "Set or regenerate the deterministic random seed of a step sequencer pattern for chance and random playback modes.";
+
+export const addPatternRowsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  rows: z
+    .array(addPatternRowInputParam)
+    .min(1)
+    .describe("Rows to add (max 128 total rows per pattern).")
+});
+export type AddPatternRowsParams = z.infer<typeof addPatternRowsParams>;
+export const ADD_PATTERN_ROWS_DESCRIPTION =
+  "Add note, kit pad, melodic, degree, or automation rows to a step sequencer pattern region (up to 128 rows total).";
+
+export const setPatternRowParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or unique case-insensitive row name."),
+  name: z.string().min(1).optional(),
+  assignment: stepRowAssignment.optional(),
+  stepRate: stepRate.optional(),
+  lengthSteps: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+  playback: stepPlaybackMode.optional(),
+  mute: z.boolean().optional(),
+  solo: z.boolean().optional(),
+  loopStart: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+  loopEnd: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+  midiChannel: z.number().int().min(1).max(16).optional(),
+  automationMode: stepAutomationMode.optional(),
+  color: z.string().min(1).nullable().optional(),
+  subrows: z.array(stepEditMode).optional(),
+  subrowsExpanded: z.boolean().optional()
+});
+export type SetPatternRowParams = z.infer<typeof setPatternRowParams>;
+export const SET_PATTERN_ROW_DESCRIPTION =
+  "Edit settings, assignment, mute/solo, loop range, length, automation mode, color, or subrows of one row in a step sequencer pattern.";
+
+export const removePatternRowsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  rows: z
+    .array(z.string().min(1))
+    .optional()
+    .describe("Row ids or names to remove."),
+  unused: z
+    .boolean()
+    .optional()
+    .describe("True removes every row with no active steps.")
+});
+export type RemovePatternRowsParams = z.infer<typeof removePatternRowsParams>;
+export const REMOVE_PATTERN_ROWS_DESCRIPTION =
+  "Remove named rows or all unused rows from a step sequencer pattern region.";
+
+export const movePatternRowParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or unique case-insensitive row name."),
+  toIndex: z.number().int().min(0).describe("0-based destination index in the pattern row list.")
+});
+export type MovePatternRowParams = z.infer<typeof movePatternRowParams>;
+export const MOVE_PATTERN_ROW_DESCRIPTION =
+  "Move a step sequencer pattern row to a new 0-based index.";
+
+export const sortPatternRowsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  by: stepRowSortBy.describe("Sort criterion: type, typeAndNote, typeAndName, or typeAndKitPad."),
+  descending: z.boolean().optional().describe("Reverse sort direction. Default false.")
+});
+export type SortPatternRowsParams = z.infer<typeof sortPatternRowsParams>;
+export const SORT_PATTERN_ROWS_DESCRIPTION =
+  "Sort rows in a step sequencer pattern by type, note, name, or kit pad.";
+
+export const setPatternRowSortParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  rowSort: stepRowSort.describe(
+    'Active row sort mode: "none" (manual order), "typeAsc", "typeDesc", "typeAndNoteAsc", "typeAndNoteDesc", "typeAndNameAsc", "typeAndNameDesc", "typeAndKitPadAsc", or "typeAndKitPadDesc".'
+  )
+});
+export type SetPatternRowSortParams = z.infer<typeof setPatternRowSortParams>;
+export const SET_PATTERN_ROW_SORT_DESCRIPTION =
+  'Set or clear the persistent row sort mode of a step sequencer pattern ("none" or a sort mode); sorts existing rows immediately when not "none" and keeps newly added rows in sorted order.';
+
+export const copyPatternRowParams = z.object({
+  clipId: z.string().min(1).describe("Source pattern region clip id or name."),
+  row: z.string().min(1).describe("Source row id or name."),
+  toClipId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Destination pattern clip id or name. Default: same clip."),
+  toRow: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Destination row id or name to replace (keeps fixed note/kit pitch)."),
+  asNew: z
+    .boolean()
+    .optional()
+    .describe("Paste as a new row instead of replacing an existing row."),
+  settingsOnly: z
+    .boolean()
+    .optional()
+    .describe("Copy only row settings (rate, length, playback, loop, subrows) without step values."),
+  nextAssignment: z
+    .boolean()
+    .optional()
+    .describe("Duplicate as a new row assigned to the next note, pad, degree, or CC.")
+});
+export type CopyPatternRowParams = z.infer<typeof copyPatternRowParams>;
+export const COPY_PATTERN_ROW_DESCRIPTION =
+  "Copy or duplicate a step sequencer pattern row to another row, a new row, or another pattern region.";
+
+export const setStepsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or unique case-insensitive row name."),
+  steps: stepSelectionParam,
+  values: stepValuesPatchParam
+    .optional()
+    .describe("Fields to set on each selected step. Editing a value on an off step turns it on."),
+  ramp: z
+    .object({
+      field: stepRampField,
+      from: z.number(),
+      to: z.number(),
+      leaveOff: z.boolean().optional()
+    })
+    .strict()
+    .optional()
+    .describe("Linear ramp across the selected steps for one numeric field.")
+});
+export type SetStepsParams = z.infer<typeof setStepsParams>;
+export const SET_STEPS_DESCRIPTION =
+  "Edit step values or write a linear value ramp on selected 1-based steps of a step sequencer pattern row.";
+
+export const setPatternTextParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  text: z
+    .string()
+    .min(1)
+    .describe("Pattern text lines (`<Row> [| rate] : xX o . - _`)."),
+  mode: z
+    .enum(["merge", "replace"])
+    .optional()
+    .describe('"merge" (default) updates matching rows and adds missing ones; "replace" replaces all rows.')
+});
+export type SetPatternTextParams = z.infer<typeof setPatternTextParams>;
+export const SET_PATTERN_TEXT_DESCRIPTION =
+  "Apply compact pattern text lines (`x`, `X`, `o`, `.`, `-`, `_`) to a step sequencer pattern region by merge or replace.";
+
+export const clearPatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  scope: z
+    .enum(["steps", "row", "pattern"])
+    .describe("Clear selected steps, one row, or the whole pattern."),
+  row: z.string().min(1).optional().describe("Row id or name (required for steps and row scope)."),
+  steps: stepSelectionParam.optional().describe("1-based steps (required for steps scope)."),
+  mode: stepEditMode
+    .optional()
+    .describe("Optional single mode to clear; omit to reset every field and turn steps off."),
+  rowType: z
+    .enum(["note", "automation"])
+    .optional()
+    .describe("When scope is pattern, restrict clearing to note rows or automation rows.")
+});
+export type ClearPatternParams = z.infer<typeof clearPatternParams>;
+export const CLEAR_PATTERN_DESCRIPTION =
+  "Clear steps, a row, or a whole step sequencer pattern, either resetting all values or one edit mode.";
+
+export const copyStepsParams = z.object({
+  clipId: z.string().min(1).describe("Source pattern region clip id or name."),
+  row: z.string().min(1).describe("Source row id or name."),
+  steps: stepSelectionParam,
+  toRow: z.string().min(1).describe("Destination row id or name (must match note vs automation type)."),
+  toStep: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).describe("1-based destination start step."),
+  toClipId: z.string().min(1).optional().describe("Optional destination pattern clip id or name."),
+  cut: z.boolean().optional().describe("True resets the source steps after copying.")
+});
+export type CopyStepsParams = z.infer<typeof copyStepsParams>;
+export const COPY_STEPS_DESCRIPTION =
+  "Copy or cut 1-based steps from one step sequencer row to another row of the same type.";
+
+export const repeatStepParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or name."),
+  step: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).describe("1-based step to repeat into the next step.")
+});
+export type RepeatStepParams = z.infer<typeof repeatStepParams>;
+export const REPEAT_STEP_DESCRIPTION =
+  "Copy a step sequencer step with all its settings into the immediately following step.";
+
+export const rotatePatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  by: z.number().int().describe("Steps to shift (+ right, - left)."),
+  row: z.string().min(1).optional().describe("Optional row id or name; omit to rotate every row."),
+  mode: stepEditMode
+    .optional()
+    .describe("Optional mode to rotate only that mode's values while keeping on/off in place.")
+});
+export type RotatePatternParams = z.infer<typeof rotatePatternParams>;
+export const ROTATE_PATTERN_DESCRIPTION =
+  "Rotate steps or one edit mode's values left or right across a step sequencer pattern or row.";
+
+export const transposePatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  semitones: z.number().int().describe("Semitones to transpose (+ up, - down)."),
+  row: z.string().min(1).optional().describe("Optional row id or name; omit to transpose all note/melodic rows."),
+  steps: stepSelectionParam.optional().describe("Optional 1-based steps to transpose on melodic/kit rows.")
+});
+export type TransposePatternParams = z.infer<typeof transposePatternParams>;
+export const TRANSPOSE_PATTERN_DESCRIPTION =
+  "Transpose pitches in a step sequencer pattern, a row, or selected steps by semitones.";
+
+export const randomizePatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  mode: stepEditMode.describe("Edit mode to randomize (e.g. onOff, velocity, gate, note, chance, offset)."),
+  rows: z.array(z.string().min(1)).optional().describe("Optional row ids or names; omit for all rows."),
+  steps: stepSelectionParam.optional().describe("Optional 1-based steps; omit for all steps."),
+  seed: z
+    .number()
+    .int()
+    .min(0)
+    .max(0xffffffff)
+    .optional()
+    .describe("Deterministic uint32 seed; returned in the result so calls are repeatable."),
+  density: z
+    .number()
+    .min(0)
+    .max(100)
+    .optional()
+    .describe("Probability percent 0..100 for on/off randomization. Default 50.")
+});
+export type RandomizePatternParams = z.infer<typeof randomizePatternParams>;
+export const RANDOMIZE_PATTERN_DESCRIPTION =
+  "Randomize one edit mode in a step sequencer pattern with a repeatable seed, respecting mono mode.";
+
+export const nudgePatternValuesParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  mode: stepEditMode.describe("Edit mode to increment or decrement."),
+  delta: z.number().finite().describe("Step delta (+ increment, - decrement)."),
+  row: z.string().min(1).optional().describe("Optional row id or name; omit for all rows.")
+});
+export type NudgePatternValuesParams = z.infer<typeof nudgePatternValuesParams>;
+export const NUDGE_PATTERN_VALUES_DESCRIPTION =
+  "Increment or decrement one edit mode's values across a step sequencer pattern or row.";
+
+export const tieStepsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or name."),
+  from: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).describe("1-based start step of the tie range."),
+  to: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).describe("1-based end step of the tie range."),
+  tie: z.boolean().describe("True ties steps (from+1..to) into from; false clears ties across the range.")
+});
+export type TieStepsParams = z.infer<typeof tieStepsParams>;
+export const TIE_STEPS_DESCRIPTION =
+  "Tie or untie a 1-based range of steps in a step sequencer pattern row.";
+
+export const listStepPatternsParams = z.object({
+  query: z.string().optional().describe("Case-insensitive name/tag substring filter."),
+  kind: z.enum(["pattern", "template"]).optional().describe("Filter by pattern or blank template."),
+  category: z.string().optional().describe("Filter by category (e.g. Drums, Bass, Keys, Arps, Templates)."),
+  folder: z
+    .string()
+    .optional()
+    .describe("Filter user entries by folder path or folder id (full or 12-char prefix).")
+});
+export type ListStepPatternsParams = z.infer<typeof listStepPatternsParams>;
+export const LIST_STEP_PATTERNS_DESCRIPTION =
+  "List factory and saved user step sequencer patterns, templates, and user library folders.";
+
+export const applyStepPatternParams = z.object({
+  clipId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Existing pattern (or empty MIDI) clip id or name to load into."),
+  trackId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "MIDI track id or name to create a new pattern region on (when clipId is omitted). When the track has no clips and still holds its default or unset instrument, it takes the pattern's saved instrument or preset."
+    ),
+  ...barTimeShape,
+  atMs: z.number().finite().min(0).optional().describe("Start time in ms when creating on trackId."),
+  bars: z.number().positive().finite().optional().describe("Length in bars when creating on trackId. Default 1."),
+  pattern: z.string().min(1).describe("Pattern or template id or name from ui_timeline_list_step_patterns."),
+  useProjectKey: z
+    .boolean()
+    .optional()
+    .describe("True transposes melodic/degree rows to the project key.")
+});
+export type ApplyStepPatternParams = z.infer<typeof applyStepPatternParams>;
+export const APPLY_STEP_PATTERN_DESCRIPTION =
+  "Load a factory or user step sequencer pattern or template onto a region or create a new pattern region on a track, applying the pattern's saved instrument or preset when the target MIDI track is empty with its default instrument.";
+
+export const saveStepPatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name to save."),
+  name: z.string().trim().min(1).describe("Name for the saved pattern or template."),
+  kind: z.enum(["pattern", "template"]).describe("Save full pattern or step-free template."),
+  folder: z.string().optional().describe("Optional subfolder inside Step Patterns/<Patterns|Templates>.")
+});
+export type SaveStepPatternParams = z.infer<typeof saveStepPatternParams>;
+export const SAVE_STEP_PATTERN_DESCRIPTION =
+  "Save a step sequencer region (along with its track's instrument and preset, when set) as a reusable user pattern or template in the Step Patterns library.";
+
+export const setTrackStepTemplateParams = z.object({
+  trackId: z.string().min(1).describe("MIDI track id or name."),
+  fromClipId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Pattern clip id or name whose rows/settings become the track's default step template."),
+  clear: z.boolean().optional().describe("True removes the stored default template on the track.")
+});
+export type SetTrackStepTemplateParams = z.infer<typeof setTrackStepTemplateParams>;
+export const SET_TRACK_STEP_TEMPLATE_DESCRIPTION =
+  "Store a pattern's template as a MIDI track's default step sequencer template, or clear it.";
+
+export const createStepPatternFolderParams = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .describe(
+      'Folder name or relative subfolder path (e.g. "Drums" or "Drums/Trap") inside Step Patterns/<Patterns|Templates>.'
+    ),
+  kind: z
+    .enum(["pattern", "template"])
+    .optional()
+    .describe('Library section: "pattern" (default) or "template".'),
+  parentFolder: z
+    .string()
+    .optional()
+    .describe("Optional parent subfolder path or folder id (full or 12-char prefix) inside the same section.")
+});
+export type CreateStepPatternFolderParams = z.infer<typeof createStepPatternFolderParams>;
+export const CREATE_STEP_PATTERN_FOLDER_DESCRIPTION =
+  "Create a user folder in the step sequencer pattern or template library.";
+
+export const renameStepPatternFolderParams = z.object({
+  folder: z
+    .string()
+    .trim()
+    .min(1)
+    .describe('Existing user folder path (e.g. "Drums" or "Step Patterns/Patterns/Drums") or folder id (full or 12-char prefix).'),
+  newName: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("New single-segment name for the folder."),
+  kind: z
+    .enum(["pattern", "template"])
+    .optional()
+    .describe('Library section ("pattern" or "template"), optional when folder is an id, full path, or unique relative path.')
+});
+export type RenameStepPatternFolderParams = z.infer<typeof renameStepPatternFolderParams>;
+export const RENAME_STEP_PATTERN_FOLDER_DESCRIPTION =
+  "Rename a user folder in the step sequencer pattern library and update patterns inside it.";
+
+export const deleteStepPatternFolderParams = z.object({
+  folder: z
+    .string()
+    .trim()
+    .min(1)
+    .describe('Existing user folder path or folder id (full or 12-char prefix) to delete; patterns inside move to its parent folder.'),
+  kind: z
+    .enum(["pattern", "template"])
+    .optional()
+    .describe('Library section ("pattern" or "template"), optional when folder is an id, full path, or unique relative path.')
+});
+export type DeleteStepPatternFolderParams = z.infer<typeof deleteStepPatternFolderParams>;
+export const DELETE_STEP_PATTERN_FOLDER_DESCRIPTION =
+  "Delete a user folder in the step sequencer pattern library and move its patterns to the parent folder.";
+
+export const moveStepPatternParams = z.object({
+  pattern: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("User step pattern or template id (full or 12-char prefix) or unique name."),
+  folder: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      'Destination folder path (e.g. "Drums"), folder id (full or 12-char prefix), or empty/null to move to the section root.'
+    )
+});
+export type MoveStepPatternParams = z.infer<typeof moveStepPatternParams>;
+export const MOVE_STEP_PATTERN_DESCRIPTION =
+  "Move a user step sequencer pattern or template into another library folder or back to the root.";
+
+// ── VST/AU plug-in hosting (VST1) ───────────────────────────────────────────
+
+const pluginSelectorParam = z
+  .union([
+    z.string().trim().min(1),
+    z
+      .object({
+        uid: z.string().min(1).max(512).optional(),
+        path: z.string().min(1).max(4096).optional(),
+        name: z.string().min(1).max(256).optional(),
+        vendor: z.string().max(256).optional(),
+        format: z.enum(["vst3", "au"]).optional()
+      })
+      .refine((v) => Boolean(v.uid || v.path || v.name), {
+        message: "Provide at least one of uid, path, or name to select a plugin."
+      })
+  ])
+  .describe(
+    "Plugin identifier from ui_timeline_list_plugins: uid, bundle path, unique case-insensitive name, or { uid, path, name, vendor, format }."
+  );
+
+export const listPluginsParams = z.object({
+  kind: z
+    .enum(["instrument", "effect", "all"])
+    .optional()
+    .describe('Filter by plugin role: "instrument", "effect", or "all" (default "all").'),
+  format: z
+    .enum(["vst3", "au", "all"])
+    .optional()
+    .describe('Filter by plugin format: "vst3", "au", or "all" (default "all").'),
+  query: z
+    .string()
+    .optional()
+    .describe("Optional case-insensitive substring filter on plugin name, vendor, uid, or path."),
+  rescan: z
+    .boolean()
+    .optional()
+    .describe("Force a fresh scan of standard VST3/AU plugin folders instead of reading the cached scan.")
+});
+export type ListPluginsParams = z.infer<typeof listPluginsParams>;
+export const LIST_PLUGINS_DESCRIPTION =
+  "List available third-party VST3 and AU instruments and audio effects installed on the host machine.";
+
+const MAX_INT32 = 2_147_483_647;
+
+export const loadPluginParams = z.object({
+  track: trackTargetParam.describe('Track id or name, or "master" for master bus insert effects.'),
+  plugin: pluginSelectorParam,
+  slot: z
+    .enum(["instrument", "effect"])
+    .optional()
+    .describe(
+      'Where to load the plugin: "instrument" (MIDI tracks only) or "effect" (audio, MIDI, or master insert chain). Omit to infer from the plugin role and track type.'
+    ),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("When loading an insert effect, replace an existing effect by id (or 12-char prefix) instead of appending a new slot."),
+  index: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_INT32)
+    .optional()
+    .describe("Optional 0-based insertion index in the track or master insert effect chain."),
+  enabled: z
+    .boolean()
+    .optional()
+    .describe("Whether a newly loaded insert effect starts enabled (default true)."),
+  wet: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Dry/wet mix for an insert effect in 0..1 (default 1)."),
+  gainDb: z
+    .number()
+    .min(-60)
+    .max(12)
+    .optional()
+    .describe("Output gain in dB for a VST/AU instrument (-60..12, default 0)."),
+  state: z
+    .string()
+    .max(8_000_000)
+    .nullable()
+    .optional()
+    .describe("Optional initial base64 plugin state. Omit or pass null for the plugin default sound.")
+});
+export type LoadPluginParams = z.infer<typeof loadPluginParams>;
+export const LOAD_PLUGIN_DESCRIPTION =
+  "Load a third-party VST3/AU instrument onto a MIDI track or insert a VST3/AU effect onto an audio, MIDI, or master bus chain.";
+
+export const listPluginPresetsParams = z.object({
+  track: trackTargetParam.describe('Track id or name, or "master" for a master bus insert effect.'),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
+  query: z
+    .string()
+    .optional()
+    .describe("Optional case-insensitive substring filter on preset names.")
+});
+export type ListPluginPresetsParams = z.infer<typeof listPluginPresetsParams>;
+export const LIST_PLUGIN_PRESETS_DESCRIPTION =
+  "List the presets (programs) exposed by a loaded VST3/AU instrument or insert effect, together with its active preset index.";
+
+export const selectPluginPresetParams = z.object({
+  track: trackTargetParam.describe('Track id or name, or "master" for a master bus insert effect.'),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
+  preset: z
+    .union([z.number().int().min(0).max(MAX_INT32), z.string().trim().min(1).max(256)])
+    .describe("0-based preset index or case-insensitive preset name from ui_timeline_list_plugin_presets.")
+});
+export type SelectPluginPresetParams = z.infer<typeof selectPluginPresetParams>;
+export const SELECT_PLUGIN_PRESET_DESCRIPTION =
+  "Select a preset by index or name on a loaded VST3/AU instrument or insert effect and persist the resulting plugin state on the timeline.";
+
+export const getPluginParametersParams = z.object({
+  track: trackTargetParam.describe('Track id or name, or "master" for a master bus insert effect.'),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
+  parameters: z
+    .array(z.union([z.string().trim().min(1).max(256), z.number().int().min(0).max(MAX_INT32)]))
+    .max(256)
+    .optional()
+    .describe("Optional parameter ids, indices, or names to read. Omit to list every parameter exposed by the plugin."),
+  query: z
+    .string()
+    .optional()
+    .describe("Optional case-insensitive substring filter on parameter id, name, or unit label.")
+});
+export type GetPluginParametersParams = z.infer<typeof getPluginParametersParams>;
+export const GET_PLUGIN_PARAMETERS_DESCRIPTION =
+  "List or read parameters of a loaded VST3/AU instrument or insert effect, returning each parameter's id, index, name, normalized value (0..1), and formatted displayValue.";
+
+const pluginParameterChangeParam = z
+  .object({
+    parameter: z
+      .union([z.string().trim().min(1).max(256), z.number().int().min(0).max(MAX_INT32)])
+      .describe("Parameter id, 0-based index, or case-insensitive name from ui_timeline_get_plugin_parameters."),
+    value: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Normalized parameter value in 0..1. Provide either value or displayValue, not both."),
+    displayValue: z
+      .string()
+      .trim()
+      .min(1)
+      .max(256)
+      .optional()
+      .describe('Formatted display value (e.g. "1200 Hz", "-6 dB", "On"). Provide either value or displayValue, not both.')
+  })
+  .superRefine((entry, ctx) => {
+    const hasValue = entry.value !== undefined;
+    const hasDisplay = entry.displayValue !== undefined;
+    if (hasValue === hasDisplay) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Provide exactly one of value (0..1) or displayValue."
+      });
+    }
+  });
+
+export const setPluginParametersShape = {
+  track: trackTargetParam.describe('Track id or name, or "master" for a master bus insert effect.'),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
+  parameter: z
+    .union([z.string().trim().min(1).max(256), z.number().int().min(0).max(MAX_INT32)])
+    .optional()
+    .describe("Single parameter id, 0-based index, or name (shorthand for a one-entry `parameters` array)."),
+  value: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Normalized 0..1 value for the single `parameter` shorthand."),
+  displayValue: z
+    .string()
+    .trim()
+    .min(1)
+    .max(256)
+    .optional()
+    .describe("Formatted display value for the single `parameter` shorthand."),
+  parameters: z
+    .array(pluginParameterChangeParam)
+    .min(1)
+    .max(128)
+    .optional()
+    .describe("One or more parameter updates: [{ parameter, value | displayValue }].")
+};
+
+export const setPluginParametersParams = z
+  .object(setPluginParametersShape)
+  .superRefine((input, ctx) => {
+    const hasList = input.parameters !== undefined;
+    const hasSingle = input.parameter !== undefined;
+    if (hasList && hasSingle) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Pass either `parameters` or single-parameter `parameter`, not both."
+      });
+      return;
+    }
+    if (!hasList && !hasSingle) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Pass `parameters` or `parameter` with `value` or `displayValue`."
+      });
+      return;
+    }
+    if (hasSingle) {
+      const hasValue = input.value !== undefined;
+      const hasDisplay = input.displayValue !== undefined;
+      if (hasValue === hasDisplay) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Provide exactly one of value (0..1) or displayValue for `parameter`."
+        });
+      }
+    } else if (input.value !== undefined || input.displayValue !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Top-level value/displayValue only applies with single `parameter`, not `parameters`."
+      });
+    }
+  });
+export type SetPluginParametersParams = z.infer<typeof setPluginParametersParams>;
+export const SET_PLUGIN_PARAMETERS_DESCRIPTION =
+  "Set one or more parameters on a loaded VST3/AU instrument or insert effect by id, index, or name using either a normalized 0..1 value or a displayValue string, and persist the updated plugin state.";
 
 // ── The shared tool surface ─────────────────────────────────────────────────
 
@@ -2079,6 +4019,22 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_transpose_clip",
   "ui_timeline_quantize_notes",
   "ui_timeline_scale_velocity",
+  // Chords: the chord track and the clips that follow it.
+  "ui_timeline_set_chords",
+  "ui_timeline_clear_chords",
+  "ui_timeline_loop_clip",
+  "ui_timeline_join_clips",
+  "ui_timeline_insert_time",
+  "ui_timeline_delete_time",
+  "ui_timeline_duplicate_range",
+  "ui_timeline_paste_range",
+  "ui_timeline_list_progressions",
+  "ui_timeline_apply_progression",
+  "ui_timeline_transpose_chords",
+  "ui_timeline_detect_chords",
+  "ui_timeline_set_clip_harmony",
+  "ui_timeline_list_harmony_presets",
+  "ui_timeline_fit_notes_to_chords",
   // The guided video flow (PRD § 8.6). Both surfaces register them; the
   // headless one writes the plan itself where the editor asks the Director.
   "ui_timeline_set_setup",
@@ -2091,5 +4047,45 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_retarget_format",
   "ui_timeline_set_reframe_subject",
   "ui_timeline_add_reframe_keyframe",
-  "ui_timeline_clear_reframe"
+  "ui_timeline_clear_reframe",
+  // Step Sequencer (SQ48–SQ54).
+  "ui_timeline_get_pattern",
+  "ui_timeline_create_pattern_region",
+  "ui_timeline_convert_pattern_to_midi",
+  "ui_timeline_convert_midi_to_pattern",
+  "ui_timeline_separate_pattern_rows",
+  "ui_timeline_set_pattern",
+  "ui_timeline_set_pattern_seed",
+  "ui_timeline_add_pattern_rows",
+  "ui_timeline_set_pattern_row",
+  "ui_timeline_remove_pattern_rows",
+  "ui_timeline_move_pattern_row",
+  "ui_timeline_sort_pattern_rows",
+  "ui_timeline_set_pattern_row_sort",
+  "ui_timeline_copy_pattern_row",
+  "ui_timeline_set_steps",
+  "ui_timeline_set_pattern_text",
+  "ui_timeline_clear_pattern",
+  "ui_timeline_copy_steps",
+  "ui_timeline_repeat_step",
+  "ui_timeline_rotate_pattern",
+  "ui_timeline_transpose_pattern",
+  "ui_timeline_randomize_pattern",
+  "ui_timeline_nudge_pattern_values",
+  "ui_timeline_tie_steps",
+  "ui_timeline_list_step_patterns",
+  "ui_timeline_apply_step_pattern",
+  "ui_timeline_save_step_pattern",
+  "ui_timeline_set_track_step_template",
+  "ui_timeline_create_step_pattern_folder",
+  "ui_timeline_rename_step_pattern_folder",
+  "ui_timeline_delete_step_pattern_folder",
+  "ui_timeline_move_step_pattern",
+  // VST/AU plug-in hosting (VST1).
+  "ui_timeline_list_plugins",
+  "ui_timeline_load_plugin",
+  "ui_timeline_list_plugin_presets",
+  "ui_timeline_select_plugin_preset",
+  "ui_timeline_get_plugin_parameters",
+  "ui_timeline_set_plugin_parameters"
 ] as const;

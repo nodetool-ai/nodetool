@@ -18,7 +18,9 @@ nt_qml_files(qml/Tracks/TrackHeader.qml)
 nt_qml_files(qml/Tracks/TrackIconButton.qml)
 nt_qml_files(qml/Tracks/TrackLane.qml)
 nt_qml_files(qml/Tracks/Clip.qml)
+nt_qml_files(qml/Tracks/ClipLaneRow.qml)
 nt_qml_files(qml/Tracks/ClipBody.qml)
+nt_qml_files(qml/Tracks/ClipChrome.qml)
 nt_qml_files(qml/Tracks/FadeRamp.qml)
 nt_qml_files(qml/Tracks/Playhead.qml)
 nt_qml_files(qml/Tracks/TimelineZoomControls.qml)
@@ -29,6 +31,12 @@ nt_qml_files(qml/Tracks/ToolbarDivider.qml)
 nt_qml_files(qml/Tracks/ToolToggle.qml)
 nt_qml_files(qml/Tracks/ShortcutsSheet.qml)
 nt_sources(qml
+    src/ui/ClipChromeLayer.h
+    src/ui/ClipChromeLayer.cpp
+    src/ui/ClipDelegateTools.h
+    src/ui/ClipDelegateTools.cpp
+    src/ui/SceneLayerItem.h
+    src/ui/SceneLayerItem.cpp
     src/ui/MonitorViewState.h
     src/ui/MonitorViewState.cpp
     src/ui/MonitorRulerCanvas.h
@@ -47,6 +55,9 @@ nt_sources(qml
     src/ui/MonitorZoomBar.cpp
     src/ui/MediaPreviews.h
     src/ui/MediaPreviews.cpp
+    src/ui/MidiNoteLines.h
+    src/ui/MidiNoteLines.cpp
+    src/ui/PeakLevels.h
     src/ui/ThumbnailDiskCache.h
     src/ui/ThumbnailDiskCache.cpp
     src/ui/BenchMedia.h
@@ -82,6 +93,43 @@ function(nt_ui_tests)
     add_test(NAME tst_thumbnailcache COMMAND tst_thumbnailcache)
     set_tests_properties(tst_thumbnailcache PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
+    # Waveform peaks at more than one resolution (AU-7).
+    qt_add_executable(tst_peaklevels src/ui/tst_peaklevels.cpp
+        src/ui/ThumbnailDiskCache.cpp src/ui/MediaPreviews.cpp src/ui/MediaPreviews.h src/ui/PeakLevels.h
+        src/ui/TimelineViewState.cpp src/ui/TimelineViewState.h)
+    set_target_properties(tst_peaklevels PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_peaklevels PRIVATE ${NT_WARNINGS})
+    target_link_libraries(tst_peaklevels PRIVATE timeline_core Qt6::Gui Qt6::GuiPrivate
+        Qt6::Qml Qt6::Quick Qt6::Test PkgConfig::FFMPEG)
+    add_test(NAME tst_peaklevels COMMAND tst_peaklevels)
+    set_tests_properties(tst_peaklevels PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+    # The midi note lines of a clip body: geometry and the drawing item.
+    qt_add_executable(tst_midinotelines tests/tst_midinotelines.cpp src/ui/MidiNoteLines.cpp src/ui/MidiNoteLines.h
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    set_target_properties(tst_midinotelines PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_midinotelines PRIVATE ${NT_WARNINGS})
+    target_include_directories(tst_midinotelines PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../vst-host/source")
+    target_link_libraries(tst_midinotelines PRIVATE timeline_core timeline_audio timeline_decode Qt6::Gui Qt6::GuiPrivate
+        Qt6::Qml Qt6::Quick Qt6::Test PkgConfig::FFMPEG)
+    add_test(NAME tst_midinotelines COMMAND tst_midinotelines)
+    set_tests_properties(tst_midinotelines PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+    # The track header's color strip, icon and volume slider.
+    qt_add_executable(tst_trackheadervolume tests/tst_trackheadervolume.cpp ${NT_app})
+    set_target_properties(tst_trackheadervolume PROPERTIES MACOSX_BUNDLE FALSE)
+    target_include_directories(tst_trackheadervolume PRIVATE tests)
+    target_link_libraries(tst_trackheadervolume PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_trackheadervolume OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_trackheadervolume_qml/NodeTool/Timeline)
+    add_test(NAME tst_trackheadervolume COMMAND tst_trackheadervolume)
+    set_tests_properties(tst_trackheadervolume PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
     nt_qt_test(tst_timelinewheel LIBS timeline_core timeline_decode Qt6::Test
         DEFINES NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
 
@@ -102,7 +150,9 @@ function(nt_ui_tests)
     nt_add_timeline_qml(tst_tracksui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_tracksui_qml/NodeTool/Timeline)
     add_test(NAME tst_tracksui COMMAND tst_tracksui)
     # No window is ever shown: the offscreen platform and the software renderer.
-    set_tests_properties(tst_tracksui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    set_tests_properties(tst_tracksui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;NT_TRACKSUI_OFFSCREEN_SUITE=1")
+    add_test(NAME tst_tracksui_scenegraph COMMAND tst_tracksui filmstripTexturesSurviveASceneGraphInvalidation)
+    set_tests_properties(tst_tracksui_scenegraph PROPERTIES LABELS window)
 
 endfunction()
 nt_tests(nt_ui_tests)

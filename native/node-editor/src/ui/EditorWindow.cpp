@@ -858,8 +858,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner, EditorWindow
     resizeTabs();
   syncChrome();
   auto status = panel("StatusBar", {{"status", QVariant::fromValue(&statusModel_)},
-                                    {"panels", QVariant::fromValue(&panelLayout_)},
-                                    {"accountServers", QVariant::fromValue((tabOwner_ ? tabOwner_ : this)->accountServers_.get())}});
+                                    {"panels", QVariant::fromValue(&panelLayout_)}});
   status->setFixedHeight(status->initialSize().height());
   statusBar_ = status;
   // native-rules #2: naked new with no QObject parent, a later addLayout call takes ownership

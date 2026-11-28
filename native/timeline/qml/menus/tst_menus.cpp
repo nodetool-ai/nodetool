@@ -3,12 +3,30 @@
 #include "app/Menus/ShellMenus.h"
 #include "edit/clipboard/ClipboardOps.h"
 #include "server/FieldAudit.h"
+#include "server/AutosaveController.h"
+#include "server/TimelineList/TimelineSession.h"
+#include "app/startup/LocalDocumentSaver.h"
+#include "../../tests/TestHttpServer.h"
+#include "aiassist/AssistantCommands.h"
 #include "wiring/KeyActions.h"
+#include "nodetool/account/qt/CloudDocument.h"
 #include <QJSValue>
+#include <QDir>
 #include <QQmlEngine>
+#include <QQmlContext>
+#include <QQmlComponent>
 #include <QTemporaryDir>
+#include <QScopeGuard>
 #include <algorithm>
 #include <cmath>
+
+// UI thread only. The test owns the probe for the lifetime of its QML engine.
+class MenuItemCreationProbe : public QObject {
+    Q_OBJECT
+public:
+    int count = 0;
+    Q_INVOKABLE void recordCreation() { ++count; }
+};
 
 class TestMenus : public WiringFixture {
     Q_OBJECT
@@ -32,7 +50,10 @@ class TestMenus : public WiringFixture {
             surface->mapToScene({x < 0 ? surface->width() / 2 : x, surface->height() / 2}).toPoint());
         QCoreApplication::processEvents();
         activeMenu = surface->findChild<QObject*>(kind == "track" ? "trackHeaderMenu" : "registryContextMenu-" + kind);
-        return activeMenu;
+        if (!activeMenu && (kind == "lane" || kind == "clip")) {
+            activeMenu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-" + kind);
+        }
+        return activeMenu && activeMenu->property("visible").toBool() ? activeMenu.data() : nullptr;
     }
     QStringList entries(QObject* menu) {
         QStringList result;
@@ -52,6 +73,19 @@ class TestMenus : public WiringFixture {
         auto* entry = item(name);
         QVERIFY2(entry, qPrintable("Missing menu item " + name));
         QVERIFY2(entry->isVisible(), qPrintable("Hidden menu item " + name));
+        auto* list = activeMenu->property("contentItem").value<QObject*>();
+        if (list) {
+            for (int i = 0; i < activeMenu->property("count").toInt(); ++i) {
+                QQuickItem* row = nullptr;
+                QMetaObject::invokeMethod(activeMenu, "itemAt", Q_RETURN_ARG(QQuickItem*, row), Q_ARG(int, i));
+                if (row == entry) {
+                    constexpr int contain = 4; // Qt Quick exposes ListView.Contain as 4.
+                    QVERIFY(QMetaObject::invokeMethod(list, "positionViewAtIndex", Q_ARG(int, i), Q_ARG(int, contain)));
+                    break;
+                }
+            }
+            QCoreApplication::processEvents();
+        }
         QSignalSpy triggered(entry, SIGNAL(triggered()));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(entry));
         QCoreApplication::processEvents();
@@ -84,7 +118,9 @@ class TestMenus : public WiringFixture {
                               // Backs out of whatever is under way.
                               "escape",
                               // A second way to something that has a menu item: the Audio workspace, and Ripple Delete on a gap.
-                              "toggleDawMode", "closeGapAt"};
+                              "toggleDawMode", "closeGapAt",
+                              // Music range steps pressed while the range loops. The music toolbar's Loop button and the take list are the pointer's way.
+                              "loopMusicRange", "previousMusicTake", "nextMusicTake"};
             // The number keys, while the Program monitor's take grid is the way to them with a pointer.
             for (int number = 1; number <= 9; ++number) {
                 set.insert(QString("takeSwitch%1").arg(number));
@@ -159,6 +195,434 @@ private slots:
         patch("c", {{"mediaType", "video"}});
     }
     void cleanup() { view.reset(); nt::edit::setIdGenerator({}); }
+    void saveIsDisabledDuringTheRequest() {
+        QQmlComponent component(view->engine());
+        component.setData("import QtQml\nQtObject { property QtObject editor; property bool saving: false; property bool conflict: false; property bool enabledDuringSave: true; function saveDocument() { enabledDuringSave = editor.canSaveDocument; return {ok: true}; } }", QUrl());
+        std::unique_ptr<QObject> saver(component.createWithInitialProperties({{"editor", QVariant::fromValue(view->rootObject())}}));
+        QVERIFY2(saver, qPrintable(component.errorString()));
+        view->rootObject()->setProperty("saver", QVariant::fromValue(saver.get()));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        QVariant result;
+        QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "saveDocument", Q_RETURN_ARG(QVariant, result)));
+        QVERIFY(result.toBool());
+        QVERIFY(!saver->property("enabledDuringSave").toBool());
+        saver->setProperty("saving", true);
+        QVERIFY(!view->rootObject()->property("canSaveDocument").toBool());
+    }
+    void conflictDoesNotDuplicateManualError() {
+        QQmlComponent component(view->engine());
+        component.setData("import QtQuick\nimport NodeTool.Timeline\nSaveBanners { manualError: \"conflict\"; autosave: QtObject { property bool conflict: true; property var stripped: []; property string lastError: \"conflict\" } }", QUrl());
+        std::unique_ptr<QObject> banners(component.create());
+        QVERIFY2(banners, qPrintable(component.errorString()));
+        auto* error = banners->findChild<QObject*>("saveErrorBanner");
+        QVERIFY(error);
+        QVERIFY(!error->property("visible").toBool());
+    }
+    void successfulAutosaveClearsManualError() {
+        QQmlComponent component(view->engine());
+        component.setData("import QtQml\nQtObject { signal saved(string updatedAt); property bool conflict: false; function saveDocument() { return {ok: false, error: \"try again\"}; } }", QUrl());
+        std::unique_ptr<QObject> saver(component.create());
+        QVERIFY2(saver, qPrintable(component.errorString()));
+        view->rootObject()->setProperty("saver", QVariant::fromValue(saver.get()));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        QVariant result;
+        QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "saveDocument", Q_RETURN_ARG(QVariant, result)));
+        QVERIFY(!result.toBool());
+        QVERIFY(!view->rootObject()->property("manualSaveError").toString().isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(saver.get(), "saved", Q_ARG(QString, "next")));
+        QVERIFY(view->rootObject()->property("manualSaveError").toString().isEmpty());
+    }
+    void saveShortcutUsesKeyActionRegistry() {
+        const auto& actions = nt::wiring::keyActions();
+        const auto action = std::find_if(actions.begin(), actions.end(), [](const auto& entry) { return entry.name == "saveDocument"; });
+        QVERIFY(action != actions.end());
+        QVERIFY(action->defaultKeys.contains(QKeySequence(QKeySequence::Save)));
+    }
+    void cloudManualSaveDoesNotShowServerSaved() {
+        nodetool::account::qt::CloudDocument document(nodetool::account::qt::CloudDocumentServices{});
+        QQmlComponent component(view->engine());
+        component.setData("import QtQuick\nimport NodeTool.Timeline\nDocumentBar { required property TimelineModel model; required property CloudDocument cloud; timeline: model; manualSaved: true; cloudDocument: cloud }", QUrl());
+        std::unique_ptr<QObject> bar(component.createWithInitialProperties({{"model", QVariant::fromValue(&model)}, {"cloud", QVariant::fromValue(&document)}}));
+        QVERIFY2(bar, qPrintable(component.errorString()));
+        auto* status = bar->findChild<QObject*>("saveStatus");
+        QVERIFY(status);
+        QVERIFY(!status->property("visible").toBool());
+    }
+    void sessionWithoutDestinationDisablesSave() {
+        QTemporaryDir folder;
+        nt::server::TimelineSession session(model, clock, nt::server::AssetCacheRoot(folder.path()));
+        QVERIFY(view->rootObject()->setProperty("documentSession", QVariant::fromValue<QObject*>(&session)));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("documentSession", QVariant::fromValue<QObject*>(nullptr)); });
+        QVERIFY(!view->rootObject()->property("canSaveDocument").toBool());
+        int localSaves = 0;
+        session.setFlushLocalCallback([&localSaves] { ++localSaves; return true; });
+        QVERIFY(view->rootObject()->property("canSaveDocument").toBool());
+        QQmlComponent component(view->engine());
+        component.setData("import QtQml\nQtObject { function saveDocument() { return {ok: false}; } }", QUrl());
+        std::unique_ptr<QObject> fallback(component.create());
+        QVERIFY(fallback);
+        view->rootObject()->setProperty("saver", QVariant::fromValue(fallback.get()));
+        const auto detachSaver = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        QVariant result;
+        QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "saveDocument", Q_RETURN_ARG(QVariant, result)));
+        QVERIFY(result.toBool());
+        QCOMPARE(localSaves, 1);
+        model.setReadOnly(true);
+        QVERIFY(!view->rootObject()->property("canSaveDocument").toBool());
+        model.setReadOnly(false);
+        model.close();
+        QVERIFY(!view->rootObject()->property("canSaveDocument").toBool());
+    }
+    void manualLocalSaveShortcutAndFailureBanner() {
+        QTemporaryDir folder;
+        const QString path = folder.filePath("timeline.json");
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(model.documentJson());
+        file.close();
+        nt::app::LocalDocumentSaver saver(model, path, 60000);
+        nt::server::TimelineSession session(model, clock, nt::server::AssetCacheRoot(folder.path()));
+        session.setFlushLocalCallback([&saver] { return saver.flush(); }, [&saver] { return saver.lastError(); });
+        QVERIFY(view->rootObject()->setProperty("documentSession", QVariant::fromValue<QObject*>(&session)));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("documentSession", QVariant::fromValue<QObject*>(nullptr)); });
+        QVERIFY(model.applyEdit("patchClip", {{"clipId", "c"}, {"patch", QJsonObject{{"name", "Manual local"}}}}));
+        const auto key = QKeySequence(QKeySequence::Save)[0];
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QVERIFY(file.readAll().contains("Manual local"));
+        file.close();
+        QCOMPARE(item("saveStatus")->property("label").toString(), QString("Saved"));
+        nt::app::ShellMenus menus;
+        menus.setAnchor(view->rootObject());
+        model.setReadOnly(true);
+        QVERIFY(!menus.trigger("saveDocument"));
+        model.setReadOnly(false);
+        nt::aiassist::AssistantCommands commands(model, clock);
+        commands.setEditor(view->rootObject());
+        const auto result = commands.execute("ui_timeline_run_command", {{"command", "saveDocument"},
+            {"timeline_id", QStringLiteral("native-local:%1").arg(model.documentGeneration())}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(QJsonDocument::fromVariant(result).toJson()));
+        QTRY_VERIFY_WITH_TIMEOUT(!view->rootObject()->property("manualSaved").toBool(), 3000);
+        QVERIFY(QFile::remove(path));
+        QVERIFY(QDir().mkdir(path));
+        QVERIFY(model.applyEdit("patchClip", {{"clipId", "c"}, {"patch", QJsonObject{{"name", "Failed local"}}}}));
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QVERIFY(item("saveErrorBanner")->isVisible());
+        QVERIFY(item("saveErrorBanner")->property("detail").toString().contains(path));
+        const auto failed = commands.execute("ui_timeline_run_command", {{"command", "saveDocument"},
+            {"timeline_id", QStringLiteral("native-local:%1").arg(model.documentGeneration())}});
+        QVERIFY(!failed.value("ok").toBool());
+        QVERIFY(QJsonDocument::fromVariant(failed).toJson().contains(path.toUtf8()));
+    }
+    void manualSaveShortcutAndFailureBanner() {
+        const auto initialMenus = nt::app::shellMenuDescription("premiere");
+        bool foundSave = false;
+        for (const auto& menu : initialMenus) {
+            for (const auto& entry : menu.items) {
+                if (entry.action != "saveDocument") { continue; }
+                foundSave = true;
+                QVERIFY(!entry.enabled);
+                QVERIFY(!entry.disabledReason.isEmpty());
+                QCOMPARE(entry.sequence, QKeySequence(QKeySequence::Save));
+            }
+        }
+        QVERIFY(foundSave);
+        TestHttpServer http;
+        QVERIFY2(http.base().port() > 0, "This test requires a localhost listener.");
+        QTemporaryDir backup;
+        int requests = 0;
+        bool fail = false;
+        bool saveEnabledInRequest = false;
+        http.setPost([&](const QByteArray&, const QByteArray&) {
+            ++requests;
+            saveEnabledInRequest = view->rootObject()->property("canSaveDocument").toBool();
+            return fail ? QByteArray(R"({"error":{"message":"Save rejected","data":{"code":"BAD_REQUEST","httpStatus":400}}})")
+                : QByteArray(R"({"result":{"data":{"updatedAt":"next"}}})");
+        });
+        nt::server::AutosaveController saver(nt::server::AssetCacheRoot(backup.path()),
+            {http.base(), {}, "manual", backup.path()}, model.undoStack(),
+            [this] { return model.timeline().raw; }, "base");
+        saver.setExternalSync(false);
+        saver.setDebounceMs(60000);
+        QVERIFY(view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(&saver)));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        QVERIFY(model.applyEdit("patchClip", {{"clipId", "c"}, {"patch", QJsonObject{{"name", "Manual"}}}}));
+        QVERIFY(saver.dirty());
+        QCOMPARE(requests, 0);
+        const auto key = QKeySequence(QKeySequence::Save)[0];
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QCOMPARE(requests, 1);
+        QVERIFY(!saveEnabledInRequest);
+        QVERIFY(!saver.dirty());
+        QCOMPARE(item("saveStatus")->property("label").toString(), QString("Saved"));
+        QVERIFY(view->rootObject()->property("manualSaved").toBool());
+        fail = true;
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QCOMPARE(requests, 2);
+        QVERIFY(item("saveErrorBanner")->isVisible());
+        QVERIFY(item("saveErrorBanner")->property("detail").toString().contains("Save rejected"));
+        model.setReadOnly(true);
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QCOMPARE(requests, 2);
+        model.setReadOnly(false);
+        nt::aiassist::AssistantCommands commands(model, clock);
+        commands.setEditor(view->rootObject());
+        fail = false;
+        QVERIFY(saver.saveNow().ok);
+        QVERIFY(!item("saveErrorBanner")->isVisible());
+        const auto result = commands.execute("ui_timeline_run_command", {{"command", "saveDocument"},
+            {"timeline_id", QStringLiteral("native-local:%1").arg(model.documentGeneration())}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(QJsonDocument::fromVariant(result).toJson()));
+        QCOMPARE(requests, 4);
+        QTRY_VERIFY_WITH_TIMEOUT(!view->rootObject()->property("manualSaved").toBool(), 3000);
+    }
+    void failedManualSaveConsumesShortcut() {
+        QQmlComponent component(view->engine());
+        component.setData("import QtQml\nQtObject { property int calls: 0; property bool conflict: false; property var stripped: []; property string lastError: \"\"; function saveDocument() { ++calls; return {ok: false, error: \"Save rejected\"}; } }", QUrl());
+        std::unique_ptr<QObject> saver(component.create());
+        QVERIFY2(saver, qPrintable(component.errorString()));
+        QVERIFY(view->rootObject()->setProperty("saver", QVariant::fromValue(saver.get())));
+        const auto detach = qScopeGuard([this] { view->rootObject()->setProperty("saver", QVariant::fromValue<QObject*>(nullptr)); });
+        const auto key = QKeySequence(QKeySequence::Save)[0];
+        QTest::keyClick(view.get(), key.key(), key.keyboardModifiers());
+        QCOMPARE(saver->property("calls").toInt(), 1);
+        QVERIFY(!view->rootObject()->property("manualSaveError").toString().isEmpty());
+        const auto& actions = nt::wiring::keyActions();
+        const auto action = std::find_if(actions.begin(), actions.end(), [](const auto& entry) { return entry.name == "saveDocument"; });
+        QVERIFY(action != actions.end());
+        QVERIFY(action->handler(*gestures(), {}));
+        QCOMPARE(saver->property("calls").toInt(), 2);
+    }
+    void closedMenusCreateNoItemsDuringEditsAndScroll() {
+        MenuItemCreationProbe probe;
+        const auto teardown = qScopeGuard([this] { view.reset(); });
+        view->engine()->rootContext()->setContextProperty("menuItemCreationProbe", &probe);
+        // Verify the counter observes actual production MenuItem creation.
+        auto* menu = popup("lane", "trackLane-v", 350);
+        QVERIFY(menu);
+        QVERIFY(probe.count > 0);
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        auto raw = doc();
+        auto tracks = raw.value("tracks").toArray();
+        for (int i = 3; i < 64; ++i) {
+            tracks.append(QJsonObject{{"id", QString("stress%1").arg(i)}, {"name", "Stress"},
+                {"type", "video"}, {"index", i}, {"heightPx", 80}, {"visible", true}});
+        }
+        raw.insert("tracks", tracks);
+        restore(raw);
+        probe.count = 0;
+        for (int i = 0; i < 40; ++i) {
+            QVERIFY(model.applyEdit("setTrackName", {{"trackId", "v"}, {"name", QString::number(i)}}));
+            QCoreApplication::processEvents();
+        }
+        qInfo() << "MenuItem creations in 40 closed-menu edits:" << probe.count;
+        const int editsCreated = probe.count;
+        probe.count = 0;
+        for (int i = 0; i < 120; ++i) {
+            gestures()->viewState()->setScrollTopPx((i % 60) * 80);
+            gestures()->viewState()->flush();
+            QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
+            view->update();
+            QVERIFY(!frame.isEmpty() || frame.wait(1000));
+        }
+        qInfo() << "MenuItem creations in 120 closed-menu scroll frames:" << probe.count;
+        QCOMPARE(editsCreated, 0);
+        QCOMPARE(probe.count, 0);
+        // Destroy QML before its borrowed probe.
+        view.reset();
+    }
+    void laneRowsAreCreatedOncePerOpen() {
+        MenuItemCreationProbe probe;
+        const auto teardown = qScopeGuard([this] { view.reset(); });
+        view->engine()->rootContext()->setContextProperty("menuItemCreationProbe", &probe);
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        int rows = 0;
+        for (const auto& entry : entries(menu)) {
+            if (!entry.endsWith(':')) { ++rows; }
+        }
+        QVERIFY(rows > 0);
+        QCOMPARE(probe.count, rows);
+    }
+    void registryFollowsContextWhileOpen() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        // Removing the edit sides disables their actions without reopening.
+        auto* region = item("tracksRegion");
+        QVERIFY(region);
+        QVERIFY(QMetaObject::invokeMethod(region, "openEditPointMenu",
+            Q_ARG(QVariant, (QVariantMap{{"clipId", "c"}, {"leftId", "c"}, {"rightId", "d"}, {"editable", true}})),
+            Q_ARG(QVariant, QVariant::fromValue(item("trackLane-v"))), Q_ARG(QVariant, 400), Q_ARG(QVariant, 20)));
+        auto* edit = region->findChild<QObject*>("registryContextMenu-editPoint");
+        QVERIFY(edit);
+        const auto before = entries(edit);
+        QVERIFY(!before.isEmpty());
+        QVERIFY(edit->setProperty("context", QVariantMap{{"editable", false}}));
+        QCoreApplication::processEvents();
+        bool enabled = false;
+        for (int i = 0; i < edit->property("count").toInt(); ++i) {
+            QQuickItem* row = nullptr;
+            QMetaObject::invokeMethod(edit, "itemAt", Q_RETURN_ARG(QQuickItem*, row), Q_ARG(int, i));
+            if (row && !row->property("text").toString().isEmpty()) { enabled |= row->isEnabled(); }
+        }
+        QVERIFY(!enabled);
+    }
+    void retargetingLaneToEmptyClosesIt() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu && menu->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(item("tracksRegion"), "openLaneMenu",
+            Q_ARG(QVariant, (QVariantMap{{"trackId", "missing"}, {"trackType", "audio"}, {"timeMs", 4000}})),
+            Q_ARG(QVariant, QVariant::fromValue(item("trackLane-w"))), Q_ARG(QVariant, 400), Q_ARG(QVariant, 20)));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QCOMPARE(menu->property("count").toInt(), 0);
+    }
+    void laneRetargetsWhileOpenOrExiting_data() {
+        QTest::addColumn<bool>("exiting");
+        QTest::addColumn<bool>("scroll");
+        QTest::newRow("open") << false << false;
+        QTest::newRow("exiting") << true << false;
+        QTest::newRow("scroll-during-exit") << true << true;
+    }
+    void laneRetargetsWhileOpenOrExiting() {
+        QFETCH(bool, exiting);
+        QFETCH(bool, scroll);
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu && menu->property("visible").toBool());
+        QQmlComponent transition(view->engine());
+        transition.setData(R"(import QtQuick
+            Transition { NumberAnimation { property: "opacity"; to: 0; duration: 100 } })", QUrl{});
+        const std::unique_ptr<QObject> exit(transition.create());
+        const auto teardown = qScopeGuard([this] { view.reset(); });
+        QVERIFY(exit);
+        QVERIFY(menu->setProperty("exit", QVariant::fromValue(exit.get())));
+        if (exiting) {
+            QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+            QVERIFY(menu->property("visible").toBool());
+        }
+        QVERIFY(QMetaObject::invokeMethod(item("tracksRegion"), "openLaneMenu",
+            Q_ARG(QVariant, (QVariantMap{{"trackId", "w"}, {"trackType", "video"}, {"timeMs", 4000}, {"editable", true}})),
+            Q_ARG(QVariant, QVariant::fromValue(item("trackLane-w"))), Q_ARG(QVariant, 400), Q_ARG(QVariant, 20)));
+        QCOMPARE(item("tracksRegion")->findChild<QObject*>("registryContextMenu-lane"), menu);
+        if (scroll) {
+            gestures()->viewState()->setScrollLeftPx(20);
+            gestures()->viewState()->flush();
+            QTest::qWait(200); // The queued popup must stay closed after the 100 ms exit.
+            QVERIFY(!menu->property("visible").toBool());
+            return;
+        }
+        QTRY_VERIFY_WITH_TIMEOUT(menu->property("opened").toBool(), 1000);
+        QCOMPARE(entries(menu).first(), QString("laneMenu-addText:Add text"));
+        trigger("laneMenu-addText");
+        QCOMPARE(model.clipsJson().last().toObject().value("trackId").toString(), QString("w"));
+    }
+    void latestRetargetWinsBeforeQueuedReopen() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        for (const auto& id : {QString("w"), QString("v")}) {
+            QVERIFY(QMetaObject::invokeMethod(item("tracksRegion"), "openLaneMenu",
+                Q_ARG(QVariant, (QVariantMap{{"trackId", id}, {"trackType", "video"}, {"timeMs", 4000}, {"editable", true}})),
+                Q_ARG(QVariant, QVariant::fromValue(item("trackLane-" + id))), Q_ARG(QVariant, 400), Q_ARG(QVariant, 20)));
+        }
+        QCoreApplication::processEvents();
+        QTRY_VERIFY_WITH_TIMEOUT(menu->property("opened").toBool(), 1000);
+        trigger("laneMenu-addText");
+        QCOMPARE(model.clipsJson().last().toObject().value("trackId").toString(), QString("v"));
+    }
+    void closedSharedMenuReleasesContext() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        const auto context = menu->property("context");
+        const auto fields = context.metaType() == QMetaType::fromType<QJSValue>()
+            ? context.value<QJSValue>().toVariant().toMap() : context.toMap();
+        QVERIFY(fields.isEmpty());
+    }
+    void laneMenuClosesWhenViewMoves() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu && menu->property("visible").toBool());
+        gestures()->viewState()->setScrollLeftPx(20);
+        gestures()->viewState()->flush();
+        QTRY_VERIFY_WITH_TIMEOUT(!menu->property("visible").toBool(), 1000);
+    }
+    void registryCheckmarkFollowsToolWhileOpen() {
+        auto* edge = named(item("clip-c"), "clipTrimEnd");
+        QVERIFY(edge);
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(edge));
+        QCoreApplication::processEvents();
+        auto* menu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint");
+        QVERIFY(menu && menu->property("visible").toBool());
+        gestures()->selectEdit("c", "end");
+        gestures()->setActiveTool("ripple");
+        QCoreApplication::processEvents();
+        auto* row = item("registryMenu-editPoint-editPoint.rippleOut");
+        QVERIFY(row);
+        QVERIFY(row->property("checked").toBool());
+    }
+    void deletingOtherSideOfEditClosesMenu() {
+        patch("d", {{"startMs", 3000}});
+        auto* edge = named(item("clip-c"), "clipTrimEnd");
+        QVERIFY(edge);
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(edge));
+        QCoreApplication::processEvents();
+        auto* menu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint");
+        QVERIFY(menu && menu->property("visible").toBool());
+        auto remaining = model.clipsJson();
+        for (qsizetype i = remaining.size(); i-- > 0;) {
+            if (remaining[i].toObject().value("id").toString() == "d") { remaining.removeAt(i); }
+        }
+        model.replaceClips(remaining);
+        QVERIFY(!model.findClip("d"));
+        QCoreApplication::processEvents();
+        QVERIFY(item("clip-c"));
+        QTRY_VERIFY_WITH_TIMEOUT(!menu->property("visible").toBool(), 1000);
+    }
+    void markerMenuClosesWhenTargetIsInvalidated_data() {
+        QTest::addColumn<bool>("remove");
+        QTest::newRow("deleted") << true;
+        QTest::newRow("scrolled-away") << false;
+    }
+    void markerMenuClosesWhenTargetIsInvalidated() {
+        QFETCH(bool, remove);
+        const auto id = model.addMarker(1500, "Target");
+        QCoreApplication::processEvents();
+        auto* flag = item("timelineMarker");
+        QVERIFY(flag);
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(flag));
+        QCoreApplication::processEvents();
+        auto* menu = item("timeRuler")->findChild<QObject*>("registryContextMenu-marker");
+        QVERIFY(menu && menu->property("visible").toBool());
+        if (remove) {
+            QVERIFY(model.deleteMarker(id));
+        } else {
+            gestures()->viewState()->setScrollLeftPx(800);
+            gestures()->viewState()->flush();
+        }
+        QTRY_VERIFY_WITH_TIMEOUT(!menu->property("visible").toBool(), 1000);
+    }
+    void sharedMenuTeardownHasNoBindingErrors() {
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu && menu->property("visible").toBool());
+        QTest::failOnWarning(QRegularExpression(".*(TypeError|ReferenceError|Cannot read property|Cannot call method).*"));
+        view.reset();
+    }
+    void laneMenuIsSharedAndRetargeted() {
+        auto* region = item("tracksRegion");
+        QVERIFY(region);
+        QVERIFY(!region->findChild<QObject*>("registryContextMenu-lane"));
+        QVERIFY(!region->findChild<QObject*>("registryContextMenu-editPoint"));
+        auto* menu = popup("lane", "trackLane-v", 400);
+        QVERIFY(menu);
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QCOMPARE(popup("lane", "trackLane-w", 400), menu);
+        trigger("laneMenu-addText");
+        QCOMPARE(model.clipsJson().last().toObject().value("trackId").toString(), QString("w"));
+        QVERIFY(!item("trackLane-v")->findChild<QObject*>("registryContextMenu-lane"));
+        QVERIFY(!item("trackLane-w")->findChild<QObject*>("registryContextMenu-lane"));
+        QCOMPARE(region->findChildren<QObject*>("registryContextMenu-lane").size(), 1);
+    }
     void shortcutSheetListsOnlyShortcuts_data() {
         QTest::addColumn<QString>("action");
         QTest::addColumn<QString>("groupTitle");
@@ -195,7 +659,7 @@ private slots:
             list.removeIf([](const QString& entry) { return !entry.startsWith("registryMenu-clip-"); });
             return list;
         };
-        QVERIFY(!item("clip-c")->findChild<QObject*>("registryContextMenu-clip"));
+        QVERIFY(!item("tracksRegion")->findChild<QObject*>("registryContextMenu-clip"));
         auto* menu = popup("clip", "clip-c");
         QVERIFY(menu);
         QVERIFY(!registered(menu).isEmpty());
@@ -225,6 +689,8 @@ private slots:
             }
             expected.append("clipMenu-" + value);
         }
+        // The music rows stay in the list, hidden outside music mode.
+        expected.append({"clipMenu-joinClips:Join clips", "clipMenu-loopClip:Loop", "clipMenu-repeatClip:Repeat…", "clipMenu-renameClip:Rename…"});
         expected.append({"clipMenu-labelDivider:", "clipMenu-label:Label", "clipMenu-afterLabelDivider:",
                          "registryMenu-clip-addMarker:Add marker", "registryMenuGroup-clip-:",
                          "registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-frame:",
@@ -486,10 +952,13 @@ private slots:
         model.undoStack()->undo(); QCOMPARE(doc(), before);
     }
     void lockedLane() {
+        auto* warmMenu = popup("lane", "trackLane-v", 400);
+        QVERIFY(warmMenu);
+        QVERIFY(QMetaObject::invokeMethod(warmMenu, "close"));
+        QTRY_VERIFY(!warmMenu->property("visible").toBool());
         auto raw = doc(); auto tracks = raw.value("tracks").toArray(); auto t = tracks[0].toObject();
         t.insert("locked", true); tracks[0] = t; raw.insert("tracks", tracks); restore(raw);
-        auto* menu = popup("lane", "trackLane-v", 400); QVERIFY(menu);
-        QVERIFY(!menu->property("visible").toBool());
+        QVERIFY(!popup("lane", "trackLane-v", 400));
     }
     void laneExtension() {
         QVERIFY(nt::app::registerMenuItem({"lane", "selectAll", "Select all clips", "Ctrl+A", {}}));
@@ -531,7 +1000,11 @@ private slots:
         menu->setProperty("trackType", type);
         QCOMPARE(entries(menu), QStringList({"trackMenu-rename:Rename", "trackMenu-duplicate:Duplicate track",
             "trackMenu-insertAbove:Insert " + label + " track above", "trackMenu-insertBelow:Insert " + label + " track below",
+            "trackMenu-newPatternRegion:New Pattern Region",
             "trackMenu-deleteDivider:", "trackMenu-remove:Delete track"}));
+        auto* pattern = menu->findChild<QQuickItem*>("trackMenu-newPatternRegion"); QVERIFY(pattern);
+        QCOMPARE(pattern->isVisible(), type == "midi");
+        if (type != "midi") { QCOMPARE(pattern->height(), 0.0); }
     }
     QStringList rulerList() {
         QStringList expected;
@@ -755,7 +1228,7 @@ private slots:
         const auto rightClickEdge = [&](QQuickItem* target) {
             QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(target));
             QCoreApplication::processEvents();
-            activeMenu = item("trackLane-v")->findChild<QObject*>("registryContextMenu-editPoint");
+            activeMenu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint");
         };
         rightClickEdge(edge);
         QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
@@ -802,7 +1275,7 @@ private slots:
     void editPointMenuAtTheEndOfAGap() {
         auto* edge = named(item("clip-c"), "clipTrimEnd"); QVERIFY(edge);
         QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(edge));
-        activeMenu = item("trackLane-v")->findChild<QObject*>("registryContextMenu-editPoint");
+        activeMenu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint");
         QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
         for (const auto* action : {"editPoint.rippleIn", "editPoint.roll", "editPoint.trimIn", "applyDefaultTransition"}) {
             auto* entry = item(QString("registryMenu-editPoint-") + action); QVERIFY(entry);
@@ -898,7 +1371,9 @@ private slots:
         };
         reset();
         QStringList problems;
-        int ran = 0, off = 0;
+        int ran = 0, off = 0, unavailableSave = 0;
+        const QSet<QString> accountActions{"accountSignIn", "accountOtherServer", "accountSwitchServer", "shareTimeline"};
+        QSet<QString> unavailableAccountActions;
         const auto visit = [&](auto&& self, const std::vector<nt::app::ShellMenuItem>& items, const QString& path) -> void {
             for (const auto& entry : items) {
                 if (entry.separator) { continue; }
@@ -906,6 +1381,8 @@ private slots:
                 if (!entry.children.empty()) { self(self, entry.children, name); continue; }
                 if (!entry.enabled) {
                     ++off;
+                    if (entry.action == "saveDocument") { ++unavailableSave; }
+                    if (accountActions.contains(entry.action)) { unavailableAccountActions.insert(entry.action); }
                     if (entry.disabledReason.isEmpty()) { problems << name + " is off with no reason"; }
                     continue;
                 }
@@ -925,8 +1402,12 @@ private slots:
         QVERIFY(ran > 40);
         // Off even with everything available: the trim mode items until it is on, the keyframe items
         // while two clips are selected, Remove Filler Words with no filler word, and File > Publish
-        // to Cloud and Synchronize with no account.
-        if (rich) { QVERIFY2(off < 17, qPrintable(QString::number(off))); } else { QVERIFY(off > 10); }
+        // to Cloud, Synchronize and the account actions with no account.
+        QCOMPARE(unavailableAccountActions, accountActions);
+        // This fixture has no save target.
+        QCOMPARE(unavailableSave, 1);
+        const int editingOff = off - int(unavailableAccountActions.size()) - unavailableSave;
+        if (rich) { QVERIFY2(editingOff < 17, qPrintable(QString::number(editingOff))); } else { QVERIFY(editingOff > 10); }
         source->setProperty("asset", QVariantMap{});
     }
     void toggleItemsShowACheckmark() {
@@ -1093,11 +1574,12 @@ private slots:
         QTest::addColumn<QString>("path");
         QTest::addColumn<QStringList>("labels");
         QTest::newRow("file") << "File" << QStringList{"Open Recent", "Open Timeline…", "New Timeline", "---",
-            "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
-            "Project Settings…", "---", "Publish to Cloud…", "Synchronize…", "---", "Settings…", "Quit"};
+            "Save", "---", "New Music Project…", "---", "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
+            "Project Settings…", "---", "Publish to Cloud…", "Synchronize…", "---",
+            "Sign In to NodeTool Cloud…", "Sign In to Another Server…", "Switch Cloud Server…", "Share…", "---", "Settings…", "Quit"};
         QTest::newRow("edit") << "Edit" << QStringList{"Undo", "Redo", "---", "Cut", "Copy", "Paste", "Paste Insert", "Paste Attributes…", "---",
             "Delete", "Ripple Delete", "Duplicate", "Duplicate with Gap", "---",
-            "Select All", "Deselect All", "Select Clips at Playhead", "Select Next Clip", "Select Previous Clip", "---", "Label"};
+            "Select All", "Deselect All", "Select Clips at Playhead", "Select Next Clip", "Select Previous Clip", "---", "Label", "---", "Clean Up Unused Music Takes…"};
         QTest::newRow("clip") << "Clip" << QStringList{"Video Options", "Audio Options", "Audio Role", "Speed / Duration…", "Scene Edit Detection…", "---",
             "Insert", "Overwrite", "Append to End", "---", "Remix…", "Revert Remix", "---",
             "Enable", "Link", "Group", "Ungroup", "Lock", "---", "Keyframes", "---", "Takes", "---", "Reveal in Library"};
@@ -1123,7 +1605,8 @@ private slots:
             "Play Audio While Scrubbing", "Keep Pitch While Shuttling"};
         QTest::newRow("window") << "Window" << QStringList{"Workspaces", "---", "Maximize Frame", "Next Panel", "Previous Panel", "Left Panels", "Right Panels", "---",
             "Library", "Effects", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Scripts", "Storyboards", "Text", "Effect Controls", "Motion", "Color", "Scopes",
-            "Entities", "Markers", "Files", "Assistant", "AI", "Activity"};
+            "Entities", "Markers", "Files", "Assistant", "AI", "Activity", "Music",
+            "Piano Roll", "Step Editor", "Step Sequencer", "Effect Chain"};
     }
     void menuBarGroups() {
         QFETCH(QString, path);
@@ -1333,7 +1816,7 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(menu, "close"));
         QTRY_VERIFY(!menu->property("visible").toBool());
         QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, center(named(item("clip-c"), "clipTrimEnd")));
-        menu = item("trackLane-v")->findChild<QObject*>("registryContextMenu-editPoint"); QVERIFY(menu);
+        menu = item("tracksRegion")->findChild<QObject*>("registryContextMenu-editPoint"); QVERIFY(menu);
         QTRY_VERIFY(menu->property("opened").toBool());
         save("edit-point-menu");
     }

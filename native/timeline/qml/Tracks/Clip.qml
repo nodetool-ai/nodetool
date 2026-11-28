@@ -31,6 +31,26 @@ Item {
     required property double inPointMs
     required property double sourceOutMs
 
+    required property string labelColor
+    required property double loopLengthMs
+    required property double speedMultiplier
+    required property bool speedBaked
+    required property bool hasEffects
+    required property bool hasAnimations
+    required property bool hasTimeRemap
+    required property string audioRole
+    required property string status
+
+    required property string takeBadge
+    required property string activeTakeLabel
+    required property bool hasActiveTake
+    required property bool activeTakeDrifting
+    property bool layerChrome: false
+    readonly property bool chromeDetail: clipBody.interactiveDetails || underGesture || activeFocus || transitionMs > 0
+    property int stackOrder: 0
+    property int stackCount: 0
+    property bool laneActive: true
+    property bool laneInViewport: true
     property double laneHeight: TimelineMetrics.trackHeight
     property bool trackLocked: false
     property bool mutedTrack: false
@@ -39,13 +59,47 @@ Item {
 
     readonly property double msPerPx: viewState ? viewState.msPerPx : 10
     readonly property bool interactionLocked: locked || trackLocked
-    readonly property bool selected: gestures !== null && gestures.selection.indexOf(clipId) >= 0
-    readonly property bool underGesture: gestures !== null && gestures.activeClipId === clipId
-    readonly property var toolPreview: gestures ? gestures.toolPreview : ({})
+    ClipInteractionState { id: interaction; gestures: clipItem.gestures; clipId: clipItem.clipId }
+    readonly property bool selected: interaction.selected
+    readonly property bool keepDelegate: activeFocus || clipBody.detailGestureActive || clipBody.detailFocusActive || clipBody.detailMenuActive
+    readonly property bool underGesture: clipId !== "" && gestures !== null && gestures.activeClipId === clipId
+    property int toolPreviewHandlerRuns: 0
+    // JSON data from the document, controller, or shared JavaScript API.
+    readonly property gestureFeedback toolPreview: interaction.previewFeedback
+    onToolPreviewChanged: ++toolPreviewHandlerRuns
     // MIN_TRIM_HANDLE_CLIP_WIDTH_PX: the two 8 px grips leave 12 px of body.
     readonly property bool trimHandles: width >= 28
 
-    objectName: "clip-" + clipId
+    visible: laneActive && clipId !== ""
+    enabled: visible
+    activeFocusOnTab: activeFocus || (visible && clipBody.inViewport)
+    Accessible.role: Accessible.ListItem
+    Accessible.name: name
+    Accessible.ignored: !clipBody.inViewport
+    onActiveFocusChanged: {
+        if (activeFocus && gestures && clipId !== "" && !selected) { gestures.selectClip(clipId) }
+    }
+    objectName: visible ? "clip-" + clipId : "pooledClip"
+    property string previousClipId: ""
+    signal identityReleased(string previousId)
+    onClipIdChanged: {
+        finishPointer()
+        if (activeFocus && gestures) { gestures.forceActiveFocus() }
+        if (gestures && previousClipId !== "") { gestures.clearToolHover(previousClipId) }
+        if (previousClipId !== "") { identityReleased(previousClipId) }
+        previousClipId = clipId
+        toolPreviewHandlerRuns = 0
+        hoverIdentityValid = false
+    }
+    onVisibleChanged: {
+        if (!visible && gestures && previousClipId !== "") { gestures.clearToolHover(previousClipId) }
+    }
+    function releaseIdentity(): void {
+        finishPointer()
+        if (activeFocus && gestures) { gestures.forceActiveFocus() }
+        if (gestures && previousClipId !== "") { gestures.clearToolHover(previousClipId) }
+        if (previousClipId !== "") { identityReleased(previousClipId) }
+    }
     // A move shows its steps through the controller's live list until the
     // document has them.
     readonly property double liveStartMs: gestures && gestures.liveRevision >= 0 ? gestures.liveStartMs(clipId) : -1
@@ -54,19 +108,29 @@ Item {
     y: 6
     width: Math.max(4, (liveDurationMs >= 0 ? liveDurationMs : durationMs) / msPerPx)       // MIN_CLIP_WIDTH_PX
     height: Math.max(0, laneHeight - 12)
-    z: underGesture ? TimelineMetrics.clipBodyLayer : Ui.Metrics.layerContent
+    z: underGesture ? TimelineMetrics.clipBodyLayer + stackCount : Ui.Metrics.layerContent + stackOrder
     opacity: mutedTrack ? 0.5 : 1
-
-    property var clipData: gestures ? gestures.clipData(clipId) : ({})
-    Connections {
-        target: clipItem.gestures ? clipItem.gestures.timeline : null
-        function onClipsChanged() { if (clipItem.gestures.clipTouched(clipItem.clipId)) clipItem.clipData = clipItem.gestures.clipData(clipItem.clipId) }
-    }
 
     ClipBody {
         id: clipBody
+        layerChrome: clipItem.layerChrome
+        laneInViewport: clipItem.laneInViewport
         z: TimelineMetrics.clipBodyLayer
-        clipData: clipItem.clipData
+        takeBadge: clipItem.takeBadge
+        activeTakeLabel: clipItem.activeTakeLabel
+        hasActiveTake: clipItem.hasActiveTake
+        activeTakeDrifting: clipItem.activeTakeDrifting
+        clipId: clipItem.clipId
+        startMs: clipItem.startMs
+        labelColor: clipItem.labelColor
+        loopLengthMs: clipItem.loopLengthMs
+        speedMultiplier: clipItem.speedMultiplier
+        speedBaked: clipItem.speedBaked
+        hasEffects: clipItem.hasEffects
+        hasAnimations: clipItem.hasAnimations
+        hasTimeRemap: clipItem.hasTimeRemap
+        audioRole: clipItem.audioRole
+        status: clipItem.status
         timeline: clipItem.gestures ? clipItem.gestures.timeline : null
         gestures: clipItem.gestures
         anchors.fill: parent
@@ -74,7 +138,8 @@ Item {
         mediaType: clipItem.mediaType
         durationMs: clipItem.durationMs
         msPerPx: clipItem.msPerPx
-        hovered: hover.hovered
+        hovered: hover.hovered && clipItem.hoverIdentityValid
+            && (!clipItem.gestures || clipItem.gestures.activeClipId === "" || clipItem.underGesture)
         selected: clipItem.selected
         disabled: clipItem.hidden
         locked: clipItem.interactionLocked
@@ -95,22 +160,23 @@ Item {
                      ? clipItem.viewState.scrollLeftPx + clipItem.viewState.viewportWidthPx - clipItem.x : width
     }
 
-    // Built on the first right-click, so a lane's clips stay cheap to create and scroll.
-    property ClipContextMenu clipMenu: null
-    Component {
-        id: clipMenuComponent
-        ClipContextMenu { gestures: clipItem.gestures }
-    }
+    signal clipMenuRequested(var context, Item area, real areaX, real areaY)
     signal editPointMenuRequested(string clipId, string edge, Item area, real areaX, real areaY)
-    HoverHandler { id: hover }
+    property bool hoverIdentityValid: true
+    HoverHandler {
+        id: hover
+        onPointChanged: clipItem.hoverIdentityValid = true
+        onHoveredChanged: if (hovered) { clipItem.hoverIdentityValid = true }
+    }
 
     Loader {
-        active: !!clipItem.gestures && clipItem.gestures.trimSourceRange.clipId === clipItem.clipId
+        active: clipItem.clipId !== "" && !!clipItem.gestures && clipItem.gestures.trimSourceClipId === clipItem.clipId
         z: TimelineMetrics.trimHandleLayer
         sourceComponent: Item {
             id: sourceGuide
             objectName: "trimSourceGuide-" + clipItem.clipId
-            readonly property var range: clipItem.gestures ? clipItem.gestures.trimSourceRange : ({})
+            // JSON data from the document, controller, or shared JavaScript API.
+            readonly property gestureFeedback range: clipItem.gestures.sourceFeedback
             visible: range.clipId === clipItem.clipId
             readonly property real sourceX: ((range.startMs || 0) - clipItem.startMs) / clipItem.msPerPx
             readonly property real sourceEndX: ((range.endMs || 0) - clipItem.startMs) / clipItem.msPerPx
@@ -160,25 +226,10 @@ Item {
         }
     }
 
-    function slotHit(area, x, y, button) {
-        const hit = item => {
-            if (!item.visible || !item.enabled) return null
-            if (item instanceof MouseArea && item.takesTrimPress === true
-                && (item.acceptedButtons & button) && item.contains(item.mapFromItem(area, x, y))) return item
-            for (const child of item.children) {
-                const target = hit(child)
-                if (target) return target
-            }
-            return null
-        }
-        for (const item of clipBody.children) {
-            if (item.slot !== "clipBody") continue
-            const target = hit(item)
-            if (target) return target
-        }
-        return null
+    function slotHit(area: Item, x: real, y: real, button: int): MouseArea {
+        return ClipDelegateTools.slotHit(clipBody, area, x, y, button) as MouseArea
     }
-    function cursorFor(part, pressed, area) {
+    function cursorFor(part: string, pressed: bool, area: MouseArea): int {
         if (part !== "body" && area.containsMouse) {
             const owner = slotHit(area, area.mouseX, area.mouseY, Qt.LeftButton)
             if (owner) return owner.cursorShape
@@ -186,6 +237,7 @@ Item {
         if (interactionLocked || (toolPreview.clipId === clipId && toolPreview.available === false)) return Qt.ForbiddenCursor
         const tool = gestures ? gestures.activeTool : "select"
         if (tool === "cut" || tool === "zoom") return Qt.CrossCursor
+        if (tool === "range") return Qt.IBeamCursor
         if (tool === "slip") return Qt.SplitHCursor
         if (tool === "slide") return Qt.SizeHorCursor
         if (tool === "trackSelect" || tool === "trackSelectBackward") return Qt.SizeAllCursor
@@ -193,14 +245,15 @@ Item {
         if (part !== "body") return tool === "roll" ? Qt.SplitHCursor : Qt.SizeHorCursor
         return pressed || (underGesture && gestures.gestureKind === "move") ? Qt.ClosedHandCursor : Qt.OpenHandCursor
     }
-    function updateToolPreview(part, area, modifiers) {
+    function updateToolPreview(part: string, area: MouseArea, modifiers: int): void {
         if (!gestures) return
         if (part !== "body" && slotHit(area, area.mouseX, area.mouseY, Qt.LeftButton)) {
             gestures.clearToolHover(clipId)
             return
         }
-        const point = area.mapToItem(null, area.mouseX, area.mouseY)
-        gestures.updateToolHover(clipId, part, point.x, point.y, modifiers || 0)
+        const sceneX = ClipDelegateTools.sceneX(area, area.mouseX, area.mouseY)
+        const sceneY = ClipDelegateTools.sceneY(area, area.mouseX, area.mouseY)
+        gestures.updateToolHover(clipId, part, sceneX, sceneY, modifiers)
     }
     Connections {
         target: clipItem.gestures
@@ -212,7 +265,7 @@ Item {
     }
     Rectangle {
         objectName: "razorPreview-" + clipItem.clipId
-        visible: clipItem.toolPreview.timeMs !== undefined && !!clipItem.gestures && clipItem.gestures.previewsCut(clipItem.clipId)
+        visible: clipItem.toolPreview.hasTime && !!clipItem.gestures && clipItem.gestures.previewsCut(clipItem.clipId)
         x: ((clipItem.toolPreview.timeMs || 0) - clipItem.startMs) / clipItem.msPerPx
         width: Ui.Metrics.focus
         height: parent.height
@@ -220,14 +273,43 @@ Item {
         color: Ui.Theme.statusWarning
     }
 
-    function press(part, mouse, area) {
+    property MouseArea forwardedFade: null
+    function captureLazyFade(area: MouseArea, mouse: MouseEvent): bool {
+        if (mouse.button !== Qt.LeftButton || interactionLocked || !clipBody.showFades || width < 32) { return false }
+        const point = ClipDelegateTools.localPoint(area, clipBody, mouse.x, mouse.y)
+        const margin = clipBody.fadeGripMargin
+        const radius = clipBody.fadeGripSize / 2 + margin
+        if (point.y < -margin || point.y > clipBody.fadeGripSize + margin
+            || (Math.abs(point.x - clipBody.fadeGripCenter("in")) > radius
+                && Math.abs(point.x - clipBody.fadeGripCenter("out")) > radius)) { return false }
+        if (slotHit(area, mouse.x, mouse.y, mouse.button)) { return false }
+        clipBody.detailGestureActive = true
+        const owner = slotHit(area, mouse.x, mouse.y, mouse.button)
+        if (!owner) { clipBody.detailGestureActive = false; return false }
+        forwardedFade = owner
+        ClipDelegateTools.beginFade(owner, ClipDelegateTools.sceneX(area, mouse.x, mouse.y))
+        return true
+    }
+    function movePointer(part: string, area: MouseArea, mouse: MouseEvent): void {
+        if (forwardedFade) { ClipDelegateTools.moveFade(forwardedFade, ClipDelegateTools.sceneX(area, mouse.x, mouse.y)) }
+        else { updateToolPreview(part, area, mouse.modifiers) }
+    }
+    function finishPointer(): void {
+        const owner = forwardedFade
+        forwardedFade = null
+        if (owner) { ClipDelegateTools.finishFade(owner) }
+    }
+
+    function press(part: string, mouse: MouseEvent, area: MouseArea): void {
+        hoverIdentityValid = true
         if (!clipItem.gestures) return
-        if (part !== "body" && slotHit(area, mouse.x, mouse.y, mouse.button)) {
+        if (part !== "body" && part !== "loop" && slotHit(area, mouse.x, mouse.y, mouse.button)) {
             mouse.accepted = false
             return
         }
-        const p = area.mapToItem(null, mouse.x, mouse.y)
-        clipItem.gestures.pressClip(clipItem.clipId, part, p.x, p.y, mouse.modifiers)
+        const sceneX = ClipDelegateTools.sceneX(area, mouse.x, mouse.y)
+        const sceneY = ClipDelegateTools.sceneY(area, mouse.x, mouse.y)
+        clipItem.gestures.pressClip(clipItem.clipId, part, sceneX, sceneY, mouse.modifiers)
     }
 
     MouseArea {
@@ -238,28 +320,35 @@ Item {
         hoverEnabled: true
         cursorShape: clipItem.cursorFor("body", pressed, this)
         onEntered: clipItem.updateToolPreview("body", this, 0)
-        onPositionChanged: mouse => clipItem.updateToolPreview("body", this, mouse.modifiers)
+        onPositionChanged: function(mouse: MouseEvent): void { clipItem.movePointer("body", this, mouse) }
+        onReleased: clipItem.finishPointer()
+        onCanceled: clipItem.finishPointer()
         onExited: if (clipItem.gestures) clipItem.gestures.clearToolHover(clipItem.clipId)
-        onPressed: mouse => {
+        onPressed: function(mouse: MouseEvent): void {
+            if (clipItem.captureLazyFade(this, mouse)) { return }
             if (mouse.button === Qt.RightButton) {
                 if (clipItem.gestures && clipItem.gestures.parent) clipItem.gestures.parent.forceActiveFocus(Qt.MouseFocusReason)
-                if (clipItem.gestures && !clipItem.selected) clipItem.gestures.selection = [clipItem.clipId]
-                if (!clipItem.clipMenu) clipItem.clipMenu = clipMenuComponent.createObject(clipItem)
+                if (clipItem.gestures && !clipItem.selected) clipItem.gestures.selectClip(clipItem.clipId)
                 const clock = clipItem.gestures ? clipItem.gestures.clock : null
-                clipItem.clipMenu.context = { clipId: clipItem.clipId, clip: clipItem.clipData,
-                                     clipIds: clipItem.gestures ? clipItem.gestures.selection.slice() : [clipItem.clipId], mediaType: clipItem.mediaType,
+                const context = { clipId: clipItem.clipId, clip: { id: clipItem.clipId, startMs: clipItem.startMs, durationMs: clipItem.durationMs,
+                                     mediaType: clipItem.gestures ? clipItem.gestures.clipMediaType(clipItem.clipId) : clipItem.mediaType, trackId: clipItem.gestures ? clipItem.gestures.clipTrack(clipItem.clipId) : "",
+                                     name: clipItem.name, linkId: clipItem.gestures ? clipItem.gestures.clipLinkIdFor(clipItem.clipId) : "", locked: clipItem.locked, hidden: clipItem.hidden, muted: clipItem.gestures ? clipItem.gestures.clipMuted(clipItem.clipId) : false,
+                                     fadeInMs: clipItem.fadeInMs, fadeOutMs: clipItem.fadeOutMs,
+                                     transitionIn: {durationMs: clipItem.transitionMs}, loopLengthMs: clipItem.loopLengthMs,
+                                     timeRemap: clipItem.hasTimeRemap },
+                                     clipIds: clipItem.gestures ? clipItem.gestures.selection : [clipItem.clipId], mediaType: clipItem.mediaType,
                                      selectedIds: clipItem.gestures ? clipItem.gestures.selection : [],
                                      playheadMs: clock ? clock.time : 0,
                                      editable: !clipItem.interactionLocked }
-                clipItem.clipMenu.popupAt(this, mouse.x, mouse.y)
+                clipItem.clipMenuRequested(context, this, mouse.x, mouse.y)
             } else clipItem.press("body", mouse, this)
         }
     }
     // The edit point E and the keyboard trims act on.
     Rectangle {
         objectName: "clipSelectedEdit"
-        readonly property string edge: clipItem.gestures && clipItem.gestures.selectedEdit.clipId === clipItem.clipId
-            ? clipItem.gestures.selectedEdit.edge : ""
+        readonly property string edge: clipItem.gestures && clipItem.gestures.selectedEditClipId === clipItem.clipId
+            ? clipItem.gestures.selectedEditEdge : ""
         z: TimelineMetrics.trimHandleLayer
         visible: edge !== ""
         x: edge === "end" ? parent.width - width : 0
@@ -279,9 +368,12 @@ Item {
         hoverEnabled: true
         cursorShape: clipItem.cursorFor("start", pressed, this)
         onEntered: clipItem.updateToolPreview("start", this, 0)
-        onPositionChanged: mouse => clipItem.updateToolPreview("start", this, mouse.modifiers)
+        onPositionChanged: function(mouse: MouseEvent): void { clipItem.movePointer("start", this, mouse) }
+        onReleased: clipItem.finishPointer()
+        onCanceled: clipItem.finishPointer()
         onExited: if (clipItem.gestures) clipItem.gestures.clearToolHover(clipItem.clipId)
-        onPressed: mouse => {
+        onPressed: function(mouse: MouseEvent): void {
+            if (clipItem.captureLazyFade(this, mouse)) { return }
             if (mouse.button === Qt.RightButton) clipItem.editPointMenuRequested(clipItem.clipId, "start", this, mouse.x, mouse.y)
             else clipItem.press("start", mouse, this)
         }
@@ -298,11 +390,40 @@ Item {
         hoverEnabled: true
         cursorShape: clipItem.cursorFor("end", pressed, this)
         onEntered: clipItem.updateToolPreview("end", this, 0)
-        onPositionChanged: mouse => clipItem.updateToolPreview("end", this, mouse.modifiers)
+        onPositionChanged: function(mouse: MouseEvent): void { clipItem.movePointer("end", this, mouse) }
+        onReleased: clipItem.finishPointer()
+        onCanceled: clipItem.finishPointer()
         onExited: if (clipItem.gestures) clipItem.gestures.clearToolHover(clipItem.clipId)
-        onPressed: mouse => {
+        onPressed: function(mouse: MouseEvent): void {
+            if (clipItem.captureLazyFade(this, mouse)) { return }
             if (mouse.button === Qt.RightButton) clipItem.editPointMenuRequested(clipItem.clipId, "end", this, mouse.x, mouse.y)
             else clipItem.press("end", mouse, this)
         }
     }
+    MouseArea {
+        id: loopGrip
+        objectName: "musicClipLoopHandle-" + clipItem.clipId
+        // The upper right corner, as in a DAW: the loop tool above, the trim grip below it.
+        anchors.right: parent.right
+        anchors.top: parent.top
+        width: Ui.Metrics.iconSm
+        height: Math.min(TimelineMetrics.clipNameBandHeight, parent.height / 2)
+        z: TimelineMetrics.trimHandleLayer
+        hoverEnabled: true
+        visible: clipItem.trimHandles && !!clipItem.gestures && clipItem.gestures.keymapContext === "music"
+            && clipItem.gestures.activeTool === "select" && !clipItem.interactionLocked
+            && ["audio", "midi"].includes(clipItem.mediaType) && !clipItem.hasTimeRemap
+        cursorShape: Qt.SizeHorCursor
+        acceptedButtons: Qt.LeftButton
+        // The grip shows on a hovered or selected clip and stays a hit target otherwise.
+        Rectangle {
+            anchors.fill: parent
+            radius: Ui.Metrics.micro
+            color: TimelineVisuals.alphaColor(TimelineVisuals.clipText, loopGrip.pressed ? 0.45 : loopGrip.containsMouse ? 0.32 : 0.18)
+            opacity: hover.hovered || clipItem.selected || loopGrip.pressed ? 1 : 0
+            Ui.Icon { anchors.centerIn: parent; name: "repeat"; size: Ui.Metrics.iconXs - Ui.Metrics.xs; domainColor: TimelineVisuals.clipText }
+        }
+        onPressed: function(mouse: MouseEvent): void { clipItem.press("loop", mouse, this) }
+    }
+
 }

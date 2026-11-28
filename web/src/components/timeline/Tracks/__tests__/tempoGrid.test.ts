@@ -9,6 +9,7 @@
 import { describe, it, expect } from "@jest/globals";
 import type { TimelineTempo } from "@nodetool-ai/timeline";
 import {
+  musicNudgeDeltaMs,
   computeBarRulerTicks,
   tempoGridIntervalMs,
   visibleTempoGrid
@@ -184,5 +185,21 @@ describe("computeBarRulerTicks", () => {
       [3000, "2"],
       [5000, "3"]
     ]);
+  });
+});
+
+describe("musicNudgeDeltaMs", () => {
+  const tempo: TimelineTempo = {
+    bpm: 120,
+    offsetMs: 0,
+    timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+  };
+
+  it("moves by the grid step, one bar with Shift", () => {
+    expect(musicNudgeDeltaMs(tempo, "1/16", 1, false)).toBe(125);
+    expect(musicNudgeDeltaMs(tempo, "1/16", -1, false)).toBe(-125);
+    expect(musicNudgeDeltaMs(tempo, "beat", 1, false)).toBe(500);
+    expect(musicNudgeDeltaMs(tempo, "1/16", 1, true)).toBe(2000);
+    expect(musicNudgeDeltaMs(tempo, "bar", -1, true)).toBe(-2000);
   });
 });

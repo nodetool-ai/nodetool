@@ -1133,7 +1133,7 @@ function makeFilterState() {
 class PadVoice {
   constructor() {
     this.active = false;
-    this.vel = 1; this.rand = 0;
+    this.vel = 1; this.rand = 0; this.pitchOffset = 0;
     this.t = 0;
     this.ampLevel = 0; this.choking = false; this.chokeSm = 0;
     this.oA = makeOscState(); this.sample = makeSampleState();
@@ -1143,9 +1143,10 @@ class PadVoice {
     this.dcxL = 0; this.dcxR = 0; this.dcyL = 0; this.dcyR = 0;
   }
 
-  trigger(v, rand) {
+  trigger(v, rand, pitchOffset = 0) {
     this.active = true; this.choking = false;
     this.vel = v; this.rand = rand;
+    this.pitchOffset = Number.isFinite(pitchOffset) ? pitchOffset : 0;
     this.t = 0; this.ampLevel = 0;
     this.oA.posSm = -1;
     this.oA.havePrev = false;
@@ -1269,11 +1270,20 @@ class DrumProcessor extends AudioWorkletProcessor {
     this.baseNote = Number.isFinite(po.baseNote) ? po.baseNote : 36;
     this.evq = [];
     this.evHead = 0;
+    this.cevq = [];
+    this.cevHead = 0;
+    this.controllerTags = new Set();
+    this.bend = 0;
+    this.cc7 = 1;
+    this.cc11 = 1;
+    this.ccGain = 1;
+    this.ccGainBuf = new Float32Array(Math.max(128, this.cap || 0));
     this.hitPads = 0;
     if (po.tables) this.setTables(po.tables);
     if (po.samples) this.setSamples(po.samples);
     if (po.params) this.onMsg({ t: 'init', params: po.params });
-    if (po.events) this.queueEvents(po.events);
+    if (po.events) this.queueEvents(po.events, undefined, po.eventPitchOffsets);
+    if (po.controllers) this.queueControllers(po.controllers);
   }
 
   setTables(list) {
@@ -1292,12 +1302,42 @@ class DrumProcessor extends AudioWorkletProcessor {
 
   // `ev` is flat [frame, on, pitch, velocity] quadruples. The queue stays
   // sorted by frame; equal frames keep their arrival order.
-  queueEvents(ev, tag) {
+  queueEvents(ev, tag, pitchOffsets) {
     const pending = this.evq.slice(this.evHead);
-    for (let i = 0; i + 3 < ev.length; i += 4) pending.push([ev[i], ev[i + 1], ev[i + 2], ev[i + 3], tag]);
+    for (let i = 0; i + 3 < ev.length; i += 4) {
+      const po = pitchOffsets && Number.isFinite(pitchOffsets[i >> 2]) ? pitchOffsets[i >> 2] : 0;
+      pending.push([ev[i], ev[i + 1], ev[i + 2], ev[i + 3], tag, po]);
+    }
     pending.sort((a, b) => a[0] - b[0]);
     this.evq = pending;
     this.evHead = 0;
+  }
+
+  queueControllers(ev, tag) {
+    const pending = this.cevq.slice(this.cevHead);
+    let added = false;
+    for (let i = 0; i + 3 < ev.length; i += 4) {
+      if (!Number.isFinite(ev[i])) continue;
+      pending.push([ev[i], ev[i + 1] | 0, ev[i + 2] | 0, ev[i + 3], tag]);
+      added = true;
+    }
+    if (added && tag !== undefined) this.controllerTags.add(tag);
+    pending.sort((a, b) => a[0] - b[0]);
+    this.cevq = pending;
+    this.cevHead = 0;
+  }
+
+  applyController(e) {
+    if (e[1] === 1) {
+      if (Number.isFinite(e[3])) this.bend = e[3];
+    } else if (e[1] === 2 && e[2] === 7) {
+      const x = Math.min(1, Math.max(0, e[3] / 127));
+      this.cc7 = x * x;
+      this.ccGain = this.cc7 * this.cc11;
+    } else if (e[1] === 2 && e[2] === 11) {
+      this.cc11 = Math.min(1, Math.max(0, e[3] / 127));
+      this.ccGain = this.cc7 * this.cc11;
+    }
   }
 
   applyEvent(e) {
@@ -1305,7 +1345,7 @@ class DrumProcessor extends AudioWorkletProcessor {
     if (!e[1] || e[3] <= 0) return;
     const padI = Math.round(e[2]) - this.baseNote;
     if (padI < 0 || padI >= NPADS) return;
-    this.trigger(padI, e[3]);
+    this.trigger(padI, e[3], e[5] || 0);
     this.hitPads |= 1 << padI;
   }
 
@@ -1323,6 +1363,7 @@ class DrumProcessor extends AudioWorkletProcessor {
     this.tmpL = new Float32Array(n); this.tmpR = new Float32Array(n);
     this.fL = new Float32Array(n); this.fR = new Float32Array(n);
     this.xL = new Float32Array(n); this.xR = new Float32Array(n);
+    this.ccGainBuf = new Float32Array(n);
   }
 
   setParam(k, v) {
@@ -1382,8 +1423,31 @@ class DrumProcessor extends AudioWorkletProcessor {
       case 'seed': this.rng = new Rng(d.v | 0); break;
       case 'tables': this.setTables(d.list); break;
       case 'samples': this.setSamples(d.list); break;
-      case 'evs': this.queueEvents(d.ev, d.tag); break;
-      case 'evclear': this.evq = d.tag === undefined ? [] : this.evq.slice(this.evHead).filter((e) => e[4] !== d.tag); this.evHead = 0; break;
+      case 'evs': this.queueEvents(d.ev, d.tag, d.pitchOffsets); break;
+      case 'cevs': this.queueControllers(d.ev, d.tag); break;
+      case 'evclear':
+        this.evq = d.tag === undefined ? [] : this.evq.slice(this.evHead).filter((e) => e[4] !== d.tag);
+        this.evHead = 0;
+        if (d.tag === undefined) {
+          this.cevq = [];
+          this.cevHead = 0;
+          this.controllerTags.clear();
+          this.bend = 0;
+          this.cc7 = 1;
+          this.cc11 = 1;
+          this.ccGain = 1;
+        } else {
+          const hadControllerTag = this.controllerTags.delete(d.tag);
+          this.cevq = this.cevq.slice(this.cevHead).filter((e) => e[4] !== d.tag);
+          this.cevHead = 0;
+          if (hadControllerTag && this.cevq.length === 0 && this.controllerTags.size === 0) {
+            this.bend = 0;
+            this.cc7 = 1;
+            this.cc11 = 1;
+            this.ccGain = 1;
+          }
+        }
+        break;
       case 'base': if (Number.isFinite(d.note)) this.baseNote = d.note; break;
       case 'trig': this.trigger(d.pad | 0, d.v); break;
       case 'pats': this.pats = new Uint8Array(d.data.slice(0)); break;
@@ -1785,7 +1849,7 @@ class DrumProcessor extends AudioWorkletProcessor {
     this.port.postMessage({ t: 'pos', step: s, bar, hits });
   }
 
-  trigger(padI, vel) {
+  trigger(padI, vel, pitchOffset = 0) {
     if (padI < 0 || padI >= NPADS) return;
     const pv = this.pv;
     const g = pv[this.padIds[padI][P_CHOKE]] | 0;
@@ -1824,7 +1888,7 @@ class DrumProcessor extends AudioWorkletProcessor {
       }
     }
     const v = this.voices[padI];
-    v.trigger(Math.max(0, Math.min(1, Number.isFinite(vel) ? vel : 1)), this.rng.uni());
+    v.trigger(Math.max(0, Math.min(1, Number.isFinite(vel) ? vel : 1)), this.rng.uni(), pitchOffset);
     const f = this.padIds[padI];
     const phaseA = (Math.max(0, Math.min(1, pv[f[OSC_A + A_PHASE]])) * 2048) % 2048;
     for (let i = 0; i < MAXUNI; i++) v.oA.phases[i] = phaseA;
@@ -2196,13 +2260,14 @@ class DrumProcessor extends AudioWorkletProcessor {
       const pe0 = pAmt * Math.exp(peK * (v.t + at));
       const pe1 = pAmt * Math.exp(peK * (v.t + at + count));
       const pitch0 = this.mlerp(M_PITCH, u0), pitch1 = this.mlerp(M_PITCH, u1);
-      const aP0 = BASE_NOTE + tuneA + (fineA + this.mlerp(M_FINEA, u0)) / 100 + pe0 + pitch0;
-      const aP1 = BASE_NOTE + tuneA + (fineA + this.mlerp(M_FINEA, u1)) / 100 + pe1 + pitch1;
+      const hitPitch = (v.pitchOffset || 0) + (this.bend || 0);
+      const aP0 = BASE_NOTE + tuneA + hitPitch + (fineA + this.mlerp(M_FINEA, u0)) / 100 + pe0 + pitch0;
+      const aP1 = BASE_NOTE + tuneA + hitPitch + (fineA + this.mlerp(M_FINEA, u1)) / 100 + pe1 + pitch1;
       const aOn = this.setupOsc(v.oA, f, OSC_A, aP0, aP1,
         posA + this.mlerp(M_POSA, u0), posA + this.mlerp(M_POSA, u1), count);
       if (aOn) this.renderOsc(v.oA, tmpL, tmpR, at, count);
-      const bP0 = tuneB + (fineB + this.mlerp(M_FINEB, u0)) / 100 + pe0 + pitch0;
-      const bP1 = tuneB + (fineB + this.mlerp(M_FINEB, u1)) / 100 + pe1 + pitch1;
+      const bP0 = tuneB + hitPitch + (fineB + this.mlerp(M_FINEB, u0)) / 100 + pe0 + pitch0;
+      const bP1 = tuneB + hitPitch + (fineB + this.mlerp(M_FINEB, u1)) / 100 + pe1 + pitch1;
       this.renderSample(v.sample, f, OSC_B, bP0, bP1, posB + this.mlerp(M_POSB, u0),
         tmpL, tmpR, at, count);
     }
@@ -2466,11 +2531,20 @@ class DrumProcessor extends AudioWorkletProcessor {
     const evq = this.evq;
     while (this.evHead < evq.length && evq[this.evHead][0] < currentFrame) this.evHead++;
     if (this.evHead > 256) { this.evq = evq.slice(this.evHead); this.evHead = 0; }
+    // Chase past controller events so bend/volume active before this block hold.
+    const cevq = this.cevq;
+    while (this.cevHead < cevq.length && cevq[this.cevHead][0] < currentFrame) this.applyController(cevq[this.cevHead++]);
+    if (this.cevHead > 256) { this.cevq = cevq.slice(this.cevHead); this.cevHead = 0; }
 
+    const ccGainBuf = this.ccGainBuf;
+    let hasCcGain = false;
     let pos = 0;
     while (pos < n) {
       let run = n - pos;
       const frame = currentFrame + pos;
+      const cq = this.cevq;
+      while (this.cevHead < cq.length && cq[this.cevHead][0] <= frame) this.applyController(cq[this.cevHead++]);
+      if (this.cevHead < cq.length && cq[this.cevHead][0] < frame + run) run = Math.max(1, Math.ceil(cq[this.cevHead][0] - frame));
       const q = this.evq;
       while (this.evHead < q.length && q[this.evHead][0] <= frame) this.applyEvent(q[this.evHead++]);
       if (this.evHead < q.length && q[this.evHead][0] < frame + run) run = Math.max(1, Math.ceil(q[this.evHead][0] - frame));
@@ -2524,12 +2598,34 @@ class DrumProcessor extends AudioWorkletProcessor {
         const fade = this.fades[i];
         if (fade.active) this.renderPad(fade, i, padL[i], padR[i], pos, run);
       }
+      const segGain = this.ccGain;
+      if (segGain !== 1) {
+        if (!hasCcGain) {
+          ccGainBuf.fill(1, 0, pos);
+          hasCcGain = true;
+        }
+        ccGainBuf.fill(segGain, pos, pos + run);
+      } else if (hasCcGain) {
+        ccGainBuf.fill(1, pos, pos + run);
+      }
       if (standalone) this.samplesToNext -= run;
       if (legacyClip && this.clip) this.clipToNext -= run;
       pos += run;
     }
 
     this.renderFx(outputs, n);
+    if (hasCcGain) {
+      const busCount = this.mixdown ? 1 : Math.min(BUSES, outputs.length);
+      for (let b = 0; b < busCount; b++) {
+        const out = outputs[b];
+        if (!out) continue;
+        for (let ch = 0; ch < out.length; ch++) {
+          const buf = out[ch];
+          if (!buf) continue;
+          for (let i = 0; i < n; i++) buf[i] *= ccGainBuf[i];
+        }
+      }
+    }
     if (this.hitPads) {
       const pads = [];
       for (let i = 0; i < NPADS; i++) if (this.hitPads & (1 << i)) pads.push(i);

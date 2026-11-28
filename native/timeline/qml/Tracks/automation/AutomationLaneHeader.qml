@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
@@ -6,8 +7,11 @@ import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: root
     property TimelineModel timeline: null
+    // JSON data from the document, controller, or shared JavaScript API.
     property var track: ({})
+    // JSON data from the document, controller, or shared JavaScript API.
     property var lane: ({target:{}, points:[]})
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var spec: Targets.automationTargetSpec(track,lane.target)
     objectName: "automation-header-" + lane.id
     height: 56; color: Ui.Theme.surfacePanel

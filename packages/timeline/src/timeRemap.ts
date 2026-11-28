@@ -24,6 +24,7 @@
 
 import { ease } from "./animation/easing.js";
 import { sourceRate } from "./sourceRate.js";
+import { activeLoopMs, loopRepeatOffsets } from "./loopWindow.js";
 import type { ClipTimeRemap, TimelineClip } from "./types.js";
 
 /** True when a clip's source position comes from a curve rather than a rate. */
@@ -165,6 +166,7 @@ export function timeRemapAudioSegments(
     | "inPointMs"
     | "speedMultiplier"
     | "speedBaked"
+    | "loopLengthMs"
   >,
   samplesPerSegment = DEFAULT_REMAP_AUDIO_SAMPLES
 ): TimeRemapAudioSegment[] {
@@ -174,6 +176,23 @@ export function timeRemapAudioSegments(
   if (!remap || kfs.length === 0 || span <= 0) {
     const rate = sourceRate(clip);
     const sourceStartMs = clip.inPointMs ?? 0;
+    // Region loop: one segment per repeat of the source window, each cut at
+    // the repeat boundary.
+    const loopMs = activeLoopMs(clip);
+    if (loopMs !== undefined && rate > 0) {
+      const periodMs = loopMs;
+      return loopRepeatOffsets(clip, periodMs).map((offset) => {
+        const length = Math.min(periodMs, span - offset);
+        return {
+          timelineStartMs: clip.startMs + offset,
+          timelineEndMs: clip.startMs + offset + length,
+          sourceStartMs,
+          sourceEndMs: sourceStartMs + length * rate,
+          rate,
+          reverse: false
+        };
+      });
+    }
     return [
       {
         timelineStartMs: clip.startMs,
@@ -234,7 +253,7 @@ export function timeRemapAudioSegments(
  */
 export function assertNotTimeRemapped(
   clip: Pick<TimelineClip, "timeRemap">,
-  op: "splitClip" | "trimClip"
+  op: "splitClip" | "trimClip" | "set_clip_params"
 ): void {
   if (!hasTimeRemap(clip) || isHoldRemap(clip)) return;
   throw new Error(

@@ -119,6 +119,46 @@ describe("MixerView", () => {
     expect(timelineTemporalOf(instance.doc).pastStates).toHaveLength(depth + 1);
   });
 
+  it("changes the fader and pan values while the drag runs", async () => {
+    const instance = setup();
+    const depth = timelineTemporalOf(instance.doc).pastStates.length;
+    const rect = { top: 0, bottom: 200, height: 200, left: 0, right: 28, width: 28, x: 0, y: 0, toJSON: () => ({}) };
+    const fader = screen.getByRole("slider", { name: "Vox volume" });
+    jest.spyOn(fader, "getBoundingClientRect").mockReturnValue(rect);
+    fader.setPointerCapture = jest.fn();
+    act(() => {
+      fireEvent.pointerDown(fader, { button: 0, clientY: 100, pointerId: 1 });
+      fireEvent.pointerMove(fader, { clientY: 20, pointerId: 1 });
+    });
+    await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
+    const vox = () => doc(instance).tracks.find((t) => t.name === "Vox")!;
+    expect(vox().volumeDb).not.toBe(-6);
+    expect(fader.getAttribute("aria-valuetext")).not.toMatch(/^-6/);
+    act(() => { fireEvent.pointerUp(fader, { clientY: 20, pointerId: 1 }); });
+    expect(timelineTemporalOf(instance.doc).pastStates).toHaveLength(depth + 1);
+
+    const knob = screen.getByRole("slider", { name: "Vox pan" });
+    jest.spyOn(knob, "getBoundingClientRect").mockReturnValue(rect);
+    knob.setPointerCapture = jest.fn();
+    act(() => {
+      fireEvent.pointerDown(knob, { button: 0, clientX: 14, clientY: 100, pointerId: 2 });
+      fireEvent.pointerMove(knob, { clientX: 14, clientY: 40, pointerId: 2 });
+    });
+    await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
+    expect(vox().pan).not.toBe(-0.5);
+    act(() => { fireEvent.pointerUp(knob, { clientX: 14, clientY: 40, pointerId: 2 }); });
+    expect(timelineTemporalOf(instance.doc).pastStates).toHaveLength(depth + 2);
+  });
+
+  it("pans the master through the master op", () => {
+    const instance = setup();
+    const knob = screen.getByRole("slider", { name: "Master pan" });
+    act(() => {
+      fireEvent.keyDown(knob, { key: "ArrowRight" });
+    });
+    expect(doc(instance).master?.pan).toBeGreaterThan(0);
+  });
+
   it("takes a typed level in the readout", async () => {
     const instance = setup();
     await userEvent.click(screen.getByRole("button", { name: /Vox level -6.0 dB, edit/ }));

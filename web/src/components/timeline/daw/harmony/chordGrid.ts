@@ -36,3 +36,13 @@ export const snapNearest = (tick: number, step: number): number =>
 
 /** Pitch-class hue FableSynth colours chords by. */
 export const chordHue = (root: number): number => root * 30;
+
+/**
+ * Fill colour of a chord block and strip cell. A data colour keyed by the
+ * chord's root (the same hue as `chordHue`), the way clip colours are. Text on
+ * it uses the theme's text colours.
+ */
+export const chordColor = (root: number, strength: "block" | "strip" = "block"): string =>
+  strength === "strip"
+    ? `hsl(${chordHue(root)} 28% 26%)`
+    : `hsl(${chordHue(root)} 50% 40%)`;

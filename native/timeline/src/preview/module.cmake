@@ -44,6 +44,8 @@ function(nt_preview_tests)
     # module.
     qt_add_executable(tst_editpreview tests/tst_editpreview.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_editpreview PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_definitions(tst_editpreview PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")

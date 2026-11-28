@@ -59,6 +59,9 @@ export function rescaleClipsForTempo(
       startMs: nextOrigin + (clip.startMs - origin) * scale,
       durationMs: clip.durationMs * scale
     };
+    if (clip.loopLengthMs !== undefined) {
+      next.loopLengthMs = clip.loopLengthMs * scale;
+    }
     // The window over the note content scales with it: a clip that showed bars
     // 2–3 still shows bars 2–3 after the tempo change.
     if (clip.inPointMs !== undefined) {

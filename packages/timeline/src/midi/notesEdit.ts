@@ -15,6 +15,12 @@
 
 import { createTimeOrderedUuid } from "../defaults.js";
 import type { MidiNote } from "../types.js";
+import type { MidiExpressionPoint, MidiNoteExpression } from "../types.js";
+import {
+  MIDI_EXPRESSION_KINDS,
+  MIDI_EXPRESSION_SPEC,
+  expressionValueAt
+} from "./expression.js";
 import { DEFAULT_MIDI_VELOCITY } from "./notes.js";
 
 /** The lowest pitch MIDI stores. */
@@ -125,6 +131,74 @@ export function moveNotes(
 }
 
 /**
+ * Fit a note's expression points to its length. Points past the end are
+ * dropped and the curve's value at the new end is kept as a last point, so a
+ * shortened note still holds the value it reached.
+ */
+export function fitExpressionToDuration(note: MidiNote): MidiNote {
+  if (!note.expression) return note;
+  const next: MidiNoteExpression = {};
+  let changed = false;
+  for (const kind of MIDI_EXPRESSION_KINDS) {
+    const points = note.expression[kind];
+    if (!points) continue;
+    if (points.every((p) => p.tick <= note.durationTick)) {
+      next[kind] = points;
+      continue;
+    }
+    changed = true;
+    const kept = points.filter((p) => p.tick <= note.durationTick);
+    const neutral = MIDI_EXPRESSION_SPEC[kind].neutral;
+    const endValue = expressionValueAt(points, note.durationTick, neutral);
+    if (kept.length === 0 || kept[kept.length - 1].tick < note.durationTick) {
+      kept.push({ tick: note.durationTick, value: endValue });
+    }
+    next[kind] = kept;
+  }
+  return changed ? { ...note, expression: next } : note;
+}
+
+/**
+ * Cut a note at `splitTick` (content ticks, strictly inside the note) into a
+ * left part that keeps the id and a right part with `rightId`. Muted, channel
+ * and release velocity carry to both parts. Expression points before the cut
+ * stay left. Points at or after it move right with their ticks re-based.
+ */
+export function splitNote(
+  note: MidiNote,
+  splitTick: number,
+  rightId: string
+): [MidiNote, MidiNote] {
+  const leftLen = splitTick - note.startTick;
+  const rightLen = note.startTick + note.durationTick - splitTick;
+  const left: MidiNote = { ...note, durationTick: leftLen };
+  const right: MidiNote = {
+    ...note,
+    id: rightId,
+    startTick: splitTick,
+    durationTick: rightLen
+  };
+  delete left.expression;
+  delete right.expression;
+  if (!note.expression) return [left, right];
+  const leftExpr: MidiNoteExpression = {};
+  const rightExpr: MidiNoteExpression = {};
+  for (const kind of MIDI_EXPRESSION_KINDS) {
+    const points = note.expression[kind];
+    if (!points || points.length === 0) continue;
+    const before: MidiExpressionPoint[] = points.filter((p) => p.tick < leftLen);
+    const after: MidiExpressionPoint[] = points
+      .filter((p) => p.tick >= leftLen)
+      .map((p) => ({ tick: p.tick - leftLen, value: p.value }));
+    if (before.length > 0) leftExpr[kind] = before;
+    if (after.length > 0) rightExpr[kind] = after;
+  }
+  if (Object.keys(leftExpr).length > 0) left.expression = leftExpr;
+  if (Object.keys(rightExpr).length > 0) right.expression = rightExpr;
+  return [left, right];
+}
+
+/**
  * Lengthen or shorten the named notes by `deltaTick`, holding their onsets.
  *
  * Each note stops at `minDurationTick` on its own: dragging a mixed-length
@@ -144,10 +218,10 @@ export function resizeNotes(
   const shift = Math.round(deltaTick);
   return notes.map((note) =>
     resizing.has(note.id)
-      ? {
+      ? fitExpressionToDuration({
           ...note,
           durationTick: Math.max(floor, note.durationTick + shift)
-        }
+        })
       : note
   );
 }

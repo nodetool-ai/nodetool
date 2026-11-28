@@ -27,6 +27,10 @@ export interface DrumVoiceEvent {
   pitch: number;
   velocity: number;
   startFrame: number;
+  /** Per-note pitch expression (semitones) for kit row Note/Octave bend (SQ42, D90). */
+  expression?: {
+    pitch?: ReadonlyArray<{ frame: number; value: number }>;
+  };
 }
 
 /** The pitch a pad's oscillator plays before its pitch envelope moves it. */
@@ -46,6 +50,21 @@ export function padForNote(
   return instrument.pads[index] ?? null;
 }
 
+function stepTrackAt(
+  points: ReadonlyArray<{ frame: number; value: number }> | undefined,
+  frame: number
+): number {
+  if (!points || points.length === 0 || frame < points[0]!.frame) return 0;
+  let lo = 0;
+  let hi = points.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (points[mid]!.frame <= frame) lo = mid;
+    else hi = mid - 1;
+  }
+  return points[lo]!.value;
+}
+
 /**
  * Render one drum hit into `out`. Returns true if the pad was still sounding at
  * the last frame of the buffer.
@@ -54,7 +73,8 @@ export function renderDrumVoice(
   out: Float32Array,
   event: DrumVoiceEvent,
   instrument: DrumMidiInstrument,
-  sampleRate: number
+  sampleRate: number,
+  pitchBendSemitones?: ReadonlyArray<{ frame: number; value: number }>
 ): boolean {
   const pad = padForNote(instrument, event.pitch);
   if (!pad) return false;
@@ -75,7 +95,10 @@ export function renderDrumVoice(
         )
       : null;
 
-  const basePitch = PAD_BASE_PITCH + pad.semitones;
+  const exprPitch = event.expression?.pitch;
+  const pitchOffset = exprPitch && exprPitch.length > 0 ? exprPitch[0]!.value : 0;
+  const hasBend = Boolean(pitchBendSemitones && pitchBendSemitones.length > 0);
+  const basePitch = PAD_BASE_PITCH + pad.semitones + pitchOffset;
   const noiseGain = pad.noiseLevel * pad.noiseLevel * 0.35;
   const ringInc = Math.min(sampleRate * 0.45, Math.max(20, pad.ringHz)) / sampleRate;
   let ringPhase = 0.25;
@@ -109,7 +132,8 @@ export function renderDrumVoice(
       amp = linear + (exponential - linear) * pad.curve;
     }
 
-    const hz = pitchHz(basePitch + pad.pitchEnvAmount * pitchEnv.step());
+    const channelBend = hasBend ? stepTrackAt(pitchBendSemitones, frame) : 0;
+    const hz = pitchHz(basePitch + channelBend + pad.pitchEnvAmount * pitchEnv.step());
     let sample = osc.next(hz, pad.position, sampleRate);
     if (noise) {
       sample += noise.next() * noiseGain;

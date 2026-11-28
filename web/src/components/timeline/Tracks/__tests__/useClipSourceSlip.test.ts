@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { getTimelineTemporal } from "../../../../stores/timeline/TimelineInstance";
-import { slipSourceWindow, useClipSourceSlip } from "../useClipSourceSlip";
+import { planSlip, slipSourceWindow, useClipSourceSlip } from "../useClipSourceSlip";
 
 describe("slipSourceWindow", () => {
   const clip = {
@@ -30,6 +30,16 @@ describe("slipSourceWindow", () => {
     });
   });
 
+  it("slips a looped clip by one repeat of source, not its whole length", () => {
+    expect(
+      slipSourceWindow(
+        { durationMs: 8000, loopLengthMs: 2000, inPointMs: 0 },
+        500,
+        8000
+      )
+    ).toEqual({ inPointMs: 500 });
+  });
+
   it("uses the source-rate span when the clip has no explicit out point", () => {
     expect(
       slipSourceWindow(
@@ -38,6 +48,30 @@ describe("slipSourceWindow", () => {
         4000
       )
     ).toEqual({ inPointMs: 1000 });
+  });
+});
+
+describe("planSlip on a midi clip", () => {
+  it("slips the note window and clamps at zero", () => {
+    const midi = makeClip({
+      id: "m1",
+      trackId: "k",
+      mediaType: "midi",
+      startMs: 0,
+      durationMs: 2000,
+      inPointMs: 500
+    });
+    const state = {
+      clips: [midi],
+      tracks: [makeTrack({ id: "k", type: "midi", name: "k" })],
+      linkedSelection: true
+    };
+    expect(planSlip(state, midi, 700, undefined)).toEqual([
+      { id: "m1", patch: { inPointMs: 1200 } }
+    ]);
+    expect(planSlip(state, midi, -900, undefined)).toEqual([
+      { id: "m1", patch: { inPointMs: 0 } }
+    ]);
   });
 });
 

@@ -45,7 +45,11 @@ void AssistController::setModel(TimelineModel* model) {
     m_scriptRevisions.clear(); m_result.clear(); m_pendingCommitId.clear();
     if (model) {
         const auto invalidate = [this]() { if (m_busy && m_cancelled) { m_cancelled->store(true); } };
-        connect(model, &TimelineModel::clipsChanged, this, [this, invalidate] { invalidate(); emit changed(); });
+        connect(model, &TimelineModel::changed, this, [this, invalidate](const ChangeSet& changes) {
+            invalidate();
+            if (changes.fullReplacement || !changes.clips.isEmpty() || !changes.tracks.isEmpty() ||
+                changes.clipsStructural || changes.tracksStructural) { emit changed(); }
+        });
         connect(model, &TimelineModel::markersChanged, this, invalidate);
         connect(model->undoStack(), &QUndoStack::indexChanged, this, [invalidate](int) { invalidate(); });
         m_timelineId = model->timeline().raw.value("id").toString();
@@ -556,7 +560,7 @@ QString AssistController::draftScope() const {
 }
 QVariantList AssistController::linkedResources() const {
     QVariantList result;
-    if (!m_model) { return result; }
+    if (!m_linkedResourcesActive || !m_model) { return result; }
     QSet<QString> seen;
     for (const auto& value : m_model->timeline().raw.value("clips").toArray()) {
         const auto clip = value.toObject();

@@ -186,19 +186,32 @@ Column {
                         const next = side === "out" ? [fx, fy, handles.x2, handles.y2] : [handles.x1, handles.y1, fx, fy]
                         return {action: "easing", row: root.rowId, atMs: b.ms, easing: root.controller.bezierEasing(next[0], next[1], next[2], next[3])}
                     }
-                    EffectControlsHandle {
-                        objectName: "effectControlsHandle_" + root.rowId + "_" + seg.index + "_out"
-                        segment: seg
-                        graph: root
-                        plotItem: plot
-                        side: "out"
-                    }
-                    EffectControlsHandle {
-                        objectName: "effectControlsHandle_" + root.rowId + "_" + seg.index + "_in"
-                        segment: seg
-                        graph: root
-                        plotItem: plot
-                        side: "in"
+                    Loader {
+                        id: handleLoader
+                        property bool held: false
+                        Connections {
+                            target: root.panel
+                            function onHandleDraggingChanged() {
+                                handleLoader.held = root.panel.handleDragging && handleLoader.active
+                            }
+                        }
+                        active: held || (!!seg.handles && seg.bx >= 0 && seg.ax <= root.panel.laneWidth)
+                        sourceComponent: Item {
+                            EffectControlsHandle {
+                                objectName: "effectControlsHandle_" + root.rowId + "_" + seg.index + "_out"
+                                segment: seg
+                                graph: root
+                                plotItem: plot
+                                side: "out"
+                            }
+                            EffectControlsHandle {
+                                objectName: "effectControlsHandle_" + root.rowId + "_" + seg.index + "_in"
+                                segment: seg
+                                graph: root
+                                plotItem: plot
+                                side: "in"
+                            }
+                        }
                     }
                 }
             }

@@ -58,6 +58,20 @@ class TestWiringW : public WiringFixture {
     }
     QJsonArray effects(const QString& id = "a") const { return track(id).value("effects").toArray(); }
     QString effectId(int index = 0) const { return effects().at(index).toObject().value("id").toString(); }
+    nt::MixerReturn::Snapshot gainOverride(const QString& id) const {
+        const auto snapshot = model.snapshot();
+        const auto* channel = snapshot->findTrack("a");
+        nt::MixerReturn::Snapshot value;
+        if (channel) {
+            for (const auto& parameter : channel->deviceParameters) {
+                if (parameter.deviceId == id.toStdString() && parameter.name == "gainDb") {
+                    parameter.state->volumeReturn.read(value);
+                    break;
+                }
+            }
+        }
+        return value;
+    }
     void add(const QString& type) { click("fx-add-a"); click("fx-add-type-a-" + type); }
 private slots:
     void initTestCase() {
@@ -247,25 +261,21 @@ private slots:
         const auto before = item("lanesContent")->height();
         click("track-fx-a");
         QTRY_VERIFY(item("track-effects-panel-a") && item("track-effects-panel-a")->isVisible());
-        auto* panel = item("track-effects-panel-a");
-        QCOMPARE(panel->height(), 280.0);
-        QTRY_COMPARE(item("lanesContent")->height(), before + 280);
-        auto* viewport = item("lanesViewport");
-        QCOMPARE(panel->mapToItem(viewport, QPointF{}).x(), 0.0);
-        QCOMPARE(panel->width(), viewport->width());
-        auto* lane = item("trackLane-a");
-        QCOMPARE(panel->mapToScene(QPointF{}).y(), lane->mapToScene({0, lane->height()}).y());
+        QVERIFY(item("dockTab_trackEffects") && item("dockTab_trackEffects")->isVisible());
+        // Effect chain opens in its own dock panel rather than expanding under the track lane.
+        QCOMPARE(item("lanesContent")->height(), before);
+        QVERIFY(item("trackLane-a") && item("trackLane-a")->isVisible());
         QCOMPARE(accessible->text(QAccessible::Name), QString("Hide effects chain"));
         QVERIFY(accessible->state().checked);
         QCOMPARE(header->property("tone").toString(), QString("idle"));
-        gestures()->viewState()->setScrollLeftPx(140);
-        QCoreApplication::processEvents();
-        QCOMPARE(panel->mapToItem(viewport, QPointF{}).x(), 0.0);
-        click("track-fx-a"); QTRY_VERIFY(!panel->isVisible());
-        QTRY_COMPARE(item("lanesContent")->height(), before);
-        click("track-fx-a"); click("track-fx-v");
-        QTRY_VERIFY(!panel->isVisible());
-        QVERIFY(item("track-effects-panel-v")->isVisible());
+        click("track-fx-a");
+        QTRY_VERIFY(!item("track-effects-panel-a") || !item("track-effects-panel-a")->isVisible());
+        QCOMPARE(item("lanesContent")->height(), before);
+        click("track-fx-a");
+        QTRY_VERIFY(item("track-effects-panel-a") && item("track-effects-panel-a")->isVisible());
+        click("track-fx-v");
+        QTRY_VERIFY(item("track-effects-panel-v") && item("track-effects-panel-v")->isVisible());
+        QVERIFY(!item("track-effects-panel-a"));
         click("fx-add-v");
         for (const auto* type : {"colorCorrection", "videoBlur", "sharpen", "vignette", "chromaKey"}) {
             QVERIFY(item("fx-add-type-v-" + QString::fromLatin1(type)));
@@ -282,19 +292,25 @@ private slots:
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
         QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
         QVERIFY(knob->property("dragging").toBool());
-        QVERIFY(doc() != before);
+        QCOMPARE(doc(), before);
+        QVERIFY(gainOverride(id).active(0));
+        QVERIFY(gainOverride(id).at(0) != 0);
         QCOMPARE(model.undoStack()->count(), undoCount);
         knob->setEnabled(false);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 10));
         QCOMPARE(doc(), before);
+        QVERIFY(!gainOverride(id).active(0));
         QCOMPARE(model.undoStack()->count(), undoCount);
         knob->setEnabled(true);
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
         QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
-        QVERIFY(doc() != before);
+        QCOMPARE(doc(), before);
+        QVERIFY(gainOverride(id).active(0));
+        QVERIFY(gainOverride(id).at(0) != 0);
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 10));
         QCOMPARE(doc(), before);
+        QVERIFY(!gainOverride(id).active(0));
         QCOMPARE(model.undoStack()->count(), undoCount);
     }
     void cancelCurveDragRestoresDraft_data() {
@@ -344,6 +360,87 @@ private slots:
         QCOMPARE(doc(), before);
         QCOMPARE(model.undoStack()->count(), undoCount);
     }
+    void saveShot(const QString& name) {
+        const auto dir = qEnvironmentVariable("NT_SHOT_DIR");
+        if (dir.isEmpty()) { return; }
+        QVERIFY(view->grabWindow().save(dir + "/" + name + ".png"));
+    }
+    static QStringList menuSections(QQuickItem* list) {
+        QStringList out;
+        for (const auto& line : list->property("model").toList()) {
+            const auto row = line.toMap();
+            if (row.value("kind") == "header") { out.append(row.value("label").toString()); }
+        }
+        return out;
+    }
+    void instrumentMenu() {
+        auto document = QJsonDocument::fromJson(fixtureDocument).object();
+        auto tracks = document.value("tracks").toArray();
+        tracks.append(QJsonObject{{"id", "m"}, {"name", "Keys"}, {"type", "midi"}, {"index", 3}, {"heightPx", 80},
+                                  {"visible", true}, {"locked", false}, {"muted", false}, {"solo", false},
+                                  {"instrument", QJsonObject{{"type", "subtractive"}}}});
+        document.insert("tracks", tracks);
+        auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        const auto instrument = [this] { return track("m").value("instrument").toObject(); };
+        QTRY_VERIFY(item("track-fx-m"));
+        click("track-fx-m");
+        QTRY_VERIFY(item("instrument-menu-m") && item("instrument-menu-m")->isVisible());
+        QVERIFY(item("subtractive-note"));
+        const auto before = doc();
+        const auto undoBase = model.undoStack()->count();
+        click("instrument-menu-m");
+        QTRY_VERIFY(item("instrument-item-m-list") && item("instrument-item-m-list")->isVisible());
+        QCOMPARE(menuSections(item("instrument-item-m-list")), QStringList({"Built-in", "Plug-ins"}));
+        for (const auto* type : {"drum", "bass", "wavetable", "sampler", "modal", "subtractive"}) {
+            QTRY_VERIFY2(item("instrument-item-m-" + QString::fromLatin1(type)), type);
+        }
+        saveShot("instrument-menu");
+        click("instrument-item-m-bass");
+        QTRY_COMPARE(instrument().value("type").toString(), QString("bass"));
+        QVERIFY(!instrument().value("preset").toString().isEmpty());
+        QCOMPARE(model.undoStack()->count(), undoBase + 1);
+        QTRY_VERIFY(item("bassSynthPanel") && item("bassSynthPanel")->isVisible());
+        saveShot("instrument-bass-panel");
+        // The search field filters both groups.
+        click("instrument-menu-m");
+        QTRY_VERIFY(item("instrument-item-m-list") && item("instrument-item-m-list")->isVisible());
+        const auto lines = item("instrument-item-m-list")->property("model").toList();
+        QString vstKey;
+        for (const auto& line : lines) {
+            const auto row = line.toMap();
+            if (row.value("kind") == "vst") { vstKey = row.value("key").toString(); break; }
+        }
+        QVERIFY(!vstKey.isEmpty());
+        click("instrument-item-m-" + vstKey);
+        QTRY_COMPARE(instrument().value("type").toString(), QString("vst"));
+        QCOMPARE(model.undoStack()->count(), undoBase + 2);
+        click("instrument-menu-m");
+        QTRY_VERIFY(item("instrument-item-m-drum"));
+        click("instrument-item-m-drum");
+        QTRY_COMPARE(instrument().value("type").toString(), QString("drum"));
+        QTRY_VERIFY(item("drumKitPanel") && item("drumKitPanel")->isVisible());
+        QCOMPARE(model.undoStack()->count(), undoBase + 3);
+        model.undoStack()->undo();
+        QTRY_COMPARE(instrument().value("type").toString(), QString("vst"));
+        model.undoStack()->undo();
+        QTRY_COMPARE(instrument().value("type").toString(), QString("bass"));
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+        // The effect menu lists built-in and FableSynth effects with the plug-ins.
+        click("fx-add-m");
+        QTRY_VERIFY(item("fx-add-type-m-list") && item("fx-add-type-m-list")->isVisible());
+        QCOMPARE(menuSections(item("fx-add-type-m-list")), QStringList({"Built-in", "Plug-ins"}));
+        QVERIFY(item("fx-add-type-m-reverb"));
+        QVERIFY(item("fx-add-type-m-search") && item("fx-add-type-m-search")->isVisible());
+        saveShot("effect-menu");
+        for (const char key : {'v', 'e', 'r', 'b'}) { QTest::keyClick(view.get(), key); }
+        QTRY_COMPARE(item("fx-add-type-m-list")->property("model").toList().size(), 2);
+        QTest::keyClick(view.get(), Qt::Key_Return);
+        QTRY_COMPARE(effects("m").size(), 1);
+        QCOMPARE(effects("m").at(0).toObject().value("type").toString(), QString("fable"));
+    }
     void effectEdits() {
         QVERIFY(item("track-fx-a")); click("track-fx-a");
         const auto before = doc();
@@ -372,9 +469,12 @@ private slots:
         QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
         QTest::mouseMove(view.get(), from - QPoint(0, 20), 20);
         QCOMPARE(model.undoStack()->count(), 3);
-        QVERIFY(effects()[0].toObject().value("gainDb").toDouble() != 0);
+        QCOMPARE(effects()[0].toObject().value("gainDb").toDouble(), 0.0);
+        QVERIFY(gainOverride(id).active(0));
+        const double previewGain = gainOverride(id).at(0);
+        QVERIFY(previewGain != 0);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 20));
-        QTRY_VERIFY(effects()[0].toObject().value("gainDb").toDouble() != 0);
+        QTRY_COMPARE(effects()[0].toObject().value("gainDb").toDouble(), previewGain);
         QCOMPARE(model.undoStack()->count(), 4);
         add("filter"); QCOMPARE(model.undoStack()->count(), 5);
         click("fx-grip-" + id);
@@ -466,9 +566,12 @@ private slots:
             for (const char ch : text) { QTest::keyClick(view.get(), ch); }
         };
         typeValue("3.5");
-        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
+        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 0.0);
+        QVERIFY(gainOverride(id).active(0));
+        QCOMPARE(gainOverride(id).at(0), 3.5);
         QCOMPARE(model.undoStack()->count(), before);
         QTest::keyClick(view.get(), Qt::Key_Return);
+        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
         QCOMPARE(model.undoStack()->count(), before + 1);
         model.undoStack()->undo(); QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 0.0);
         model.undoStack()->redo(); QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
@@ -478,14 +581,108 @@ private slots:
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
         typeValue("-2.4");
+        QVERIFY(gainOverride(id).active(0));
+        QCOMPARE(gainOverride(id).at(0), -2.4);
+        QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QCOMPARE(effects()[0].toObject()["gainDb"].toDouble(), 3.5);
+        QVERIFY(!gainOverride(id).active(0));
         const bool wasPlaying = clock.playing();
         click(fieldName);
         QTest::keyClick(view.get(), Qt::Key_Space);
         QCOMPARE(clock.playing(), wasPlaying);
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QCOMPARE(model.undoStack()->count(), before + 1);
+    }
+    QString addFable(const QString& kind) {
+        const auto count = effects().size();
+        add(kind);
+        if (effects().size() != count + 1) { return {}; }
+        return effects().last().toObject().value("id").toString();
+    }
+    QJsonObject fableParams() const { return effects()[0].toObject().value("params").toObject(); }
+    void fableEditors_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<QString>("knob");
+        for (const auto& [kind, knob] : std::initializer_list<std::pair<const char*, const char*>>{
+                 {"eq", "fx.eq.mid"}, {"ott", "fx.ott.depth"}, {"comp", "fx.comp.thr"}, {"drive", "fx.drive.amt"}, {"lab", "fx.crush.bits"},
+                 {"chorus", "fx.chorus.rate"}, {"echo", "fx.delay.fb"}, {"reverb", "fx.reverb.size"}, {"limiter", "fx.limit.ceil"}}) {
+            QTest::newRow(kind) << QString(kind) << QString(knob);
+        }
+    }
+    void fableEditors() {
+        QFETCH(QString, kind); QFETCH(QString, knob);
+        click("track-fx-a");
+        const auto id = addFable(kind);
+        QVERIFY(!id.isEmpty());
+        QTRY_VERIFY(item("fable-editor-" + id));
+        // Every parameter has a knob, a choice or a switch.
+        const auto params = fableParams();
+        QVERIFY(!params.isEmpty());
+        for (auto it = params.begin(); it != params.end(); ++it) {
+            const auto suffix = id + "-" + it.key();
+            QVERIFY2(item("fable-knob-" + suffix) || item("fable-enum-" + suffix) || item("fable-toggle-" + suffix), qPrintable(suffix));
+        }
+        saveShot("fable-" + kind);
+        // One drag is one undo step that changes only that parameter.
+        const auto before = params;
+        const int undoCount = model.undoStack()->count();
+        auto* dial = item("fable-knob-" + id + "-" + knob);
+        QVERIFY(dial); QVERIFY(dial->isEnabled());
+        const auto from = dial->mapToScene({dial->width() / 2, 20}).toPoint();
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), from - QPoint(0, 15), 20);
+        QTest::mouseMove(view.get(), from - QPoint(0, 30), 20);
+        QCOMPARE(model.undoStack()->count(), undoCount);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 30));
+        QTRY_COMPARE(model.undoStack()->count(), undoCount + 1);
+        const auto after = fableParams();
+        QVERIFY(after.value(knob).toDouble() != before.value(knob).toDouble());
+        for (auto it = before.begin(); it != before.end(); ++it) {
+            if (it.key() != knob) { QCOMPARE(after.value(it.key()), it.value()); }
+        }
+        model.undoStack()->undo();
+        QCOMPARE(fableParams(), before);
+    }
+    void fableChoicesAndSwitches() {
+        click("track-fx-a");
+        const auto id = addFable("echo");
+        QVERIFY(!id.isEmpty());
+        QTRY_VERIFY(item("fable-enum-" + id + "-fx.delay.mode"));
+        const int undoCount = model.undoStack()->count();
+        // A long choice is a select. Its commit is one undo step.
+        QVERIFY(QMetaObject::invokeMethod(item("fable-enum-" + id + "-fx.delay.mode"), "valueCommitted", Q_ARG(QVariant, 1)));
+        QTRY_COMPARE(fableParams().value("fx.delay.mode").toDouble(), 1.0);
+        QCOMPARE(model.undoStack()->count(), undoCount + 1);
+        // SYNC enables the division and disables the free time knob.
+        QVERIFY(item("fable-knob-" + id + "-fx.delay.time")->isEnabled());
+        click("fable-toggle-" + id + "-fx.delay.sync");
+        QTRY_COMPARE(fableParams().value("fx.delay.sync").toDouble(), 1.0);
+        QCOMPARE(model.undoStack()->count(), undoCount + 2);
+        QTRY_VERIFY(!item("fable-knob-" + id + "-fx.delay.time")->isEnabled());
+        model.undoStack()->undo();
+        QCOMPARE(fableParams().value("fx.delay.sync").toDouble(), 0.0);
+        // A section switch turns its knobs off.
+        QVERIFY(model.applyEdit("removeTrackEffect", {{"trackId", "a"}, {"effectId", id}}));
+        QTRY_COMPARE(effects().size(), 0);
+        const auto labId = addFable("lab");
+        QTRY_VERIFY(item("fable-toggle-" + labId + "-fx.reso.on"));
+        QVERIFY(!item("fable-knob-" + labId + "-fx.reso.decay")->isEnabled());
+        // The rack may keep a scroll offset from earlier cases, so toggle without a pointer.
+        auto* reso = item("fable-toggle-" + labId + "-fx.reso.on");
+        QVERIFY(QMetaObject::invokeMethod(reso, "toggle"));
+        QVERIFY(QMetaObject::invokeMethod(reso, "toggled"));
+        QTRY_VERIFY(item("fable-knob-" + labId + "-fx.reso.decay")->isEnabled());
+        QCOMPARE(effects()[0].toObject().value("params").toObject().value("fx.reso.on").toDouble(), 1.0);
+        // A short choice is a segmented control.
+        QVERIFY(model.applyEdit("removeTrackEffect", {{"trackId", "a"}, {"effectId", labId}}));
+        QTRY_COMPARE(effects().size(), 0);
+        const auto reverbId = addFable("reverb");
+        QTRY_VERIFY(item("fable-enum-" + reverbId + "-fx.reverb.type-1"));
+        const int beforeType = model.undoStack()->count();
+        click("fable-enum-" + reverbId + "-fx.reverb.type-1");
+        QTRY_COMPARE(fableParams().value("fx.reverb.type").toDouble(), 1.0);
+        QCOMPARE(model.undoStack()->count(), beforeType + 1);
     }
     void speedDuration() {
         click("timeRuler"); QTest::keyClick(view.get(), Qt::Key_R, Qt::ControlModifier);

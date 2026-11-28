@@ -18,8 +18,7 @@ import { Z_INDEX } from "../../ui_primitives";
 const rubberBandStyles = (theme: Theme) =>
   css({
     position: "absolute",
-    border: `1px solid ${theme.vars.palette.secondary.main}`,
-    backgroundColor: `${theme.vars.palette.secondary.main}22`,
+    border: `1px dashed ${theme.vars.palette.text.secondary}`,
     pointerEvents: "none",
     zIndex: Z_INDEX.sticky
   });

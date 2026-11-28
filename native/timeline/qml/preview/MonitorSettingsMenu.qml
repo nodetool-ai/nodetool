@@ -10,6 +10,7 @@ import NodeTool.UiPrimitives as Ui
 Ui.ContextMenu {
     id: root
     required property MonitorViewState monitor
+    // JSON records consumed by the shared registry, menu, or control API.
     required property var views
     objectName: "monitorSettingsMenu"
     popupType: Controls.Popup.Item
@@ -28,6 +29,7 @@ Ui.ContextMenu {
             onObjectAdded: (index, object) => resolutionMenu.addItem(object)
             onObjectRemoved: (index, object) => resolutionMenu.removeItem(object)
             delegate: Ui.MenuItem {
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 objectName: resolutionMenu.prefix + modelData.denominator
                 text: modelData.label
@@ -65,6 +67,7 @@ Ui.ContextMenu {
             onObjectAdded: (index, object) => displayMenu.addItem(object)
             onObjectRemoved: (index, object) => displayMenu.removeItem(object)
             delegate: Ui.MenuItem {
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 objectName: "monitorDisplay_" + modelData.id
                 text: modelData.title

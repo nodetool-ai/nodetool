@@ -12,6 +12,12 @@ import { describe, expect, it } from "vitest";
 import { QUANTIZE_DIVISION_VALUES } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import {
   MIDI_MAX_NOTES_PER_CLIP as PROTOCOL_MAX_NOTES,
+  MIDI_MAX_CONTROLLER_LANES_PER_CLIP as PROTOCOL_MAX_LANES,
+  MIDI_MAX_POINTS_PER_LANE as PROTOCOL_MAX_POINTS,
+  MIDI_MAX_EXPRESSION_POINTS_PER_NOTE as PROTOCOL_MAX_EXPRESSION_POINTS,
+  MIDI_PITCH_BEND_RANGE_SEMITONES as PROTOCOL_BEND_RANGE,
+  midiControllerLane,
+  type MidiControllerLane as ProtocolMidiControllerLane,
   chordQuality,
   clipHarmony,
   timelineChord,
@@ -21,23 +27,33 @@ import {
   type TimelineChord as ProtocolTimelineChord,
   midiInstrument,
   midiNote,
+  stepPattern,
   timelineTempo,
   type MidiInstrument as ProtocolMidiInstrument,
   type MidiNote as ProtocolMidiNote,
+  type StepPattern as ProtocolStepPattern,
   type TimelineTempo as ProtocolTimelineTempo
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { DEFAULT_MIDI_INSTRUMENT } from "../src/midi/instrument.js";
 import { MIDI_INSTRUMENT_PRESETS } from "../src/midi/presets.js";
 import { DEFAULT_TEMPO } from "../src/midi/tempo.js";
 import { MIDI_MAX_NOTES_PER_CLIP } from "../src/midi/notes.js";
+import {
+  MIDI_MAX_CONTROLLER_LANES_PER_CLIP,
+  MIDI_MAX_EXPRESSION_POINTS_PER_NOTE,
+  MIDI_MAX_POINTS_PER_LANE,
+  MIDI_PITCH_BEND_RANGE_SEMITONES
+} from "../src/midi/controllers.js";
 import { QUANTIZE_DIVISIONS } from "../src/midi/edit.js";
 import { CHORD_QUALITY_IDS } from "../src/harmony/chords.js";
 import { DEFAULT_CLIP_HARMONY } from "../src/harmony/expand.js";
 import { SCALE_IDS } from "../src/harmony/scales.js";
 import type {
   ClipHarmony,
+  MidiControllerLane,
   MidiInstrument,
   MidiNote,
+  StepPattern,
   TimelineChord,
   TimelineTempo
 } from "../src/types.js";
@@ -51,6 +67,29 @@ const noteThere: ProtocolMidiNote = {
   durationTick: 960
 } satisfies MidiNote;
 const noteBack: MidiNote = noteThere;
+
+const fullNoteThere: ProtocolMidiNote = {
+  ...noteThere,
+  muted: true,
+  channel: 15,
+  releaseVelocity: 0,
+  expression: {
+    pitch: [{ tick: 0, value: -48 }],
+    volume: [{ tick: 960, value: 4 }],
+    pan: [{ tick: 0, value: -1 }],
+    brightness: [{ tick: 0, value: 0.5 }]
+  }
+} satisfies MidiNote;
+const fullNoteBack: MidiNote = fullNoteThere;
+
+const laneThere: ProtocolMidiControllerLane = {
+  id: "l1",
+  kind: "pitchBend",
+  channel: 2,
+  interpolation: "step",
+  points: [{ id: "p1", tick: 0, value: -8192 }]
+} satisfies MidiControllerLane;
+const laneBack: MidiControllerLane = laneThere;
 
 const instrumentThere: ProtocolMidiInstrument =
   DEFAULT_MIDI_INSTRUMENT satisfies MidiInstrument;
@@ -121,6 +160,18 @@ describe("midi types match the protocol schemas", () => {
     expect(clipHarmony.shape.scaleType.unwrap().options).toEqual(["auto", ...SCALE_IDS]);
   });
 
+  it("parses the controller lanes and the new note fields", () => {
+    expect(midiNote.parse(fullNoteBack)).toEqual(fullNoteThere);
+    expect(midiControllerLane.parse(laneBack)).toEqual(laneThere);
+  });
+
+  it("keeps the controller limits the same on both sides", () => {
+    expect(MIDI_MAX_CONTROLLER_LANES_PER_CLIP).toBe(PROTOCOL_MAX_LANES);
+    expect(MIDI_MAX_POINTS_PER_LANE).toBe(PROTOCOL_MAX_POINTS);
+    expect(MIDI_MAX_EXPRESSION_POINTS_PER_NOTE).toBe(PROTOCOL_MAX_EXPRESSION_POINTS);
+    expect(MIDI_PITCH_BEND_RANGE_SEMITONES).toBe(PROTOCOL_BEND_RANGE);
+  });
+
   it("keeps the note cap the same on both sides", () => {
     expect(MIDI_MAX_NOTES_PER_CLIP).toBe(PROTOCOL_MAX_NOTES);
   });
@@ -129,5 +180,89 @@ describe("midi types match the protocol schemas", () => {
   // types are: this package depends on that one, not the other way round.
   it("keeps the quantize divisions the same on both sides", () => {
     expect([...QUANTIZE_DIVISIONS]).toEqual([...QUANTIZE_DIVISION_VALUES]);
+  });
+
+  it("SQ1: round-trips a pattern clip through timelineClip and refuses pattern + notes", () => {
+    const pat: ProtocolStepPattern = {
+      version: 1,
+      seed: 42,
+      lengthSteps: 16,
+      stepRate: "1/16",
+      playback: "forward",
+      legato: false,
+      swing: 0,
+      swingDivision: "1/16",
+      pitchSource: "off",
+      scale: "chromatic",
+      noTranspose: false,
+      scaleQuantize: false,
+      midiChannel: 1,
+      automationMode: "latch",
+      mono: false,
+      name: "Beat",
+      rows: [
+        {
+          id: "r1",
+          assignment: { type: "note", pitch: 36 },
+          mute: false,
+          solo: false,
+          lengthSteps: 16,
+          loopStart: 0,
+          loopEnd: 16,
+          stepRate: "1/16",
+          playback: "forward",
+          midiChannel: 1,
+          automationMode: "latch",
+          subrows: ["velocity", "gate"],
+          steps: Array.from({ length: 16 }, (_, i) => (i % 4 === 0 ? { on: true } : {}))
+        }
+      ]
+    } satisfies StepPattern;
+    const back: StepPattern = pat;
+    expect(stepPattern.parse(back)).toEqual(pat);
+
+    const parsedClip = timelineClip.parse({
+      id: "c_pat",
+      trackId: "m",
+      name: "Beat",
+      startMs: 0,
+      durationMs: 2000,
+      mediaType: "midi",
+      sourceType: "imported",
+      status: "generated",
+      versions: [],
+      locked: false,
+      pattern: pat,
+      patternPhaseTicks: 240
+    });
+    expect(parsedClip.pattern).toEqual(pat);
+    expect(parsedClip.patternPhaseTicks).toBe(240);
+
+    const sortedPat: ProtocolStepPattern = {
+      ...pat,
+      rowSort: "typeAndNoteAsc"
+    } satisfies StepPattern;
+    const sortedBack: StepPattern = sortedPat;
+    expect(stepPattern.parse(sortedBack)).toEqual(sortedPat);
+
+    // SQ1: A clip with both pattern and notes is invalid and names the clip.
+    const invalid = timelineClip.safeParse({
+      id: "c_bad",
+      trackId: "m",
+      name: "BadClip",
+      startMs: 0,
+      durationMs: 2000,
+      mediaType: "midi",
+      sourceType: "imported",
+      status: "generated",
+      versions: [],
+      locked: false,
+      pattern: pat,
+      notes: [noteBack]
+    });
+    expect(invalid.success).toBe(false);
+    if (!invalid.success) {
+      expect(invalid.error.message).toMatch(/BadClip|c_bad/);
+    }
   });
 });

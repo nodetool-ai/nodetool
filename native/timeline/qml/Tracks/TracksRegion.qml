@@ -4,7 +4,16 @@
 //   TRACKS header | TimeRuler                 (28 px)
 //   TrackHeader   | TrackLane  ...            (the rows, virtualized)
 //   TimelineScrollbar                         (14 px)
+//   footer slot                               (a layout's hint line, 0 px when none)
 //   Playhead over the ruler and the lanes
+//
+// Four slots let a layout add chrome without forking this file: an item in
+// `toolbarVariant` that reports a width replaces ToolToggle, `rulerOverlay`
+// draws over the ruler without taking input, `tracksFooter` takes its
+// height from the lanes, and `markerRow` is a full-width row between the ruler
+// and the first track row (the Music layout's Marker lane). The row takes the
+// height it reports from the rows below it, and gives it back at 0. It gets
+// `headerWidth` to split its header part from its lane part.
 //
 // Rows: a TrackWindowModel keeps only the rows in view plus 3 of overscan
 // (D27); the headers and the lanes are two Repeaters over it, scrolled by the
@@ -25,9 +34,24 @@ Rectangle {
     required property PlaybackClock clock
 
     readonly property alias viewState: view
+    property int extraHeightRevision: 0
+    Connections {
+        target: rowModel
+        function onExtraRowHeightsChanged(): void { ++region.extraHeightRevision }
+    }
     readonly property alias rows: rowModel
     readonly property alias gestures: clipGestures
     property string renamingTrackId: ""
+    property TrackHeader focusedTrackHeader: null
+    Connections {
+        target: region.Window.window
+        function onActiveFocusItemChanged(): void {
+            const focused = region.Window.window.activeFocusItem
+            region.focusedTrackHeader = region.ownerOf(focused, "trackId") as TrackHeader
+            rowModel.retainTrack(region, region.focusedTrackHeader ? region.focusedTrackHeader.trackId : "",
+                region.focusedTrackHeader !== null)
+        }
+    }
     // Follow playhead (the toolbar's Follow toggle, on by default).
     property bool followPlayhead: true
     // The `?` key and the help button ask the editor for the shortcut sheet.
@@ -38,19 +62,26 @@ Rectangle {
         Math.max(TimelineMetrics.trackHeaderMinWidth, headerWidthDraft >= 0 ? headerWidthDraft
             : columnPreferences.trackHeaderWidth > 0 ? columnPreferences.trackHeaderWidth * Ui.Theme.uiScale
             : TimelineMetrics.trackHeaderWidth))
-    readonly property double lanesHeight: Math.max(0, height - TimelineMetrics.toolbarHeight - TimelineMetrics.rulerHeight - TimelineMetrics.scrollbarHeight)
+    readonly property double footerHeight: tracksFooter.implicitHeight
+    // The row between the ruler and the first track row (the markerRow slot), 0 px when no panel shows one.
+    readonly property double markerRowHeight: markerRow.implicitHeight
+    readonly property double rowsTop: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight + markerRowHeight
+    readonly property double lanesHeight: Math.max(0, height - rowsTop - TimelineMetrics.scrollbarHeight - footerHeight)
+    // A layout's tool row (the toolbarVariant slot) is showing in place of ToolToggle.
+    readonly property bool toolbarReplaced: toolbarVariant.implicitWidth > 0
 
     objectName: "tracksRegion"
     color: Ui.Theme.surfaceCanvas
     clip: true
     Preferences { id: columnPreferences }
+    Binding { target: region.timeline.automationRecorder; property: "clock"; value: region.clock; restoreMode: Binding.RestoreNone }
 
-    function saveHeaderWidth(value) {
+    function saveHeaderWidth(value: real): void {
         headerWidthDraft = value
         columnPreferences.trackHeaderWidth = headerWidth / Ui.Theme.uiScale
         headerWidthDraft = -1
     }
-    function resetHeaderWidth() {
+    function resetHeaderWidth(): void {
         headerWidthDraft = -1
         columnPreferences.trackHeaderWidth = -1
     }
@@ -60,7 +91,7 @@ Rectangle {
         x: region.headerWidth - width / 2
         y: TimelineMetrics.toolbarHeight
         width: Ui.Metrics.md
-        height: Math.max(0, region.height - y - TimelineMetrics.scrollbarHeight)
+        height: Math.max(0, region.height - y - TimelineMetrics.scrollbarHeight - region.footerHeight)
         z: Ui.Metrics.layerOverlay
         hoverEnabled: true
         cursorShape: Qt.SizeHorCursor
@@ -103,12 +134,11 @@ Rectangle {
         }
     }
 
-    function focusTrackResize(id) {
-        for (let i = 0; i < headerRepeater.count; ++i) {
-            const header = headerRepeater.itemAt(i)
-            if (header && header.trackId === id) { header.resizeHandle.forceActiveFocus() }
-        }
+    function focusNextClipDetail(current: Item, forward: bool): bool {
+        return ClipDelegateTools.focusNext(lanesContent, region, current, forward)
     }
+
+    function focusTrackResize(id: string): void { ClipDelegateTools.focusTrackResize(headerColumn, id) }
 
     TimelineViewState {
         id: view
@@ -121,6 +151,7 @@ Rectangle {
 
     TrackWindowModel {
         id: rowModel
+        reuseRows: true
         objectName: "trackWindowModel"
         tracks: region.timeline.tracks
         viewState: view
@@ -136,6 +167,95 @@ Rectangle {
         rows: rowModel
         clock: region.clock
         lanesViewport: lanesArea
+    }
+
+    property Item clipMenuOwner: null
+    property Item laneMenuOwner: null
+    function ownerOf(area: Item, identity: string): Item {
+        return ClipDelegateTools.ownerOf(area, identity)
+    }
+    Connections {
+        target: region.clipMenuOwner
+        ignoreUnknownSignals: true
+        function onClipIdChanged(): void { region.closeSharedMenus() }
+    }
+    Connections {
+        target: region.laneMenuOwner
+        ignoreUnknownSignals: true
+        function onTrackIdChanged(): void { region.closeSharedMenus() }
+    }
+    property ClipContextMenu clipMenu: null
+    Component { id: clipMenuComponent; ClipContextMenu { gestures: clipGestures } }
+    function openClipMenu(context: var, area: Item, px: real, py: real): void {
+        if (!clipMenu) { clipMenu = (clipMenuComponent.createObject(region) as ClipContextMenu) }
+        if (!clipMenu) { return }
+        clipMenuOwner = ownerOf(area, "clipId")
+        clipMenu.retarget(area, anchor => {
+            region.clipMenu.context = context
+            region.clipMenu.popupAt(anchor, px, py)
+        })
+    }
+    property TrackLaneContextMenu laneMenu: null
+    property RegistryContextMenu editPointMenu: null
+    Component { id: laneMenuComponent; TrackLaneContextMenu { gestures: clipGestures } }
+    Component { id: editPointMenuComponent; RegistryContextMenu { kind: "editPoint"; gestures: clipGestures } }
+    function closeSharedMenus(): void {
+        clipMenuOwner = null
+        laneMenuOwner = null
+        if (clipMenu) {
+            clipMenu.cancelRetarget()
+            clipMenu.close()
+            clipMenu.context = ({})
+        }
+        if (laneMenu) {
+            laneMenu.cancelRetarget()
+            laneMenu.close()
+        }
+        if (editPointMenu) {
+            editPointMenu.cancelRetarget()
+            editPointMenu.close()
+        }
+    }
+    Connections {
+        target: view
+        function onScrollLeftPxChanged() { region.closeSharedMenus() }
+        function onScrollTopPxChanged() { region.closeSharedMenus() }
+        function onMsPerPxChanged() { region.closeSharedMenus() }
+        function onVerticalZoomChanged() { region.closeSharedMenus() }
+    }
+    function editPointExists(context: var): bool {
+        const ids = [context.clipId, context.leftId, context.rightId]
+        return !ids.some(id => id && !clipGestures.hasClip(id))
+    }
+    Connections {
+        target: region.timeline
+        function onDocumentReplaced() { region.closeSharedMenus() }
+        function onClipsChanged() {
+            if (region.clipMenu && region.clipMenu.visible && region.clipMenu.context.clipId && !clipGestures.hasClip(region.clipMenu.context.clipId)) {
+                region.clipMenu.close()
+                region.clipMenu.context = ({})
+            }
+            if (!region.editPointMenu || !region.editPointMenu.visible) return
+            if (!region.editPointExists(region.editPointMenu.context)) region.editPointMenu.close()
+        }
+    }
+    function openLaneMenu(context: var, area: var, px: var, py: var): void {
+        if (!laneMenu) laneMenu = (laneMenuComponent.createObject(region) as TrackLaneContextMenu)
+        if (!laneMenu) return
+        laneMenuOwner = ownerOf(area as Item, "trackId")
+        laneMenu.retarget(area, anchor => {
+            laneMenu.context = context
+            laneMenu.openAt(anchor, px, py)
+        })
+    }
+    function openEditPointMenu(context: var, area: var, px: var, py: var): void {
+        if (!editPointMenu) editPointMenu = (editPointMenuComponent.createObject(region) as RegistryContextMenu)
+        if (!editPointMenu) return
+        editPointMenu.retarget(area, anchor => {
+            if (!region.editPointExists(context)) return
+            editPointMenu.context = context
+            editPointMenu.popupAt(anchor, px, py)
+        })
     }
 
     // ── Toolbar (above the ruler) ──
@@ -156,7 +276,8 @@ Rectangle {
         property bool narrow: false
         property double neededWidth: 0
         readonly property double available: width - Ui.Metrics.md - Ui.Metrics.lg
-        readonly property double rowWidth: toolRow.width + toolbar.rightWidth + Ui.Metrics.xl
+        readonly property double toolsWidth: region.toolbarReplaced ? toolbarVariant.implicitWidth : toolRow.width
+        readonly property double rowWidth: toolsWidth + toolbar.rightWidth + Ui.Metrics.xl
         readonly property double rightWidth: rightGroup.width
         function refit() {
             if (available <= 0) return
@@ -175,7 +296,7 @@ Rectangle {
             x: Ui.Metrics.md
             width: Math.max(0, rightGroup.x - x - Ui.Metrics.xs)
             height: parent.height
-            contentWidth: toolRow.width
+            contentWidth: toolbar.toolsWidth
             contentHeight: height
             flickableDirection: Flickable.HorizontalFlick
             boundsBehavior: Flickable.StopAtBounds
@@ -184,12 +305,20 @@ Rectangle {
             ToolToggle {
                 id: toolRow
                 anchors.verticalCenter: parent.verticalCenter
+                visible: !region.toolbarReplaced
                 gestures: clipGestures
                 timeline: region.timeline
                 viewState: view
                 compact: toolbar.narrow
                 followPlayhead: region.followPlayhead
                 onFollowPlayheadChanged: region.followPlayhead = followPlayhead
+            }
+            SlotItems {
+                id: toolbarVariant
+                anchors.verticalCenter: parent.verticalCenter
+                slot: "toolbarVariant"
+                slotProperties: ({ timeline: region.timeline, gestures: clipGestures, viewState: view,
+                                   clock: region.clock, compact: toolbar.narrow })
             }
         }
         Row {
@@ -198,10 +327,19 @@ Rectangle {
             anchors.rightMargin: Ui.Metrics.lg
             anchors.verticalCenter: parent.verticalCenter
             spacing: Ui.Metrics.micro
+            Ui.ToolbarIconButton {
+                objectName: "show-automation"
+                anchors.verticalCenter: parent.verticalCenter
+                iconName: "automationCurve"
+                accessibleName: "Show Automation"
+                active: AutomationUIState.showAutomation
+                onClicked: AutomationUIState.showAutomation = !AutomationUIState.showAutomation
+            }
             ToolButton {
                 objectName: "addTextButton"
                 anchors.verticalCenter: parent.verticalCenter
                 label: "Add text"
+                iconOnly: toolbar.narrow
                 description: "Put words over the picture at the playhead"
                 iconName: "title"
                 onClicked: clipGestures.runAction("addTextAtPlayhead")
@@ -216,6 +354,7 @@ Rectangle {
             }
             TimelineZoomControls {
                 anchors.verticalCenter: parent.verticalCenter
+                visible: !region.toolbarReplaced   // the Music toolbar has its own zoom
                 compact: toolbar.narrow
                 viewState: view
                 clock: region.clock
@@ -261,6 +400,7 @@ Rectangle {
                 Repeater {
                     model: TrackHeaderActions.items()
                     delegate: Loader {
+                        // JSON record supplied by the delegate model.
                         required property var modelData
                         source: modelData.source
                     }
@@ -275,6 +415,7 @@ Rectangle {
             spacing: Ui.Metrics.sm
             TrackHeightSlider {
                 anchors.verticalCenter: parent.verticalCenter
+                visible: !region.toolbarReplaced   // the Music toolbar has its own height slider
                 width: Math.max(0, Math.min(Ui.Metrics.standard * 3, tracksHeader.width - headerContent.width - 3 * Ui.Metrics.lg - countChip.width - addTrack.width - 3 * Ui.Metrics.sm))
                 viewState: view
             }
@@ -310,10 +451,19 @@ Rectangle {
         gestures: clipGestures
         timeline: region.timeline
         fps: region.timeline.fps
-        markers: region.timeline.markers
         onSeekRequested: ms => region.clock.seek(ms)
         onScrubRequested: ms => region.clock.scrub(ms)
         onDeleteMarkerRequested: id => region.timeline.deleteMarker(id)
+    }
+    SlotItems {
+        x: ruler.x
+        y: ruler.y
+        width: ruler.width
+        height: ruler.height
+        clip: true
+        overlay: true
+        slot: "rulerOverlay"
+        slotProperties: ({ timeline: region.timeline, gestures: clipGestures, viewState: view })
     }
 
     // ── Track rows ──
@@ -321,7 +471,7 @@ Rectangle {
     Item {
         id: headerColumn
         objectName: "headerColumn"
-        y: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight
+        y: region.rowsTop
         width: region.headerWidth
         height: region.lanesHeight
         clip: true
@@ -335,9 +485,12 @@ Rectangle {
                 model: rowModel
                 delegate: TrackHeader {
                     id: header
+                    required property int sourceRow
                     required property double rowTop
                     required property double baseRowHeight
-                    required property var track
+                    visible: trackId !== "" && ((sourceRow >= rowModel.windowStart && sourceRow < rowModel.windowEnd)
+                        || region.focusedTrackHeader === header)
+                    objectName: visible ? "trackHeader-" + trackId : "pooledTrackHeader"
                     rowHeight: baseRowHeight
                     timeline: region.timeline
                     gestures: clipGestures
@@ -382,7 +535,8 @@ Rectangle {
                         parent: header.parent
                         y: header.rowTop + header.baseRowHeight
                         width: header.width
-                        height: rowModel.extraRowHeights[header.trackId] || 0
+                        objectName: "trackHeaderLanes-" + header.trackId
+                        height: region.extraHeightRevision >= 0 ? rowModel.extraHeight(header.trackId) : 0
                         slot: "trackHeaderLane"
                         vertical: true
                         slotProperties: ({ track: header.track, timeline: region.timeline })
@@ -413,22 +567,23 @@ Rectangle {
                             clip: true
                             accessibleName: "Track name: " + header.name
                             property bool finished: false
-                            function finish(cancel, proposed) {
+                            function finish(cancel: bool, proposed: string): void {
                                 if (finished) return
                                 finished = true
                                 const id = header.trackId
                                 const original = header.name
-                                const next = (proposed === undefined ? text : proposed).trim()
+                                const next = proposed.trim()
                                 region.renamingTrackId = ""
                                 if (!cancel && next !== "" && next !== original)
                                     region.timeline.applyEdit("setTrackName", { trackId: id, name: next })
                             }
-                            Component.onCompleted: Qt.callLater(() => { forceActiveFocus(); selectAll() })
+                            Component.onCompleted: focusRename.restart()
+                            Timer { id: focusRename; interval: 0; onTriggered: { nameInput.forceActiveFocus(); nameInput.selectAll() } }
                             onValueCommitted: value => finish(false, value)
-                            onAccepted: finish(false)
-                            onActiveFocusChanged: if (!activeFocus) finish(false)
-                            onEditCanceled: finish(true)
-                            Keys.onEscapePressed: finish(true)
+                            onAccepted: finish(false, text)
+                            onActiveFocusChanged: if (!activeFocus) finish(false, text)
+                            onEditCanceled: finish(true, text)
+                            Keys.onEscapePressed: finish(true, text)
                         }
                     }
                 }
@@ -455,6 +610,8 @@ Rectangle {
     TrackHeaderMenu {
         id: headerMenu
         timeline: region.timeline
+        gestures: clipGestures
+        clock: region.clock
         onRenameRequested: id => region.renamingTrackId = id
         RegistryMenuItems {
             menu: headerMenu
@@ -470,7 +627,7 @@ Rectangle {
         id: lanesArea
         objectName: "lanesViewport"
         x: region.headerWidth
-        y: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight
+        y: region.rowsTop
         width: region.width - region.headerWidth
         height: region.lanesHeight
         clip: true
@@ -482,34 +639,99 @@ Rectangle {
             y: -view.scrollTopPx
             width: Math.max(view.totalWidthPx, lanesArea.width)
             height: rowModel.contentHeight
+            property list<TrackLane> lanePool
+            function acquireLane(row: ClipLaneRow): TrackLane {
+                for (let index = 0; index < lanePool.length; ++index) {
+                    const lane = lanePool[index]
+                    if (!lane.row && lane.retainedTrackId === row.trackId) {
+                        lane.row = row
+                        return lane
+                    }
+                }
+                for (let index = 0; index < lanePool.length; ++index) {
+                    const lane = lanePool[index]
+                    if (!lane.row && !lane.retainedInteraction) {
+                        lane.row = row
+                        return lane
+                    }
+                }
+                const lane = laneComponent.createObject(lanesContent, { row: row }) as TrackLane
+                if (lane) { lanePool.push(lane) }
+                return lane
+            }
+            Timer {
+                id: poolCleanup
+                interval: 0
+                onTriggered: {
+                    const idleLimit = Math.max(2, rowModel.windowEnd - rowModel.windowStart)
+                    let idleCount = 0
+                    for (let index = lanesContent.lanePool.length - 1; index >= 0; --index) {
+                        const lane = lanesContent.lanePool[index]
+                        if (lane.row || lane.retainedInteraction || idleCount++ < idleLimit) { continue }
+                        lanesContent.lanePool.splice(index, 1)
+                        lane.destroy()
+                    }
+                }
+            }
+            Connections {
+                target: rowModel
+                function onTrackLayoutChanged(): void { poolCleanup.restart() }
+            }
+            Component {
+                id: laneComponent
+                TrackLane {
+                    onRetainedInteractionChanged: rowModel.retainTrack(this, trackId, retainedInteraction)
+                    visible: (row !== null && trackId !== "" && row.sourceRow >= rowModel.windowStart && row.sourceRow < rowModel.windowEnd) || retainedInteraction
+                    y: row ? row.rowTop : retainedTop
+                    width: lanesContent.width
+                    rowHeight: row ? row.baseRowHeight : retainedHeight
+                    trackId: row ? row.trackId : retainedTrackId
+                    trackType: row ? row.trackType : retainedType
+                    trackVisible: row ? row.trackVisible : retainedVisible
+                    locked: row ? row.locked : retainedLocked
+                    muted: row ? row.muted : retainedMuted
+                    timeline: region.timeline
+                    clock: region.clock
+                    viewState: view
+                    gestures: clipGestures
+                    onClipMenuRequested: (context, area, px, py) => region.openClipMenu(context, area, px, py)
+                    onLaneMenuRequested: (context, area, px, py) => region.openLaneMenu(context, area, px, py)
+                    onEditPointMenuRequested: (context, area, px, py) => region.openEditPointMenu(context, area, px, py)
+                }
+            }
             Repeater {
                 model: rowModel
-                delegate: Item {
+                delegate: ClipLaneRow {
                     id: trackRow
-                    required property double rowTop
-                    required property double rowHeight
-                    required property double baseRowHeight
-                    required property string trackId
-                    required property string trackType
-                    required property bool trackVisible
-                    required property bool locked
-                    required property bool muted
+                    // Registry contributions still consume the track document.
                     required property var track
-                    y: rowTop
+                    z: Ui.Metrics.layerContent + 1
                     width: lanesContent.width
-                    height: rowHeight
-                    TrackLane {
+                    // The row is a cheap model adapter. The lane and its clip
+                    // slots live in the viewport pool across row removal.
+                    property TrackLane pooledLane: null
+                    Component.onCompleted: pooledLane = lanesContent.acquireLane(trackRow)
+                    Component.onDestruction: {
+                        if (pooledLane) {
+                            pooledLane.retainedTrackId = pooledLane.trackId
+                            pooledLane.retainedTop = pooledLane.y
+                            pooledLane.retainedHeight = pooledLane.rowHeight
+                            pooledLane.retainedType = pooledLane.trackType
+                            pooledLane.retainedLocked = pooledLane.locked
+                            pooledLane.retainedMuted = pooledLane.muted
+                            pooledLane.retainedVisible = pooledLane.trackVisible
+                            pooledLane.row = null
+                            poolCleanup.restart()
+                        }
+                    }
+                    // Contributions drawn over the base lane, such as the music range band.
+                    SlotItems {
                         width: parent.width
-                        rowHeight: trackRow.baseRowHeight
-                        trackId: trackRow.trackId
-                        trackType: trackRow.trackType
-                        trackVisible: trackRow.trackVisible
-                        locked: trackRow.locked
-                        muted: trackRow.muted
-                        timeline: region.timeline
-                        clock: region.clock
-                        viewState: view
-                        gestures: clipGestures
+                        height: trackRow.baseRowHeight
+                        overlay: true
+                        slot: "laneOverlay"
+                        slotProperties: ({ track: trackRow.track, timeline: region.timeline,
+                                           gestures: clipGestures, viewState: view })
                     }
                     SlotItems {
                         id: laneRows
@@ -518,14 +740,10 @@ Rectangle {
                         slot: "trackLane"
                         vertical: true
                         slotProperties: ({ track: trackRow.track, timeline: region.timeline })
-                        function reportHeight() {
-                            if ((rowModel.extraRowHeights[trackRow.trackId] || 0) === implicitHeight) return
-                            const heights = Object.assign({}, rowModel.extraRowHeights)
-                            heights[trackRow.trackId] = implicitHeight
-                            rowModel.extraRowHeights = heights
-                        }
-                        onImplicitHeightChanged: Qt.callLater(reportHeight)
-                        Component.onCompleted: Qt.callLater(reportHeight)
+                        function reportHeight(): void { rowModel.reportExtraHeight(trackRow.trackId, implicitHeight) }
+                        Timer { id: reportLater; interval: 0; onTriggered: laneRows.reportHeight() }
+                        onImplicitHeightChanged: reportLater.restart()
+                        Component.onCompleted: reportLater.restart()
                     }
                 }
             }
@@ -599,7 +817,8 @@ Rectangle {
         Ui.Surface {
             id: toolHint
             objectName: "toolHoverFeedback"
-            readonly property var preview: clipGestures.toolPreview
+            // JSON data from the document, controller, or shared JavaScript API.
+            readonly property gestureFeedback preview: clipGestures.previewFeedback
             visible: !!preview.label && clipGestures.gestureKind === ""
             variant: Ui.Surface.Overlay
             width: Math.min(parent.width, toolHintText.implicitWidth + 2 * Ui.Metrics.md)
@@ -633,7 +852,7 @@ Rectangle {
 
     // ── Horizontal scrollbar ──
     TimelineScrollbar {
-        y: region.height - height
+        y: region.height - region.footerHeight - height
         width: region.width
         leftInsetPx: region.headerWidth
         viewState: view
@@ -645,11 +864,33 @@ Rectangle {
         objectName: "timelineGestureArea"
         y: TimelineMetrics.toolbarHeight
         width: region.width
-        height: region.height - TimelineMetrics.toolbarHeight
+        height: region.height - TimelineMetrics.toolbarHeight - region.footerHeight
         viewState: view
         rulerTop: 0
-        rowsTop: TimelineMetrics.rulerHeight
+        rowsTop: TimelineMetrics.rulerHeight + region.markerRowHeight
         lanesLeft: region.headerWidth
+    }
+
+    // The row under the ruler: a layout's own lane over the headers and the lanes.
+    SlotItems {
+        id: markerRow
+        y: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight
+        width: region.width
+        height: implicitHeight
+        vertical: true
+        slot: "markerRow"
+        slotProperties: ({ timeline: region.timeline, gestures: clipGestures, viewState: view,
+                           clock: region.clock, headerWidth: region.headerWidth })
+    }
+
+    SlotItems {
+        id: tracksFooter
+        y: region.height - height
+        width: region.width
+        height: implicitHeight
+        vertical: true
+        slot: "tracksFooter"
+        slotProperties: ({ timeline: region.timeline, gestures: clipGestures, viewState: view })
     }
 
     // Playhead overlay: spans the ruler and the lanes, clipped to the lanes'
@@ -658,7 +899,7 @@ Rectangle {
         x: region.headerWidth
         y: TimelineMetrics.toolbarHeight
         width: region.width - region.headerWidth
-        height: TimelineMetrics.rulerHeight + region.lanesHeight
+        height: TimelineMetrics.rulerHeight + region.markerRowHeight + region.lanesHeight
         clip: true
         Playhead {
             height: parent.height

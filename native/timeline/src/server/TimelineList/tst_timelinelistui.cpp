@@ -12,6 +12,7 @@
 #include "server/TimelineList/TimelineListController.h"
 #include "server/TimelineList/TimelineDocumentController.h"
 #include "server/TimelineList/TimelineSession.h"
+#include "app/startup/LocalDocumentSaver.h"
 #include "server/projectfolder/ProjectFolderState.h"
 #include <QMutex>
 #include <QMutexLocker>
@@ -25,6 +26,7 @@
 #include <QTemporaryDir>
 #include <QImage>
 #include <QFontInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -547,6 +549,94 @@ Item {
         QCOMPARE(model.canvasWidth(), 1280);
         QCOMPARE(model.undoStack()->count(), 1);
     }
+    // MD6 and MD9 (docs/MUSIC-MODE.md, MM1 exit 4): the tempo edit is refused
+    // on a sequence with an audio clip and accepted on one without, and a
+    // music sequence keeps a whole-number tempo in one of four signatures.
+    void musicTempoRules() {
+        const auto tempo = [](double bpm, int beats = 4, int unit = 4, double offset = 0) {
+            return QJsonObject{{"bpm", bpm}, {"offsetMs", offset},
+                               {"timeSignature", QJsonObject{{"beatsPerBar", beats}, {"beatUnit", unit}}}};
+        };
+        const auto settings = [](const QJsonObject& t) {
+            return QJsonObject{{"width", 640}, {"height", 360}, {"fps", 30}, {"tempo", t}};
+        };
+        const auto open = [&](TimelineModel& model, bool audio, bool music) {
+            QJsonObject doc{{"id", "music"}, {"name", "Music"}, {"width", 640}, {"height", 360}, {"fps", 30},
+                            {"markers", QJsonArray{}},
+                            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"name", "Bass"}, {"type", "audio"}, {"index", 0}}}}};
+            auto t = tempo(120);
+            t.insert("key", QJsonObject{{"tonic", "A"}, {"mode", "minor"}});
+            doc.insert("tempo", t);
+            QJsonArray clips;
+            if (audio) {
+                clips.append(QJsonObject{{"id", "c"}, {"trackId", "a"}, {"name", "Bass"}, {"startMs", 0},
+                                         {"durationMs", 4000}, {"mediaType", "audio"}});
+            }
+            doc.insert("clips", clips);
+            if (music) {
+                doc.insert("music", QJsonObject{{"promptHistory", QJsonArray{"bass"}}});
+            }
+            auto parsed = nt::parseTimeline(doc);
+            QVERIFY(parsed.timeline);
+            model.setTimeline(std::move(*parsed.timeline));
+        };
+        const auto rawTempo = [](const TimelineModel& model) {
+            return QJsonDocument::fromJson(model.documentJson()).object().value("tempo").toObject();
+        };
+        QQmlEngine engine;
+        {
+            // Locked: an audio clip on the sequence.
+            TimelineModel model;
+            open(model, true, false);
+            QVERIFY(!model.applyEdit("setProjectSettings", settings(tempo(90))));
+            QVERIFY(!model.applyEdit("setProjectSettings", settings(tempo(120, 3, 4))));
+            QVERIFY(!model.applyEdit("setProjectSettings", settings(tempo(120, 4, 4, 10))));
+            QCOMPARE(model.undoStack()->count(), 0);
+            QCOMPARE(rawTempo(model)["bpm"].toDouble(), 120.0);
+            // The same timing is no change, so the canvas edit applies and the key stays.
+            QVERIFY(model.applyEdit("setProjectSettings", {{"width", 1280}, {"height", 720}, {"fps", 30}, {"tempo", tempo(120)}}));
+            QCOMPARE(model.canvasWidth(), 1280);
+            QCOMPARE(rawTempo(model)["key"].toObject()["tonic"].toString(), QStringLiteral("A"));
+            // The dialog shows the reason and does not apply.
+            auto dialog = make(engine, "ProjectSettingsDialog", {{"timeline", QVariant::fromValue(&model)}});
+            QVERIFY(dialog);
+            QQuickWindow window;
+            show(window, dialog.get(), 800, 800);
+            QVERIFY(QMetaObject::invokeMethod(dialog.get(), "open"));
+            auto* bpm = item(window.contentItem(), "bpmField");
+            QVERIFY(bpm);
+            QVERIFY(bpm->setProperty("text", "90"));
+            const auto message = dialog->property("tempoRefusal").toString();
+            QVERIFY2(message.contains(QStringLiteral("audio clip")), qPrintable(message));
+            auto* shown = item(window.contentItem(), "tempoRefusal");
+            QVERIFY(shown && shown->isVisible());
+            QCOMPARE(shown->property("text").toString(), message);
+            QVERIFY(!item(window.contentItem(), "applySettings")->isEnabled());
+            QVERIFY(QMetaObject::invokeMethod(dialog.get(), "commit"));
+            QCOMPARE(rawTempo(model)["bpm"].toDouble(), 120.0);
+        }
+        {
+            // Unlocked: no audio clip. A tempo the music rules refuse still applies outside music mode.
+            TimelineModel model;
+            open(model, false, false);
+            QVERIFY(model.applyEdit("setProjectSettings", settings(tempo(87.5, 7, 8))));
+            QCOMPARE(rawTempo(model)["bpm"].toDouble(), 87.5);
+            QCOMPARE(rawTempo(model)["key"].toObject()["mode"].toString(), QStringLiteral("minor"));
+        }
+        {
+            // A music sequence: whole-number BPM from 30 to 300 and 2/4, 3/4, 4/4 or 6/8.
+            TimelineModel model;
+            open(model, false, true);
+            QVERIFY(!model.applyEdit("setProjectSettings", settings(tempo(87.5))));
+            QVERIFY(!model.applyEdit("setProjectSettings", settings(tempo(25))));
+            QVERIFY(!model.applyEdit("setProjectSettings", settings(tempo(120, 5, 4))));
+            QVERIFY(!model.applyEdit("setProjectSettings", settings(tempo(120, 6, 4))));
+            QCOMPARE(model.undoStack()->count(), 0);
+            QVERIFY(model.applyEdit("setProjectSettings", settings(tempo(87, 6, 8))));
+            QCOMPARE(rawTempo(model)["bpm"].toDouble(), 87.0);
+            QCOMPARE(rawTempo(model)["timeSignature"].toObject()["beatUnit"].toInt(), 8);
+        }
+    }
     void unnamedRowLabel() {
         QQmlEngine engine;
         const QVariantList rows{QVariantMap{{"id", "unnamed"}, {"name", ""}, {"group", "Today"}}};
@@ -654,6 +744,52 @@ Item {
         settingsWindow.resize(360, 800);
         QTRY_COMPARE(paper->width(), 328.0);
     }
+    void localSwitchFlushesAgainBeforeReplacement_data() {
+        QTest::addColumn<bool>("flushOk");
+        QTest::newRow("flush succeeds") << true;
+        QTest::newRow("flush fails") << false;
+    }
+    void localSwitchFlushesAgainBeforeReplacement() {
+        QFETCH(bool, flushOk);
+        nt::server::clearActiveServerTarget();
+        const auto clear = qScopeGuard([] { nt::server::clearActiveServerTarget(); });
+        QTemporaryDir folder;
+        TestHttpServer server;
+        QVERIFY(server.base().port() > 0);
+        server.setJson([](const QByteArray&, const QUrl&) -> QByteArray {
+            return R"({"result":{"data":{"id":"next","name":"Server","width":640,"height":360,"fps":30,"updatedAt":"u1","tracks":[],"clips":[]}}})";
+        });
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"id":"local","name":"Local","width":640,"height":360,"fps":30,"tracks":[],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        nt::server::TimelineSession session(model, clock, nt::server::AssetCacheRoot(folder.path()));
+        const auto localPath = folder.filePath("local.json");
+        nt::app::LocalDocumentSaver saver(model, localPath, 60000);
+        int flushes = 0;
+        session.setFlushLocalCallback([&] { return (++flushes == 1 || flushOk) && saver.flush(); },
+                                      [] { return QStringLiteral("Local flush failed"); });
+        QVERIFY(session.switchToServerTimeline(server.base(), "next", {}, {}, "Server"));
+        // The loader completion is queued to this thread, so this edit lands after the first flush.
+        model.addMarker(100, "Last local edit");
+        QTRY_VERIFY(!session.switching());
+        QCOMPARE(flushes, 2);
+        QCOMPARE(model.timelineId(), flushOk ? QStringLiteral("next") : QStringLiteral("local"));
+        if (!flushOk) {
+            QVERIFY(session.switchError().contains("Local flush failed"));
+            QCOMPARE(model.markersJson().size(), 1);
+        } else {
+            QFile local(localPath);
+            QVERIFY(local.open(QIODevice::ReadOnly));
+            QCOMPARE(QJsonDocument::fromJson(local.readAll()).object().value("markers").toArray().size(), 1);
+        }
+        if (session.autosaveController()) {
+            session.autosaveController()->setExternalSync(false);
+            session.autosaveController()->setAutosave(false);
+        }
+    }
+
     void inPlaceSwitchUpdatesWindowAndProject() {
         QTemporaryDir tempDir;
         QVERIFY(tempDir.isValid());

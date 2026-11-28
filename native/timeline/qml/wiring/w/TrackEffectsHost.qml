@@ -1,13 +1,15 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 
 Item {
     id: host
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var track
     required property TimelineModel timeline
     readonly property bool expanded: TrackEffectsState.expandedFxTrackId === track.id
-    readonly property var viewport: ancestor("lanesViewport")
-    readonly property var content: ancestor("lanesContent")
+    readonly property Item viewport: ancestor("lanesViewport")
+    readonly property Item content: ancestor("lanesContent")
     implicitHeight: expanded ? 280 : 0
     visible: expanded
     function ancestor(name) {

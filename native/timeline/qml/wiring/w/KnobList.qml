@@ -1,10 +1,13 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 
 Column {
     id: list
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var effect
+    // JSON records consumed by the shared registry, menu, or control API.
     property var knobs: TrackEffectsReference.data.knobs[effect.type] ?? []
     property bool disabled: false
     signal preview(var patch)
@@ -15,6 +18,7 @@ Column {
         model: list.knobs
         delegate: Item {
             id: row
+            // JSON record supplied by the delegate model.
             required property var modelData
             readonly property real currentValue: list.effect[modelData.key] ?? TrackEffectsReference.data.defaults[list.effect.type][modelData.key]
             width: list.width
@@ -37,6 +41,7 @@ Column {
                 elide: Text.ElideRight
             }
             FxKnob {
+                cancelOnFocusLoss: true
                 id: knob
                 objectName: "fx-knob-" + list.effect.id + "-" + row.modelData.key
                 x: label.width + Ui.Metrics.md + (parent.width - label.width - valueLabel.width - 2 * Ui.Metrics.md - width) / 2

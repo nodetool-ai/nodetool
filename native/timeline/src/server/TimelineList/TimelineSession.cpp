@@ -16,7 +16,14 @@ void TimelineSession::Loader::run() {
 TimelineSession::TimelineSession(TimelineModel& model, PlaybackClock& clock, AssetCacheRoot cache, bool cloudTimeline,
                                  QObject* parent)
     : QObject(parent), m_model(model), m_clock(clock), m_cache(std::move(cache)), m_cloudTimeline(cloudTimeline) {
-    connect(&m_model, &TimelineModel::timelineChanged, this, &TimelineSession::updateWindowTitle);
+    // One coarse connection serves the title and the Save availability.
+    connect(&m_model, &TimelineModel::timelineChanged, this, [this] {
+        updateWindowTitle();
+        emit canSaveChanged();
+    });
+    connect(&m_model, &TimelineModel::readOnlyChanged, this, &TimelineSession::canSaveChanged);
+    connect(this, &TimelineSession::switchingChanged, this, &TimelineSession::canSaveChanged);
+    connect(this, &TimelineSession::autosaveChanged, this, &TimelineSession::canSaveChanged);
 }
 
 TimelineSession::~TimelineSession() {
@@ -34,6 +41,26 @@ TimelineSession::~TimelineSession() {
         }
     }
     teardownAutosave();
+}
+
+bool TimelineSession::canSave() const {
+    return !m_model.timeline().raw.isEmpty() && !m_model.readOnly() && !m_switching && (m_autosave || m_flushLocal);
+}
+
+SaveDocumentResult TimelineSession::saveDocument() {
+    if (!canSave()) {
+        return {.ok = false, .error = QStringLiteral("Open a writable document first.")};
+    }
+    if (m_autosave) {
+        return m_autosave->saveDocument();
+    }
+    const bool ok = m_flushLocal && m_flushLocal();
+    QString error;
+    if (!ok) {
+        error = m_localSaveError ? m_localSaveError() : QString();
+        if (error.isEmpty()) { error = QStringLiteral("Could not save the local document."); }
+    }
+    return {.ok = ok, .error = error};
 }
 
 void TimelineSession::setWindow(QQuickWindow* window) {
@@ -229,6 +256,11 @@ void TimelineSession::finishSwitch(const QUrl& server, const QString& timelineId
     // Guard against any edit that landed while the next timeline was loading.
     if (m_autosave && m_autosave->dirty() && !m_autosave->flushBeforeQuit(5000)) {
         fail(QStringLiteral("Could not save the current timeline. %1").arg(m_autosave->lastError()));
+        return;
+    }
+    if (m_flushLocal && !m_flushLocal()) {
+        fail(QStringLiteral("Could not save the current timeline. %1")
+                 .arg(m_localSaveError ? m_localSaveError() : QString()));
         return;
     }
 

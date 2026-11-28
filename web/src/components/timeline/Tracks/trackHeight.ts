@@ -22,7 +22,7 @@ export function steppedTrackHeightPx(track: { heightPx?: number }, deltaPx: numb
 
 
 /** Default row height of a midi, audio or chord track in DAW mode. */
-export const DAW_AUDIO_TRACK_HEIGHT_PX = 96;
+export const DAW_AUDIO_TRACK_HEIGHT_PX = 64;
 /** Row height of a picture track (video, overlay, subtitle) in DAW mode. */
 export const DAW_COLLAPSED_TRACK_HEIGHT_PX = 32;
 
@@ -43,3 +43,9 @@ export function trackRowHeightPx(
   }
   return DAW_COLLAPSED_TRACK_HEIGHT_PX;
 }
+
+/** D65: below this header width the instrument selects become an icon menu
+ *  and the effects button hides. */
+export const TRACK_HEADER_FULL_CONTROLS_PX = 280;
+/** D65: below this header width the lock button hides too. */
+export const TRACK_HEADER_LOCK_MIN_PX = 220;

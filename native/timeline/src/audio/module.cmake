@@ -24,7 +24,10 @@ function(nt_audio_tests)
     target_link_libraries(tst_shuttleaudio PRIVATE nodetool_timeline_player Qt6::Qml)
     set_tests_properties(tst_shuttleaudio PROPERTIES FIXTURES_REQUIRED media)
     qt_add_executable(tst_appaudio tests/tst_appaudio.cpp
-        src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp)
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_appaudio PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_appaudio PRIVATE ${NT_WARNINGS})
     target_include_directories(tst_appaudio PRIVATE src/playback)

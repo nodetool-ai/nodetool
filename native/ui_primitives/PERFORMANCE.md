@@ -15,9 +15,10 @@ Read the source page when a rule needs more detail.
 
 ## Frame budget
 
-1. A frame at 60 FPS has about 16 ms. Keep work on the UI thread to a few
-   milliseconds per frame. Move decoding, parsing, file and network work to a
-   worker thread and hand results back with a queued signal, as
+1. The timeline targets 120 Hz, so a frame has about 8.3 ms. Keep GUI-thread
+   work to about 4 ms per frame. The render thread needs the rest, and the GUI
+   thread blocks during the sync step. Move decoding, parsing, file and network
+   work to a worker thread and hand results back with a queued signal, as
    [native rule 10](../AGENTS.md#threads) requires.
 2. Never call `processEvents()` or spin a nested event loop from C++ that QML
    calls. Other bindings run in the middle of the handler and can destroy the
@@ -130,3 +131,135 @@ Read the source page when a rule needs more detail.
     - `QSG_VISUALIZE=batches`, `clip`, `changes` or `overdraw` colors the
       window to show unmerged batches, clips that break batching, items that
       change each frame and translucent overdraw.
+
+## Data across C++ and QML
+
+30. Do not send a JSON or QVariant document across C++ to QML in a hot path.
+    The engine deep-copies a `QVariantList`, `QVariantMap`, `QJsonArray` or
+    `QJsonObject` into new JavaScript values on each read. Expose rows as
+    `QAbstractListModel` roles, or answer a small `Q_INVOKABLE` query that
+    returns a scalar. Send patches, not full arrays: emit `dataChanged` for
+    the changed rows and roles. A hot path is any code that runs on a
+    playback tick, scroll, zoom, drag, pointer move or meter update.
+31. Give each `Q_PROPERTY` its own `NOTIFY` signal. A shared `changed()`
+    signal re-evaluates every binding on every property that uses it.
+32. Expose a small record as a `Q_GADGET` with `QML_VALUE_TYPE`, not as a
+    `QVariantMap`. Typed fields compile ahead of time. Use a map only at a
+    JSON boundary.
+33. Use `QQmlListProperty` only for child objects declared in QML. A view
+    resets on any change to it.
+34. Register C++ objects with `QML_ELEMENT` or `QML_SINGLETON`. Do not use
+    `setContextProperty`. The compiler cannot type a context property, so
+    every binding that reads it runs in the interpreter.
+
+## Delegates
+
+35. A delegate reads its own roles. Do not scan the whole model in a
+    delegate: no `indexOf`, `filter`, `find` or `mapToItem` over all rows.
+    Expose `selected`, `pinned` and similar flags as roles that C++ updates.
+36. Qualify every lookup (`root.width`, not `width` from an outer scope) and
+    fix `qmllint` unqualified-access warnings in hot files.
+37. Do not give each delegate its own `Menu`, `Popup`, `ToolTip` or
+    `Instantiator`. Share one per view and open it with the row as an
+    argument. Set `active: false` on an `Instantiator` in a closed menu.
+
+## Drawing
+
+38. Draw curves, rulers, grids, waveforms, meters and note lanes in a C++
+    `QQuickItem` with `updatePaintNode` and one `QSGGeometryNode`. Do not use
+    `Canvas` or a full-size `QQuickPaintedItem` for content that changes on
+    scroll, zoom or a playback tick. Both re-rasterize the whole area and
+    upload a new texture.
+39. Do not repaint for a scroll. Move the drawn item with `x` or a
+    transform, and redraw only when the visible range leaves the drawn range.
+40. Draw a moving marker, such as a playhead or a step outline, as its own
+    small item. The content under it does not repaint.
+41. Draw more than about 100 repeated marks, such as ticks, grid lines or
+    meter segments, in one node instead of one `Rectangle` each.
+42. Copy data into scene-graph nodes only in `updatePaintNode`. The GUI
+    thread is blocked there, so it is the only safe hand-off to the render
+    thread.
+
+## Timers and clocks
+
+43. Drive meters and playheads from one clock per window. Do not run a
+    `Timer` per item. Stop the clock when the panel is hidden.
+
+## Loading
+
+44. Open a heavy panel with `Loader { asynchronous: true }` and show a
+    placeholder until the status is `Loader.Ready`. Creation then spreads
+    over several frames.
+
+## Measure in tests
+
+45. Measure timing in an offscreen test: set `QT_QPA_PLATFORM=offscreen` and
+    `QSG_RENDER_LOOP=basic`, time the action with `QElapsedTimer`, and assert
+    a budget. Also assert the item count of the panel, because it is stable
+    across machines. The timeline harness is `tst_timeline_perf`; see
+    [its README](../timeline/tests/measure/README.md).
+
+46. Gate a performance budget on counters, not on time. Counters are stable
+    across machines: object and delegate creations, C++ to QML crossings,
+    payload bytes, rows notified and signal emissions. Report times, but do
+    not fail a test on them. Store budgets in a file that accepts only lower
+    values, and prove that the gate fails on a deliberate regression.
+47. Do not read the frame times of the software backend
+    (`QT_QUICK_BACKEND=software`) as the result for the GPU. They include
+    CPU rasterization. Use them to compare before and after only.
+48. Do not start a headless profiler run with `-qmljsdebugger=...,block`
+    unless a client attaches. The process waits forever.
+49. Make a measurement hook cost one relaxed atomic check when measurement is
+    off. Do not build payloads, strings or JSON for a counter that nobody
+    reads.
+
+## Edits and change notification
+
+50. Do not use one coarse signal, such as `timelineChanged`, as the change
+    notification for the whole document. Each listener derives its state
+    again, and this fan-out costs more than the edit itself. Return a change
+    set from each edit (changed IDs, roles and structural flags) and emit
+    `dataChanged` only for those rows and roles. Do not add new connections
+    to a coarse signal.
+51. Parse each changed entity once for each edit. Do not compare or parse
+    unchanged entities.
+52. Do not put large arrays, such as notes, controllers or versions, in an
+    entity map that QML reads. Expose typed scalar properties or model roles.
+    One map read can copy megabytes.
+53. Keep a gesture, such as a note drag or a clip drag, as typed overlay
+    state in C++. Commit one patch on release. Do not write a full array,
+    such as a `setNotes` list, for a drag. Register the patch as a named edit
+    with a JSON payload, so agents and headless tools use the same edit.
+54. Key a cache on every input that its output reads. If a key cannot be
+    complete, drop the cache. A stale cache is a correctness defect, not a
+    performance trade-off.
+55. Use an index for hit tests and range queries over dense content, such as
+    an interval index for notes. Do not scan every item for each pointer
+    event.
+
+## Menus and lazy content
+
+56. Build menu rows only while the menu is open, and release them on close.
+    A closed menu creates no items. When the target of an open shared menu
+    is deleted or scrolls away, close the menu.
+57. Do not decode an image that is hidden or not laid out. Bucket
+    `sourceSize` to steps, such as 128 physical pixels, so that a dock
+    resize does not decode on each frame.
+58. A test that uses a row of a virtualized view must scroll to it first,
+    with `positionViewAtIndex`. Do not expect a delegate for a row that is
+    not visible.
+
+## Typing
+
+59. Untyped QML (`property var`, unqualified lookups) costs less than the
+    items above. Type the files that run on hot paths, but do not run a
+    project to type all files for performance.
+
+60. Do not read a `QList<T>` property by index in a loop. Each access reads
+    and copies the full list again. For n items, the loop does O(n²) work.
+    Use model roles, or a count and an `at(i)` query.
+61. A field write to a value-type property writes the full value through its
+    setter. It notifies every binding that reads the property. Change a local
+    copy, then write the value once.
+
+Run `npm run check:native-performance` to check per-file debt in `native/*/qml` and `native/*/src`, or `npm run check:native-performance -- --update` to save lower baseline counts.

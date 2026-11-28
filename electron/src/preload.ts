@@ -24,8 +24,14 @@ import {
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
   RuntimePackageId,
+  VstGetParametersRequest,
+  VstListPresetsRequest,
   VstOpenEditorRequest,
+  VstPluginParameterChange,
+  VstPluginTarget,
   VstRenderRequest,
+  VstSelectPresetRequest,
+  VstSetParametersRequest,
   SystemNotificationRequest,
   CloudRequestInput,
   CloudResponse,
@@ -197,6 +203,261 @@ function validateNpmName(name: string): string {
  * Expose the unified API to renderer process through contextBridge.
  * This creates the window.api object with namespaced capabilities.
  */
+const VST_INSTANCE_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/;
+const VST_MAX_INT32 = 2_147_483_647;
+const VST_MAX_STATE_LENGTH = 8_000_000;
+const VST_MAX_RENDER_FRAMES = 192_000 * 600;
+const VST_MAX_EVENTS = 100_000;
+const VST_MAX_PARAM_CHANGES = 128;
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validateVstInstance(instance: unknown): string {
+  if (!isString(instance) || !VST_INSTANCE_PATTERN.test(instance)) {
+    throw new Error("Invalid VST instance id");
+  }
+  return instance;
+}
+
+function validateVstPluginTarget(plugin: unknown): VstPluginTarget {
+  if (!isPlainRecord(plugin)) {
+    throw new Error("Invalid VST plugin target");
+  }
+  const pathVal = validatePath(plugin.path as string);
+  if (pathVal.length === 0) {
+    throw new Error("Invalid VST plugin path");
+  }
+  if (!isString(plugin.uid) || plugin.uid.length === 0 || plugin.uid.length > 512) {
+    throw new Error("Invalid VST plugin uid");
+  }
+  return { path: pathVal, uid: plugin.uid };
+}
+
+function validateVstState(state: unknown): string | null {
+  if (state === null) return null;
+  if (!isString(state) || state.length > VST_MAX_STATE_LENGTH) {
+    throw new Error("Invalid VST plugin state");
+  }
+  return state;
+}
+
+function validateVstRenderRequest(request: unknown): VstRenderRequest {
+  if (!isPlainRecord(request)) {
+    throw new Error("Invalid VST render request");
+  }
+  const plugin = validateVstPluginTarget(request.plugin);
+  const state = validateVstState(request.state);
+  const sampleRate = request.sampleRate;
+  if (typeof sampleRate !== "number" || !Number.isFinite(sampleRate) || sampleRate < 8000 || sampleRate > 384_000) {
+    throw new Error("Invalid VST sampleRate");
+  }
+  const frames = request.frames;
+  if (typeof frames !== "number" || !Number.isInteger(frames) || frames < 0 || frames > VST_MAX_RENDER_FRAMES) {
+    throw new Error("Invalid VST frames");
+  }
+  if (!Array.isArray(request.events) || request.events.length > VST_MAX_EVENTS) {
+    throw new Error("Invalid VST events");
+  }
+  const events = request.events.map((ev) => {
+    if (!isPlainRecord(ev)) {
+      throw new Error("Invalid VST note event");
+    }
+    const { pitch, velocity, startFrame, gateOffFrame } = ev;
+    if (
+      typeof pitch !== "number" || !Number.isInteger(pitch) || pitch < 0 || pitch > 127 ||
+      typeof velocity !== "number" || !Number.isInteger(velocity) || velocity < 1 || velocity > 127 ||
+      typeof startFrame !== "number" || !Number.isInteger(startFrame) || startFrame < 0 ||
+      typeof gateOffFrame !== "number" || !Number.isInteger(gateOffFrame) || gateOffFrame < 0
+    ) {
+      throw new Error("Invalid VST note event");
+    }
+    return { pitch, velocity, startFrame, gateOffFrame };
+  });
+  return { plugin, state, sampleRate, frames, events };
+}
+
+function validateVstOpenEditorRequest(request: unknown): VstOpenEditorRequest {
+  if (!isPlainRecord(request)) {
+    throw new Error("Invalid VST editor request");
+  }
+  if (!isString(request.title) || request.title.length > 200) {
+    throw new Error("Invalid VST editor title");
+  }
+  return {
+    instance: validateVstInstance(request.instance),
+    plugin: validateVstPluginTarget(request.plugin),
+    state: validateVstState(request.state),
+    title: request.title,
+  };
+}
+
+function validateVstListPresetsRequest(request: unknown): VstListPresetsRequest {
+  if (!isPlainRecord(request)) {
+    throw new Error("Invalid VST listPresets request");
+  }
+  return {
+    instance: validateVstInstance(request.instance),
+    plugin: validateVstPluginTarget(request.plugin),
+    state: validateVstState(request.state),
+  };
+}
+
+function validateVstSelectPresetRequest(request: unknown): VstSelectPresetRequest {
+  if (!isPlainRecord(request)) {
+    throw new Error("Invalid VST selectPreset request");
+  }
+  const instance = validateVstInstance(request.instance);
+  const plugin = validateVstPluginTarget(request.plugin);
+  const state = validateVstState(request.state);
+  let presetIndex: number | undefined;
+  let presetName: string | undefined;
+  if (request.presetIndex !== undefined) {
+    if (
+      typeof request.presetIndex !== "number" ||
+      !Number.isInteger(request.presetIndex) ||
+      request.presetIndex < 0 ||
+      request.presetIndex > VST_MAX_INT32
+    ) {
+      throw new Error("Invalid VST presetIndex");
+    }
+    presetIndex = request.presetIndex;
+  }
+  if (request.presetName !== undefined) {
+    if (!isString(request.presetName) || request.presetName.length === 0 || request.presetName.length > 256) {
+      throw new Error("Invalid VST presetName");
+    }
+    presetName = request.presetName;
+  }
+  if (presetIndex === undefined && presetName === undefined) {
+    throw new Error("Invalid VST selectPreset request: presetIndex or presetName is required");
+  }
+  return {
+    instance,
+    plugin,
+    state,
+    ...(presetIndex !== undefined ? { presetIndex } : {}),
+    ...(presetName !== undefined ? { presetName } : {}),
+  };
+}
+
+function validateVstGetParametersRequest(request: unknown): VstGetParametersRequest {
+  if (!isPlainRecord(request)) {
+    throw new Error("Invalid VST getParameters request");
+  }
+  return {
+    instance: validateVstInstance(request.instance),
+    plugin: validateVstPluginTarget(request.plugin),
+    state: validateVstState(request.state),
+  };
+}
+
+function validateVstSetParametersRequest(request: unknown): VstSetParametersRequest {
+  if (!isPlainRecord(request)) {
+    throw new Error("Invalid VST setParameters request");
+  }
+  const instance = validateVstInstance(request.instance);
+  const plugin = validateVstPluginTarget(request.plugin);
+  const state = validateVstState(request.state);
+  if (
+    !Array.isArray(request.changes) ||
+    request.changes.length === 0 ||
+    request.changes.length > VST_MAX_PARAM_CHANGES
+  ) {
+    throw new Error("Invalid VST parameter changes");
+  }
+  const changes: VstPluginParameterChange[] = request.changes.map((entry) => {
+    if (!isPlainRecord(entry)) {
+      throw new Error("Invalid VST parameter change");
+    }
+    let id: string | undefined;
+    let index: number | undefined;
+    let value: number | undefined;
+    let displayValue: string | undefined;
+    if (entry.id !== undefined) {
+      if (!isString(entry.id) || entry.id.length === 0 || entry.id.length > 256) {
+        throw new Error("Invalid VST parameter id");
+      }
+      id = entry.id;
+    }
+    if (entry.index !== undefined) {
+      if (
+        typeof entry.index !== "number" ||
+        !Number.isInteger(entry.index) ||
+        entry.index < 0 ||
+        entry.index > VST_MAX_INT32
+      ) {
+        throw new Error("Invalid VST parameter index");
+      }
+      index = entry.index;
+    }
+    if (id === undefined && index === undefined) {
+      throw new Error("Invalid VST parameter change: id or index is required");
+    }
+    if (entry.value !== undefined) {
+      if (typeof entry.value !== "number" || !Number.isFinite(entry.value) || entry.value < 0 || entry.value > 1) {
+        throw new Error("Invalid VST parameter value");
+      }
+      value = entry.value;
+    }
+    if (entry.displayValue !== undefined) {
+      if (!isString(entry.displayValue) || entry.displayValue.length === 0 || entry.displayValue.length > 256) {
+        throw new Error("Invalid VST parameter displayValue");
+      }
+      displayValue = entry.displayValue;
+    }
+    if ((value !== undefined) === (displayValue !== undefined)) {
+      throw new Error("Invalid VST parameter change: provide value or displayValue");
+    }
+    return {
+      ...(id !== undefined ? { id } : {}),
+      ...(index !== undefined ? { index } : {}),
+      ...(value !== undefined ? { value } : {}),
+      ...(displayValue !== undefined ? { displayValue } : {}),
+    };
+  });
+  return { instance, plugin, state, changes };
+}
+
+// ============================================================================
+// vst: VST3/AU instruments and effects, hosted by the NodeToolVstHost helper process
+// ============================================================================
+const vstApi = {
+  /** Whether the helper is installed. */
+  status: () => ipcRenderer.invoke(IpcChannels.VST_STATUS),
+  /** The VST3/AU plug-ins on this computer. */
+  scan: (rescan?: boolean, includeEffects?: boolean) =>
+    ipcRenderer.invoke(
+      IpcChannels.VST_SCAN,
+      includeEffects === true
+        ? { rescan: rescan === true, includeEffects: true }
+        : { rescan: rescan === true },
+    ),
+  /** Render note events through a plug-in, as planar stereo. */
+  render: (request: VstRenderRequest) =>
+    ipcRenderer.invoke(IpcChannels.VST_RENDER, validateVstRenderRequest(request)),
+  /** Open the plug-in's own window for one track. */
+  openEditor: (request: VstOpenEditorRequest) =>
+    ipcRenderer.invoke(IpcChannels.VST_OPEN_EDITOR, validateVstOpenEditorRequest(request)),
+  closeEditor: (instance: string) =>
+    ipcRenderer.invoke(IpcChannels.VST_CLOSE_EDITOR, validateVstInstance(instance)),
+  /** List presets (programs) exposed by a plug-in instance. */
+  listPresets: (request: VstListPresetsRequest) =>
+    ipcRenderer.invoke(IpcChannels.VST_LIST_PRESETS, validateVstListPresetsRequest(request)),
+  /** Select a preset on a plug-in instance and return its updated state. */
+  selectPreset: (request: VstSelectPresetRequest) =>
+    ipcRenderer.invoke(IpcChannels.VST_SELECT_PRESET, validateVstSelectPresetRequest(request)),
+  /** Read parameters of a plug-in instance (normalized and display values). */
+  getParameters: (request: VstGetParametersRequest) =>
+    ipcRenderer.invoke(IpcChannels.VST_GET_PARAMETERS, validateVstGetParametersRequest(request)),
+  /** Update parameters of a plug-in instance and return its updated state. */
+  setParameters: (request: VstSetParametersRequest) =>
+    ipcRenderer.invoke(IpcChannels.VST_SET_PARAMETERS, validateVstSetParametersRequest(request)),
+  /** State changes from an open plug-in window, and the helper exiting. */
+  onEvent: createEventSubscription(IpcChannels.VST_EVENT),
+};
+
 const api = {
   // Platform information (exposed as static value)
   platform: process.platform,
@@ -680,25 +941,9 @@ const api = {
   },
 
   // ============================================================================
-  // vst: VST3 instruments, hosted by the NodeToolVstHost helper process
+  // vst: VST3/AU instruments and effects (local windows only; hidden in cloud window)
   // ============================================================================
-  vst: {
-    /** Whether the helper is installed. */
-    status: () => ipcRenderer.invoke(IpcChannels.VST_STATUS),
-    /** The VST3 instruments on this computer. */
-    scan: (rescan?: boolean) =>
-      ipcRenderer.invoke(IpcChannels.VST_SCAN, { rescan: rescan === true }),
-    /** Render note events through a plug-in, as planar stereo. */
-    render: (request: VstRenderRequest) =>
-      ipcRenderer.invoke(IpcChannels.VST_RENDER, request),
-    /** Open the plug-in's own window for one track. */
-    openEditor: (request: VstOpenEditorRequest) =>
-      ipcRenderer.invoke(IpcChannels.VST_OPEN_EDITOR, request),
-    closeEditor: (instance: string) =>
-      ipcRenderer.invoke(IpcChannels.VST_CLOSE_EDITOR, instance),
-    /** State changes from an open plug-in window, and the helper exiting. */
-    onEvent: createEventSubscription(IpcChannels.VST_EVENT),
-  },
+  vst: cloudWindowOrigin ? undefined : vstApi,
 
   // ============================================================================
   // cloudAccount: the cloud sign-in the native apps share

@@ -20,5 +20,7 @@ class PanelRegistry : public QObject {
     QML_SINGLETON
 public:
     explicit PanelRegistry(QObject* parent = nullptr) : QObject(parent) {}
+    Q_INVOKABLE QStringList idsForSlot(const QString& slot) const;
+    Q_INVOKABLE QUrl sourceForPanel(const QString& id) const;
     Q_INVOKABLE QVariantList forSlot(const QString& slot) const;
 };

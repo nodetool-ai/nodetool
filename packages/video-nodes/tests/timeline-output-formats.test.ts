@@ -188,4 +188,42 @@ describe("resolveTimelineOutput — encoder arguments", () => {
       resolveTimelineOutput({ format: "webm", videoCodec: "libx265" }).encoderArgs
     ).toContain("libvpx-vp9");
   });
+
+  it("validates audioSampleRate per format (wav: 44.1-192 kHz, mp4/mov: 44.1-96 kHz, webm: 48 kHz) and WAV bit depth", () => {
+    expect(resolveTimelineOutput({ format: "mp4", audioSampleRate: 44100 }).audioSampleRate).toBe(44100);
+    expect(resolveTimelineOutput({ format: "mp4", audioSampleRate: 96000 }).audioSampleRate).toBe(96000);
+    expect(resolveTimelineOutput({ format: "mov", audioSampleRate: 88200 }).audioSampleRate).toBe(88200);
+    expect(resolveTimelineOutput({ format: "webm", audioSampleRate: 48000 }).audioSampleRate).toBe(48000);
+    expect(() => resolveTimelineOutput({ format: "mp4", audioSampleRate: 192000 })).toThrow(/sample rate/i);
+    expect(() => resolveTimelineOutput({ format: "webm", audioSampleRate: 96000 })).toThrow(/sample rate/i);
+    expect(() => resolveTimelineOutput({ format: "webm", audioSampleRate: 44100 })).toThrow(/sample rate/i);
+
+    const wav16 = resolveTimelineOutput({ format: "wav", audioSampleRate: 44100, audioBitDepth: 16 });
+    expect(wav16).toMatchObject({
+      format: "wav",
+      extension: "wav",
+      mimeType: "audio/wav",
+      requiredEncoder: "pcm_s16le",
+      audioCodec: "pcm_s16le",
+      audioSampleRate: 44100,
+      audioBitDepth: 16
+    });
+    const wav24 = resolveTimelineOutput({ format: "wav", audioSampleRate: 96000, audioBitDepth: 24 });
+    expect(wav24).toMatchObject({
+      requiredEncoder: "pcm_s24le",
+      audioCodec: "pcm_s24le",
+      audioSampleRate: 96000,
+      audioBitDepth: 24
+    });
+    const wav32f = resolveTimelineOutput({ format: "wav", audioSampleRate: 192000, audioBitDepth: 32 });
+    expect(wav32f).toMatchObject({
+      requiredEncoder: "pcm_f32le",
+      audioCodec: "pcm_f32le",
+      audioSampleRate: 192000,
+      audioBitDepth: 32
+    });
+    expect(() => resolveTimelineOutput({ format: "wav", alpha: true })).toThrow(AlphaFormatError);
+    expect(() => resolveTimelineOutput({ format: "wav", audioBitDepth: 8 })).toThrow(/bit depth/i);
+    expect(() => resolveTimelineOutput({ format: "wav", audioSampleRate: 22050 })).toThrow(/sample rate/i);
+  });
 });

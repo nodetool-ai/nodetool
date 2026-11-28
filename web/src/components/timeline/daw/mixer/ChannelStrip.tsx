@@ -11,7 +11,7 @@
  * per gesture (`useBatchedGesture`).
  */
 
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -20,6 +20,10 @@ import type { TimelineTrack, TrackEffect } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useBatchedGesture } from "../../../../hooks/timeline/useBatchedGesture";
+import {
+  useAutomationLiveValue,
+  useAutomationRecorder
+} from "../../../../stores/timeline/automationRecorder";
 import {
   BORDER_RADIUS,
   CONTROL,
@@ -46,8 +50,17 @@ import {
 } from "./faderTaper";
 import { InsertSlots } from "./InsertSlots";
 
-/** Strip width on a roomy mixer, from the spacing scale (120 px). */
-const STRIP_UNITS = 30;
+/** D67: a strip is 72 px wide and never grows (spec 7.1). */
+export const MIXER_STRIP_WIDTH_PX = 88;
+
+/**
+ * The instrument name a narrow slot shows: the model code ("WT-1 ") dropped
+ * when a product name follows it. The tooltip keeps the full name.
+ */
+export function shortInstrumentName(name: string): string {
+  const short = name.replace(/^[A-Z]{1,4}-\d+\s+/, "");
+  return short.length > 0 ? short : name;
+}
 /** Width of the pan, mute and solo column beside the fader. */
 const SIDE_PX = CONTROL.height.lg;
 /**
@@ -76,7 +89,7 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
     flexDirection: "column",
     alignItems: "stretch",
     flexShrink: 0,
-    width: theme.spacing(STRIP_UNITS),
+    width: MIXER_STRIP_WIDTH_PX,
     height: "100%",
     minHeight: 0,
     boxSizing: "border-box",
@@ -166,7 +179,9 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
       flexShrink: 0
     },
     ".strip__spacer": { display: "none" },
-    [`@container daw-mixer (max-width: ${MIXER_PHONE_MAX_PX}px)`]: {
+    ".strip__buttons-spacer": { height: TOGGLE_PX, flexShrink: 0 },
+    // A 72 px strip stacks pan, mute and solo above the fader at every width.
+    "&": {
       ".strip__body": {
         flexDirection: "column",
         minHeight: 0
@@ -186,7 +201,7 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
         display: "grid",
         gridTemplateColumns: "1fr 1fr"
       },
-      // The master has no pan, mute or solo; this keeps its fader level with
+      // A strip without pan, mute or solo; this keeps its fader level with
       // the tracks' faders so every scale lines up across the mixer.
       ".strip__spacer": {
         display: "block",
@@ -391,7 +406,7 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
             onClick={props.onOpenDevice}
             aria-label={t("batch2_26.daw.mixer.openTrackInstrument", { channel: channel.name, instrument: channel.instrument })}
           >
-            {channel.instrument}
+            {shortInstrumentName(channel.instrument)}
           </button>
         </Tooltip>
       ) : (
@@ -458,7 +473,11 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
                   </button>
                 </Tooltip>
               </div>
-            ) : null}
+            ) : (
+              // The master has pan but no mute or solo; this keeps its fader
+              // level with the tracks' faders.
+              <div className="strip__buttons-spacer" aria-hidden="true" />
+            )}
           </div>
         ) : (
           <div className="strip__spacer" aria-hidden="true" />
@@ -514,8 +533,30 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
     const updateTrackEffect = useTimelineStore((s) => s.updateTrackEffect);
     const removeTrackEffect = useTimelineStore((s) => s.removeTrackEffect);
 
-    const volume = useBatchedGesture<number>((db) => setTrackVolume(trackId, db));
-    const pan = useBatchedGesture<number>((value) => setTrackPan(trackId, value));
+    // While a recording pass runs, the control shows and plays the value the
+    // user holds and the track keeps its own (automation contract AU7).
+    const recorder = useAutomationRecorder();
+    const liveVolume = useAutomationLiveValue(trackId, "volumeDb");
+    const livePan = useAutomationLiveValue(trackId, "pan");
+    // A gesture a pass took never writes the track, even after the pass
+    // ended under the pointer (loop, end of sequence): AU7.
+    const tookGesture = useRef({ volumeDb: false, pan: false });
+    const volume = useBatchedGesture<number>((db) => {
+      if (recorder.record(trackId, "volumeDb", db)) tookGesture.current.volumeDb = true;
+      else if (!tookGesture.current.volumeDb) setTrackVolume(trackId, db);
+    });
+    const pan = useBatchedGesture<number>((value) => {
+      if (recorder.record(trackId, "pan", value)) tookGesture.current.pan = true;
+      else if (!tookGesture.current.pan) setTrackPan(trackId, value);
+    });
+    // A control that unmounts under the pointer releases its Touch pass.
+    useEffect(
+      () => () => {
+        recorder.gestureEnd(trackId, "volumeDb");
+        recorder.gestureEnd(trackId, "pan");
+      },
+      [recorder, trackId]
+    );
 
     const channel = useMemo<StripChannel | null>(
       () =>
@@ -523,8 +564,8 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
           ? {
               name: track.name,
               type: track.type,
-              volumeDb: track.volumeDb ?? 0,
-              pan: track.pan ?? 0,
+              volumeDb: liveVolume ?? track.volumeDb ?? 0,
+              pan: livePan ?? track.pan ?? 0,
               muted: track.muted,
               solo: track.solo,
               instrument:
@@ -534,18 +575,36 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
               effects: track.effects ?? NO_EFFECTS
             }
           : null,
-      [track]
+      [track, liveVolume, livePan]
     );
 
     const handlers = useMemo(
       () => ({
-        onVolumeStart: volume.begin,
+        onVolumeStart: () => {
+          recorder.gestureStart(trackId, "volumeDb", liveVolume ?? track?.volumeDb ?? 0);
+          tookGesture.current.volumeDb = recorder.liveValue(trackId, "volumeDb") !== undefined;
+          volume.begin();
+        },
         onVolume: volume.schedule,
-        onVolumeEnd: () => volume.commit(),
-        onVolumeCommit: (db: number) => setTrackVolume(trackId, db),
-        onPanStart: pan.begin,
+        onVolumeEnd: () => {
+          volume.commit();
+          recorder.gestureEnd(trackId, "volumeDb");
+          tookGesture.current.volumeDb = false;
+        },
+        onVolumeCommit: (db: number) => {
+          if (!recorder.commit(trackId, "volumeDb", db)) setTrackVolume(trackId, db);
+        },
+        onPanStart: () => {
+          recorder.gestureStart(trackId, "pan", livePan ?? track?.pan ?? 0);
+          tookGesture.current.pan = recorder.liveValue(trackId, "pan") !== undefined;
+          pan.begin();
+        },
         onPan: pan.schedule,
-        onPanEnd: () => pan.commit(),
+        onPanEnd: () => {
+          pan.commit();
+          recorder.gestureEnd(trackId, "pan");
+          tookGesture.current.pan = false;
+        },
         onMute: () => setTrackMuted(trackId, !track?.muted),
         onSolo: () => setTrackSolo(trackId, !track?.solo),
         onOpenDevice: () => onOpenDevice(trackId),
@@ -559,6 +618,11 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
       [
         volume,
         pan,
+        recorder,
+        liveVolume,
+        livePan,
+        track?.volumeDb,
+        track?.pan,
         trackId,
         track?.muted,
         track?.solo,
@@ -588,16 +652,19 @@ export interface MasterStripProps {
 export const MasterStrip: React.FC<MasterStripProps> = memo(({ readLevels, onOpenEffect }) => {
   const master = useTimelineStore((s) => s.master);
   const setMasterVolume = useTimelineStore((s) => s.setMasterVolume);
+  const setMasterPan = useTimelineStore((s) => s.setMasterPan);
   const addMasterEffect = useTimelineStore((s) => s.addMasterEffect);
   const updateMasterEffect = useTimelineStore((s) => s.updateMasterEffect);
   const removeMasterEffect = useTimelineStore((s) => s.removeMasterEffect);
   const volume = useBatchedGesture<number>(setMasterVolume);
+  const pan = useBatchedGesture<number>(setMasterPan);
 
   const channel = useMemo<StripChannel>(
     () => ({
       name: "Master",
       type: "master",
       volumeDb: master?.volumeDb ?? 0,
+      pan: master?.pan ?? 0,
       effects: master?.effects ?? NO_EFFECTS
     }),
     [master]
@@ -608,13 +675,16 @@ export const MasterStrip: React.FC<MasterStripProps> = memo(({ readLevels, onOpe
       onVolume: volume.schedule,
       onVolumeEnd: () => volume.commit(),
       onVolumeCommit: setMasterVolume,
+      onPanStart: pan.begin,
+      onPan: pan.schedule,
+      onPanEnd: () => pan.commit(),
       onAddEffect: addMasterEffect,
       onToggleEffect: (effectId: string, enabled: boolean) =>
         updateMasterEffect(effectId, { enabled }),
       onOpenEffect: (effectId: string, anchor: HTMLElement) => onOpenEffect(null, effectId, anchor),
       onRemoveEffect: removeMasterEffect
     }),
-    [volume, setMasterVolume, addMasterEffect, updateMasterEffect, removeMasterEffect, onOpenEffect]
+    [volume, pan, setMasterVolume, addMasterEffect, updateMasterEffect, removeMasterEffect, onOpenEffect]
   );
   return <ChannelStripView channel={channel} readLevels={readLevels} {...handlers} />;
 });

@@ -7,12 +7,14 @@ import NodeTool.Timeline
 
 Item {
     id: root
-    objectName: "trimEditMarks-" + (clip.id || "")
+    objectName: "trimEditMarks-" + (clip.clipId || "")
+    // The owning ClipBody's typed presentation fields.
     property var clip: ({})
-    property var timeline: null
-    property var gestures: null
-    property var viewState: null
-    readonly property var edges: gestures && gestures.trimMode ? gestures.trimMode.marks[clip.id] : undefined
+    property TimelineModel timeline: null
+    property ClipGestureController gestures: null
+    property TimelineViewState viewState: null
+    // JSON data from the document, controller, or shared JavaScript API.
+    readonly property var edges: gestures && gestures.trimMode ? gestures.trimMode.marks[clip.clipId] : undefined
     enabled: false
 
     Repeater {

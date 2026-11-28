@@ -22,7 +22,8 @@ import { writeFileSync } from "node:fs";
 import {
   PROBE_MANIFEST,
   runProbes,
-  formatProbeReport
+  formatProbeReport,
+  startAceStepProbeServer
 } from "@nodetool-ai/runtime";
 
 function parseArgs(argv) {
@@ -57,7 +58,21 @@ if (entries.length === 0) {
   process.exit(64);
 }
 
-const report = await runProbes({ entries, env: process.env });
+// The acestep entry needs a running ace-server. Without ACESTEP_PROBE_URL,
+// start the installed one; where none is installed the entry skips.
+const env = { ...process.env };
+let aceServer = null;
+if (!env.ACESTEP_PROBE_URL && entries.some((entry) => entry.provider === "acestep")) {
+  aceServer = await startAceStepProbeServer(env);
+  if (aceServer) env.ACESTEP_PROBE_URL = aceServer.baseUrl;
+}
+
+let report;
+try {
+  report = await runProbes({ entries, env });
+} finally {
+  await aceServer?.stop();
+}
 
 if (args.json) {
   console.log(JSON.stringify(report, null, 2));

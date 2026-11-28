@@ -39,6 +39,7 @@ import type {
   MediaTrack,
   TimelineClip,
   TimelineMasterChannel,
+  TimelineMusic,
   TimelineTempo,
   TimelineCamera2D,
   TimelineTrack
@@ -156,6 +157,8 @@ interface RenderTimelineOptions {
   resolveUrl: (assetId: string) => Promise<string | undefined>;
   /** Tempo the midi clips are read against. Defaults to `DEFAULT_TEMPO`. */
   tempo?: TimelineTempo;
+  /** The document's music marker; a music project crossfades touching clips (CE7). */
+  music?: TimelineMusic;
   /** The document's master channel, mixed into the soundtrack. */
   master?: TimelineMasterChannel;
   /**
@@ -510,6 +513,7 @@ export async function renderTimeline(
           resolveUrl: resolveCached,
           tempo: opts.tempo,
           master: opts.master,
+          music: opts.music,
           signal
         })
       : null;

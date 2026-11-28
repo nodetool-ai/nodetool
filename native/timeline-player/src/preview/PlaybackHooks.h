@@ -13,5 +13,6 @@ audio::MixPlanStageToken registerTimeRemapAudio();
 }
 namespace automation {
 audio::MixPlanStageToken registerMixerAutomation();
+audio::MixPlanStageToken registerLiveDeviceOverrides();
 }
 }

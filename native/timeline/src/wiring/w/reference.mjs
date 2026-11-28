@@ -38,6 +38,8 @@ reference.knobs.vignette.push(
  {key:'centerX',label:'Center X',min:0,max:1,step:0.01},
  {key:'centerY',label:'Center Y',min:0,max:1,step:0.01},
  {key:'roundness',label:'Roundness',min:0,max:1,step:0.01});
+// Native Fable devices lay their knob sections out in one row.
+Object.assign(reference.fableWidths,{eq: 1040, ott: 290, comp: 490, drive: 250, lab: 1230, chorus: 230, echo: 560, reverb: 250, limiter: 230});
 const target = path.join(root,'native/timeline/src/wiring/w/TrackEffectsReference.json');
 if (process.argv.includes('--write')) writeFileSync(target,JSON.stringify(reference,null,2)+'\n');
 else assert.deepEqual(JSON.parse(readFileSync(target,'utf8')),reference,'Track effects resource differs from its sources');

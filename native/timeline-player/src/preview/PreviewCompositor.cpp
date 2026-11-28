@@ -415,9 +415,15 @@ bool sameVisualContent(const nt::Timeline& a, const nt::Timeline& b) {
         a.matteEffectId != b.matteEffectId || a.tracks.size() != b.tracks.size()) { return false; }
     if (!sameIgnoring(a.raw, b.raw, {"clips", "tracks", "markers", "master", "tempo", "name", "durationMs"})) { return false; }
     for (std::size_t i = 0; i < a.tracks.size(); ++i) {
+        const bool sound=a.tracks[i].type==nt::TrackType::Audio || a.tracks[i].type==nt::TrackType::Midi || a.tracks[i].type==nt::TrackType::Chord;
+        auto oldTrack=a.tracks[i].raw, newTrack=b.tracks[i].raw;
+        if (sound) {
+            oldTrack.remove("automation"); newTrack.remove("automation");
+            oldTrack.remove("automationMode"); newTrack.remove("automationMode");
+        }
         if (a.tracks[i].id != b.tracks[i].id ||
-            !sameIgnoring(a.tracks[i].raw, b.tracks[i].raw,
-                          {"muted", "solo", "volumeDb", "pan", "automation", "locked", "name", "heightPx", "instrument", "chords"})) {
+            !sameIgnoring(oldTrack, newTrack,
+                          {"muted", "solo", "volumeDb", "pan", "locked", "name", "heightPx", "instrument", "chords"})) {
             return false;
         }
     }

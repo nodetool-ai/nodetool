@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // nt-panel: slot=toolbar id=mixerToggle order=100 title="Mixer"
 import QtQuick
 import QtQuick.Controls as Controls

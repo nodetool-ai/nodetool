@@ -9,6 +9,8 @@
 #include "preview/FfmpegSource.h"
 #include "preview/hw/HwWindow.h"
 #include "model/TimelineModel.h"
+#include "app/EditRegistry.h"
+#include "midi/MidiNotes.h"
 #include "preview/layers/TestStill.h"
 #include <QElapsedTimer>
 #include <QFile>
@@ -409,6 +411,34 @@ private slots:
         const auto lastScore = psnr(result.image, still(lastReference, 0));
         qInfo() << "past the end PSNR dB" << lastScore;
         QVERIFY(lastScore >= 60);
+    }
+    void snapshotAfterTypedNotePatch() {
+        const auto script = m_dir.filePath("read-note-snapshot.py");
+        QFile helper(script); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import sys, json
+for line in sys.stdin:
+    request = json.loads(line)
+    with open(request['snapshot']) as source:
+        pitch = json.load(source)['clips'][0]['notes'][0]['pitch']
+    print(json.dumps({'id': request['id'], 'error': 'pitch=' + str(pitch)}), flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        auto raw = fixture(); auto clips = raw.value("clips").toArray(); auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi"); clip.remove("currentAssetId");
+        clip.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 480}}});
+        clips[0] = clip; raw.insert("clips", clips);
+        TimelineModel model; QVERIFY(load(model, raw));
+        FrameCapture capture(m_testCache.root()); capture.setExecutable(script); capture.setTimeline(&model);
+        FrameCaptureResult first, second; bool a = false, b = false;
+        capture.captureSequence(0, [&](const auto& r) { first = r; a = true; });
+        QTRY_VERIFY_WITH_TIMEOUT(a, 10000); QCOMPARE(first.error, QString("pitch=60"));
+        const nt::app::Edit edit = nt::app::RegisteredTypedEdit{
+            [](QJsonObject raw, const QJsonObject& payload) { return nt::midi::patchClipNotes("midi.moveNotes", std::move(raw), payload); },
+            [](const nt::Timeline& raw, const QJsonObject& payload) { return nt::midi::patchTypedNotes("midi.moveNotes", raw, payload); }};
+        QVERIFY(model.applyEdit("midi.moveNotes", {{"clipId", "c"}, {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 62}}}}}, edit));
+        capture.captureSequence(0, [&](const auto& r) { second = r; b = true; });
+        QTRY_VERIFY_WITH_TIMEOUT(b, 10000); QCOMPARE(second.error, QString("pitch=62"));
     }
     void snapshotAfterEdit() {
         TimelineModel model;

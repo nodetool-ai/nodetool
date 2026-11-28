@@ -309,6 +309,8 @@ QtObject {
     readonly property string statusDot: "M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8"
     readonly property string memory: "M15 9H9v6h6zm-2 4h-2v-2h2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2zm-4 6H7V7h10z"
     // Timeline
+    // NodeTool glyph, not Material: an automation curve through two points.
+    readonly property string automationCurve: "M5 13.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5M19 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5M7.3 14.8c3.4-.2 4.4-6.3 9.3-6.9l.3 2c-3.6.4-4.4 6.7-9.5 6.9z"
     readonly property string timeline: "M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 2-2 2s-2-.9-2-2c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52-.07l-4.55 4.56c.05.16.07.33.07.51 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02.51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2s2 .9 2 2c0 .18-.02.36-.07.52l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56C19.02 8.35 19 8.18 19 8c0-1.1.9-2 2-2s2 .9 2 2"
     // The web Projects rail icon, drawn as strokes: a framed grid with a header row and a side column.
     readonly property string toolProjects: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM3 9h18M9 21V9"

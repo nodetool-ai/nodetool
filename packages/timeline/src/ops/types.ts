@@ -10,6 +10,8 @@ import type {
   TimelineSequence,
   TimelineSetup,
   MediaTrack,
+  MidiInstrument,
+  StepPattern,
   TimelineClip,
   TimelineMarker,
   TimelineTrack,
@@ -28,6 +30,10 @@ import type {
 export interface TimelineOpState {
   workingColorSpaceVersion?: number;
   tempo?: TimelineTempo;
+  /** The music-project marker. `get_state` reports it and the CE7 crossfade length. */
+  music?: TimelineSequence["music"];
+  /** The master bus: fader and insert chain. */
+  master?: TimelineSequence["master"];
   trackFolders?: TimelineSequence["trackFolders"];
   setup?: TimelineSetup | null;
   transcript?: TimelineSequence["transcript"];
@@ -135,7 +141,228 @@ export type TimelineOpIdKind =
   | "version"
   | "note"
   | "beat"
-  | "link";
+  | "link"
+  | "lane"
+  | "point"
+  | "folder"
+  | "effect";
+
+/** One user-saved step sequencer pattern or template entry (SQ44, D92). */
+export interface TimelineOpUserStepPattern {
+  id: string;
+  name: string;
+  kind: "pattern" | "template";
+  category?: string;
+  tags?: readonly string[];
+  folder?: string;
+  pattern: StepPattern;
+  /** Saved track instrument captured with the pattern (SQ43, SQ44). */
+  instrument?: MidiInstrument;
+  /** Saved instrument preset id, when matching a shipped preset or set explicitly. */
+  instrumentPreset?: string;
+}
+
+/** One user folder inside `Step Patterns/<Patterns|Templates>` (SQ43, SQ44). */
+export interface TimelineOpStepPatternFolder {
+  /** Asset id when explicitly persisted as a folder asset; absent when inferred only from patterns. */
+  id?: string;
+  name: string;
+  kind: "pattern" | "template";
+  /** Full folder path, e.g. `Step Patterns/Patterns/Drums`. */
+  folder: string;
+  /** Parent folder path, e.g. `Step Patterns/Patterns`. */
+  parentFolder: string;
+}
+
+/** Summary of a user pattern moved by a folder rename or delete. */
+export interface TimelineOpStepPatternMoveSummary {
+  id: string;
+  name: string;
+  folder: string;
+}
+
+export interface TimelineOpCreateStepPatternFolderResult {
+  id?: string;
+  name: string;
+  kind: "pattern" | "template";
+  folder: string;
+  parentFolder: string;
+}
+
+export interface TimelineOpRenameStepPatternFolderResult {
+  id?: string;
+  name: string;
+  kind: "pattern" | "template";
+  previousFolder: string;
+  folder: string;
+  parentFolder: string;
+  movedPatternCount: number;
+  movedPatterns: TimelineOpStepPatternMoveSummary[];
+}
+
+export interface TimelineOpDeleteStepPatternFolderResult {
+  kind: "pattern" | "template";
+  deletedFolder: string;
+  parentFolder: string;
+  movedPatternCount: number;
+  movedPatterns: TimelineOpStepPatternMoveSummary[];
+}
+
+export interface TimelineOpMoveStepPatternResult {
+  id: string;
+  name: string;
+  kind: "pattern" | "template";
+  previousFolder: string;
+  folder: string;
+}
+
+/** Host adapter for listing, saving, and organizing user step sequencer patterns/templates (SQ43, SQ44, D92). */
+export interface TimelineOpStepPatternLibrary {
+  list(): Promise<TimelineOpUserStepPattern[]>;
+  save(entry: {
+    name: string;
+    kind: "pattern" | "template";
+    folder?: string;
+    pattern: StepPattern;
+    instrument?: MidiInstrument;
+    instrumentPreset?: string;
+  }): Promise<{ id: string; folder: string; assetId?: string }>;
+  listFolders?(): Promise<TimelineOpStepPatternFolder[]>;
+  createFolder?(args: {
+    kind?: "pattern" | "template";
+    name: string;
+    parentFolder?: string;
+  }): Promise<TimelineOpCreateStepPatternFolderResult>;
+  renameFolder?(args: {
+    folder: string;
+    newName: string;
+    kind?: "pattern" | "template";
+  }): Promise<TimelineOpRenameStepPatternFolderResult>;
+  deleteFolder?(args: {
+    folder: string;
+    kind?: "pattern" | "template";
+  }): Promise<TimelineOpDeleteStepPatternFolderResult>;
+  movePattern?(args: {
+    pattern: string;
+    folder?: string | null;
+  }): Promise<TimelineOpMoveStepPatternResult>;
+}
+
+/** Complete step pattern library with required folder management functions. */
+export type FullStepPatternLibrary = Required<TimelineOpStepPatternLibrary>;
+
+/** Status reported by a VST3/AU plugin host. */
+export interface PluginHostStatus {
+  available: boolean;
+  path?: string;
+  reason?: string;
+}
+
+/** One scanned VST3/AU plug-in descriptor returned by the host. */
+export interface PluginHostPluginInfo {
+  uid: string;
+  name: string;
+  vendor: string;
+  version: string;
+  path: string;
+  format?: "vst3" | "au";
+  isInstrument: boolean;
+}
+
+/** Target plug-in bundle + type identifier. */
+export interface PluginHostTarget {
+  path: string;
+  uid: string;
+}
+
+/** One preset (program) exposed by a loaded VST3/AU plug-in. */
+export interface PluginHostPresetInfo {
+  index: number;
+  name: string;
+}
+
+/** Result of listing presets on a loaded VST3/AU plug-in. */
+export interface PluginHostListPresetsResult {
+  currentPresetIndex: number;
+  presets: PluginHostPresetInfo[];
+}
+
+/** Result of selecting a preset on a loaded VST3/AU plug-in. */
+export interface PluginHostSelectPresetResult {
+  preset: PluginHostPresetInfo;
+  state: string | null;
+}
+
+/** One parameter exposed by a loaded VST3/AU plug-in. */
+export interface PluginHostParameterInfo {
+  id: string;
+  index: number;
+  name: string;
+  label?: string;
+  /** Normalized value in 0..1. */
+  value: number;
+  /** Formatted display value (e.g. "1200 Hz", "-6.0 dB"). */
+  displayValue: string;
+  defaultValue?: number;
+  minValue?: number;
+  maxValue?: number;
+  numSteps?: number;
+  isDiscrete?: boolean;
+  isBoolean?: boolean;
+  isAutomatable?: boolean;
+}
+
+/** One requested parameter write (by id/index, normalized or displayValue). */
+export interface PluginHostParameterChange {
+  id?: string;
+  index?: number;
+  value?: number;
+  displayValue?: string;
+}
+
+/** Result of reading parameters from a loaded VST3/AU plug-in. */
+export interface PluginHostGetParametersResult {
+  parameters: PluginHostParameterInfo[];
+}
+
+/** Result of writing parameters on a loaded VST3/AU plug-in. */
+export interface PluginHostSetParametersResult {
+  parameters: PluginHostParameterInfo[];
+  state: string | null;
+}
+
+/**
+ * Host adapter for scanning third-party VST3/AU plug-ins and reading or
+ * updating their presets and parameters (VST1). Absent on surfaces with no
+ * plug-in host (plain browser without desktop helper).
+ */
+export interface TimelineOpPluginHost {
+  status?(): Promise<PluginHostStatus> | PluginHostStatus;
+  scan(options?: { rescan?: boolean; includeEffects?: boolean }): Promise<PluginHostPluginInfo[]>;
+  listPresets(request: {
+    instance: string;
+    plugin: PluginHostTarget;
+    state: string | null;
+  }): Promise<PluginHostListPresetsResult>;
+  selectPreset(request: {
+    instance: string;
+    plugin: PluginHostTarget;
+    state: string | null;
+    presetIndex?: number;
+    presetName?: string;
+  }): Promise<PluginHostSelectPresetResult>;
+  getParameters(request: {
+    instance: string;
+    plugin: PluginHostTarget;
+    state: string | null;
+  }): Promise<PluginHostGetParametersResult>;
+  setParameters(request: {
+    instance: string;
+    plugin: PluginHostTarget;
+    state: string | null;
+    changes: PluginHostParameterChange[];
+  }): Promise<PluginHostSetParametersResult>;
+}
 
 /** Everything an op needs that the document cannot answer. */
 export interface TimelineOpContext {
@@ -154,6 +381,19 @@ export interface TimelineOpContext {
   defaultMidiInstrument?: TimelineTrack["instrument"];
   /** Timestamp for a baked animation. Defaults to `new Date().toISOString()`. */
   now?(): string;
+  /**
+   * Decoded source audio of an audio clip, mono. `detect_chords` reads it.
+   * `range` is the source span (ms) the op needs. A host decodes only that span
+   * where its decoder allows, and reports where `samples[0]` sits in the source
+   * as `startMs` (default 0: the buffer starts at source time 0). A host that
+   * cannot decode a span returns the whole source from 0. Absent means this
+   * surface cannot decode audio, and the op says so. Null means the clip has no
+   * readable audio.
+   */
+  decodeClipAudio?(
+    clip: TimelineClip,
+    range?: { startMs: number; endMs: number }
+  ): Promise<{ samples: Float32Array; sampleRate: number; startMs?: number } | null>;
   /** Asset lookup for `add_media_clip`. Absent means this surface has none. */
   resolveAsset?(ref: string): Promise<TimelineOpAsset | null>;
   /** Bake for `preset: "custom"` with `code`. Absent means curves only. */
@@ -188,6 +428,10 @@ export interface TimelineOpContext {
    * module stays clear of to avoid loading the renderer in edit hosts (AS2).
    */
   parseSvgPath?(d: string): { ok: boolean; error?: string };
+  /** User step sequencer pattern/template library adapter (SQ44, SQ54, D92). */
+  stepPatternLibrary?: TimelineOpStepPatternLibrary;
+  /** Third-party VST3/AU plugin host adapter (VST1). */
+  pluginHost?: TimelineOpPluginHost;
 }
 
 /** What one op did. `error` set means `state` is the state that went in. */

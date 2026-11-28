@@ -21,6 +21,9 @@
 #include "audio/PcmRing.h"
 #include "model/TimelineTypes.h"
 
+#include <algorithm>
+#include <array>
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -32,8 +35,13 @@
 namespace nt::audio {
 
 inline constexpr int kMixBlockFrames = 128;
+// Hard upper bound on reported plug-in latency (10 s at 96 kHz / 20 s at 48 kHz)
+// to prevent signed integer overflow and unbounded ring allocations from broken plug-ins.
+inline constexpr int kMaxProcessorLatencySamples = 960000;
 // AudioEngine::Options defaults to 48000, AudioCli::kRate renders at 48000.
 inline constexpr double kDefaultMixRate = 48000;
+
+enum class RenderMode { Live, Offline };
 
 struct BlockContext {
     double sampleRate;
@@ -43,16 +51,22 @@ struct BlockContext {
     // Distortion propagates this silence without draining its resampler.
     bool silent = false;
     int quantumOffset = 0;
+    double tempoBpm = 0.0;
 };
 
-// State belongs to one plan and one render thread. All storage must be
+// Prepared state belongs to one renderer at a time. All storage must be
 // allocated by the plan stage, never by process(), reset() or valueAt().
 class BlockProcessor {
 public:
     virtual ~BlockProcessor() = default;
     virtual void process(std::span<float> stereo, const BlockContext&) noexcept = 0;
     virtual void prepare(double) {}
-    virtual void reset() noexcept { activeInQuantum_ = false; }
+    virtual void prepare(double sampleRate, int /*deviceBlockFrames*/) { prepare(sampleRate); }
+    virtual void reset() noexcept {
+        activeInQuantum_ = false;
+        bypassStateInitialized_ = false;
+        bypassMix_ = 0.0f;
+    }
     // Stateful extensions report audio anywhere in the rest of this quantum,
     // even if the current callback fragment itself contains only zeros.
     virtual bool hasPendingOutput(int) const noexcept { return false; }
@@ -61,14 +75,44 @@ public:
     // P2 can address an insert by its document id and set automatable fields.
     std::string id;
     virtual bool setParameter(std::string_view, double) noexcept { return false; }
+    // A merged device curve already includes stored lanes. Control-thread query.
+    virtual bool drivesDeviceAutomation() const noexcept { return false; }
+    // Reported processing delay in samples at the prepared sample rate.
+    // Queried during prepareMixPlan (control thread) and on the audio thread.
+    virtual int latencySamples() const noexcept { return 0; }
+    // Thread-safe live bypass. A bypassed processor passes audio through untouched
+    // and reports 0 latency to plug-in delay compensation.
+    virtual void setBypassed(bool bypassed) noexcept { bypassed_.store(bypassed, std::memory_order_release); }
+    virtual bool bypassed() const noexcept { return bypassed_.load(std::memory_order_acquire); }
+    [[nodiscard]] int effectiveLatencySamples() const noexcept {
+        return bypassed() ? 0 : std::clamp(latencySamples(), 0, kMaxProcessorLatencySamples);
+    }
+    // Audio-thread hook called instead of process() when bypassed() is true
+    // (e.g., to keep internal dry-path history warm and mark host clocks discontinuous).
+    virtual void onBypassedBlock(std::span<const float>, const BlockContext&) noexcept {}
+    // Control/offline thread: re-probes latency from external plug-in hosts before rendering.
+    virtual void reprobeLatency(double) {}
+    // Non-audio control/worker thread maintenance (e.g., growing overflowed delay buffers
+    // off the audio thread and publishing them atomically). Never called on the audio thread.
+    virtual void serviceControlThread() {}
+    // Non-audio control/worker thread hook called on plan publish and transport start
+    // before real-time callbacks begin (e.g., waking/arming an IPC worker from deep idle).
+    virtual void armForPlayback() {}
 private:
+    static constexpr int kBypassCrossfadeFrames = 64;
     bool activeInQuantum_ = false;
+    std::atomic<bool> bypassed_{false};
+    bool bypassStateInitialized_ = false;
+    float bypassMix_ = 0.0f;  // 0.0 = active (wet), 1.0 = bypassed (dry); audio thread only
+    std::array<float, static_cast<std::size_t>(kMixBlockFrames) * 2> bypassDryScratch_{};
 };
 
-// native-rules #9: read on the render thread while the plan is built elsewhere, no affinity comment
+// Constructed on the control thread. Only the active render thread calls beginBlock/valueAt.
+// Immutable sources need no synchronization. Live sources snapshot their atomic input in beginBlock.
 class ParameterSource {
 public:
     virtual ~ParameterSource() = default;
+    virtual void beginBlock(const BlockContext&, int, double) const noexcept {}
     virtual double valueAt(double timelineMs, double baseValue) const noexcept = 0;
 };
 
@@ -115,8 +159,12 @@ struct VoicePlan {
 };
 
 struct MixPlan {
+    RenderMode renderMode = RenderMode::Live;
     std::vector<VoicePlan> voices;
     double masterGain = 1.0;
+    // Project setting `master.limiter` (defaults to true when absent).
+    bool masterLimiterEnabled = true;
+    double tempoBpm = 120.0;
     std::vector<TrackPlan> tracks;
     Processors processors;
     // native-rules #1: std::shared_ptr ParameterSource, no comment on why unique ownership is impossible
@@ -126,9 +174,19 @@ struct MixPlan {
     std::shared_ptr<State> state;
 };
 
-MixPlan buildMixPlan(const Timeline& timeline);
-// Control-thread preparation. A rate change resets all effect state.
-void prepareMixPlan(const MixPlan& plan, double sampleRate);
+[[nodiscard]] bool masterLimiterEnabled(const Timeline& timeline) noexcept;
+// Total plug-in delay compensation latency of `plan` (max track chain + master inserts), in samples.
+[[nodiscard]] int planLatencySamples(const MixPlan& plan) noexcept;
+
+MixPlan buildMixPlan(const Timeline& timeline, RenderMode mode = RenderMode::Live);
+// Control-thread preparation. A rate or block-size change updates processors and PDC.
+void prepareMixPlan(const MixPlan& plan, double sampleRate, int deviceBlockFrames = kMixBlockFrames);
+// Control/offline-thread latency re-probe before offline render.
+void reprobeMixPlanLatency(const MixPlan& plan, double sampleRate);
+// Control/worker-thread maintenance for processors in `plan` (never call on audio thread).
+void serviceMixPlanControl(const MixPlan& plan);
+// Control/worker-thread arming for processors in `plan` before callbacks start (never call on audio thread).
+void armMixPlanForPlayback(const MixPlan& plan);
 
 // Registration is a startup/control-thread operation. Stages run in ascending
 // priority then registration order, after voices/buses exist. P1 uses priority
@@ -136,9 +194,10 @@ void prepareMixPlan(const MixPlan& plan, double sampleRate);
 // supports scoped registrations in tests and dynamically loaded modules.
 using MixPlanStage = std::function<void(const Timeline&, MixPlan&)>;
 using MixPlanStageToken = std::uint64_t;
-MixPlanStageToken registerMixPlanStage(std::string name, MixPlanStage stage, int priority = 100);
+MixPlanStageToken registerMixPlanStage(std::string name, MixPlanStage stage, int priority = 100, bool unique = false);
 void unregisterMixPlanStage(MixPlanStageToken token);
 bool hasMixPlanStage(std::string_view name);
+void applyMixPlanStage(std::string_view name,const Timeline& timeline,MixPlan& plan);
 
 // The PCM a voice reads: a ring in the device callback, or a whole decoded
 // span in the offline render. Missing frames are silence.
@@ -153,8 +212,7 @@ struct VoicePcm {
 };
 
 struct MixStats {
-    // Voices that needed a frame the ring did not hold yet, counted once per
-    // voice per block.
+    // Missing PCM, once per voice per block, or one busy render lease per block.
     std::int64_t underruns = 0;
     std::int64_t preparations = 0;
 };
@@ -170,4 +228,19 @@ void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double time
               // native-rules #5: raw float* output buffer crosses the module boundary
               int frames, float* out, MixStats& stats);
 
+// Stack-owned on one render thread. Borrows a session-retained plan and releases
+// its atomic claim on destruction. No waiting, allocation, or ownership transfer.
+class MixRenderLease {
+public:
+    explicit MixRenderLease(const MixPlan& plan) noexcept;
+    ~MixRenderLease();
+    MixRenderLease(const MixRenderLease&)=delete;
+    MixRenderLease& operator=(const MixRenderLease&)=delete;
+    explicit operator bool() const noexcept { return owned_; }
+    void mix(std::span<VoicePcm> pcm, double sampleRate, double timelineMs0, double msPerFrame,
+             std::span<float> output, MixStats& stats) const;
+private:
+    const MixPlan& plan_;
+    bool owned_;
+};
 }  // namespace nt::audio

@@ -34,6 +34,7 @@ import {
   setUpdateChannel,
 } from "./settings";
 import { openSettingsInMainWindow } from "./window";
+import { isTrustedAppOrigin } from "./windowSecurity";
 import {
   createVault,
   renameVault,
@@ -43,7 +44,7 @@ import {
 import { applyVaultSwitch } from "./vaultSwitch";
 import { setMenuCloudTransfer, setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
-import { getVstHost } from "./vstHost";
+import { getVstHost, setVstEventWindowFilter } from "./vstHost";
 import { getCloudAccount, getCloudSockets } from "./cloudAccount";
 import { cloudWindowLocalCall, getCloudWindow } from "./cloudWindowHost";
 import { showSystemNotification } from "./systemNotifications";
@@ -195,8 +196,13 @@ const SENSITIVE_CHANNELS = ["clipboard:write-text", "clipboard:read-text"];
 const QUIET_CHANNELS = [
   "settings-get-close-behavior",
   "frontend-log",
-  // Renders carry plug-in state and note lists, one per clip edit.
+  // Renders and plug-in editor/preset/parameter IPC carry plug-in state blobs.
   "vst-render",
+  "vst-open-editor",
+  "vst-list-presets",
+  "vst-select-preset",
+  "vst-get-parameters",
+  "vst-set-parameters",
   // Cloud documents send one per query and save. Their bodies are document
   // content, so they are never logged.
   "cloud-request",
@@ -1059,20 +1065,62 @@ export function initializeIpcHandlers(): void {
     return installMcpBundle();
   });
 
-  // VST3 instruments: the helper process hosts the plug-ins (vstHost.ts).
-  createIpcMainHandler(IpcChannels.VST_STATUS, async () => getVstHost().status());
-  createIpcMainHandler(IpcChannels.VST_SCAN, async (_event, request) =>
-    getVstHost().scan(request?.rescan === true),
-  );
-  createIpcMainHandler(IpcChannels.VST_RENDER, async (_event, request) =>
-    getVstHost().render(request),
-  );
-  createIpcMainHandler(IpcChannels.VST_OPEN_EDITOR, async (_event, request) =>
-    getVstHost().openEditor(request),
-  );
-  createIpcMainHandler(IpcChannels.VST_CLOSE_EDITOR, async (_event, instance) =>
-    getVstHost().closeEditor(instance),
-  );
+  // VST3/AU instruments and effects: the helper process hosts the plug-ins (vstHost.ts).
+  setVstEventWindowFilter((webContentsId) => getCloudWindow().isCloudWindow(webContentsId));
+  const assertTrustedLocalVstSender = (event: Electron.IpcMainInvokeEvent): void => {
+    const sender = event?.sender;
+    if (!sender || typeof sender.id !== "number") {
+      throw new Error("VST host is only available to trusted local windows");
+    }
+    if (getCloudWindow().isCloudWindow(sender.id)) {
+      throw new Error("VST host is not available in the cloud window");
+    }
+    const url =
+      typeof event.senderFrame?.url === "string" && event.senderFrame.url.length > 0
+        ? event.senderFrame.url
+        : typeof sender.getURL === "function"
+          ? sender.getURL()
+          : "";
+    if (url && !isTrustedAppOrigin(url)) {
+      throw new Error("VST host is only available to trusted local windows");
+    }
+  };
+  createIpcMainHandler(IpcChannels.VST_STATUS, async (event) => {
+    assertTrustedLocalVstSender(event);
+    return getVstHost().status();
+  });
+  createIpcMainHandler(IpcChannels.VST_SCAN, async (event, request) => {
+    assertTrustedLocalVstSender(event);
+    return getVstHost().scan(request?.rescan === true, request?.includeEffects === true);
+  });
+  createIpcMainHandler(IpcChannels.VST_RENDER, async (event, request) => {
+    assertTrustedLocalVstSender(event);
+    return getVstHost().render(request);
+  });
+  createIpcMainHandler(IpcChannels.VST_OPEN_EDITOR, async (event, request) => {
+    assertTrustedLocalVstSender(event);
+    return getVstHost().openEditor(request);
+  });
+  createIpcMainHandler(IpcChannels.VST_CLOSE_EDITOR, async (event, instance) => {
+    assertTrustedLocalVstSender(event);
+    return getVstHost().closeEditor(instance);
+  });
+  createIpcMainHandler(IpcChannels.VST_LIST_PRESETS, async (event, request) => {
+    assertTrustedLocalVstSender(event);
+    return getVstHost().listPresets(request);
+  });
+  createIpcMainHandler(IpcChannels.VST_SELECT_PRESET, async (event, request) => {
+    assertTrustedLocalVstSender(event);
+    return getVstHost().selectPreset(request);
+  });
+  createIpcMainHandler(IpcChannels.VST_GET_PARAMETERS, async (event, request) => {
+    assertTrustedLocalVstSender(event);
+    return getVstHost().getParameters(request);
+  });
+  createIpcMainHandler(IpcChannels.VST_SET_PARAMETERS, async (event, request) => {
+    assertTrustedLocalVstSender(event);
+    return getVstHost().setParameters(request);
+  });
 
   // The shared cloud account (cloudAccount.ts). The requests carry no data,
   // and the state holds no token.

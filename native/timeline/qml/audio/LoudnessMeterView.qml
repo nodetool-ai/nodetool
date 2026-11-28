@@ -12,8 +12,11 @@ Item {
     property string standardId: "broadcast"
     readonly property var standard: Format.standard(standardId)
     property var reading: ({available: false, active: false, momentary: -Infinity, shortTerm: -Infinity,
-                            integrated: -Infinity, truePeakDb: -Infinity})
+                            integrated: -Infinity, truePeakDb: -Infinity, clipped: false})
     readonly property bool measured: reading.available && isFinite(reading.integrated)
+    readonly property bool truePeakClipped: typeof reading.clipped === "boolean"
+        ? reading.clipped
+        : (typeof reading.truePeakDb === "number" && isFinite(reading.truePeakDb) && reading.truePeakDb > 0)
     readonly property var loudnessJudgement: Format.judgeLoudness(reading.integrated, standard.lufs)
     readonly property var peakJudgement: Format.judgePeak(reading.truePeakDb, standard.peak)
     implicitHeight: column.implicitHeight
@@ -102,6 +105,16 @@ Item {
                 options: Format.standards.map(item => ({label: item.label, value: item.value}))
                 value: root.standardId
                 onValueCommitted: value => root.standardId = value
+            }
+            Ui.EditorButton {
+                objectName: "meterClipIndicator"
+                readonly property bool clipped: root.truePeakClipped
+                text: clipped ? "CLIP" : "OK"
+                density: Ui.EditorButton.Compact
+                variant: clipped ? Ui.EditorButton.Destructive : Ui.EditorButton.Default
+                accessibleName: clipped ? "True peak clipped above 0 dBTP. Click to clear clip indicator." : "True peak within 0 dBTP"
+                enabled: root.reading.available || clipped
+                onClicked: { LoudnessMeters.resetClip(); root.poll() }
             }
             Ui.EditorButton {
                 objectName: "meterReset"

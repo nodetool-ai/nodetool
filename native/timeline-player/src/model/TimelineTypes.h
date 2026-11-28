@@ -11,8 +11,12 @@
 #include <QJsonObject>
 #include <QString>
 
+#include <algorithm>
+#include <array>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -60,6 +64,65 @@ struct ClipTransitionIn {
 enum class TrackType { Video, Audio, Overlay, Subtitle, Midi, Chord };
 enum class MediaType { Image, Video, Audio, Overlay, Text, Shape, Model3d, Group, Adjustment, Midi };
 
+// One UI writer publishes a bounded return ramp. Render readers copy atomics
+// once per block with a sequence check, retaining their preceding copy on contention.
+struct MixerReturn {
+    static_assert(std::atomic<std::uint64_t>::is_always_lock_free);
+    struct Snapshot {
+        std::uint64_t generation=0;
+        bool untilPlan=false;
+        double startMs=std::numeric_limits<double>::quiet_NaN();
+        std::array<double,21> values{};
+        bool active(double time) const noexcept { return untilPlan || (std::isfinite(startMs) && time>=startMs && time<=startMs+200.); }
+        double at(double time) const noexcept {
+            if (untilPlan) { return values[0]; }
+            const double position=std::clamp((time-startMs)/10.,0.,20.);
+            const auto i=static_cast<std::size_t>(position);
+            return i==20 ? values[20] : values[i]+(values[i+1]-values[i])*(position-static_cast<double>(i));
+        }
+    };
+    void publish(const Snapshot& next) noexcept {
+        sequence.fetch_add(1,std::memory_order_acq_rel);
+        untilPlan.store(next.untilPlan,std::memory_order_release);
+        startMs.store(next.startMs,std::memory_order_release);
+        for (std::size_t i=0;i<values.size();++i) { values[i].store(next.values[i],std::memory_order_release); }
+        sequence.fetch_add(1,std::memory_order_release);
+    }
+    void read(Snapshot& next) const noexcept {
+        const auto before=sequence.load(std::memory_order_acquire);
+        if (before&1) { return; }
+        Snapshot copy;
+        copy.untilPlan=untilPlan.load(std::memory_order_acquire);
+        copy.startMs=startMs.load(std::memory_order_acquire);
+        for (std::size_t i=0;i<values.size();++i) { copy.values[i]=values[i].load(std::memory_order_acquire); }
+        // Keep every payload load before the closing sequence check on weakly ordered CPUs.
+        std::atomic_thread_fence(std::memory_order_acquire);
+        if (before==sequence.load(std::memory_order_relaxed)) { copy.generation=before; next=copy; }
+    }
+    std::uint64_t generation() const noexcept { return sequence.load(std::memory_order_acquire); }
+private:
+    std::atomic<std::uint64_t> sequence{0};
+    std::atomic<bool> untilPlan{false};
+    std::atomic<double> startMs{std::numeric_limits<double>::quiet_NaN()};
+    std::array<std::atomic<double>,21> values{};
+};
+// UI writes atomics, audio reads them. Shared by immutable mix plans so an old
+// plan can finish after the model releases its reference. NaN releases a target.
+struct MixerOverride {
+    static_assert(std::atomic<double>::is_always_lock_free);
+    std::atomic<double> volumeDb{std::numeric_limits<double>::quiet_NaN()};
+    std::atomic<double> pan{std::numeric_limits<double>::quiet_NaN()};
+    MixerReturn volumeReturn, panReturn;
+};
+// Immutable parameter address/base, shared atomic handoff owned by the model and plans.
+struct DeviceParameter {
+    std::string deviceId;
+    std::string name;
+    double base = 0;
+    std::shared_ptr<MixerOverride> state;
+    std::shared_ptr<std::atomic<std::uint64_t>> revision;
+    std::uint64_t generation=0;
+};
 struct Track {
     std::string id;
     std::string name;
@@ -74,6 +137,9 @@ struct Track {
     double volumeDb = 0.0;
     double pan = 0.0;
     QJsonObject raw;
+    // Runtime only. Model and mix plans share the atomic handoff lifetime.
+    std::shared_ptr<MixerOverride> mixerOverride;
+    std::vector<DeviceParameter> deviceParameters;
 };
 
 struct TimeRemapKeyframe {
@@ -83,6 +149,16 @@ struct TimeRemapKeyframe {
 };
 struct ClipTimeRemap {
     std::vector<TimeRemapKeyframe> keyframes;
+};
+
+// Immutable musical event. Optional fields and expression data retain their codec representation.
+struct MidiNote {
+    QString id;
+    int pitch = 60;
+    int velocity = 100;
+    double startTick = 0;
+    double durationTick = 1;
+    QJsonObject raw;
 };
 
 struct Clip {
@@ -102,6 +178,9 @@ struct Clip {
     // "plus3dB", "minus3dB"; anything else reads as linear).
     double fadeInMs = 0.0;
     double fadeOutMs = 0.0;
+    // A stored zero disables the automatic fade on that edge.
+    bool hasFadeInMs = false;
+    bool hasFadeOutMs = false;
     std::string fadeInShape;
     std::string fadeOutShape;
     // Source rate: `speedBaked` media plays at 1, else `speedMultiplier`.
@@ -135,6 +214,10 @@ struct Clip {
     std::shared_ptr<const scene::ClipScene> scene;
     QJsonObject raw;
 
+    // Shared by successive snapshots and undo checkpoints. Unique ownership cannot
+    // preserve an old snapshot while a patch replaces this clip's notes.
+    std::shared_ptr<const std::vector<MidiNote>> notes;
+
     double endMs() const { return startMs + durationMs; }
 };
 
@@ -146,6 +229,9 @@ struct Timeline {
     int width = 1920;
     int height = 1080;
     double durationMs = 0.0;
+    // Shared by the UI model and audio plans for atomic live master preview.
+    std::shared_ptr<MixerOverride> masterMixerOverride;
+    std::vector<DeviceParameter> masterDeviceParameters;
     double masterVolumeDb = 0.0;  // `master.volumeDb`
     std::vector<Track> tracks;
     std::vector<Clip> clips;

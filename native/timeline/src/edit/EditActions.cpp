@@ -1,6 +1,7 @@
 #include "edit/EditActions.h"
 
 #include <QHash>
+#include <QJsonArray>
 
 #include <algorithm>
 #include <cmath>
@@ -193,7 +194,8 @@ IdSet moveUnitIds(const ClipList& clips, const QStringList& rootIds, bool follow
 }
 
 double clampEndTrimDeltaToSource(const QJsonObject& clip, double deltaMs, std::optional<double> maxSourceDurationMs) {
-    if (isHoldRemap(clip) || !maxSourceDurationMs || deltaMs <= 0) return deltaMs;
+    const double loop = clip.value("loopLengthMs").toDouble();
+    if ((loop > 0 && loop < clipDurationMs(clip)) || isHoldRemap(clip) || !maxSourceDurationMs || deltaMs <= 0) return deltaMs;
     const double rate = sourceRate(clip);
     const double inPointMs = clip.value(u"inPointMs").isDouble() ? clip.value(u"inPointMs").toDouble() : 0.0;
     const double currentOut = clip.value(u"outPointMs").isDouble() ? clip.value(u"outPointMs").toDouble()
@@ -277,9 +279,25 @@ IdSet splitTargetIds(const ClipList& clips, double atMs, const QStringList& targ
 }
 
 ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringList& targetIds,
-                            const IdSet& clipsWithMediaTracks) {
+                            const IdSet& clipsWithMediaTracks, double bpm, const QString& crossing, double gridOffsetMs) {
     const auto toSplit = splitTargetIds(clips, atMs, targetIds, clipsWithMediaTracks);
     if (toSplit.empty()) { return clips; }
+    ClipList prepared;
+    QStringList preparedTargets;
+    bool unrolled = false;
+    for (const auto& id : toSplit) { preparedTargets.append(id); }
+    for (const auto& clip : clips) {
+        const double period = clip.value("loopLengthMs").toDouble();
+        if (toSplit.contains(clipId(clip)) && period > 0 && period < clipDurationMs(clip)) {
+            const auto raw = expandMusicLoops({{"clips", QJsonArray{clip}}, {"tempo", QJsonObject{{"bpm", bpm}, {"offsetMs", gridOffsetMs}}}});
+            for (const auto& value : raw.value("clips").toArray()) {
+                prepared.push_back(value.toObject());
+                preparedTargets.append(clipId(value.toObject()));
+            }
+            unrolled = true;
+        } else { prepared.push_back(clip); }
+    }
+    if (unrolled) { return splitClipsLinkAware(prepared, atMs, preparedTargets, clipsWithMediaTracks, bpm, crossing, gridOffsetMs); }
     std::map<QString, QString> leftLinkByGroup;
     std::map<QString, QString> rightLinkByGroup;
     const auto groupLink = [](std::map<QString, QString>& map, const QString& source) {
@@ -294,7 +312,7 @@ ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringLi
             continue;
         }
         try {
-            auto [left, right] = splitClip(c, atMs);
+            auto [left, right] = splitClip(c, atMs, bpm, crossing, gridOffsetMs);
             const QString link = clipLinkId(c);
             if (!link.isEmpty()) {
                 left.insert(QStringLiteral("linkId"), groupLink(leftLinkByGroup, link));
@@ -405,6 +423,26 @@ ClipList moveSelectedClips(const EditDoc& doc, const QString& primaryClipId, con
 
 ClipList trimClipStart(const EditDoc& doc, const QString& id, double deltaMs, bool linked) {
     if (!isEditable(doc, id, linked, true)) return doc.clips;
+    const int index = doc.indexOf(id);
+    const auto& primary = doc.clips[static_cast<size_t>(index)];
+    const QString link = linked ? clipLinkId(primary) : QString();
+    const bool hasLoop = std::any_of(doc.clips.begin(), doc.clips.end(), [&](const auto& clip) {
+        return (clipId(clip) == id || (!link.isEmpty() && clipLinkId(clip) == link)) &&
+            clip.value("loopLengthMs").toDouble() > 0 && clip.value("loopLengthMs").toDouble() < clipDurationMs(clip);
+    });
+    if (hasLoop) {
+        QJsonArray clips;
+        for (const auto& clip : doc.clips) { clips.append(clip); }
+        QJsonArray tracks;
+        for (const auto& track : doc.tracks) { tracks.append(QJsonObject{{"id", track.id}, {"type", track.type}, {"locked", track.locked}}); }
+        try {
+            const auto result = applyMusicClipEdit({{"clips", clips}, {"tracks", tracks}, {"tempo", QJsonObject{{"bpm", doc.bpm}, {"offsetMs", doc.gridOffsetMs}}}},
+                "trim_clip", {{"clipId", id}, {"startMs", clipStartMs(primary) - deltaMs}, {"linked", linked}});
+            ClipList next;
+            for (const auto& clip : result.value("clips").toArray()) { next.push_back(clip.toObject()); }
+            return next;
+        } catch (const OpError&) { return doc.clips; }
+    }
     return trimLinked(doc, id, QStringLiteral("start"), deltaMs, std::nullopt, linked);
 }
 
@@ -481,7 +519,7 @@ ClipList rippleDeleteSelected(const EditDoc& doc, const IdSet& selectedIds) {
 
 ClipList splitClipAtTime(const EditDoc& doc, const QString& id, double atMs) {
     if (!isEditable(doc, id, true, false)) return doc.clips;
-    return splitClipsLinkAware(doc.clips, atMs, {id}, doc.clipsWithMediaTracks);
+    return splitClipsLinkAware(doc.clips, atMs, {id}, doc.clipsWithMediaTracks, doc.bpm, doc.splitCrossing, doc.gridOffsetMs);
 }
 
 SplitResult splitSelectedAtPlayhead(const EditDoc& doc, double timeMs, const QStringList& selectedIds) {
@@ -500,7 +538,7 @@ SplitResult splitSelectedAtPlayhead(const EditDoc& doc, double timeMs, const QSt
         if (targets.count(id)) targetList.append(id);
     }
     SplitResult result;
-    result.clips = splitClipsLinkAware(doc.clips, timeMs, targetList, doc.clipsWithMediaTracks);
+    result.clips = splitClipsLinkAware(doc.clips, timeMs, targetList, doc.clipsWithMediaTracks, doc.bpm, doc.splitCrossing, doc.gridOffsetMs);
     IdSet oldIds;
     IdSet targetTracks;
     for (const auto& c : doc.clips) {
@@ -526,6 +564,8 @@ ClipList resolveDropAction(const EditDoc& doc, const IdSet& movedIds, const QStr
     RippleOptions o;
     o.lockedTrackIds = rippleFrozenTrackIds(doc);
     o.lockedClipIds = lockedClips;
+    o.bpm = doc.bpm;
+    o.gridOffsetMs = doc.gridOffsetMs;
     ClipList out = resolveDrop(doc.clips, moved, mode, o);
     // A drop that would split or remove a clip owning a media track leaves
     // `mediaTracks[].clipId` dangling: keep it an overlap instead. (The web

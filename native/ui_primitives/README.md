@@ -211,6 +211,12 @@ allowed. Reduced motion keeps a static segment. `Ui.Surface.elevated` adds a
 transient overlay shadow on hardware renderers. Software rendering uses the
 border alone because the unblurred shadow is clipped by overlay hosts.
 
+`Toast` shows a short confirmation on the overlay surface. `show(message)`
+replaces the message on screen and hides it after `duration` milliseconds
+(2600 by default); `hide()` hides it at once. The host positions it. It takes
+no pointer input, announces itself as an alert, and fades only when motion is
+allowed.
+
 `ChipMenu` shows the selected option as a compact pill with an optional
 `iconName`. Supply `options` (`value`, `label`, optional `enabled`) and `value`,
 then handle `valueCommitted`. Its `popup` supports explicit cancellation.
@@ -223,3 +229,5 @@ options, and selection or Escape returns focus to the chip.
 The preview is disabled, so a click anywhere on the card reaches the card, and
 controls inside the preview take no focus. The host owns image resolution and
 selection commits.
+
+Run `npm run check:native-performance` to check per-file debt in `native/*/qml` and `native/*/src`, or `npm run check:native-performance -- --update` to save lower baseline counts.

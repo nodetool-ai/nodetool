@@ -11,9 +11,11 @@
 
 import type { TFunction } from "i18next";
 import {
+  automationParamColorRole,
   automationTargetKey,
   clipAutomationIdentity,
   INSTRUMENT_DEVICE_ID,
+  type AutomationColorRole,
   type AutomationTarget,
   type MidiInstrument,
   type TimelineTrack,
@@ -32,6 +34,7 @@ import {
   resolvedFableFxParams
 } from "../../daw/fx/fableFxParams";
 import { EFFECT_LABELS } from "../trackEffectsConstants";
+import { MIXER_RANGE } from "./automationLayout";
 
 export interface AutomationTargetSpec {
   target: AutomationTarget;
@@ -206,8 +209,8 @@ function mixerSpecs(track: TimelineTrack, t: TFunction): AutomationTargetSpec[] 
       key: automationTargetKey(volume),
       label: t("timelineAutomation.params.volume"),
       group,
-      min: -60,
-      max: 6,
+      min: MIXER_RANGE.volumeDb.min,
+      max: MIXER_RANGE.volumeDb.max,
       curve: "lin",
       value: track.volumeDb ?? 0,
       format: formatDb
@@ -217,8 +220,8 @@ function mixerSpecs(track: TimelineTrack, t: TFunction): AutomationTargetSpec[] 
       key: automationTargetKey(pan),
       label: t("timelineAutomation.params.pan"),
       group,
-      min: -1,
-      max: 1,
+      min: MIXER_RANGE.pan.min,
+      max: MIXER_RANGE.pan.max,
       curve: "lin",
       value: track.pan ?? 0,
       format: formatPan
@@ -303,15 +306,7 @@ export function automationTargetSpec(
   return automationTargetSpecs(track, t).find((spec) => spec.key === key) ?? null;
 }
 
-/** Whether a track type takes automation lanes at all. */
-export function trackSupportsAutomation(track: Pick<TimelineTrack, "type">): boolean {
-  return (
-    track.type === "audio" ||
-    track.type === "midi" ||
-    track.type === "video" ||
-    track.type === "overlay"
-  );
-}
+export { MIXER_RANGE, trackSupportsAutomation } from "./automationLayout";
 
 /** A value's height in the lane, 0 (bottom) .. 1 (top). */
 export function automationValueToNorm(spec: AutomationTargetSpec, value: number): number {
@@ -329,4 +324,13 @@ export function automationNormToValue(spec: AutomationTargetSpec, norm: number):
     return spec.min * Math.pow(spec.max / spec.min, n);
   }
   return spec.min + (spec.max - spec.min) * n;
+}
+
+/** The theme role a parameter's curve is drawn in, by its place in the track's target list. */
+export function automationRoleOf(
+  specs: readonly AutomationTargetSpec[],
+  target: AutomationTarget
+): AutomationColorRole {
+  const key = automationTargetKey(target);
+  return automationParamColorRole(Math.max(0, specs.findIndex((spec) => spec.key === key)), target);
 }

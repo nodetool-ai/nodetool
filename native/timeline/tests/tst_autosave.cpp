@@ -1325,6 +1325,14 @@ private slots:
         QVERIFY2(m_save->dirty(), "the edit made during the save is not on the server");
     }
 
+    void manualSavePreservesConflictMetadata() {
+        make();
+        m_save->externalChanged("deleted", {}, {}, false);
+        const auto result = m_save->saveDocument();
+        QVERIFY(!result.ok);
+        QVERIFY(result.conflict);
+    }
+
     void conflictKeepsTheLocalDocument() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
         make();
@@ -1417,6 +1425,46 @@ private slots:
     }
 
     // ── Codex review F2 (M5b): failures retry, and unsaved edits survive ──
+
+    void saveRetryPolicy_data() {
+        QTest::addColumn<int>("status");
+        QTest::addColumn<QString>("code");
+        QTest::addColumn<bool>("retries");
+        for (int status = 400; status < 500; ++status) {
+            const auto name = QByteArray::number(status);
+            // A transport-like code must never override a definitive rejection.
+            QTest::newRow(name.constData()) << status << QStringLiteral("NETWORK")
+                                          << (status == 408 || status == 429);
+        }
+        QTest::newRow("bad-request") << 400 << QStringLiteral("BAD_REQUEST") << false;
+        QTest::newRow("timeout") << 408 << QStringLiteral("REQUEST_TIMEOUT") << true;
+        QTest::newRow("network") << 0 << QStringLiteral("NETWORK") << true;
+        QTest::newRow("server") << 503 << QStringLiteral("INTERNAL_SERVER_ERROR") << true;
+    }
+
+    void saveRetryPolicy() {
+        QFETCH(int, status);
+        QFETCH(QString, code);
+        QFETCH(bool, retries);
+        QVERIFY2(m_http->base().port() > 0, "This test requires a localhost listener.");
+        int calls = 0;
+        m_http->setPost([&](const QByteArray&, const QByteArray&) {
+            return ++calls == 1 ? failure(status, code) : ok(QStringLiteral("u1"));
+        });
+        make();
+        m_save->setRetryBaseMs(10);
+        m_undo->push(std::make_unique<Bump>(&m_value).release()); // owned by the undo stack
+        QVERIFY(!m_save->saveDocument().ok);
+        QCOMPARE(posts(), 1);
+        if (retries) {
+            QTRY_COMPARE_WITH_TIMEOUT(posts(), 2, 2000);
+            QVERIFY(!m_save->dirty());
+        } else {
+            QTest::qWait(80);
+            QCOMPARE(posts(), 1);
+            QVERIFY(m_save->dirty());
+        }
+    }
 
     void aTransientFailureRetriesAndKeepsARecoveryFile() {
         int calls = 0;
@@ -1683,7 +1731,10 @@ private slots:
         QFile blockedBackup(backup);
         QVERIFY(blockedBackup.open(QIODevice::WriteOnly));
         blockedBackup.close();
-        QVERIFY(m_save->saveNow().ok);
+        const auto manual = m_save->saveDocument();
+        QVERIFY(!manual.ok);
+        QVERIFY(!manual.error.isEmpty());
+        QVERIFY(manual.error.contains(backup));
         QVERIFY(!m_save->dirty());
         const int beforeQuit = posts();
         QVERIFY(!m_save->flushBeforeQuit(2000));

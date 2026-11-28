@@ -58,6 +58,10 @@ export function retimeClipSpeed(
   for (const { m, newRate, targetMs } of planned) {
     const durationMs = Math.max(1, targetMs - overflowMs);
     const retimed: TimelineClip = { ...m, speedMultiplier, durationMs };
+    // The loop window keeps its source length, so it scales like the clip.
+    if (m.loopLengthMs !== undefined) {
+      retimed.loopLengthMs = (m.loopLengthMs * sourceRate(m)) / newRate;
+    }
     if (overflowMs > 0 && m.outPointMs !== undefined) {
       retimed.outPointMs = (m.inPointMs ?? 0) + durationMs * newRate;
     }
@@ -134,6 +138,9 @@ export function rateStretchClips(
       startMs:
         edge === "start" ? m.startMs + m.durationMs - nextDurationMs : m.startMs
     };
+    if (m.loopLengthMs !== undefined) {
+      retimed.loopLengthMs = m.loopLengthMs * ratio;
+    }
     if (m.caption) {
       retimed.caption = retimeCaption(m.caption, 0, sourceRate(m) / newRate);
     }

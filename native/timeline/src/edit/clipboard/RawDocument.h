@@ -20,6 +20,9 @@ inline QJsonArray clipsToJson(const ClipList &clips) {
 }
 inline EditDoc editDocument(const QJsonObject &raw) {
     EditDoc doc;
+    const auto tempo = raw.value("tempo").toObject();
+    doc.bpm = tempo.value("bpm").toDouble(120);
+    doc.gridOffsetMs = tempo.value("offsetMs").toDouble();
     doc.clips = clipsFromJson(raw.value("clips").toArray());
     for (const auto &value : raw.value("tracks").toArray()) {
         const auto t = value.toObject();
@@ -60,6 +63,8 @@ inline QJsonObject withClips(QJsonObject raw, const ClipList &clips) {
 inline RippleOptions rippleOptions(const QJsonObject &raw, const QJsonObject &p, const EditDoc &doc,
                                    const IdSet &editedTracks) {
     RippleOptions options;
+    options.bpm = doc.bpm;
+    options.gridOffsetMs = doc.gridOffsetMs;
     options.lockedTrackIds = lockedTrackIds(doc);
     options.lockedClipIds = lockedUserTargetIds(doc);
     const auto syncOff = stateIds(raw, p, "syncLockOffTrackIds");

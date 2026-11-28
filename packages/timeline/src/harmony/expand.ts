@@ -17,15 +17,18 @@
 import { MIDI_PPQ, msToTicks } from "../midi/ticks.js";
 import { resolveTempo } from "../midi/tempo.js";
 import { sortNotes } from "../midi/notes.js";
+import { expandPatternClip } from "../midi/stepPatternExpand.js";
 import type {
   ClipHarmony,
   MidiNote,
   TimelineChord,
   TimelineClip,
-  TimelineTempo,
-  TimelineTrack
+  TimelineTempo
 } from "../types.js";
 import { arpPool, stepRandom } from "./arp.js";
+import { chordTrackFor, type HarmonyDocument } from "./chordTrack.js";
+
+export { chordTrackFor, type HarmonyDocument };
 import { chordAtTick, chordNotes, sortChords } from "./chords.js";
 import { compVoices, parseCompSteps, spreadVoicing, strumDown } from "./comp.js";
 import { chordMask, chordScale, keyScale, remapNote, scaleMask, scaleRemap } from "./scales.js";
@@ -80,24 +83,6 @@ export function resolveClipHarmony(harmony: ClipHarmony): ResolvedClipHarmony {
 /** Whether `harmony` changes what the clip plays. */
 export function isHarmonyActive(harmony: ClipHarmony | undefined): harmony is ClipHarmony {
   return !!harmony && (harmony.style !== "off" || (harmony.scale ?? "off") !== "off");
-}
-
-/** What expansion reads from the document. */
-export interface HarmonyDocument {
-  tracks: ReadonlyArray<Pick<TimelineTrack, "id" | "type" | "chords">>;
-  tempo?: TimelineTempo;
-}
-
-/** The chord track a clip follows: `chordTrackId`, else the first chord track. */
-export function chordTrackFor(
-  harmony: Pick<ClipHarmony, "chordTrackId"> | undefined,
-  tracks: HarmonyDocument["tracks"]
-): Pick<TimelineTrack, "id" | "type" | "chords"> | undefined {
-  const chordTracks = tracks.filter((t) => t.type === "chord");
-  return (
-    (harmony?.chordTrackId && chordTracks.find((t) => t.id === harmony.chordTrackId)) ||
-    chordTracks[0]
-  );
 }
 
 /** The key root a clip's scale uses: `scaleKey`, else the first chord's root, else C. */
@@ -314,15 +299,69 @@ export function expandClipHarmony(
 
 const cache = new WeakMap<
   object,
-  { chords: unknown; tracks: unknown; bpm: number; offsetMs: number; clip: TimelineClip }
+  {
+    chords: unknown;
+    tracks: unknown;
+    instrument: unknown;
+    bpm: number;
+    offsetMs: number;
+    key: unknown;
+    clip: TimelineClip;
+  }
 >();
 
 /**
- * `clip` with `notes` replaced by what it plays. Returned by reference when
- * the clip has no active harmony. Results are memoised per clip object and
- * chord list, so calling this on every playback tick is cheap.
+ * `clip` with `notes` (and `controllers` for a pattern region) replaced by
+ * what it plays. Returned by reference when the clip has neither active
+ * harmony nor a step pattern. Results are memoised per clip object and
+ * document inputs, so calling this on every playback tick is cheap.
  */
 export function applyClipHarmony<C extends TimelineClip>(clip: C, doc: HarmonyDocument): C {
+  if (clip.pattern) {
+    const tempo = resolveTempo(doc);
+    const chordTrack = chordTrackFor(clip.harmony, doc.tracks);
+    const ownTrack = doc.tracks.find((t) => t.id === clip.trackId);
+    const hit = cache.get(clip);
+    if (
+      hit &&
+      hit.chords === chordTrack?.chords &&
+      hit.tracks === chordTrack &&
+      hit.instrument === ownTrack?.instrument &&
+      hit.bpm === tempo.bpm &&
+      hit.offsetMs === tempo.offsetMs &&
+      hit.key === tempo.key
+    ) {
+      return hit.clip as C;
+    }
+    const expanded = expandPatternClip(clip, doc);
+    const next: TimelineClip = {
+      ...clip,
+      notes: expanded?.notes ?? [],
+      inPointMs: 0
+    };
+    if (expanded && expanded.controllers.length > 0) {
+      next.controllers = expanded.controllers;
+    } else {
+      delete next.controllers;
+    }
+    delete next.pattern;
+    delete next.patternPhaseTicks;
+    delete next.patternRowCycles;
+    delete next.loopLengthMs;
+    if (isHarmonyActive(next.harmony)) {
+      next.notes = expandClipHarmony(next, doc);
+    }
+    cache.set(clip, {
+      chords: chordTrack?.chords,
+      tracks: chordTrack,
+      instrument: ownTrack?.instrument,
+      bpm: tempo.bpm,
+      offsetMs: tempo.offsetMs,
+      key: tempo.key,
+      clip: next
+    });
+    return next as C;
+  }
   if (!isHarmonyActive(clip.harmony)) return clip;
   const tempo = resolveTempo(doc);
   const track = chordTrackFor(clip.harmony, doc.tracks);
@@ -331,13 +370,23 @@ export function applyClipHarmony<C extends TimelineClip>(clip: C, doc: HarmonyDo
     hit &&
     hit.chords === track?.chords &&
     hit.tracks === track &&
+    hit.instrument === undefined &&
     hit.bpm === tempo.bpm &&
-    hit.offsetMs === tempo.offsetMs
+    hit.offsetMs === tempo.offsetMs &&
+    hit.key === undefined
   ) {
     return hit.clip as C;
   }
   const next = { ...clip, notes: expandClipHarmony(clip, doc) };
-  cache.set(clip, { chords: track?.chords, tracks: track, bpm: tempo.bpm, offsetMs: tempo.offsetMs, clip: next });
+  cache.set(clip, {
+    chords: track?.chords,
+    tracks: track,
+    instrument: undefined,
+    bpm: tempo.bpm,
+    offsetMs: tempo.offsetMs,
+    key: undefined,
+    clip: next
+  });
   return next;
 }
 

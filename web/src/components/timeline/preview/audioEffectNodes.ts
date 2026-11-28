@@ -145,7 +145,9 @@ export function effectAutomationParam(
     }
     case "filter": {
       const filter = node(0) as BiquadFilterNode;
-      if (field === "frequency") return { param: filter.frequency, map: same, curved: true };
+      if (field === "frequency" || field === "cutoffHz") {
+        return { param: filter.frequency, map: same, curved: true };
+      }
       if (field === "q") return { param: filter.Q, map: same, curved: false };
       return null;
     }

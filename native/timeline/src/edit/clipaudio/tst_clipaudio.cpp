@@ -1,6 +1,7 @@
 #include "../../../tests/TestAssetCacheRoot.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
+#include "model/LaneClipModel.h"
 #include "edit/ClipGestureController.h"
 #include "playback/PlaybackClock.h"
 #include <QGuiApplication>
@@ -81,10 +82,52 @@ class TestClipAudio : public QObject {
     Q_OBJECT
     QJsonObject english;
 private slots:
+    void fadeMenuSurvivesLeavingAnUnselectedClip() {
+        AudioEditor e(fadedDocument());
+        QVERIFY2(e.object, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        auto* clip = e.item("clip-c");
+        QVERIFY(clip);
+        QTest::mouseMove(&e.window, clip->mapToScene({30, 4}).toPoint());
+        QTRY_VERIFY(e.item("fadeGrip-in-c"));
+        auto* grip = e.item("fadeGrip-in-c");
+        QTest::mouseClick(&e.window, Qt::RightButton, {}, grip->mapToScene({4, 4}).toPoint());
+        QPointer<QObject> menu = grip->parentItem()->findChild<QObject*>("clipFadeShapeMenu-c");
+        QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QTest::mouseMove(&e.window, clip->mapToScene({100, 100}).toPoint());
+        QTest::qWait(50);
+        QVERIFY(menu);
+        QVERIFY(menu->property("opened").toBool());
+    }
+
+    void unloadingFadeGripsFinishesTheUndoTransaction() {
+        AudioEditor e(fadedDocument());
+        QVERIFY2(e.object, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        e.gestures()->setSelection({"c"});
+        QTRY_VERIFY(e.item("fadeGrip-in-c"));
+        auto* grip = e.item("fadeGrip-in-c");
+        grip->forceActiveFocus();
+        QTest::keyClick(&e.window, Qt::Key_Right);
+        QCOMPARE(e.model.clipsJson()[0].toObject()["fadeInMs"].toDouble(), 700.0);
+        auto* body = grip->parentItem()->property("body").value<QQuickItem*>();
+        QVERIFY(body);
+        body->setProperty("mediaType", "image");
+        QTRY_VERIFY(!e.item("fadeGrip-in-c"));
+        QCOMPARE(e.model.undoStack()->count(), 1);
+        QVERIFY(!body->property("detailGestureActive").toBool());
+        QVERIFY(!body->property("detailFocusActive").toBool());
+        e.model.undoStack()->undo();
+        QCOMPARE(e.model.clipsJson()[0].toObject()["fadeInMs"].toDouble(), 600.0);
+    }
+
     void fadeObjectNamesPreserveClipDelegatePrefix() {
         AudioEditor e(fadedDocument());
         QVERIFY2(e.object, qPrintable(e.error));
         QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        QVERIFY(!e.item("fadeGrip-in-c"));
+        e.gestures()->setSelection({"c"});
         QTRY_VERIFY(e.item("fadeGrip-in-c"));
         auto* contribution = e.item("fadeGrip-in-c")->parentItem();
         QList<QQuickItem*> items{contribution};
@@ -95,6 +138,30 @@ private slots:
         }
         QVERIFY(items.size() > 1);
     }
+    void fadeGripKeepsItsClipWhenScrolledOut() {
+        AudioEditor e(fadedDocument());
+        QVERIFY2(e.object, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        e.gestures()->viewState()->zoomTo(20, 0);
+        e.gestures()->viewState()->flush();
+        e.gestures()->setSelection({"c"});
+        QTRY_VERIFY(e.item("fadePointer-in-c"));
+        QPointer<QQuickItem> pointer = e.item("fadePointer-in-c");
+        const auto point = pointer->mapToScene({10, 10}).toPoint();
+        QTest::mousePress(&e.window, Qt::LeftButton, Qt::NoModifier, point);
+        const auto lanes = e.object->findChildren<LaneClipModel*>();
+        QVERIFY(!lanes.isEmpty());
+        QTRY_COMPARE(lanes.first()->pinnedClipId(), QString("c"));
+        e.gestures()->viewState()->setContentEndMs(1000000);
+        e.gestures()->viewState()->setScrollLeftPx(20000);
+        e.gestures()->viewState()->flush();
+        QVERIFY(pointer);
+        QCOMPARE(pointer->objectName(), QString("fadePointer-in-c"));
+        QVERIFY(lanes.first()->clipIds().contains("c"));
+        QTest::mouseRelease(&e.window, Qt::LeftButton, Qt::NoModifier, point);
+        QTRY_VERIFY(lanes.first()->pinnedClipId().isEmpty());
+    }
+
     void fadePointerReleaseKeepsEditorKeys() {
         AudioEditor e(fadedDocument());
         QVERIFY2(e.object, qPrintable(e.error));
@@ -366,24 +433,28 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&e.window));
         e.gestures()->viewState()->zoomTo(20, 0);
         e.gestures()->viewState()->flush();
+        QTest::mouseMove(&e.window, QPoint(10, 10));
+        e.gestures()->setSelection({});
+        QTRY_VERIFY(!e.item("fadeGrip-in-c"));
+        e.gestures()->setSelection({"c"});
         QTRY_VERIFY(e.item("fadeGrip-in-c"));
-        auto* grip = e.item("fadeGrip-in-c");
+        QPointer<QQuickItem> grip = e.item("fadeGrip-in-c");
         QCOMPARE(grip->width(), 9.0);
         QCOMPARE(grip->x(), 0.0);
         auto* dot = grip->childItems().first();
-        QTest::mouseMove(&e.window, QPoint(10, 10));
-        e.gestures()->setSelection({});
-        QTRY_COMPARE(dot->opacity(), 0.0);
-        e.gestures()->setSelection({"c"});
         QTRY_COMPARE(dot->opacity(), 1.0);
-        e.gestures()->setSelection({});
         grip->forceActiveFocus();
+        e.gestures()->setSelection({});
+        QVERIFY(grip);
         QTRY_COMPARE(dot->opacity(), 1.0);
         e.root()->forceActiveFocus();
+        QTRY_VERIFY(!e.item("fadeGrip-in-c"));
         QTest::mouseMove(&e.window, e.item("clip-c")->mapToScene({50, 20}).toPoint());
-        QTRY_COMPARE(dot->opacity(), 1.0);
+        QTRY_VERIFY(e.item("fadeGrip-in-c"));
+        QTRY_COMPARE(e.item("fadeGrip-in-c")->childItems().first()->opacity(), 1.0);
         QTest::mouseMove(&e.window, QPoint(10, 10));
-        QTRY_COMPARE(dot->opacity(), 0.0);
+        QTRY_VERIFY(!e.item("fadeGrip-in-c"));
+        e.gestures()->setSelection({"c"});
         e.gestures()->viewState()->zoomTo(200, 0);
         e.gestures()->viewState()->flush();
         QTRY_VERIFY(!e.item("fadeGrip-in-c"));
@@ -391,14 +462,22 @@ private slots:
     void fadeFromCorner_data() {
         QTest::addColumn<bool>("incoming");
         QTest::addColumn<double>("pressY");
-        QTest::newRow("in") << true << 4.5;
-        QTest::newRow("out") << false << 4.5;
-        QTest::newRow("in-margin") << true << 12.0;
-        QTest::newRow("out-margin") << false << 12.0;
+        QTest::addColumn<bool>("selectFirst");
+        QTest::addColumn<bool>("touch");
+        QTest::newRow("in") << true << 4.5 << true << false;
+        QTest::newRow("out") << false << 4.5 << true << false;
+        QTest::newRow("in-margin") << true << 12.0 << true << false;
+        QTest::newRow("out-margin") << false << 12.0 << true << false;
+        QTest::newRow("direct-in") << true << 4.5 << false << false;
+        QTest::newRow("direct-out") << false << 4.5 << false << false;
+        QTest::newRow("touch-in") << true << 4.5 << false << true;
+        QTest::newRow("touch-out") << false << 4.5 << false << true;
     }
     void fadeFromCorner() {
         QFETCH(bool, incoming);
         QFETCH(double, pressY);
+        QFETCH(bool, selectFirst);
+        QFETCH(bool, touch);
         auto raw = QJsonDocument::fromJson(document).object();
         auto sourceClip = raw["clips"].toArray()[0].toObject();
         sourceClip.insert("startMs", 1000);
@@ -407,16 +486,30 @@ private slots:
         AudioEditor e(QJsonDocument(raw).toJson());
         QVERIFY2(e.object, qPrintable(e.error));
         QVERIFY(QTest::qWaitForWindowExposed(&e.window));
-        e.gestures()->setSelection({"c"});
+        if (selectFirst) { e.gestures()->setSelection({"c"}); }
         const auto gripName = incoming ? "fadeGrip-in-c" : "fadeGrip-out-c";
-        QTRY_VERIFY(e.item(gripName));
+        if (selectFirst) { QTRY_VERIFY(e.item(gripName)); }
+        else {
+            QTest::mouseMove(&e.window, QPoint(10, 10));
+            QTRY_VERIFY(!e.item(gripName));
+        }
         auto* grip = e.item(gripName);
         const auto before = e.model.clipsJson()[0].toObject();
-        const auto point = grip->mapToScene({4.5, pressY}).toPoint();
+        auto* clip = e.item("clip-c");
+        QVERIFY(clip);
+        const auto point = grip ? grip->mapToScene({4.5, pressY}).toPoint()
+            : clip->mapToScene({incoming ? 4.5 : clip->width() - 4.5, pressY}).toPoint();
         const auto end = point + QPoint(incoming ? 20 : -20, 0);
-        QTest::mousePress(&e.window, Qt::LeftButton, Qt::NoModifier, point);
-        QTest::mouseMove(&e.window, end);
-        QTest::mouseRelease(&e.window, Qt::LeftButton, Qt::NoModifier, end);
+        if (touch) {
+            auto* device = QTest::createTouchDevice();
+            QTest::touchEvent(&e.window, device).press(0, point, &e.window).commit();
+            QTest::touchEvent(&e.window, device).move(0, end, &e.window).commit();
+            QTest::touchEvent(&e.window, device).release(0, end, &e.window).commit();
+        } else {
+            QTest::mousePress(&e.window, Qt::LeftButton, Qt::NoModifier, point);
+            QTest::mouseMove(&e.window, end);
+            QTest::mouseRelease(&e.window, Qt::LeftButton, Qt::NoModifier, end);
+        }
         const auto after = e.model.clipsJson()[0].toObject();
         QCOMPARE(after[incoming ? "fadeInMs" : "fadeOutMs"].toDouble(),
             std::round(20 * e.gestures()->viewState()->msPerPx()));

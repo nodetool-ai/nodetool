@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic as Basic
 import NodeTool.Timeline
@@ -5,30 +6,50 @@ import NodeTool.UiPrimitives as Ui
 
 Ui.Surface {
     id: card
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var effect
     required property int effectIndex
-    required property var panel
+    required property Item panel
     required property Item rackRow
+    property string previewDeviceId: ""
+    onEffectChanged: if (previewDeviceId !== "" && previewDeviceId !== effect.id) cancel()
+    // JSON data from the document, controller, or shared JavaScript API.
     property var draft: ({})
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var edited: Object.assign({}, effect, draft)
-    readonly property string effectLabel: panel.strings.labels[effect.type === "fable" ? effect.kind : effect.type]
+    readonly property string effectLabel: effect.type === "vst"
+        ? ((effect.plugin && effect.plugin.name) || "VST3 Plugin")
+        : panel.strings.labels[effect.type === "fable" ? effect.kind : effect.type]
     readonly property bool ignoredDuplicate: panel.isVideo && effect.enabled
         && ["chromaKey", "sharpen", "vignette"].includes(effect.type)
         && panel.effects.find(candidate => candidate.type === effect.type && candidate.enabled)?.id !== effect.id
     objectName: "effect-" + effect.id
-    width: effect.type === "fable" ? panel.reference.fableWidths[effect.kind] : panel.reference.widths[effect.type]
+    width: effect.type === "vst" ? 260 : effect.type === "fable" ? panel.reference.fableWidths[effect.kind] : panel.reference.widths[effect.type]
     opacity: panel.draggingIndex === effectIndex ? 0.4 : 1
+    AutomationController { id: live; timeline: card.panel.timeline; trackId: card.panel.track.id; master: card.panel.track.id === "" }
     InspectorEdits { id: edits; model: card.panel.timeline }
     function payload(patch) { return {trackId: panel.track.id, effectId: effect.id, patch: patch} }
     function preview(patch) {
+        if (!panel.isVideo) {
+            draft = Object.assign({}, draft, patch)
+            previewDeviceId = effect.id
+            live.previewDevice(previewDeviceId, draft)
+            return
+        }
         if (Object.keys(draft).length === 0) edits.beginGesture("updateTrackEffect", payload({}))
         draft = Object.assign({}, draft, patch)
         edits.preview(payload(draft))
     }
-    function cancel() { edits.cancelGesture(); draft = ({}) }
-    Component.onDestruction: edits.cancelGesture()
+    function cancel() { live.cancelDevice(previewDeviceId || effect.id); previewDeviceId = ""; edits.cancelGesture(); draft = ({}) }
+    Component.onDestruction: cancel()
     onVisibleChanged: if (!visible && edits) cancel()
     function commit(patch) {
+        if (!panel.isVideo) {
+            const finalPatch = Object.assign({}, draft, patch)
+            draft = ({})
+            live.commitDevice(effect.id, finalPatch, live.master ? "updateMasterEffect" : "updateTrackEffect", payload(finalPatch))
+            return
+        }
         const wasPreviewing = Object.keys(draft).length > 0
         const finalPatch = Object.assign({}, draft, patch)
         draft = ({})
@@ -111,7 +132,10 @@ Ui.Surface {
             iconName: "deleteOutline"
             accessibleName: card.panel.strings.remove.replace("{{label}}", card.effectLabel)
             description: card.panel.strings.removeHelp
-            onClicked: card.panel.timeline.applyEdit("removeTrackEffect", {trackId: card.panel.track.id, effectId: card.effect.id})
+            onClicked: {
+                if (card.effect.type === "vst") VstHost.closeEditor("fx:" + card.panel.track.id + ":" + card.effect.id)
+                card.panel.timeline.applyEdit("removeTrackEffect", {trackId: card.panel.track.id, effectId: card.effect.id})
+            }
         }
     }
     Ui.Text {
@@ -146,6 +170,7 @@ Ui.Surface {
         TrackEffectParams {
             id: params
             width: parent.width
+            trackId: card.panel.track.id
             effect: card.edited
             disabled: !card.effect.enabled
             onPreview: patch => card.preview(patch)

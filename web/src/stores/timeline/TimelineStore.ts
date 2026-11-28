@@ -1,4 +1,7 @@
-import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
+import {
+  assertTimelineColorSpaceSupported,
+  automationModeOf
+} from "@nodetool-ai/timeline";
 import { DEFAULT_TIMELINE_INSTRUMENT } from "./instrumentPresets";
 /**
  * TimelineStore
@@ -31,6 +34,9 @@ import { create } from "zustand";
 import { temporal } from "../temporal";
 import type { TemporalState } from "../temporal";
 import {
+  activeLoopMs,
+  unrollLoopedClip,
+  unrollLoopedClips,
   isGroupClip,
   groupDescendantIds,
   moveGroup,
@@ -68,14 +74,18 @@ import {
   hasTimeRemap,
   isHoldRemap,
   MIDI_MAX_NOTES_PER_CLIP,
+  validateControllerLanes,
+  validateNotes,
   quantizeNotes,
   msToTicks,
+  QUANTIZE_DIVISIONS,
   rescaleClipsForTempo,
   DEFAULT_TEMPO,
   resolveTempo,
   scaleVelocity,
   sortNotes,
   sortChords,
+  stableSerialize,
   transposeNotes,
   clearGeneratedMatte as clearMatteOnClip,
   selectGeneratedMatteVersion as selectMatteVersionOnClip,
@@ -111,10 +121,13 @@ import type {
   ClipAnimation,
   ClipGeneratedMatte,
   AutomationLane,
+  AutomationMode,
   MidiInstrument,
+  MidiControllerLane,
   MidiNote,
   TimelineChord,
   ClipHarmony,
+  TimelineMusic,
   TimelineTempo,
   TimelineMasterChannel,
   TranscriptLine,
@@ -141,10 +154,7 @@ import {
 } from "../../utils/timelineIsolateSubject";
 import { useNotificationStore } from "../NotificationStore";
 import { cloneClips, cloneClipsToTrack } from "./clipboardOps";
-import {
-  attributePatch,
-  type PasteAttributeGroup
-} from "./pasteAttributes";
+import { attributePatch, type PasteAttributeGroup } from "./pasteAttributes";
 import { getKnownSourceDurationMs } from "../../components/timeline/Tracks/useClipSourceDuration";
 import {
   migrateTranscriptToClips,
@@ -309,6 +319,11 @@ export interface TimelineStoreState {
    * document written before midi existed reads the same everywhere.
    */
   tempo?: TimelineTempo;
+  /**
+   * The music-project marker (CE7 reads `autoCrossfadeMs`). Loaded and saved
+   * with the document; it has no editor and no undo entry.
+   */
+  music?: TimelineMusic;
   /** The master channel. Absent means 0 dB with no effects. */
   master?: TimelineMasterChannel;
   storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
@@ -358,6 +373,7 @@ export interface TimelineStoreState {
     tempo?: TimelineTempo;
     master?: TimelineMasterChannel;
     setup?: TimelineSetup | null;
+    music?: TimelineMusic;
   } | null;
 
   // ── Initialisation ───────────────────────────────────────────────────────
@@ -370,6 +386,7 @@ export interface TimelineStoreState {
    * Clips are reflowed and `durationMs` recomputed after the patch.
    */
   applyExternalMerge: (patch: {
+    music?: TimelineMusic;
     tempo?: TimelineTempo;
     master?: TimelineMasterChannel;
     setup?: TimelineSetup | null;
@@ -401,6 +418,8 @@ export interface TimelineStoreState {
       mediaTracks: MediaTrack[];
       storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
       tempo?: TimelineTempo;
+      music?: TimelineMusic;
+      master?: TimelineMasterChannel;
       setup?: TimelineSetup | null;
       transcript?: TimelineSequence["transcript"];
       scriptEnabled?: boolean;
@@ -547,6 +566,8 @@ export interface TimelineStoreState {
   setTrackPan: (trackId: string, pan: number) => void;
   /** Set the master fader, clamped to -120..24 dB. */
   setMasterVolume: (db: number) => void;
+  /** Set the master stereo balance, clamped to -1 (left)..1 (right). */
+  setMasterPan: (pan: number) => void;
   /**
    * Append an effect to the master chain: a new one of `type` with its
    * defaults, or the given effect as is.
@@ -569,7 +590,10 @@ export interface TimelineStoreState {
    * Set the tempo "Detect beats" measured and add its bar markers, as one undo
    * entry. A bar that already has a marker at that time keeps it alone.
    */
-  applyDetectedBeats: (tempo: TimelineTempo, barTimesMs: readonly number[]) => void;
+  applyDetectedBeats: (
+    tempo: TimelineTempo,
+    barTimesMs: readonly number[]
+  ) => void;
   /** Set the synth a midi track plays. Every clip on the track uses it. */
   setTrackInstrument: (trackId: string, instrument: MidiInstrument) => void;
   /**
@@ -577,6 +601,8 @@ export interface TimelineStoreState {
    * its lanes. An empty list removes the field.
    */
   setTrackAutomation: (trackId: string, automation: AutomationLane[]) => void;
+  /** Set a track's automation mode. One undo entry; `read` clears the field. */
+  setTrackAutomationMode: (trackId: string, mode: AutomationMode) => void;
   /** Replace a chord track's chord regions (sorted by onset). */
   setTrackChords: (trackId: string, chords: TimelineChord[]) => void;
   /** Set or clear (`undefined`) a midi clip's arp, comp and scale settings. */
@@ -603,11 +629,29 @@ export interface TimelineStoreState {
     >
   ) => void;
   /**
+   * Replace a midi clip's controller lanes. Lanes are checked with
+   * `validateControllerLanes`: an invalid list is refused with a notice and
+   * nothing is written. One undo entry, like `setClipNotes`.
+   */
+  setClipControllers: (clipId: string, lanes: MidiControllerLane[]) => void;
+  /**
    * Move every note in a midi clip by whole semitones, clamped to the 0..127
    * MIDI range. Ids survive, so the selection still points at the same notes.
    * One undo entry; a non-midi clip and a zero shift are both no-ops.
    */
   transposeClip: (clipId: string, semitones: number) => void;
+  /**
+   * Set or clear a midi clip's non-destructive region parameters (CE6, D53).
+   * Null or zero clears a field. The stored notes stay as written.
+   */
+  setMidiRegionParams: (
+    clipId: string,
+    patch: {
+      transpose?: number | null;
+      velocityOffset?: number | null;
+      quantize?: TimelineClip["quantize"] | null;
+    }
+  ) => void;
   /**
    * Snap a midi clip's onsets — and, with `target: "start_and_length"`, its
    * held lengths — to a note grid anchored at `tempo.offsetMs`, the grid the
@@ -662,6 +706,16 @@ export interface TimelineStoreState {
   ) => void;
 
   /**
+   * Region loop (CE3): extend a midi or audio clip to end at `endMs` and
+   * repeat its window until then. The window is the clip's current loop
+   * length, or its whole length when it does not loop yet. An end at or
+   * before the window's end removes the loop. A drag passes `windowMs`, the
+   * window it started with, so shrinking and growing again keeps it. Invalid
+   * input no-ops.
+   */
+  loopClipToEnd: (clipId: string, endMs: number, windowMs?: number) => void;
+
+  /**
    * Trim an edge and ripple: every clip on an unlocked track that started at
    * or after the clip's old end moves by the change in duration. Same delta
    * convention as trimClipStart/trimClipEnd. A start-edge ripple keeps the
@@ -701,6 +755,15 @@ export interface TimelineStoreState {
    * Linked partners are cut with their clip. One undo entry.
    */
   removeRange: (startMs: number, endMs: number, ripple: boolean) => void;
+
+  /**
+   * Cut every clip that crosses any of `atMs`, linked partners included, in
+   * one write and so one undo entry. A locked clip, or one that cannot be cut,
+   * stays whole.
+   */
+  splitClipsAtTimes: (atMs: number[]) => {
+    skipped: Array<{ id: string; name: string }>;
+  };
 
   /** Close the empty stretch on `trackId` containing `timeMs`. */
   closeGapAt: (trackId: string, timeMs: number) => void;
@@ -793,7 +856,12 @@ export interface TimelineStoreState {
   ) => string;
 
   /** Split the clip at the given time. The clip must contain that time. */
-  splitClipAtTime: (clipId: string, atMs: number) => void;
+  splitClipAtTime: (
+    clipId: string,
+    atMs: number,
+    /** A midi note crossing the cut: end it at the cut (default) or also continue it on the right. */
+    crossing?: "shorten" | "split"
+  ) => void;
 
   /**
    * Split all selected clips at the current playhead (passed as argument).
@@ -816,7 +884,12 @@ export interface TimelineStoreState {
    *
    * Returns the IDs of the newly created clips so callers can update selection.
    */
-  duplicateSelected: (selectedIds: Set<string>, offsetMs?: number) => string[];
+  duplicateSelected: (
+    selectedIds: Set<string>,
+    offsetMs?: number,
+    /** Copies, 1..64. Each starts where the previous copy ends (D51). */
+    count?: number
+  ) => string[];
 
   /** Delete selected clips. */
   deleteSelected: (selectedIds: Set<string>) => void;
@@ -1047,7 +1120,11 @@ export interface TimelineStoreState {
    * the shot (`applyShotTakeToClip`). One undo entry; a no-op when no clip
    * changes. Returns the ids of the clips that changed.
    */
-  applyShotTake: (boardId: string, shotId: string, take: ShotTakeMedia) => string[];
+  applyShotTake: (
+    boardId: string,
+    shotId: string,
+    take: ShotTakeMedia
+  ) => string[];
 
   /** Mark all clips referencing the given workflowId as stale. */
   markClipsStaleForWorkflow: (workflowId: string) => void;
@@ -1254,6 +1331,7 @@ type PartializedState = Pick<
   | "transcript"
   | "scriptEnabled"
   | "tempo"
+  | "music"
   | "master"
   | "storyboardMaterializations"
   | "camera2d"
@@ -1262,8 +1340,8 @@ type PartializedState = Pick<
 
 // ── Temporal equality (dedupe no-op sets) ───────────────────────────────────
 
-/** Shallow per-key equality for plain records (one level of `Object.is`). */
-function shallowRecordEqual(a: unknown, b: unknown): boolean {
+/** Structural equality with O(1) reference fast path for plain document values. */
+function deepEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) {
     return true;
   }
@@ -1275,29 +1353,26 @@ function shallowRecordEqual(a: unknown, b: unknown): boolean {
   ) {
     return false;
   }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+      return false;
+    }
+    return a.every((item, i) => deepEqual(item, b[i]));
+  }
   const recA = a as Record<string, unknown>;
   const recB = b as Record<string, unknown>;
-  const keysA = Object.keys(recA);
-  const keysB = Object.keys(recB);
+  const keysA = Object.keys(recA).filter((k) => recA[k] !== undefined);
+  const keysB = Object.keys(recB).filter((k) => recB[k] !== undefined);
   return (
     keysA.length === keysB.length &&
-    keysA.every((k) => Object.is(recA[k], recB[k]))
-  );
-}
-
-/** Element-wise array equality, comparing items shallowly. */
-function shallowArrayEqual<T>(a: readonly T[], b: readonly T[]): boolean {
-  return (
-    a === b ||
-    (a.length === b.length &&
-      a.every((item, i) => shallowRecordEqual(item, b[i])))
+    keysA.every((k) => deepEqual(recA[k], recB[k]))
   );
 }
 
 /**
  * temporal `equality`: returns true when two partialized snapshots are
  * equivalent, so no-op sets (guard-returns, `{}` patches, value-identical
- * remaps) don't push duplicate undo entries.
+ * remaps, and cloned agent-op no-ops) don't push duplicate undo entries.
  */
 function partializedEqual(
   pastState: PartializedState,
@@ -1319,29 +1394,33 @@ function partializedEqual(
     return (
       pastState.durationMs === currentState.durationMs &&
       pastState.scriptEnabled === currentState.scriptEnabled &&
-      shallowRecordEqual(pastState.tempo, currentState.tempo) &&
-      shallowRecordEqual(pastState.master, currentState.master) &&
-      shallowRecordEqual(pastState.camera2d, currentState.camera2d) &&
-      shallowRecordEqual(pastState.setup, currentState.setup)
+      deepEqual(pastState.tempo, currentState.tempo) &&
+      deepEqual(pastState.music, currentState.music) &&
+      deepEqual(pastState.master, currentState.master) &&
+      deepEqual(pastState.camera2d, currentState.camera2d) &&
+      deepEqual(pastState.setup, currentState.setup)
     );
   }
   // `&&` short-circuits, so a diverging earlier slice avoids scanning later
-  // ones; `shallowArrayEqual` itself returns immediately on reference equality.
+  // ones; `deepEqual` itself returns immediately on reference equality.
   return (
     pastState.durationMs === currentState.durationMs &&
-    shallowArrayEqual(pastState.tracks, currentState.tracks) &&
-    shallowArrayEqual(pastState.trackFolders, currentState.trackFolders) &&
-    shallowArrayEqual(pastState.clips, currentState.clips) &&
-    pastState.storyboardMaterializations ===
-      currentState.storyboardMaterializations &&
-    shallowArrayEqual(pastState.markers, currentState.markers) &&
-    shallowArrayEqual(pastState.mediaTracks, currentState.mediaTracks) &&
-    shallowArrayEqual(pastState.transcript, currentState.transcript) &&
+    deepEqual(pastState.tracks, currentState.tracks) &&
+    deepEqual(pastState.trackFolders, currentState.trackFolders) &&
+    deepEqual(pastState.clips, currentState.clips) &&
+    deepEqual(
+      pastState.storyboardMaterializations,
+      currentState.storyboardMaterializations
+    ) &&
+    deepEqual(pastState.markers, currentState.markers) &&
+    deepEqual(pastState.mediaTracks, currentState.mediaTracks) &&
+    deepEqual(pastState.transcript, currentState.transcript) &&
     pastState.scriptEnabled === currentState.scriptEnabled &&
-    shallowRecordEqual(pastState.tempo, currentState.tempo) &&
-    shallowRecordEqual(pastState.master, currentState.master) &&
-    shallowRecordEqual(pastState.camera2d, currentState.camera2d) &&
-    shallowRecordEqual(pastState.setup, currentState.setup)
+    deepEqual(pastState.tempo, currentState.tempo) &&
+    deepEqual(pastState.music, currentState.music) &&
+    deepEqual(pastState.master, currentState.master) &&
+    deepEqual(pastState.camera2d, currentState.camera2d) &&
+    deepEqual(pastState.setup, currentState.setup)
   );
 }
 
@@ -1420,6 +1499,12 @@ function editMidiNotes(
       notifyNoteLimit(notes.length);
       return state;
     }
+    // A list that fails the save schema fails every autosave after it.
+    const problems = validateNotes(notes);
+    if (problems.length > 0) {
+      notifyControllerLimit(problems[0].message);
+      return state;
+    }
     return {
       clips: state.clips.map((c) => (c.id === clipId ? { ...c, notes } : c))
     };
@@ -1438,6 +1523,22 @@ function notifyNoteLimit(count: number): void {
   });
 }
 
+/** Tell the user a controller edit was refused. */
+function notifyControllerLimit(message: string): void {
+  useNotificationStore.getState().addNotification({
+    type: "warning",
+    content: message
+  });
+}
+
+/** Whether two lane lists are equal, field for field. */
+function sameControllers(
+  a: readonly MidiControllerLane[],
+  b: readonly MidiControllerLane[]
+): boolean {
+  return a === b || JSON.stringify(a) === JSON.stringify(b);
+}
+
 /** Whether two note lists carry the same notes, field for field. */
 function sameNotes(a: readonly MidiNote[], b: readonly MidiNote[]): boolean {
   if (a.length !== b.length) return false;
@@ -1448,7 +1549,12 @@ function sameNotes(a: readonly MidiNote[], b: readonly MidiNote[]): boolean {
       note.pitch === other.pitch &&
       note.velocity === other.velocity &&
       note.startTick === other.startTick &&
-      note.durationTick === other.durationTick
+      note.durationTick === other.durationTick &&
+      Boolean(note.muted) === Boolean(other.muted) &&
+      (note.channel ?? 0) === (other.channel ?? 0) &&
+      note.releaseVelocity === other.releaseVelocity &&
+      JSON.stringify(note.expression ?? null) ===
+        JSON.stringify(other.expression ?? null)
     );
   });
 }
@@ -1471,8 +1577,7 @@ function rippleFrozenTrackIds(
     state.tracks
       .filter(
         (t) =>
-          t.locked ||
-          (state.syncLockOffTrackIds.has(t.id) && !edited.has(t.id))
+          t.locked || (state.syncLockOffTrackIds.has(t.id) && !edited.has(t.id))
       )
       .map((t) => t.id)
   );
@@ -1664,7 +1769,15 @@ function clampEndTrimDeltaToSource(
   deltaMs: number,
   maxSourceDurationMs: number | undefined
 ): number {
-  if (isHoldRemap(clip) || maxSourceDurationMs === undefined || deltaMs <= 0) return deltaMs;
+  // An end trim of a looped clip repeats the window and reads no more source.
+  if (
+    isHoldRemap(clip) ||
+    activeLoopMs(clip) !== undefined ||
+    maxSourceDurationMs === undefined ||
+    deltaMs <= 0
+  ) {
+    return deltaMs;
+  }
   const rate = sourceRate(clip);
   const inPointMs = clip.inPointMs ?? 0;
   const currentOutPointMs =
@@ -1732,8 +1845,14 @@ function splitClipsLinkAware(
   clips: TimelineClip[],
   mediaTracks: MediaTrack[],
   atMs: number,
-  targetIds: string[]
-): { clips: TimelineClip[]; mediaTracks: MediaTrack[] } {
+  targetIds: string[],
+  options?: { bpm?: number; gridOffsetMs?: number; crossing?: "shorten" | "split" }
+): {
+  clips: TimelineClip[];
+  mediaTracks: MediaTrack[];
+  /** Clips left whole because they cannot be cut, with their link partners. */
+  skipped: Array<{ id: string; name: string }>;
+} {
   // A group is a transform parent, not media: `splitClip` refuses it, so it is
   // never a target and its children are split individually.
   const contains = (c: TimelineClip) =>
@@ -1768,7 +1887,41 @@ function splitClipsLinkAware(
     }
   }
   if (toSplit.size === 0) {
-    return { clips, mediaTracks };
+    return { clips, mediaTracks, skipped: [] };
+  }
+  // A clip that cannot be cut (a time remap) refuses its own group: its link
+  // partners stay whole so they stay in step. Unrelated clips still split.
+  const refused = new Set<string>();
+  const skipped: Array<{ id: string; name: string }> = [];
+  const groupOf = (c: TimelineClip): string => c.linkId ?? c.id;
+  for (const original of toSplit.values()) {
+    const loopMs = activeLoopMs(original);
+    const pieces =
+      loopMs === undefined
+        ? [original]
+        : unrollLoopedClip(original, options?.bpm ?? 120, loopMs, {
+            newId: createTimeOrderedUuid,
+            gridOffsetMs: options?.gridOffsetMs
+          });
+    const clip = pieces.find(
+      (p) => atMs > p.startMs && atMs < p.startMs + p.durationMs
+    );
+    if (!clip) continue;
+    try {
+      splitClip(clip, atMs, options);
+    } catch {
+      refused.add(groupOf(original));
+    }
+  }
+  if (refused.size > 0) {
+    for (const [id, original] of [...toSplit]) {
+      if (!refused.has(groupOf(original))) continue;
+      toSplit.delete(id);
+      skipped.push({ id, name: original.name });
+    }
+    if (toSplit.size === 0) {
+      return { clips, mediaTracks, skipped };
+    }
   }
 
   // One fresh linkId per original group, for each side. Lone (unlinked) clips
@@ -1789,13 +1942,46 @@ function splitClipsLinkAware(
 
   const next: TimelineClip[] = [];
   let nextMediaTracks = mediaTracks;
-  for (const clip of clips) {
-    if (toSplit.has(clip.id)) {
+  for (const original of clips) {
+    if (toSplit.has(original.id)) {
+      // A looped clip is written out as plain copies first (CE3); the cut
+      // lands in the copy that holds it, as part of the same set.
+      const loopMs = activeLoopMs(original);
+      const pieces =
+        loopMs === undefined
+          ? [original]
+          : unrollLoopedClip(original, options?.bpm ?? 120, loopMs, {
+              newId: createTimeOrderedUuid,
+              gridOffsetMs: options?.gridOffsetMs
+            });
+      const clip = pieces.find(
+        (p) => atMs > p.startMs && atMs < p.startMs + p.durationMs
+      );
+      if (!clip) {
+        // The cut falls on a repeat boundary: the unroll is the split. The
+        // pieces beside the cut join the link halves of the partners.
+        if (original.linkId !== undefined) {
+          const before = pieces.find(
+            (p) => Math.abs(p.startMs + p.durationMs - atMs) < 1e-6
+          );
+          const after = pieces.find((p) => Math.abs(p.startMs - atMs) < 1e-6);
+          if (before) {
+            before.linkId = groupLink(leftLinkByGroup, original.linkId);
+          }
+          if (after) {
+            after.linkId = groupLink(rightLinkByGroup, original.linkId);
+          }
+        }
+        next.push(...pieces);
+        continue;
+      }
       try {
-        const [left, right] = splitClip(clip, atMs);
-        if (clip.linkId !== undefined) {
-          left.linkId = groupLink(leftLinkByGroup, clip.linkId);
-          right.linkId = groupLink(rightLinkByGroup, clip.linkId);
+        const [left, right] = splitClip(clip, atMs, options);
+        // Later repeats of an unrolled clip carry no link, so the group is the original's.
+        const sourceLinkId = original.linkId ?? clip.linkId;
+        if (sourceLinkId !== undefined) {
+          left.linkId = groupLink(leftLinkByGroup, sourceLinkId);
+          right.linkId = groupLink(rightLinkByGroup, sourceLinkId);
         } else {
           delete left.linkId;
           delete right.linkId;
@@ -1808,16 +1994,38 @@ function splitClipsLinkAware(
           createTimeOrderedUuid
         );
         nextMediaTracks = resliced.mediaTracks;
-        next.push(resliced.left, resliced.right);
+        next.push(
+          ...pieces.filter((p) => p !== clip && p.startMs < clip.startMs),
+          resliced.left,
+          resliced.right,
+          ...pieces.filter((p) => p.startMs > clip.startMs)
+        );
       } catch {
-        // atMs outside this clip's bounds — leave it untouched.
-        next.push(clip);
+        // The clip cannot be cut (a time remap): leave it, and its loop, as it was.
+        next.push(original);
       }
     } else {
-      next.push(clip);
+      next.push(original);
     }
   }
-  return { clips: next, mediaTracks: nextMediaTracks };
+  // A link that a cut or an unroll left with one clip links nothing.
+  const touched = new Set<string>([
+    ...affectedLinkIds,
+    ...leftLinkByGroup.values(),
+    ...rightLinkByGroup.values()
+  ]);
+  const counts = new Map<string, number>();
+  for (const c of next) {
+    if (c.linkId !== undefined && touched.has(c.linkId)) {
+      counts.set(c.linkId, (counts.get(c.linkId) ?? 0) + 1);
+    }
+  }
+  const pruned = next.map((c) => {
+    if (c.linkId === undefined || counts.get(c.linkId) !== 1) return c;
+    const { linkId: _alone, ...rest } = c;
+    return rest as TimelineClip;
+  });
+  return { clips: pruned, mediaTracks: nextMediaTracks, skipped };
 }
 
 /**
@@ -1827,7 +2035,8 @@ function splitClipsLinkAware(
 function mergeClipsAtTime(
   clips: TimelineClip[],
   timeMs: number,
-  editable?: ReadonlySet<string>
+  editable?: ReadonlySet<string>,
+  bpm = DEFAULT_TEMPO.bpm
 ): TimelineClip[] {
   const EPS = 1;
   const removed = new Set<string>();
@@ -1853,6 +2062,8 @@ function mergeClipsAtTime(
   for (const right of clips) {
     if (removed.has(right.id)) continue;
     if (Math.abs(right.startMs - timeMs) > EPS) continue;
+    // A looped clip is not half of a split: its repeats are not contiguous source.
+    if (activeLoopMs(right) !== undefined) continue;
 
     const key = `${right.trackId}::${right.currentAssetId}`;
     const potentialLefts = candidatesByTrackAsset.get(key);
@@ -1861,8 +2072,34 @@ function mergeClipsAtTime(
     if (potentialLefts) {
       for (const c of potentialLefts) {
         if (
-          c.id !== right.id &&
-          !removed.has(c.id) &&
+          c.id === right.id ||
+          removed.has(c.id) ||
+          activeLoopMs(c) !== undefined
+        ) {
+          continue;
+        }
+        const leftIsPattern = c.pattern !== undefined;
+        const rightIsPattern = right.pattern !== undefined;
+        if (leftIsPattern !== rightIsPattern) continue;
+        if (leftIsPattern && rightIsPattern) {
+          if (stableSerialize(c.pattern) !== stableSerialize(right.pattern)) {
+            continue;
+          }
+          const leftPhase =
+            (c.patternPhaseTicks ?? 0) +
+            Math.round(msToTicks(c.inPointMs ?? 0, bpm));
+          const rightPhase =
+            (right.patternPhaseTicks ?? 0) +
+            Math.round(msToTicks(right.inPointMs ?? 0, bpm));
+          const expectedPhase =
+            leftPhase + Math.round(msToTicks(c.durationMs, bpm));
+          if (Math.abs(rightPhase - expectedPhase) <= 2) {
+            left = c;
+            break;
+          }
+          continue;
+        }
+        if (
           // Source contiguity: the left half's source out-point must meet the
           // right half's source in-point. Use outPointMs (set on every split half)
           // rather than inPointMs + durationMs, which only holds at 1× speed.
@@ -1882,13 +2119,27 @@ function mergeClipsAtTime(
       continue;
     }
     const base = replaced.get(left.id) ?? left;
+    const isPatternMerge =
+      base.pattern !== undefined && right.pattern !== undefined;
+    const mergedDurationMs = base.durationMs + right.durationMs;
     const merged: TimelineClip = {
       ...base,
-      durationMs: base.durationMs + right.durationMs,
-      outPointMs:
-        right.outPointMs ??
-        (base.inPointMs ?? 0) + base.durationMs + right.durationMs
+      durationMs: mergedDurationMs,
+      outPointMs: isPatternMerge
+        ? mergedDurationMs
+        : (right.outPointMs ??
+          (base.inPointMs ?? 0) + base.durationMs + right.durationMs)
     };
+    if (isPatternMerge) {
+      const mergedPhase =
+        (base.patternPhaseTicks ?? 0) +
+        Math.round(msToTicks(base.inPointMs ?? 0, bpm));
+      merged.inPointMs = 0;
+      if (mergedPhase > 0) merged.patternPhaseTicks = mergedPhase;
+      else delete merged.patternPhaseTicks;
+      delete merged.notes;
+      delete merged.controllers;
+    }
     // Inverse of splitClip: the right half's outgoing fade, caption words and
     // end/emphasis animations belong to the merged clip.
     if (right.fadeOutMs !== undefined) merged.fadeOutMs = right.fadeOutMs;
@@ -1936,7 +2187,12 @@ function mergeClipsAtTime(
         )
       ];
     }
-    const paramCurves = joinParamCurves(base.paramCurves, right.paramCurves, base.durationMs, right.durationMs);
+    const paramCurves = joinParamCurves(
+      base.paramCurves,
+      right.paramCurves,
+      base.durationMs,
+      right.durationMs
+    );
     if (paramCurves) merged.paramCurves = paramCurves;
     replaced.set(left.id, merged);
     removed.add(right.id);
@@ -1964,6 +2220,7 @@ const emptyState = {
   transcript: [],
   scriptEnabled: false,
   tempo: undefined,
+  music: undefined,
   master: undefined,
   storyboardMaterializations: undefined,
   camera2d: null,
@@ -1987,6 +2244,7 @@ const emptyState = {
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
   tempo: TimelineTempo | undefined;
+  music: TimelineMusic | undefined;
   master: TimelineMasterChannel | undefined;
   storyboardMaterializations: TimelineSequence["storyboardMaterializations"];
   camera2d: TimelineSequence["camera2d"];
@@ -2034,6 +2292,7 @@ const syncedSnapshotOf = (
     | "tempo"
     | "master"
     | "setup"
+    | "music"
   >
 ): NonNullable<TimelineStoreState["syncedDocument"]> => ({
   tracks: state.tracks,
@@ -2050,7 +2309,8 @@ const syncedSnapshotOf = (
   camera2d: state.camera2d ?? null,
   tempo: state.tempo,
   master: state.master,
-  setup: state.setup ?? null
+  setup: state.setup ?? null,
+  music: state.music
 });
 
 // ── Server-write adoption ──────────────────────────────────────────────────
@@ -2154,7 +2414,8 @@ function adoptServerSequence(
     camera2d: state.camera2d ?? null,
     tempo: state.tempo,
     master: state.master,
-    setup: state.setup ?? null
+    setup: state.setup ?? null,
+    music: state.music
   };
   // A field the response leaves out is one the route did not write, so the
   // base stands in for it rather than reading as an external clear.
@@ -2175,7 +2436,8 @@ function adoptServerSequence(
       sequence.camera2d === undefined ? base.camera2d : sequence.camera2d,
     tempo: sequence.tempo ?? base.tempo,
     master: sequence.master ?? base.master,
-    setup: sequence.setup ?? base.setup ?? null
+    setup: sequence.setup ?? base.setup ?? null,
+    music: sequence.music ?? base.music
   };
 
   const { doc, nextBase, conflicts, pending } = adoptGeneratedClipField(
@@ -2211,7 +2473,8 @@ function adoptServerSequence(
     camera2d: nextBase.camera2d ?? null,
     tempo: nextBase.tempo,
     master: nextBase.master,
-    setup: nextBase.setup ?? null
+    setup: nextBase.setup ?? null,
+    music: nextBase.music
   };
   get().setBaseUpdatedAt(sequence.updatedAt, synced);
 
@@ -2261,7 +2524,10 @@ export const createTimelineStore = (
 
         loadSequence: (loaded) => {
           assertTimelineColorSpaceSupported(loaded);
-          const seq = { ...loaded, clips: normalizeClipAssetRefs(loaded.clips) };
+          const seq = {
+            ...loaded,
+            clips: normalizeClipAssetRefs(loaded.clips)
+          };
           const transcript = seq.transcript ?? [];
 
           // Legacy sequences stored the transcript as `TranscriptLine[]` binding
@@ -2316,6 +2582,7 @@ export const createTimelineStore = (
               transcript: [] as TranscriptLine[],
               scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip),
               tempo: seq.tempo ?? impliedTempo(seq.tracks),
+              music: seq.music,
               master: seq.master,
               storyboardMaterializations: seq.storyboardMaterializations,
               camera2d: seq.camera2d ?? null,
@@ -2344,6 +2611,7 @@ export const createTimelineStore = (
             scriptEnabled:
               seq.scriptEnabled ?? seq.clips.some(isTranscriptClip),
             tempo: seq.tempo ?? impliedTempo(seq.tracks),
+            music: seq.music,
             master: seq.master,
             storyboardMaterializations: seq.storyboardMaterializations,
             camera2d: seq.camera2d ?? null,
@@ -2390,11 +2658,13 @@ export const createTimelineStore = (
                   )
                 }
               : reflowGenerated(next.clips);
-            return {
+            const candidate: PartializedState = {
               storyboardMaterializations:
                 next.storyboardMaterializations ??
                 state.storyboardMaterializations,
               tempo: next.tempo ?? state.tempo,
+              music: next.music ?? state.music,
+              master: next.master ?? state.master,
               setup: next.setup === undefined ? state.setup : next.setup,
               transcript: next.transcript ?? state.transcript,
               scriptEnabled: next.scriptEnabled ?? state.scriptEnabled,
@@ -2407,6 +2677,31 @@ export const createTimelineStore = (
               mediaTracks: next.mediaTracks,
               durationMs: reflowed.durationMs
             };
+            const current: PartializedState = {
+              storyboardMaterializations: state.storyboardMaterializations,
+              tempo: state.tempo,
+              music: state.music,
+              master: state.master,
+              setup: state.setup,
+              transcript: state.transcript,
+              scriptEnabled: state.scriptEnabled,
+              camera2d: state.camera2d ?? null,
+              tracks: state.tracks,
+              trackFolders: state.trackFolders,
+              clips: state.clips,
+              markers: state.markers,
+              mediaTracks: state.mediaTracks,
+              durationMs: state.durationMs
+            };
+            if (
+              partializedEqual(current, {
+                ...candidate,
+                camera2d: candidate.camera2d ?? null
+              })
+            ) {
+              return state;
+            }
+            return candidate;
           });
         },
 
@@ -2716,9 +3011,7 @@ export const createTimelineStore = (
             mediaTracks:
               droppedMediaTracks.size === 0
                 ? state.mediaTracks
-                : state.mediaTracks.filter(
-                    (t) => !droppedMediaTracks.has(t.id)
-                  )
+                : state.mediaTracks.filter((t) => !droppedMediaTracks.has(t.id))
           });
           return true;
         },
@@ -2877,9 +3170,25 @@ export const createTimelineStore = (
             return { master: { ...(state.master ?? {}), volumeDb } };
           }),
 
+        setMasterPan: (pan) =>
+          set((state) => {
+            const clamped = Number.isFinite(pan) ? Math.min(1, Math.max(-1, pan)) : 0;
+            if (state.master !== undefined && (state.master.pan ?? 0) === clamped) {
+              return state;
+            }
+            return {
+              master: {
+                ...(state.master ?? {}),
+                volumeDb: state.master?.volumeDb ?? 0,
+                pan: clamped
+              }
+            };
+          }),
+
         addMasterEffect: (effect) =>
           set((state) => ({
             master: {
+              ...(state.master ?? {}),
               volumeDb: state.master?.volumeDb ?? 0,
               effects: [
                 ...(state.master?.effects ?? []),
@@ -3143,9 +3452,10 @@ export const createTimelineStore = (
         // and drops windows that fall off the end at sample time.
         trimClipStart: (clipId, deltaMs) =>
           set((state) => {
-            const clip = state.clips.find((c) => c.id === clipId);
+            const original = state;
+            let clip = state.clips.find((c) => c.id === clipId);
             if (!clip) {
-              return state;
+              return original;
             }
             if (
               !editableUserTargets(
@@ -3158,7 +3468,29 @@ export const createTimelineStore = (
                 }
               ).has(clipId)
             ) {
-              return state;
+              return original;
+            }
+            // A start trim of a looped clip writes it out as plain copies
+            // first (CE3): the first copy keeps the id and takes the trim. The
+            // unroll is kept only when the trim succeeds, so a refused trim
+            // leaves the loop alone.
+            const bpm = resolveTempo(state).bpm;
+            let unrolled = state.clips;
+            const unrollSet = new Set([clipId]);
+            if (state.linkedSelection && clip.linkId !== undefined) {
+              for (const c of state.clips) {
+                if (c.linkId === clip.linkId) unrollSet.add(c.id);
+              }
+            }
+            if (!isGroupClip(clip)) {
+              unrolled = unrollLoopedClips(
+                state.clips,
+                unrollSet,
+                bpm,
+                createTimeOrderedUuid,
+                resolveTempo(state).offsetMs
+              );
+              clip = unrolled.find((c) => c.id === clipId)!;
             }
             // Trimming a group pulls its children inside the new window; an
             // invalid trim throws and leaves the document alone (D4).
@@ -3168,7 +3500,7 @@ export const createTimelineStore = (
                   clips: trimGroup(state.clips, clipId, "start", deltaMs)
                 };
               } catch {
-                return state;
+                return original;
               }
             }
             const linkId = state.linkedSelection ? clip.linkId : undefined;
@@ -3176,19 +3508,60 @@ export const createTimelineStore = (
             // first. If any trim is invalid, abort so the link never desyncs.
             const trimmed = new Map<string, TimelineClip>();
             try {
-              trimmed.set(clip.id, trimClip(clip, "start", deltaMs));
+              trimmed.set(clip.id, trimClip(clip, "start", deltaMs, undefined, bpm));
               if (linkId !== undefined) {
-                for (const c of state.clips) {
+                for (const c of unrolled) {
                   if (c.id !== clipId && c.linkId === linkId) {
-                    trimmed.set(c.id, trimClip(c, "start", deltaMs));
+                    trimmed.set(c.id, trimClip(c, "start", deltaMs, undefined, bpm));
                   }
                 }
               }
             } catch {
-              return state;
+              return original;
             }
             return {
-              clips: state.clips.map((c) => trimmed.get(c.id) ?? c)
+              clips: unrolled.map((c) => trimmed.get(c.id) ?? c)
+            };
+          }),
+
+        loopClipToEnd: (clipId, endMs, windowArg) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (
+              !clip ||
+              (clip.mediaType !== "midi" && clip.mediaType !== "audio") ||
+              !Number.isFinite(endMs) ||
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                { followLinks: false, includeGroupDescendants: false }
+              ).has(clipId)
+            ) {
+              return state;
+            }
+            // A time remap plays no loop, so the grip does nothing there.
+            if (hasTimeRemap(clip)) {
+              return state;
+            }
+            const windowMs = windowArg ?? clip.loopLengthMs ?? clip.durationMs;
+            const durationMs = Math.max(1, endMs - clip.startMs);
+            if (durationMs === clip.durationMs) {
+              return state;
+            }
+            const next: TimelineClip = { ...clip, durationMs };
+            if (durationMs > windowMs) {
+              next.loopLengthMs = windowMs;
+            } else {
+              delete next.loopLengthMs;
+            }
+            if (clip.mediaType === "audio" && clip.outPointMs !== undefined) {
+              next.outPointMs =
+                (clip.inPointMs ?? 0) +
+                Math.min(windowMs, durationMs) * sourceRate(clip);
+            }
+            return {
+              clips: state.clips.map((c) => (c.id === clipId ? next : c))
             };
           }),
 
@@ -3270,6 +3643,8 @@ export const createTimelineStore = (
             try {
               return {
                 clips: rippleTrim(state.clips, clipId, "start", deltaMs, {
+                  bpm: resolveTempo(state).bpm,
+                  gridOffsetMs: resolveTempo(state).offsetMs,
                   lockedTrackIds: rippleFrozenTrackIds(
                     state,
                     linkedTrackIds(state.clips, clipId, state.linkedSelection)
@@ -3312,11 +3687,7 @@ export const createTimelineStore = (
                   {
                     lockedTrackIds: rippleFrozenTrackIds(
                       state,
-                      linkedTrackIds(
-                        state.clips,
-                        clipId,
-                        state.linkedSelection
-                      )
+                      linkedTrackIds(state.clips, clipId, state.linkedSelection)
                     ),
                     lockedClipIds: lockedUserTargetIds(
                       state.clips,
@@ -3360,6 +3731,8 @@ export const createTimelineStore = (
               );
               return {
                 clips: rollEdit(state.clips, clipId, edge, deltaMs, {
+                  bpm: resolveTempo(state).bpm,
+                  gridOffsetMs: resolveTempo(state).offsetMs,
                   followLinks: state.linkedSelection
                 })
               };
@@ -3417,7 +3790,11 @@ export const createTimelineStore = (
                     followLinks: true,
                     includeGroupDescendants: false
                   })
-                ]
+                ],
+                {
+                  bpm: resolveTempo(state).bpm,
+                  gridOffsetMs: resolveTempo(state).offsetMs
+                }
               );
             }
             const inside = new Set(
@@ -3470,7 +3847,10 @@ export const createTimelineStore = (
         resolveDrop: (movedIds, mode) =>
           set((state) => {
             if (mode === "overlap") return state;
-            const lockedClipIds = lockedUserTargetIds(state.clips, state.tracks);
+            const lockedClipIds = lockedUserTargetIds(
+              state.clips,
+              state.tracks
+            );
             // A locked clip in the selection did not move with the drag, so
             // it neither clears what is under it nor sets the insert point.
             const moved = new Set(
@@ -3479,6 +3859,8 @@ export const createTimelineStore = (
             if (moved.size === 0) return state;
             return {
               clips: resolveDrop(state.clips, moved, mode, {
+                bpm: resolveTempo(state).bpm,
+                gridOffsetMs: resolveTempo(state).offsetMs,
                 lockedTrackIds: rippleFrozenTrackIds(
                   state,
                   state.clips
@@ -3627,7 +4009,9 @@ export const createTimelineStore = (
 
         removeTransition: (clipId) =>
           set((state) => {
-            if (!editableTransitionTargets(state, new Set([clipId])).has(clipId)) {
+            if (
+              !editableTransitionTargets(state, new Set([clipId])).has(clipId)
+            ) {
               return state;
             }
             return { clips: removeTransitionAtCut(state.clips, clipId) };
@@ -3688,7 +4072,7 @@ export const createTimelineStore = (
           return ranged.id;
         },
 
-        splitClipAtTime: (clipId, atMs) =>
+        splitClipAtTime: (clipId, atMs, crossing) =>
           set((state) => {
             if (
               !editableUserTargets(
@@ -3707,10 +4091,56 @@ export const createTimelineStore = (
               state.clips,
               state.mediaTracks,
               atMs,
-              [clipId]
+              [clipId],
+              {
+                bpm: resolveTempo(state).bpm,
+                gridOffsetMs: resolveTempo(state).offsetMs,
+                crossing
+              }
             );
             return next.clips === state.clips ? state : next;
           }),
+
+        splitClipsAtTimes: (times) => {
+          const skipped = new Map<string, { id: string; name: string }>();
+          set((state) => {
+            let clips = state.clips;
+            let mediaTracks = state.mediaTracks;
+            for (const atMs of times) {
+              const crossing = new Set(
+                clips
+                  .filter(
+                    (c) =>
+                      !isGroupClip(c) &&
+                      atMs > c.startMs &&
+                      atMs < c.startMs + c.durationMs
+                  )
+                  .map((c) => c.id)
+              );
+              const targets = editableUserTargets(
+                clips,
+                state.tracks,
+                crossing,
+                { followLinks: true, includeGroupDescendants: false }
+              );
+              const next = splitClipsLinkAware(
+                clips,
+                mediaTracks,
+                atMs,
+                [...targets],
+                {
+                  bpm: resolveTempo(state).bpm,
+                  gridOffsetMs: resolveTempo(state).offsetMs
+                }
+              );
+              clips = next.clips;
+              mediaTracks = next.mediaTracks;
+              for (const k of next.skipped) skipped.set(k.id, k);
+            }
+            return clips === state.clips ? state : { clips, mediaTracks };
+          });
+          return { skipped: [...skipped.values()] };
+        },
 
         splitSelectedAtPlayhead: (currentTimeMs, selectedIds, trackIds) => {
           const rightHalfIds: string[] = [];
@@ -3740,7 +4170,11 @@ export const createTimelineStore = (
               state.clips,
               state.mediaTracks,
               currentTimeMs,
-              [...targetIds]
+              [...targetIds],
+              {
+                bpm: resolveTempo(state).bpm,
+                gridOffsetMs: resolveTempo(state).offsetMs
+              }
             );
             if (next.clips === state.clips) return state;
             const oldIds = new Set(state.clips.map((c) => c.id));
@@ -3763,7 +4197,7 @@ export const createTimelineStore = (
           return rightHalfIds;
         },
 
-        duplicateSelected: (selectedIds, offsetMs = 0) => {
+        duplicateSelected: (selectedIds, offsetMs = 0, count = 1) => {
           const newIds: string[] = [];
           set((state) => {
             // A selected group brings its children, or the copy is empty.
@@ -3790,10 +4224,16 @@ export const createTimelineStore = (
               Math.min(...sources.map((c) => c.startMs));
             // cloneClips remaps parentId to the copied parent (or drops it)
             // and gives fully-duplicated link groups a fresh shared linkId.
-            const newClips = cloneClips(sources).map((c) => ({
-              ...c,
-              startMs: c.startMs + spanMs + offsetMs
-            }));
+            const copies = Math.min(64, Math.max(1, Math.floor(count)));
+            const newClips: TimelineClip[] = [];
+            for (let n = 1; n <= copies; n++) {
+              newClips.push(
+                ...cloneClips(sources).map((c) => ({
+                  ...c,
+                  startMs: c.startMs + n * (spanMs + offsetMs)
+                }))
+              );
+            }
             newIds.push(...newClips.map((c) => c.id));
             return { clips: [...state.clips, ...newClips] };
           });
@@ -3868,7 +4308,9 @@ export const createTimelineStore = (
               previous.offsetMs === tempo.offsetMs &&
               previous.timeSignature.beatsPerBar ===
                 tempo.timeSignature.beatsPerBar &&
-              previous.timeSignature.beatUnit === tempo.timeSignature.beatUnit
+              previous.timeSignature.beatUnit === tempo.timeSignature.beatUnit &&
+              previous.key?.tonic === tempo.key?.tonic &&
+              previous.key?.mode === tempo.key?.mode
             ) {
               return state;
             }
@@ -3885,7 +4327,9 @@ export const createTimelineStore = (
 
         applyDetectedBeats: (tempo, barTimesMs) =>
           set((state) => {
-            const taken = new Set(state.markers.map((m) => Math.round(m.timeMs)));
+            const taken = new Set(
+              state.markers.map((m) => Math.round(m.timeMs))
+            );
             const added = barTimesMs
               .map((timeMs, index) => ({
                 timeMs: Math.max(0, Math.round(timeMs)),
@@ -3925,6 +4369,19 @@ export const createTimelineStore = (
             return {
               tracks: patchById(state.tracks, trackId, {
                 automation: automation.length > 0 ? automation : undefined
+              })
+            };
+          }),
+
+        setTrackAutomationMode: (trackId, mode) =>
+          set((state) => {
+            const track = state.tracks.find((t) => t.id === trackId);
+            if (!track || track.locked || automationModeOf(track) === mode) {
+              return state;
+            }
+            return {
+              tracks: patchById(state.tracks, trackId, {
+                automationMode: mode === "read" ? undefined : mode
               })
             };
           }),
@@ -3981,6 +4438,89 @@ export const createTimelineStore = (
 
         setClipNotes: (clipId, notes) =>
           editMidiNotes(set, clipId, () => notes.map(createMidiNote)),
+
+        setClipControllers: (clipId, lanes) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (
+              !clip ||
+              clip.mediaType !== "midi" ||
+              clipLockError(state, clipId) !== null
+            ) {
+              return state;
+            }
+            if (sameControllers(clip.controllers ?? [], lanes)) {
+              return state;
+            }
+            const problems = validateControllerLanes(lanes);
+            if (problems.length > 0) {
+              notifyControllerLimit(problems[0].message);
+              return state;
+            }
+            return {
+              clips: state.clips.map((c) => {
+                if (c.id !== clipId) {
+                  return c;
+                }
+                const { controllers: _previous, ...rest } = c;
+                void _previous;
+                return lanes.length > 0
+                  ? { ...rest, controllers: lanes }
+                  : rest;
+              })
+            };
+          }),
+
+        setMidiRegionParams: (clipId, patch) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (
+              !clip ||
+              clip.mediaType !== "midi" ||
+              clipLockError(state, clipId) !== null
+            ) {
+              return state;
+            }
+            // A value the document cannot store (NaN, Infinity, a grid that
+            // is not a division) refuses the whole patch: a NaN written to
+            // the clip serializes as null and fails every later save.
+            const finite = (v: number | null | undefined): boolean =>
+              v === undefined || v === null || Number.isFinite(v);
+            if (
+              !finite(patch.transpose) ||
+              !finite(patch.velocityOffset) ||
+              (patch.quantize != null &&
+                (!Number.isFinite(patch.quantize.strength) ||
+                  !(QUANTIZE_DIVISIONS as readonly string[]).includes(
+                    patch.quantize.grid
+                  )))
+            ) {
+              return state;
+            }
+            const next = { ...clip };
+            if (patch.transpose !== undefined) {
+              const v = Math.max(-48, Math.min(48, Math.round(patch.transpose ?? 0)));
+              if (v === 0) delete next.transpose;
+              else next.transpose = v;
+            }
+            if (patch.velocityOffset !== undefined) {
+              const v = Math.max(-127, Math.min(127, Math.round(patch.velocityOffset ?? 0)));
+              if (v === 0) delete next.velocityOffset;
+              else next.velocityOffset = v;
+            }
+            if (patch.quantize !== undefined) {
+              if (patch.quantize === null) delete next.quantize;
+              else {
+                next.quantize = {
+                  grid: patch.quantize.grid,
+                  strength: Math.max(0, Math.min(100, patch.quantize.strength))
+                };
+              }
+            }
+            return {
+              clips: state.clips.map((c) => (c.id === clipId ? next : c))
+            };
+          }),
 
         transposeClip: (clipId, semitones) =>
           editMidiNotes(set, clipId, (notes) =>
@@ -4141,7 +4681,16 @@ export const createTimelineStore = (
             const next = new Map<string, TimelineClip>();
             for (const { m, newRate, targetMs } of planned) {
               const durationMs = Math.max(1, targetMs - overflowMs);
-              const retimed: TimelineClip = { ...m, speedMultiplier, durationMs };
+              const retimed: TimelineClip = {
+                ...m,
+                speedMultiplier,
+                durationMs
+              };
+              // The loop window keeps its source length, so it scales too.
+              if (m.loopLengthMs !== undefined) {
+                retimed.loopLengthMs =
+                  (m.loopLengthMs * sourceRate(m)) / newRate;
+              }
               if (overflowMs > 0 && m.outPointMs !== undefined) {
                 retimed.outPointMs = (m.inPointMs ?? 0) + durationMs * newRate;
               }
@@ -4301,7 +4850,10 @@ export const createTimelineStore = (
                 const next = { ...c, ...patch };
                 // An effect's keys go when the effect goes.
                 if ("effects" in patch && next.paramCurves) {
-                  const curves = paramCurvesForEffects(next.paramCurves, next.effects);
+                  const curves = paramCurvesForEffects(
+                    next.paramCurves,
+                    next.effects
+                  );
                   if (curves) next.paramCurves = curves;
                   else delete next.paramCurves;
                 }
@@ -4786,6 +5338,9 @@ export const createTimelineStore = (
               paramOverrides: currentSrc.paramOverrides
                 ? structuredClone(currentSrc.paramOverrides)
                 : undefined,
+              pattern: currentSrc.pattern
+                ? structuredClone(currentSrc.pattern)
+                : undefined,
               ...media,
               locked: false,
               // A lone duplicate is not linked to the source group.
@@ -5098,6 +5653,7 @@ export const createTimelineStore = (
               paramOverrides: src.paramOverrides
                 ? structuredClone(src.paramOverrides)
                 : undefined,
+              pattern: src.pattern ? structuredClone(src.pattern) : undefined,
               // Reset render state so it generates fresh.
               status: "draft",
               locked: false,
@@ -5105,6 +5661,8 @@ export const createTimelineStore = (
               lastGeneratedHash: undefined,
               inPointMs: undefined,
               outPointMs: undefined,
+              // The fresh generation has no window to repeat.
+              loopLengthMs: undefined,
               versions: []
             });
             newId = clone.id;
@@ -5159,27 +5717,36 @@ export const createTimelineStore = (
             const next = mergeClipsAtTime(
               state.clips,
               timeMs,
-              editableAllClips(state)
+              editableAllClips(state),
+              resolveTempo(state).bpm
             );
             return next === state.clips ? {} : { clips: next };
           }),
 
         addScene: (timeMs, label) =>
-          set((state) => ({
-            markers: [
-              ...state.markers,
-              makeMarker({
-                timeMs: Math.max(0, Math.round(timeMs)),
-                label: label ?? ""
-              })
-            ],
-            ...splitClipsLinkAware(
+          set((state) => {
+            const cut = splitClipsLinkAware(
               state.clips,
               state.mediaTracks,
               Math.round(timeMs),
-              [...editableAllClips(state)]
-            )
-          })),
+              [...editableAllClips(state)],
+              {
+                bpm: resolveTempo(state).bpm,
+                gridOffsetMs: resolveTempo(state).offsetMs
+              }
+            );
+            return {
+              markers: [
+                ...state.markers,
+                makeMarker({
+                  timeMs: Math.max(0, Math.round(timeMs)),
+                  label: label ?? ""
+                })
+              ],
+              clips: cut.clips,
+              mediaTracks: cut.mediaTracks
+            };
+          }),
 
         removeScene: (markerId) =>
           set((state) => {
@@ -5191,7 +5758,8 @@ export const createTimelineStore = (
                 ? mergeClipsAtTime(
                     state.clips,
                     marker.timeMs,
-                    editableAllClips(state)
+                    editableAllClips(state),
+                    resolveTempo(state).bpm
                   )
                 : state.clips
             };
@@ -5210,6 +5778,7 @@ export const createTimelineStore = (
           transcript: state.transcript,
           scriptEnabled: state.scriptEnabled,
           tempo: state.tempo,
+          music: state.music,
           master: state.master,
           storyboardMaterializations: state.storyboardMaterializations,
           setup: state.setup,

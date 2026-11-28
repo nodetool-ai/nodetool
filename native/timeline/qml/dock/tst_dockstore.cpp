@@ -54,14 +54,17 @@ private slots:
         store.resizeRegion("left", -100, 900, 200);
         QCOMPARE(store.layout().value("sizes").toMap().value("left").toInt(), 100);
         QSignalSpy changes(&store, &DockLayoutStore::changed);
-        QVERIFY(!store.dispatch({{"type", "hide"}, {"panelId", "program"}}));
         QVERIFY(!store.dispatch({{"type", "hide"}, {"panelId", "tracks"}}));
         QCOMPARE(changes.count(), 0);
+        QVERIFY(store.dispatch({{"type", "hide"}, {"panelId", "program"}}));
+        QVERIFY(store.layout().value("hidden").toStringList().contains("program"));
+        QVERIFY(store.dispatch({{"type", "reveal"}, {"panelId", "program"}}));
+        QVERIFY(!store.layout().value("hidden").toStringList().contains("program"));
     }
     void nativeWorkspacesFollowTheWebList() {
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
         DockLayoutStore store;
-        QCOMPARE(store.workspaces(), QStringList({"Editing", "Script", "Assistant", "Review", "Color", "Audio"}));
+        QCOMPARE(store.workspaces(), QStringList({"Editing", "Script", "Assistant", "Review", "Color", "Audio", "Music"}));
         // A saved panel layout survives switching away and back, and a saved
         // Color workspace is restored at startup.
         store.switchWorkspace(4);
@@ -78,6 +81,46 @@ private slots:
         QCOMPARE(restored.layout().value("sizes").toMap().value("right").toDouble(), 500.0);
         restored.resetWorkspace();
         QCOMPARE(restored.layout().value("sizes").toMap().value("right").toDouble(), 400.0);
+    }
+    // The Music preset (MUSIC-MODE.md section 15, UI-4): the tracks in the work area, the music
+    // panel on the right under the program monitor, the mixer below. Other workspaces hide the panel.
+    void musicWorkspace() {
+        QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
+        DockLayoutStore store;
+        store.registerPanels({
+            QVariantMap{{"id", "program"}, {"title", "Program"}, {"defaultRegion", "viewport"}},
+            QVariantMap{{"id", "tracks"}, {"title", "Timeline"}, {"defaultRegion", "bottom"}},
+            QVariantMap{{"id", "music"}, {"title", "Music"}, {"defaultRegion", "right"}},
+            QVariantMap{{"id", "mixer"}, {"title", "Mixer"}, {"defaultRegion", "bottom"}}});
+        const auto hidden = [&store] { return store.layout().value("hidden").toStringList(); };
+        const auto groups = [&store](const QString& region) { return store.layout().value("regions").toMap().value(region).toList(); };
+        QVERIFY(hidden().contains("music"));
+        store.switchWorkspace(store.workspaces().indexOf("Music"));
+        QCOMPARE(store.workspace(), QString("Music"));
+        QVERIFY(!hidden().contains("music"));
+        QVERIFY(!hidden().contains("program"));
+        QCOMPARE(groups("viewport").first().toMap().value("activePanelId").toString(), QString("tracks"));
+        QCOMPARE(groups("bottom").first().toMap().value("activePanelId").toString(), QString("mixer"));
+        QCOMPARE(groups("right").size(), 2);
+        QCOMPARE(groups("right").at(0).toMap().value("panels").toStringList(), QStringList{"program"});
+        QCOMPARE(groups("right").at(1).toMap().value("activePanelId").toString(), QString("music"));
+        // The left dock opens on the project's files, and keeps its other panels.
+        const auto left = groups("left").first().toMap();
+        QCOMPARE(left.value("activePanelId").toString(), QString("files"));
+        QVERIFY(left.value("panels").toStringList().contains("markers"));
+        QVERIFY(left.value("panels").toStringList().contains("transcript"));
+        QVERIFY(!hidden().contains("files"));
+        QVERIFY(!hidden().contains("markers"));
+        QVERIFY(!hidden().contains("assets"));
+        QVERIFY(hidden().contains("transcript"));
+        store.resetWorkspace();
+        QCOMPARE(groups("left").first().toMap().value("activePanelId").toString(), QString("files"));
+        QVERIFY(!hidden().contains("files"));
+        QVERIFY(!hidden().contains("music"));
+        store.switchWorkspace(store.workspaces().indexOf("Editing"));
+        QVERIFY(hidden().contains("music"));
+        DockLayoutStore restored;
+        QCOMPARE(restored.workspace(), QString("Editing"));
     }
     void reviewKeepsTheRightSideEmpty() {
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));

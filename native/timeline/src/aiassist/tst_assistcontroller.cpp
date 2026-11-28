@@ -10,6 +10,25 @@ class ControllerTest : public QObject {
     Q_OBJECT
     TestAssetCacheRoot m_testCache;
 private slots:
+    void hiddenLinkedResourcesRefreshWhenShown() {
+        TimelineModel model;
+        const auto parsed = nt::parseTimelineJson(R"({"tracks":[{"id":"audio","type":"audio"}],
+            "clips":[{"id":"c","trackId":"audio","mediaType":"audio","startMs":0,
+            "durationMs":1000,"scriptId":"first"}]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        AssistController controller(m_testCache.root());
+        controller.setModel(&model);
+        QCOMPARE(controller.linkedResources().size(), 1);
+        controller.setLinkedResourcesActive(false);
+        QVERIFY(controller.linkedResources().isEmpty());
+        auto clip = model.findClip("c")->raw;
+        clip.insert("scriptId", "second");
+        QVERIFY(model.patchClips({clip}));
+        QVERIFY(controller.linkedResources().isEmpty());
+        controller.setLinkedResourcesActive(true);
+        QCOMPARE(controller.linkedResources().first().toMap().value("id").toString(), QString("second"));
+    }
     void casAndServerContracts() {
         TimelineModel model;
         nt::Timeline timeline;

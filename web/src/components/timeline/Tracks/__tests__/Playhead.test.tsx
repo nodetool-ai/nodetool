@@ -109,17 +109,10 @@ describe("Playhead", () => {
     });
   });
 
-  it("reflects the live position in the timecode pill", () => {
-    act(() => {
-      useTimelineUIStore.getState().setZoom(10);
-    });
+  it("draws a head without a timecode pill on the ruler (D66)", () => {
     renderPlayhead();
-
-    const pill = screen.getByTestId("playhead-pill");
-    act(() => {
-      useTimelinePlaybackStore.getState().setTimeMs(5000);
-    });
-    expect(pill.textContent).not.toBe("");
+    expect(screen.getByTestId("playhead-head").textContent).toBe("");
+    expect(screen.queryByTestId("playhead-pill")).toBeNull();
   });
 
   it("End jumps to the content end passed in, past a stale durationMs", () => {

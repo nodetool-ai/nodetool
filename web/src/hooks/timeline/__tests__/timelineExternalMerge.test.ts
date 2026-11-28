@@ -92,3 +92,22 @@ describe("accepting a server field conflict", () => {
     expect(store.getState().setup).toEqual(setup);
   });
 });
+
+describe("music settings (F1)", () => {
+  it("are part of the merge document", () => {
+    const store = createTimelineStore();
+    store.setState({ music: { autoCrossfadeMs: 25 } });
+    expect(timelineMergeDocumentOf(store.getState()).music).toEqual({ autoCrossfadeMs: 25 });
+  });
+
+  it("apply a server change that is accepted", () => {
+    const store = createTimelineStore();
+    store.setState({ music: { autoCrossfadeMs: 10 } });
+    applyAcceptedTimelineConflict(store.getState(), {
+      unit: { kind: "field", id: "music", label: "Music" },
+      reason: "edited",
+      external: { autoCrossfadeMs: 40 }
+    });
+    expect(store.getState().music).toEqual({ autoCrossfadeMs: 40 });
+  });
+});

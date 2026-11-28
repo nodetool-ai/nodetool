@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Action-safe (90%) and title-safe (80%) boxes and the centre cross, as
 // fractions of the picture, so they hold for any delivery shape.
 import QtQuick

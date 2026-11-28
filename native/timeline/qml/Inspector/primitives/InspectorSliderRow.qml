@@ -12,6 +12,7 @@ Item {
     property real max: 1
     property real step: 0.01
     property bool disabled: false
+    property bool cancelOnFocusLoss: false
     property var origin: undefined
     property var resetValue: origin
     signal gestureStarted()
@@ -54,6 +55,7 @@ Item {
             resetValue: root.resetValue === undefined ? root.value : root.resetValue
             resetOnDoubleTap: true
             enabled: !root.disabled
+            cancelOnFocusLoss: root.cancelOnFocusLoss
             accessibleName: root.label
             onEditStarted: root.gestureStarted()
             onValuePreviewed: value => root.preview(value)

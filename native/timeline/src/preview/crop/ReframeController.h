@@ -7,8 +7,6 @@ class ReframeController : public QObject {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* model READ model WRITE setModel NOTIFY modelChanged)
-    // The whole document as a map: each read converts every clip. Bind `revision` or `mediaTracks` instead.
-    Q_PROPERTY(QVariantMap document READ document NOTIFY documentChanged)
     // Goes up on every document change, for a binding that must rerun but needs no copy of the document.
     Q_PROPERTY(int revision READ revision NOTIFY documentChanged)
     // The document's `mediaTracks`. Notifies only when they change.
@@ -17,7 +15,6 @@ class ReframeController : public QObject {
     explicit ReframeController(QObject* parent = nullptr) : QObject(parent) {}
     TimelineModel* model() const { return m_model; }
     void setModel(TimelineModel* model);
-    QVariantMap document() const;
     int revision() const { return m_revision; }
     QVariantList mediaTracks() const { return m_mediaTracks.toVariantList(); }
     Q_INVOKABLE bool apply(const QString& action, const QJsonObject& payload);

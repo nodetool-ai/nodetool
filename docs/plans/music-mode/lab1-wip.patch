@@ -1,0 +1,3620 @@
+diff --git a/native/timeline-player/CMakeLists.txt b/native/timeline-player/CMakeLists.txt
+index c9caf688e1..3577035d2d 100644
+--- a/native/timeline-player/CMakeLists.txt
++++ b/native/timeline-player/CMakeLists.txt
+@@ -319,6 +319,8 @@ add_library(nodetool_timeline_audio STATIC
+     src/audio/effects/fable/FablePlateReverb.h
+     src/audio/effects/fable/FableColorTime.h
+     src/audio/effects/fable/FableColorTime.cpp
++    src/audio/effects/fable/FableLab.h
++    src/audio/effects/fable/FableLab.cpp
+     src/audio/effects/fable/FableColorTimeEffects.h
+     src/audio/effects/fable/FableColorTimeEffects.cpp
+     src/audio/hooks/MixerHooks.h
+@@ -466,6 +468,7 @@ if(BUILD_TESTING)
+     qt_add_executable(tst_audioeffects tests/tst_audioeffects.cpp)
+     qt_add_executable(tst_fabledynamics tests/tst_fabledynamics.cpp)
+     qt_add_executable(tst_fablecolortime tests/tst_fablecolortime.cpp)
++    target_include_directories(tst_fablecolortime SYSTEM PRIVATE tests/fixtures/fable_ref)
+     qt_add_executable(tst_ducking tests/tst_ducking.cpp)
+     qt_add_executable(tst_liveloudness tests/tst_liveloudness.cpp)
+     qt_add_executable(tst_loudness tests/tst_loudness.cpp)
+diff --git a/native/timeline-player/src/audio/automation/AutomationStage.cpp b/native/timeline-player/src/audio/automation/AutomationStage.cpp
+index abf707fefd..905627f251 100644
+--- a/native/timeline-player/src/audio/automation/AutomationStage.cpp
++++ b/native/timeline-player/src/audio/automation/AutomationStage.cpp
+@@ -165,7 +165,7 @@ bool supports(const QString& type,const QString& param) {
+                 if (def.id == key) { return true; }
+             }
+         }
+-        for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
++        for (const auto kind : audio::effects::fable::kFableColorTimeKinds) {
+             for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+                 if (def.id == key) { return true; }
+             }
+@@ -180,7 +180,7 @@ bool isFableLogParam(const QString& param) {
+             if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+         }
+     }
+-    for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
++    for (const auto kind : audio::effects::fable::kFableColorTimeKinds) {
+         for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+             if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+         }
+diff --git a/native/timeline-player/src/audio/effects/Effects.cpp b/native/timeline-player/src/audio/effects/Effects.cpp
+index 0624ce524c..ca654ccd59 100644
+--- a/native/timeline-player/src/audio/effects/Effects.cpp
++++ b/native/timeline-player/src/audio/effects/Effects.cpp
+@@ -588,6 +588,24 @@ void append(const QJsonArray& effects, Processors& processors, double* tailMs =
+                     const double fb = std::clamp(ep.value("fx.delay.fb").toDouble(0.35), 0.0, 0.92);
+                     *tailMs += fb <= 0.001 ? delay : std::min(20000.0, delay * (std::log(0.001) / std::log(fb) + 1.0));
+                 }
++                if (tailMs && kind == "reso") {
++                    const double decay = std::clamp(e.value("params").toObject().value("fx.reso.decay").toDouble(0.7), 0.0, 1.0);
++                    const double fb = 0.6 + 0.395 * decay;
++                    const double note = std::clamp(e.value("params").toObject().value("fx.reso.note").toDouble(48.0), 24.0, 84.0);
++                    const double hz = 440.0 * std::exp2((note - 69.0) / 12.0);
++                    *tailMs += std::clamp((1000.0 / hz) * (std::log(0.001) / std::log(fb)), 200.0, 10000.0);
++                }
++                if (tailMs && kind == "shift") {
++                    const double fb = std::clamp(e.value("params").toObject().value("fx.shift.fb").toDouble(0.5), 0.0, 0.9);
++                    const double delay = 15000.0 / std::clamp(tempoBpm, 40.0, 300.0);
++                    *tailMs += fb <= 0.001 ? delay : std::min(10000.0, delay * (std::log(0.001) / std::log(fb) + 1.0));
++                }
++                if (tailMs && kind == "spray") {
++                    *tailMs += 2000.0;
++                }
++                if (tailMs && kind == "glitch") {
++                    *tailMs += 120000.0 / std::clamp(tempoBpm, 40.0, 300.0);
++                }
+             }
+             continue;
+         }
+diff --git a/native/timeline-player/src/audio/effects/fable/FableColorTimeEffects.cpp b/native/timeline-player/src/audio/effects/fable/FableColorTimeEffects.cpp
+index ccd2397e72..fa79913c34 100644
+--- a/native/timeline-player/src/audio/effects/fable/FableColorTimeEffects.cpp
++++ b/native/timeline-player/src/audio/effects/fable/FableColorTimeEffects.cpp
+@@ -51,6 +51,41 @@ constexpr std::array<ParamDef, 4> kReverbParams{{
+     {"fx.reverb.damp", "DAMP", 0.0, 1.0, 0.5, ParamCurve::Linear},
+ }};
+ 
++constexpr std::array<ParamDef, 4> kCrushParams{{
++    {"fx.crush.bits", "BITS", 1.0, 16.0, 6.0, ParamCurve::Linear},
++    {"fx.crush.rate", "RATE", 200.0, 48000.0, 6000.0, ParamCurve::Log},
++    {"fx.crush.chaos", "CHAOS", 0.0, 1.0, 0.2, ParamCurve::Linear},
++    {"fx.crush.mix", "MIX", 0.0, 1.0, 1.0, ParamCurve::Linear},
++}};
++
++constexpr std::array<ParamDef, 4> kResoParams{{
++    {"fx.reso.note", "NOTE", 24.0, 84.0, 48.0, ParamCurve::Int},
++    {"fx.reso.chord", "CHORD", 0.0, 5.0, 2.0, ParamCurve::Enum},
++    {"fx.reso.decay", "DECAY", 0.0, 1.0, 0.7, ParamCurve::Linear},
++    {"fx.reso.mix", "MIX", 0.0, 1.0, 0.5, ParamCurve::Linear},
++}};
++
++constexpr std::array<ParamDef, 4> kShiftParams{{
++    {"fx.shift.hz", "SHIFT", -1000.0, 1000.0, 60.0, ParamCurve::Linear},
++    {"fx.shift.fb", "SPIRAL", 0.0, 0.9, 0.5, ParamCurve::Linear},
++    {"fx.shift.spread", "SPREAD", 0.0, 1.0, 0.5, ParamCurve::Linear},
++    {"fx.shift.mix", "MIX", 0.0, 1.0, 0.5, ParamCurve::Linear},
++}};
++
++constexpr std::array<ParamDef, 4> kSprayParams{{
++    {"fx.spray.pitch", "PITCH", -24.0, 24.0, 12.0, ParamCurve::Int},
++    {"fx.spray.density", "DENSITY", 1.0, 40.0, 12.0, ParamCurve::Log},
++    {"fx.spray.scatter", "SCATTER", 0.0, 1.0, 0.4, ParamCurve::Linear},
++    {"fx.spray.mix", "MIX", 0.0, 1.0, 0.45, ParamCurve::Linear},
++}};
++
++constexpr std::array<ParamDef, 4> kGlitchParams{{
++    {"fx.glitch.div", "DIVISION", 0.0, 4.0, 2.0, ParamCurve::Enum},
++    {"fx.glitch.chance", "CHANCE", 0.0, 1.0, 0.35, ParamCurve::Linear},
++    {"fx.glitch.drift", "DRIFT", -1.0, 1.0, 0.0, ParamCurve::Linear},
++    {"fx.glitch.mix", "MIX", 0.0, 1.0, 1.0, ParamCurve::Linear},
++}};
++
+ double readParam(const QJsonObject& effect, std::string_view key, double fallback) {
+     const QString qkey = QString::fromUtf8(key.data(), static_cast<qsizetype>(key.size()));
+     const QJsonObject params = effect.value(u"params").toObject();
+@@ -102,7 +137,7 @@ void processStereoChunks(Dsp& dsp, std::span<float> stereo) noexcept {
+ }  // namespace
+ 
+ bool isFableColorTimeKind(std::string_view kind) noexcept {
+-    return kind == "drive" || kind == "chorus" || kind == "echo" || kind == "reverb";
++    return std::ranges::find(kFableColorTimeKinds, kind) != kFableColorTimeKinds.end();
+ }
+ 
+ std::span<const ParamDef> fableColorTimeParams(std::string_view kind) noexcept {
+@@ -118,6 +153,21 @@ std::span<const ParamDef> fableColorTimeParams(std::string_view kind) noexcept {
+     if (kind == "reverb") {
+         return kReverbParams;
+     }
++    if (kind == "crush") {
++        return kCrushParams;
++    }
++    if (kind == "reso") {
++        return kResoParams;
++    }
++    if (kind == "shift") {
++        return kShiftParams;
++    }
++    if (kind == "spray") {
++        return kSprayParams;
++    }
++    if (kind == "glitch") {
++        return kGlitchParams;
++    }
+     return {};
+ }
+ 
+@@ -144,6 +194,21 @@ std::unique_ptr<nt::audio::BlockProcessor> createFableColorTimeEffect(
+     if (kind == u"reverb") {
+         return std::make_unique<FableReverbProcessor>(effect);
+     }
++    if (kind == u"crush") {
++        return std::make_unique<FableCrushProcessor>(effect);
++    }
++    if (kind == u"reso") {
++        return std::make_unique<FableResoProcessor>(effect);
++    }
++    if (kind == u"shift") {
++        return std::make_unique<FableShiftProcessor>(effect, tempoBpm);
++    }
++    if (kind == u"spray") {
++        return std::make_unique<FableSprayProcessor>(effect);
++    }
++    if (kind == u"glitch") {
++        return std::make_unique<FableGlitchProcessor>(effect, tempoBpm);
++    }
+     return nullptr;
+ }
+ 
+@@ -439,4 +504,364 @@ bool FableReverbProcessor::hasPendingOutput(int) const noexcept {
+     return reverb_.hasPendingOutput();
+ }
+ 
++// ---------------- FableCrushProcessor ----------------
++
++FableCrushProcessor::FableCrushProcessor(const QJsonObject& effect) {
++    id = effect.value(u"id").toString().toStdString();
++    on_ = effect.value(u"enabled").toBool(true);
++    bits_ = static_cast<float>(std::clamp(readParam(effect, "fx.crush.bits", 6.0), 1.0, 16.0));
++    rate_ = static_cast<float>(std::clamp(readParam(effect, "fx.crush.rate", 6000.0), 200.0, 48000.0));
++    chaos_ = static_cast<float>(std::clamp(readParam(effect, "fx.crush.chaos", 0.2), 0.0, 1.0));
++    mix_ = static_cast<float>(std::clamp(readParam(effect, "fx.crush.mix", 1.0), 0.0, 1.0));
++}
++
++void FableCrushProcessor::applyParams() noexcept {
++    crush_.setParams(on_, bits_, rate_, chaos_, mix_);
++}
++
++void FableCrushProcessor::prepare(double sampleRate) {
++    threadGuard_.unbind();
++    crush_.prepare(sampleRate);
++    prepared_ = true;
++    applyParams();
++    crush_.reset();
++}
++
++void FableCrushProcessor::reset() noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    BlockProcessor::reset();
++    crush_.reset();
++}
++
++bool FableCrushProcessor::setParameter(std::string_view key, double value) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    if (!std::isfinite(value)) {
++        return false;
++    }
++    if (key == "fx.crush.bits") {
++        bits_ = static_cast<float>(std::clamp(value, 1.0, 16.0));
++    } else if (key == "fx.crush.rate") {
++        rate_ = static_cast<float>(std::clamp(value, 200.0, 48000.0));
++    } else if (key == "fx.crush.chaos") {
++        chaos_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else if (key == "fx.crush.mix") {
++        mix_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else {
++        return false;
++    }
++    if (prepared_) {
++        applyParams();
++    }
++    return true;
++}
++
++void FableCrushProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
++    processStereoChunks(crush_, stereo);
++}
++
++bool FableCrushProcessor::hasPendingOutput(int) const noexcept {
++    return crush_.hasPendingOutput();
++}
++
++// ---------------- FableResoProcessor ----------------
++
++FableResoProcessor::FableResoProcessor(const QJsonObject& effect) {
++    id = effect.value(u"id").toString().toStdString();
++    on_ = effect.value(u"enabled").toBool(true);
++    note_ = static_cast<float>(std::clamp(std::round(readParam(effect, "fx.reso.note", 48.0)), 24.0, 84.0));
++    chord_ = std::clamp(static_cast<int>(std::lround(readParam(effect, "fx.reso.chord", 2.0))), 0, 5);
++    decay_ = static_cast<float>(std::clamp(readParam(effect, "fx.reso.decay", 0.7), 0.0, 1.0));
++    mix_ = static_cast<float>(std::clamp(readParam(effect, "fx.reso.mix", 0.5), 0.0, 1.0));
++}
++
++void FableResoProcessor::applyParams() noexcept {
++    reso_.setParams(on_, note_, chord_, decay_, mix_);
++}
++
++void FableResoProcessor::prepare(double sampleRate) {
++    threadGuard_.unbind();
++    reso_.prepare(sampleRate);
++    prepared_ = true;
++    applyParams();
++    reso_.reset();
++}
++
++void FableResoProcessor::reset() noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    BlockProcessor::reset();
++    reso_.reset();
++}
++
++bool FableResoProcessor::setParameter(std::string_view key, double value) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    if (!std::isfinite(value)) {
++        return false;
++    }
++    if (key == "fx.reso.note") {
++        note_ = static_cast<float>(std::clamp(std::round(value), 24.0, 84.0));
++    } else if (key == "fx.reso.chord") {
++        chord_ = std::clamp(static_cast<int>(std::lround(value)), 0, 5);
++    } else if (key == "fx.reso.decay") {
++        decay_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else if (key == "fx.reso.mix") {
++        mix_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else {
++        return false;
++    }
++    if (prepared_) {
++        applyParams();
++    }
++    return true;
++}
++
++void FableResoProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
++    processStereoChunks(reso_, stereo);
++}
++
++bool FableResoProcessor::hasPendingOutput(int) const noexcept {
++    return reso_.hasPendingOutput();
++}
++
++// ---------------- FableShiftProcessor ----------------
++
++FableShiftProcessor::FableShiftProcessor(const QJsonObject& effect, double tempoBpm) {
++    id = effect.value(u"id").toString().toStdString();
++    on_ = effect.value(u"enabled").toBool(true);
++    const double jsonBpm = readParam(effect, "bpm", 0.0);
++    tempoBpm_ = (std::isfinite(tempoBpm) && tempoBpm > 1.0)
++        ? std::clamp(tempoBpm, 40.0, 300.0)
++        : ((std::isfinite(jsonBpm) && jsonBpm > 1.0) ? std::clamp(jsonBpm, 40.0, 300.0) : 120.0);
++    hz_ = static_cast<float>(std::clamp(readParam(effect, "fx.shift.hz", 60.0), -1000.0, 1000.0));
++    fb_ = static_cast<float>(std::clamp(readParam(effect, "fx.shift.fb", 0.5), 0.0, 0.9));
++    spread_ = static_cast<float>(std::clamp(readParam(effect, "fx.shift.spread", 0.5), 0.0, 1.0));
++    mix_ = static_cast<float>(std::clamp(readParam(effect, "fx.shift.mix", 0.5), 0.0, 1.0));
++}
++
++void FableShiftProcessor::applyParams() noexcept {
++    shift_.setParams(on_, hz_, fb_, spread_, mix_, tempoBpm_);
++}
++
++void FableShiftProcessor::prepare(double sampleRate) {
++    threadGuard_.unbind();
++    shift_.prepare(sampleRate);
++    prepared_ = true;
++    applyParams();
++    shift_.reset();
++}
++
++void FableShiftProcessor::reset() noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    BlockProcessor::reset();
++    shift_.reset();
++}
++
++void FableShiftProcessor::setTempoBpm(double tempoBpm) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    if (!std::isfinite(tempoBpm) || tempoBpm <= 1.0) {
++        return;
++    }
++    tempoBpm_ = std::clamp(tempoBpm, 40.0, 300.0);
++    if (prepared_) {
++        applyParams();
++    }
++}
++
++bool FableShiftProcessor::setParameter(std::string_view key, double value) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    if (!std::isfinite(value)) {
++        return false;
++    }
++    if (key == "fx.shift.hz") {
++        hz_ = static_cast<float>(std::clamp(value, -1000.0, 1000.0));
++    } else if (key == "fx.shift.fb") {
++        fb_ = static_cast<float>(std::clamp(value, 0.0, 0.9));
++    } else if (key == "fx.shift.spread") {
++        spread_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else if (key == "fx.shift.mix") {
++        mix_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else if (key == "bpm" || key == "tempo.bpm") {
++        if (value <= 1.0) {
++            return false;
++        }
++        tempoBpm_ = std::clamp(value, 40.0, 300.0);
++    } else {
++        return false;
++    }
++    if (prepared_) {
++        applyParams();
++    }
++    return true;
++}
++
++void FableShiftProcessor::process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
++    const double ctxBpm = contextTempoBpm(context);
++    if (std::isfinite(ctxBpm) && ctxBpm > 1.0) {
++        const double clampedBpm = std::clamp(ctxBpm, 40.0, 300.0);
++        if (clampedBpm != tempoBpm_) {
++            tempoBpm_ = clampedBpm;
++            if (prepared_) {
++                applyParams();
++            }
++        }
++    }
++    processStereoChunks(shift_, stereo);
++}
++
++bool FableShiftProcessor::hasPendingOutput(int) const noexcept {
++    return shift_.hasPendingOutput();
++}
++
++// ---------------- FableSprayProcessor ----------------
++
++FableSprayProcessor::FableSprayProcessor(const QJsonObject& effect) {
++    id = effect.value(u"id").toString().toStdString();
++    on_ = effect.value(u"enabled").toBool(true);
++    pitch_ = static_cast<float>(std::clamp(std::round(readParam(effect, "fx.spray.pitch", 12.0)), -24.0, 24.0));
++    density_ = static_cast<float>(std::clamp(readParam(effect, "fx.spray.density", 12.0), 1.0, 40.0));
++    scatter_ = static_cast<float>(std::clamp(readParam(effect, "fx.spray.scatter", 0.4), 0.0, 1.0));
++    mix_ = static_cast<float>(std::clamp(readParam(effect, "fx.spray.mix", 0.45), 0.0, 1.0));
++}
++
++void FableSprayProcessor::applyParams() noexcept {
++    spray_.setParams(on_, pitch_, density_, scatter_, mix_);
++}
++
++void FableSprayProcessor::prepare(double sampleRate) {
++    threadGuard_.unbind();
++    spray_.prepare(sampleRate);
++    prepared_ = true;
++    applyParams();
++    spray_.reset();
++}
++
++void FableSprayProcessor::reset() noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    BlockProcessor::reset();
++    spray_.reset();
++}
++
++bool FableSprayProcessor::setParameter(std::string_view key, double value) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    if (!std::isfinite(value)) {
++        return false;
++    }
++    if (key == "fx.spray.pitch") {
++        pitch_ = static_cast<float>(std::clamp(std::round(value), -24.0, 24.0));
++    } else if (key == "fx.spray.density") {
++        density_ = static_cast<float>(std::clamp(value, 1.0, 40.0));
++    } else if (key == "fx.spray.scatter") {
++        scatter_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else if (key == "fx.spray.mix") {
++        mix_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else {
++        return false;
++    }
++    if (prepared_) {
++        applyParams();
++    }
++    return true;
++}
++
++void FableSprayProcessor::process(std::span<float> stereo, const nt::audio::BlockContext&) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
++    processStereoChunks(spray_, stereo);
++}
++
++bool FableSprayProcessor::hasPendingOutput(int) const noexcept {
++    return spray_.hasPendingOutput();
++}
++
++// ---------------- FableGlitchProcessor ----------------
++
++FableGlitchProcessor::FableGlitchProcessor(const QJsonObject& effect, double tempoBpm) {
++    id = effect.value(u"id").toString().toStdString();
++    on_ = effect.value(u"enabled").toBool(true);
++    const double jsonBpm = readParam(effect, "bpm", 0.0);
++    tempoBpm_ = (std::isfinite(tempoBpm) && tempoBpm > 1.0)
++        ? std::clamp(tempoBpm, 40.0, 300.0)
++        : ((std::isfinite(jsonBpm) && jsonBpm > 1.0) ? std::clamp(jsonBpm, 40.0, 300.0) : 120.0);
++    div_ = std::clamp(static_cast<int>(std::lround(readParam(effect, "fx.glitch.div", 2.0))), 0, 4);
++    chance_ = static_cast<float>(std::clamp(readParam(effect, "fx.glitch.chance", 0.35), 0.0, 1.0));
++    drift_ = static_cast<float>(std::clamp(readParam(effect, "fx.glitch.drift", 0.0), -1.0, 1.0));
++    mix_ = static_cast<float>(std::clamp(readParam(effect, "fx.glitch.mix", 1.0), 0.0, 1.0));
++}
++
++void FableGlitchProcessor::applyParams() noexcept {
++    glitch_.setParams(on_, div_, chance_, drift_, mix_, tempoBpm_);
++}
++
++void FableGlitchProcessor::prepare(double sampleRate) {
++    threadGuard_.unbind();
++    glitch_.prepare(sampleRate);
++    prepared_ = true;
++    applyParams();
++    glitch_.reset();
++}
++
++void FableGlitchProcessor::reset() noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    BlockProcessor::reset();
++    glitch_.reset();
++}
++
++void FableGlitchProcessor::setTempoBpm(double tempoBpm) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    if (!std::isfinite(tempoBpm) || tempoBpm <= 1.0) {
++        return;
++    }
++    tempoBpm_ = std::clamp(tempoBpm, 40.0, 300.0);
++    if (prepared_) {
++        applyParams();
++    }
++}
++
++bool FableGlitchProcessor::setParameter(std::string_view key, double value) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(false);
++    if (!std::isfinite(value)) {
++        return false;
++    }
++    if (key == "fx.glitch.div") {
++        div_ = std::clamp(static_cast<int>(std::lround(value)), 0, 4);
++    } else if (key == "fx.glitch.chance") {
++        chance_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else if (key == "fx.glitch.drift") {
++        drift_ = static_cast<float>(std::clamp(value, -1.0, 1.0));
++    } else if (key == "fx.glitch.mix") {
++        mix_ = static_cast<float>(std::clamp(value, 0.0, 1.0));
++    } else if (key == "bpm" || key == "tempo.bpm") {
++        if (value <= 1.0) {
++            return false;
++        }
++        tempoBpm_ = std::clamp(value, 40.0, 300.0);
++    } else {
++        return false;
++    }
++    if (prepared_) {
++        applyParams();
++    }
++    return true;
++}
++
++void FableGlitchProcessor::process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept {
++    [[maybe_unused]] const auto renderScope = threadGuard_.enterRender(true);
++    const double ctxBpm = contextTempoBpm(context);
++    if (std::isfinite(ctxBpm) && ctxBpm > 1.0) {
++        const double clampedBpm = std::clamp(ctxBpm, 40.0, 300.0);
++        if (clampedBpm != tempoBpm_) {
++            tempoBpm_ = clampedBpm;
++            if (prepared_) {
++                applyParams();
++            }
++        }
++    }
++    processStereoChunks(glitch_, stereo);
++}
++
++bool FableGlitchProcessor::hasPendingOutput(int) const noexcept {
++    return glitch_.hasPendingOutput();
++}
++
+ }  // namespace nt::audio::effects::fable
+diff --git a/native/timeline-player/src/audio/effects/fable/FableColorTimeEffects.h b/native/timeline-player/src/audio/effects/fable/FableColorTimeEffects.h
+index 75867bcb3e..bac301f37f 100644
+--- a/native/timeline-player/src/audio/effects/fable/FableColorTimeEffects.h
++++ b/native/timeline-player/src/audio/effects/fable/FableColorTimeEffects.h
+@@ -8,27 +8,35 @@
+ #include "audio/Mixer.h"
+ #include "audio/effects/fable/FableColorTime.h"
+ #include "audio/effects/fable/FableDynamicsEffects.h"
++#include "audio/effects/fable/FableLab.h"
+ 
+ #include <QJsonObject>
+ 
++#include <array>
+ #include <memory>
+ #include <span>
+ #include <string_view>
+ 
+ namespace nt::audio::effects::fable {
+ 
+-// Returns true for the FableSynth color/time effect kinds implemented here:
+-// "drive", "chorus", "echo", "reverb".
++inline constexpr std::array<std::string_view, 9> kFableColorTimeKinds{{
++    "drive", "chorus", "echo", "reverb",
++    "crush", "reso", "shift", "spray", "glitch",
++}};
++
++// Returns true for the FableSynth color/time/lab effect kinds implemented here:
++// "drive", "chorus", "echo", "reverb", "crush", "reso", "shift", "spray", "glitch".
+ [[nodiscard]] bool isFableColorTimeKind(std::string_view kind) noexcept;
+ 
+ // Canonical parameter definitions matching FableSynth fableFxParams.ts and params.ts
+-// (plus FableSynth ae9fca7 reverb type/damp controls, defaulting to ROOM/0.5).
++// (plus FableSynth ae9fca7 reverb type/damp controls, defaulting to ROOM/0.5,
++// and the five LAB units from LabFx.h commit d2f68d8).
+ [[nodiscard]] std::span<const ParamDef> fableColorTimeParams(std::string_view kind) noexcept;
+ 
+ // Default `params` JSON object for a FableSynth track insert of `kind`.
+ [[nodiscard]] QJsonObject fableColorTimeDefaults(std::string_view kind);
+ 
+-// Creates a BlockProcessor for `{ type: "fable", kind: "drive"|"chorus"|"echo"|"reverb", params: {...} }`,
++// Creates a BlockProcessor for `{ type: "fable", kind: "drive"|"chorus"|"echo"|"reverb"|"crush"|"reso"|"shift"|"spray"|"glitch", params: {...} }`,
+ // or nullptr for unsupported kinds. Pass tempoBpm > 0 to override JSON `effect["bpm"]` (0 = use JSON or 120).
+ [[nodiscard]] std::unique_ptr<nt::audio::BlockProcessor> createFableColorTimeEffect(
+     const QJsonObject& effect, double tempoBpm = 0.0);
+@@ -150,4 +158,143 @@ private:
+     DebugRenderThreadGuard threadGuard_;
+ };
+ 
++// Sample-and-hold decimator + bit quantizer FableSynth insert (kind = "crush").
++// Thread affinity: constructed and prepared on control thread; process/setParameter/reset
++// touched on the single active audio render thread (serialized by MixRenderLease).
++class FableCrushProcessor final : public nt::audio::BlockProcessor {
++public:
++    explicit FableCrushProcessor(const QJsonObject& effect = {});
++    void prepare(double sampleRate) override;
++    void armForPlayback() override { threadGuard_.unbind(); }
++    void reset() noexcept override;
++    bool setParameter(std::string_view key, double value) noexcept override;
++    void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
++    [[nodiscard]] bool hasPendingOutput(int frames) const noexcept override;
++    [[nodiscard]] int latencySamples() const noexcept override { return crush_.latencySamples(); }
++
++private:
++    void applyParams() noexcept;
++
++    FableCrushDsp crush_;
++    bool on_ = true;
++    float bits_ = 6.0f;
++    float rate_ = 6000.0f;
++    float chaos_ = 0.2f;
++    float mix_ = 1.0f;
++    bool prepared_ = false;
++    DebugRenderThreadGuard threadGuard_;
++};
++
++// Tuned 4-comb chord resonator FableSynth insert (kind = "reso").
++// Thread affinity: constructed and prepared on control thread; process/setParameter/reset
++// touched on the single active audio render thread (serialized by MixRenderLease).
++class FableResoProcessor final : public nt::audio::BlockProcessor {
++public:
++    explicit FableResoProcessor(const QJsonObject& effect = {});
++    void prepare(double sampleRate) override;
++    void armForPlayback() override { threadGuard_.unbind(); }
++    void reset() noexcept override;
++    bool setParameter(std::string_view key, double value) noexcept override;
++    void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
++    [[nodiscard]] bool hasPendingOutput(int frames) const noexcept override;
++    [[nodiscard]] int latencySamples() const noexcept override { return reso_.latencySamples(); }
++
++private:
++    void applyParams() noexcept;
++
++    FableResoDsp reso_;
++    bool on_ = true;
++    float note_ = 48.0f;
++    int chord_ = 2;
++    float decay_ = 0.7f;
++    float mix_ = 0.5f;
++    bool prepared_ = false;
++    DebugRenderThreadGuard threadGuard_;
++};
++
++// Single-sideband frequency shifter with tempo-synced feedback spiral (kind = "shift").
++// Thread affinity: constructed and prepared on control thread; process/setParameter/setTempoBpm/reset
++// touched on the single active audio render thread (serialized by MixRenderLease).
++class FableShiftProcessor final : public nt::audio::BlockProcessor {
++public:
++    explicit FableShiftProcessor(const QJsonObject& effect = {}, double tempoBpm = 0.0);
++    void prepare(double sampleRate) override;
++    void armForPlayback() override { threadGuard_.unbind(); }
++    void reset() noexcept override;
++    bool setParameter(std::string_view key, double value) noexcept override;
++    void setTempoBpm(double tempoBpm) noexcept;
++    void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
++    [[nodiscard]] bool hasPendingOutput(int frames) const noexcept override;
++    [[nodiscard]] int latencySamples() const noexcept override { return shift_.latencySamples(); }
++
++private:
++    void applyParams() noexcept;
++
++    FableShiftDsp shift_;
++    bool on_ = true;
++    float hz_ = 60.0f;
++    float fb_ = 0.5f;
++    float spread_ = 0.5f;
++    float mix_ = 0.5f;
++    double tempoBpm_ = 120.0;
++    bool prepared_ = false;
++    DebugRenderThreadGuard threadGuard_;
++};
++
++// Granular pitch cloud FableSynth insert (kind = "spray").
++// Thread affinity: constructed and prepared on control thread; process/setParameter/reset
++// touched on the single active audio render thread (serialized by MixRenderLease).
++class FableSprayProcessor final : public nt::audio::BlockProcessor {
++public:
++    explicit FableSprayProcessor(const QJsonObject& effect = {});
++    void prepare(double sampleRate) override;
++    void armForPlayback() override { threadGuard_.unbind(); }
++    void reset() noexcept override;
++    bool setParameter(std::string_view key, double value) noexcept override;
++    void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
++    [[nodiscard]] bool hasPendingOutput(int frames) const noexcept override;
++    [[nodiscard]] int latencySamples() const noexcept override { return spray_.latencySamples(); }
++
++private:
++    void applyParams() noexcept;
++
++    FableSprayDsp spray_;
++    bool on_ = true;
++    float pitch_ = 12.0f;
++    float density_ = 12.0f;
++    float scatter_ = 0.4f;
++    float mix_ = 0.45f;
++    bool prepared_ = false;
++    DebugRenderThreadGuard threadGuard_;
++};
++
++// Tempo-synced beat repeat with pitch drift FableSynth insert (kind = "glitch").
++// Thread affinity: constructed and prepared on control thread; process/setParameter/setTempoBpm/reset
++// touched on the single active audio render thread (serialized by MixRenderLease).
++class FableGlitchProcessor final : public nt::audio::BlockProcessor {
++public:
++    explicit FableGlitchProcessor(const QJsonObject& effect = {}, double tempoBpm = 0.0);
++    void prepare(double sampleRate) override;
++    void armForPlayback() override { threadGuard_.unbind(); }
++    void reset() noexcept override;
++    bool setParameter(std::string_view key, double value) noexcept override;
++    void setTempoBpm(double tempoBpm) noexcept;
++    void process(std::span<float> stereo, const nt::audio::BlockContext& context) noexcept override;
++    [[nodiscard]] bool hasPendingOutput(int frames) const noexcept override;
++    [[nodiscard]] int latencySamples() const noexcept override { return glitch_.latencySamples(); }
++
++private:
++    void applyParams() noexcept;
++
++    FableGlitchDsp glitch_;
++    bool on_ = true;
++    int div_ = 2;
++    float chance_ = 0.35f;
++    float drift_ = 0.0f;
++    float mix_ = 1.0f;
++    double tempoBpm_ = 120.0;
++    bool prepared_ = false;
++    DebugRenderThreadGuard threadGuard_;
++};
++
+ }  // namespace nt::audio::effects::fable
+diff --git a/native/timeline-player/src/model/TimelineJson.cpp b/native/timeline-player/src/model/TimelineJson.cpp
+index fcdad6957f..27acb8168f 100644
+--- a/native/timeline-player/src/model/TimelineJson.cpp
++++ b/native/timeline-player/src/model/TimelineJson.cpp
+@@ -7,15 +7,259 @@
+ #include <QDir>
+ #include <QFile>
+ #include <QFileInfo>
++#include <QHash>
+ #include <QJsonArray>
+ #include <QJsonDocument>
+ #include <QJsonObject>
++#include <QSet>
++#include <QUuid>
+ 
++#include <array>
+ #include <cmath>
++#include <utility>
+ 
+ namespace nt {
+ namespace {
+ 
++struct LabUnitSpec {
++    QStringView kind;
++    QStringView prefix;
++    QStringView onParam;
++};
++
++constexpr std::array<LabUnitSpec, 5> kLabUnits{{
++    {u"crush", u"fx.crush.", u"fx.crush.on"},
++    {u"reso", u"fx.reso.", u"fx.reso.on"},
++    {u"shift", u"fx.shift.", u"fx.shift.on"},
++    {u"spray", u"fx.spray.", u"fx.spray.on"},
++    {u"glitch", u"fx.glitch.", u"fx.glitch.on"},
++}};
++
++QJsonObject labUnitDefaultParams(QStringView kind) {
++    if (kind == u"crush") {
++        return {{"fx.crush.bits", 6.0}, {"fx.crush.rate", 6000.0}, {"fx.crush.chaos", 0.2}, {"fx.crush.mix", 1.0}};
++    }
++    if (kind == u"reso") {
++        return {{"fx.reso.note", 48.0}, {"fx.reso.chord", 2.0}, {"fx.reso.decay", 0.7}, {"fx.reso.mix", 0.5}};
++    }
++    if (kind == u"shift") {
++        return {{"fx.shift.hz", 60.0}, {"fx.shift.fb", 0.5}, {"fx.shift.spread", 0.5}, {"fx.shift.mix", 0.5}};
++    }
++    if (kind == u"spray") {
++        return {{"fx.spray.pitch", 12.0}, {"fx.spray.density", 12.0}, {"fx.spray.scatter", 0.4}, {"fx.spray.mix", 0.45}};
++    }
++    if (kind == u"glitch") {
++        return {{"fx.glitch.div", 2.0}, {"fx.glitch.chance", 0.35}, {"fx.glitch.drift", 0.0}, {"fx.glitch.mix", 1.0}};
++    }
++    return {};
++}
++
++bool labUnitEnabled(const QJsonObject& params, QStringView onParam) {
++    const QJsonValue v = params.value(onParam);
++    if (v.isBool()) { return v.toBool(); }
++    return v.isDouble() && std::isfinite(v.toDouble()) && v.toDouble() >= 0.5;
++}
++
++QString labMigratedEffectId(const QString& oldId, QStringView kind) {
++    constexpr QUuid kNamespace{0x7d3b9e61u, 0x4a2cu, 0x4f8bu, 0x9cu, 0x1du, 0x2eu, 0x5au, 0x6bu, 0x8cu, 0x0du, 0x1eu};
++    return QUuid::createUuidV5(kNamespace, oldId + u':' + kind.toString()).toString(QUuid::Id128);
++}
++
++QStringView labUnitForParam(const QString& param, bool& isOnParam) {
++    isOnParam = false;
++    for (const auto& unit : kLabUnits) {
++        if (param == unit.onParam) {
++            isOnParam = true;
++            return unit.kind;
++        }
++        if (param.startsWith(unit.prefix)) {
++            return unit.kind;
++        }
++    }
++    return {};
++}
++
++struct LabMigrationMap {
++    QSet<QString> oldLabIds;
++    // Key: oldId + '\n' + kind -> new migrated effect id
++    QHash<QString, QString> unitIds;
++
++    [[nodiscard]] bool empty() const { return oldLabIds.isEmpty(); }
++    [[nodiscard]] QString mappedId(const QString& oldId, QStringView kind) const {
++        return unitIds.value(oldId + u'\n' + kind.toString());
++    }
++};
++
++bool migrateEffectArray(QJsonArray& effects, LabMigrationMap& map) {
++    bool changed = false;
++    QJsonArray next;
++    for (const QJsonValue& ev : effects) {
++        const QJsonObject e = ev.toObject();
++        if (e.value(u"type").toString() != u"fable" || e.value(u"kind").toString() != u"lab") {
++            next.append(ev);
++            continue;
++        }
++        changed = true;
++        const QString oldId = e.value(u"id").toString();
++        map.oldLabIds.insert(oldId);
++        const QJsonObject oldParams = e.value(u"params").toObject();
++        const bool enabled = e.value(u"enabled").toBool(true);
++        const bool hasBpm = e.contains(u"bpm");
++        const QJsonValue bpmVal = e.value(u"bpm");
++        for (const auto& unit : kLabUnits) {
++            if (!labUnitEnabled(oldParams, unit.onParam)) { continue; }
++            const QString newId = labMigratedEffectId(oldId, unit.kind);
++            map.unitIds.insert(oldId + u'\n' + unit.kind.toString(), newId);
++            QJsonObject params = labUnitDefaultParams(unit.kind);
++            for (auto it = oldParams.begin(); it != oldParams.end(); ++it) {
++                if (it.key().startsWith(unit.prefix) && it.key() != unit.onParam) {
++                    params.insert(it.key(), it.value());
++                }
++            }
++            QJsonObject migrated{
++                {"id", newId},
++                {"type", QStringLiteral("fable")},
++                {"enabled", enabled},
++                {"kind", unit.kind.toString()},
++                {"params", params},
++            };
++            if (hasBpm) { migrated.insert(u"bpm", bpmVal); }
++            next.append(migrated);
++        }
++    }
++    if (changed) { effects = next; }
++    return changed;
++}
++
++void migrateAutomationLanes(QJsonObject& container, const LabMigrationMap& map) {
++    if (map.empty() || !container.contains(u"automation")) { return; }
++    const QJsonArray lanes = container.value(u"automation").toArray();
++    QJsonArray next;
++    bool changed = false;
++    for (const QJsonValue& lv : lanes) {
++        QJsonObject lane = lv.toObject();
++        QJsonObject target = lane.value(u"target").toObject();
++        const QString deviceId = target.value(u"deviceId").toString();
++        if (target.value(u"kind").toString() != u"device" || !map.oldLabIds.contains(deviceId)) {
++            next.append(lv);
++            continue;
++        }
++        changed = true;
++        bool isOnParam = false;
++        const QStringView unitKind = labUnitForParam(target.value(u"param").toString(), isOnParam);
++        if (unitKind.isEmpty() || isOnParam) { continue; }
++        const QString newId = map.mappedId(deviceId, unitKind);
++        if (newId.isEmpty()) { continue; }
++        target.insert(u"deviceId", newId);
++        lane.insert(u"target", target);
++        next.append(lane);
++    }
++    if (changed) { container.insert(u"automation", next); }
++}
++
++void migrateClipPatternAutomation(QJsonObject& clip, const LabMigrationMap& map) {
++    if (map.empty() || !clip.value(u"pattern").isObject()) { return; }
++    QJsonObject pattern = clip.value(u"pattern").toObject();
++    QJsonArray rows = pattern.value(u"rows").toArray();
++    bool changed = false;
++    for (qsizetype i = 0; i < rows.size(); ++i) {
++        QJsonObject row = rows[i].toObject();
++        QJsonObject assign = row.value(u"assignment").toObject();
++        QJsonObject target = assign.value(u"target").toObject();
++        const QString deviceId = target.value(u"deviceId").toString();
++        if (assign.value(u"type").toString() != u"automation" ||
++            target.value(u"kind").toString() != u"device" || !map.oldLabIds.contains(deviceId)) {
++            continue;
++        }
++        bool isOnParam = false;
++        const QStringView unitKind = labUnitForParam(target.value(u"param").toString(), isOnParam);
++        if (unitKind.isEmpty() || isOnParam) { continue; }
++        const QString newId = map.mappedId(deviceId, unitKind);
++        if (newId.isEmpty()) { continue; }
++        target.insert(u"deviceId", newId);
++        assign.insert(u"target", target);
++        row.insert(u"assignment", assign);
++        rows[i] = row;
++        changed = true;
++    }
++    if (changed) {
++        pattern.insert(u"rows", rows);
++        clip.insert(u"pattern", pattern);
++    }
++}
++
++QJsonObject migrateLabEffects(const QJsonObject& root) {
++    QJsonObject migrated = root;
++    bool anyChanged = false;
++
++    if (migrated.value(u"master").isObject()) {
++        QJsonObject master = migrated.value(u"master").toObject();
++        QJsonArray effects = master.value(u"effects").toArray();
++        LabMigrationMap masterMap;
++        if (migrateEffectArray(effects, masterMap)) {
++            master.insert(u"effects", effects);
++            migrateAutomationLanes(master, masterMap);
++            migrated.insert(u"master", master);
++            anyChanged = true;
++        }
++    }
++
++    QHash<QString, LabMigrationMap> trackMaps;
++    if (migrated.value(u"tracks").isArray()) {
++        QJsonArray tracks = migrated.value(u"tracks").toArray();
++        bool tracksChanged = false;
++        for (qsizetype i = 0; i < tracks.size(); ++i) {
++            QJsonObject track = tracks[i].toObject();
++            QJsonArray effects = track.value(u"effects").toArray();
++            LabMigrationMap trackMap;
++            if (migrateEffectArray(effects, trackMap)) {
++                track.insert(u"effects", effects);
++                migrateAutomationLanes(track, trackMap);
++                tracks[i] = track;
++                trackMaps.insert(track.value(u"id").toString(), std::move(trackMap));
++                tracksChanged = true;
++            }
++        }
++        if (tracksChanged) {
++            migrated.insert(u"tracks", tracks);
++            anyChanged = true;
++        }
++    }
++
++    if (migrated.value(u"clips").isArray()) {
++        QJsonArray clips = migrated.value(u"clips").toArray();
++        bool clipsChanged = false;
++        for (qsizetype i = 0; i < clips.size(); ++i) {
++            QJsonObject clip = clips[i].toObject();
++            bool clipChanged = false;
++            if (clip.value(u"audioEffects").isArray()) {
++                QJsonArray effects = clip.value(u"audioEffects").toArray();
++                LabMigrationMap clipMap;
++                if (migrateEffectArray(effects, clipMap)) {
++                    clip.insert(u"audioEffects", effects);
++                    clipChanged = true;
++                }
++            }
++            const auto foundTrack = trackMaps.constFind(clip.value(u"trackId").toString());
++            if (foundTrack != trackMaps.constEnd()) {
++                const QJsonObject before = clip;
++                migrateClipPatternAutomation(clip, foundTrack.value());
++                if (clip != before) { clipChanged = true; }
++            }
++            if (clipChanged) {
++                clips[i] = clip;
++                clipsChanged = true;
++            }
++        }
++        if (clipsChanged) {
++            migrated.insert(u"clips", clips);
++            anyChanged = true;
++        }
++    }
++
++    return anyChanged ? migrated : root;
++}
++
+ bool validAutomationMode(const QJsonValue& value) {
+     if (value.isUndefined()) { return true; }
+     if (!value.isString()) { return false; }
+@@ -25,8 +269,9 @@ bool validAutomationMode(const QJsonValue& value) {
+ 
+ bool validFableEffectKind(const QString& kind) {
+     return kind == u"eq" || kind == u"ott" || kind == u"comp" || kind == u"drive" ||
+-           kind == u"lab" || kind == u"chorus" || kind == u"echo" || kind == u"reverb" ||
+-           kind == u"limiter";
++           kind == u"lab" || kind == u"crush" || kind == u"reso" || kind == u"shift" ||
++           kind == u"spray" || kind == u"glitch" || kind == u"chorus" || kind == u"echo" ||
++           kind == u"reverb" || kind == u"limiter";
+ }
+ 
+ bool validFableEffects(const QJsonArray& effects) {
+@@ -132,8 +377,16 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
+         result.error = QStringLiteral("master: invalid fable effect");
+         return result;
+     }
+-
+     for (const QJsonValue& tv : root.value(u"tracks").toArray()) {
++        const QJsonObject t = tv.toObject();
++        if (!validFableEffects(t.value(u"effects").toArray())) {
++            result.error = QStringLiteral("track %1: invalid fable effect").arg(t.value(u"id").toString());
++            return result;
++        }
++    }
++
++    const QJsonObject effectiveRoot = migrateLabEffects(root);
++    for (const QJsonValue& tv : effectiveRoot.value(u"tracks").toArray()) {
+         const QJsonObject t = tv.toObject();
+         Track track;
+         track.id = t.value(u"id").toString().toStdString();
+@@ -169,7 +422,7 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
+         tl.tracks.push_back(std::move(track));
+     }
+ 
+-    for (const QJsonValue& cv : root.value(u"clips").toArray()) {
++    for (const QJsonValue& cv : effectiveRoot.value(u"clips").toArray()) {
+         const QJsonObject c = cv.toObject();
+         Clip clip;
+         clip.id = c.value(u"id").toString().toStdString();
+@@ -288,8 +541,8 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
+         tl.clips.push_back(std::move(clip));
+     }
+ 
+-    tl.scene = scene::parseSequenceScene(root);
+-    tl.raw = root;
++    tl.scene = scene::parseSequenceScene(effectiveRoot);
++    tl.raw = effectiveRoot;
+     tl.indexClips();
+     result.timeline = std::move(tl);
+     return result;
+diff --git a/native/timeline-player/tests/tst_fablecolortime.cpp b/native/timeline-player/tests/tst_fablecolortime.cpp
+index 9ec69cf32a..7e8ea4c55f 100644
+--- a/native/timeline-player/tests/tst_fablecolortime.cpp
++++ b/native/timeline-player/tests/tst_fablecolortime.cpp
+@@ -16,6 +16,7 @@
+ #include "audio/TestAllocationCounter.h"
+ #include "audio/effects/fable/FableColorTime.h"
+ #include "audio/effects/fable/FableColorTimeEffects.h"
++#include "LabFx.h"
+ 
+ #include <QJsonObject>
+ #include <QtTest>
+@@ -577,6 +578,11 @@ private slots:
+         QVERIFY(isFableColorTimeKind("chorus"));
+         QVERIFY(isFableColorTimeKind("echo"));
+         QVERIFY(isFableColorTimeKind("reverb"));
++        QVERIFY(isFableColorTimeKind("crush"));
++        QVERIFY(isFableColorTimeKind("reso"));
++        QVERIFY(isFableColorTimeKind("shift"));
++        QVERIFY(isFableColorTimeKind("spray"));
++        QVERIFY(isFableColorTimeKind("glitch"));
+         QVERIFY(!isFableColorTimeKind("lab"));
+         QVERIFY(!isFableColorTimeKind("eq"));
+         QVERIFY(!isFableColorTimeKind("unknown"));
+@@ -620,6 +626,36 @@ private slots:
+             {"fx.reverb.type", 0.0, 1.0, 0.0, ParamCurve::Enum},
+             {"fx.reverb.damp", 0.0, 1.0, 0.5, ParamCurve::Linear},
+         };
++        const std::vector<ExpectedParam> crushExpected = {
++            {"fx.crush.bits", 1.0, 16.0, 6.0, ParamCurve::Linear},
++            {"fx.crush.rate", 200.0, 48000.0, 6000.0, ParamCurve::Log},
++            {"fx.crush.chaos", 0.0, 1.0, 0.2, ParamCurve::Linear},
++            {"fx.crush.mix", 0.0, 1.0, 1.0, ParamCurve::Linear},
++        };
++        const std::vector<ExpectedParam> resoExpected = {
++            {"fx.reso.note", 24.0, 84.0, 48.0, ParamCurve::Int},
++            {"fx.reso.chord", 0.0, 5.0, 2.0, ParamCurve::Enum},
++            {"fx.reso.decay", 0.0, 1.0, 0.7, ParamCurve::Linear},
++            {"fx.reso.mix", 0.0, 1.0, 0.5, ParamCurve::Linear},
++        };
++        const std::vector<ExpectedParam> shiftExpected = {
++            {"fx.shift.hz", -1000.0, 1000.0, 60.0, ParamCurve::Linear},
++            {"fx.shift.fb", 0.0, 0.9, 0.5, ParamCurve::Linear},
++            {"fx.shift.spread", 0.0, 1.0, 0.5, ParamCurve::Linear},
++            {"fx.shift.mix", 0.0, 1.0, 0.5, ParamCurve::Linear},
++        };
++        const std::vector<ExpectedParam> sprayExpected = {
++            {"fx.spray.pitch", -24.0, 24.0, 12.0, ParamCurve::Int},
++            {"fx.spray.density", 1.0, 40.0, 12.0, ParamCurve::Log},
++            {"fx.spray.scatter", 0.0, 1.0, 0.4, ParamCurve::Linear},
++            {"fx.spray.mix", 0.0, 1.0, 0.45, ParamCurve::Linear},
++        };
++        const std::vector<ExpectedParam> glitchExpected = {
++            {"fx.glitch.div", 0.0, 4.0, 2.0, ParamCurve::Enum},
++            {"fx.glitch.chance", 0.0, 1.0, 0.35, ParamCurve::Linear},
++            {"fx.glitch.drift", -1.0, 1.0, 0.0, ParamCurve::Linear},
++            {"fx.glitch.mix", 0.0, 1.0, 1.0, ParamCurve::Linear},
++        };
+ 
+         const auto verifyKind = [](const char* kind, const std::vector<ExpectedParam>& expected) {
+             const auto params = fableColorTimeParams(kind);
+@@ -651,6 +687,21 @@ private slots:
+         verifyKind("chorus", chorusExpected);
+         verifyKind("echo", echoExpected);
+         verifyKind("reverb", reverbExpected);
++        verifyKind("crush", crushExpected);
++        verifyKind("reso", resoExpected);
++        verifyKind("shift", shiftExpected);
++        verifyKind("spray", sprayExpected);
++        verifyKind("glitch", glitchExpected);
++
++        // Dropped .on switches must not be accepted as parameters on the split LAB units.
++        for (const auto& [kind, onKey] : std::initializer_list<std::pair<const char*, const char*>>{
++                 {"crush", "fx.crush.on"}, {"reso", "fx.reso.on"}, {"shift", "fx.shift.on"},
++                 {"spray", "fx.spray.on"}, {"glitch", "fx.glitch.on"}}) {
++            auto proc = createFableColorTimeEffect(makeEffectJson(kind));
++            QVERIFY(proc != nullptr);
++            proc->prepare(kRefRate);
++            QVERIFY(!proc->setParameter(onKey, 1.0));
++        }
+     }
+ 
+     void parameterSmoothingIsClickFree() {
+@@ -1097,7 +1148,10 @@ private slots:
+ 
+     void sampleRatesAndDenormalSafety() {
+         const std::array<double, 3> rates = {44100.0, 48000.0, 96000.0};
+-        const std::array<const char*, 4> kinds = {"drive", "chorus", "echo", "reverb"};
++        const std::array<const char*, 9> kinds = {
++            "drive", "chorus", "echo", "reverb",
++            "crush", "reso", "shift", "spray", "glitch",
++        };
+ 
+         for (double sr : rates) {
+             for (const char* kind : kinds) {
+@@ -1193,7 +1247,10 @@ private slots:
+     void zeroAudioThreadAllocations() {
+         QVERIFY2(nt::testing::countsAnAllocation(), "Allocation counter control check failed");
+ 
+-        const std::array<const char*, 4> kinds = {"drive", "chorus", "echo", "reverb"};
++        const std::array<const char*, 9> kinds = {
++            "drive", "chorus", "echo", "reverb",
++            "crush", "reso", "shift", "spray", "glitch",
++        };
+         for (const char* kind : kinds) {
+             auto proc = createFableColorTimeEffect(makeEffectJson(kind));
+             QVERIFY(proc != nullptr);
+@@ -1278,6 +1335,108 @@ private slots:
+                      qPrintable(QStringLiteral("%1 CPU %2% exceeded bound %3%").arg(c.label).arg(cpuPct, 0, 'f', 3).arg(kMaxCpuPct, 0, 'f', 1)));
+         }
+     }
++
++    void labUnitsMatchReferenceAtAllRates() {
++        constexpr double kBpm = 180.0;
++        constexpr std::array<double, 3> kRates{{44100.0, 48000.0, 96000.0}};
++
++        struct UnitCase {
++            const char* kind;
++            QJsonObject params;
++            ::fable::LabSettings refSettings;
++            double seconds;
++        };
++
++        auto makeCase = [](const char* kind, QJsonObject params, auto configure, double seconds) {
++            ::fable::LabSettings s{};
++            configure(s);
++            return UnitCase{kind, std::move(params), s, seconds};
++        };
++
++        const std::vector<UnitCase> cases = {
++            makeCase("crush",
++                     {{"fx.crush.bits", 5.5}, {"fx.crush.rate", 4200.0}, {"fx.crush.chaos", 0.35}, {"fx.crush.mix", 0.85}},
++                     [](::fable::LabSettings& s) {
++                         s.crushOn = true; s.crushBits = 5.5f; s.crushRate = 4200.0f; s.crushChaos = 0.35f; s.crushMix = 0.85f;
++                     }, 0.25),
++            makeCase("reso",
++                     {{"fx.reso.note", 52.0}, {"fx.reso.chord", 3.0}, {"fx.reso.decay", 0.75}, {"fx.reso.mix", 0.65}},
++                     [](::fable::LabSettings& s) {
++                         s.resoOn = true; s.resoNote = 52.0f; s.resoChord = 3; s.resoDecay = 0.75f; s.resoMix = 0.65f;
++                     }, 0.25),
++            makeCase("shift",
++                     {{"fx.shift.hz", -145.0}, {"fx.shift.fb", 0.55}, {"fx.shift.spread", 0.7}, {"fx.shift.mix", 0.75}},
++                     [](::fable::LabSettings& s) {
++                         s.shiftOn = true; s.shiftHz = -145.0f; s.shiftFb = 0.55f; s.shiftSpread = 0.7f; s.shiftMix = 0.75f;
++                     }, 0.25),
++            makeCase("spray",
++                     {{"fx.spray.pitch", 7.0}, {"fx.spray.density", 18.0}, {"fx.spray.scatter", 0.45}, {"fx.spray.mix", 0.7}},
++                     [](::fable::LabSettings& s) {
++                         s.sprayOn = true; s.sprayPitch = 7.0f; s.sprayDensity = 18.0f; s.sprayScatter = 0.45f; s.sprayMix = 0.7f;
++                     }, 0.35),
++            makeCase("glitch",
++                     {{"fx.glitch.div", 3.0}, {"fx.glitch.chance", 1.0}, {"fx.glitch.drift", 0.4}, {"fx.glitch.mix", 0.9}},
++                     [](::fable::LabSettings& s) {
++                         s.glitchOn = true; s.glitchDiv = 3; s.glitchChance = 1.0f; s.glitchDrift = 0.4f; s.glitchMix = 0.9f;
++                     }, 1.2),
++        };
++
++        for (const double sr : kRates) {
++            for (const auto& c : cases) {
++                const int frames = static_cast<int>(std::lround(sr * c.seconds));
++                std::vector<float> inL;
++                std::vector<float> inR;
++                makeTestSignal(inL, inR, frames, sr, 0.5f);
++
++                // Reference render directly from FableSynth LabFx.h.
++                ::fable::LabFx ref;
++                ref.prepare(sr);
++                ref.setParams(c.refSettings, kBpm);
++                ref.reset();
++                std::vector<float> refL = inL;
++                std::vector<float> refR = inR;
++                for (int i = 0; i < frames; ++i) {
++                    ref.processSample(refL[static_cast<std::size_t>(i)], refR[static_cast<std::size_t>(i)]);
++                }
++
++                // Native split processor render across non-uniform block sizes.
++                auto proc = createFableColorTimeEffect(makeEffectJson(c.kind, c.params), kBpm);
++                QVERIFY(proc != nullptr);
++                proc->prepare(sr);
++                proc->reset();
++                QCOMPARE(proc->latencySamples(), 0);
++
++                std::vector<float> actual = interleave(inL, inR);
++                const std::array<int, 4> chunkSizes{{64, 128, 193, 256}};
++                int offset = 0;
++                std::size_t ci = 0;
++                while (offset < frames) {
++                    const int count = std::min(chunkSizes[ci++ % chunkSizes.size()], frames - offset);
++                    const BlockContext ctx{sr, static_cast<double>(offset) * 1000.0 / sr, 1000.0 / sr, false, 0, kBpm};
++                    proc->process(std::span<float>(actual.data() + static_cast<std::size_t>(offset) * 2,
++                                                   static_cast<std::size_t>(count) * 2), ctx);
++                    offset += count;
++                }
++
++                double maxErr = 0.0;
++                double maxDryDiff = 0.0;
++                for (int i = 0; i < frames; ++i) {
++                    const auto idx = static_cast<std::size_t>(i);
++                    const float aL = actual[idx * 2];
++                    const float aR = actual[idx * 2 + 1];
++                    QVERIFY2(std::isfinite(aL) && std::isfinite(aR), c.kind);
++                    maxErr = std::max(maxErr, std::abs(static_cast<double>(aL) - static_cast<double>(refL[idx])));
++                    maxErr = std::max(maxErr, std::abs(static_cast<double>(aR) - static_cast<double>(refR[idx])));
++                    maxDryDiff = std::max(maxDryDiff, std::abs(static_cast<double>(aL) - static_cast<double>(inL[idx])));
++                    maxDryDiff = std::max(maxDryDiff, std::abs(static_cast<double>(aR) - static_cast<double>(inR[idx])));
++                }
++                QVERIFY2(maxDryDiff > 1.0e-2,
++                         qPrintable(QStringLiteral("%1 @ %2 Hz produced near-dry output (%3)").arg(c.kind).arg(sr).arg(maxDryDiff)));
++                QVERIFY2(maxErr <= 1.0e-5,
++                         qPrintable(QStringLiteral("%1 @ %2 Hz maxErr=%3 exceeded 1e-5").arg(c.kind).arg(sr).arg(maxErr)));
++            }
++        }
++    }
+ };
+ 
+ QTEST_APPLESS_MAIN(TestFableColorTime)
+diff --git a/native/timeline/qml/fx/FxParams.js b/native/timeline/qml/fx/FxParams.js
+index ff734267da..4069acff9b 100644
+--- a/native/timeline/qml/fx/FxParams.js
++++ b/native/timeline/qml/fx/FxParams.js
+@@ -105,28 +105,31 @@ var FABLE_FX_PARAMS = {
+         { id: "fx.delay.sync", label: "SYNC", type: "bool", def: 0 },
+         { id: "fx.delay.div", label: "DIVISION", type: "enum", options: ECHO_DIVS, def: 3 }
+     ],
+-    lab: [
+-        { id: "fx.crush.on", type: "bool", def: 1 },
++    crush: [
+         { id: "fx.crush.bits", label: "BITS", min: 1, max: 16, def: 6, curve: "lin", fmt: function(v) { return v.toFixed(1) } },
+         { id: "fx.crush.rate", label: "RATE", min: 200, max: 48000, def: 6000, curve: "log", fmt: fmtHz },
+         { id: "fx.crush.chaos", label: "CHAOS", min: 0, max: 1, def: 0.2, curve: "lin", fmt: fmtPct },
+-        { id: "fx.crush.mix", label: "MIX", min: 0, max: 1, def: 1, curve: "lin", fmt: fmtPct },
+-        { id: "fx.reso.on", type: "bool", def: 0 },
++        { id: "fx.crush.mix", label: "MIX", min: 0, max: 1, def: 1, curve: "lin", fmt: fmtPct }
++    ],
++    reso: [
+         { id: "fx.reso.note", label: "NOTE", min: 24, max: 84, def: 48, curve: "int", fmt: fmtNote },
+         { id: "fx.reso.chord", label: "CHORD", type: "enum", options: RESO_CHORDS, def: 2 },
+         { id: "fx.reso.decay", label: "DECAY", min: 0, max: 1, def: 0.7, curve: "lin", fmt: fmtPct },
+-        { id: "fx.reso.mix", label: "MIX", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct },
+-        { id: "fx.shift.on", type: "bool", def: 0 },
++        { id: "fx.reso.mix", label: "MIX", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct }
++    ],
++    shift: [
+         { id: "fx.shift.hz", label: "SHIFT", min: -1000, max: 1000, def: 60, curve: "lin", fmt: function(v) { return fmtSigned(v) + " Hz" } },
+         { id: "fx.shift.fb", label: "SPIRAL", min: 0, max: 0.9, def: 0.5, curve: "lin", fmt: fmtPct },
+         { id: "fx.shift.spread", label: "SPREAD", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct },
+-        { id: "fx.shift.mix", label: "MIX", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct },
+-        { id: "fx.spray.on", type: "bool", def: 0 },
++        { id: "fx.shift.mix", label: "MIX", min: 0, max: 1, def: 0.5, curve: "lin", fmt: fmtPct }
++    ],
++    spray: [
+         { id: "fx.spray.pitch", label: "PITCH", min: -24, max: 24, def: 12, curve: "int", fmt: function(v) { return fmtSigned(v) + " st" } },
+         { id: "fx.spray.density", label: "DENSITY", min: 1, max: 40, def: 12, curve: "log", fmt: function(v) { return v.toFixed(1) + "/s" } },
+         { id: "fx.spray.scatter", label: "SCATTER", min: 0, max: 1, def: 0.4, curve: "lin", fmt: fmtPct },
+-        { id: "fx.spray.mix", label: "MIX", min: 0, max: 1, def: 0.45, curve: "lin", fmt: fmtPct },
+-        { id: "fx.glitch.on", type: "bool", def: 0 },
++        { id: "fx.spray.mix", label: "MIX", min: 0, max: 1, def: 0.45, curve: "lin", fmt: fmtPct }
++    ],
++    glitch: [
+         { id: "fx.glitch.div", label: "DIVISION", type: "enum", options: GLITCH_DIVS, def: 2 },
+         { id: "fx.glitch.chance", label: "CHANCE", min: 0, max: 1, def: 0.35, curve: "lin", fmt: fmtPct },
+         { id: "fx.glitch.drift", label: "DRIFT", min: -1, max: 1, def: 0, curve: "lin", fmt: fmtBi },
+@@ -162,12 +165,11 @@ var FABLE_FX_LAYOUT = {
+           active: { "fx.delay.div": "fx.delay.sync", "fx.delay.time": "!fx.delay.sync" } },
+         { title: "TAPE", knobs: ["fx.delay.sat", "fx.delay.wow", "fx.delay.flutter", "fx.delay.width"] }] },
+     reverb: { sections: [{ title: "REVERB", controls: ["fx.reverb.type"], knobs: ["fx.reverb.size", "fx.reverb.damp", "fx.reverb.mix"] }] },
+-    lab: { sections: [
+-        { title: "CRUSH", power: "fx.crush.on", knobs: ["fx.crush.bits", "fx.crush.rate", "fx.crush.chaos", "fx.crush.mix"] },
+-        { title: "RESONATOR", power: "fx.reso.on", controls: ["fx.reso.chord"], knobs: ["fx.reso.note", "fx.reso.decay", "fx.reso.mix"] },
+-        { title: "SHIFTER", power: "fx.shift.on", knobs: ["fx.shift.hz", "fx.shift.fb", "fx.shift.spread", "fx.shift.mix"] },
+-        { title: "SPRAY", power: "fx.spray.on", knobs: ["fx.spray.pitch", "fx.spray.density", "fx.spray.scatter", "fx.spray.mix"] },
+-        { title: "GLITCH", power: "fx.glitch.on", controls: ["fx.glitch.div"], knobs: ["fx.glitch.chance", "fx.glitch.drift", "fx.glitch.mix"] }] }
++    crush: { sections: [{ title: "CRUSH", knobs: ["fx.crush.bits", "fx.crush.rate", "fx.crush.chaos", "fx.crush.mix"] }] },
++    reso: { sections: [{ title: "RESONATOR", controls: ["fx.reso.chord"], knobs: ["fx.reso.note", "fx.reso.decay", "fx.reso.mix"] }] },
++    shift: { sections: [{ title: "SHIFTER", knobs: ["fx.shift.hz", "fx.shift.fb", "fx.shift.spread", "fx.shift.mix"] }] },
++    spray: { sections: [{ title: "SPRAY", knobs: ["fx.spray.pitch", "fx.spray.density", "fx.spray.scatter", "fx.spray.mix"] }] },
++    glitch: { sections: [{ title: "GLITCH", controls: ["fx.glitch.div"], knobs: ["fx.glitch.chance", "fx.glitch.drift", "fx.glitch.mix"] }] }
+ }
+ function fableParamDef(kind, id) {
+     var defs = FABLE_FX_PARAMS[kind] || []
+diff --git a/native/timeline/src/aiassist/AssistantCommandTable.cpp b/native/timeline/src/aiassist/AssistantCommandTable.cpp
+index b9bd7dab95..8bbdfb4942 100644
+--- a/native/timeline/src/aiassist/AssistantCommandTable.cpp
++++ b/native/timeline/src/aiassist/AssistantCommandTable.cpp
+@@ -325,7 +325,7 @@ QList<Command> buildAllowed() {
+     edit("music.selectTake", "Make one of a music clip's takes the one it plays",
+          {clip, P{"take_id", ParamKind::Text, true, "The take's id from the clip's versions.", {}, "takeId"}});
+     // Effects by name, with their default values.
+-    const P effect{"effect", ParamKind::Text, true, "The effect's name (gain, filter, eq3, compressor, or fable:eq, fable:comp, fable:ott, fable:limiter, fable:drive, fable:chorus, fable:echo, fable:reverb, fable:lab)."};
++    const P effect{"effect", ParamKind::Text, true, "The effect's name (gain, filter, eq3, compressor, or fable:eq, fable:comp, fable:ott, fable:limiter, fable:drive, fable:crush, fable:reso, fable:shift, fable:spray, fable:glitch, fable:chorus, fable:echo, fable:reverb)."};
+     const P effectId{"effect_id", ParamKind::EffectId, true, "The effect's id from the document.", {}, "effectId"};
+     edit("effect.setParams", "Set Fable effect parameters", {
+         P{"trackId", ParamKind::TrackId, true, "The track id."},
+diff --git a/native/timeline/src/aiassist/tst_assistantcommands.cpp b/native/timeline/src/aiassist/tst_assistantcommands.cpp
+index 1bbecbcacc..31523588eb 100644
+--- a/native/timeline/src/aiassist/tst_assistantcommands.cpp
++++ b/native/timeline/src/aiassist/tst_assistantcommands.cpp
+@@ -465,9 +465,11 @@ for line in sys.stdin:
+         const QList<QStringList> cases{
+             {"eq", "fx.eq.low"}, {"comp", "fx.comp.thr"}, {"ott", "fx.ott.depth"},
+             {"limiter", "fx.limit.gain"}, {"drive", "fx.drive.amt"}, {"chorus", "fx.chorus.rate"},
+-            {"echo", "fx.delay.fb"}, {"reverb", "fx.reverb.size"}, {"lab", "fx.crush.bits"}};
+-        const QList<double> maxima{15, 0, 1, 24, 1, 8, 0.92, 1, 16};
+-        const QList<double> minima{-15, -40, 0, 0, 0, 0.05, 0, 0, 1};
++            {"echo", "fx.delay.fb"}, {"reverb", "fx.reverb.size"},
++            {"crush", "fx.crush.bits"}, {"reso", "fx.reso.decay"}, {"shift", "fx.shift.hz"},
++            {"spray", "fx.spray.density"}, {"glitch", "fx.glitch.chance"}};
++        const QList<double> maxima{15, 0, 1, 24, 1, 8, 0.92, 1, 16, 1, 1000, 40, 1};
++        const QList<double> minima{-15, -40, 0, 0, 0, 0.05, 0, 0, 1, 0, -1000, 1, 0};
+         int caseIndex = 0;
+         for (const auto& row : cases) {
+             QVERIFY(run("addTrackEffect", {{"track_id", TRACK_A}, {"effect", "fable:" + row[0]}}).value("ok").toBool());
+@@ -493,22 +495,31 @@ for line in sys.stdin:
+                 QCOMPARE(doc(), before);
+             }
+         }
+-        const auto id = track(TRACK_A).value("effects").toArray().last().toObject().value("id").toString();
+-        QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+-            {"params", QVariantMap{{"fx.crush.bits", 8}, {"fx.reso.note", 49.7}, {"fx.reso.chord", 5}, {"fx.reso.on", 1}}}}).value("ok").toBool());
++        // Removed legacy bundle kind is not added.
++        const auto countBeforeLab = track(TRACK_A).value("effects").toArray().size();
++        (void)run("addTrackEffect", {{"track_id", TRACK_A}, {"effect", "fable:lab"}});
++        QCOMPARE(track(TRACK_A).value("effects").toArray().size(), countBeforeLab);
++
++        // Resonator int rounding, enum validation, and rejection of dropped fx.reso.on.
++        QVERIFY(run("addTrackEffect", {{"track_id", TRACK_A}, {"effect", "fable:reso"}}).value("ok").toBool());
++        const auto resoId = track(TRACK_A).value("effects").toArray().last().toObject().value("id").toString();
++        QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", resoId},
++            {"params", QVariantMap{{"fx.reso.note", 49.7}, {"fx.reso.chord", 5}}}}).value("ok").toBool());
+         const auto params = track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject();
+         QCOMPARE(params.value("fx.reso.note").toDouble(), 50.0);
+         QCOMPARE(params.value("fx.reso.chord").toDouble(), 5.0);
+-        QCOMPARE(params.value("fx.reso.on").toDouble(), 1.0);
+-        QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+-            {"params", QVariantMap{{"fx.crush.bits", 10}}}}).value("ok").toBool());
++        QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", resoId},
++            {"params", QVariantMap{{"fx.reso.decay", 0.9}}}}).value("ok").toBool());
+         QCOMPARE(track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject().value("fx.reso.chord").toDouble(), 5.0);
+         const auto before = doc();
+         for (const auto value : {-1.0, 6.0, 1.5}) {
+-            QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+-                {"params", QVariantMap{{"fx.reso.chord", value}, {"fx.crush.bits", 8}}}}).value("ok").toBool());
++            QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", resoId},
++                {"params", QVariantMap{{"fx.reso.chord", value}, {"fx.reso.decay", 0.5}}}}).value("ok").toBool());
+             QCOMPARE(doc(), before);
+         }
++        QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", resoId},
++            {"params", QVariantMap{{"fx.reso.on", 1}}}}).value("ok").toBool());
++        QCOMPARE(doc(), before);
+         QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", "missing"},
+             {"params", QVariantMap{{"fx.crush.bits", 8}}}}).value("ok").toBool());
+     }
+diff --git a/native/timeline/src/audio/automation/tst_automation.cpp b/native/timeline/src/audio/automation/tst_automation.cpp
+index 17012534af..824d79a56f 100644
+--- a/native/timeline/src/audio/automation/tst_automation.cpp
++++ b/native/timeline/src/audio/automation/tst_automation.cpp
+@@ -462,6 +462,69 @@ private slots:
+             QCOMPARE(plan.tracks[0].panSource->valueAt(frame*1000./48000,0),value);
+         }
+     }
++    void labSplitEffectsDefaultsAndAutomation() {
++        for (const auto* kind : {"crush", "reso", "shift", "spray", "glitch"}) {
++            const auto def = trackEffectDefaults(QStringLiteral("fable:") + kind);
++            QCOMPARE(def.value("kind").toString(), QString::fromLatin1(kind));
++            const auto params = def.value("params").toObject();
++            QCOMPARE(params.size(), 4);
++            QVERIFY(!params.contains(QStringLiteral("fx.") + kind + QStringLiteral(".on")));
++        }
++        QVERIFY(trackEffectDefaults("fable:lab").isEmpty());
++
++        // An old lab document migrates and its remapped device lanes drive the audio processors.
++        auto doc = document();
++        auto tracks = doc["tracks"].toArray();
++        auto track = tracks[0].toObject();
++        track["effects"] = QJsonArray{QJsonObject{
++            {"id", "legacy-lab"}, {"type", "fable"}, {"enabled", true}, {"kind", "lab"},
++            {"params", QJsonObject{
++                {"fx.crush.on", 1}, {"fx.crush.bits", 16}, {"fx.crush.rate", 48000}, {"fx.crush.chaos", 0}, {"fx.crush.mix", 1},
++                {"fx.shift.on", 1}, {"fx.shift.hz", 10}, {"fx.shift.fb", 0.2}, {"fx.shift.spread", 0}, {"fx.shift.mix", 1}
++            }}
++        }};
++        track["automation"] = QJsonArray{
++            QJsonObject{{"id", "a1"}, {"target", QJsonObject{{"kind", "device"}, {"deviceId", "legacy-lab"}, {"param", "fx.crush.rate"}}},
++                        {"points", QJsonArray{QJsonObject{{"timeMs", 0}, {"value", 48000}}, QJsonObject{{"timeMs", 100}, {"value", 800}}}}},
++            QJsonObject{{"id", "a2"}, {"target", QJsonObject{{"kind", "device"}, {"deviceId", "legacy-lab"}, {"param", "fx.shift.hz"}}},
++                        {"points", QJsonArray{QJsonObject{{"timeMs", 0}, {"value", 10}}, QJsonObject{{"timeMs", 100}, {"value", 400}}}}}
++        };
++        tracks[0] = track;
++        doc["tracks"] = tracks;
++
++        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson());
++        QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
++        const auto migratedFx = parsed.timeline->tracks[0].raw.value("effects").toArray();
++        QCOMPARE(migratedFx.size(), 2);
++        const auto crushId = migratedFx[0].toObject().value("id").toString().toStdString();
++        const auto shiftId = migratedFx[1].toObject().value("id").toString().toStdString();
++
++        const auto plan = nt::audio::buildMixPlan(*parsed.timeline);
++        nt::audio::prepareMixPlan(plan, 48000.0);
++        std::shared_ptr<nt::audio::BlockProcessor> crushProc, shiftProc;
++        for (const auto& p : plan.tracks[0].processors) {
++            if (p->id == crushId) { crushProc = p; }
++            if (p->id == shiftId) { shiftProc = p; }
++        }
++        QVERIFY(crushProc && shiftProc);
++
++        std::vector<float> buf(512 * 2);
++        for (std::size_t i = 0; i < 512; ++i) {
++            const float s = 0.5f * std::sin(static_cast<float>(2.0 * 3.141592653589793 * 440.0 * static_cast<double>(i) / 48000.0));
++            buf[i * 2] = s;
++            buf[i * 2 + 1] = s;
++        }
++        const auto dry = buf;
++        const nt::audio::BlockContext ctx{48000.0, 100.0, 1000.0 / 48000.0};
++        crushProc->process(buf, ctx);
++        shiftProc->process(buf, ctx);
++        double maxDiff = 0.0;
++        for (std::size_t i = 0; i < buf.size(); ++i) {
++            QVERIFY(std::isfinite(buf[i]));
++            maxDiff = std::max(maxDiff, std::abs(static_cast<double>(buf[i]) - static_cast<double>(dry[i])));
++        }
++        QVERIFY(maxDiff > 0.05);
++    }
+ };
+ int main(int argc, char** argv) {
+     QCoreApplication app(argc, argv); registerMeterStage();
+diff --git a/native/timeline/src/midi/PatternAudioStage.cpp b/native/timeline/src/midi/PatternAudioStage.cpp
+index bb3a69da05..69d255dd66 100644
+--- a/native/timeline/src/midi/PatternAudioStage.cpp
++++ b/native/timeline/src/midi/PatternAudioStage.cpp
+@@ -450,7 +450,7 @@ bool isFableLogParam(const QString& param) {
+             if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+         }
+     }
+-    for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
++    for (const auto kind : audio::effects::fable::kFableColorTimeKinds) {
+         for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+             if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+         }
+@@ -507,7 +507,7 @@ bool supportsDeviceParam(const QString& type, const QString& param) {
+                 if (def.id == key) { return true; }
+             }
+         }
+-        for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
++        for (const auto kind : audio::effects::fable::kFableColorTimeKinds) {
+             for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+                 if (def.id == key) { return true; }
+             }
+diff --git a/native/timeline/src/wiring/w/TrackEffectsReference.json b/native/timeline/src/wiring/w/TrackEffectsReference.json
+index f9ce05656b..9b10aef38c 100644
+--- a/native/timeline/src/wiring/w/TrackEffectsReference.json
++++ b/native/timeline/src/wiring/w/TrackEffectsReference.json
+@@ -158,38 +158,6 @@
+         "fx.drive.type": 0
+       }
+     },
+-    "lab": {
+-      "type": "fable",
+-      "enabled": true,
+-      "kind": "lab",
+-      "params": {
+-        "fx.crush.on": 1,
+-        "fx.crush.bits": 6,
+-        "fx.crush.rate": 6000,
+-        "fx.crush.chaos": 0.2,
+-        "fx.crush.mix": 1,
+-        "fx.reso.on": 0,
+-        "fx.reso.note": 48,
+-        "fx.reso.chord": 2,
+-        "fx.reso.decay": 0.7,
+-        "fx.reso.mix": 0.5,
+-        "fx.shift.on": 0,
+-        "fx.shift.hz": 60,
+-        "fx.shift.fb": 0.5,
+-        "fx.shift.spread": 0.5,
+-        "fx.shift.mix": 0.5,
+-        "fx.spray.on": 0,
+-        "fx.spray.pitch": 12,
+-        "fx.spray.density": 12,
+-        "fx.spray.scatter": 0.4,
+-        "fx.spray.mix": 0.45,
+-        "fx.glitch.on": 0,
+-        "fx.glitch.div": 2,
+-        "fx.glitch.chance": 0.35,
+-        "fx.glitch.drift": 0,
+-        "fx.glitch.mix": 1
+-      }
+-    },
+     "chorus": {
+       "type": "fable",
+       "enabled": true,
+@@ -236,6 +204,61 @@
+         "fx.limit.ceil": -1,
+         "fx.limit.rel": 0.1
+       }
++    },
++    "crush": {
++      "type": "fable",
++      "enabled": true,
++      "kind": "crush",
++      "params": {
++        "fx.crush.bits": 6,
++        "fx.crush.rate": 6000,
++        "fx.crush.chaos": 0.2,
++        "fx.crush.mix": 1
++      }
++    },
++    "reso": {
++      "type": "fable",
++      "enabled": true,
++      "kind": "reso",
++      "params": {
++        "fx.reso.note": 48,
++        "fx.reso.chord": 2,
++        "fx.reso.decay": 0.7,
++        "fx.reso.mix": 0.5
++      }
++    },
++    "shift": {
++      "type": "fable",
++      "enabled": true,
++      "kind": "shift",
++      "params": {
++        "fx.shift.hz": 60,
++        "fx.shift.fb": 0.5,
++        "fx.shift.spread": 0.5,
++        "fx.shift.mix": 0.5
++      }
++    },
++    "spray": {
++      "type": "fable",
++      "enabled": true,
++      "kind": "spray",
++      "params": {
++        "fx.spray.pitch": 12,
++        "fx.spray.density": 12,
++        "fx.spray.scatter": 0.4,
++        "fx.spray.mix": 0.45
++      }
++    },
++    "glitch": {
++      "type": "fable",
++      "enabled": true,
++      "kind": "glitch",
++      "params": {
++        "fx.glitch.div": 2,
++        "fx.glitch.chance": 0.35,
++        "fx.glitch.drift": 0,
++        "fx.glitch.mix": 1
++      }
+     }
+   },
+   "strings": {
+@@ -253,11 +276,15 @@
+       "ott": "OTT",
+       "comp": "Compressor",
+       "drive": "Drive",
+-      "lab": "Lab",
+       "chorus": "Chorus",
+       "echo": "Tape echo",
+       "reverb": "Reverb",
+-      "limiter": "Limiter"
++      "limiter": "Limiter",
++      "crush": "Crush",
++      "reso": "Resonator",
++      "shift": "Shifter",
++      "spray": "Spray",
++      "glitch": "Glitch"
+     },
+     "parameters": {
+       "gainDb": "Gain",
+@@ -338,7 +365,11 @@
+     "ott": 290,
+     "comp": 490,
+     "drive": 250,
+-    "lab": 1230,
++    "crush": 290,
++    "reso": 250,
++    "shift": 290,
++    "spray": 290,
++    "glitch": 250,
+     "chorus": 230,
+     "echo": 560,
+     "reverb": 250,
+@@ -597,7 +628,11 @@
+     "ott",
+     "comp",
+     "drive",
+-    "lab",
++    "crush",
++    "reso",
++    "shift",
++    "spray",
++    "glitch",
+     "chorus",
+     "echo",
+     "reverb",
+diff --git a/native/timeline/src/wiring/w/reference.mjs b/native/timeline/src/wiring/w/reference.mjs
+index dd8d13dd73..f70d59767e 100644
+--- a/native/timeline/src/wiring/w/reference.mjs
++++ b/native/timeline/src/wiring/w/reference.mjs
+@@ -38,8 +38,32 @@ reference.knobs.vignette.push(
+  {key:'centerX',label:'Center X',min:0,max:1,step:0.01},
+  {key:'centerY',label:'Center Y',min:0,max:1,step:0.01},
+  {key:'roundness',label:'Roundness',min:0,max:1,step:0.01});
++// Native splits the FableSynth LAB bundle into five standalone devices, each bypassed by the card switch.
++const labUnits = [
++ ['crush', 'Crush', 'fx.crush.'],
++ ['reso', 'Resonator', 'fx.reso.'],
++ ['shift', 'Shifter', 'fx.shift.'],
++ ['spray', 'Spray', 'fx.spray.'],
++ ['glitch', 'Glitch', 'fx.glitch.']
++];
++const labParams = reference.fableDefaults.lab?.params || {};
++delete reference.fableDefaults.lab;
++delete reference.strings.labels.lab;
++for (const [kind, label, prefix] of labUnits) {
++ const params = {};
++ for (const [id, value] of Object.entries(labParams)) {
++  if (id.startsWith(prefix) && id !== `${prefix}on`) params[id] = value;
++ }
++ reference.fableDefaults[kind] = {type: 'fable', enabled: true, kind, params};
++ reference.strings.labels[kind] = label;
++}
++reference.fableKinds = reference.fableKinds.flatMap(kind => kind === 'lab' ? labUnits.map(([unit]) => unit) : [kind]);
+ // Native Fable devices lay their knob sections out in one row.
+-Object.assign(reference.fableWidths,{eq: 1040, ott: 290, comp: 490, drive: 250, lab: 1230, chorus: 230, echo: 560, reverb: 250, limiter: 230});
++reference.fableWidths = {
++ eq: 1040, ott: 290, comp: 490, drive: 250,
++ crush: 290, reso: 250, shift: 290, spray: 290, glitch: 250,
++ chorus: 230, echo: 560, reverb: 250, limiter: 230
++};
+ const target = path.join(root,'native/timeline/src/wiring/w/TrackEffectsReference.json');
+ if (process.argv.includes('--write')) writeFileSync(target,JSON.stringify(reference,null,2)+'\n');
+ else assert.deepEqual(JSON.parse(readFileSync(target,'utf8')),reference,'Track effects resource differs from its sources');
+diff --git a/native/timeline/src/wiring/w/tst_wiringw.cpp b/native/timeline/src/wiring/w/tst_wiringw.cpp
+index 81fa9a3ef9..4ce3fec037 100644
+--- a/native/timeline/src/wiring/w/tst_wiringw.cpp
++++ b/native/timeline/src/wiring/w/tst_wiringw.cpp
+@@ -9,6 +9,7 @@
+ #include <QElapsedTimer>
+ #include <QJSValue>
+ #include <QFile>
++#include <QQuickItemGrabResult>
+ #include <QTemporaryDir>
+ #include <algorithm>
+ 
+@@ -575,7 +576,9 @@ private slots:
+         QTest::addColumn<QString>("kind");
+         QTest::addColumn<QString>("knob");
+         for (const auto& [kind, knob] : std::initializer_list<std::pair<const char*, const char*>>{
+-                 {"eq", "fx.eq.mid"}, {"ott", "fx.ott.depth"}, {"comp", "fx.comp.thr"}, {"drive", "fx.drive.amt"}, {"lab", "fx.crush.bits"},
++                 {"eq", "fx.eq.mid"}, {"ott", "fx.ott.depth"}, {"comp", "fx.comp.thr"}, {"drive", "fx.drive.amt"},
++                 {"crush", "fx.crush.bits"}, {"reso", "fx.reso.decay"}, {"shift", "fx.shift.hz"},
++                 {"spray", "fx.spray.density"}, {"glitch", "fx.glitch.chance"},
+                  {"chorus", "fx.chorus.rate"}, {"echo", "fx.delay.fb"}, {"reverb", "fx.reverb.size"}, {"limiter", "fx.limit.ceil"}}) {
+             QTest::newRow(kind) << QString(kind) << QString(knob);
+         }
+@@ -635,17 +638,17 @@ private slots:
+         // A section switch turns its knobs off.
+         QVERIFY(model.applyEdit("removeTrackEffect", {{"trackId", "a"}, {"effectId", id}}));
+         QTRY_COMPARE(effects().size(), 0);
+-        const auto labId = addFable("lab");
+-        QTRY_VERIFY(item("fable-toggle-" + labId + "-fx.reso.on"));
+-        QVERIFY(!item("fable-knob-" + labId + "-fx.reso.decay")->isEnabled());
++        const auto eqId = addFable("eq");
++        QTRY_VERIFY(item("fable-toggle-" + eqId + "-fx.eq.lon"));
++        QVERIFY(item("fable-knob-" + eqId + "-fx.eq.low")->isEnabled());
+         // The rack may keep a scroll offset from earlier cases, so toggle without a pointer.
+-        auto* reso = item("fable-toggle-" + labId + "-fx.reso.on");
+-        QVERIFY(QMetaObject::invokeMethod(reso, "toggle"));
+-        QVERIFY(QMetaObject::invokeMethod(reso, "toggled"));
+-        QTRY_VERIFY(item("fable-knob-" + labId + "-fx.reso.decay")->isEnabled());
+-        QCOMPARE(effects()[0].toObject().value("params").toObject().value("fx.reso.on").toDouble(), 1.0);
++        auto* lowOn = item("fable-toggle-" + eqId + "-fx.eq.lon");
++        QVERIFY(QMetaObject::invokeMethod(lowOn, "toggle"));
++        QVERIFY(QMetaObject::invokeMethod(lowOn, "toggled"));
++        QTRY_VERIFY(!item("fable-knob-" + eqId + "-fx.eq.low")->isEnabled());
++        QCOMPARE(effects()[0].toObject().value("params").toObject().value("fx.eq.lon").toDouble(), 0.0);
+         // A short choice is a segmented control.
+-        QVERIFY(model.applyEdit("removeTrackEffect", {{"trackId", "a"}, {"effectId", labId}}));
++        QVERIFY(model.applyEdit("removeTrackEffect", {{"trackId", "a"}, {"effectId", eqId}}));
+         QTRY_COMPARE(effects().size(), 0);
+         const auto reverbId = addFable("reverb");
+         QTRY_VERIFY(item("fable-enum-" + reverbId + "-fx.reverb.type-1"));
+@@ -654,6 +657,38 @@ private slots:
+         QTRY_COMPARE(fableParams().value("fx.reverb.type").toDouble(), 1.0);
+         QCOMPARE(model.undoStack()->count(), beforeType + 1);
+     }
++    void labSplitChainAndMenu() {
++        click("track-fx-a");
++        click("fx-add-a");
++        QTRY_VERIFY(item("fx-add-type-a-list") && item("fx-add-type-a-list")->isVisible());
++        QVERIFY(!item("fx-add-type-a-lab"));
++        for (const auto* kind : {"crush", "reso", "shift", "spray", "glitch"}) {
++            QVERIFY2(item(QStringLiteral("fx-add-type-a-") + kind), kind);
++        }
++        QTest::keyClick(view.get(), Qt::Key_Escape);
++
++        QStringList ids;
++        for (const auto* kind : {"crush", "reso", "shift", "spray", "glitch"}) {
++            const auto id = addFable(QString::fromLatin1(kind));
++            QVERIFY2(!id.isEmpty(), kind);
++            ids.append(id);
++            QTRY_VERIFY(item("fable-editor-" + id));
++            QVERIFY(!item("fable-toggle-" + id + "-fx." + QString::fromLatin1(kind) + ".on"));
++        }
++        QCOMPARE(effects().size(), 5);
++
++        const auto shotPath = qEnvironmentVariable("NT_LAB_CHAIN_SHOT");
++        if (!shotPath.isEmpty()) {
++            auto* panel = item("track-effects-panel-a");
++            QVERIFY(panel);
++            QCoreApplication::processEvents();
++            const auto grab = panel->grabToImage();
++            QVERIFY(grab);
++            QSignalSpy ready(grab.data(), &QQuickItemGrabResult::ready);
++            QVERIFY(ready.count() > 0 || ready.wait(5000));
++            QVERIFY2(grab->saveToFile(shotPath), qPrintable(shotPath));
++        }
++    }
+     void speedDuration() {
+         click("timeRuler"); QTest::keyClick(view.get(), Qt::Key_R, Qt::ControlModifier);
+         checkpoint("Ctrl+R without selection");
+diff --git a/native/timeline/tests/tst_timelinejson.cpp b/native/timeline/tests/tst_timelinejson.cpp
+index 014bce6fe7..e0612068de 100644
+--- a/native/timeline/tests/tst_timelinejson.cpp
++++ b/native/timeline/tests/tst_timelinejson.cpp
+@@ -1,6 +1,9 @@
+ #include "model/TimelineJson.h"
+ 
+ #include <QFileInfo>
++#include <QJsonArray>
++#include <QJsonObject>
++#include <QRegularExpression>
+ #include <QTest>
+ 
+ class TestTimelineJson : public QObject {
+@@ -104,6 +107,118 @@ private slots:
+         QVERIFY(!r.timeline.has_value());
+         QVERIFY(!r.error.isEmpty());
+     }
++
++    void migratesLegacyLabEffectAndAutomation() {
++        const QByteArray json = R"({
++            "fps": 30, "width": 640, "height": 360, "durationMs": 4000,
++            "master": {
++                "volumeDb": 0,
++                "effects": [
++                    {"id": "master-lab", "type": "fable", "enabled": true, "kind": "lab",
++                     "params": {"fx.crush.on": 0, "fx.spray.on": 1, "fx.spray.pitch": -12}}
++                ]
++            },
++            "tracks": [{
++                "id": "a", "name": "Audio", "type": "audio", "index": 0,
++                "effects": [
++                    {"id": "fx-drive", "type": "fable", "enabled": true, "kind": "drive", "params": {"fx.drive.amt": 0.4}},
++                    {"id": "fx-lab-old", "type": "fable", "enabled": true, "kind": "lab",
++                     "params": {
++                         "fx.crush.on": 1, "fx.crush.bits": 4, "fx.crush.rate": 3200, "fx.crush.chaos": 0.5, "fx.crush.mix": 0.8,
++                         "fx.reso.on": 0, "fx.reso.note": 60, "fx.reso.chord": 4, "fx.reso.decay": 0.9, "fx.reso.mix": 0.5,
++                         "fx.shift.on": 1, "fx.shift.hz": -120, "fx.shift.fb": 0.4, "fx.shift.spread": 0.7, "fx.shift.mix": 0.6,
++                         "fx.spray.on": 0, "fx.spray.pitch": 7,
++                         "fx.glitch.on": 1, "fx.glitch.div": 1, "fx.glitch.chance": 0.6, "fx.glitch.drift": 0.25, "fx.glitch.mix": 0.9
++                     }},
++                    {"id": "fx-lab-empty", "type": "fable", "enabled": true, "kind": "lab",
++                     "params": {"fx.crush.on": 0, "fx.reso.on": 0, "fx.shift.on": 0, "fx.spray.on": 0, "fx.glitch.on": 0}},
++                    {"id": "fx-lab-disabled", "type": "fable", "enabled": false, "kind": "lab",
++                     "params": {"fx.reso.on": 1, "fx.reso.note": 55}},
++                    {"id": "fx-reverb", "type": "fable", "enabled": true, "kind": "reverb", "params": {"fx.reverb.size": 0.5}}
++                ],
++                "automation": [
++                    {"id": "l-vol", "target": {"kind": "mixer", "param": "volumeDb"}, "points": [{"timeMs": 0, "value": -3}]},
++                    {"id": "l-drive", "target": {"kind": "device", "deviceId": "fx-drive", "param": "fx.drive.amt"}, "points": [{"timeMs": 0, "value": 0.5}]},
++                    {"id": "l-crush", "target": {"kind": "device", "deviceId": "fx-lab-old", "param": "fx.crush.bits"}, "points": [{"timeMs": 0, "value": 4}, {"timeMs": 1000, "value": 10}]},
++                    {"id": "l-crush-on", "target": {"kind": "device", "deviceId": "fx-lab-old", "param": "fx.crush.on"}, "points": [{"timeMs": 0, "value": 1}]},
++                    {"id": "l-reso-off", "target": {"kind": "device", "deviceId": "fx-lab-old", "param": "fx.reso.decay"}, "points": [{"timeMs": 0, "value": 0.8}]},
++                    {"id": "l-shift", "target": {"kind": "device", "deviceId": "fx-lab-old", "param": "fx.shift.hz"}, "points": [{"timeMs": 0, "value": 100}]},
++                    {"id": "l-glitch", "target": {"kind": "device", "deviceId": "fx-lab-old", "param": "fx.glitch.chance"}, "points": [{"timeMs": 0, "value": 0.7}]}
++                ]
++            }],
++            "clips": [{
++                "id": "c", "trackId": "a", "name": "Clip", "startMs": 0, "durationMs": 2000, "mediaType": "audio",
++                "audioEffects": [
++                    {"id": "clip-lab", "type": "fable", "enabled": true, "kind": "lab",
++                     "params": {"fx.crush.on": 1, "fx.crush.bits": 8, "fx.shift.on": 0}}
++                ]
++            }]
++        })";
++
++        const auto r = nt::parseTimelineJson(json);
++        QVERIFY2(r.timeline.has_value(), qPrintable(r.error));
++        const nt::Timeline& tl = *r.timeline;
++
++        // Track effects: drive, crush, shift, glitch (from fx-lab-old), reso (from fx-lab-disabled), reverb.
++        const QJsonArray effects = tl.tracks[0].raw.value(u"effects").toArray();
++        QCOMPARE(effects.size(), 6);
++        QCOMPARE(effects[0].toObject().value(u"id").toString(), QStringLiteral("fx-drive"));
++        QCOMPARE(effects[1].toObject().value(u"kind").toString(), QStringLiteral("crush"));
++        QCOMPARE(effects[2].toObject().value(u"kind").toString(), QStringLiteral("shift"));
++        QCOMPARE(effects[3].toObject().value(u"kind").toString(), QStringLiteral("glitch"));
++        QCOMPARE(effects[4].toObject().value(u"kind").toString(), QStringLiteral("reso"));
++        QCOMPARE(effects[5].toObject().value(u"id").toString(), QStringLiteral("fx-reverb"));
++
++        const QRegularExpression hex32(QStringLiteral("^[0-9a-f]{32}$"));
++        const QString crushId = effects[1].toObject().value(u"id").toString();
++        const QString shiftId = effects[2].toObject().value(u"id").toString();
++        const QString glitchId = effects[3].toObject().value(u"id").toString();
++        QVERIFY(hex32.match(crushId).hasMatch());
++        QVERIFY(hex32.match(shiftId).hasMatch());
++        QVERIFY(hex32.match(glitchId).hasMatch());
++        QVERIFY(crushId.left(12) != shiftId.left(12) && shiftId.left(12) != glitchId.left(12));
++
++        // Preserved params without .on keys, and enabled state propagated.
++        const QJsonObject crushParams = effects[1].toObject().value(u"params").toObject();
++        QVERIFY(!crushParams.contains(u"fx.crush.on"));
++        QCOMPARE(crushParams.value(u"fx.crush.bits").toDouble(), 4.0);
++        QCOMPARE(crushParams.value(u"fx.crush.rate").toDouble(), 3200.0);
++        QCOMPARE(crushParams.value(u"fx.crush.chaos").toDouble(), 0.5);
++        QCOMPARE(crushParams.value(u"fx.crush.mix").toDouble(), 0.8);
++        QCOMPARE(effects[2].toObject().value(u"params").toObject().value(u"fx.shift.hz").toDouble(), -120.0);
++        QVERIFY(!effects[2].toObject().value(u"params").toObject().contains(u"fx.shift.on"));
++        QCOMPARE(effects[3].toObject().value(u"params").toObject().value(u"fx.glitch.div").toDouble(), 1.0);
++        QCOMPARE(effects[4].toObject().value(u"enabled").toBool(true), false);
++        QCOMPARE(effects[4].toObject().value(u"params").toObject().value(u"fx.reso.note").toDouble(), 55.0);
++
++        // Automation lanes remapped to new unit IDs; dropped for .on and disabled units.
++        const QJsonArray lanes = tl.tracks[0].raw.value(u"automation").toArray();
++        QCOMPARE(lanes.size(), 5);
++        QCOMPARE(lanes[0].toObject().value(u"id").toString(), QStringLiteral("l-vol"));
++        QCOMPARE(lanes[1].toObject().value(u"target").toObject().value(u"deviceId").toString(), QStringLiteral("fx-drive"));
++        QCOMPARE(lanes[2].toObject().value(u"id").toString(), QStringLiteral("l-crush"));
++        QCOMPARE(lanes[2].toObject().value(u"target").toObject().value(u"deviceId").toString(), crushId);
++        QCOMPARE(lanes[3].toObject().value(u"id").toString(), QStringLiteral("l-shift"));
++        QCOMPARE(lanes[3].toObject().value(u"target").toObject().value(u"deviceId").toString(), shiftId);
++        QCOMPARE(lanes[4].toObject().value(u"id").toString(), QStringLiteral("l-glitch"));
++        QCOMPARE(lanes[4].toObject().value(u"target").toObject().value(u"deviceId").toString(), glitchId);
++
++        // Master and clip audioEffects migrated too.
++        const QJsonArray masterFx = tl.raw.value(u"master").toObject().value(u"effects").toArray();
++        QCOMPARE(masterFx.size(), 1);
++        QCOMPARE(masterFx[0].toObject().value(u"kind").toString(), QStringLiteral("spray"));
++        QCOMPARE(masterFx[0].toObject().value(u"params").toObject().value(u"fx.spray.pitch").toDouble(), -12.0);
++        const QJsonArray clipFx = tl.clips[0].raw.value(u"audioEffects").toArray();
++        QCOMPARE(clipFx.size(), 1);
++        QCOMPARE(clipFx[0].toObject().value(u"kind").toString(), QStringLiteral("crush"));
++        QCOMPARE(clipFx[0].toObject().value(u"params").toObject().value(u"fx.crush.bits").toDouble(), 8.0);
++
++        // Reloading the migrated raw document is idempotent.
++        const auto reloaded = nt::parseTimeline(tl.raw);
++        QVERIFY2(reloaded.timeline.has_value(), qPrintable(reloaded.error));
++        QCOMPARE(reloaded.timeline->tracks[0].raw.value(u"effects").toArray(), effects);
++        QCOMPARE(reloaded.timeline->tracks[0].raw.value(u"automation").toArray(), lanes);
++    }
+ };
+ 
+ QTEST_APPLESS_MAIN(TestTimelineJson)
+diff --git a/native/timeline-player/src/audio/effects/fable/FableLab.cpp b/native/timeline-player/src/audio/effects/fable/FableLab.cpp
+new file mode 100644
+index 0000000000..a96a6e8741
+--- /dev/null
++++ b/native/timeline-player/src/audio/effects/fable/FableLab.cpp
+@@ -0,0 +1,779 @@
++// Derived from georgi/fablesynth (https://github.com/georgi/fablesynth) at
++// commit d2f68d8 (juce/source/dsp/LabFx.h).
++// FableSynth is published under PolyForm Noncommercial 1.0.0. Its author, who
++// also maintains NodeTool, contributes this code to NodeTool under NodeTool's
++// licence (AGPL-3.0).
++
++#include "audio/effects/fable/FableLab.h"
++
++#include <algorithm>
++#include <cmath>
++
++namespace nt::audio::effects::fable {
++namespace {
++
++double safeRate(double sr) noexcept {
++    return (std::isfinite(sr) && sr > 0.0) ? sr : 48000.0;
++}
++
++double safeBpm(double bpm) noexcept {
++    return std::clamp((std::isfinite(bpm) && bpm > 1.0) ? bpm : 120.0, 40.0, 300.0);
++}
++
++double sanitize(float x) noexcept {
++    return std::isfinite(x) ? static_cast<double>(x) : 0.0;
++}
++
++}  // namespace
++
++namespace lab_detail {
++
++void Biquad::set(bool high, double hz, double q, double sr) noexcept {
++    const double w = 2.0 * kLabPi * hz / sr;
++    const double c = std::cos(w);
++    const double al = std::sin(w) / (2.0 * q);
++    const double a0 = 1.0 + al;
++    const double k = high ? (1.0 + c) / 2.0 : (1.0 - c) / 2.0;
++    b0 = k / a0;
++    b1 = (high ? -2.0 * k : 2.0 * k) / a0;
++    b2 = k / a0;
++    a1 = -2.0 * c / a0;
++    a2 = (1.0 - al) / a0;
++}
++
++void Butter8::set(bool high, double hz, double sr) noexcept {
++    static constexpr std::array<double, 4> kQ{{
++        0.5097955791041592,
++        0.6013448869350453,
++        0.8999762231364156,
++        2.5629154477415055,
++    }};
++    for (std::size_t i = 0; i < 4; ++i) {
++        s[i].set(high, hz, kQ[i], sr);
++    }
++}
++
++void Ring::prepare(int minSize) {
++    int n = 1;
++    const int target = std::max(8, minSize);
++    while (n < target) {
++        n <<= 1;
++    }
++    b.assign(static_cast<std::size_t>(n), 0.0f);
++    mask = static_cast<std::int64_t>(n - 1);
++    w = 0;
++}
++
++void Ring::clear() noexcept {
++    std::ranges::fill(b, 0.0f);
++    w = 0;
++}
++
++double Ring::hermite(double p) const noexcept {
++    const double fl = std::floor(p);
++    const auto i = static_cast<std::int64_t>(fl);
++    const double t = p - fl;
++    const double y0 = at(i - 1);
++    const double y1 = at(i);
++    const double y2 = at(i + 1);
++    const double y3 = at(i + 2);
++    const double c1 = 0.5 * (y2 - y0);
++    const double c2 = y0 - 2.5 * y1 + 2.0 * y2 - 0.5 * y3;
++    const double c3 = 0.5 * (y3 - y0) + 1.5 * (y1 - y2);
++    return ((c3 * t + c2) * t + c1) * t + y1;
++}
++
++namespace {
++double bessel0(double x) noexcept {
++    double sum = 1.0;
++    double term = 1.0;
++    for (int k = 1; k < 50; ++k) {
++        const double r = x / (2.0 * static_cast<double>(k));
++        term *= r * r;
++        sum += term;
++        if (term < 1.0e-15 * sum) {
++            break;
++        }
++    }
++    return sum;
++}
++}  // namespace
++
++void SincTable::build() {
++    constexpr double kBeta = 7.5;
++    const double norm = bessel0(kBeta);
++    h.assign(static_cast<std::size_t>(kHalf * kRes + 2), 0.0);
++    for (int i = 0; i <= kHalf * kRes; ++i) {
++        const double x = static_cast<double>(i) / static_cast<double>(kRes);
++        const double r = x / static_cast<double>(kHalf);
++        const double sinc = (i == 0) ? 1.0 : std::sin(kLabPi * x) / (kLabPi * x);
++        h[static_cast<std::size_t>(i)] = sinc * bessel0(kBeta * std::sqrt(std::max(0.0, 1.0 - r * r))) / norm;
++    }
++}
++
++double SincTable::tap(double x) const noexcept {
++    const double scaled = std::abs(x) * static_cast<double>(kRes);
++    const int i = static_cast<int>(scaled);
++    if (i >= kHalf * kRes || h.empty()) {
++        return 0.0;
++    }
++    const auto idx = static_cast<std::size_t>(i);
++    return h[idx] + (scaled - static_cast<double>(i)) * (h[idx + 1] - h[idx]);
++}
++
++double SincTable::read(const Ring& r, double p, double fc) const noexcept {
++    const int half = static_cast<int>(std::ceil(static_cast<double>(kHalf) / fc));
++    const double fl = std::floor(p);
++    const auto i0 = static_cast<std::int64_t>(fl);
++    const double frac = p - fl;
++    double sum = 0.0;
++    for (int k = 1 - half; k <= half; ++k) {
++        sum += tap((static_cast<double>(k) - frac) * fc) * r.at(i0 + k);
++    }
++    return sum * fc;
++}
++
++void Hilbert::process(double x, double& re, double& im) noexcept {
++    const auto chain = [](const std::array<double, 4>& k,
++                          std::array<std::array<double, 2>, 4>& xs,
++                          std::array<std::array<double, 2>, 4>& ys,
++                          double in) noexcept {
++        for (std::size_t i = 0; i < 4; ++i) {
++            const double y = k[i] * (in + ys[i][1]) - xs[i][1];
++            xs[i][1] = xs[i][0];
++            xs[i][0] = in;
++            ys[i][1] = ys[i][0];
++            ys[i][0] = y;
++            in = y;
++        }
++        return in;
++    };
++    re = delayed;
++    delayed = chain(kA, xa, ya, x);
++    im = chain(kB, xb, yb, x);
++}
++
++double combDelay(double hz, double sr, double damp) noexcept {
++    const double w = 2.0 * kLabPi * hz / sr;
++    const double b = 1.0 - damp;
++    const double tauLp = std::atan2(b * std::sin(w), 1.0 - b * std::cos(w)) / w;
++    double d = sr / hz - tauLp;
++    for (int it = 0; it < 4; ++it) {
++        const double t = std::ceil(d) - d;
++        const std::array<double, 4> c{{
++            -0.5 * t + t * t - 0.5 * t * t * t,
++            1.0 - 2.5 * t * t + 1.5 * t * t * t,
++            0.5 * t + 2.0 * t * t - 1.5 * t * t * t,
++            -0.5 * t * t + 0.5 * t * t * t,
++        }};
++        double re = 0.0;
++        double im = 0.0;
++        for (int k = -1; k <= 2; ++k) {
++            const double ph = -w * (t - static_cast<double>(k));
++            const auto idx = static_cast<std::size_t>(k + 1);
++            re += c[idx] * std::cos(ph);
++            im += c[idx] * std::sin(ph);
++        }
++        d = sr / hz - tauLp + std::atan2(im, re) / w;
++    }
++    return d;
++}
++
++}  // namespace lab_detail
++
++// ---------------- FableCrushDsp ----------------
++
++void FableCrushDsp::prepare(double sampleRate) {
++    sr_ = safeRate(sampleRate);
++    const double glide = 1.0 - std::exp(-1.0 / (0.02 * sr_));
++    wet_.coef = glide;
++    bits_.coef = glide;
++    rate_.coef = glide;
++    setParams(false, 6.0f, 6000.0f, 0.2f, 1.0f);
++    reset();
++}
++
++void FableCrushDsp::reset() noexcept {
++    wet_.cur = 0.0;
++    wet_.cleared = true;
++    clearState();
++    rng_.reset();
++    bits_.snap();
++    rate_.snap();
++}
++
++void FableCrushDsp::setParams(bool on, float bits, float rate, float chaos, float mix) noexcept {
++    wet_.target = on ? std::clamp(static_cast<double>(mix), 0.0, 1.0) : 0.0;
++    bits_.target = std::clamp(static_cast<double>(bits), 1.0, 16.0);
++    rate_.target = std::clamp(static_cast<double>(rate), 50.0, sr_);
++    chaos_ = std::clamp(static_cast<double>(chaos), 0.0, 1.0);
++}
++
++void FableCrushDsp::clearState() noexcept {
++    phase_ = 1.0;
++    holdL_ = 0.0;
++    holdR_ = 0.0;
++    prevL_ = 0.0;
++    prevR_ = 0.0;
++}
++
++double FableCrushDsp::quantize(double x, double steps) noexcept {
++    double y = std::round(x * steps) / steps;
++    if (chaos_ > 0.0 && rng_.uni() < chaos_ * 0.15) {
++        y += (rng_.uni() < 0.5 ? -1.0 : 1.0) / steps;
++    }
++    return std::clamp(y, -1.0, 1.0);
++}
++
++void FableCrushDsp::processWet(double& l, double& r) noexcept {
++    const double bits = bits_.next();
++    const double inc = rate_.next() / sr_;
++    double outL = holdL_;
++    double outR = holdR_;
++    phase_ += inc;
++    if (phase_ >= 1.0) {
++        phase_ -= 1.0;
++        const double ago = std::min(1.0, phase_ / inc);
++        const double steps = std::exp2(bits - 1.0);
++        const double newL = quantize(l + ago * (prevL_ - l), steps);
++        const double newR = quantize(r + ago * (prevR_ - r), steps);
++        outL = holdL_ + ago * (newL - holdL_);
++        outR = holdR_ + ago * (newR - holdR_);
++        holdL_ = newL;
++        holdR_ = newR;
++        if (chaos_ > 0.0) {
++            phase_ -= chaos_ * 0.9 * rng_.uni();
++        }
++    }
++    prevL_ = l;
++    prevR_ = r;
++    l = outL;
++    r = outR;
++}
++
++void FableCrushDsp::process(float* L, float* R, int n) noexcept {
++    for (int i = 0; i < n; ++i) {
++        double x = sanitize(L[i]);
++        double y = sanitize(R[i]);
++        if (wet_.live()) {
++            wet_.cleared = false;
++            wet_.cur += (wet_.target - wet_.cur) * wet_.coef;
++            double wl = x;
++            double wr = y;
++            processWet(wl, wr);
++            x += wet_.cur * (wl - x);
++            y += wet_.cur * (wr - y);
++        } else if (!wet_.cleared) {
++            wet_.cur = 0.0;
++            wet_.cleared = true;
++            clearState();
++        }
++        L[i] = static_cast<float>(x);
++        R[i] = static_cast<float>(y);
++    }
++}
++
++bool FableCrushDsp::hasPendingOutput() const noexcept {
++    return wet_.live() && (std::abs(holdL_) > 1.0e-6 || std::abs(holdR_) > 1.0e-6 ||
++                           std::abs(prevL_) > 1.0e-6 || std::abs(prevR_) > 1.0e-6);
++}
++
++// ---------------- FableResoDsp ----------------
++
++void FableResoDsp::prepare(double sampleRate) {
++    sr_ = safeRate(sampleRate);
++    const double glide = 1.0 - std::exp(-1.0 / (0.02 * sr_));
++    wet_.coef = glide;
++    fb_.coef = glide;
++    for (auto& c : combs_) {
++        c.ring.prepare(static_cast<int>(sr_ / 30.0) + 8);
++    }
++    setParams(false, 48.0f, 2, 0.7f, 0.5f);
++    reset();
++}
++
++void FableResoDsp::reset() noexcept {
++    wet_.cur = 0.0;
++    wet_.cleared = true;
++    clearState();
++    fb_.snap();
++    for (auto& c : combs_) {
++        c.d = c.target;
++    }
++}
++
++void FableResoDsp::setParams(bool on, float note, int chord, float decay, float mix) noexcept {
++    wet_.target = on ? std::clamp(static_cast<double>(mix), 0.0, 1.0) : 0.0;
++    const auto& intervals = kLabResoChords[static_cast<std::size_t>(std::clamp(chord, 0, 5))];
++    const double maxDelay = static_cast<double>(combs_[0].ring.size()) - 8.0;
++    const double clampedNote = std::clamp(static_cast<double>(note), 24.0, 84.0);
++    for (std::size_t i = 0; i < combs_.size(); ++i) {
++        const double hz = 440.0 * std::exp2((clampedNote + static_cast<double>(intervals[i]) - 69.0) / 12.0);
++        combs_[i].target = std::clamp(lab_detail::combDelay(hz, sr_, kDamp), 4.0, std::max(4.0, maxDelay));
++    }
++    fb_.target = 0.6 + 0.395 * std::clamp(static_cast<double>(decay), 0.0, 1.0);
++}
++
++void FableResoDsp::clearState() noexcept {
++    for (auto& c : combs_) {
++        c.ring.clear();
++        c.lp = 0.0;
++        c.d = c.target;
++    }
++    tailRemaining_ = 0;
++}
++
++void FableResoDsp::processWet(double& l, double& r) noexcept {
++    const double x = 0.5 * (l + r);
++    const double g = fb_.next();
++    const double excitation = std::sqrt(1.0 - g * g);
++    std::array<double, 4> out{};
++    for (std::size_t i = 0; i < combs_.size(); ++i) {
++        auto& c = combs_[i];
++        c.d += (c.target - c.d) * 0.0015;
++        const double y = c.ring.hermite(static_cast<double>(c.ring.w) - c.d);
++        c.lp += kDamp * (y - c.lp);
++        c.ring.write(std::tanh(x * excitation + g * c.lp));
++        out[i] = y;
++    }
++    l = 0.5 * (out[0] + out[2] + 0.5 * (out[1] + out[3]));
++    r = 0.5 * (out[1] + out[3] + 0.5 * (out[0] + out[2]));
++}
++
++void FableResoDsp::process(float* L, float* R, int n) noexcept {
++    const int maxTail = static_cast<int>(std::clamp(sr_ * 8.0, 4096.0, sr_ * 10.0));
++    for (int i = 0; i < n; ++i) {
++        double x = sanitize(L[i]);
++        double y = sanitize(R[i]);
++        if (wet_.live()) {
++            wet_.cleared = false;
++            wet_.cur += (wet_.target - wet_.cur) * wet_.coef;
++            if (std::abs(x) > 1.0e-7 || std::abs(y) > 1.0e-7) {
++                const double g = std::clamp(fb_.target, 0.1, 0.995);
++                const double longest = std::max(combs_[0].target, combs_[0].d);
++                const double decaySamples = longest * (std::log(1.0e-4) / std::log(g));
++                tailRemaining_ = std::clamp(static_cast<int>(std::ceil(decaySamples)), 256, maxTail);
++            } else if (tailRemaining_ > 0) {
++                --tailRemaining_;
++            }
++            double wl = x;
++            double wr = y;
++            processWet(wl, wr);
++            x += wet_.cur * (wl - x);
++            y += wet_.cur * (wr - y);
++        } else if (!wet_.cleared) {
++            wet_.cur = 0.0;
++            wet_.cleared = true;
++            clearState();
++        }
++        L[i] = static_cast<float>(x);
++        R[i] = static_cast<float>(y);
++    }
++}
++
++// ---------------- FableShiftDsp ----------------
++
++void FableShiftDsp::prepare(double sampleRate) {
++    sr_ = safeRate(sampleRate);
++    const double glide = 1.0 - std::exp(-1.0 / (0.02 * sr_));
++    wet_.coef = glide;
++    hz_.coef = glide;
++    fb_.coef = glide;
++    spread_.coef = glide;
++    for (auto& c : ch_) {
++        c.ring.prepare(static_cast<int>(sr_ * 0.4) + 8);
++    }
++    dcCoef_ = std::exp(-2.0 * kLabPi * 20.0 / sr_);
++    setParams(false, 60.0f, 0.5f, 0.5f, 0.5f, 120.0);
++    reset();
++}
++
++void FableShiftDsp::reset() noexcept {
++    wet_.cur = 0.0;
++    wet_.cleared = true;
++    clearState();
++    hz_.snap();
++    fb_.snap();
++    spread_.snap();
++}
++
++void FableShiftDsp::setParams(bool on, float hz, float fb, float spread, float mix, double tempoBpm) noexcept {
++    bpm_ = safeBpm(tempoBpm);
++    wet_.target = on ? std::clamp(static_cast<double>(mix), 0.0, 1.0) : 0.0;
++    hz_.target = std::clamp(static_cast<double>(hz), -1000.0, 1000.0);
++    fb_.target = std::clamp(static_cast<double>(fb), 0.0, 0.9);
++    spread_.target = std::clamp(static_cast<double>(spread), 0.0, 1.0);
++    delay_ = std::min(15.0 / bpm_ * sr_, std::max(8.0, static_cast<double>(ch_[0].ring.size()) - 8.0));
++}
++
++void FableShiftDsp::clearState() noexcept {
++    for (auto& c : ch_) {
++        c.ring.clear();
++        c.hilbert.reset();
++        c.lp.reset();
++        c.hp.reset();
++        c.phase = 0.0;
++        c.dcX = 0.0;
++        c.dcY = 0.0;
++        c.hz = 1.0e9;
++    }
++    tick_ = 0;
++    tailRemaining_ = 0;
++}
++
++void FableShiftDsp::tuneChannel(Channel& c, double hz) noexcept {
++    const double lpHz = std::clamp(0.47 * sr_ - std::max(0.0, hz), 500.0, 0.45 * sr_);
++    const double hpHz = std::clamp(hz < 0.0 ? -hz * 1.05 : 20.0, 20.0, 0.4 * sr_);
++    c.lp.set(false, lpHz, sr_);
++    c.hp.set(true, hpHz, sr_);
++    c.hz = hz;
++}
++
++double FableShiftDsp::processChannel(Channel& c, double x, double hz, double fb) noexcept {
++    const double fed = x + fb * c.ring.hermite(static_cast<double>(c.ring.w) - delay_);
++    double re = 0.0;
++    double im = 0.0;
++    c.hilbert.process(c.hp.process(c.lp.process(fed)), re, im);
++    c.phase += hz / sr_;
++    c.phase -= std::floor(c.phase);
++    const double a = 2.0 * kLabPi * c.phase;
++    const double y = re * std::cos(a) + im * std::sin(a);
++    c.dcY = y - c.dcX + dcCoef_ * c.dcY;
++    c.dcX = y;
++    c.ring.write(std::tanh(c.dcY));
++    return y;
++}
++
++void FableShiftDsp::processWet(double& l, double& r) noexcept {
++    const double hz = hz_.next();
++    const double fb = fb_.next();
++    const double spread = spread_.next();
++    const double hzR = hz * (1.0 - 2.0 * spread);
++    if (--tick_ <= 0) {
++        tick_ = kCoefChunk;
++        if (std::abs(hz - ch_[0].hz) > 0.01) {
++            tuneChannel(ch_[0], hz);
++        }
++        if (std::abs(hzR - ch_[1].hz) > 0.01) {
++            tuneChannel(ch_[1], hzR);
++        }
++    }
++    l = processChannel(ch_[0], l, hz, fb);
++    r = processChannel(ch_[1], r, hzR, fb);
++}
++
++void FableShiftDsp::process(float* L, float* R, int n) noexcept {
++    const int maxTail = static_cast<int>(std::clamp(sr_ * 8.0, 4096.0, sr_ * 10.0));
++    for (int i = 0; i < n; ++i) {
++        double x = sanitize(L[i]);
++        double y = sanitize(R[i]);
++        if (wet_.live()) {
++            wet_.cleared = false;
++            wet_.cur += (wet_.target - wet_.cur) * wet_.coef;
++            if (std::abs(x) > 1.0e-7 || std::abs(y) > 1.0e-7) {
++                const double fb = std::clamp(fb_.target, 0.0, 0.9);
++                const double repeats = fb <= 0.001 ? 1.0 : (std::log(1.0e-4) / std::log(fb) + 1.0);
++                tailRemaining_ = std::clamp(static_cast<int>(std::ceil(delay_ * repeats)) + 256, 256, maxTail);
++            } else if (tailRemaining_ > 0) {
++                --tailRemaining_;
++            }
++            double wl = x;
++            double wr = y;
++            processWet(wl, wr);
++            x += wet_.cur * (wl - x);
++            y += wet_.cur * (wr - y);
++        } else if (!wet_.cleared) {
++            wet_.cur = 0.0;
++            wet_.cleared = true;
++            clearState();
++        }
++        L[i] = static_cast<float>(x);
++        R[i] = static_cast<float>(y);
++    }
++}
++
++// ---------------- FableSprayDsp ----------------
++
++void FableSprayDsp::prepare(double sampleRate) {
++    sr_ = safeRate(sampleRate);
++    wet_.coef = 1.0 - std::exp(-1.0 / (0.02 * sr_));
++    ring_.prepare(static_cast<int>(sr_ * 2.5));
++    cut_ = -1.0;
++    setParams(false, 12.0f, 12.0f, 0.4f, 0.45f);
++    reset();
++}
++
++void FableSprayDsp::reset() noexcept {
++    wet_.cur = 0.0;
++    wet_.cleared = true;
++    clearState();
++    rng_.reset();
++}
++
++void FableSprayDsp::setParams(bool on, float pitch, float density, float scatter, float mix) noexcept {
++    wet_.target = on ? std::clamp(static_cast<double>(mix), 0.0, 1.0) : 0.0;
++    scatter_ = std::clamp(static_cast<double>(scatter), 0.0, 1.0);
++    ratio_ = std::exp2(std::clamp(static_cast<double>(pitch), -24.0, 24.0) / 12.0);
++    const double clampedDensity = std::clamp(static_cast<double>(density), 1.0, 40.0);
++    interval_ = sr_ / clampedDensity;
++    len_ = std::clamp(3.0 / clampedDensity, 0.04, 0.3) * sr_;
++    norm_ = 1.0 / std::sqrt(std::max(1.0, clampedDensity * len_ / sr_));
++    const double maxRatio = ratio_ * std::exp2(scatter_ * 0.3 / 12.0);
++    const double cut = std::min(0.45, 0.45 / maxRatio) * sr_;
++    if (std::abs(cut - cut_) > 1.0e-6) {
++        cut_ = cut;
++        lp_.set(false, cut, sr_);
++    }
++}
++
++void FableSprayDsp::clearState() noexcept {
++    ring_.clear();
++    lp_.reset();
++    for (auto& g : grains_) {
++        g.on = false;
++    }
++    countdown_ = 0.0;
++    tailRemaining_ = 0;
++}
++
++void FableSprayDsp::spawnGrain() noexcept {
++    for (auto& g : grains_) {
++        if (g.on) {
++            continue;
++        }
++        const double ratio = ratio_ * std::exp2(scatter_ * 0.3 * rng_.bi() / 12.0);
++        const bool reverse = rng_.uni() < scatter_ * 0.35;
++        g.len = std::max(16, static_cast<int>(len_));
++        g.inc = reverse ? -ratio : ratio;
++        const double behind = 64.0 + (reverse ? 0.0 : std::max(0.0, static_cast<double>(g.len) * (ratio - 1.0)))
++                              + scatter_ * rng_.uni() * 0.8 * sr_;
++        g.pos = static_cast<double>(ring_.w) - behind;
++        const double pan = rng_.bi() * std::min(1.0, 0.3 + scatter_);
++        const double a = (pan + 1.0) * 0.25 * kLabPi;
++        g.gl = std::cos(a) * std::sqrt(2.0);
++        g.gr = std::sin(a) * std::sqrt(2.0);
++        g.age = 0;
++        g.on = true;
++        return;
++    }
++}
++
++void FableSprayDsp::processWet(double& l, double& r) noexcept {
++    ring_.write(lp_.process(0.5 * (l + r)));
++    if (--countdown_ <= 0.0) {
++        spawnGrain();
++        countdown_ += interval_ * (0.5 + rng_.uni());
++    }
++    double ol = 0.0;
++    double orr = 0.0;
++    for (auto& g : grains_) {
++        if (!g.on) {
++            continue;
++        }
++        const double s = std::sin(kLabPi * static_cast<double>(g.age) / static_cast<double>(g.len));
++        const double v = ring_.hermite(g.pos) * s * s;
++        ol += v * g.gl;
++        orr += v * g.gr;
++        g.pos += g.inc;
++        if (++g.age >= g.len) {
++            g.on = false;
++        }
++    }
++    l = ol * norm_;
++    r = orr * norm_;
++}
++
++void FableSprayDsp::process(float* L, float* R, int n) noexcept {
++    const int tailWindow = static_cast<int>(std::ceil(sr_ * 2.0));
++    for (int i = 0; i < n; ++i) {
++        double x = sanitize(L[i]);
++        double y = sanitize(R[i]);
++        if (wet_.live()) {
++            wet_.cleared = false;
++            wet_.cur += (wet_.target - wet_.cur) * wet_.coef;
++            if (std::abs(x) > 1.0e-7 || std::abs(y) > 1.0e-7) {
++                tailRemaining_ = tailWindow;
++            } else if (tailRemaining_ > 0) {
++                --tailRemaining_;
++            }
++            double wl = x;
++            double wr = y;
++            processWet(wl, wr);
++            x += wet_.cur * (wl - x);
++            y += wet_.cur * (wr - y);
++        } else if (!wet_.cleared) {
++            wet_.cur = 0.0;
++            wet_.cleared = true;
++            clearState();
++        }
++        L[i] = static_cast<float>(x);
++        R[i] = static_cast<float>(y);
++    }
++}
++
++bool FableSprayDsp::hasPendingOutput() const noexcept {
++    if (!wet_.live()) {
++        return false;
++    }
++    if (tailRemaining_ > 0) {
++        return true;
++    }
++    return std::ranges::any_of(grains_, [](const Grain& g) { return g.on; });
++}
++
++// ---------------- FableGlitchDsp ----------------
++
++void FableGlitchDsp::prepare(double sampleRate) {
++    sr_ = safeRate(sampleRate);
++    wet_.coef = 1.0 - std::exp(-1.0 / (0.02 * sr_));
++    sinc_.build();
++    for (auto& g : ring_) {
++        g.prepare(static_cast<int>(sr_ * 4.0));
++    }
++    fade_ = std::max(8.0, std::round(0.002 * sr_));
++    gateStep_ = 1.0 / (0.006 * sr_);
++    setParams(false, 2, 0.35f, 0.0f, 1.0f, 120.0);
++    reset();
++}
++
++void FableGlitchDsp::reset() noexcept {
++    wet_.cur = 0.0;
++    wet_.cleared = true;
++    clearState();
++    beat_ = 0.0;
++    rng_.reset();
++}
++
++void FableGlitchDsp::setParams(bool on, int div, float chance, float drift, float mix, double tempoBpm) noexcept {
++    bpm_ = safeBpm(tempoBpm);
++    wet_.target = on ? std::clamp(static_cast<double>(mix), 0.0, 1.0) : 0.0;
++    div_ = std::clamp(div, 0, 4);
++    chance_ = std::clamp(static_cast<double>(chance), 0.0, 1.0);
++    drift_ = std::clamp(static_cast<double>(drift), -1.0, 1.0);
++}
++
++void FableGlitchDsp::setTransport(double ppq, bool playing) noexcept {
++    synced_ = playing && std::isfinite(ppq);
++    if (synced_) {
++        beat_ = ppq;
++    }
++}
++
++void FableGlitchDsp::clearState() noexcept {
++    for (auto& g : ring_) {
++        g.clear();
++    }
++    head_ = Head{};
++    tail_ = Head{};
++    xfade_ = 0;
++    active_ = false;
++    gate_ = 0.0;
++    period_ = -1;
++    pos_ = 0.0;
++    repeat_ = 0;
++    tailRemaining_ = 0;
++}
++
++double FableGlitchDsp::readHead(const Head& h, std::size_t ch, double dry) const noexcept {
++    if (h.live) {
++        return dry;
++    }
++    return sinc_.read(ring_[ch], h.pos, 0.94 * std::min(1.0, 1.0 / h.rate));
++}
++
++void FableGlitchDsp::spliceTo(const Head& next) noexcept {
++    tail_ = head_;
++    head_ = next;
++    xfade_ = static_cast<int>(fade_);
++}
++
++void FableGlitchDsp::processWet(double& l, double& r) noexcept {
++    const double now = static_cast<double>(ring_[0].w);
++    ring_[0].write(l);
++    ring_[1].write(r);
++    const auto period = static_cast<std::int64_t>(std::floor(beat_ / 2.0));
++    if (period != period_) {
++        const bool first = period_ == -1;
++        period_ = period;
++        active_ = !first && rng_.uni() < chance_;
++        if (active_) {
++            const double late = (beat_ - 2.0 * static_cast<double>(period)) * 60.0 / bpm_ * sr_;
++            const double divBeats = kLabGlitchBeats[static_cast<std::size_t>(std::clamp(div_, 0, 4))];
++            slice_ = std::max(64.0, divBeats * 60.0 / bpm_ * sr_);
++            start_ = now - std::min(late, 0.5 * slice_);
++            if (gate_ > 0.0) {
++                spliceTo({true, now, 1.0});
++            } else {
++                head_ = {true, now, 1.0};
++                xfade_ = 0;
++            }
++            pos_ = now - start_;
++            repeat_ = 0;
++            gate_ = 1.0;
++        }
++    }
++    if (!active_) {
++        gate_ = std::max(0.0, gate_ - gateStep_);
++    }
++    if (gate_ <= 0.0) {
++        return;
++    }
++
++    double hl = readHead(head_, 0, l);
++    double hr = readHead(head_, 1, r);
++    if (xfade_ > 0) {
++        const double t = 1.0 - static_cast<double>(xfade_) / fade_;
++        const double a = std::sin(t * 0.5 * kLabPi);
++        const double b = std::cos(t * 0.5 * kLabPi);
++        hl = a * hl + b * readHead(tail_, 0, l);
++        hr = a * hr + b * readHead(tail_, 1, r);
++        tail_.pos += tail_.rate;
++        --xfade_;
++    }
++    head_.pos += head_.rate;
++    if (active_) {
++        pos_ += head_.rate;
++        if (pos_ >= slice_) {
++            pos_ -= slice_;
++            ++repeat_;
++            const double rate = std::clamp(std::exp2(drift_ * 0.25 * static_cast<double>(repeat_)), 0.25, 4.0);
++            spliceTo({false, start_ + pos_, rate});
++        }
++    }
++    const double a = std::sin(gate_ * 0.5 * kLabPi);
++    const double b = std::cos(gate_ * 0.5 * kLabPi);
++    l = a * hl + b * l;
++    r = a * hr + b * r;
++}
++
++void FableGlitchDsp::process(float* L, float* R, int n) noexcept {
++    const double beatInc = bpm_ / 60.0 / sr_;
++    const int halfBarSamples = static_cast<int>(std::ceil(2.0 * 60.0 / bpm_ * sr_));
++    for (int i = 0; i < n; ++i) {
++        double x = sanitize(L[i]);
++        double y = sanitize(R[i]);
++        if (wet_.live()) {
++            wet_.cleared = false;
++            wet_.cur += (wet_.target - wet_.cur) * wet_.coef;
++            if (std::abs(x) > 1.0e-7 || std::abs(y) > 1.0e-7) {
++                tailRemaining_ = halfBarSamples;
++            } else if (tailRemaining_ > 0) {
++                --tailRemaining_;
++            }
++            double wl = x;
++            double wr = y;
++            processWet(wl, wr);
++            x += wet_.cur * (wl - x);
++            y += wet_.cur * (wr - y);
++        } else if (!wet_.cleared) {
++            wet_.cur = 0.0;
++            wet_.cleared = true;
++            clearState();
++        }
++        beat_ += beatInc;
++        L[i] = static_cast<float>(x);
++        R[i] = static_cast<float>(y);
++    }
++}
++
++}  // namespace nt::audio::effects::fable
+diff --git a/native/timeline-player/src/audio/effects/fable/FableLab.h b/native/timeline-player/src/audio/effects/fable/FableLab.h
+new file mode 100644
+index 0000000000..9e2d1b442a
+--- /dev/null
++++ b/native/timeline-player/src/audio/effects/fable/FableLab.h
+@@ -0,0 +1,383 @@
++// Derived from georgi/fablesynth (https://github.com/georgi/fablesynth) at
++// commit d2f68d8 (juce/source/dsp/LabFx.h).
++// FableSynth is published under PolyForm Noncommercial 1.0.0. Its author, who
++// also maintains NodeTool, contributes this code to NodeTool under NodeTool's
++// licence (AGPL-3.0).
++#pragma once
++
++#include <algorithm>
++#include <array>
++#include <cmath>
++#include <cstddef>
++#include <cstdint>
++#include <vector>
++
++namespace nt::audio::effects::fable {
++
++inline constexpr double kLabPi = 3.141592653589793;
++
++// RESO chord intervals (semitones above NOTE), in fx.reso.chord order.
++inline constexpr std::array<std::array<int, 4>, 6> kLabResoChords{{
++    {{0, 12, 24, 36}},  // OCTAVES
++    {{0, 7, 12, 19}},   // FIFTHS
++    {{0, 3, 7, 10}},    // MINOR 7
++    {{0, 4, 7, 14}},    // MAJOR 9
++    {{0, 5, 7, 12}},    // SUS 4
++    {{0, 6, 12, 18}},   // TRITONE
++}};
++
++// GLITCH slice lengths in beats, in fx.glitch.div order (1/4 .. 1/64).
++inline constexpr std::array<double, 5> kLabGlitchBeats{{1.0, 0.5, 0.25, 0.125, 0.0625}};
++
++namespace lab_detail {
++
++// Deterministic xorshift32 matching FableSynth LabFx.h.
++// Thread affinity: audio render thread only.
++struct Rng {
++    static constexpr std::uint32_t kSeed = 0x9e3779b9u;
++    std::uint32_t s = kSeed;
++
++    void reset() noexcept { s = kSeed; }
++
++    [[nodiscard]] double uni() noexcept {
++        s ^= s << 13;
++        s ^= s >> 17;
++        s ^= s << 5;
++        return static_cast<double>(s >> 8) * (1.0 / 16777216.0);
++    }
++
++    [[nodiscard]] double bi() noexcept { return uni() * 2.0 - 1.0; }
++};
++
++// One-pole 20 ms parameter smoother stepped per sample.
++// Thread affinity: prepared on control thread; stepped/snapped on audio thread.
++struct Glide {
++    double cur = 0.0;
++    double target = 0.0;
++    double coef = 0.001;
++
++    [[nodiscard]] double next() noexcept {
++        cur += (target - cur) * coef;
++        return cur;
++    }
++
++    void snap() noexcept { cur = target; }
++};
++
++// Stage wet smoother with clear-once idle tracking.
++// Thread affinity: prepared on control thread; stepped/cleared on audio thread.
++struct Wet {
++    double cur = 0.0;
++    double target = 0.0;
++    double coef = 0.001;
++    bool cleared = true;
++
++    [[nodiscard]] bool live() const noexcept { return target > 0.0 || cur > 1.0e-5; }
++};
++
++// Transposed direct form II RBJ biquad matching LabFx.h.
++// Thread affinity: audio render thread only (configured on control or audio thread).
++struct Biquad {
++    double b0 = 1.0;
++    double b1 = 0.0;
++    double b2 = 0.0;
++    double a1 = 0.0;
++    double a2 = 0.0;
++    double z1 = 0.0;
++    double z2 = 0.0;
++
++    void set(bool high, double hz, double q, double sr) noexcept;
++    [[nodiscard]] double process(double x) noexcept {
++        const double y = b0 * x + z1;
++        z1 = b1 * x - a1 * y + z2;
++        z2 = b2 * x - a2 * y;
++        return y;
++    }
++    void reset() noexcept {
++        z1 = 0.0;
++        z2 = 0.0;
++    }
++};
++
++// Eighth-order Butterworth cascade (four biquads).
++// Thread affinity: audio render thread only (configured on control or audio thread).
++struct Butter8 {
++    std::array<Biquad, 4> s{};
++
++    void set(bool high, double hz, double sr) noexcept;
++    [[nodiscard]] double process(double x) noexcept {
++        for (auto& b : s) {
++            x = b.process(x);
++        }
++        return x;
++    }
++    void reset() noexcept {
++        for (auto& b : s) {
++            b.reset();
++        }
++    }
++};
++
++// Power-of-two circular float buffer addressed by absolute sample position.
++// Thread affinity: prepare() on control thread (allocates once); write/at/hermite/clear on audio thread only.
++struct Ring {
++    std::vector<float> b;
++    std::int64_t mask = 0;
++    std::int64_t w = 0;
++
++    void prepare(int minSize);
++    void clear() noexcept;
++    void write(double x) noexcept {
++        if (b.empty()) {
++            return;
++        }
++        b[static_cast<std::size_t>(w & mask)] = static_cast<float>(x);
++        ++w;
++    }
++    [[nodiscard]] double at(std::int64_t i) const noexcept {
++        if (b.empty()) {
++            return 0.0;
++        }
++        return static_cast<double>(b[static_cast<std::size_t>(i & mask)]);
++    }
++    [[nodiscard]] double hermite(double p) const noexcept;
++    [[nodiscard]] std::size_t size() const noexcept { return b.size(); }
++};
++
++// Kaiser-windowed sinc (beta 7.5), 8 zero crossings each side, 512 table points per crossing.
++// Thread affinity: build() on control thread (allocates once); tap/read on audio thread only.
++struct SincTable {
++    static constexpr int kHalf = 8;
++    static constexpr int kRes = 512;
++    std::vector<double> h;
++
++    void build();
++    [[nodiscard]] double tap(double x) const noexcept;
++    [[nodiscard]] double read(const Ring& r, double p, double fc) const noexcept;
++};
++
++// Niemitalo's 90-degree allpass pair: two four-stage chains.
++// Thread affinity: audio render thread only.
++struct Hilbert {
++    static constexpr std::array<double, 4> kA{{
++        0.6923878 * 0.6923878,
++        0.9360654322959 * 0.9360654322959,
++        0.9882295226860 * 0.9882295226860,
++        0.9987488452737 * 0.9987488452737,
++    }};
++    static constexpr std::array<double, 4> kB{{
++        0.4021921162426 * 0.4021921162426,
++        0.8561710882420 * 0.8561710882420,
++        0.9722909545651 * 0.9722909545651,
++        0.9952884791278 * 0.9952884791278,
++    }};
++
++    std::array<std::array<double, 2>, 4> xa{};
++    std::array<std::array<double, 2>, 4> ya{};
++    std::array<std::array<double, 2>, 4> xb{};
++    std::array<std::array<double, 2>, 4> yb{};
++    double delayed = 0.0;
++
++    void reset() noexcept { *this = Hilbert{}; }
++    void process(double x, double& re, double& im) noexcept;
++};
++
++[[nodiscard]] double combDelay(double hz, double sr, double damp) noexcept;
++
++}  // namespace lab_detail
++
++// Sample-and-hold decimator + bit quantizer with sub-sample edge box filtering and clock/step chaos.
++// Thread affinity: prepare() on control thread; setParams/process/reset on audio thread only.
++class FableCrushDsp {
++public:
++    void prepare(double sampleRate);
++    void reset() noexcept;
++    void setParams(bool on, float bits, float rate, float chaos, float mix) noexcept;
++    void process(float* L, float* R, int n) noexcept;
++    [[nodiscard]] int latencySamples() const noexcept { return 0; }
++    [[nodiscard]] bool hasPendingOutput() const noexcept;
++
++private:
++    [[nodiscard]] double quantize(double x, double steps) noexcept;
++    void processWet(double& l, double& r) noexcept;
++    void clearState() noexcept;
++
++    double sr_ = 48000.0;
++    lab_detail::Wet wet_{};
++    lab_detail::Glide bits_{};
++    lab_detail::Glide rate_{};
++    lab_detail::Rng rng_{};
++    double chaos_ = 0.2;
++    double phase_ = 1.0;
++    double holdL_ = 0.0;
++    double holdR_ = 0.0;
++    double prevL_ = 0.0;
++    double prevR_ = 0.0;
++};
++
++// Four damped feedback combs tuned to a chord with phase-compensated Hermite reads.
++// Thread affinity: prepare() on control thread (allocates once); setParams/process/reset on audio thread only.
++class FableResoDsp {
++public:
++    void prepare(double sampleRate);
++    void reset() noexcept;
++    void setParams(bool on, float note, int chord, float decay, float mix) noexcept;
++    void process(float* L, float* R, int n) noexcept;
++    [[nodiscard]] int latencySamples() const noexcept { return 0; }
++    [[nodiscard]] bool hasPendingOutput() const noexcept { return wet_.live() && tailRemaining_ > 0; }
++
++private:
++    static constexpr double kDamp = 0.65;
++    struct Comb {
++        lab_detail::Ring ring;
++        double lp = 0.0;
++        double d = 100.0;
++        double target = 100.0;
++    };
++
++    void processWet(double& l, double& r) noexcept;
++    void clearState() noexcept;
++
++    double sr_ = 48000.0;
++    lab_detail::Wet wet_{};
++    std::array<Comb, 4> combs_{};
++    lab_detail::Glide fb_{};
++    int tailRemaining_ = 0;
++};
++
++// Single-sideband frequency shifter (Hilbert allpass pair) with band-limiting and tempo-synced spiral feedback.
++// Thread affinity: prepare() on control thread (allocates once); setParams/process/reset on audio thread only.
++class FableShiftDsp {
++public:
++    static constexpr int kCoefChunk = 32;
++
++    void prepare(double sampleRate);
++    void reset() noexcept;
++    void setParams(bool on, float hz, float fb, float spread, float mix, double tempoBpm) noexcept;
++    void process(float* L, float* R, int n) noexcept;
++    [[nodiscard]] int latencySamples() const noexcept { return 0; }
++    [[nodiscard]] bool hasPendingOutput() const noexcept { return wet_.live() && tailRemaining_ > 0; }
++
++private:
++    struct Channel {
++        lab_detail::Ring ring;
++        lab_detail::Hilbert hilbert;
++        lab_detail::Butter8 lp;
++        lab_detail::Butter8 hp;
++        double phase = 0.0;
++        double dcX = 0.0;
++        double dcY = 0.0;
++        double hz = 1.0e9;
++    };
++
++    void tuneChannel(Channel& c, double hz) noexcept;
++    [[nodiscard]] double processChannel(Channel& c, double x, double hz, double fb) noexcept;
++    void processWet(double& l, double& r) noexcept;
++    void clearState() noexcept;
++
++    double sr_ = 48000.0;
++    double bpm_ = 120.0;
++    double dcCoef_ = 0.997;
++    lab_detail::Wet wet_{};
++    std::array<Channel, 2> ch_{};
++    lab_detail::Glide hz_{};
++    lab_detail::Glide fb_{};
++    lab_detail::Glide spread_{};
++    double delay_ = 6000.0;
++    int tick_ = 0;
++    int tailRemaining_ = 0;
++};
++
++// Anti-aliased granular cloud with Hann windows and Hermite reads.
++// Thread affinity: prepare() on control thread (allocates once); setParams/process/reset on audio thread only.
++class FableSprayDsp {
++public:
++    void prepare(double sampleRate);
++    void reset() noexcept;
++    void setParams(bool on, float pitch, float density, float scatter, float mix) noexcept;
++    void process(float* L, float* R, int n) noexcept;
++    [[nodiscard]] int latencySamples() const noexcept { return 0; }
++    [[nodiscard]] bool hasPendingOutput() const noexcept;
++
++private:
++    struct Grain {
++        bool on = false;
++        double pos = 0.0;
++        double inc = 1.0;
++        double gl = 1.0;
++        double gr = 1.0;
++        int len = 1;
++        int age = 0;
++    };
++
++    void spawnGrain() noexcept;
++    void processWet(double& l, double& r) noexcept;
++    void clearState() noexcept;
++
++    double sr_ = 48000.0;
++    lab_detail::Wet wet_{};
++    lab_detail::Rng rng_{};
++    lab_detail::Ring ring_{};
++    lab_detail::Butter8 lp_{};
++    std::array<Grain, 24> grains_{};
++    double scatter_ = 0.4;
++    double ratio_ = 2.0;
++    double interval_ = 4000.0;
++    double len_ = 4000.0;
++    double countdown_ = 0.0;
++    double norm_ = 1.0;
++    double cut_ = -1.0;
++    int tailRemaining_ = 0;
++};
++
++// Tempo-synced beat repeat with equal-power splices and Kaiser-sinc pitch drift.
++// Thread affinity: prepare() on control thread (allocates once); setParams/setTransport/process/reset on audio thread only.
++class FableGlitchDsp {
++public:
++    void prepare(double sampleRate);
++    void reset() noexcept;
++    void setParams(bool on, int div, float chance, float drift, float mix, double tempoBpm) noexcept;
++    void setTransport(double ppq, bool playing) noexcept;
++    void process(float* L, float* R, int n) noexcept;
++    [[nodiscard]] int latencySamples() const noexcept { return 0; }
++    [[nodiscard]] bool hasPendingOutput() const noexcept { return wet_.live() && (gate_ > 0.0 || tailRemaining_ > 0); }
++
++private:
++    struct Head {
++        bool live = true;
++        double pos = 0.0;
++        double rate = 1.0;
++    };
++
++    [[nodiscard]] double readHead(const Head& h, std::size_t ch, double dry) const noexcept;
++    void spliceTo(const Head& next) noexcept;
++    void processWet(double& l, double& r) noexcept;
++    void clearState() noexcept;
++
++    double sr_ = 48000.0;
++    double bpm_ = 120.0;
++    double beat_ = 0.0;
++    bool synced_ = false;
++    double fade_ = 96.0;
++    double gateStep_ = 0.003;
++    lab_detail::Wet wet_{};
++    lab_detail::Rng rng_{};
++    lab_detail::SincTable sinc_{};
++    std::array<lab_detail::Ring, 2> ring_{};
++    Head head_{};
++    Head tail_{};
++    int xfade_ = 0;
++    int div_ = 2;
++    double chance_ = 0.35;
++    double drift_ = 0.0;
++    double slice_ = 1000.0;
++    double start_ = 0.0;
++    double pos_ = 0.0;
++    double gate_ = 0.0;
++    std::int64_t period_ = -1;
++    int repeat_ = 0;
++    bool active_ = false;
++    int tailRemaining_ = 0;
++};
++
++}  // namespace nt::audio::effects::fable
+diff --git a/native/timeline-player/tests/fixtures/fable_ref/LabFx.h b/native/timeline-player/tests/fixtures/fable_ref/LabFx.h
+new file mode 100644
+index 0000000000..7b5289bbb4
+--- /dev/null
++++ b/native/timeline-player/tests/fixtures/fable_ref/LabFx.h
+@@ -0,0 +1,545 @@
++// LAB — five experimental stages that run after DRIVE and before CHORUS, so
++// the echo and reverb tail whatever the lab produces:
++//
++//   CRUSH  -> RESO -> SHIFT -> SPRAY -> GLITCH
++//
++// CRUSH   sample-and-hold decimator + bit quantizer. Hold edges fall at their
++//         exact sub-sample time (input interpolated at the edge, the output
++//         sample box-filtered across it), so non-integer rates give clean
++//         images instead of sample-grid jitter. CHAOS jitters the clock and
++//         nudges held values by one quantization step.
++// RESO    four damped feedback combs tuned to a chord. Each loop delay is
++//         solved for the damping filter's and the Hermite read's phase at the
++//         fundamental, so the combs ring in tune up to the top of the range.
++// SHIFT   single-sideband frequency shifter (allpass Hilbert pair). The input
++//         is band-limited (8th-order) so the shifted spectrum stays inside
++//         0..Nyquist (no fold-over above, no wrap through 0 Hz below). Feedback runs through
++//         a 1/16-note delay: each echo is shifted again and spirals.
++// SPRAY   granular cloud. The grain buffer is low-passed (8th-order) for the
++//         fastest grain, so pitched-up grains do not alias; Hann windows,
++//         Hermite reads.
++// GLITCH  tempo-synced beat repeat. A half-bar window may record DIV from the
++//         downbeat (the first pass is the live signal) and repeat it. Repeats
++//         splice with equal-power crossfades and read through a band-limited
++//         (Kaiser-windowed sinc) interpolator, so DRIFT re-pitching is clean.
++//
++// This file is the reference implementation. src/engine/worklet.js carries a
++// line-for-line port (class LabFx); keep the two in step. Buffers are float,
++// arithmetic is double on both sides, and the RNG is the same xorshift32, so
++// web and native output agree to rounding (see the lab parity fixture).
++// All buffers are sized in prepare(); process() allocates nothing. A stage
++// whose wet gain has faded to zero is skipped, then cleared once.
++#pragma once
++
++#include <algorithm>
++#include <array>
++#include <cmath>
++#include <cstdint>
++#include <vector>
++
++namespace fable {
++
++struct LabSettings {
++    bool  crushOn = false;  float crushBits = 6, crushRate = 6000, crushChaos = 0.2f, crushMix = 1;
++    bool  resoOn = false;   float resoNote = 48; int resoChord = 2; float resoDecay = 0.7f, resoMix = 0.5f;
++    bool  shiftOn = false;  float shiftHz = 60, shiftFb = 0.5f, shiftSpread = 0.5f, shiftMix = 0.5f;
++    bool  sprayOn = false;  float sprayPitch = 12, sprayDensity = 12, sprayScatter = 0.4f, sprayMix = 0.45f;
++    bool  glitchOn = false; int glitchDiv = 2; float glitchChance = 0.35f, glitchDrift = 0, glitchMix = 1;
++};
++
++// RESO chord intervals (semitones above NOTE), in fx.reso.chord order.
++inline const std::array<std::array<int, 4>, 6>& labResoChords() {
++    static const std::array<std::array<int, 4>, 6> chords {{
++        {{0, 12, 24, 36}}, // OCTAVES
++        {{0, 7, 12, 19}},  // FIFTHS
++        {{0, 3, 7, 10}},   // MINOR 7
++        {{0, 4, 7, 14}},   // MAJOR 9
++        {{0, 5, 7, 12}},   // SUS 4
++        {{0, 6, 12, 18}},  // TRITONE
++    }};
++    return chords;
++}
++// GLITCH slice lengths in beats, in fx.glitch.div order (1/4 .. 1/64).
++inline double labGlitchBeats(int div) {
++    static constexpr double beats[] = {1.0, 0.5, 0.25, 0.125, 0.0625};
++    return beats[std::clamp(div, 0, 4)];
++}
++
++namespace lab {
++constexpr double kPi = 3.141592653589793;
++
++struct Rng {
++    uint32_t s = 0x9e3779b9u;
++    double uni() { s ^= s << 13; s ^= s >> 17; s ^= s << 5; return (double)(s >> 8) * (1.0 / 16777216.0); }
++    double bi() { return uni() * 2.0 - 1.0; }
++};
++
++// One-pole parameter smoother (20 ms), stepped per sample.
++struct Glide {
++    double cur = 0, target = 0, coef = 0.001;
++    double next() { cur += (target - cur) * coef; return cur; }
++    void snap() { cur = target; }
++};
++
++// RBJ biquad, transposed direct form II.
++struct Biquad {
++    double b0 = 1, b1 = 0, b2 = 0, a1 = 0, a2 = 0, z1 = 0, z2 = 0;
++    void set(bool high, double hz, double q, double sr) {
++        const double w = 2 * kPi * hz / sr, c = std::cos(w), al = std::sin(w) / (2 * q), a0 = 1 + al;
++        const double k = high ? (1 + c) / 2 : (1 - c) / 2;
++        b0 = k / a0; b1 = (high ? -2 * k : 2 * k) / a0; b2 = k / a0;
++        a1 = -2 * c / a0; a2 = (1 - al) / a0;
++    }
++    double process(double x) { const double y = b0 * x + z1; z1 = b1 * x - a1 * y + z2; z2 = b2 * x - a2 * y; return y; }
++    void reset() { z1 = z2 = 0; }
++};
++// Butterworth cascades: fourth order (two biquads) and eighth order (four).
++struct Butter4 {
++    Biquad s1, s2;
++    void set(bool high, double hz, double sr) { s1.set(high, hz, 0.5411961001461970, sr); s2.set(high, hz, 1.3065629648763766, sr); }
++    double process(double x) { return s2.process(s1.process(x)); }
++    void reset() { s1.reset(); s2.reset(); }
++};
++struct Butter8 {
++    std::array<Biquad, 4> s;
++    void set(bool high, double hz, double sr) {
++        static constexpr double q[4] = {0.5097955791041592, 0.6013448869350453, 0.8999762231364156, 2.5629154477415055};
++        for (int i = 0; i < 4; ++i) s[(size_t)i].set(high, hz, q[i], sr);
++    }
++    double process(double x) { for (auto& b : s) x = b.process(x); return x; }
++    void reset() { for (auto& b : s) b.reset(); }
++};
++
++// Power-of-two circular float buffer addressed by absolute sample position.
++struct Ring {
++    std::vector<float> b; long long mask = 0, w = 0;
++    void prepare(int minSize) { int n = 1; while (n < minSize) n <<= 1; b.assign((size_t)n, 0.0f); mask = n - 1; w = 0; }
++    void clear() { std::fill(b.begin(), b.end(), 0.0f); w = 0; }
++    void write(double x) { b[(size_t)(w & mask)] = (float)x; ++w; }
++    double at(long long i) const { return b[(size_t)(i & mask)]; }
++    // 4-point Hermite at absolute position p (needs p-1 .. p+2 written).
++    double hermite(double p) const {
++        const double fl = std::floor(p); const long long i = (long long)fl; const double t = p - fl;
++        const double y0 = at(i - 1), y1 = at(i), y2 = at(i + 1), y3 = at(i + 2);
++        const double c1 = 0.5 * (y2 - y0), c2 = y0 - 2.5 * y1 + 2 * y2 - 0.5 * y3, c3 = 0.5 * (y3 - y0) + 1.5 * (y1 - y2);
++        return ((c3 * t + c2) * t + c1) * t + y1;
++    }
++};
++
++// Kaiser-windowed sinc (beta 7.5), 8 zero crossings each side, 512 table
++// points per crossing, linearly interpolated.
++struct SincTable {
++    static constexpr int kHalf = 8, kRes = 512;
++    std::vector<double> h;
++    static double bessel0(double x) {
++        double sum = 1, term = 1;
++        for (int k = 1; k < 50; ++k) { term *= (x / (2 * k)) * (x / (2 * k)); sum += term; if (term < 1e-15 * sum) break; }
++        return sum;
++    }
++    void build() {
++        const double beta = 7.5, norm = bessel0(beta);
++        h.assign((size_t)(kHalf * kRes + 2), 0.0);
++        for (int i = 0; i <= kHalf * kRes; ++i) {
++            const double x = (double)i / kRes, r = x / kHalf;
++            const double sinc = i == 0 ? 1.0 : std::sin(kPi * x) / (kPi * x);
++            h[(size_t)i] = sinc * bessel0(beta * std::sqrt(std::max(0.0, 1 - r * r))) / norm;
++        }
++    }
++    double tap(double x) const {
++        x = std::abs(x) * kRes;
++        const int i = (int)x; if (i >= kHalf * kRes) return 0;
++        return h[(size_t)i] + (x - i) * (h[(size_t)i + 1] - h[(size_t)i]);
++    }
++    // Band-limited read at absolute position p. fc is the cutoff as a fraction
++    // of Nyquist: 0.94 at normal speed, scaled by 1 / rate when reading faster.
++    double read(const Ring& r, double p, double fc) const {
++        const int half = (int)std::ceil(kHalf / fc);
++        const double fl = std::floor(p); const long long i0 = (long long)fl; const double frac = p - fl;
++        double sum = 0;
++        for (int k = 1 - half; k <= half; ++k) sum += tap(((double)k - frac) * fc) * r.at(i0 + k);
++        return sum * fc;
++    }
++};
++
++// Loop delay for a damped comb that resonates exactly at hz: the integer
++// delay minus the damping one-pole's phase delay, corrected for the Hermite
++// read's own phase response (solved by fixed-point iteration).
++inline double combDelay(double hz, double sr, double damp) {
++    const double w = 2 * kPi * hz / sr, b = 1 - damp;
++    const double tauLp = std::atan2(b * std::sin(w), 1 - b * std::cos(w)) / w;
++    double d = sr / hz - tauLp;
++    for (int it = 0; it < 4; ++it) {
++        const double t = std::ceil(d) - d; // Hermite fraction at the read position
++        const double c[4] = {-0.5 * t + t * t - 0.5 * t * t * t, 1 - 2.5 * t * t + 1.5 * t * t * t,
++                             0.5 * t + 2 * t * t - 1.5 * t * t * t, -0.5 * t * t + 0.5 * t * t * t};
++        double re = 0, im = 0;
++        for (int k = -1; k <= 2; ++k) { const double ph = -w * (t - k); re += c[k + 1] * std::cos(ph); im += c[k + 1] * std::sin(ph); }
++        d = sr / hz - tauLp + std::atan2(im, re) / w;
++    }
++    return d;
++}
++
++// Niemitalo's 90-degree allpass pair: two four-stage chains.
++struct Hilbert {
++    static constexpr double ka[4] = {0.6923878 * 0.6923878, 0.9360654322959 * 0.9360654322959,
++                                     0.9882295226860 * 0.9882295226860, 0.9987488452737 * 0.9987488452737};
++    static constexpr double kb[4] = {0.4021921162426 * 0.4021921162426, 0.8561710882420 * 0.8561710882420,
++                                     0.9722909545651 * 0.9722909545651, 0.9952884791278 * 0.9952884791278};
++    double xa[4][2] {}, ya[4][2] {}, xb[4][2] {}, yb[4][2] {}, delayed = 0;
++    void reset() { *this = Hilbert{}; }
++    static double chain(const double* k, double (*xs)[2], double (*ys)[2], double x) {
++        for (int i = 0; i < 4; ++i) {
++            const double y = k[i] * (x + ys[i][1]) - xs[i][1];
++            xs[i][1] = xs[i][0]; xs[i][0] = x;
++            ys[i][1] = ys[i][0]; ys[i][0] = y;
++            x = y;
++        }
++        return x;
++    }
++    void process(double x, double& re, double& im) {
++        re = delayed; delayed = chain(ka, xa, ya, x);
++        im = chain(kb, xb, yb, x);
++    }
++};
++} // namespace lab
++
++class LabFx {
++public:
++    static constexpr int kCoefChunk = 32; // SHIFT band limits follow its glide at this rate
++
++    void prepare(double sampleRate) {
++        sr_ = sampleRate;
++        const double glide = 1.0 - std::exp(-1.0 / (0.02 * sr_));
++        for (auto* w : wets()) w->coef = glide;
++        for (auto* g : glides()) g->coef = glide;
++        sinc_.build();
++        for (auto& c : combs_) c.ring.prepare((int)(sr_ / 30.0) + 8);
++        for (auto& s : shift_) s.ring.prepare((int)(sr_ * 0.4) + 8);
++        spray_.prepare((int)(sr_ * 2.5));
++        for (auto& g : glitch_) g.prepare((int)(sr_ * 4.0));
++        dcCoef_ = std::exp(-2.0 * lab::kPi * 20.0 / sr_);
++        fade_ = std::max(8.0, std::round(0.002 * sr_));
++        gateStep_ = 1.0 / (0.006 * sr_);
++        sprayCut_ = -1;
++        setParams(settings_, patchBpm_);
++        reset();
++    }
++
++    void reset() {
++        for (auto* w : wets()) { w->cur = 0; w->cleared = true; }
++        clearCrush(); clearReso(); clearShift(); clearSpray(); clearGlitch();
++        beat_ = 0;
++        for (auto* g : glides()) g->snap();
++        for (auto& c : combs_) c.d = c.target;
++    }
++
++    void setParams(const LabSettings& s, double bpm) {
++        settings_ = s; patchBpm_ = bpm;
++        if (tempoOverride_ > 0) bpm = tempoOverride_;
++        bpm_ = std::clamp(std::isfinite(bpm) && bpm > 1 ? bpm : 120.0, 40.0, 300.0);
++        crushWet_.target = s.crushOn ? std::clamp((double)s.crushMix, 0.0, 1.0) : 0.0;
++        resoWet_.target = s.resoOn ? std::clamp((double)s.resoMix, 0.0, 1.0) : 0.0;
++        shiftWet_.target = s.shiftOn ? std::clamp((double)s.shiftMix, 0.0, 1.0) : 0.0;
++        sprayWet_.target = s.sprayOn ? std::clamp((double)s.sprayMix, 0.0, 1.0) : 0.0;
++        glitchWet_.target = s.glitchOn ? std::clamp((double)s.glitchMix, 0.0, 1.0) : 0.0;
++
++        crushBits_.target = std::clamp((double)s.crushBits, 1.0, 16.0);
++        crushRate_.target = std::clamp((double)s.crushRate, 50.0, sr_);
++
++        const auto& chord = labResoChords()[(size_t)std::clamp(s.resoChord, 0, 5)];
++        const double maxDelay = (double)combs_[0].ring.b.size() - 8;
++        for (size_t i = 0; i < combs_.size(); ++i) {
++            const double hz = 440.0 * std::exp2((std::clamp((double)s.resoNote, 24.0, 84.0) + chord[i] - 69.0) / 12.0);
++            combs_[i].target = std::clamp(lab::combDelay(hz, sr_, kDamp), 4.0, std::max(4.0, maxDelay));
++        }
++        resoFb_.target = 0.6 + 0.395 * std::clamp((double)s.resoDecay, 0.0, 1.0);
++
++        shiftHz_.target = std::clamp((double)s.shiftHz, -1000.0, 1000.0);
++        shiftFb_.target = std::clamp((double)s.shiftFb, 0.0, 0.9);
++        shiftSpread_.target = std::clamp((double)s.shiftSpread, 0.0, 1.0);
++        shiftDelay_ = std::min(15.0 / bpm_ * sr_, std::max(8.0, (double)shift_[0].ring.b.size() - 8)); // a 1/16 note
++
++        sprayRatio_ = std::exp2(std::clamp((double)s.sprayPitch, -24.0, 24.0) / 12.0);
++        const double density = std::clamp((double)s.sprayDensity, 1.0, 40.0);
++        sprayInterval_ = sr_ / density;
++        sprayLen_ = std::clamp(3.0 / density, 0.04, 0.3) * sr_;
++        sprayNorm_ = 1.0 / std::sqrt(std::max(1.0, density * sprayLen_ / sr_));
++        // The fastest grain (pitch plus scatter detune) sets the anti-alias cutoff.
++        const double maxRatio = sprayRatio_ * std::exp2(std::clamp((double)s.sprayScatter, 0.0, 1.0) * 0.3 / 12.0);
++        const double cut = std::min(0.45, 0.45 / maxRatio) * sr_;
++        if (std::abs(cut - sprayCut_) > 1e-6) { sprayCut_ = cut; sprayLp_.set(false, cut, sr_); }
++    }
++
++    // Host beat position at the start of the next process() call. Without
++    // it GLITCH runs a free clock at the set tempo.
++    void setTransport(double ppq, bool playing) {
++        synced_ = playing && std::isfinite(ppq);
++        if (synced_) beat_ = ppq;
++    }
++    // Advance the free-running GLITCH clock across samples the owner skipped
++    // while idle. A host-synced clock is set from the transport instead.
++    void advanceClock(double samples) { if (!synced_) beat_ += bpm_ / 60.0 / sr_ * samples; }
++    // A session tempo (SQ-4) that wins over the patch tempo; <= 0 clears.
++    void setTempoOverride(double bpm) {
++        const double next = std::isfinite(bpm) && bpm > 1 ? bpm : 0.0;
++        if (std::abs(next - tempoOverride_) > 1e-9) { tempoOverride_ = next; setParams(settings_, patchBpm_); }
++    }
++
++    // True while any stage is audible or still has state to clear.
++    bool active() const {
++        for (const auto* w : wetsConst()) if (w->live() || !w->cleared) return true;
++        return false;
++    }
++
++    void processSample(float& l, float& r) {
++        double x = l, y = r;
++        stage(crushWet_, x, y, &LabFx::crush, &LabFx::clearCrush);
++        stage(resoWet_, x, y, &LabFx::reso, &LabFx::clearReso);
++        stage(shiftWet_, x, y, &LabFx::shift, &LabFx::clearShift);
++        stage(sprayWet_, x, y, &LabFx::spray, &LabFx::clearSpray);
++        stage(glitchWet_, x, y, &LabFx::glitch, &LabFx::clearGlitch);
++        beat_ += bpm_ / 60.0 / sr_;
++        l = (float)x; r = (float)y;
++    }
++
++private:
++    static constexpr double kDamp = 0.65; // RESO loop damping (one-pole coefficient)
++
++    struct Wet {
++        double cur = 0, target = 0, coef = 0.001;
++        bool cleared = true;
++        bool live() const { return target > 0.0 || cur > 1.0e-5; }
++    };
++    using StageFn = void (LabFx::*)(double&, double&);
++    using ClearFn = void (LabFx::*)();
++    void stage(Wet& w, double& l, double& r, StageFn run, ClearFn clear) {
++        if (w.live()) {
++            w.cleared = false;
++            w.cur += (w.target - w.cur) * w.coef;
++            double wl = l, wr = r;
++            (this->*run)(wl, wr);
++            l += w.cur * (wl - l); r += w.cur * (wr - r);
++        } else if (!w.cleared) {
++            w.cur = 0; w.cleared = true; (this->*clear)();
++        }
++    }
++    std::array<Wet*, 5> wets() { return {&crushWet_, &resoWet_, &shiftWet_, &sprayWet_, &glitchWet_}; }
++    std::array<const Wet*, 5> wetsConst() const { return {&crushWet_, &resoWet_, &shiftWet_, &sprayWet_, &glitchWet_}; }
++    std::array<lab::Glide*, 6> glides() { return {&crushBits_, &crushRate_, &resoFb_, &shiftHz_, &shiftFb_, &shiftSpread_}; }
++
++    // ---- CRUSH ----
++    double quantize(double x, double steps) {
++        double y = std::round(x * steps) / steps;
++        const double chaos = settings_.crushChaos;
++        if (chaos > 0 && rng_.uni() < chaos * 0.15) y += (rng_.uni() < 0.5 ? -1.0 : 1.0) / steps;
++        return std::clamp(y, -1.0, 1.0);
++    }
++    void crush(double& l, double& r) {
++        const double bits = crushBits_.next(), inc = crushRate_.next() / sr_;
++        double outL = crushL_, outR = crushR_;
++        crushPhase_ += inc;
++        if (crushPhase_ >= 1.0) {
++            crushPhase_ -= 1.0;
++            const double ago = std::min(1.0, crushPhase_ / inc); // the edge, in samples before now
++            const double steps = std::exp2(bits - 1.0);
++            const double newL = quantize(l + ago * (crushPrevL_ - l), steps);
++            const double newR = quantize(r + ago * (crushPrevR_ - r), steps);
++            outL = crushL_ + ago * (newL - crushL_); // box-filter the step across this sample
++            outR = crushR_ + ago * (newR - crushR_);
++            crushL_ = newL; crushR_ = newR;
++            const double chaos = settings_.crushChaos;
++            if (chaos > 0) crushPhase_ -= chaos * 0.9 * rng_.uni();
++        }
++        crushPrevL_ = l; crushPrevR_ = r;
++        l = outL; r = outR;
++    }
++    void clearCrush() { crushPhase_ = 1.0; crushL_ = crushR_ = crushPrevL_ = crushPrevR_ = 0; }
++
++    // ---- RESO ----
++    struct Comb { lab::Ring ring; double lp = 0, d = 100, target = 100; };
++    void reso(double& l, double& r) {
++        const double x = 0.5 * (l + r), g = resoFb_.next();
++        // Energy-normalized excitation keeps long resonances audible.
++        const double excitation = std::sqrt(1.0 - g * g);
++        std::array<double, 4> out {};
++        for (size_t i = 0; i < combs_.size(); ++i) {
++            auto& c = combs_[i];
++            c.d += (c.target - c.d) * 0.0015;
++            const double y = c.ring.hermite((double)c.ring.w - c.d);
++            c.lp += kDamp * (y - c.lp);
++            c.ring.write(std::tanh(x * excitation + g * c.lp));
++            out[i] = y;
++        }
++        l = 0.5 * (out[0] + out[2] + 0.5 * (out[1] + out[3]));
++        r = 0.5 * (out[1] + out[3] + 0.5 * (out[0] + out[2]));
++    }
++    void clearReso() { for (auto& c : combs_) { c.ring.clear(); c.lp = 0; c.d = c.target; } }
++
++    // ---- SHIFT ----
++    struct ShiftChannel {
++        lab::Ring ring; lab::Hilbert hilbert; lab::Butter8 lp, hp;
++        double phase = 0, dcX = 0, dcY = 0, hz = 1e9;
++    };
++    void tuneShift(ShiftChannel& c, double hz) {
++        // Band-limit so every shifted component stays inside (0, Nyquist).
++        const double lpHz = std::clamp(0.47 * sr_ - std::max(0.0, hz), 500.0, 0.45 * sr_);
++        const double hpHz = std::clamp(hz < 0 ? -hz * 1.05 : 20.0, 20.0, 0.4 * sr_);
++        c.lp.set(false, lpHz, sr_); c.hp.set(true, hpHz, sr_);
++        c.hz = hz;
++    }
++    double shiftChannel(ShiftChannel& c, double x, double hz, double fb) {
++        const double fed = x + fb * c.ring.hermite((double)c.ring.w - shiftDelay_);
++        double re, im;
++        c.hilbert.process(c.hp.process(c.lp.process(fed)), re, im);
++        c.phase += hz / sr_; c.phase -= std::floor(c.phase);
++        const double a = 2.0 * lab::kPi * c.phase;
++        const double y = re * std::cos(a) + im * std::sin(a); // upper sideband: +hz shifts up
++        c.dcY = y - c.dcX + dcCoef_ * c.dcY; c.dcX = y; // DC-blocked, soft-clipped feedback
++        c.ring.write(std::tanh(c.dcY));
++        return y;
++    }
++    void shift(double& l, double& r) {
++        const double hz = shiftHz_.next(), fb = shiftFb_.next(), spread = shiftSpread_.next();
++        const double hzR = hz * (1.0 - 2.0 * spread);
++        if (--shiftTick_ <= 0) {
++            shiftTick_ = kCoefChunk;
++            if (std::abs(hz - shift_[0].hz) > 0.01) tuneShift(shift_[0], hz);
++            if (std::abs(hzR - shift_[1].hz) > 0.01) tuneShift(shift_[1], hzR);
++        }
++        l = shiftChannel(shift_[0], l, hz, fb);
++        r = shiftChannel(shift_[1], r, hzR, fb);
++    }
++    void clearShift() {
++        for (auto& c : shift_) {
++            c.ring.clear(); c.hilbert.reset(); c.lp.reset(); c.hp.reset();
++            c.phase = c.dcX = c.dcY = 0; c.hz = 1e9;
++        }
++        shiftTick_ = 0;
++    }
++
++    // ---- SPRAY ----
++    struct Grain { bool on = false; double pos = 0, inc = 1, gl = 1, gr = 1; int len = 1, age = 0; };
++    void spawnGrain() {
++        for (auto& g : grains_) {
++            if (g.on) continue;
++            const double scatter = settings_.sprayScatter;
++            const double ratio = sprayRatio_ * std::exp2(scatter * 0.3 * rng_.bi() / 12.0);
++            const bool reverse = rng_.uni() < scatter * 0.35;
++            g.len = std::max(16, (int)sprayLen_);
++            g.inc = reverse ? -ratio : ratio;
++            const double behind = 64.0 + (reverse ? 0.0 : std::max(0.0, g.len * (ratio - 1.0)))
++                                + scatter * rng_.uni() * 0.8 * sr_;
++            g.pos = (double)spray_.w - behind;
++            const double pan = rng_.bi() * std::min(1.0, 0.3 + scatter);
++            const double a = (pan + 1.0) * 0.25 * lab::kPi;
++            g.gl = std::cos(a) * std::sqrt(2.0); g.gr = std::sin(a) * std::sqrt(2.0);
++            g.age = 0; g.on = true;
++            return;
++        }
++    }
++    void spray(double& l, double& r) {
++        spray_.write(sprayLp_.process(0.5 * (l + r)));
++        if (--sprayCountdown_ <= 0) {
++            spawnGrain();
++            sprayCountdown_ += sprayInterval_ * (0.5 + rng_.uni());
++        }
++        double ol = 0, orr = 0;
++        for (auto& g : grains_) {
++            if (!g.on) continue;
++            const double s = std::sin(lab::kPi * (double)g.age / (double)g.len);
++            const double v = spray_.hermite(g.pos) * s * s;
++            ol += v * g.gl; orr += v * g.gr;
++            g.pos += g.inc;
++            if (++g.age >= g.len) g.on = false;
++        }
++        l = ol * sprayNorm_; r = orr * sprayNorm_;
++    }
++    void clearSpray() {
++        spray_.clear(); sprayLp_.reset();
++        for (auto& g : grains_) g.on = false;
++        sprayCountdown_ = 0;
++    }
++
++    // ---- GLITCH ----
++    // A read head is the live input or a band-limited read of the record.
++    struct Head { bool live = true; double pos = 0, rate = 1; };
++    double readHead(const Head& h, int ch, double dry) const {
++        if (h.live) return dry;
++        return sinc_.read(glitch_[(size_t)ch], h.pos, 0.94 * std::min(1.0, 1.0 / h.rate));
++    }
++    void spliceTo(const Head& next) { tail_ = head_; head_ = next; xfade_ = (int)fade_; }
++    void glitch(double& l, double& r) {
++        const double now = (double)glitch_[0].w;
++        glitch_[0].write(l); glitch_[1].write(r);
++        const long period = (long)std::floor(beat_ / 2.0); // decide every half bar
++        if (period != glitchPeriod_) {
++            const bool first = glitchPeriod_ == -1;
++            glitchPeriod_ = period;
++            glitchActive_ = !first && rng_.uni() < settings_.glitchChance;
++            if (glitchActive_) {
++                // The window opened (beat - 2 * period) beats ago; the slice starts there.
++                const double late = (beat_ - 2.0 * (double)period) * 60.0 / bpm_ * sr_;
++                glitchSlice_ = std::max(64.0, labGlitchBeats(settings_.glitchDiv) * 60.0 / bpm_ * sr_);
++                glitchStart_ = now - std::min(late, 0.5 * glitchSlice_);
++                if (glitchGate_ > 0.0) spliceTo({true, now, 1.0}); else { head_ = {true, now, 1.0}; xfade_ = 0; }
++                glitchPos_ = now - glitchStart_; glitchRepeat_ = 0;
++                glitchGate_ = 1.0;
++            }
++        }
++        if (!glitchActive_) glitchGate_ = std::max(0.0, glitchGate_ - gateStep_);
++        if (glitchGate_ <= 0.0) return;
++
++        double hl = readHead(head_, 0, l), hr = readHead(head_, 1, r);
++        if (xfade_ > 0) {
++            const double t = 1.0 - (double)xfade_ / fade_;
++            const double a = std::sin(t * 0.5 * lab::kPi), b = std::cos(t * 0.5 * lab::kPi);
++            hl = a * hl + b * readHead(tail_, 0, l);
++            hr = a * hr + b * readHead(tail_, 1, r);
++            tail_.pos += tail_.rate; --xfade_;
++        }
++        head_.pos += head_.rate;
++        if (glitchActive_) {
++            glitchPos_ += head_.rate;
++            if (glitchPos_ >= glitchSlice_) {
++                glitchPos_ -= glitchSlice_;
++                ++glitchRepeat_;
++                const double rate = std::clamp(std::exp2(settings_.glitchDrift * 0.25 * glitchRepeat_), 0.25, 4.0);
++                spliceTo({false, glitchStart_ + glitchPos_, rate});
++            }
++        }
++        // Equal-power return to the dry signal when the window closes.
++        const double a = std::sin(glitchGate_ * 0.5 * lab::kPi), b = std::cos(glitchGate_ * 0.5 * lab::kPi);
++        l = a * hl + b * l; r = a * hr + b * r;
++    }
++    void clearGlitch() {
++        for (auto& g : glitch_) g.clear();
++        head_ = tail_ = Head{}; xfade_ = 0;
++        glitchActive_ = false; glitchGate_ = 0; glitchPeriod_ = -1; glitchPos_ = 0; glitchRepeat_ = 0;
++    }
++
++    double sr_ = 48000, bpm_ = 120, beat_ = 0, patchBpm_ = 120, tempoOverride_ = 0;
++    bool synced_ = false; // beat_ follows the host transport
++    double dcCoef_ = 0.997, fade_ = 96, gateStep_ = 0.003;
++    LabSettings settings_;
++    lab::Rng rng_;
++    lab::SincTable sinc_;
++    Wet crushWet_, resoWet_, shiftWet_, sprayWet_, glitchWet_;
++
++    lab::Glide crushBits_, crushRate_;
++    double crushPhase_ = 1, crushL_ = 0, crushR_ = 0, crushPrevL_ = 0, crushPrevR_ = 0;
++
++    std::array<Comb, 4> combs_; lab::Glide resoFb_;
++
++    std::array<ShiftChannel, 2> shift_; lab::Glide shiftHz_, shiftFb_, shiftSpread_;
++    double shiftDelay_ = 6000; int shiftTick_ = 0;
++
++    lab::Ring spray_; lab::Butter8 sprayLp_; std::array<Grain, 24> grains_;
++    double sprayRatio_ = 2, sprayInterval_ = 4000, sprayLen_ = 4000, sprayCountdown_ = 0, sprayNorm_ = 1, sprayCut_ = -1;
++
++    std::array<lab::Ring, 2> glitch_;
++    Head head_, tail_; int xfade_ = 0;
++    double glitchSlice_ = 1000, glitchStart_ = 0, glitchPos_ = 0, glitchGate_ = 0;
++    long glitchPeriod_ = -1; int glitchRepeat_ = 0; bool glitchActive_ = false;
++};
++
++} // namespace fable

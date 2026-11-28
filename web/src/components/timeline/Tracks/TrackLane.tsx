@@ -51,6 +51,7 @@ import {
   visibleClipIdsByTrack
 } from "../../../stores/timeline/clipLookup";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { useTimelineUIStoreApi } from "../../../stores/timeline/TimelineInstance";
 import { runAsOneUndoEntry } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -74,9 +75,15 @@ import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { layoutTrackRows, scriptVoiceoverTrackId } from "./trackWindow";
+import { AutomationCurveOverlay } from "./automation/AutomationCurveOverlay";
+import type { AutomationLayoutInput } from "./automation/automationLayout";
 import { trackRowHeightPx } from "./trackHeight";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
+import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
 import { snapAssetDropMs } from "./dropSnap";
+import { isStepPatternDrag, patternDropOps, snapPatternDropMs } from "./stepPatternDrop";
+import { STEP_PATTERN_DRAG_TYPE } from "../stepSequencer/StepPatternBrowser";
+import { useStepPatternOps } from "../stepSequencer/useStepPatternOps";
 import { dropShotOnTrack, isShotDrag } from "../dnd/shotToClipAdapter";
 import { trackSelectDirection, trackSelectIds } from "./trackSelect";
 
@@ -162,15 +169,22 @@ interface TrackLaneProps {
   track: TimelineTrack;
   virtualizeClips?: boolean;
   collapsedFolderIds?: ReadonlySet<string>;
+  /**
+   * Show Automation is on for this track: the lane draws the shown
+   * parameter's curve over its clips, this many px wide.
+   */
+  automationWidthPx?: number;
 }
 
 const CLIP_OVERSCAN_PX = 320;
 
-export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClips = false, collapsedFolderIds }) => {
+export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClips = false, collapsedFolderIds, automationWidthPx }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const timelineStore = useTimelineStoreApi();
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
+  const uiStoreApi = useTimelineUIStoreApi();
+  const patternOps = useStepPatternOps();
   const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
   const scrollLeftPx = useTimelineUIStore((s) =>
     virtualizeClips ? s.scrollLeftPx : 0
@@ -230,6 +244,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
   const importVideoWithAudio = useVideoAudioImport();
 
   const dawMode = useTimelineLayoutStore((s) => s.dawMode);
+  const simpleMode = useTimelineSimpleMode();
   const heightPx = trackRowHeightPx(track, dawMode) * verticalZoom;
 
   const laneRef = useRef<HTMLDivElement>(null);
@@ -357,6 +372,15 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
   const handleAssetDragOver = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
+      if (isStepPatternDrag(e.dataTransfer)) {
+        // A pattern region needs a MIDI lane (SQ43).
+        if (track.type !== "midi" || track.locked) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+        setIsDragOver(true);
+        return;
+      }
       if (!isAssetDrag(e) && !isShotDrag(e.dataTransfer)) {
         return;
       }
@@ -369,7 +393,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       e.dataTransfer.dropEffect = "copy";
       setIsDragOver(true);
     },
-    [isAssetDrag, track.locked]
+    [isAssetDrag, track.locked, track.type]
   );
 
   const handleAssetDragLeave = useCallback(
@@ -433,6 +457,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
       if (isShotDrag(e.dataTransfer)) {
         handleShotDrop(e);
+        return;
+      }
+      if (isStepPatternDrag(e.dataTransfer)) {
+        if (track.type !== "midi" || track.locked) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const patternId = e.dataTransfer.getData(STEP_PATTERN_DRAG_TYPE);
+        if (!patternId) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const atMs = snapPatternDropMs((e.clientX - rect.left) * msPerPx, timelineStore.getState(), uiStoreApi.getState());
+        // The new region resolves overlaps by the Drag mode, as other region drops do.
+        const dropMode = uiStoreApi.getState().dropMode;
+        patternOps
+          .run(patternDropOps(patternId, atMs, track.id), { afterWrite: (created) => resolveDropInStore(created, dropMode) })
+          .catch((err: unknown) => showWarning(err instanceof Error ? err.message : String(err), true));
         return;
       }
       if (!isAssetDrag(e)) {
@@ -526,7 +565,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       importVideoWithAudio,
       handleShotDrop,
       showWarning,
-      t
+      t,
+      uiStoreApi,
+      patternOps
     ]
   );
 
@@ -644,15 +685,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       const bounds = new Map<string, { top: number; bottom: number }>();
       if (containerEl.dataset.virtualizedTracks) {
         const document = useTimelineStore.getState();
+        const ui = useTimelineUIStore.getState();
+        const automation: AutomationLayoutInput = {
+          show: ui.showAutomation && !simpleMode,
+          openTrackIds: ui.automationOpenTrackIds,
+          shownParams: ui.automationShownParams
+        };
         const { rows } = layoutTrackRows(
           document.tracks,
           document.scriptEnabled,
-          useTimelineUIStore.getState().expandedFxTrackId,
-          useTimelineUIStore.getState().verticalZoom,
+          ui.expandedFxTrackId,
+          ui.verticalZoom,
           document.trackFolders,
           collapsedFolderIds,
           useTimelineLayoutStore.getState().dawMode,
-          useTimelineUIStore.getState().shownAutomationTrackIds,
+          automation,
           scriptVoiceoverTrackId(document.clips)
         );
         rows.forEach((row) => {
@@ -695,7 +742,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       // inside the scrolling element, so localX is already content-space.
       seek(clampToSequence(Math.round(localX * msPerPx)));
     },
-    [clampToSequence, clearSelection, laneLongPress, msPerPx, seek, track.id]
+    [clampToSequence, clearSelection, laneLongPress, msPerPx, seek, track.id, simpleMode]
   );
 
   // Apply the rubber-band selection for the given content-space range. Deduped
@@ -1001,6 +1048,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       {clipIds.map((id) => (
         <Clip key={id} clipId={id} />
       ))}
+      {automationWidthPx !== undefined && (
+        <AutomationCurveOverlay track={track} widthPx={automationWidthPx} heightPx={heightPx} />
+      )}
 
       {/* Right-click context menu (lane background) */}
       <ContextMenu

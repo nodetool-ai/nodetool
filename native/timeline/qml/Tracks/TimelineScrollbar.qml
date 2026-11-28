@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Mirrors web/src/components/timeline/Tracks/TimelineScrollbar.tsx: an
 // always-visible horizontal scrollbar under the lanes. The thumb size is the
 // visible fraction; a thumb drag or a trough click sets the lanes' scroll.
@@ -12,6 +13,7 @@ Rectangle {
     property double leftInsetPx: TimelineMetrics.trackHeaderWidth
 
     // computeScrollThumb(totalWidth, viewport, scrollLeft, trackWidth = viewport)
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var thumb: viewState.scrollThumb(viewState.totalWidthPx, viewState.viewportWidthPx,
                                                        viewState.scrollLeftPx, viewState.viewportWidthPx)
 

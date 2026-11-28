@@ -123,6 +123,69 @@ describe("quantizeNotes", () => {
     ).toBe(0);
   });
 
+  it("delays odd grid steps by swing of half a step", () => {
+    // Step 240: k=1 at 240 is odd, so full swing adds 120; k=2 stays put.
+    const out = quantizeNotes(
+      [note({ id: "a", startTick: 250 }), note({ id: "b", startTick: 470 })],
+      { division: "1/16", swing: 1 }
+    );
+    expect(out.map((n) => n.startTick)).toEqual([360, 480]);
+    expect(
+      quantizeNotes([note({ startTick: 250 })], { division: "1/16", swing: 0.5 })[0]!
+        .startTick
+    ).toBe(300);
+  });
+
+  it("treats a negative grid index as odd or even correctly", () => {
+    // phase 480, step 240: tick 0 is k=-2 (even), tick 240 is k=-1 (odd).
+    const out = quantizeNotes(
+      [note({ id: "a", startTick: 0 }), note({ id: "b", startTick: 240 })],
+      { division: "1/16", swing: 1, phaseTick: 480 }
+    );
+    expect(out.map((n) => n.startTick)).toEqual([0, 360]);
+  });
+
+  it("rounds the strength interpolation to a whole tick", () => {
+    // 250 -> 240 at strength 0.25 moves 2.5 ticks: 247.5 rounds to 248.
+    expect(
+      quantizeNotes([note({ startTick: 250 })], { division: "1/16", strength: 0.25 })[0]!
+        .startTick
+    ).toBe(248);
+  });
+
+  it("applies swing to the start before lengths round to whole steps", () => {
+    const out = quantizeNotes(
+      [note({ startTick: 250, durationTick: 200 })],
+      { division: "1/16", swing: 1, target: "start_and_length" }
+    );
+    expect(out[0]!.startTick).toBe(360);
+    expect(out[0]!.durationTick).toBe(240);
+  });
+
+  it("refuses a swing outside 0..1", () => {
+    expect(() =>
+      quantizeNotes([note()], { division: "1/16", swing: 2 })
+    ).toThrow(/swing/);
+  });
+
+  it("accepts a raw step in ticks in place of a division", () => {
+    expect(
+      quantizeNotes([note({ startTick: 1000 })], { stepTicks: 1920 })[0]!.startTick
+    ).toBe(1920);
+  });
+
+  it("touches only the notes in noteIds when it is given, all notes otherwise", () => {
+    const notes = [
+      note({ id: "a", startTick: 250 }),
+      note({ id: "b", startTick: 250 })
+    ];
+    const some = quantizeNotes(notes, { division: "1/16", noteIds: new Set(["b"]) });
+    expect(some.map((n) => n.startTick)).toEqual([250, 240]);
+    expect(
+      quantizeNotes(notes, { division: "1/16" }).map((n) => n.startTick)
+    ).toEqual([240, 240]);
+  });
+
   it("refuses a strength outside 0..1", () => {
     expect(() =>
       quantizeNotes([note()], { division: "1/16", strength: 1.5 })

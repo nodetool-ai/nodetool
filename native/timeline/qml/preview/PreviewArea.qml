@@ -24,7 +24,7 @@ Rectangle {
     id: area
     required property TimelineModel timeline
     required property PlaybackClock clock
-    property var gestures: null
+    property ClipGestureController gestures: null
     readonly property MonitorViewState monitor: viewState
 
     color: Ui.Theme.surfaceCanvas
@@ -35,7 +35,9 @@ Rectangle {
     readonly property bool handTool: gestures !== null && gestures.activeTool === "hand"
 
     // The registered view that is showing, or null for the compositor's own modes.
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var monitorViews: PanelRegistry.forSlot("monitorView")
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var activeView: {
         for (const view of monitorViews) {
             if (view.id === viewState.displayMode) return view
@@ -207,6 +209,7 @@ Rectangle {
     property real timeZoomStart: 0
     property real timeZoomEnd: 1
     // The transport, in Premiere's order. `id` is the key action, except for the clock steps.
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var transportButtons: [
         {id: "addMarker", icon: "addMarker", label: "Add Marker"},
         {id: "markIn", icon: "markIn", label: "Mark In"},
@@ -224,7 +227,8 @@ Rectangle {
         {id: "toggleLoop", icon: "repeat", label: "Loop"}
     ]
     // The Button Editor hides buttons; their shortcuts and menu items still work.
-    readonly property var hiddenTransport: transportPreferences.hiddenTransportButtons
+    readonly property list<string> hiddenTransport: transportPreferences.hiddenTransportButtons
+    // JSON records consumed by the shared registry, menu, or control API.
     readonly property var visibleTransport: transportButtons.filter(b => hiddenTransport.indexOf(b.id) < 0)
     readonly property real transportAvailable: Math.max(0, width - TimelineMetrics.monitorTransportReserve)
     readonly property real transportGap: {
@@ -241,7 +245,9 @@ Rectangle {
     }
     // Any preference write re-reads the hidden list. The lists change only when their buttons do,
     // so a write never rebuilds the buttons under the pointer.
+    // JSON records consumed by the shared registry, menu, or control API.
     property var shownTransport: []
+    // JSON records consumed by the shared registry, menu, or control API.
     property var overflowTransport: []
     function refreshTransport() {
         const shown = visibleTransport.slice(0, transportShownCount)
@@ -288,6 +294,7 @@ Rectangle {
 
     component TransportButton: Ui.ToolbarIconButton {
         id: transportButton
+        // JSON record supplied by the delegate model.
         required property var modelData
         readonly property string actionId: modelData.id
         objectName: actionId === "playPause" ? "transportPlay" : actionId === "exportFrame" ? "exportFrameButton" : "transport_" + actionId
@@ -385,6 +392,7 @@ Rectangle {
                             onObjectAdded: (index, object) => resolutionMenu.addItem(object)
                             onObjectRemoved: (index, object) => resolutionMenu.removeItem(object)
                             delegate: Ui.MenuItem {
+                                // JSON record supplied by the delegate model.
                                 required property var modelData
                                 objectName: "monitorResolution_" + modelData.denominator
                                 text: modelData.label
@@ -532,6 +540,7 @@ Rectangle {
             onObjectAdded: (index, object) => overflowMenu.insertItem(index, object)
             onObjectRemoved: (index, object) => overflowMenu.removeItem(object)
             delegate: Ui.MenuItem {
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 objectName: "transportOverflow_" + modelData.id
                 text: area.transportLabel(modelData)
@@ -552,6 +561,7 @@ Rectangle {
             onObjectAdded: (index, object) => editorMenu.insertItem(index, object)
             onObjectRemoved: (index, object) => editorMenu.removeItem(object)
             delegate: Ui.MenuItem {
+                // JSON record supplied by the delegate model.
                 required property var modelData
                 objectName: "transportEditor_" + modelData.id
                 text: modelData.label

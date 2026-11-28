@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // One fade ramp of ClipBody (clipFadeGeometry.ts `rampPath`): the curve from
 // silence to full volume across the fade, with the area above it shaded.
 // A fade-out reads the same curve backwards.

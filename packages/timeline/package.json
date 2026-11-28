@@ -66,6 +66,12 @@
       "import": "./dist/scene.js",
       "default": "./dist/scene.js"
     },
+    "./music/process": {
+      "nodetool-dev": "./src/music/process.ts",
+      "types": "./dist/music/process.d.ts",
+      "import": "./dist/music/process.js",
+      "default": "./dist/music/process.js"
+    },
     "./transcript": {
       "nodetool-dev": "./src/transcriptOps.ts",
       "types": "./dist/transcriptOps.d.ts",

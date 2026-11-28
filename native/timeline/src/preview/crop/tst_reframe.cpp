@@ -188,15 +188,15 @@ class TestReframe : public QObject {
         auto* frame = findItem(root, "previewFrame");
         QVERIFY(frame);
         QCOMPARE(overlay->size(), frame->size());
-        // A zoomed frame is far larger than the screen, and the handle's Canvas must not follow it.
+        // The handle stays small when the preview frame is zoomed beyond the screen.
         auto* monitorState = object->findChild<QObject*>("monitorViewState");
         QVERIFY(monitorState);
         QVERIFY(QMetaObject::invokeMethod(monitorState, "setZoomPercent", Q_ARG(double, 1600)));
-        auto* handleCanvas = findItem(overlay, "reframeHandleCanvas");
-        QVERIFY(handleCanvas);
+        auto* handleItem = findItem(overlay, "reframeFocusHandle");
+        QVERIFY(handleItem);
         QTRY_COMPARE(overlay->size(), frame->size());
         QVERIFY(frame->width() > root->width());
-        QVERIFY2(handleCanvas->width() <= root->width() && handleCanvas->height() <= root->height(), "The Canvas allocated the zoomed frame");
+        QVERIFY2(handleItem->width() <= root->width() && handleItem->height() <= root->height(), "The handle allocated the zoomed frame");
         QVERIFY(QMetaObject::invokeMethod(monitorState, "setFit"));
         QTRY_COMPARE(overlay->size(), frame->size());
         const auto geometry = QJsonObject::fromVariantMap(qmlMap(overlay->property("geometry")));

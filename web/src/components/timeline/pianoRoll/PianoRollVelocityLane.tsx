@@ -15,16 +15,31 @@ import { useColorScheme, useTheme } from "@mui/material/styles";
 
 import type { MidiNote } from "@nodetool-ai/timeline";
 
-import { pickPianoRollColors } from "./pianoRollColors";
+import { velocityColor } from "@nodetool-ai/timeline";
+
+import {
+  NEUTRAL_NOTE_RGB,
+  parseCssColor,
+  pickPianoRollColors,
+  rgbCss,
+  type Rgb
+} from "./pianoRollColors";
 import { noteRect, type PianoRollGeometry } from "./pianoRollGeometry";
 
 /** Height of the velocity lane. */
-export const VELOCITY_LANE_HEIGHT_PX = 56;
+export const VELOCITY_LANE_HEIGHT_PX = 96;
 /** The velocities the document stores. */
 const MAX_VELOCITY = 127;
 const MIN_VELOCITY = 1;
 /** A bar this wide is still grabbable when its note is a hairline. */
 const MIN_BAR_WIDTH_PX = 8;
+/** A stem's thickness and its round head's radius. */
+const STEM_WIDTH_PX = 2;
+const HEAD_RADIUS_PX = 3.5;
+/** A muted note's stem fades to this opacity. */
+const MUTED_ALPHA = 0.35;
+/** Width of the ring around a selected note's head. */
+const SELECTED_RING_PX = 1.5;
 
 const canvasStyles = css({
   display: "block",
@@ -44,10 +59,15 @@ export function velocityAtY(y: number, height: number): number {
 }
 
 interface PianoRollVelocityLaneProps {
+  /** Lane height in px. */
+  heightPx: number;
   notes: ReadonlyArray<MidiNote>;
   selectedIds: ReadonlySet<string>;
   geometry: PianoRollGeometry;
   widthPx: number;
+  /** `velocity` colors a stem by its velocity, `clip` by the clip color, as the grid does. */
+  noteColorMode?: "velocity" | "clip";
+  clipColor?: string;
   onGestureStart: () => void;
   onVelocityChange: (noteId: string, velocity: number) => void;
   onGestureEnd: () => void;
@@ -55,10 +75,13 @@ interface PianoRollVelocityLaneProps {
 
 export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
   ({
+    heightPx,
     notes,
     selectedIds,
     geometry,
     widthPx,
+    noteColorMode = "velocity",
+    clipColor,
     onGestureStart,
     onVelocityChange,
     onGestureEnd
@@ -82,28 +105,45 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
       const dpr =
         typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
       canvas.width = widthPx * dpr;
-      canvas.height = VELOCITY_LANE_HEIGHT_PX * dpr;
+      canvas.height = heightPx * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = colors.whiteRow;
-      ctx.fillRect(0, 0, widthPx, VELOCITY_LANE_HEIGHT_PX);
+      ctx.fillRect(0, 0, widthPx, heightPx);
 
+      // Faint guides at 25, 50 and 75 percent.
+      ctx.strokeStyle = colors.gridLine;
+      ctx.beginPath();
+      for (const ratio of [0.25, 0.5, 0.75]) {
+        const y = Math.round(heightPx * ratio) + 0.5;
+        ctx.moveTo(0, y);
+        ctx.lineTo(widthPx, y);
+      }
+      ctx.stroke();
+
+      const clipRgb: Rgb = parseCssColor(clipColor) ?? parseCssColor(colors.note) ?? NEUTRAL_NOTE_RGB;
+      const usable = heightPx - HEAD_RADIUS_PX * 2;
       for (const note of notes) {
         const rect = noteRect(note, geometry);
         if (rect.x > widthPx || rect.x + rect.width < 0) continue;
-        const height =
-          (note.velocity / MAX_VELOCITY) * VELOCITY_LANE_HEIGHT_PX;
-        ctx.fillStyle = selectedIds.has(note.id)
-          ? colors.noteSelected
-          : colors.note;
-        ctx.fillRect(
-          rect.x,
-          VELOCITY_LANE_HEIGHT_PX - height,
-          4,
-          height
-        );
-        ctx.fillRect(rect.x, VELOCITY_LANE_HEIGHT_PX - height, MIN_BAR_WIDTH_PX, 4);
+        const selected = selectedIds.has(note.id);
+        const color = rgbCss(noteColorMode === "clip" ? clipRgb : (velocityColor(note.velocity) as Rgb));
+        const cx = rect.x + HEAD_RADIUS_PX;
+        const headY = HEAD_RADIUS_PX + usable * (1 - note.velocity / MAX_VELOCITY);
+        ctx.globalAlpha = note.muted ? MUTED_ALPHA : 1;
+        ctx.fillStyle = color;
+        ctx.fillRect(cx - STEM_WIDTH_PX / 2, headY, STEM_WIDTH_PX, heightPx - headY);
+        ctx.beginPath();
+        ctx.arc(cx, headY, HEAD_RADIUS_PX, 0, Math.PI * 2);
+        ctx.fill();
+        if (selected) {
+          ctx.strokeStyle = colors.noteSelected;
+          ctx.lineWidth = SELECTED_RING_PX;
+          ctx.stroke();
+          ctx.lineWidth = 1;
+        }
+        ctx.globalAlpha = 1;
       }
-    }, [theme, activeMode, notes, selectedIds, geometry, widthPx]);
+    }, [theme, activeMode, notes, selectedIds, geometry, widthPx, noteColorMode, clipColor, heightPx]);
 
     /** The note whose bar is under `x`; the last one wins where bars overlap. */
     const noteAtX = useCallback(
@@ -129,7 +169,7 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
         onGestureStart();
         onVelocityChange(
           note.id,
-          velocityAtY(e.clientY - rect.top, VELOCITY_LANE_HEIGHT_PX)
+          velocityAtY(e.clientY - rect.top, heightPx)
         );
         if (typeof e.currentTarget.setPointerCapture === "function") {
           try {
@@ -139,7 +179,7 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
           }
         }
       },
-      [noteAtX, onGestureStart, onVelocityChange]
+      [noteAtX, onGestureStart, onVelocityChange, heightPx]
     );
 
     const handlePointerMove = useCallback(
@@ -149,10 +189,10 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
         const rect = e.currentTarget.getBoundingClientRect();
         onVelocityChange(
           id,
-          velocityAtY(e.clientY - rect.top, VELOCITY_LANE_HEIGHT_PX)
+          velocityAtY(e.clientY - rect.top, heightPx)
         );
       },
-      [onVelocityChange]
+      [onVelocityChange, heightPx]
     );
 
     const handlePointerUp = useCallback(() => {
@@ -165,7 +205,7 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
       <canvas
         ref={canvasRef}
         css={canvasStyles}
-        style={{ height: VELOCITY_LANE_HEIGHT_PX }}
+        style={{ height: heightPx, flexShrink: 0 }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

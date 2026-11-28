@@ -31,7 +31,12 @@ import type { ClipAnimation } from "./animation/types.js";
 // the inferred types are re-exported here so a timeline consumer reaches them
 // through the same import as the rest of the document.
 import type {
+  MusicGenerationRecord,
+  MusicKey,
+  MusicRole,
+  MusicTask,
   TimelineBeat,
+  TimelineMusic,
   TimelineSetup,
   TimelineSetupStage
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
@@ -39,6 +44,7 @@ import type { ProductionCandidateResult, ProductionGenerationSnapshot } from "@n
 import type { LineDeliveryRequest } from "./lineDelivery.js";
 export type { TimelineBeat, TimelineSetup, TimelineSetupStage };
 export type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
+export type { MusicGenerationRecord, MusicKey, MusicRole, MusicTask, TimelineMusic };
 
 export interface TimelineSequence {
   /**
@@ -87,6 +93,8 @@ export interface TimelineSequence {
   tempo?: TimelineTempo;
   /** The mix bus. Absent means 0 dB with no effects. */
   master?: TimelineMasterChannel;
+  /** Marks a music project and holds its prompt history (MUSIC-MODE.md MD3). */
+  music?: TimelineMusic;
   /**
    * Guided video-flow state (PRD § 8.5). Absent on every sequence not built
    * through the flow, which is what makes those open straight in the editor.
@@ -467,7 +475,19 @@ export interface TimelineTrack {
    * strips it.
    */
   automation?: AutomationLane[];
+  /**
+   * Automation mode. Missing means `read`.
+   * Must also exist on the protocol zod schema or PATCH strips it.
+   */
+  automationMode?: AutomationMode;
+  /** The stem this track holds in a music project (MUSIC-MODE.md MD4). */
+  musicRole?: MusicRole;
+  /** Default Step Sequencer template for new pattern regions on this track (SQ45). */
+  stepTemplate?: StepPattern;
 }
+
+/** `off` plays no lane, `read` plays them, the others also record a pass. */
+export type AutomationMode = "off" | "read" | "touch" | "latch" | "write";
 
 /**
  * The control an automation lane drives.
@@ -594,12 +614,157 @@ export interface ClipHarmony {
   scaleKey?: number;
 }
 
+// ── Step Sequencer (SQ) ─────────────────────────────────────────────────────
+
+/** Step lengths in note values, integer ticks at MIDI_PPQ = 960 (SQ6). */
+export type StepRate =
+  | "4" | "2" | "1" | "1/2" | "1/4" | "1/8" | "1/16" | "1/32" | "1/64"
+  | "1T" | "2T" | "4T" | "8T" | "16T" | "32T"
+  | "1D" | "2D" | "4D" | "8D" | "16D" | "32D" | "64D";
+
+export type StepPlaybackMode =
+  | "forward"
+  | "backward"
+  | "pingPong"
+  | "pendulum"
+  | "wander"
+  | "shuffle"
+  | "random";
+
+export type StepEditMode =
+  | "onOff"
+  | "velocity"
+  | "value"
+  | "gate"
+  | "tie"
+  | "note"
+  | "octave"
+  | "repeat"
+  | "chance"
+  | "offset"
+  | "stepRate"
+  | "skip"
+  | "loop";
+
+export type StepAutomationMode = "latch" | "slide";
+export type StepSwingDivision = "1/8" | "1/16";
+export type StepPitchSource = "off" | "key" | "chords";
+export type StepRowSort =
+  | "none"
+  | "typeAsc"
+  | "typeDesc"
+  | "typeAndNoteAsc"
+  | "typeAndNoteDesc"
+  | "typeAndNameAsc"
+  | "typeAndNameDesc"
+  | "typeAndKitPadAsc"
+  | "typeAndKitPadDesc";
+export type StepScaleId = HarmonyScaleId | "chromatic";
+
+export interface StepKey {
+  /** Pitch class 0 (C) .. 11 (B). */
+  tonic: number;
+  mode: "major" | "minor";
+}
+
+export type StepDegree = "root" | "2nd" | "3rd" | "4th" | "5th" | "6th" | "7th";
+
+export type StepAutomationTarget =
+  | { kind: "cc"; cc: number }
+  | { kind: "pitchBend" }
+  | { kind: "channelPressure" }
+  | { kind: "device"; deviceId: string; param: string };
+
+export type StepRowAssignment =
+  | { type: "note"; pitch: number }
+  | { type: "melodic"; pitch: number }
+  | { type: "kit"; pad: number }
+  | { type: "degree"; degree: StepDegree; octave: number }
+  | { type: "automation"; target: StepAutomationTarget };
+
+export type StepCondition =
+  | { type: "always" }
+  | { type: "recurrence"; iteration: number; cycles: number }
+  | { type: "first" }
+  | { type: "last" };
+
+/** One cell of a Step Sequencer row. Omitted fields take the SQ5 defaults. */
+export interface Step {
+  on?: boolean;
+  velocity?: number;
+  gate?: number;
+  tie?: boolean;
+  note?: number;
+  octave?: number;
+  repeat?: number;
+  chance?: number;
+  offset?: number;
+  stepRate?: StepRate;
+  skip?: boolean;
+  value?: number;
+  condition?: StepCondition;
+  midiChannel?: number;
+  articulation?: number;
+  velocityRamp?: number;
+  velocityCurve?: number;
+  distribution?: number;
+}
+
+/** One row of a Step Sequencer pattern (SQ3). */
+export interface StepRow {
+  id: string;
+  assignment: StepRowAssignment;
+  name?: string;
+  color?: string;
+  mute: boolean;
+  solo: boolean;
+  lengthSteps: number;
+  loopStart: number;
+  loopEnd: number;
+  stepRate: StepRate;
+  playback: StepPlaybackMode;
+  midiChannel: number;
+  automationMode: StepAutomationMode;
+  subrows: StepEditMode[];
+  subrowsExpanded?: boolean;
+  steps: Step[];
+}
+
+/**
+ * Step Sequencer pattern carried on a MIDI clip (SQ1, SQ2, D71).
+ * A clip with `pattern` does not store `notes` or `controllers`; every
+ * renderer derives them with `expandPattern`.
+ */
+export interface StepPattern {
+  version: 1;
+  seed: number;
+  lengthSteps: number;
+  stepRate: StepRate;
+  playback: StepPlaybackMode;
+  legato: boolean;
+  swing: number;
+  swingDivision: StepSwingDivision;
+  pitchSource: StepPitchSource;
+  key?: StepKey;
+  scale: StepScaleId;
+  noTranspose: boolean;
+  scaleQuantize: boolean;
+  midiChannel: number;
+  automationMode: StepAutomationMode;
+  mono: boolean;
+  name: string;
+  rowSort?: StepRowSort;
+  rows: StepRow[];
+}
+
 /**
  * The master channel every audio and midi track sums into. Absent means
- * 0 dB with no effects.
+ * 0 dB, centred, with no effects.
  */
 export interface TimelineMasterChannel {
   volumeDb: number;
+  /** Stereo balance, -1 (left) to 1 (right). Default 0. */
+  pan?: number;
   /** Audio effects on the summed mix, applied in order before the fader. */
   effects?: TrackEffect[];
 }
@@ -617,6 +782,7 @@ export type TrackEffect =
   | TrackFilterEffect
   | TrackCompressorEffect
   | TrackFableEffect
+  | TrackVstEffect
   | TrackColorCorrectionEffect
   | TrackVideoBlurEffect
   | TrackSharpenEffect
@@ -629,7 +795,8 @@ export type AudioTrackEffectType =
   | "eq3"
   | "filter"
   | "compressor"
-  | "fable";
+  | "fable"
+  | "vst";
 
 /** Video-side effect types. */
 export type VideoTrackEffectType =
@@ -971,6 +1138,65 @@ export interface MidiNote {
   startTick: number;
   /** Held length in ticks (integer > 0). */
   durationTick: number;
+  /** A muted note is not played and emits no events. It stays editable. */
+  muted?: boolean;
+  /** MIDI channel 0..15. Absent means 0. The built-in synth ignores it. */
+  channel?: number;
+  /** Note-off velocity 0..127. Absent keeps the existing output. */
+  releaseVelocity?: number;
+  /** Per-note expression curves. Ticks count from the note's start. */
+  expression?: MidiNoteExpression;
+}
+
+/** One point of a per-note expression curve. */
+export interface MidiExpressionPoint {
+  /** Ticks from the note's start, 0..durationTick. */
+  tick: number;
+  value: number;
+}
+
+/**
+ * Per-note expression. Pitch is in semitones (-48..48), volume a linear gain
+ * (0..4), pan -1..1 and brightness 0..1. Before the first point the value is
+ * neutral, between points it interpolates linearly, after the last it holds.
+ */
+export interface MidiNoteExpression {
+  pitch?: MidiExpressionPoint[];
+  volume?: MidiExpressionPoint[];
+  pan?: MidiExpressionPoint[];
+  brightness?: MidiExpressionPoint[];
+}
+
+export type MidiControllerKind =
+  | "cc"
+  | "pitchBend"
+  | "channelPressure"
+  | "polyPressure";
+
+/** One point of a controller lane, in clip content ticks. */
+export interface MidiControllerPoint {
+  id: string;
+  tick: number;
+  value: number;
+}
+
+/**
+ * A controller lane of a midi clip. Values are 0..127, except pitch bend
+ * (-8192..8191, 0 is centre). Structurally identical to `MidiControllerLane`
+ * in `@nodetool-ai/protocol`; pinned by `tests/midi.protocolCompat.test.ts`.
+ */
+export interface MidiControllerLane {
+  id: string;
+  kind: MidiControllerKind;
+  /** Required when `kind` is "cc", forbidden otherwise. */
+  cc?: number;
+  /** Required when `kind` is "polyPressure", forbidden otherwise. */
+  pitch?: number;
+  /** MIDI channel 0..15. Absent means 0. */
+  channel?: number;
+  /** Absent means "linear". */
+  interpolation?: "linear" | "step";
+  points: MidiControllerPoint[];
 }
 
 /**
@@ -990,14 +1216,32 @@ export type MidiInstrument =
   | SamplerMidiInstrument
   | VstMidiInstrument;
 
-/** Which VST3 plug-in a `vst` instrument loads, as the host's scan reported it. */
+/** Plug-in format reported by the host scan (`vst3` on all platforms, `au` on macOS). */
+export type VstPluginFormat = "vst3" | "au";
+
+/** Which VST3/AU plug-in a `vst` instrument or insert effect loads, as the host's scan reported it. */
 export interface VstPluginRef {
   /** The host's identifier for the plug-in type inside its bundle. */
   uid: string;
   name: string;
   vendor: string;
-  /** The `.vst3` bundle on the machine that picked it. */
+  /** The `.vst3` or `.component` bundle on the machine that picked it. */
   path: string;
+  /** Plug-in format (`vst3` or `au`). Absent on older VST3 documents. */
+  format?: VstPluginFormat;
+}
+
+/** A third-party VST3/AU insert effect on an audio, MIDI, or master channel. */
+export interface TrackVstEffect {
+  id: string;
+  type: "vst";
+  enabled: boolean;
+  /** Null until a plug-in is chosen. */
+  plugin: VstPluginRef | null;
+  /** The plug-in's own saved state, base64. Null plays its default sound. */
+  state: string | null;
+  /** Dry/wet mix in 0..1. Default 1. */
+  wet: number;
 }
 
 /**
@@ -1014,16 +1258,41 @@ export interface VstMidiInstrument {
   gainDb: number;
 }
 
-/** Recorded audio mapped to MIDI key ranges. Overlapping zones layer. */
+/** Recorded audio mapped to MIDI key and velocity ranges. Overlapping zones layer. */
+export type SamplerLoopMode = "oneShot" | "sustain";
+
 export interface SamplerZone {
   id: string;
   name: string;
-  /** Persistent audio asset id. Hosts resolve it through their asset store. */
+  /** Persistent audio asset id, or empty string when using a project-relative mediaPath. */
   assetId: string;
+  /** Optional project-relative audio file path (WAV/AIFF/FLAC/MP3). */
+  mediaPath?: string;
   rootNote: number;
   lowNote: number;
   highNote: number;
+  /** Inclusive MIDI velocity range (0..127). Defaults to 0..127. */
+  lowVelocity?: number;
+  highVelocity?: number;
   gainDb: number;
+  /** Stereo pan in -1..+1. Defaults to 0. */
+  pan?: number;
+  /** Fine tuning offset in cents (-100..+100). Defaults to 0. */
+  tuneCents?: number;
+  /** Overrides instrument-level `oneShot` when present. */
+  loopMode?: SamplerLoopMode;
+  /** Normalized sustain loop start in [0, 1]. Defaults to 0. */
+  loopStart?: number;
+  /** Normalized sustain loop end in [0, 1]. Defaults to 1. */
+  loopEnd?: number;
+  /** Loop seam crossfade length in milliseconds (0..500). Defaults to 10. */
+  loopCrossfadeMs?: number;
+  /** Optional release-triggered audio asset id. */
+  releaseAssetId?: string;
+  /** Optional release-triggered project-relative audio file path. */
+  releaseMediaPath?: string;
+  /** Release sample gain trim in dB (-60..+12). Defaults to 0. */
+  releaseGainDb?: number;
 }
 
 export interface SamplerMidiInstrument {
@@ -1032,7 +1301,19 @@ export interface SamplerMidiInstrument {
   /** Percussion ignores note-off and plays the complete recording. */
   oneShot: boolean;
   attackMs: number;
+  /** Amp envelope decay in ms. Defaults to 100. */
+  decayMs?: number;
+  /** Amp envelope sustain level in 0..1. Defaults to 1. */
+  sustain?: number;
   releaseMs: number;
+  /** Velocity response curve in -1..+1 (0 linear, >0 soft, <0 hard). Defaults to 0. */
+  velocityCurve?: number;
+  /** Pitch portamento glide time in ms (0..2000). Defaults to 0. */
+  glideMs?: number;
+  /** Maximum polyphonic voices (1..64). Defaults to 32. */
+  voiceLimit?: number;
+  /** Pitch bend range in semitones (1..24). Defaults to 2. */
+  pitchBendRange?: number;
   gainDb: number;
 }
 
@@ -1049,6 +1330,104 @@ export interface SubtractiveMidiInstrument {
   /** Lowpass Q. */
   resonance: number;
   gainDb: number;
+}
+
+/** Resonator model for the physically modeled modal percussion/mallet synth (ported from RipplerX). */
+export type ModalModelName =
+  | "string"
+  | "beam"
+  | "squared"
+  | "membrane"
+  | "plate"
+  | "drumhead"
+  | "marimba"
+  | "openTube"
+  | "closedTube"
+  | "marimba2"
+  | "bell"
+  | "djembe";
+
+export type ModalCouplingMode = "parallel" | "serial";
+export type ModalNoiseFilterMode = "lp" | "bp" | "hp";
+
+/** Physically modeled percussion/mallet instrument (dual modal/waveguide resonators, mallet & noise exciters). */
+export interface ModalMidiInstrument {
+  type: "modal";
+  preset?: string;
+  malletMix?: number;
+  malletRes?: number;
+  malletStiff?: number;
+  velMalletMix?: number;
+  velMalletRes?: number;
+  velMalletStiff?: number;
+  noiseOsc?: number;
+  noiseMix?: number;
+  noiseRes?: number;
+  noiseFilterMode?: ModalNoiseFilterMode;
+  noiseFilterFreq?: number;
+  noiseFilterQ?: number;
+  noiseAttackMs?: number;
+  noiseDecayMs?: number;
+  noiseSustain?: number;
+  noiseReleaseMs?: number;
+  noiseAttackTension?: number;
+  noiseDecayTension?: number;
+  noiseReleaseTension?: number;
+  velNoiseMix?: number;
+  velNoiseRes?: number;
+  velNoiseFreq?: number;
+  velNoiseQ?: number;
+  velNoiseAttack?: number;
+  velNoiseDecay?: number;
+  velNoiseSustain?: number;
+  velNoiseRelease?: number;
+  aOn?: boolean;
+  aModel?: ModalModelName;
+  aPartials?: number;
+  aDecay?: number;
+  aDamp?: number;
+  aTone?: number;
+  aHit?: number;
+  aRelease?: number;
+  aInharm?: number;
+  aRatio?: number;
+  aCut?: number;
+  aRadius?: number;
+  aCoarse?: number;
+  aFine?: number;
+  velADecay?: number;
+  velAHit?: number;
+  velAInharm?: number;
+  velADamp?: number;
+  velATone?: number;
+  bOn?: boolean;
+  bModel?: ModalModelName;
+  bPartials?: number;
+  bDecay?: number;
+  bDamp?: number;
+  bTone?: number;
+  bHit?: number;
+  bRelease?: number;
+  bInharm?: number;
+  bRatio?: number;
+  bCut?: number;
+  bRadius?: number;
+  bCoarse?: number;
+  bFine?: number;
+  velBDecay?: number;
+  velBHit?: number;
+  velBInharm?: number;
+  velBDamp?: number;
+  velBTone?: number;
+  coupling?: ModalCouplingMode;
+  abMix?: number;
+  abSplit?: number;
+  gainDb?: number;
+  pitchBendRange?: number;
+  stereoizer?: boolean;
+  polyphony?: number;
+  reuseVoices?: boolean;
+  fadeoutRepeats?: boolean;
 }
 
 /** An ADSR envelope, in milliseconds with a 0..1 sustain level. */
@@ -1240,10 +1619,21 @@ export interface TimelineTempo {
     beatsPerBar: number;
     beatUnit: number;
   };
+  /** Project key for music generation. Absent lets the model pick one. */
+  key?: MusicKey;
 }
 
 /** Kind of sound on a clip. Mirrors `clipAudioRole` in the protocol schema. */
 export type ClipAudioRole = "dialogue" | "music" | "sfx" | "ambience";
+
+/** The grids a region quantize may use. Mirrors `QUANTIZE_DIVISIONS`. */
+export type MidiRegionGrid = "1/4" | "1/8" | "1/16" | "1/32" | "1/8T" | "1/16T";
+
+export interface MidiRegionQuantize {
+  grid: MidiRegionGrid;
+  /** 0..100. */
+  strength: number;
+}
 
 export interface TimelineClip {
   id: string;
@@ -1253,6 +1643,21 @@ export interface TimelineClip {
   durationMs: number;
   inPointMs?: number;
   outPointMs?: number;
+  /**
+   * Region loop (CE3). When set and below `durationMs`, the window
+   * `[inPointMs, inPointMs + loopLengthMs)` repeats until `durationMs`.
+   * Midi and audio clips only. Absent means no loop.
+   */
+  loopLengthMs?: number;
+  /**
+   * Non-destructive midi region parameters (CE6, D53). They apply at playback,
+   * export and in the note lines. The stored notes stay as written.
+   * `transpose` is -48..48 semitones, `velocityOffset` -127..127.
+   */
+  transpose?: number;
+  velocityOffset?: number;
+  /** Snap onsets to `grid` by `strength` percent (0..100). */
+  quantize?: MidiRegionQuantize;
   mediaType: ClipMediaType;
   sourceType: "imported" | "generated";
   /** Defaults to "workflow" when absent on legacy persisted data. */
@@ -1511,8 +1916,23 @@ export interface TimelineClip {
    * also exist on the protocol zod schema or PATCH strips it.
    */
   notes?: MidiNote[];
+  /** Controller lanes of a `midi` clip, in content ticks. */
+  controllers?: MidiControllerLane[];
   /** Arp, chord comping or scale snapping of a `midi` clip. */
   harmony?: ClipHarmony;
+  /** Step Sequencer pattern carried by a pattern region (D71). Mutually exclusive with `notes`. */
+  pattern?: StepPattern;
+  /** Pattern phase in content ticks for split/left-trimmed pattern regions (SQ23, SQ25, D87). */
+  patternPhaseTicks?: number;
+  /** Per-row cycle state preserved across unrolled loop repeats (SQ13, SQ25). */
+  patternRowCycles?: Record<string, PatternRowCycleState>;
+}
+
+/** Per-row cycle state carried across unrolled loop repeats (SQ13, SQ25). */
+export interface PatternRowCycleState {
+  cycleOffset: number;
+  lastCycle?: number;
+  wanderPos?: number;
 }
 
 /**
@@ -2764,6 +3184,8 @@ export interface ClipVersion {
     strength?: number;
     resolution?: string;
   };
+  /** Generation record of a music take (MUSIC-MODE.md MD5). */
+  musicGeneration?: MusicGenerationRecord;
 }
 
 export interface TimelineMarker {

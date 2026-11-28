@@ -483,7 +483,7 @@ const nodetool = (() => {
       }
       const r = await __searchTools(
         String(query === undefined || query === null ? "" : query),
-        maxResults === undefined ? 5 : maxResults
+        maxResults === undefined ? undefined : maxResults
       );
       if (!r || r.ok !== true) {
         throw new Error(r && r.error ? r.error : "nodetool.searchTools failed");

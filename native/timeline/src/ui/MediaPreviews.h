@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/PeakLevels.h"
 
 // The clip pictures of the tracks (M2b): audio waveforms and video
 // filmstrips, as the web draws them (ClipBody.tsx WaveformCanvas and the
@@ -62,18 +63,15 @@ void setLocalIoStallForTesting(LocalIoHook hook);
 int outstandingLocalIoForTesting();
 #endif
 
-inline constexpr int FULL_ASSET_PEAK_COUNT = 2000;
+// Count for computeAudioPeaks: the finest level follows the duration, and the
+// coarser levels are filled (PeakLevels.h).
+inline constexpr int AUTO_PEAK_COUNT = -1;
 inline constexpr int THUMBNAIL_COUNT = 24;     // SOURCE_COUNT
 inline constexpr int THUMBNAIL_WIDTH_PX = 160;  // THUMB_WIDTH_PX
 inline constexpr int FILMSTRIP_CELL_PX = 60;
 // How long a file's open and stream probe may take: a stalled read (a slow
 // disk, a pipe) gives up after it. 0: no limit.
 inline constexpr int OPEN_TIMEOUT_MS = 20000;
-
-struct AudioPeaks {
-    std::vector<float> peaks;
-    double durationMs = 0;
-};
 
 struct Thumbnail {
     double timeSec = 0;
@@ -113,6 +111,10 @@ std::vector<float> samplePeaksWindow(const std::vector<float>& fullPeaks, double
 // Slice i of the same window alone.
 float samplePeakAt(const std::vector<float>& fullPeaks, double sourceDurationMs, double inPointMs, double outPointMs,
                    int peakCount, int i);
+
+// Pure peak sampling, including a repeated source window. Callable from any thread.
+float sampleLoopPeakAt(const std::vector<float>& peaks, double sourceDurationMs, double inPointMs,
+                       double outPointMs, double repeatSourceMs, int peakCount, int index);
 
 // filmstripCells.ts selectFilmstripCells: for each cell, the index of the
 // thumbnail nearest its source time.
@@ -279,6 +281,7 @@ class WaveformItem : public ClipPictureItem {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY changed)
+    Q_PROPERTY(double repeatSourceMs READ repeatSourceMs WRITE setRepeatSourceMs NOTIFY changed)
     Q_PROPERTY(int barCount READ barCount NOTIFY painted)
     Q_PROPERTY(double sourceDurationMs READ sourceDurationMs NOTIFY loadedChanged)
 
@@ -286,6 +289,8 @@ public:
     explicit WaveformItem(QQuickItem* parent = nullptr);
     QColor color() const { return m_color; }
     void setColor(const QColor& c);
+    double repeatSourceMs() const { return m_repeatSourceMs; }
+    void setRepeatSourceMs(double value);
     bool loaded() const override { return m_peaks != nullptr; }
     int barCount() const { return m_barCount; }
     double sourceDurationMs() const { return m_peaks ? m_peaks->durationMs : 0; }
@@ -298,8 +303,11 @@ protected:
 
 private:
     std::vector<QRectF> computeBars(Span span) const;
+    QSGNode* softwareBars(QSGNode* old);
     QColor m_color;
-    // native-rules #1: std::shared_ptr shared with the cache, no justification comment
+    double m_repeatSourceMs = 0;
+    // The immutable peak data is shared by the cache and every waveform of the same source.
+    // GUI setters swap the handle. The render thread reads it while Qt blocks the GUI thread.
     std::shared_ptr<const nt::ui::AudioPeaks> m_peaks;
     int m_lastWidth = -1;
     int m_barCount = 0;

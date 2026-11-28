@@ -95,7 +95,7 @@ private:
     QThread* m_worker = nullptr;
 };
 
-// Takes for QML: the switcher of a timeline and a clip's badge text.
+// UI thread only. Takes for QML: the switcher of a timeline and a clip's badge text.
 class TakeInfo : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -104,7 +104,7 @@ public:
     TakeInfo(const nt::server::AssetCacheRoot& cache, QObject* parent) : QObject(parent), m_cache(cache) {}
     static TakeInfo* create(QQmlEngine* engine, QJSEngine*);
     Q_INVOKABLE TakeSwitcher* switcherFor(TimelineModel* timeline) const;
-    Q_INVOKABLE QString badge(const QVariantMap& clip) const;
+    Q_INVOKABLE QString badge(TimelineModel* timeline, const QString& clipId) const;
 
 private:
     const nt::server::AssetCacheRoot m_cache;

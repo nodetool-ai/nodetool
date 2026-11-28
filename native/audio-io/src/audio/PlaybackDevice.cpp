@@ -116,6 +116,14 @@ void PlaybackDevice::close() {
     m_impl->close();
 }
 
+int PlaybackDevice::periodFrames() const {
+    return static_cast<int>(m_impl->device.playback.internalPeriodSizeInFrames);
+}
+
+double PlaybackDevice::internalSampleRate() const {
+    return static_cast<double>(m_impl->device.playback.internalSampleRate);
+}
+
 PlaybackDevice::Latency PlaybackDevice::outputLatency() const {
     const Impl& d = *m_impl;
     Latency latency;
@@ -131,7 +139,7 @@ PlaybackDevice::Latency PlaybackDevice::outputLatency() const {
 #endif
     // Elsewhere: the device buffer.
     latency.seconds = static_cast<double>(d.device.playback.internalPeriodSizeInFrames * d.device.playback.internalPeriods) /
-                      m_sampleRate;
+                      internalSampleRate();
     return latency;
 }
 

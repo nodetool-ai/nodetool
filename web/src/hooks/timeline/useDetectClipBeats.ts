@@ -37,15 +37,26 @@ export type DecodeClipAudio = (
   assetId: string
 ) => Promise<{ samples: Float32Array; sampleRate: number }>;
 
-const decodeAssetAudio: DecodeClipAudio = async (assetId) => {
-  const url = await resolveMediaUri(`asset://${assetId}`);
+/** Largest audio file decoded in the tab (bytes). */
+const MAX_DECODE_BYTES = 300 * 1024 * 1024;
+
+export const decodeAssetAudio: DecodeClipAudio = async (assetId) => {
+  const url = await resolveMediaUri(assetId.includes("://") ? assetId : `asset://${assetId}`);
   if (!url) throw new Error("The clip's media could not be found.");
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`The clip's media could not be loaded (${response.status}).`);
   }
+  const length = Number(response.headers?.get?.("content-length") ?? 0);
+  if (length > MAX_DECODE_BYTES) {
+    throw new Error("The clip's audio file is too large to analyze.");
+  }
+  const encoded = await response.arrayBuffer();
+  if (encoded.byteLength > MAX_DECODE_BYTES) {
+    throw new Error("The clip's audio file is too large to analyze.");
+  }
   const context = new OfflineAudioContext(1, 1, ANALYSIS_SAMPLE_RATE);
-  const audio = await context.decodeAudioData(await response.arrayBuffer());
+  const audio = await context.decodeAudioData(encoded);
   const samples = new Float32Array(audio.length);
   for (let channel = 0; channel < audio.numberOfChannels; channel++) {
     const data = audio.getChannelData(channel);

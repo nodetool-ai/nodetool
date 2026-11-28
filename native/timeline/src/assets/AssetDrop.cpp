@@ -109,7 +109,9 @@ QJsonObject dropAsset(QJsonObject raw, const QJsonObject& payload) {
         !nt::edit::clipFitsTrack(mediaType, target.value("type").toString())) { return raw; }
     const auto mode = payload.value("mode").toString("overlap");
     if (mode != "overlap" && mode != "overwrite" && mode != "insert") { return raw; }
-    double start = std::max(0.0, std::floor(payload.value("startMs").toDouble() + 0.5));
+    double start = payload.contains("atBar") || payload.contains("beat")
+        ? nt::edit::resolveMusicTime(raw, payload, QStringLiteral("startMs"))
+        : std::max(0.0, std::floor(payload.value("startMs").toDouble() + 0.5));
     if (!newTrack && mode != "overlap") {
         start = snapAssetDropMs(clips, trackId, start, payload.value("snapMs").toDouble());
     }

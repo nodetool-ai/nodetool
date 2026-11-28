@@ -33,6 +33,7 @@ namespace nt::server {
 class TimelineSession : public QObject {
     Q_OBJECT
     Q_PROPERTY(QObject* autosave READ autosave NOTIFY autosaveChanged)
+    Q_PROPERTY(bool canSave READ canSave NOTIFY canSaveChanged)
     Q_PROPERTY(bool switching READ switching NOTIFY switchingChanged)
     Q_PROPERTY(QString switchError READ switchError NOTIFY switchErrorChanged)
     Q_PROPERTY(bool canSwitchInPlace READ canSwitchInPlace CONSTANT)
@@ -46,15 +47,22 @@ public:
     void setPreferences(nt::app::Preferences* preferences);
     // Optional host callbacks for app-only resources (local file saver, matte
     // resolver) that live outside timeline_qml.
-    void setFlushLocalCallback(std::function<bool()> callback) { m_flushLocal = std::move(callback); }
+    void setFlushLocalCallback(std::function<bool()> callback, std::function<QString()> error = {}) {
+        m_flushLocal = std::move(callback);
+        m_localSaveError = std::move(error);
+        emit canSaveChanged();
+    }
     void setAttachLocalCallback(std::function<void(const QString&)> callback) { m_attachLocal = std::move(callback); }
     void setRefreshMediaCallback(std::function<void()> callback) { m_refreshMedia = std::move(callback); }
 
     // Attaches the initial AutosaveController when serverSaveTarget() is set.
     void attachInitialServer(const QString& baseUpdatedAt);
 
+    Q_INVOKABLE nt::server::SaveDocumentResult saveDocument();
+
     QObject* autosave() const { return m_autosave.get(); }
     AutosaveController* autosaveController() const { return m_autosave.get(); }
+    bool canSave() const;
     bool switching() const { return m_switching; }
     QString switchError() const { return m_switchError; }
     bool canSwitchInPlace() const { return !m_cloudTimeline; }
@@ -70,6 +78,7 @@ public:
     bool switchToLocalFile(const QString& filePath, nt::app::Preferences* preferences = nullptr);
 
 signals:
+    void canSaveChanged();
     void autosaveChanged();
     void switchingChanged();
     void switchErrorChanged();
@@ -107,6 +116,7 @@ private:
     bool m_switching = false;
     QString m_switchError;
     std::function<bool()> m_flushLocal;
+    std::function<QString()> m_localSaveError;
     std::function<void(const QString&)> m_attachLocal;
     std::function<void()> m_refreshMedia;
 };

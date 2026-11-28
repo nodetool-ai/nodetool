@@ -1,11 +1,15 @@
 #include "audio/AudioEngine.h"
+#include "audio/DenormalGuard.h"
+#include "audio/MasterLimiter.h"
+#include "audio/automation/AutomationCurves.h"
+#include <QJsonArray>
 #include "audio/loudness/LiveLoudness.h"
 
 #include "audio/AudioSource.h"
+#include "audio/SincResampler.h"
 #include "audio/ShuttleStretch.h"
 #include "audio/PlaybackDevice.h"
 #include "audio/hooks/OutputDevice.h"
-
 
 #include <algorithm>
 #include <atomic>
@@ -43,19 +47,187 @@ constexpr std::int64_t kChunkFrames = 4096;
 // each burst is long enough to hear.
 constexpr double kScrubMs = 70.0;
 constexpr double kScrubRampMs = 5.0;
+// At a loop wrap, the session that played up to the loop end keeps sounding
+// past it for this long and fades out under the wrapped audio (MD19 step 4).
+constexpr double kLoopFadeMs = 3.0;
+
+// The life of a wrap session in the second slot. The callback claims a ready
+// one when it crosses the loop end. The worker withdraws a ready one it
+// replaces. One compare-exchange decides which happened first.
+constexpr int kWrapReady = 0;
+constexpr int kWrapClaimed = 1;
+constexpr int kWrapWithdrawn = 2;
 
 std::string voiceKey(const VoicePlan& voice) {
     return voice.segmentId.empty() ? voice.clipId : voice.clipId + '\x1f' + voice.segmentId;
 }
 
+bool onlyMixerAutomationChanged(const Timeline& before,const Timeline& after) {
+    auto a=before.raw,b=after.raw; a.remove("tracks"); b.remove("tracks");
+    if (a!=b || before.tracks.size()!=after.tracks.size() || before.clips.size()!=after.clips.size() || before.sourcePath!=after.sourcePath) { return false; }
+    for (std::size_t i=0;i<before.clips.size();++i) {
+        const auto& oldClip=before.clips[i]; const auto& newClip=after.clips[i];
+        if (oldClip.mediaPath!=newClip.mediaPath || oldClip.audioPath!=newClip.audioPath || oldClip.originalMediaPath!=newClip.originalMediaPath) { return false; }
+    }
+    for (std::size_t i=0;i<before.tracks.size();++i) {
+        const auto& oldTrack=before.tracks[i]; const auto& newTrack=after.tracks[i];
+        if (oldTrack.mixerOverride!=newTrack.mixerOverride) { return false; }
+        if (oldTrack.raw==newTrack.raw) { continue; }
+        if (oldTrack.id!=newTrack.id || !oldTrack.mixerOverride ||
+            (oldTrack.type!=TrackType::Audio && oldTrack.type!=TrackType::Midi)) { return false; }
+        auto oldRaw=oldTrack.raw,newRaw=newTrack.raw;
+        if ((oldRaw["automationMode"]=="off")!=(newRaw["automationMode"]=="off")) { return false; }
+        const auto inserts=[](const QJsonObject& track) {
+            QJsonArray result;
+            for (const auto& item:track["automation"].toArray()) {
+                if (item.toObject()["target"].toObject()["kind"]!="mixer") { result.append(item); }
+            }
+            return result;
+        };
+        if (inserts(oldRaw)!=inserts(newRaw)) { return false; }
+        for (auto* raw:{&oldRaw,&newRaw}) { raw->remove("automation"); raw->remove("automationMode"); }
+        if (oldRaw!=newRaw) { return false; }
+    }
+    return true;
+}
+
+// Returns true when `before` and `after` differ only in `enabled` flags of existing
+// track or master effects whose processors are already live in `plan`, updating those
+// processors' atomic bypass flags in place so PDC delay lines crossfade without reset.
+bool applyInPlaceEffectBypass(const Timeline& before, const Timeline& after, const MixPlan& plan) {
+    if (before.tracks.size() != after.tracks.size() || before.clips.size() != after.clips.size() ||
+        before.sourcePath != after.sourcePath || before.masterVolumeDb != after.masterVolumeDb) {
+        return false;
+    }
+    for (std::size_t i = 0; i < before.clips.size(); ++i) {
+        if (before.clips[i].id != after.clips[i].id || before.clips[i].mediaPath != after.clips[i].mediaPath ||
+            before.clips[i].audioPath != after.clips[i].audioPath || before.clips[i].raw != after.clips[i].raw) {
+            return false;
+        }
+    }
+    auto stripMasterEffects = [](const QJsonObject& raw) {
+        QJsonObject copy = raw;
+        copy.remove(QStringLiteral("tracks"));
+        auto master = copy.value(QStringLiteral("master")).toObject();
+        master.remove(QStringLiteral("effects"));
+        copy.insert(QStringLiteral("master"), master);
+        return copy;
+    };
+    if (stripMasterEffects(before.raw) != stripMasterEffects(after.raw)) { return false; }
+
+    struct Toggle {
+        BlockProcessor* processor;
+        bool bypassed;
+    };
+    std::vector<Toggle> toggles;
+    const auto collect = [&](const QJsonArray& oldFx, const QJsonArray& newFx, const Processors& procs) -> bool {
+        if (oldFx.size() != newFx.size()) { return false; }
+        for (qsizetype i = 0; i < oldFx.size(); ++i) {
+            auto a = oldFx[i].toObject();
+            auto b = newFx[i].toObject();
+            const bool aEn = a.value(QStringLiteral("enabled")).toBool(false);
+            const bool bEn = b.value(QStringLiteral("enabled")).toBool(false);
+            a.remove(QStringLiteral("enabled"));
+            b.remove(QStringLiteral("enabled"));
+            if (a != b) { return false; }
+            if (aEn == bEn) { continue; }
+            const std::string id = b.value(QStringLiteral("id")).toString().toStdString();
+            if (id.empty()) { return false; }
+            BlockProcessor* found = nullptr;
+            for (const auto& proc : procs) {
+                if (proc && proc->id == id) { found = proc.get(); break; }
+            }
+            if (!found) { return false; }
+            toggles.push_back({found, !bEn});
+        }
+        return true;
+    };
+
+    if (!collect(before.raw.value(QStringLiteral("master")).toObject().value(QStringLiteral("effects")).toArray(),
+                 after.raw.value(QStringLiteral("master")).toObject().value(QStringLiteral("effects")).toArray(),
+                 plan.processors)) {
+        return false;
+    }
+    for (std::size_t i = 0; i < before.tracks.size(); ++i) {
+        const auto& oldT = before.tracks[i];
+        const auto& newT = after.tracks[i];
+        if (oldT.id != newT.id || oldT.type != newT.type || oldT.muted != newT.muted || oldT.solo != newT.solo ||
+            oldT.volumeDb != newT.volumeDb || oldT.pan != newT.pan || oldT.mixerOverride != newT.mixerOverride) {
+            return false;
+        }
+        auto oldRaw = oldT.raw;
+        auto newRaw = newT.raw;
+        const auto oldFx = oldRaw.value(QStringLiteral("effects")).toArray();
+        const auto newFx = newRaw.value(QStringLiteral("effects")).toArray();
+        oldRaw.remove(QStringLiteral("effects"));
+        newRaw.remove(QStringLiteral("effects"));
+        if (oldRaw != newRaw) { return false; }
+        if (oldFx == newFx) { continue; }
+        const TrackPlan* bus = nullptr;
+        for (const auto& tp : plan.tracks) {
+            if (tp.trackId == newT.id) { bus = &tp; break; }
+        }
+        if (!bus || !collect(oldFx, newFx, bus->processors)) { return false; }
+    }
+    if (toggles.empty()) { return false; }
+    for (const auto& t : toggles) {
+        t.processor->setBypassed(t.bypassed);
+    }
+    return true;
+}
+
+int computeEffectivePlanLatency(const MixPlan& plan) noexcept {
+    if (!plan.state) { return 0; }
+    bool anyVoiceProc = false;
+    for (const auto& v : plan.voices) {
+        if (!v.processors.empty()) {
+            anyVoiceProc = true;
+            break;
+        }
+    }
+    int maxTrack = 0;
+    for (std::size_t i = 0; i < plan.tracks.size(); ++i) {
+        int voiceMax = 0;
+        if (anyVoiceProc) {
+            for (const auto& v : plan.voices) {
+                if (v.trackIndex == i && !v.processors.empty()) {
+                    int sum = 0;
+                    for (const auto& p : v.processors) {
+                        if (p) { sum += p->effectiveLatencySamples(); }
+                    }
+                    voiceMax = std::max(voiceMax, sum);
+                }
+            }
+        }
+        int sum = voiceMax;
+        for (const auto& p : plan.tracks[i].processors) {
+            if (p) { sum += p->effectiveLatencySamples(); }
+        }
+        maxTrack = std::max(maxTrack, sum);
+    }
+    int master = 0;
+    for (const auto& p : plan.processors) {
+        if (p) { master += p->effectiveLatencySamples(); }
+    }
+    return maxTrack + master;
+}
+
 // One mix snapshot's PCM: rings are retained across unchanged mappings and
 // released by the worker after the callback no longer reads their snapshots.
-// native-rules #9: atomics shared by the worker and the device callback, no affinity comment at the top
+// Thread affinity: the decode worker builds, fills and frees it. The device
+// callback reads it only while a hazard slot (Impl::inUse, Impl::inUseWrap)
+// names it, and writes only the atomics, `pcm` and its rings' read floors.
+// The plain fields other than `pcm` are set before the worker publishes it.
 struct Session {
     std::atomic<std::uint64_t> seekSeq{0};
     double startMs = 0.0;
     std::uint64_t planVersion = 0;
-    // native-rules #1: std::shared_ptr MixPlan, no comment on why unique ownership is impossible
+    // Loop wraps since the seek: a wrap session is its current session's pass + 1.
+    std::uint64_t pass = 0;
+    // Wrap sessions only: kWrapReady, kWrapClaimed or kWrapWithdrawn.
+    std::atomic<int> wrapState{kWrapReady};
+    // Shared: every session built from one plan version holds it, and
+    // Impl::plan holds the newest until the next edit replaces it.
     std::shared_ptr<const MixPlan> plan;
     // Shared only between worker-owned snapshots. The callback never copies
     // or destroys an owner. Old snapshots retain rings until their hazard clears.
@@ -79,7 +251,16 @@ struct AudioEngine::Impl {
     std::atomic<bool> running{false};
     std::atomic<Session*> published{nullptr};
     std::atomic<Session*> inUse{nullptr};
+    // MD19: the session primed from the loop start, written by the worker,
+    // and the callback's hazard slot for it. The worker frees a session only
+    // when none of published, inUse, wrapSlot and inUseWrap names it.
+    std::atomic<Session*> wrapSlot{nullptr};
+    std::atomic<Session*> inUseWrap{nullptr};
     double sampleRate = 48000.0;
+    int devicePeriodFrames = kMixBlockFrames;
+    std::atomic<double> deviceLatencySec{0.0};
+    std::atomic<int> pdcLatencyFrames{0};
+    std::atomic<int> masterLimiterLatencyFrames{0};
     std::atomic<double> latencySec{0.0};
     std::atomic<std::uint64_t> generation{0};
 
@@ -91,14 +272,34 @@ struct AudioEngine::Impl {
     std::atomic<std::int64_t> waitBlocks{0};
     std::atomic<std::int64_t> playedFrames{0};  // frames mixed while playing
     std::atomic<std::int64_t> lateStarts{0};
+    std::atomic<std::int64_t> loopWraps{0};
+    std::atomic<std::int64_t> loopMisses{0};
     std::atomic<double> lastPlayStartMs{-1.0};
     std::int64_t seenStartNs = 0;
+    // The loop crossing, callback only. `crossed` is the wrap session the
+    // callback plays until the worker publishes it as current; inUseWrap
+    // keeps naming it until then. During the fade the callback keeps both
+    // hazard slots as they are, so `fadeFrom` (named by inUse) stays alive.
+    Session* crossed = nullptr;
+    Session* fadeFrom = nullptr;
+    Session* heldCurrent = nullptr;  // the published session the fade holds
+    double fadeFromMs = 0.0;         // timeline time of the next outgoing frame
+    std::int64_t fadeFrames = 0;     // kLoopFadeMs at the device rate, set in start()
+    std::int64_t fadeDone = 0;       // frames of the fade mixed so far
+    std::vector<float> fadeScratch;  // fadeFrames stereo frames, sized in start()
     // The loudness meter of the played mix. Created in start() before the device runs, driven only by the
     // callback. `meterPlaying` and `meterSeq` are the callback's own: a pause or a seek restarts the short
     // windows once, not on every block.
     std::unique_ptr<LiveLoudness> liveLoudness;
     bool meterPlaying = false;
     std::uint64_t meterSeq = 0;
+    // Master true-peak look-ahead limiter. Created and prepared in start() before the device runs,
+    // touched only by the audio callback while running, and destroyed in stop().
+    std::unique_ptr<MasterLimiter> masterLimiter;
+    bool limiterPlaying = false;
+    std::uint64_t limiterSeq = 0;
+    std::uint64_t scrubLimiterSeq = 0;
+    std::uint64_t scrubMeterSeq = 0;
     // Scrub burst. The worker publishes the seek to audition. Only the
     // callback touches its own progress.
     std::atomic<std::uint64_t> scrubRequest{0};
@@ -132,11 +333,13 @@ struct AudioEngine::Impl {
 
     // ---- worker ----
     std::jthread worker;
-    std::mutex mutex;  // guards plan, planVersion, stopWorker
+    std::mutex mutex;  // guards plan, controlTimeline, planVersion, stopWorker
     std::condition_variable wake;
     bool stopWorker = false;
-    // native-rules #1: std::shared_ptr MixPlan, no comment on why unique ownership is impossible
+    // Shared with every session built from it (Session::plan).
     std::shared_ptr<const MixPlan> plan = std::make_shared<MixPlan>();
+    // Shared with source snapshots. Only the control thread compares this immutable document.
+    std::shared_ptr<const Timeline> controlTimeline;
     std::uint64_t planVersion = 1;
     std::uint64_t publishedPlanVersion = 0;  // guarded by mutex, caller publication acknowledgement
     std::map<std::string, std::unique_ptr<AudioSource>> sources;  // by clip id and path
@@ -154,8 +357,8 @@ struct AudioEngine::Impl {
     std::string backendName;
     std::string deviceName;
     bool selectedDevice = false;
-    // The CoreAudio latency facts, written on device start and on a reroute
-    // (a CoreAudio thread) and read by stats().
+    // CoreAudio latency facts, written at start and by the decode worker
+    // after notifications, and read by stats().
     mutable std::mutex factsMutex;
     OutputLatency coreAudio;
     // F6: source failures, for the report.
@@ -167,19 +370,54 @@ struct AudioEngine::Impl {
     std::atomic<std::int64_t> openSources{0};
     std::atomic<std::int64_t> sourcesOpened{0};
     std::atomic<std::int64_t> sourcesEvicted{0};
-    std::atomic<bool> deviceStopped{false};  // a `stopped` notification came while running
+    // Lock-free device notification handoff from miniaudio's notificationCallback
+    // (which PulseAudio dispatches inside its audio data loop) to the non-audio decode
+    // worker thread, which is the sole writer to feed.device while running.
+    // Bit layout of notifState:
+    //   bit  0     : stopped (1 = stopped, 0 = running)
+    //   bit  1     : needsLatencyQuery (1 = reroute/resume occurred; worker re-queries latency)
+    //   bits 2..25 : 24-bit wrapping counter of reroute/resume generation bumps
+    //   bits 26..63: 38-bit monotonic event sequence number
+    static constexpr std::uint64_t kNotifStoppedBit = 1ull << 0;
+    static constexpr std::uint64_t kNotifQueryBit = 1ull << 1;
+    static constexpr std::uint64_t kNotifGenShift = 2;
+    static constexpr std::uint64_t kNotifGenMask = (1ull << 24) - 1ull;
+    static constexpr std::uint64_t kNotifSeqShift = 26;
+    static_assert(std::atomic<std::uint64_t>::is_always_lock_free);
 
+    std::atomic<std::uint64_t> notifState{0};
+    std::atomic<double> pendingSimulatedLatencySec{0.0};
+    // Guarded by mutex: written by publishPlan/start/stop, read by drainDevicePublications.
+    int pendingPdcLatencyFrames = 0;
+    int pendingLimiterLatencyFrames = 0;
+    std::uint64_t latencyEditSeq = 0;
+    std::uint64_t workerNotifSeq = 0;       // worker thread only while running
+    std::uint64_t workerNotifGen = 0;       // worker thread only while running
+    std::uint64_t workerLatencySeq = 0;     // worker thread only while running
+    std::uint64_t publishedNotifSeq = 0;    // guarded by mutex
+    std::atomic<bool> deviceStopped{false};  // worker thread writes, stats/control may read
+
+    void updateTotalLatency() noexcept {
+        const double dev = deviceLatencySec.load(std::memory_order_acquire);
+        const int extra = pdcLatencyFrames.load(std::memory_order_acquire) +
+                          masterLimiterLatencyFrames.load(std::memory_order_acquire);
+        const double total = dev + (sampleRate > 0.0 ? static_cast<double>(extra) / sampleRate : 0.0);
+        latencySec.store(total, std::memory_order_release);
+    }
+
+    // Sole writer to feed.device while running is the non-audio worker thread
+    // (plus start() before worker launch and stop() after worker join).
     void publishDevice(bool isRunning) {
         DeviceInfo info;
         info.running = isRunning;
         info.sampleRate = sampleRate;
-        info.outputLatencySec = latencySec.load();
-        info.generation = generation.load();
+        info.outputLatencySec = latencySec.load(std::memory_order_acquire);
+        info.generation = generation.load(std::memory_order_acquire);
         feed.device.store(info);
     }
 
     double queryLatency() {
-        if (options.backend == Backend::Null) return options.simulatedLatencySec;
+        if (options.backend != Backend::System) return pendingSimulatedLatencySec.load(std::memory_order_acquire);
         // On CoreAudio the device facts, elsewhere the device buffer.
         const PlaybackDevice::Latency latency = device->outputLatency();
         if (latency.coreAudio) {
@@ -190,21 +428,101 @@ struct AudioEngine::Impl {
     }
 
     // ---- callback ----
-    Session* acquireSession() {
+    // A hazard pointer: names the session in `slot` in `hazard`, and checks
+    // that the slot still holds it, so the worker cannot have freed it.
+    static Session* acquire(const std::atomic<Session*>& slot, std::atomic<Session*>& hazard) {
         Session* s = nullptr;
         do {
-            s = published.load(std::memory_order_seq_cst);
-            inUse.store(s, std::memory_order_seq_cst);
-        } while (s != published.load(std::memory_order_seq_cst));
+            s = slot.load(std::memory_order_seq_cst);
+            hazard.store(s, std::memory_order_seq_cst);
+        } while (s != slot.load(std::memory_order_seq_cst));
         return s;
     }
 
-    void render(float* out, std::uint32_t frames) {
-        const std::int64_t hostNs = steadyNowNs();
-        Session* s = acquireSession();
-        const AudioAnchor anchor = driver->beginBlock(hostNs, frames, sampleRate, [s](std::uint64_t seq) {
-            return s && s->seekSeq.load(std::memory_order_acquire) == seq && s->primed.load(std::memory_order_acquire);
-        });
+    // Mixes `frames` frames of `s` from timeline time `t0` into `out`.
+    // Returns true when a voice lacked PCM.
+    bool mixSession(Session& s, double t0, double msPerFrame, std::int64_t frames, float* out) {
+        const double tEnd = t0 + msPerFrame * static_cast<double>(frames);
+        const MixPlan& plan = *s.plan;
+        bool missing = false;
+        for (std::size_t i = 0; i < plan.voices.size(); ++i) {
+            const VoicePlan& v = plan.voices[i];
+            const bool overlaps = !v.silent && tEnd > v.startMs && t0 < v.startMs + v.durationMs;
+            s.pcm[i].ring = overlaps ? s.live[i].load(std::memory_order_acquire) : nullptr;
+            if (overlaps && !s.pcm[i].ring && !s.failed[i].load(std::memory_order_relaxed)) missing = true;
+        }
+        MixStats st;
+        mixBlock(plan, s.pcm.data(), sampleRate, t0, msPerFrame, static_cast<int>(frames), out, st);
+        s.doneMs.store(tEnd, std::memory_order_release);
+        s.consumed.store(true, std::memory_order_release);
+        return missing || st.underruns > 0;
+    }
+
+    // The fade of MD19 step 4 over `frames` frames of `out`, which hold the
+    // wrapped audio: the session that played up to the loop end continues
+    // past it with a gain from 1 down to 1/fadeFrames, and the wrapped audio
+    // rises to match, so the first frame after the wrap continues the last
+    // frame before it. A plan with effects or automation keeps its state in
+    // the plan, so only a plan without either fades (a third mixBlock at
+    // another time would advance that state); with one, the wrap is a cut.
+    bool mixFade(float* out, std::int64_t frames, double msPerFrame) {
+        const std::int64_t n = std::min(frames, fadeFrames - fadeDone);
+        if (n <= 0 || !fadeFrom) return false;
+        const bool missing = mixSession(*fadeFrom, fadeFromMs, msPerFrame, n, fadeScratch.data());
+        for (std::int64_t i = 0; i < n; ++i) {
+            const double out1 = 1.0 - static_cast<double>(fadeDone + i) / static_cast<double>(fadeFrames);
+            for (int c = 0; c < 2; ++c) {
+                const auto at = static_cast<std::size_t>(i * 2 + c);
+                out[at] = static_cast<float>(out[at] * (1.0 - out1) + fadeScratch[at] * out1);
+            }
+        }
+        fadeDone += n;
+        fadeFromMs += msPerFrame * static_cast<double>(n);
+        if (fadeDone >= fadeFrames) fadeFrom = nullptr;
+        return missing;
+    }
+
+    // Audio callback only: applies the master limiter with phase-continuous delay slewing on live
+    // toggles and keeps look-ahead detector state warm while bypassed (no allocation, no locks).
+    void applyMasterLimiter(float* out, std::size_t frames, bool limiterOn, bool hardReset) noexcept {
+        if (!masterLimiter || frames == 0) return;
+        masterLimiter->processLive(std::span<float>(out, frames * 2), limiterOn, hardReset);
+    }
+
+    void render(float* out, std::uint32_t frames, std::int64_t hostNs) {
+        const ScopedDenormalGuard denormalGuard;
+        // While a fade runs, both hazard slots keep the sessions they named
+        // when the block crossed the loop end. Otherwise take the published
+        // session, and the wrap slot unless the callback is still in a wrap
+        // session the worker has not published.
+        Session* s = fadeFrom ? heldCurrent : acquire(published, inUse);
+        if (crossed && s && s->seekSeq.load(std::memory_order_acquire) == crossed->seekSeq.load(std::memory_order_acquire) &&
+            s->pass == crossed->pass) {
+            crossed = nullptr;  // the worker made it current
+        }
+        Session* wrap = crossed ? crossed : (fadeFrom ? inUseWrap.load(std::memory_order_relaxed) : acquire(wrapSlot, inUseWrap));
+        Session* play = crossed ? crossed : s;
+        const AudioAnchor anchor = driver->beginBlock(
+            hostNs, frames, sampleRate,
+            [s](std::uint64_t seq) {
+                return s && s->seekSeq.load(std::memory_order_acquire) == seq && s->primed.load(std::memory_order_acquire);
+            },
+            [&](std::uint64_t seq, double loopStartMs) {
+                // One crossing at a time, from the published session only.
+                if (crossed || fadeFrom || !play || !wrap || wrap == play) return false;
+                if (play->seekSeq.load(std::memory_order_acquire) != seq || wrap->seekSeq.load(std::memory_order_acquire) != seq ||
+                    wrap->pass != play->pass + 1 || wrap->startMs != loopStartMs || !wrap->primed.load(std::memory_order_acquire)) {
+                    return false;
+                }
+                int expected = kWrapReady;
+                return wrap->wrapState.compare_exchange_strong(expected, kWrapClaimed, std::memory_order_acq_rel);
+            });
+        if (crossed && crossed->seekSeq.load(std::memory_order_acquire) != anchor.seekSeq) {
+            // A seek started: the wrap session belongs to the one before.
+            crossed = nullptr;
+            fadeFrom = nullptr;
+            play = s;
+        }
         const std::int64_t framesAt = driver->framesRendered() - frames;
         if (driver->lastStartNs() != seenStartNs) {
             seenStartNs = driver->lastStartNs();
@@ -213,32 +531,37 @@ struct AudioEngine::Impl {
             if (driver->lastStartLate()) lateStarts.fetch_add(1, std::memory_order_relaxed);
         }
         const auto silence = [&]() { std::fill(out, out + static_cast<std::size_t>(frames) * 2, 0.0f); };
+        if (!anchor.playing || driver->seekPending()) fadeFrom = nullptr;
+        if (driver->wrapMissed()) loopMisses.fetch_add(1, std::memory_order_relaxed);
         if (!anchor.playing) {
             meterPlaying = false;
+            limiterPlaying = false;
             silence();
-            renderScrub(s, out, frames);
-        } else if (driver->seekPending() || !s || s->seekSeq.load(std::memory_order_acquire) != anchor.seekSeq) {
+            if (renderScrub(s, out, frames)) {
+                const bool limiterOn = s && s->plan && s->plan->masterLimiterEnabled && masterLimiter;
+                const bool newScrub = scrubLimiterSeq != scrubSeq;
+                applyMasterLimiter(out, frames, limiterOn, newScrub);
+                scrubLimiterSeq = scrubSeq;
+                if (liveLoudness) {
+                    if (scrubMeterSeq != scrubSeq) {
+                        liveLoudness->discontinuity();
+                        scrubMeterSeq = scrubSeq;
+                    }
+                    liveLoudness->process(out, static_cast<int>(frames));
+                }
+            }
+        } else if (driver->seekPending() || !play || play->seekSeq.load(std::memory_order_acquire) != anchor.seekSeq) {
             meterPlaying = false;
+            limiterPlaying = false;
             silence();
             waitBlocks.fetch_add(1, std::memory_order_relaxed);
         } else if (anchor.keepPitch && shuttleKeepsPitch(anchor.rate)) {
             renderShuttle(anchor, framesAt - anchor.frame, frames, out);
-            playedFrames.fetch_add(frames, std::memory_order_relaxed);
-        } else {
-            const double t0 = CallbackClockDriver::timelineAt(anchor, framesAt, sampleRate);
-            const double msPerFrame = 1000.0 / sampleRate * anchor.rate;
-            const double tEnd = t0 + msPerFrame * frames;
-            const MixPlan& plan = *s->plan;
-            bool missing = false;
-            for (std::size_t i = 0; i < plan.voices.size(); ++i) {
-                const VoicePlan& v = plan.voices[i];
-                const bool overlaps = !v.silent && tEnd > v.startMs && t0 < v.startMs + v.durationMs;
-                s->pcm[i].ring = overlaps ? s->live[i].load(std::memory_order_acquire) : nullptr;
-                if (overlaps && !s->pcm[i].ring && !s->failed[i].load(std::memory_order_relaxed)) missing = true;
-            }
-            MixStats st;
-            mixBlock(plan, s->pcm.data(), sampleRate, t0, msPerFrame, static_cast<int>(frames), out, st);
-            if (st.underruns > 0 || missing) underruns.fetch_add(1, std::memory_order_relaxed);
+            const bool limiterOn = play->plan->masterLimiterEnabled && masterLimiter;
+            const bool hardReset = !limiterPlaying || limiterSeq != anchor.seekSeq;
+            applyMasterLimiter(out, frames, limiterOn, hardReset);
+            limiterPlaying = true;
+            limiterSeq = anchor.seekSeq;
             if (liveLoudness) {
                 if (!meterPlaying || meterSeq != anchor.seekSeq) {
                     liveLoudness->discontinuity();
@@ -247,9 +570,61 @@ struct AudioEngine::Impl {
                 }
                 liveLoudness->process(out, static_cast<int>(frames));
             }
-            s->doneMs.store(tEnd, std::memory_order_release);
             playedFrames.fetch_add(frames, std::memory_order_relaxed);
-            s->consumed.store(true, std::memory_order_release);
+        } else {
+            const double t0 = CallbackClockDriver::timelineAt(anchor, framesAt, sampleRate);
+            const double msPerFrame = 1000.0 / sampleRate * anchor.rate;
+            const std::int64_t wrapAt = driver->wrapOffset();
+            bool missing = false;
+            if (wrapAt < 0) {
+                missing = mixSession(*play, t0, msPerFrame, frames, out);
+                if (fadeFrom) missing = mixFade(out, frames, msPerFrame) || missing;
+            } else {
+                // MD19 step 3: the frames before the wrap from the current
+                // session, the frames after it from the wrap session.
+                const double endMs = t0 + msPerFrame * static_cast<double>(wrapAt);
+                if (wrapAt > 0) missing = mixSession(*play, t0, msPerFrame, wrapAt, out);
+                float* after = out + wrapAt * 2;
+                const std::int64_t rest = static_cast<std::int64_t>(frames) - wrapAt;
+                missing = mixSession(*wrap, driver->command().loopStartMs, msPerFrame, rest, after) || missing;
+                loopWraps.fetch_add(1, std::memory_order_relaxed);
+                if (!play->plan->state) {
+                    fadeFrom = play;
+                    heldCurrent = s;
+                    fadeFromMs = endMs;
+                    fadeDone = 0;
+                    missing = mixFade(after, rest, msPerFrame) || missing;
+                }
+                crossed = wrap;
+            }
+            if (missing) underruns.fetch_add(1, std::memory_order_relaxed);
+            const bool limiterOn = play->plan->masterLimiterEnabled && masterLimiter;
+            const bool hardReset = !limiterPlaying || limiterSeq != anchor.seekSeq;
+            if (wrapAt >= 0) {
+                if (wrapAt > 0) {
+                    applyMasterLimiter(out, static_cast<std::size_t>(wrapAt), limiterOn, hardReset);
+                }
+                if (masterLimiter) {
+                    masterLimiter->markLoopBoundary();
+                }
+                const std::size_t rest = static_cast<std::size_t>(frames) - static_cast<std::size_t>(wrapAt);
+                if (rest > 0) {
+                    applyMasterLimiter(out + wrapAt * 2, rest, limiterOn, wrapAt == 0 && hardReset);
+                }
+            } else {
+                applyMasterLimiter(out, frames, limiterOn, hardReset);
+            }
+            limiterPlaying = true;
+            limiterSeq = anchor.seekSeq;
+            if (liveLoudness) {
+                if (!meterPlaying || meterSeq != anchor.seekSeq) {
+                    liveLoudness->discontinuity();
+                    meterPlaying = true;
+                    meterSeq = anchor.seekSeq;
+                }
+                liveLoudness->process(out, static_cast<int>(frames));
+            }
+            playedFrames.fetch_add(frames, std::memory_order_relaxed);
         }
         if (!record.empty()) {
             const std::int64_t cap = static_cast<std::int64_t>(record.size() / 2);
@@ -294,77 +669,153 @@ struct AudioEngine::Impl {
     }
 
     // While paused, plays kScrubMs of the mix from the start of the primed session.
-    void renderScrub(Session* s, float* out, std::uint32_t frames) {
+    // Returns true while a scrub burst (including limiter look-ahead drain) is active.
+    bool renderScrub(Session* s, float* out, std::uint32_t frames) {
         const std::uint64_t request = scrubRequest.load(std::memory_order_acquire);
         if (request != scrubSeq) {
             scrubSeq = request;
             scrubPos = 0;
         }
         const auto total = static_cast<std::int64_t>(kScrubMs * sampleRate / 1000.0);
-        if (!s || scrubSeq == 0 || scrubPos >= total || s->seekSeq.load(std::memory_order_acquire) != scrubSeq ||
+        if (!s || scrubSeq == 0 || s->seekSeq.load(std::memory_order_acquire) != scrubSeq ||
             !s->primed.load(std::memory_order_acquire)) {
-            return;
+            return false;
         }
-        const double msPerFrame = 1000.0 / sampleRate;
-        const double t0 = s->startMs + msPerFrame * static_cast<double>(scrubPos);
-        const double tEnd = t0 + msPerFrame * frames;
         const MixPlan& plan = *s->plan;
-        for (std::size_t i = 0; i < plan.voices.size(); ++i) {
-            const VoicePlan& v = plan.voices[i];
-            const bool overlaps = !v.silent && tEnd > v.startMs && t0 < v.startMs + v.durationMs;
-            s->pcm[i].ring = overlaps ? s->live[i].load(std::memory_order_acquire) : nullptr;
+        const std::int64_t drainPad = (plan.masterLimiterEnabled && masterLimiter) ? masterLimiter->latencySamples() : 0;
+        if (scrubPos >= total + drainPad) {
+            return false;
         }
-        MixStats st;
-        mixBlock(plan, s->pcm.data(), sampleRate, t0, msPerFrame, static_cast<int>(frames), out, st);
-        const double ramp = std::max(1.0, kScrubRampMs * sampleRate / 1000.0);
-        for (std::uint32_t i = 0; i < frames; ++i) {
-            const double at = static_cast<double>(scrubPos + i);
-            const double gain = at >= total ? 0.0 : std::min({1.0, (at + 1.0) / ramp, (static_cast<double>(total) - at) / ramp});
-            out[2 * i] = static_cast<float>(out[2 * i] * gain);
-            out[2 * i + 1] = static_cast<float>(out[2 * i + 1] * gain);
+        if (scrubPos < total) {
+            const double msPerFrame = 1000.0 / sampleRate;
+            const double t0 = s->startMs + msPerFrame * static_cast<double>(scrubPos);
+            const double tEnd = t0 + msPerFrame * frames;
+            for (std::size_t i = 0; i < plan.voices.size(); ++i) {
+                const VoicePlan& v = plan.voices[i];
+                const bool overlaps = !v.silent && tEnd > v.startMs && t0 < v.startMs + v.durationMs;
+                s->pcm[i].ring = overlaps ? s->live[i].load(std::memory_order_acquire) : nullptr;
+            }
+            MixStats st;
+            mixBlock(plan, s->pcm.data(), sampleRate, t0, msPerFrame, static_cast<int>(frames), out, st);
+            const double ramp = std::max(1.0, kScrubRampMs * sampleRate / 1000.0);
+            for (std::uint32_t i = 0; i < frames; ++i) {
+                const double at = static_cast<double>(scrubPos + i);
+                const double gain = at >= total ? 0.0 : std::min({1.0, (at + 1.0) / ramp, (static_cast<double>(total) - at) / ramp});
+                out[2 * i] = static_cast<float>(out[2 * i] * gain);
+                out[2 * i + 1] = static_cast<float>(out[2 * i + 1] * gain);
+            }
         }
         scrubPos += frames;
+        return true;
     }
 
     static void dataCallback(void* user, float* output, std::uint32_t frames) {
-        static_cast<Impl*>(user)->render(output, frames);
+        static_cast<Impl*>(user)->render(output, frames, steadyNowNs());
     }
 
     static void notificationCallback(void* user, PlaybackDevice::Notification notification) {
-        static_cast<Impl*>(user)->onNotification(notification);
+        (void)static_cast<Impl*>(user)->onNotification(notification);
     }
 
-    void onNotification(PlaybackDevice::Notification type) {
-        switch (type) {
-            case PlaybackDevice::Notification::Rerouted:
-                // D21 step 3: the latency is queried again; the clock sees a
-                // new generation and re-anchors (step 4).
-                latencySec.store(queryLatency());
-                generation.fetch_add(1);
-                publishDevice(true);
-                break;
-            case PlaybackDevice::Notification::Stopped:
-                // The device stopped on its own (a suspend, a lost device):
-                // the clock falls back to the monotonic clock.
-                if (running.load()) {
-                    deviceStopped.store(true, std::memory_order_release);
-                    publishDevice(false);
-                }
-                break;
-            case PlaybackDevice::Notification::Started:
-                // A resume after such a stop (PulseAudio suspend and resume
-                // send the pair without a reroute). The device facts may have
-                // changed: query them again under a new generation, so the
-                // clock re-anchors on the device.
-                if (running.load() && deviceStopped.exchange(false, std::memory_order_acq_rel)) {
-                    latencySec.store(queryLatency());
-                    generation.fetch_add(1);
-                    publishDevice(true);
-                }
-                break;
-            default:
-                break;
+    // Strictly lock-free and allocation-free: PulseAudio dispatches device notifications
+    // directly inside its real-time audio data loop. Never acquires any mutex, never
+    // queries OS latency, and never writes feed.device; the non-audio worker thread drains
+    // notifState and publishes feed.device.
+    std::uint64_t onNotification(PlaybackDevice::Notification type) noexcept {
+        if (!running.load(std::memory_order_acquire)) {
+            return notifState.load(std::memory_order_acquire) >> kNotifSeqShift;
         }
+        std::uint64_t cur = notifState.load(std::memory_order_acquire);
+        for (;;) {
+            const bool isStopped = (cur & kNotifStoppedBit) != 0;
+            std::uint64_t next = cur;
+            bool changed = false;
+            switch (type) {
+                case PlaybackDevice::Notification::Rerouted: {
+                    // D21 step 3: latency is re-queried on the worker thread; generation bumps.
+                    const std::uint64_t gen = (((cur >> kNotifGenShift) & kNotifGenMask) + 1ull) & kNotifGenMask;
+                    const std::uint64_t seq = (cur >> kNotifSeqShift) + 1ull;
+                    next = kNotifQueryBit | (gen << kNotifGenShift) | (seq << kNotifSeqShift);
+                    changed = true;
+                    break;
+                }
+                case PlaybackDevice::Notification::Stopped: {
+                    // Device stopped (suspend / lost device): clock falls back to monotonic.
+                    const std::uint64_t gen = (cur >> kNotifGenShift) & kNotifGenMask;
+                    const std::uint64_t seq = (cur >> kNotifSeqShift) + 1ull;
+                    next = (cur & kNotifQueryBit) | kNotifStoppedBit | (gen << kNotifGenShift) | (seq << kNotifSeqShift);
+                    changed = true;
+                    break;
+                }
+                case PlaybackDevice::Notification::Started: {
+                    // Resume after a prior stop: re-query latency on worker under a new generation.
+                    if (isStopped) {
+                        const std::uint64_t gen = (((cur >> kNotifGenShift) & kNotifGenMask) + 1ull) & kNotifGenMask;
+                        const std::uint64_t seq = (cur >> kNotifSeqShift) + 1ull;
+                        next = kNotifQueryBit | (gen << kNotifGenShift) | (seq << kNotifSeqShift);
+                        changed = true;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            if (!changed) {
+                return cur >> kNotifSeqShift;
+            }
+            if (notifState.compare_exchange_weak(cur, next, std::memory_order_acq_rel, std::memory_order_acquire)) {
+                return next >> kNotifSeqShift;
+            }
+        }
+    }
+
+    // Worker thread only: sole publisher to feed.device while running.
+    void drainDevicePublications() {
+        const std::uint64_t state = notifState.load(std::memory_order_acquire);
+        const std::uint64_t seq = state >> kNotifSeqShift;
+        std::uint64_t latSeq = workerLatencySeq;
+        int nextPdc = 0;
+        int nextLimiter = 0;
+        {
+            std::lock_guard lock(mutex);
+            latSeq = latencyEditSeq;
+            nextPdc = pendingPdcLatencyFrames;
+            nextLimiter = pendingLimiterLatencyFrames;
+        }
+        if (seq == workerNotifSeq && latSeq == workerLatencySeq) {
+            return;
+        }
+        bool stopped = deviceStopped.load(std::memory_order_relaxed);
+        if (seq != workerNotifSeq) {
+            stopped = (state & kNotifStoppedBit) != 0;
+            const std::uint64_t gen = (state >> kNotifGenShift) & kNotifGenMask;
+            const std::uint64_t genDelta = (gen - workerNotifGen) & kNotifGenMask;
+            if ((state & kNotifQueryBit) != 0) {
+                const double queried = queryLatency();
+                deviceLatencySec.store(queried, std::memory_order_release);
+                std::uint64_t expected = state;
+                (void)notifState.compare_exchange_strong(expected, state & ~kNotifQueryBit,
+                                                         std::memory_order_acq_rel, std::memory_order_acquire);
+            }
+            if (genDelta > 0) {
+                generation.fetch_add(genDelta, std::memory_order_acq_rel);
+                workerNotifGen = gen;
+            }
+            deviceStopped.store(stopped, std::memory_order_release);
+            workerNotifSeq = seq;
+        }
+        if (latSeq != workerLatencySeq) {
+            pdcLatencyFrames.store(nextPdc, std::memory_order_release);
+            masterLimiterLatencyFrames.store(nextLimiter, std::memory_order_release);
+            workerLatencySeq = latSeq;
+        }
+        updateTotalLatency();
+        publishDevice(running.load(std::memory_order_acquire) && !stopped);
+        {
+            std::lock_guard lock(mutex);
+            publishedNotifSeq = workerNotifSeq;
+        }
+        wake.notify_all();
     }
 
     // ---- worker ----
@@ -387,15 +838,16 @@ struct AudioEngine::Impl {
         return raw;
     }
 
-    // Closes every decoder whose clip has no ring in the current session:
-    // its clip has played out or is beyond the lookahead. A later seek opens
-    // it again. Also totals the decode errors.
-    void evictSources(const Session* current) {
+    // Closes every decoder whose clip has no ring in the current session or
+    // the wrap session: its clip has played out or is beyond the lookahead.
+    // A later seek opens it again. Also totals the decode errors.
+    void evictSources(const Session* current, const Session* wrap) {
         std::set<std::string> wanted;
-        if (current) {
-            for (std::size_t i = 0; i < current->plan->voices.size(); ++i) {
-                if (current->rings[i]) {
-                    const VoicePlan& v = current->plan->voices[i];
+        for (const Session* keep : {current, wrap}) {
+            if (!keep) continue;
+            for (std::size_t i = 0; i < keep->plan->voices.size(); ++i) {
+                if (keep->rings[i]) {
+                    const VoicePlan& v = keep->plan->voices[i];
                     wanted.insert(v.clipId + '\n' + v.mediaPath);
                 }
             }
@@ -459,10 +911,13 @@ struct AudioEngine::Impl {
                 if (s->rings[i]) { ringsRetained.fetch_add(1, std::memory_order_relaxed); }
                 s->live[i].store(previous->live[j].load(std::memory_order_acquire));
                 s->failed[i].store(previous->failed[j].load(std::memory_order_relaxed));
+                // Reserve full max sinc wing so mid-session transport-rate jumps stay covered.
+                const std::int64_t margin = static_cast<std::int64_t>(kSincMaxRadius) + 2;
                 s->endFrame[i] = static_cast<std::int64_t>(
-                    std::ceil(v.sourceFrameAt(v.startMs + v.durationMs, sampleRate))) + 2;
+                    std::ceil(v.sourceFrameAt(v.startMs + v.durationMs, sampleRate))) + margin;
             }
             s->consumed.store(previous->consumed.load(std::memory_order_acquire));
+            s->pass = previous->pass;
         }
         sessionCount.fetch_add(1);
         return s;
@@ -495,19 +950,25 @@ struct AudioEngine::Impl {
                 s.failed[i].store(true, std::memory_order_relaxed);
                 continue;
             }
+            const double transportRate = std::max(1.0, std::abs(feed.command.load().rate));
+            const double effectiveSpeed = std::max(1.0, std::abs(v.sourceRate) * transportRate);
+            // Reserve full max sinc wing so mid-session transport-rate jumps stay covered.
+            const std::int64_t margin = static_cast<std::int64_t>(kSincMaxRadius) + 2;
             if (!s.rings[i]) {
                 const double fromMs = std::max(v.startMs, s.startMs);
                 const auto first = std::max<std::int64_t>(
-                    0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(fromMs, sampleRate))) - 1);
-                const auto cap = static_cast<std::int64_t>(kRingSeconds * sampleRate * std::max(1.0, v.sourceRate)) + 1024;
+                    0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(fromMs, sampleRate))) - margin);
+                const auto cap = static_cast<std::int64_t>(kRingSeconds * sampleRate * effectiveSpeed) + 1024;
                 s.rings[i] = std::make_shared<PcmRing>(cap, first);
-                s.endFrame[i] = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(endMs, sampleRate))) + 2;
+                s.endFrame[i] = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(endMs, sampleRate))) + margin;
             }
             PcmRing& ring = *s.rings[i];
-            const auto primeFrames = static_cast<std::int64_t>(kPrimeMs * sampleRate / 1000.0 * v.sourceRate) + 1024;
+            const double minPrimeSpan = std::max(
+                kPrimeMs * sampleRate / 1000.0 * std::abs(v.sourceRate) * transportRate,
+                static_cast<double>(2 * margin));
+            const auto primeFrames = static_cast<std::int64_t>(std::ceil(minPrimeSpan)) + 1024;
             const std::int64_t limit = playing ? s.endFrame[i] : std::min(s.endFrame[i], ring.firstFrame() + primeFrames);
-            const double needFrames = std::min(kPrimeMs * sampleRate / 1000.0 * v.sourceRate,
-                                              static_cast<double>(s.endFrame[i] - ring.firstFrame()));
+            const double needFrames = std::min(minPrimeSpan, static_cast<double>(s.endFrame[i] - ring.firstFrame()));
             if (ring.writeEnd() < limit && src->position() != ring.writeEnd()) src->seek(ring.writeEnd());
             while (ring.writeEnd() < limit && ring.endFrame() == INT64_MAX) {
                 const std::int64_t want = std::min({ring.freeFrames(), kChunkFrames, limit - ring.writeEnd()});
@@ -534,18 +995,103 @@ struct AudioEngine::Impl {
         return primed;
     }
 
+    // Frees every session that neither slot nor either hazard slot names.
+    // The slots are read before the hazards, so a session the callback is
+    // about to name has either left its slot (the callback's recheck then
+    // fails) or is still named here.
     void retire() {
-        Session* current = published.load();
+        Session* current = published.load(std::memory_order_seq_cst);
+        Session* wrap = wrapSlot.load(std::memory_order_seq_cst);
         Session* used = inUse.load(std::memory_order_seq_cst);
+        Session* usedWrap = inUseWrap.load(std::memory_order_seq_cst);
         std::erase_if(sessions, [&](const std::unique_ptr<Session>& s) {
-            return s.get() != current && s.get() != used;
+            const Session* p = s.get();
+            return p != current && p != wrap && p != used && p != usedWrap;
         });
     }
 
+    // ---- loop (MD19) ----
+    // Takes the wrap session out of its slot unless the callback crossed
+    // into it first. Returns true when it did cross: the caller promotes it.
+    bool withdrawWrap() {
+        Session* w = wrapSlot.load(std::memory_order_seq_cst);
+        if (!w) return false;
+        int expected = kWrapReady;
+        if (w->wrapState.compare_exchange_strong(expected, kWrapWithdrawn, std::memory_order_acq_rel) ||
+            expected == kWrapWithdrawn) {
+            wrapSlot.store(nullptr, std::memory_order_seq_cst);
+            return false;
+        }
+        return true;
+    }
+
+    // MD19 step 5: the wrap session the callback crossed into becomes current.
+    Session* promoteWrap() {
+        Session* w = wrapSlot.load(std::memory_order_seq_cst);
+        published.store(w, std::memory_order_seq_cst);
+        wrapSlot.store(nullptr, std::memory_order_seq_cst);
+        return w;
+    }
+
+    bool wrapClaimed() const {
+        const Session* w = wrapSlot.load(std::memory_order_seq_cst);
+        return w && w->wrapState.load(std::memory_order_acquire) == kWrapClaimed;
+    }
+
+    // Keeps a primed session from the loop start in the second slot while
+    // the command loops: builds it, rebuilds it after an edit (retaining
+    // its rings) or a changed range, and drops it when the loop ends.
+    void maintainWrap(const playback::TransportCommand& cmd, Session*& current) {
+        const bool loops = cmd.playing && cmd.rate == 1.0 && !cmd.keepPitch && cmd.loopEndMs > cmd.loopStartMs &&
+                           cmd.loopStartMs >= 0.0 && current && current->seekSeq.load() == cmd.seekSeq &&
+                           current->primed.load(std::memory_order_acquire);
+        Session* w = wrapSlot.load(std::memory_order_seq_cst);
+        if (w && w->wrapState.load(std::memory_order_acquire) == kWrapReady) {
+            const bool fits = loops && w->seekSeq.load() == current->seekSeq.load() && w->pass == current->pass + 1 &&
+                              w->startMs == cmd.loopStartMs;
+            if (fits && w->planVersion == current->planVersion) {
+                if (!w->primed.load(std::memory_order_acquire) && fill(*w, false)) {
+                    w->primed.store(true, std::memory_order_release);
+                }
+                return;
+            }
+            // An edit: the wrap session follows it as the current one did,
+            // retaining its rings. The old one stays in the slot while the
+            // new one primes, so a loop end meanwhile still wraps.
+            std::unique_ptr<Session> next = fits ? buildWrap(cmd, *current, w) : nullptr;
+            if (withdrawWrap()) {
+                // The callback crossed meanwhile. The next pass rebuilds it.
+                current = promoteWrap();
+                return;
+            }
+            if (next) installWrap(std::move(next));
+            return;
+        }
+        if (!w && loops) installWrap(buildWrap(cmd, *current, nullptr));
+    }
+
+    std::unique_ptr<Session> buildWrap(const playback::TransportCommand& cmd, const Session& current,
+                                       const Session* previous) {
+        auto w = buildSession(current.seekSeq.load(), cmd.loopStartMs, previous);
+        w->pass = current.pass + 1;
+        w->primed.store(fill(*w, false), std::memory_order_release);
+        return w;
+    }
+
+    void installWrap(std::unique_ptr<Session> w) {
+        Session* raw = w.get();
+        sessions.push_back(std::move(w));
+        wrapSlot.store(raw, std::memory_order_seq_cst);
+    }
+
+    // Worker thread only. Stack-owned for one synthesis attempt, borrowing the
+    // worker-retained session and engine. Its scoped lease ends before either borrow.
     struct ShuttleMixSource : ShuttleSource {
         Impl& engine;
         Session& session;
-        ShuttleMixSource(Impl& e, Session& s) : engine(e), session(s) {}
+        MixRenderLease lease;
+        ShuttleMixSource(Impl& e, Session& s) : engine(e), session(s), lease(*s.plan) {}
+        bool ready() const noexcept override { return static_cast<bool>(lease); }
         void mix(double timelineMs, int frames, float* out) override {
             const double step = 1000. / engine.sampleRate;
             const double end = timelineMs + frames * step;
@@ -558,7 +1104,8 @@ struct AudioEngine::Impl {
                 if (overlaps && !session.shuttlePcm[i].ring && !session.failed[i].load(std::memory_order_relaxed)) missing = true;
             }
             MixStats stats;
-            mixBlock(plan, session.shuttlePcm.data(), engine.sampleRate, timelineMs, step, frames, out, stats);
+            lease.mix(session.shuttlePcm, engine.sampleRate, timelineMs, step,
+                      {out,static_cast<std::size_t>(frames)*2}, stats);
             if (stats.underruns > 0 || missing) engine.underruns.fetch_add(1, std::memory_order_relaxed);
             session.doneMs.store(std::max(session.doneMs.load(std::memory_order_relaxed), end), std::memory_order_release);
             session.consumed.store(true, std::memory_order_release);
@@ -566,6 +1113,7 @@ struct AudioEngine::Impl {
     };
 
     void produceShuttle(Session* current) {
+        const ScopedDenormalGuard denormalGuard;
         const auto cb = feed.callback.load();
         const auto anchor = cb.cur();
         if (!anchor.playing || !anchor.keepPitch || !shuttleKeepsPitch(anchor.rate) || !current ||
@@ -595,6 +1143,7 @@ struct AudioEngine::Impl {
                                      read + shuttleCapacity - write});
             if (n <= 0) return;
             ShuttleMixSource source(*this, *current);
+            if (!source.ready()) { return; }
             stretcher->render(source, write, static_cast<int>(n), shuttleOutput.data());
             // Reads that advanced during synthesis simply discard these late frames
             // on their next block. Capacity is measured against the older read,
@@ -619,24 +1168,40 @@ struct AudioEngine::Impl {
 
     void workerLoop() {
         bool idle = false;
+        bool wasPlaying = false;
+        bool wasDeviceStopped = false;
         std::uint64_t seenVersion = 0;
         for (;;) {
             {
                 std::unique_lock lock(mutex);
+                const auto hasPendingWork = [&] {
+                    return stopWorker || planVersion != seenVersion ||
+                           (notifState.load(std::memory_order_acquire) >> kNotifSeqShift) != workerNotifSeq ||
+                           latencyEditSeq != workerLatencySeq;
+                };
                 if (idle) {
-                    wake.wait_for(lock, kIdlePoll, [&] { return stopWorker || planVersion != seenVersion; });
+                    wake.wait_for(lock, kIdlePoll, hasPendingWork);
                 } else {
-                    wake.wait_for(lock, kBusyPoll);
+                    wake.wait_for(lock, kBusyPoll, hasPendingWork);
                 }
                 if (stopWorker) return;
                 workerWakes.fetch_add(1, std::memory_order_relaxed);
                 seenVersion = planVersion;
             }
+            drainDevicePublications();
+            const bool nowDeviceStopped = deviceStopped.load(std::memory_order_acquire);
             const playback::TransportCommand cmd = feed.command.load();
             Session* current = published.load();
             const auto now = std::chrono::steady_clock::now();
             const bool scrubWait = cmd.scrub && !cmd.playing && current &&
                 std::chrono::duration<double, std::milli>(now - lastScrubBuild).count() < kScrubMs;
+            bool armedThisIter = false;
+            const auto armIfReady = [&](const std::shared_ptr<const MixPlan>& targetPlan) {
+                if (targetPlan) {
+                    armMixPlanForPlayback(*targetPlan);
+                    armedThisIter = true;
+                }
+            };
             if (cmd.seekSeq != 0 && !scrubWait && (!current || current->seekSeq.load() != cmd.seekSeq)) {
                 if (cmd.scrub && !cmd.playing) lastScrubBuild = now;
                 std::uint64_t version = 0;
@@ -647,13 +1212,31 @@ struct AudioEngine::Impl {
                 if (current && !current->consumed.load() && current->startMs == cmd.seekMs &&
                     current->planVersion == version) {
                     // A play at the paused-seek position reuses its rings.
+                    // Arm async processors before exposing seekSeq to the RT callback (G1).
+                    if (cmd.playing || cmd.scrub) armIfReady(current->plan);
                     current->seekSeq.store(cmd.seekSeq, std::memory_order_release);
                 } else {
                     auto s = buildSession(cmd.seekSeq, cmd.seekMs);
-                    s->primed.store(fill(*s, cmd.playing), std::memory_order_release);
+                    const bool sPrimed = fill(*s, cmd.playing);
+                    s->primed.store(sPrimed, std::memory_order_release);
+                    if (cmd.playing || cmd.scrub) armIfReady(s->plan);
                     current = s.get();
                     sessions.push_back(std::move(s));
                     published.store(current, std::memory_order_seq_cst);
+                }
+                // The wrap session belongs to the old position. A callback
+                // that crossed into it still plays the old seek, which ends
+                // in silence as soon as it reads the new command.
+                if (Session* w = wrapSlot.exchange(nullptr, std::memory_order_seq_cst)) {
+                    int expected = kWrapReady;
+                    w->wrapState.compare_exchange_strong(expected, kWrapWithdrawn, std::memory_order_acq_rel);
+                }
+            }
+            if (wrapClaimed()) {
+                if (current && wrapSlot.load()->seekSeq.load() == current->seekSeq.load()) {
+                    current = promoteWrap();
+                } else {
+                    wrapSlot.store(nullptr, std::memory_order_seq_cst);  // crossed under an older seek
                 }
             }
             std::uint64_t version = 0;
@@ -664,29 +1247,61 @@ struct AudioEngine::Impl {
             if (current && current->planVersion != version) {
                 const double liveMs = std::max(current->startMs, current->doneMs.load(std::memory_order_acquire));
                 auto replacement = buildSession(current->seekSeq.load(), liveMs, current);
+                if (cmd.playing || cmd.scrub) armIfReady(replacement->plan);
                 current = replacement.get();
                 sessions.push_back(std::move(replacement));
                 // Gain/removal edits are visible immediately. Filling a new
                 // voice cannot hold up publication or the continuing voices.
                 published.store(current, std::memory_order_seq_cst);
             }
+            if (!armedThisIter && current && ((cmd.playing && !wasPlaying) || (wasDeviceStopped && !nowDeviceStopped && cmd.playing))) {
+                armIfReady(current->plan);
+            }
             {
                 std::lock_guard lock(mutex);
                 publishedPlanVersion = current ? current->planVersion : version;
             }
+            drainDevicePublications();
             wake.notify_all();
+            if (current && current->plan) {
+                serviceMixPlanControl(*current->plan);
+                const int livePdc = computeEffectivePlanLatency(*current->plan);
+                bool applyLivePdc = false;
+                {
+                    std::lock_guard lock(mutex);
+                    if (latencyEditSeq == workerLatencySeq && planVersion == current->planVersion &&
+                        livePdc != pdcLatencyFrames.load(std::memory_order_acquire)) {
+                        pdcLatencyFrames.store(livePdc, std::memory_order_release);
+                        applyLivePdc = true;
+                    }
+                }
+                if (applyLivePdc) {
+                    updateTotalLatency();
+                    publishDevice(running.load(std::memory_order_acquire) &&
+                                  !deviceStopped.load(std::memory_order_relaxed));
+                }
+            }
             if (current) {
                 const bool primed = fill(*current, cmd.playing);
-                if (primed) current->primed.store(true, std::memory_order_release);
+                if (primed) {
+                    if (!current->primed.load(std::memory_order_relaxed) && (cmd.playing || cmd.scrub)) {
+                        armIfReady(current->plan);
+                    }
+                    current->primed.store(true, std::memory_order_release);
+                }
             }
+            maintainWrap(cmd, current);
             if (current && cmd.scrub && !cmd.playing && cmd.seekSeq == current->seekSeq.load() && cmd.seekSeq != lastScrubArmed &&
                 current->primed.load(std::memory_order_acquire)) {
+                armIfReady(current->plan);
                 lastScrubArmed = cmd.seekSeq;
                 scrubRequest.store(cmd.seekSeq, std::memory_order_release);
             }
             produceShuttle(current);
-            evictSources(current);
+            evictSources(current, wrapSlot.load(std::memory_order_seq_cst));
             retire();
+            wasPlaying = cmd.playing;
+            wasDeviceStopped = nowDeviceStopped;
             idle = !cmd.playing && (!current || (current->seekSeq.load() == cmd.seekSeq &&
                                                  current->primed.load(std::memory_order_acquire) &&
                                                  !(cmd.scrub && cmd.seekSeq != lastScrubArmed)));
@@ -724,14 +1339,42 @@ void AudioEngine::setTimelineAsync(std::shared_ptr<const Timeline> timeline) {
 }
 
 std::uint64_t AudioEngine::publishPlan(std::shared_ptr<const Timeline> timeline) {
-    auto plan = std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
-    Impl& d = *m_impl;
-    prepareMixPlan(*plan, d.sampleRate);
-    d.planBuilds.fetch_add(1);
-    std::lock_guard lock(d.mutex);
-    d.plan = std::move(plan);
-    const auto version = ++d.planVersion;
-    d.wake.notify_all();
+    Impl& d=*m_impl;
+    std::shared_ptr<const MixPlan> previous;
+    std::shared_ptr<const Timeline> document;
+    {
+        std::lock_guard lock(d.mutex); previous=d.plan; document=d.controlTimeline;
+    }
+    std::shared_ptr<MixPlan> plan;
+    if (timeline && document && previous->state && onlyMixerAutomationChanged(*document,*timeline)) {
+        // Old and new sessions share the same DSP and prepared scratch buffers.
+        // The engine's active renderer continues them serially. No control-thread prepare/reset occurs.
+        plan=std::make_shared<MixPlan>(*previous);
+        automation::refreshMixerAutomation(*timeline,*plan);
+        applyMixPlanStage("automationMeters",*timeline,*plan);
+    } else if (timeline && document && previous->state && applyInPlaceEffectBypass(*document,*timeline,*previous)) {
+        // Bypass toggled in place on live processors so PDC delay lines crossfade smoothly without reset.
+        plan=std::make_shared<MixPlan>(*previous);
+    } else {
+        plan=std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
+        prepareMixPlan(*plan,d.sampleRate,d.devicePeriodFrames);
+        d.planBuilds.fetch_add(1);
+    }
+    armMixPlanForPlayback(*plan);
+    const int nextPdcLatency = computeEffectivePlanLatency(*plan);
+    const int nextLimiterLatency = plan->masterLimiterEnabled
+        ? MasterLimiter::latencyFramesForRate(d.sampleRate) : 0;
+    std::uint64_t version = 0;
+    {
+        std::lock_guard lock(d.mutex);
+        d.controlTimeline=std::move(timeline);
+        d.plan=std::move(plan);
+        d.pendingPdcLatencyFrames = nextPdcLatency;
+        d.pendingLimiterLatencyFrames = nextLimiterLatency;
+        ++d.latencyEditSeq;
+        version = ++d.planVersion;
+        d.wake.notify_all();
+    }
     return version;
 }
 
@@ -739,39 +1382,75 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     Impl& d = *m_impl;
     if (d.running.load()) return true;
     d.options = options;
+    d.pendingSimulatedLatencySec.store(options.simulatedLatencySec, std::memory_order_release);
+    d.notifState.store(0, std::memory_order_release);
+    d.workerNotifSeq = 0;
+    d.workerNotifGen = 0;
+    d.workerLatencySeq = 0;
+    d.publishedNotifSeq = 0;
+    {
+        std::lock_guard lock(d.mutex);
+        d.latencyEditSeq = 0;
+    }
     d.deviceStopped.store(false, std::memory_order_release);
     const auto fail = [&](const std::string& why) {
         if (error) *error = why;
         stop();
         return false;
     };
-    PlaybackDevice::Config config;
-    config.backend = options.backend == Backend::Null ? PlaybackDevice::Backend::Null : PlaybackDevice::Backend::System;
-    config.sampleRate = options.sampleRate;
-    config.periodFrames = options.periodFrames;
-    config.channels = 2;
-    PlaybackDevice::Selector select;
-    if (hasOutputDeviceProvider()) {
-        select = [](std::span<const std::string> names) { return selectedOutputDevice(names); };
-    }
+    const bool manual = options.backend == Backend::Manual;
     d.selectedDevice = false;
-    std::string why;
-    // The device calls back into `d`, which outlives it: stop() closes the device first.
-    d.device = PlaybackDevice::open(config, {&Impl::dataCallback, &Impl::notificationCallback, &d}, select, &why);
-    if (!d.device) return fail(why);
-    d.selectedDevice = d.device->selectedDevice();
-    d.sampleRate = d.device->sampleRate();
-    prepareMixPlan(*d.plan, d.sampleRate);
-    // Before the device starts, so the callback never sees a half-built meter.
+    if (manual) {
+        d.sampleRate = options.sampleRate > 0 ? options.sampleRate : kDefaultMixRate;
+        d.devicePeriodFrames = options.periodFrames > 0 ? options.periodFrames : kMixBlockFrames;
+    } else {
+        PlaybackDevice::Config config;
+        config.backend = options.backend == Backend::Null ? PlaybackDevice::Backend::Null : PlaybackDevice::Backend::System;
+        config.sampleRate = options.sampleRate;
+        config.periodFrames = options.periodFrames;
+        config.channels = 2;
+        PlaybackDevice::Selector select;
+        if (hasOutputDeviceProvider()) {
+            select = [](std::span<const std::string> names) { return selectedOutputDevice(names); };
+        }
+        std::string why;
+        // stop() joins the worker and closes the device before destroying d.
+        d.device = PlaybackDevice::open(config, {&Impl::dataCallback, &Impl::notificationCallback, &d}, select, &why);
+        if (!d.device) return fail(why);
+        d.selectedDevice = d.device->selectedDevice();
+        d.sampleRate = d.device->sampleRate();
+        const int internalPeriod = d.device->periodFrames();
+        d.devicePeriodFrames = internalPeriod > 0 ? internalPeriod : std::max(64, options.periodFrames);
+    }
+    prepareMixPlan(*d.plan, d.sampleRate, d.devicePeriodFrames);
+    armMixPlanForPlayback(*d.plan);
+    // Prepare meters and limiter before the callback starts.
     d.liveLoudness.reset();
     d.meterPlaying = false;
     if (options.loudness) {
         d.liveLoudness = std::make_unique<LiveLoudness>(*options.loudness);
         d.liveLoudness->prepare(d.sampleRate);
     }
-    d.backendName = d.device->backendName();
-    d.deviceName = d.device->deviceName();
-    d.latencySec.store(d.queryLatency());
+    d.masterLimiter = std::make_unique<MasterLimiter>();
+    d.masterLimiter->prepare(d.sampleRate);
+    d.limiterPlaying = false;
+    d.limiterSeq = 0;
+    d.scrubLimiterSeq = 0;
+    d.scrubMeterSeq = 0;
+    d.backendName = manual ? "manual" : d.device->backendName();
+    d.deviceName = manual ? "manual" : d.device->deviceName();
+    const double initialDevLatency = d.queryLatency();
+    const int initialPdc = planLatencySamples(*d.plan);
+    const int initialLimiter = d.plan->masterLimiterEnabled ? d.masterLimiter->latencySamples() : 0;
+    d.pdcLatencyFrames.store(initialPdc, std::memory_order_release);
+    d.masterLimiterLatencyFrames.store(initialLimiter, std::memory_order_release);
+    {
+        std::lock_guard lock(d.mutex);
+        d.pendingPdcLatencyFrames = initialPdc;
+        d.pendingLimiterLatencyFrames = initialLimiter;
+    }
+    d.deviceLatencySec.store(initialDevLatency, std::memory_order_release);
+    d.updateTotalLatency();
     d.driver = std::make_unique<CallbackClockDriver>(d.feed);
     d.shuttleStamp.store(0);
     d.shuttleRead.store(Impl::ShuttleRead{});
@@ -784,27 +1463,37 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     if (options.recordSeconds > 0.0) {
         d.record.assign(static_cast<std::size_t>(options.recordSeconds * d.sampleRate) * 2, 0.0f);
     }
+    // The loop fade's scratch: only the callback touches it, at most
+    // fadeFrames frames per block.
+    d.fadeFrames = std::max<std::int64_t>(1, std::llround(kLoopFadeMs * d.sampleRate / 1000.0));
+    d.fadeScratch.assign(static_cast<std::size_t>(d.fadeFrames) * 2, 0.0f);
+    d.crossed = nullptr;
+    d.fadeFrom = nullptr;
+    d.heldCurrent = nullptr;
+    // Publish initial DeviceInfo before starting worker or device so the worker
+    // is the sole writer to feed.device for the entire running lifetime.
+    d.running.store(true, std::memory_order_release);
+    d.generation.fetch_add(1, std::memory_order_acq_rel);
+    d.publishDevice(true);
     {
         std::lock_guard lock(d.mutex);
         d.stopWorker = false;
     }
     d.worker = std::jthread([&d]() { d.workerLoop(); });
-    d.running.store(true);
-    d.generation.fetch_add(1);
-    d.publishDevice(true);
-    if (!d.device->start()) return fail("cannot start the audio device");
+    if (!manual && !d.device->start()) return fail("cannot start the audio device");
     return true;
+}
+
+void AudioEngine::renderManual(std::span<float> out, std::int64_t hostNs) {
+    Impl& d = *m_impl;
+    if (d.options.backend != Backend::Manual || !d.running.load()) return;
+    d.render(out.data(), static_cast<std::uint32_t>(out.size() / 2), hostNs);
 }
 
 void AudioEngine::stop() {
     Impl& d = *m_impl;
     const bool wasRunning = d.running.exchange(false);
     d.wake.notify_all();
-    if (d.device) {
-        // Closing first stops the callbacks, which may still query the device.
-        d.device->close();
-        d.device.reset();
-    }
     if (d.worker.joinable()) {
         {
             std::lock_guard lock(d.mutex);
@@ -813,31 +1502,65 @@ void AudioEngine::stop() {
         d.wake.notify_all();
         d.worker.join();
     }
+    // The worker may query latency, so keep the device alive until it joins.
+    if (d.device) {
+        d.device->close();
+        d.device.reset();
+    }
+    // Device and worker are both joined; no other writer to feed.device exists.
     if (wasRunning) d.publishDevice(false);
+    d.pdcLatencyFrames.store(0, std::memory_order_release);
+    d.masterLimiterLatencyFrames.store(0, std::memory_order_release);
+    {
+        std::lock_guard lock(d.mutex);
+        d.pendingPdcLatencyFrames = 0;
+        d.pendingLimiterLatencyFrames = 0;
+    }
     d.published.store(nullptr);
     d.inUse.store(nullptr);
+    d.wrapSlot.store(nullptr);
+    d.inUseWrap.store(nullptr);
+    d.crossed = nullptr;
+    d.fadeFrom = nullptr;
+    d.heldCurrent = nullptr;
     d.sessions.clear();
     d.stretcher.reset();
     d.shuttleRing.reset();
     d.shuttleOutput.clear();
     d.sources.clear();
-    // The device is stopped, so the callback no longer reads the meter.
+    // The device is stopped, so the callback no longer reads the meter or limiter.
     d.liveLoudness.reset();
+    d.masterLimiter.reset();
 }
 
 void AudioEngine::simulateDeviceChange(double latencySec) {
     Impl& d = *m_impl;
-    if (d.options.backend != Backend::Null) return;
-    d.options.simulatedLatencySec = latencySec;
-    d.latencySec.store(latencySec);
-    d.generation.fetch_add(1);
-    d.publishDevice(d.running.load());
+    if (d.options.backend == Backend::System) return;
+    d.pendingSimulatedLatencySec.store(latencySec, std::memory_order_release);
+    const std::uint64_t targetSeq = d.onNotification(PlaybackDevice::Notification::Rerouted);
+    std::unique_lock lock(d.mutex);
+    d.wake.notify_all();
+    d.wake.wait(lock, [&d, targetSeq] {
+        return !d.running.load(std::memory_order_acquire) || d.stopWorker || d.publishedNotifSeq >= targetSeq;
+    });
 }
 
 void AudioEngine::simulateDeviceNotification(bool started) {
     Impl& d = *m_impl;
-    if (d.options.backend != Backend::Null) return;
-    d.onNotification(started ? PlaybackDevice::Notification::Started : PlaybackDevice::Notification::Stopped);
+    if (d.options.backend == Backend::System) return;
+    const std::uint64_t targetSeq = d.onNotification(
+        started ? PlaybackDevice::Notification::Started : PlaybackDevice::Notification::Stopped);
+    std::unique_lock lock(d.mutex);
+    d.wake.notify_all();
+    d.wake.wait(lock, [&d, targetSeq] {
+        return !d.running.load(std::memory_order_acquire) || d.stopWorker || d.publishedNotifSeq >= targetSeq;
+    });
+}
+
+void AudioEngine::simulateDeviceNotificationAsync(bool started) noexcept {
+    Impl& d = *m_impl;
+    if (d.options.backend == Backend::System) return;
+    (void)d.onNotification(started ? PlaybackDevice::Notification::Started : PlaybackDevice::Notification::Stopped);
 }
 
 AudioEngine::Stats AudioEngine::stats() const {
@@ -851,9 +1574,13 @@ AudioEngine::Stats AudioEngine::stats() const {
     s.waitBlocks = d.waitBlocks.load();
     s.playedFrames = d.playedFrames.load();
     s.lateStarts = d.lateStarts.load();
+    s.loopWraps = d.loopWraps.load();
+    s.loopMisses = d.loopMisses.load();
     s.lastPlayStartMs = d.lastPlayStartMs.load();
     s.sampleRate = d.sampleRate;
-    s.outputLatencySec = d.latencySec.load();
+    s.outputLatencySec = d.latencySec.load(std::memory_order_acquire);
+    s.pdcLatencyFrames = d.pdcLatencyFrames.load(std::memory_order_acquire);
+    s.masterLimiterLatencyFrames = d.masterLimiterLatencyFrames.load(std::memory_order_acquire);
     s.generation = d.generation.load();
     s.sessions = d.sessionCount.load();
     s.planBuilds = d.planBuilds.load();
@@ -886,19 +1613,31 @@ std::vector<float> AudioEngine::recording() const {
 
 std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, double startMs, double durationMs,
                                  std::vector<std::string>* report, std::function<bool()> cancelled) {
+    const ScopedDenormalGuard denormalGuard;
     const auto interrupted = [&] { return cancelled && cancelled(); };
     if (interrupted()) return {};
-    const MixPlan plan = buildMixPlan(timeline);
+    const MixPlan plan = buildMixPlan(timeline, RenderMode::Offline);
     prepareMixPlan(plan, sampleRate);
+    reprobeMixPlanLatency(plan, sampleRate);
     const double sr = sampleRate;
     const auto total = static_cast<std::int64_t>(std::llround(durationMs * sr / 1000.0));
+    MasterLimiter limiter;
+    const bool limiterOn = plan.masterLimiterEnabled;
+    if (limiterOn) {
+        limiter.prepare(sr);
+    }
+    const std::int64_t pdcLatency = planLatencySamples(plan);
+    const std::int64_t limiterLatency = limiterOn ? limiter.latencySamples() : 0;
+    const std::int64_t totalLatency = pdcLatency + limiterLatency;
+    const double latencyMs = static_cast<double>(totalLatency) * 1000.0 / sr;
+
     std::vector<std::vector<float>> spans(plan.voices.size());
     std::vector<VoicePcm> pcm(plan.voices.size());
     for (std::size_t i = 0; i < plan.voices.size(); ++i) {
         if (interrupted()) return {};
         const VoicePlan& v = plan.voices[i];
         const double from = std::max(v.startMs, startMs);
-        const double to = std::min(v.startMs + v.durationMs, startMs + durationMs);
+        const double to = std::min(v.startMs + v.durationMs, startMs + durationMs + latencyMs);
         if (v.silent || to <= from) { continue; }
         std::string error;
         auto src = AudioSource::open(v.mediaPath, sampleRate, &error, cancelled);
@@ -906,8 +1645,9 @@ std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, doubl
             if (report) report->push_back(v.clipId + ": " + error);
             continue;
         }
-        const auto first = std::max<std::int64_t>(0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(from, sr))) - 1);
-        const auto last = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(to, sr))) + 2;
+        const std::int64_t margin = static_cast<std::int64_t>(sincRadiusForRate(v.sourceRate)) + 2;
+        const auto first = std::max<std::int64_t>(0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(from, sr))) - margin);
+        const auto last = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(to, sr))) + margin;
         spans[i].resize(static_cast<std::size_t>(std::max<std::int64_t>(0, last - first)) * 2);
         src->seek(first);
         const std::int64_t got = src->read(spans[i].data(), last - first);
@@ -919,11 +1659,24 @@ std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, doubl
     std::vector<float> out(static_cast<std::size_t>(total) * 2, 0.0f);
     MixStats stats;
     const std::int64_t block = 4096;
-    for (std::int64_t at = 0; at < total; at += block) {
+    const std::int64_t renderTotal = total + totalLatency;
+    std::vector<float> scratch(static_cast<std::size_t>(block) * 2, 0.0f);
+    for (std::int64_t at = 0; at < renderTotal; at += block) {
         if (interrupted()) return {};
-        const int n = static_cast<int>(std::min(block, total - at));
+        const int n = static_cast<int>(std::min(block, renderTotal - at));
+        const auto sampleSpan = std::span<float>(scratch.data(), static_cast<std::size_t>(n) * 2);
         mixBlock(plan, pcm.data(), sr, startMs + static_cast<double>(at) * 1000.0 / sr, 1000.0 / sr, n,
-                 out.data() + at * 2, stats);
+                 sampleSpan.data(), stats);
+        serviceMixPlanControl(plan);
+        if (limiterOn) {
+            limiter.process(sampleSpan);
+        }
+        const std::int64_t from = std::max<std::int64_t>(0, totalLatency - at);
+        const std::int64_t dest = std::max<std::int64_t>(0, at - totalLatency);
+        const std::int64_t count = std::min<std::int64_t>(n - from, total - dest);
+        if (count > 0) {
+            std::copy_n(scratch.data() + from * 2, static_cast<std::size_t>(count) * 2, out.data() + dest * 2);
+        }
     }
     return out;
 }

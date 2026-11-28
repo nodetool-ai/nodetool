@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import "../Inspector/AudioFadeShapes.js" as FadeShapes
@@ -23,6 +24,7 @@ Ui.ContextMenu {
         model: FadeShapes.options
         delegate: Ui.MenuItem {
             id: shapeItem
+            // JSON record supplied by the delegate model.
             required property var modelData
             objectName: "fadeShape_" + modelData.value
             text: modelData.label

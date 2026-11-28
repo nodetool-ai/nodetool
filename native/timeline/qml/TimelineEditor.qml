@@ -10,8 +10,67 @@ import NodeTool.UiPrimitives as Ui
 
 Controls.Control {
     id: root
+    objectName: "timelineEditor"
+    property QtObject documentSession: typeof nativeSession !== "undefined" ? nativeSession : null
+    readonly property bool canSaveDocument: !timeline.readOnly && !saveInProgress && !(saver && (saver.conflict || saver.saving)) && (cloudSaver !== null || (documentSession !== null ? documentSession.canSave : saver !== null))
+    property bool saveInProgress: false
+    property string manualSaveError: ""
+    property bool manualSaved: false
+    Timer { id: savedTimer; interval: 2000; onTriggered: root.manualSaved = false }
+    Connections {
+        target: root.timeline
+        function onChanged() { savedTimer.stop(); root.manualSaved = false }
+        function onDocumentReplaced() {
+            savedTimer.stop()
+            root.manualSaved = false
+            root.manualSaveError = ""
+        }
+    }
+    function clearManualSaveFeedback() {
+        savedTimer.stop()
+        manualSaved = false
+        manualSaveError = ""
+    }
+    onSaverChanged: clearManualSaveFeedback()
+    onCloudSaverChanged: clearManualSaveFeedback()
+    onDocumentSessionChanged: clearManualSaveFeedback()
+    Connections {
+        target: root.saver
+        ignoreUnknownSignals: true
+        function onSaved() { root.manualSaveError = "" }
+    }
+    Connections {
+        target: root.cloudDocument
+        function onStateChanged() {
+            if (root.cloudDocument.syncStatus === CloudDocument.SavedToCloud) root.manualSaveError = ""
+        }
+    }
+    Connections {
+        target: root.cloudSaver
+        ignoreUnknownSignals: true
+        function onErrorChanged() {
+            if (root.cloudSaver.error === "") root.manualSaveError = ""
+        }
+    }
+    function saveDocument() {
+        if (!canSaveDocument) return false
+        clearManualSaveFeedback()
+        const target = cloudSaver || documentSession || saver
+        saveInProgress = true
+        try {
+            const result = target.saveDocument()
+            const ok = result !== undefined && result !== null && result.ok === true
+            manualSaveError = ok || (result && result.conflict) ? "" : (result && result.error || "Could not save the document.")
+            manualSaved = ok
+            if (manualSaved) savedTimer.restart()
+            return ok
+        } finally {
+            saveInProgress = false
+        }
+    }
     required property TimelineModel timeline
     required property PlaybackClock clock
+    Binding { target: root.timeline.automationRecorder; property: "clock"; value: root.clock; restoreMode: Binding.RestoreNone }
     property QtObject saver: typeof nativeSession !== "undefined" && nativeSession !== null
         ? nativeSession.autosave : (typeof autosave !== "undefined" ? autosave : null)
     // main sets nativeAccountServers for the app. Tests without it show no
@@ -46,6 +105,10 @@ Controls.Control {
         owner: tracksHost.item ? tracksHost.item.gestures : null
         onRevealRequested: if (!shownInView) layoutStore.dispatch({type: "reveal", panelId: "reference"})
     }
+    // Music mode (docs/MUSIC-MODE.md section 15, BE-5): the backend setup state of
+    // this editor, with its own socket, so a download outlives the music panel when
+    // the layout hides it. The job module is the timeline's (MusicJobsRegistry).
+    readonly property MusicSetupModel musicSetup: MusicSetupModel {}
     readonly property var dockPanels: {
         const panels = [{id: "program", title: "Program", defaultRegion: "viewport"},
                         {id: "tracks", title: "Timeline", defaultRegion: "bottom"}]
@@ -216,6 +279,7 @@ Controls.Control {
                 Layout.fillWidth: true
                 timeline: root.timeline
                 autosave: root.saver
+                manualSaved: root.manualSaved
                 cloudDocument: root.cloudDocument
                 cloudAccount: root.cloudAccount
                 accountServers: root.accountServers
@@ -239,7 +303,7 @@ Controls.Control {
                 onClicked: dockCanvas.rightCollapsed = !dockCanvas.rightCollapsed
             }
         }
-        SaveBanners { Layout.fillWidth: true; autosave: root.saver }
+        SaveBanners { Layout.fillWidth: true; autosave: root.saver; manualError: root.manualSaveError }
         DocumentFileBanner { Layout.fillWidth: true; folder: root.projectFolder }
         ProjectLockBanner { Layout.fillWidth: true; Layout.leftMargin: Ui.Metrics.md; Layout.rightMargin: Ui.Metrics.md; lock: root.projectFolder.lock }
         DockCanvas {

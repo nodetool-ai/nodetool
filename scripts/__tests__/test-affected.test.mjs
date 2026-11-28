@@ -26,6 +26,12 @@ const PACKAGES = [
   { name: "mobile", dir: "mobile", internalDeps: MOBILE_DEPS }
 ];
 
+const PERFORMANCE_CHECK = {
+  label: "native UI: performance ratchet",
+  command: "python3",
+  args: ["native/ui_primitives/tools/check_performance.py"]
+};
+
 const plan = (files) => buildPlan(files, PACKAGES, computeAffected);
 const labels = (files) => plan(files).steps.map((s) => s.label);
 
@@ -233,6 +239,7 @@ describe("buildPlan", () => {
     (file) => {
       const steps = plan([file]).steps;
       expect(steps.map((s) => [s.command, ...s.args])).toEqual([
+        ["python3", "native/ui_primitives/tools/check_performance.py"],
         ["node", "electron/scripts/build-account-helper.mjs", "--test"]
       ]);
     }
@@ -258,6 +265,7 @@ describe("buildPlan", () => {
   ])("selects the native chat check for %s", (file) => {
     expect(plan([file]).globalFiles).toEqual([]);
     expect(plan([file]).steps).toEqual([
+      ...(file.includes("/src/") || file.includes("/qml/") ? [PERFORMANCE_CHECK] : []),
       { label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }
     ]);
   });
@@ -279,12 +287,13 @@ describe("buildPlan", () => {
   ])("selects the affected native ctest tests for %s", (file) => {
     expect(plan([file]).globalFiles).toEqual([]);
     expect(plan([file]).steps).toEqual([
+      ...(file.includes("/src/") ? [PERFORMANCE_CHECK] : []),
       { label: "native ctest: affected tests", command: "node", args: ["scripts/test-affected-native.mjs"] }
     ]);
   });
 
   it("runs the native selection once for changes in several native projects", () => {
-    expect(plan(["native/graph-runner/src/main.cpp", "native/timeline/src/main.cpp"]).steps).toEqual([NATIVE_CTEST]);
+    expect(plan(["native/graph-runner/src/main.cpp", "native/timeline/src/main.cpp"]).steps).toEqual([PERFORMANCE_CHECK, NATIVE_CTEST]);
   });
 
   it.each([
@@ -306,7 +315,8 @@ describe("buildPlan", () => {
     expect(plan([file]).globalFiles).toEqual([]);
     expect(plan([file]).steps).toEqual([
       { label: "native UI: design contracts", command: "python3", args: ["native/ui_primitives/tools/check_design.py", "--strict"] },
-      { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
+      { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] },
+      { label: "native UI: performance ratchet", command: "python3", args: ["native/ui_primitives/tools/check_performance.py"] }
     ]);
   });
 
@@ -317,6 +327,7 @@ describe("buildPlan", () => {
       expect(labels([file])).toEqual([
         "native UI: design contracts",
         "native UI: dependency boundaries",
+        "native UI: performance ratchet",
         "native ctest: affected tests"
       ]);
     }

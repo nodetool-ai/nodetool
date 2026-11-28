@@ -1,11 +1,15 @@
 // The markers feature through the production editor: atomic edits, the key
 // actions, the Edit Marker dialog opened from the ruler, the marker context menu,
 // the Markers panel, the CSV export and the document audit.
+#include "../../tests/RequireValue.h"
 #include "app/MenuRegistry.h"
 #include "markers/MarkerSession.h"
+#include "markers/MarkerWindowModel.h"
+#include <QPersistentModelIndex>
 #include "server/FieldAudit.h"
 #include "wiring/WiringFixture.h"
 #include <QQmlEngine>
+#include <functional>
 #include <QTemporaryDir>
 
 class TestMarkers : public WiringFixture {
@@ -58,6 +62,71 @@ class TestMarkers : public WiringFixture {
     // NT_SHOT_DIR=<dir> saves what the tests show, for a look at the layout.
     void shot(const QString& name) {
         if (qEnvironmentVariableIsSet("NT_SHOT_DIR")) { view->grabWindow().save(qEnvironmentVariable("NT_SHOT_DIR") + "/" + name + ".png"); }
+    }
+
+    // ── The Marker lane of the Music layout ──
+    static QJsonObject musicDocument(const QJsonArray& markers) {
+        return {{"id", "timeline"}, {"name", "Night Drive"}, {"fps", 30}, {"width", 640}, {"height", 360},
+                {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0},
+                                      {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+                {"music", QJsonObject{{"promptHistory", QJsonArray{}}}},
+                {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"name", "Drums"}, {"type", "audio"}, {"index", 0}, {"visible", true},
+                                                  {"locked", false}, {"muted", false}, {"solo", false}, {"heightPx", 64}}}},
+                {"markers", markers},
+                {"clips", QJsonArray{QJsonObject{{"id", "c1"}, {"trackId", "a"}, {"name", "c1"}, {"mediaType", "audio"}, {"startMs", 0},
+                                                 {"durationMs", 12000}, {"currentAssetId", "asset-c1"}}}}};
+    }
+    DockLayoutStore* dockStore() const {
+        return qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+    }
+    void openMusic(const QJsonArray& markers) {
+        view.reset();
+        auto parsed = nt::parseTimeline(musicDocument(markers));
+        QVERIFY(parsed.timeline);
+        model.setTimeline(requireValue(std::move(parsed.timeline)));
+        clock.pause();
+        clock.seek(0);
+        view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
+        view->setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});
+        view->loadFromModule("NodeTool.Timeline", "TimelineEditor");
+        QVERIFY2(view->status() == QQuickView::Ready, qPrintable(view->errors().isEmpty() ? QString() : view->errors().first().toString()));
+        view->setResizeMode(QQuickView::SizeRootObjectToView);
+        view->resize(1800, 1000);
+        view->show();
+        QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+        QTRY_VERIFY(gestures());
+        QTRY_COMPARE(dockStore()->workspace(), QStringLiteral("Music"));
+        gestures()->viewState()->zoomTo(10, 0);
+        gestures()->viewState()->setScrollLeftPx(0);
+        gestures()->viewState()->flush();
+        settle();
+    }
+    QList<QQuickItem*> blocks() const {
+        QList<QQuickItem*> found;
+        std::function<void(QQuickItem*)> walk = [&](QQuickItem* parent) {
+            for (auto* child : parent->childItems()) {
+                if (child->objectName() == "markerBlock" && child->isVisible()) { found << child; }
+                walk(child);
+            }
+        };
+        walk(view->contentItem());
+        std::sort(found.begin(), found.end(), [](QQuickItem* a, QQuickItem* b) {
+            return a->property("startMs").toDouble() < b->property("startMs").toDouble();
+        });
+        return found;
+    }
+    QQuickItem* block(const QString& id) const {
+        for (auto* b : blocks()) { if (b->property("markerId").toString() == id) { return b; } }
+        return nullptr;
+    }
+
+    QPoint blockCenter(const QString& id) const {
+        auto* target=block(id);
+        auto* viewport=item("markerLaneViewport");
+        const auto visible=target->mapRectToScene(QRectF(QPointF(),target->size()))
+            .intersected(viewport->mapRectToScene(QRectF(QPointF(),viewport->size())));
+        return visible.center().toPoint();
     }
 
 private slots:
@@ -257,6 +326,182 @@ private slots:
         QVERIFY(gestures()->runAction("markerColor.none", {}));
         QVERIFY(!markerById("a").contains("color"));
     }
+    void sourceDestructionClearsRowsAndNotifies() {
+        MarkerWindowModel rows;
+        auto source=std::make_unique<TimelineModel>();
+        source->replaceMarkers({marker("a",1000,"A")});
+        rows.setTimeline(source.get());
+        QSignalSpy changed(&rows,&MarkerWindowModel::timelineChanged);
+        source.reset();
+        QVERIFY(!rows.timeline());
+        QCOMPARE(rows.rowCount(),0);
+        QCOMPARE(changed.count(),1);
+    }
+    void invalidRetainedWindowStillClearsRemovedSource() {
+        model.replaceMarkers({marker("a",1000,"A")});
+        MarkerWindowModel rows;
+        rows.setProperty("retainWindow",true);
+        rows.setTimeline(&model);
+        rows.setWindow(2000,1000);
+        model.replaceMarkers({});
+        QCOMPARE(rows.rowCount(),0);
+    }
+    void duplicateMarkerIdsReloadWithoutInvalidRows() {
+        model.replaceMarkers({marker("same",1000,"A")});
+        MarkerWindowModel rows;
+        rows.setTimeline(&model);
+        model.replaceMarkers({marker("same",1000,"A"),marker("same",2000,"B")});
+        QCOMPARE(rows.rowCount(),2);
+        QCOMPARE(rows.at(1).label,QString("B"));
+        model.replaceMarkers({marker("same",1000,"A")});
+        QCOMPARE(rows.rowCount(),1);
+    }
+    void retainedRangeHidesItsOffscreenFlagGlyph() {
+        model.replaceMarkers({marker("range",0,"Long",{{"durationMs",100000}})});
+        settle();
+        gestures()->viewState()->setScrollLeftPx(1000);
+        settle();
+        auto* retained=flag("Long");
+        QVERIFY(retained);
+        auto* glyph=retained->findChild<QQuickItem*>("markerGlyph");
+        QVERIFY(glyph);
+        QVERIFY(!glyph->isVisible());
+        auto* pointer=retained->findChild<QQuickItem*>("markerSeek");
+        QVERIFY(pointer);
+        QVERIFY(!pointer->property("enabled").toBool());
+        gestures()->viewState()->setScrollLeftPx(0);
+        QTRY_VERIFY(glyph->isVisible());
+        QVERIFY(pointer->property("enabled").toBool());
+    }
+    void unwindowedRowsPreserveNegativeTimesAndClampNegativeDurations() {
+        model.replaceMarkers({marker("early",-100,"Early"),marker("bad",100,"Bad",{{"durationMs",-50}})});
+        MarkerWindowModel rows;
+        rows.setTimeline(&model);
+        QCOMPARE(rows.rowCount(),2);
+        QCOMPARE(rows.at(0).timeMs,-100.);
+        QCOMPARE(rows.at(1).durationMs,0.);
+        QCOMPARE(rows.at(1).endMs,100.);
+    }
+    void flagRowsIgnoreContentExtentChanges() {
+        model.replaceMarkers({marker("a",1000,"A")});
+        MarkerWindowModel rows;
+        rows.setTimeline(&model);
+        QSignalSpy reloaded(&rows,&MarkerWindowModel::sourceChanged);
+        emit model.contentEndMsChanged();
+        QCOMPARE(reloaded.count(),0);
+        rows.setProperty("blocks",true);
+        reloaded.clear();
+        emit model.contentEndMsChanged();
+        QCOMPARE(reloaded.count(),1);
+    }
+    void longRangeDoesNotMakeWindowQueriesScanTheDocument() {
+        TimelineModel source;
+        QJsonArray markers;
+        for (int i=0;i<200000;++i) { markers.append(marker(QString::number(i),i*1000,QString::number(i))); }
+        source.replaceMarkers(markers);
+        MarkerWindowModel rows;
+        rows.setWindow(190000000,190000100);
+        rows.setTimeline(&source);
+        const auto measure=[&rows] {
+            QElapsedTimer timer; timer.start();
+            for (int i=0;i<160;++i) { rows.setWindow(190000000+i,190000100+i); }
+            return timer.nsecsElapsed();
+        };
+        const auto pointsOnly=measure();
+        markers.append(marker("range",0,"Long",{{"durationMs",1e9}}));
+        source.replaceMarkers(markers);
+        const auto withRange=measure();
+        QCOMPARE(rows.rowCount(),1);
+        QCOMPARE(rows.at(0).id,QString("range"));
+        qInfo()<<"marker query timings (ns), points / range"<<pointsOnly<<withRange;
+        QVERIFY2(rows.queryNodeVisits()<128,qPrintable(QString::number(rows.queryNodeVisits())));
+    }
+    void denseMarkersAreWindowedAndSurvivingRowsStayAlive() {
+        QJsonArray markers;
+        for (int i=0;i<500;++i) {
+            markers.append(marker(QString::number(i),i*1000,QString("Cue %1").arg(i)));
+        }
+        // A range beginning well before the viewport must remain queryable.
+        markers.append(marker("range",0,"Long range",{{"durationMs",400000}}));
+        model.replaceMarkers(markers);
+        MarkerWindowModel window;
+        window.setTimeline(&model);
+        window.setWindow(100000,105000);
+        QCOMPARE(window.rowCount(),7);
+        QCOMPARE(window.at(0).id,QString("range"));
+        QCOMPARE(window.at(1).timeMs,100000.0);
+        const QPersistentModelIndex retained(window.index(3));
+        const auto retainedId=window.at(3).id;
+        QSignalSpy reset(&window,&QAbstractItemModel::modelReset);
+        window.setWindow(101000,106000);
+        QVERIFY(retained.isValid());
+        QCOMPARE(window.at(retained.row()).id,retainedId);
+        QCOMPARE(reset.count(),0);
+        QCOMPARE(window.rowCount(),7);
+        // Selection/filter roles cross QML as a gadget, preserving full IDs.
+        QCOMPARE(window.data(retained,Qt::UserRole).value<MarkerRow>().id,retainedId);
+        window.setWindow(600000,601000);
+        QCOMPARE(window.rowCount(),0);
+        window.setWindow(0,500000);
+        QCOMPARE(window.rowCount(),501);
+        QVERIFY(!retained.isValid());
+    }
+    void addingANeighbourDoesNotChangeFlagOrPanelRoles() {
+        model.replaceMarkers({marker("a",0,"A"),marker("c",2000,"C")});
+        MarkerWindowModel rows;
+        rows.setTimeline(&model);
+        QSignalSpy changed(&rows,&QAbstractItemModel::dataChanged);
+        model.replaceMarkers({marker("a",0,"A"),marker("b",1000,"B"),marker("c",2000,"C")});
+        QCOMPARE(rows.rowCount(),3);
+        QCOMPARE(changed.count(),0);
+    }
+    void retainedMarkerWindowAvoidsZoomChurn() {
+        QJsonArray markers;
+        for (int i=0;i<500;++i) { markers.append(marker(QString::number(i),i*360,QString::number(i))); }
+        model.replaceMarkers(markers);
+        MarkerWindowModel window;
+        window.setProperty("retainWindow",true);
+        window.setTimeline(&model);
+        window.setWindow(-2000,12000);
+        const auto ids=window.ids(0,window.rowCount()-1);
+        QSignalSpy added(&window,&QAbstractItemModel::rowsInserted);
+        QSignalSpy removed(&window,&QAbstractItemModel::rowsRemoved);
+        for (int i=0;i<120;++i) { window.setWindow(-1900+i,11000-i); }
+        QCOMPARE(window.ids(0,window.rowCount()-1),ids);
+        QCOMPARE(added.count(),0);
+        QCOMPARE(removed.count(),0);
+    }
+    void largeMarkerWindowsInsertAndRemoveContiguousRanges() {
+        TimelineModel source;
+        QJsonArray markers;
+        for (int i=0;i<20000;++i) { markers.append(marker(QString::number(i),i*100,QString::number(i))); }
+        source.replaceMarkers(markers);
+        MarkerWindowModel window;
+        window.setWindow(0,999900);
+        window.setTimeline(&source);
+        QCOMPARE(window.rowCount(),10000);
+        QSignalSpy added(&window,&QAbstractItemModel::rowsInserted);
+        QSignalSpy removed(&window,&QAbstractItemModel::rowsRemoved);
+        window.setWindow(1000000,1999900);
+        QCOMPARE(window.rowCount(),10000);
+        QCOMPARE(window.at(0).timeMs,1000000.0);
+        QCOMPARE(added.count(),1);
+        QCOMPARE(removed.count(),1);
+    }
+    void fiveHundredMarkersBuildOnlyVisibleFlags() {
+        QJsonArray markers;
+        for (int i=0;i<500;++i) { markers.append(marker(QString::number(i),i*10000,QString::number(i))); }
+        model.replaceMarkers(markers);
+        settle();
+        int flags=0;
+        const auto visit=[&](auto&& self,QQuickItem* parent)->void {
+            if (parent->objectName()=="timelineMarker") { ++flags; }
+            for (auto* child:parent->childItems()) { self(self,child); }
+        };
+        visit(visit,item("timeRuler"));
+        QVERIFY(flags>0);
+        QVERIFY2(flags<10,qPrintable(QString::number(flags)));
+    }
     void aRangeMarkerShadesItsDurationOnTheRuler() {
         seed();
         auto* ruler = item("rulerCanvas");
@@ -312,6 +557,23 @@ private slots:
         model.undoStack()->undo();
         QCOMPARE(markerById("b").value("durationMs").toDouble(), 1500.0);
     }
+    void panelPrunesSelectionAfterReconnectingItsRows() {
+        seed();
+        auto* dock=qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+        QVERIFY(dock);
+        dock->dispatch({{"type","reveal"},{"panelId","markers"}});
+        settle();
+        auto* panel=item("timelineMarkersPanel");
+        QVERIFY(panel);
+        auto* rows=qobject_cast<MarkerWindowModel*>(panel->property("rows").value<QObject*>());
+        QVERIFY(rows);
+        // Reconnect after the panel's own Connections object to exercise either order.
+        rows->setTimeline(nullptr);
+        rows->setTimeline(&model);
+        session()->selectMany({"a","b"});
+        model.replaceMarkers({marker("b",4000,"Hands")});
+        QCOMPARE(session()->selectedIds(),QStringList{"b"});
+    }
     void theMarkersPanelFiltersSeeksAndDeletes() {
         seed();
         auto* dock = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
@@ -341,12 +603,14 @@ private slots:
         QTRY_COMPARE(rows->property("count").toInt(), 2);
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("markerFilter_none")));
         QTRY_COMPARE(rows->property("count").toInt(), 3);
+        // Filtering reuses rows. Flush their pending ListView layout before clicking.
+        QVERIFY(QMetaObject::invokeMethod(rows,"forceLayout"));
         // A click selects and seeks.
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("markerRow_b")));
+        click("markerRow_b");
         QCOMPARE(clock.currentTimeMs(), 4000.0);
         QCOMPARE(session()->selectedIds(), QStringList{"b"});
         // Ctrl adds a row without moving the playhead, and Delete removes both in one entry.
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::ControlModifier, center(item("markerRow_c")));
+        click("markerRow_c", Qt::ControlModifier);
         QCOMPARE(clock.currentTimeMs(), 4000.0);
         QCOMPARE(session()->selectedIds().size(), 2);
         QTRY_COMPARE(item("markerCount")->property("text").toString(), QString("2 of 3 selected"));
@@ -408,6 +672,104 @@ private slots:
         markers[0] = first;
         bad.insert("markers", markers);
         QVERIFY(QJsonDocument(nt::server::auditTimelineFields(bad)).toJson(QJsonDocument::Compact).contains("\"unknown\""));
+    }
+
+    // A block runs from its marker to its duration, else to the next marker, else to the sequence end.
+    void markerBlocksFollowTheExtentRule() {
+        openMusic({marker("a", 1000, "Intro"), marker("b", 4000, "Verse", {{"durationMs", 1500}, {"color", "#E5484D"}}),
+                   marker("c", 7000, "")});
+        QCOMPARE(blocks().size(), 3);
+        const double msPerPx = gestures()->viewState()->msPerPx();
+        const auto extent = [&](const char* id) { return std::pair{block(id)->property("startMs").toDouble(), block(id)->property("endMs").toDouble()}; };
+        QCOMPARE(extent("a"), (std::pair{1000.0, 4000.0}));
+        QCOMPARE(extent("b"), (std::pair{4000.0, 5500.0}));
+        QCOMPARE(extent("c"), (std::pair{7000.0, 12000.0}));
+        QCOMPARE(block("a")->x(), 1000 / msPerPx);
+        QCOMPARE(block("a")->width(), 3000 / msPerPx - 1);  // one border of gap before the next block
+        QCOMPARE(block("a")->property("label").toString(), QStringLiteral("Intro"));
+        QCOMPARE(block("c")->property("label").toString(), QStringLiteral("Marker"));
+        QCOMPARE(block("b")->property("blockColor").value<QColor>(), QColor("#E5484D"));
+        // The lane scrolls with the track lanes.
+        const double before = block("a")->mapToScene(QPointF(0, 0)).x();
+        gestures()->viewState()->setScrollLeftPx(50);
+        gestures()->viewState()->flush();
+        settle();
+        QCOMPARE(block("a")->mapToScene(QPointF(0, 0)).x(), before - 50);
+    }
+    void thePlusButtonAddsAMarkerAtThePlayhead() {
+        openMusic({});
+        clock.seek(2500);
+        const int base = model.undoStack()->count();
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("markerAddButton")));
+        QCOMPARE(model.markersJson().size(), 1);
+        QCOMPARE(model.markersJson().at(0).toObject().value("timeMs").toDouble(), 2500.0);
+        QCOMPARE(model.undoStack()->count(), base + 1);
+        QTRY_COMPARE(blocks().size(), 1);
+    }
+    void theMarkerRowIsHiddenOutsideTheMusicWorkspace() {
+        // The video fixture shows the Editing layout.
+        QCOMPARE(dockStore()->workspace(), QStringLiteral("Editing"));
+        QVERIFY(!item("markerLane")->isVisible());
+        QCOMPARE(item("markerLane")->implicitHeight(), 0.0);
+        QCOMPARE(blocks().size(), 0);
+        // The Music layout shows it, and the Editing layout takes it back.
+        openMusic({marker("a", 1000, "Intro")});
+        QVERIFY(item("markerLane")->isVisible());
+        dockStore()->switchWorkspace(int(dockStore()->workspaces().indexOf("Editing")));
+        QTRY_VERIFY(!item("markerLane")->isVisible());
+        QCOMPARE(item("markerLane")->implicitHeight(), 0.0);
+    }
+    void theTrackRowsMoveDownByTheRowHeight() {
+        openMusic({marker("a", 1000, "Intro")});
+        const double rowHeight = item("markerLane")->implicitHeight();
+        QVERIFY(rowHeight > 0);
+        const auto rowsY = [&] { return item("headerColumn")->mapToScene(QPointF(0, 0)).y(); };
+        const auto lanesY = [&] { return item("lanesViewport")->mapToScene(QPointF(0, 0)).y(); };
+        const double rulerBottom = item("tracksSectionHeader")->mapToScene(QPointF(0, item("tracksSectionHeader")->height())).y();
+        QCOMPARE(rowsY(), rulerBottom + rowHeight);
+        QCOMPARE(lanesY(), rulerBottom + rowHeight);
+        QCOMPARE(item("markerLane")->mapToScene(QPointF(0, 0)).y(), rulerBottom);
+        // The Music toolbar has its own zoom and height sliders, so the region's copies hide.
+        QVERIFY(!item("timelineZoomControls")->isVisible());
+        QVERIFY(!item("trackHeightSlider")->isVisible());
+        dockStore()->switchWorkspace(int(dockStore()->workspaces().indexOf("Editing")));
+        QTRY_VERIFY(item("timelineZoomControls")->isVisible());
+        QVERIFY(item("trackHeightSlider")->isVisible());
+        QTRY_COMPARE(item("tracksRegion")->property("markerRowHeight").toDouble(), 0.0);
+        // The Editing layout docks the timeline elsewhere, so measure from its own ruler.
+        const double editingRulerBottom = item("tracksSectionHeader")->mapToScene(QPointF(0, item("tracksSectionHeader")->height())).y();
+        QCOMPARE(rowsY(), editingRulerBottom);
+        QCOMPARE(lanesY(), editingRulerBottom);
+    }
+    void clickSeeksDoubleClickEditsAndDragMovesInOneUndoStep() {
+        openMusic({marker("a", 1000, "Intro"), marker("b", 4000, "Verse")});
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, blockCenter("b"));
+        QCOMPARE(session()->selectedIds(), QStringList{"b"});
+        QCOMPARE(clock.time(), 4000.0);
+        QTest::mouseDClick(view.get(), Qt::LeftButton, Qt::NoModifier, blockCenter("a"));
+        QVERIFY(item("markerEditHost")->property("editDialog").value<QObject*>()->property("visible").toBool());
+        item("markerEditHost")->property("editDialog").value<QObject*>()->setProperty("visible", false);
+        settle();
+        // Alt bypasses the snap, so the move lands where the pointer lands (1000 ms = 100 px).
+        const int base = model.undoStack()->count();
+        const QPoint from = blockCenter("b");
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::AltModifier, from);
+        QTest::mouseMove(view.get(), from + QPoint(50, 0), 20);
+        QTest::mouseMove(view.get(), from + QPoint(100, 0), 20);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::AltModifier, from + QPoint(100, 0));
+        settle();
+        QCOMPARE(markerById("b").value("timeMs").toDouble(), 5000.0);
+        QCOMPARE(model.undoStack()->count(), base + 1);
+        model.undoStack()->undo();
+        QCOMPARE(markerById("b").value("timeMs").toDouble(), 4000.0);
+        // A drag that snaps lands on a beat line (500 ms at 120 BPM).
+        const QPoint start = blockCenter("b");
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, start);
+        QTest::mouseMove(view.get(), start + QPoint(30, 0), 20);
+        QTest::mouseMove(view.get(), start + QPoint(37, 0), 20);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, start + QPoint(37, 0));
+        settle();
+        QCOMPARE(markerById("b").value("timeMs").toDouble(), 4500.0);
     }
 };
 QTEST_MAIN(TestMarkers)

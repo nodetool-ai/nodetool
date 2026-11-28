@@ -1,7 +1,9 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 
 Rectangle {
+    // JSON rectangle from ClipGestureController.rubberBand, null when inactive.
     property var bandRect: null
     visible: bandRect !== null && bandRect !== undefined
     x: bandRect ? bandRect.left : 0

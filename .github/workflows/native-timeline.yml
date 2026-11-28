@@ -188,7 +188,8 @@ jobs:
         shell: bash
     steps:
       # Depth 2 keeps the merge commit's first parent, the base the test
-      # selection diffs against.
+      # selection diffs against. Performance gates read the checkout budgets
+      # and do not require origin/main.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -303,6 +304,14 @@ jobs:
         with:
           name: packages-dist
           path: packages
+
+      - name: Verify TypeScript automation parity
+        if: github.event_name != 'push' && matrix.os == 'ubuntu-24.04'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          NODETOOL_NATIVE_AUTOMATION_BINARY="$PWD/native/timeline/build-ci/tst_automation" \
+            npm run test --workspace=packages/timeline -- tests/ops.automation.test.ts
 
       - name: Verify prerequisites and prepare media
         if: github.event_name != 'push'
@@ -547,7 +556,8 @@ jobs:
         working-directory: native/timeline
     steps:
       # Depth 2 keeps the merge commit's first parent, the base the test
-      # selection diffs against.
+      # selection diffs against. Performance gates read the checkout budgets
+      # and do not require origin/main.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

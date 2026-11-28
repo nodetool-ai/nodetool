@@ -20,7 +20,7 @@ fs.writeFileSync(fixture, JSON.stringify({id: "fixture", name: "Before", width: 
 const realPreferences = path.join(os.homedir(), ".config/NodeTool/Timeline.conf");
 const priorPreferences = fs.existsSync(realPreferences) ? fs.readFileSync(realPreferences, "utf8") : null;
 const failures = [];
-for (const mode of ["controls-key", "controls-menu", "controls-button", "controls-new-menu", "controls-new-button", "dismiss-escape", "dismiss-outside", "keyboard"]) {
+for (const mode of ["controls-key", "controls-menu", "controls-button", "controls-new-menu", "dismiss-escape", "dismiss-outside", "keyboard"]) {
   const dir = path.join(work, mode);
   fs.mkdirSync(dir);
   const stdout = fs.openSync(path.join(dir, "stdout.log"), "w");

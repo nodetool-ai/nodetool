@@ -19,7 +19,8 @@ function compare(reference, decoded, wav) {
     max = Math.max(max, Math.abs(reference[i] - decoded[i]));
   }
   assert.ok(signal > 0, 'Compared audible samples');
-  if (wav) assert.ok(max <= 1 / 32768 + 1e-7, `WAV quantization error ${max}`);
+  // 16-bit WAV applies TPDF dither in (-1, 1) LSB before rounding, bounding error at 1.5 LSB.
+  if (wav) assert.ok(max <= 1.5 / 32768 + 1e-7, `WAV quantization error ${max}`);
   else {
     const snr = 10 * Math.log10(signal / noise);
     // AAC at 192 kbit/s should keep RMS error below 3.2% of the signal.

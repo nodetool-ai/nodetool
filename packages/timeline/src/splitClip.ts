@@ -8,8 +8,160 @@ import { sourceRate } from "./sourceRate.js";
 import { isKeyframeAnimation, sliceKeyframeAnimation } from "./keyframes.js";
 import { sliceParamCurves } from "./paramCurves.js";
 import { assertNotTimeRemapped, isHoldRemap } from "./timeRemap.js";
+import { DEFAULT_TEMPO } from "./midi/tempo.js";
+import { msToTicks } from "./midi/ticks.js";
+import { bakeRegionQuantize } from "./midi/regionParams.js";
+import { curveValueAt as valueAt, expressionUpTo } from "./midi/curveCut.js";
 import type { ClipAnimation } from "./animation/types.js";
-import type { CaptionWord, TimelineClip } from "./types.js";
+import type {
+  CaptionWord,
+  MidiControllerLane,
+  MidiExpressionPoint,
+  MidiNote,
+  TimelineClip
+} from "./types.js";
+
+/** What a split does with a midi note that crosses the cut. */
+export type SplitCrossing = "shorten" | "split";
+
+export interface SplitClipOptions {
+  /** Tempo of the document, to turn the cut into content ticks. Default 120. */
+  bpm?: number;
+  /** `tempo.offsetMs`, the origin of the grid a region quantize snaps to. Default 0. */
+  gridOffsetMs?: number;
+  /** A midi note that crosses the cut: end it at the cut (default) or also play its rest on the right. */
+  crossing?: SplitCrossing;
+}
+
+function expressionAfter(
+  expression: NonNullable<MidiNote["expression"]>,
+  offset: number
+): MidiNote["expression"] | undefined {
+  const out: NonNullable<MidiNote["expression"]> = {};
+  for (const key of ["pitch", "volume", "pan", "brightness"] as const) {
+    const points = expression[key];
+    if (!points?.length) continue;
+    const kept: MidiExpressionPoint[] = points
+      .filter((p) => p.tick >= offset)
+      .map((p) => ({ tick: p.tick - offset, value: p.value }));
+    if (kept.length === 0 || kept[0]!.tick > 0) {
+      const carried = valueAt(points, offset);
+      if (carried !== undefined) kept.unshift({ tick: 0, value: carried });
+    }
+    out[key] = kept;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * Partition a midi clip's notes and controllers at `cutTick` (content ticks).
+ * Only the visible window `[windowStartTick, windowEndTick)` is read: a note
+ * that starts before the window or after it is hidden and stays out of both
+ * halves. The left half keeps what starts before the cut, the right half what
+ * starts at or after it, re-based to the cut. Neither half holds hidden content.
+ */
+function splitMidiContent(
+  notes: ReadonlyArray<MidiNote>,
+  controllers: ReadonlyArray<MidiControllerLane>,
+  cutTick: number,
+  crossing: SplitCrossing,
+  windowStartTick: number,
+  windowEndTick: number
+) {
+  const leftNotes: MidiNote[] = [];
+  const rightNotes: MidiNote[] = [];
+  for (const n of notes) {
+    if (n.startTick < windowStartTick || n.startTick >= windowEndTick) continue;
+    if (n.startTick >= cutTick) {
+      rightNotes.push({ ...n, id: createTimeOrderedUuid(), startTick: n.startTick - cutTick });
+      continue;
+    }
+    const end = n.startTick + n.durationTick;
+    if (end <= cutTick) {
+      leftNotes.push(n);
+      continue;
+    }
+    const keptLength = cutTick - n.startTick;
+    const head: MidiNote = { ...n, durationTick: keptLength };
+    if (n.expression) {
+      const expr = expressionUpTo(n.expression, keptLength);
+      if (expr) head.expression = expr;
+      else delete head.expression;
+    }
+    leftNotes.push(head);
+    if (crossing === "split") {
+      const tail: MidiNote = { ...n, id: createTimeOrderedUuid(), startTick: 0, durationTick: end - cutTick };
+      if (n.expression) {
+        const expr = expressionAfter(n.expression, keptLength);
+        if (expr) tail.expression = expr;
+        else delete tail.expression;
+      }
+      rightNotes.unshift(tail);
+    }
+  }
+  const leftLanes: MidiControllerLane[] = [];
+  const rightLanes: MidiControllerLane[] = [];
+  for (const lane of controllers) {
+    const step = lane.interpolation === "step";
+    const visible = lane.points.filter(
+      (p) => p.tick >= windowStartTick && p.tick < windowEndTick
+    );
+    // The value held from before the window keeps sounding at its start.
+    if (
+      lane.points.some((p) => p.tick < windowStartTick) &&
+      (visible.length === 0 || visible[0]!.tick > windowStartTick)
+    ) {
+      const held = valueAt(lane.points, windowStartTick, step);
+      if (held !== undefined) {
+        visible.unshift({
+          id: createTimeOrderedUuid(),
+          tick: windowStartTick,
+          value: Math.round(held)
+        });
+      }
+    }
+    // A ramp whose next point lies past the window end stops at the last
+    // visible point. End the window on the value the ramp reaches there.
+    const lastVisible = visible[visible.length - 1];
+    if (
+      !step &&
+      lastVisible &&
+      lastVisible.tick < windowEndTick - 1 &&
+      lane.points.some((p) => p.tick >= windowEndTick)
+    ) {
+      const edge = valueAt(lane.points, windowEndTick - 1, false);
+      if (edge !== undefined) {
+        visible.push({
+          id: createTimeOrderedUuid(),
+          tick: windowEndTick - 1,
+          value: Math.round(edge)
+        });
+      }
+    }
+    const before = visible.filter((p) => p.tick < cutTick);
+    const after = visible.filter((p) => p.tick >= cutTick);
+    // The left half keeps the ramp up to the cut.
+    const lastBefore = before[before.length - 1];
+    if (!step && lastBefore && after.length > 0 && lastBefore.tick < cutTick - 1) {
+      const edge = valueAt(lane.points, cutTick - 1, false);
+      if (edge !== undefined) {
+        before.push({ id: createTimeOrderedUuid(), tick: cutTick - 1, value: Math.round(edge) });
+      }
+    }
+    if (before.length > 0) leftLanes.push({ ...lane, points: before });
+    if (after.length === 0 && before.length === 0) continue;
+    const points = after.map((p) => ({ ...p, id: createTimeOrderedUuid(), tick: p.tick - cutTick }));
+    // The value in force at the cut keeps sounding on the right half.
+    if (before.length > 0 && (points.length === 0 || points[0]!.tick > 0)) {
+      const carried = valueAt(lane.points, cutTick, step);
+      if (carried !== undefined) {
+        points.unshift({ id: createTimeOrderedUuid(), tick: 0, value: Math.round(carried) });
+      }
+    }
+    if (points.length > 0) rightLanes.push({ ...lane, id: createTimeOrderedUuid(), points });
+  }
+  return { leftNotes, rightNotes, leftLanes, rightLanes };
+}
 
 /**
  * Partition a clip's animations across a split at `splitMs` (clip-local ms).
@@ -109,6 +261,64 @@ function splitAnimations(
 }
 
 /**
+ * The animations of one window `[offsetMs, offsetMs + durationMs)` of a clip
+ * `totalMs` long, for a copy that plays only that window (an unrolled repeat,
+ * a section copy). An `in` animation stays with a window that starts at the
+ * clip start and an `out` one with a window that ends at the clip end. An
+ * `emphasis` plays once, in the window that holds its delay. A `loop` keeps its
+ * phase. Keyframe animations keep their own stretch. A source-anchored one
+ * keeps the stretch of `[sourceFromMs, sourceToMs)`. Copies take fresh ids
+ * unless `keepIds` is set.
+ */
+export function animationsForWindow(
+  animations: ReadonlyArray<ClipAnimation>,
+  window: {
+    offsetMs: number;
+    durationMs: number;
+    totalMs: number;
+    sourceFromMs: number;
+    sourceToMs: number;
+  },
+  keepIds = false
+): ClipAnimation[] {
+  const { offsetMs, durationMs, totalMs } = window;
+  const first = offsetMs <= 1e-6;
+  const last = offsetMs + durationMs >= totalMs - 1e-6;
+  const out: ClipAnimation[] = [];
+  for (const anim of animations) {
+    let next: ClipAnimation | undefined;
+    if (isSourceAnchoredAnimation(anim)) {
+      next = sliceSourceAnimation(
+        anim,
+        window.sourceFromMs,
+        window.sourceToMs,
+        durationMs
+      );
+    } else if (isKeyframeAnimation(anim)) {
+      next = sliceKeyframeAnimation(
+        anim,
+        totalMs > 0 ? offsetMs / totalMs : 0,
+        totalMs > 0 ? (offsetMs + durationMs) / totalMs : 1,
+        durationMs
+      );
+    } else if (anim.role === "in") {
+      if (first) next = { ...anim };
+    } else if (anim.role === "out") {
+      if (last) next = { ...anim };
+    } else if (anim.role === "emphasis") {
+      const delayMs = Math.max(0, anim.delayMs ?? 0);
+      if (delayMs >= offsetMs - 1e-6 && (last || delayMs < offsetMs + durationMs)) {
+        next = { ...anim, delayMs: delayMs - offsetMs };
+      }
+    } else {
+      next = { ...anim, delayMs: rebaseLoopDelayMs(anim, offsetMs) };
+    }
+    if (next) out.push(keepIds ? next : { ...next, id: createTimeOrderedUuid() });
+  }
+  return out;
+}
+
+/**
  * Right-half delay for a loop cut at `splitMs`. Before the loop starts the
  * remaining delay carries over. After it has started the delay goes negative
  * by the time already elapsed, which the compiler reads as a phase offset
@@ -154,7 +364,22 @@ function splitCaptionWords(
   return { left, right };
 }
 
-export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, TimelineClip] {
+export function splitClip(
+  source: TimelineClip,
+  atMs: number,
+  options: SplitClipOptions = {}
+): [TimelineClip, TimelineClip] {
+  // A region quantize is written into the notes first, at the clip's own place
+  // on the tempo grid. Each half then plays the notes the whole clip played,
+  // wherever the cut falls (a note the quantize moved across the cut included).
+  const clip =
+    source.mediaType === "midi" && !source.pattern
+      ? bakeRegionQuantize(
+          source,
+          options.bpm ?? DEFAULT_TEMPO.bpm,
+          options.gridOffsetMs ?? 0
+        )
+      : source;
   // A group is a transform parent, not media: cutting it in two would leave
   // its children naming a parent that no longer covers them (D4).
   if (clip.mediaType === "group") {
@@ -251,6 +476,63 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   }
   if (animations) {
     rightClip.animations = animations.right;
+  }
+
+  if (clip.mediaType === "midi" && clip.pattern) {
+    // SQ23 (D87): split a pattern region into two independent pattern regions
+    // whose phase continues across the cut so playback and cycle counts match.
+    const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
+    const basePhase =
+      (clip.patternPhaseTicks ?? 0) + Math.round(msToTicks(inPointMs, bpm));
+    const cutOffsetTicks = Math.round(msToTicks(leftDurationMs, bpm));
+    leftClip.pattern = structuredClone(clip.pattern);
+    rightClip.pattern = structuredClone(clip.pattern);
+    if (clip.patternRowCycles) {
+      leftClip.patternRowCycles = structuredClone(clip.patternRowCycles);
+      rightClip.patternRowCycles = structuredClone(clip.patternRowCycles);
+    }
+    delete leftClip.notes;
+    delete leftClip.controllers;
+    delete rightClip.notes;
+    delete rightClip.controllers;
+    leftClip.inPointMs = 0;
+    rightClip.inPointMs = 0;
+    if (basePhase > 0) leftClip.patternPhaseTicks = basePhase;
+    else delete leftClip.patternPhaseTicks;
+    rightClip.patternPhaseTicks = basePhase + cutOffsetTicks;
+    if (clip.outPointMs !== undefined) {
+      leftClip.outPointMs = leftDurationMs;
+      rightClip.outPointMs = rightDurationMs;
+    } else {
+      delete leftClip.outPointMs;
+      delete rightClip.outPointMs;
+    }
+  } else if (clip.mediaType === "midi") {
+    const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
+    const cutTick = Math.round(msToTicks(inPointMs + leftDurationMs, bpm));
+    const parts = splitMidiContent(
+      clip.notes ?? [],
+      clip.controllers ?? [],
+      cutTick,
+      options.crossing ?? "shorten",
+      Math.round(msToTicks(inPointMs, bpm)),
+      Math.round(msToTicks(inPointMs + clip.durationMs, bpm))
+    );
+    if (clip.notes) {
+      leftClip.notes = parts.leftNotes;
+      rightClip.notes = parts.rightNotes;
+    }
+    if (clip.controllers) {
+      leftClip.controllers = parts.leftLanes;
+      rightClip.controllers = parts.rightLanes;
+    }
+    // The right half's content starts at the cut.
+    rightClip.inPointMs = 0;
+    if (clip.outPointMs !== undefined) {
+      rightClip.outPointMs = rightDurationMs;
+    } else {
+      delete rightClip.outPointMs;
+    }
   }
 
   return [leftClip, rightClip];

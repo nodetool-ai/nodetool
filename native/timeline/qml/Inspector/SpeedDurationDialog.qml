@@ -13,14 +13,14 @@ Ui.Dialog {
     property var clipIds: []
     property bool linked: true
     property var editingIds: []
-    property var first: null
+    property real firstDurationMs: 0
     property real sourceSpanMs: 0
     property string speedText: "100"
     property string durationText: ""
     property bool ripple: false
     readonly property real fps: controller.model ? controller.model.fps : 30
     readonly property bool speedValid: Number.isFinite(Number(speedText)) && Number(speedText) >= 1 && Number(speedText) <= 10000
-    readonly property var parsedDuration: controller.parseDuration(durationText, fps, first ? first.durationMs : 0)
+    readonly property var parsedDuration: controller.parseDuration(durationText, fps, firstDurationMs)
     readonly property bool durationValid: editingIds.length !== 1 || (parsedDuration !== undefined && parsedDuration !== null && parsedDuration > 0)
     title: "Clip speed / duration"
     modal: true
@@ -29,11 +29,11 @@ Ui.Dialog {
     function openForSelection() {
         returnFocusTo = parent && parent.Window.window ? parent.Window.window.activeFocusItem : null
         editingIds = clipIds.slice()
-        first = (controller.document.clips || []).find(c => c.id === editingIds[0]) || null
-        const rate = first ? (first.speedBaked ? 1 : Math.max(0.0001, first.speedMultiplier ?? 1)) : 1
-        sourceSpanMs = first ? first.durationMs * rate : 0
+        firstDurationMs = controller.clipDurationMs(editingIds[0] || "")
+        const rate = controller.clipSourceRate(editingIds[0] || "")
+        sourceSpanMs = firstDurationMs * rate
         speedText = String(Math.round(rate * 1000) / 10)
-        durationText = Helpers.formatTimecode(first ? first.durationMs : 0, fps)
+        durationText = Helpers.formatTimecode(firstDurationMs, fps)
         ripple = false
         open()
     }
@@ -44,7 +44,7 @@ Ui.Dialog {
     }
     function handleDuration(raw) {
         durationText = raw
-        const ms = controller.parseDuration(raw, fps, first ? first.durationMs : 0)
+        const ms = controller.parseDuration(raw, fps, firstDurationMs)
         if (ms !== undefined && ms !== null && ms > 0 && sourceSpanMs > 0) speedText = String(Math.round(sourceSpanMs / ms * 1000) / 10)
     }
     function apply() {

@@ -13,6 +13,7 @@ import { AppBinaryRuntimePackage } from "./AppBinaryRuntimePackage.js";
 import { CondaRuntimePackage } from "./CondaRuntimePackage.js";
 import { NpmRuntimePackage } from "./NpmRuntimePackage.js";
 import { ProvidedRuntimePackage } from "./ProvidedRuntimePackage.js";
+import { AceStepRuntimePackage } from "./AceStepRuntimePackage.js";
 import { SdCppRuntimePackage } from "./SdCppRuntimePackage.js";
 import type { RuntimePackage } from "./types.js";
 import { UvToolRuntimePackage } from "./UvToolRuntimePackage.js";
@@ -135,6 +136,8 @@ export const RUNTIME_PACKAGES = {
   }),
 
   "sd-cpp": new SdCppRuntimePackage(),
+
+  acestep: new AceStepRuntimePackage(),
 
   wan2gp: new Wan2GPRuntimePackage(),
 

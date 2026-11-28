@@ -40,6 +40,7 @@ import {
   makeTrack,
   planTransitionAtCut,
   resolveTempo,
+  expandMidiLoop,
   visibleNotes,
   type AnimationRole,
   type ClipTransform,
@@ -64,6 +65,7 @@ import type {
 } from "@nodetool-ai/timeline/ops";
 import {
   applyTimelineOp,
+  createMemoryStepPatternLibrary,
   timelineOpFromToolArgs,
   type TimelineOpContext,
   type TimelineOpName,
@@ -229,6 +231,10 @@ export interface TimelineBridgeSequenceSeed {
    * `set_tempo` is called, and the bridge writes none back.
    */
   tempo?: TimelineTempo;
+  /** The music-project marker. `get_state` reports it with the CE7 crossfade length. */
+  music?: TimelineSequence["music"];
+  /** The master bus. Absent reads as 0 dB with no effects. */
+  master?: TimelineSequence["master"];
   camera2d?: TimelineSequence["camera2d"];
   /** Guided video-flow state. Absent reads as a sequence never in the flow. */
   setup?: TimelineSetup;
@@ -307,6 +313,11 @@ export interface TimelineBridgeInitialState {
    */
   resolveAsset?: TimelineAssetResolver;
   /**
+   * Decode an audio clip's source to mono samples for `ui_timeline_detect_chords`.
+   * Without one the op reports that this surface cannot read audio.
+   */
+  decodeClipAudio?: TimelineOpContext["decodeClipAudio"];
+  /**
    * Bake a `preset: "custom"` animation's `code` into curves. Without one the
    * op says so and points at `curves`, rather than storing an animation whose
    * body nothing ever ran.
@@ -336,6 +347,12 @@ export interface TimelineBridgeInitialState {
    * a template.
    */
   loadComposition?: TimelineCompositionLoader;
+  /** User step sequencer pattern/template library adapter (SQ44, SQ54, D92). */
+  stepPatternLibrary?: TimelineOpContext["stepPatternLibrary"];
+  /** Third-party VST3/AU plugin host adapter (VST1). */
+  pluginHost?: TimelineOpContext["pluginHost"];
+  /** Host default MIDI instrument for newly created MIDI tracks. */
+  defaultMidiInstrument?: TimelineOpContext["defaultMidiInstrument"];
   /**
    * Store a sequence created by `ui_timeline_retarget_format`. The bridge
    * computes the complete adapted sequence first, then hands it to the host;
@@ -440,6 +457,12 @@ export interface TimelineBridgeFinalState {
    * plays at the wrong speed on the next read.
    */
   tempo?: TimelineTempo;
+  /** The music-project marker, with the auto crossfade length `set_tempo` writes. */
+  music?: TimelineSequence["music"];
+  /** The master bus `set_track` writes. */
+  master?: TimelineSequence["master"];
+  /** Track folders `set_track` creates. */
+  trackFolders?: TimelineSequence["trackFolders"];
   camera2d?: TimelineSequence["camera2d"];
   /**
    * Guided video-flow state, or null on a sequence that was never in it.
@@ -594,6 +617,12 @@ export function createTimelineToolBridge(
   // Absent until a midi track or `set_tempo` puts one there — a document with
   // no midi in it should not grow a tempo field it never asked for.
   let tempo: TimelineTempo | undefined = seed?.tempo;
+  // Document-level, written back by `set_tempo` and `set_track`.
+  let documentMusic: TimelineSequence["music"] = structuredClone(seed?.music);
+  let documentMaster: TimelineSequence["master"] = structuredClone(seed?.master);
+  let documentFolders: TimelineSequence["trackFolders"] = structuredClone(
+    seed?.trackFolders
+  );
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
@@ -1010,9 +1039,29 @@ export function createTimelineToolBridge(
       // them — so state reports how many there are and how many the window
       // actually plays. `set_notes` sends the list; nothing reads it back.
       noteCount: c.notes?.length,
+      pattern: c.pattern
+        ? `${c.pattern.rows.length} rows x ${c.pattern.lengthSteps} @${c.pattern.stepRate}`
+        : undefined,
+      patternName: c.pattern?.name,
       audibleNoteCount:
         c.mediaType === "midi"
-          ? visibleNotes(c, resolveTempo({ tempo }).bpm).length
+          ? (() => {
+              const t = resolveTempo({ tempo });
+              const chords = c.pattern
+                ? tracks.find(
+                    (tr) =>
+                      tr.type === "chord" &&
+                      (!c.harmony?.chordTrackId || tr.id === c.harmony.chordTrackId)
+                  )?.chords ?? tracks.find((tr) => tr.type === "chord")?.chords
+                : undefined;
+              return visibleNotes(
+                expandMidiLoop(c, t.bpm, t.offsetMs, track?.instrument, {
+                  chords,
+                  key: t.key
+                }),
+                t.bpm
+              ).length;
+            })()
           : undefined,
       // Where the phrase starts in musical time, so placing the next one is
       // reading a bar number rather than dividing milliseconds by the tempo.
@@ -1069,12 +1118,14 @@ export function createTimelineToolBridge(
       playheadMs,
       selectedClipIds,
       tempo,
+      music: documentMusic,
+      master: documentMaster,
       setup,
       transcript: seed?.transcript,
       scriptEnabled: seed?.scriptEnabled,
       workingColorSpaceVersion: seed?.workingColorSpaceVersion,
       templateId: seed?.templateId,
-      trackFolders: structuredClone(seed?.trackFolders),
+      trackFolders: documentFolders,
       storyboardMaterializations: structuredClone(
         seed?.storyboardMaterializations
       ),
@@ -1199,13 +1250,18 @@ export function createTimelineToolBridge(
   };
   const opContext: TimelineOpContext = {
     newId,
+    defaultMidiInstrument: initial.defaultMidiInstrument,
     resolveAsset,
+    decodeClipAudio: initial.decodeClipAudio,
     bakeAnimation,
     bakeModel3DClip,
     renderModel3DReference,
     model3dAssetRevision,
     loadComposition,
     parseSvgPath,
+    stepPatternLibrary:
+      initial.stepPatternLibrary ?? createMemoryStepPatternLibrary(),
+    pluginHost: initial.pluginHost,
     sequence: { id: sequenceId, name: sequenceName, projectId },
     retargetFormat: async (sequence) => {
       const stored = retargetFormat
@@ -1225,23 +1281,34 @@ export function createTimelineToolBridge(
     markers = next.markers;
     mediaTracks = next.mediaTracks ?? [];
     tempo = next.tempo;
+    documentMusic = next.music;
+    documentMaster = next.master;
+    documentFolders = next.trackFolders;
     setup = next.setup ?? null;
     playheadMs = next.playheadMs;
     selectedClipIds = next.selectedClipIds;
   }
-  async function editOp(name: TimelineOpName, args: Record<string, unknown>) {
-    const outcome = await applyTimelineOp(
-      readState(),
-      timelineOpFromToolArgs(name, args),
-      opContext
-    );
-    if (outcome.error) {
-      throw new Error(outcome.error);
-    }
-    commitOutcome(outcome.state);
-    return name === "get_state"
-      ? { sequenceId, ...outcome.result }
-      : outcome.result;
+  // Edits run one at a time. An op that awaits (an audio decode) holds a snapshot
+  // of the state, and a parallel edit must not be overwritten when it commits.
+  let editQueue: Promise<unknown> = Promise.resolve();
+  function editOp(name: TimelineOpName, args: Record<string, unknown>) {
+    const run = async () => {
+      const outcome = await applyTimelineOp(
+        readState(),
+        timelineOpFromToolArgs(name, args),
+        opContext
+      );
+      if (outcome.error) {
+        throw new Error(outcome.error);
+      }
+      commitOutcome(outcome.state);
+      return name === "get_state"
+        ? { sequenceId, ...outcome.result }
+        : outcome.result;
+    };
+    const next = editQueue.then(run, run);
+    editQueue = next.catch(() => undefined);
+    return next;
   }
 
   const tools: TimelineBridgeTool[] = [
@@ -1666,6 +1733,68 @@ export function createTimelineToolBridge(
       editOp("scale_velocity", args)
     ),
 
+    // Chords: the chord track and the midi clips that follow it.
+
+    sharedTool("ui_timeline_set_chords", async (args) =>
+      editOp("set_chords", args)
+    ),
+
+    sharedTool("ui_timeline_clear_chords", async (args) =>
+      editOp("clear_chords", args)
+    ),
+
+    sharedTool("ui_timeline_loop_clip", async (args) =>
+      editOp("loop_clip", args)
+    ),
+
+    sharedTool("ui_timeline_join_clips", async (args) =>
+      editOp("join_clips", args)
+    ),
+
+    sharedTool("ui_timeline_insert_time", async (args) =>
+      editOp("insert_time", args)
+    ),
+
+    sharedTool("ui_timeline_delete_time", async (args) =>
+      editOp("delete_time", args)
+    ),
+
+    sharedTool("ui_timeline_duplicate_range", async (args) =>
+      editOp("duplicate_range", args)
+    ),
+
+    sharedTool("ui_timeline_paste_range", async (args) =>
+      editOp("paste_range", args)
+    ),
+
+    sharedTool("ui_timeline_list_progressions", async (args) =>
+      editOp("list_progressions", args)
+    ),
+
+    sharedTool("ui_timeline_apply_progression", async (args) =>
+      editOp("apply_progression", args)
+    ),
+
+    sharedTool("ui_timeline_transpose_chords", async (args) =>
+      editOp("transpose_chords", args)
+    ),
+
+    sharedTool("ui_timeline_detect_chords", async (args) =>
+      editOp("detect_chords", args)
+    ),
+
+    sharedTool("ui_timeline_set_clip_harmony", async (args) =>
+      editOp("set_clip_harmony", args)
+    ),
+
+    sharedTool("ui_timeline_list_harmony_presets", async (args) =>
+      editOp("list_harmony_presets", args)
+    ),
+
+    sharedTool("ui_timeline_fit_notes_to_chords", async (args) =>
+      editOp("fit_notes_to_chords", args)
+    ),
+
     tool(
       "ui_timeline_insert_composition",
       "Insert a stored composition — a group of clips with named parameters (a lower third, a title card, a callout) — at a timecode. Its children keep the layering the template declares: each template track becomes an overlay track of its own, front-most on top, reused across insertions. `params` overrides the template's defaults by name; anything omitted keeps its default. Call list_compositions for the ids and their parameters.",
@@ -1823,6 +1952,124 @@ export function createTimelineToolBridge(
 
     sharedTool("ui_timeline_clear_reframe", async (args) =>
       editOp("clear_reframe", args)
+    ),
+
+    // Step Sequencer (SQ48–SQ54)
+    sharedTool("ui_timeline_get_pattern", async (args) =>
+      editOp("get_pattern", args)
+    ),
+    sharedTool("ui_timeline_create_pattern_region", async (args) =>
+      editOp("create_pattern_region", args)
+    ),
+    sharedTool("ui_timeline_convert_pattern_to_midi", async (args) =>
+      editOp("convert_pattern_to_midi", args)
+    ),
+    sharedTool("ui_timeline_convert_midi_to_pattern", async (args) =>
+      editOp("convert_midi_to_pattern", args)
+    ),
+    sharedTool("ui_timeline_separate_pattern_rows", async (args) =>
+      editOp("separate_pattern_rows", args)
+    ),
+    sharedTool("ui_timeline_set_pattern", async (args) =>
+      editOp("set_pattern", args)
+    ),
+    sharedTool("ui_timeline_set_pattern_seed", async (args) =>
+      editOp("set_pattern_seed", args)
+    ),
+    sharedTool("ui_timeline_add_pattern_rows", async (args) =>
+      editOp("add_pattern_rows", args)
+    ),
+    sharedTool("ui_timeline_set_pattern_row", async (args) =>
+      editOp("set_pattern_row", args)
+    ),
+    sharedTool("ui_timeline_remove_pattern_rows", async (args) =>
+      editOp("remove_pattern_rows", args)
+    ),
+    sharedTool("ui_timeline_move_pattern_row", async (args) =>
+      editOp("move_pattern_row", args)
+    ),
+    sharedTool("ui_timeline_sort_pattern_rows", async (args) =>
+      editOp("sort_pattern_rows", args)
+    ),
+    sharedTool("ui_timeline_set_pattern_row_sort", async (args) =>
+      editOp("set_pattern_row_sort", args)
+    ),
+    sharedTool("ui_timeline_copy_pattern_row", async (args) =>
+      editOp("copy_pattern_row", args)
+    ),
+    sharedTool("ui_timeline_set_steps", async (args) =>
+      editOp("set_steps", args)
+    ),
+    sharedTool("ui_timeline_set_pattern_text", async (args) =>
+      editOp("set_pattern_text", args)
+    ),
+    sharedTool("ui_timeline_clear_pattern", async (args) =>
+      editOp("clear_pattern", args)
+    ),
+    sharedTool("ui_timeline_copy_steps", async (args) =>
+      editOp("copy_steps", args)
+    ),
+    sharedTool("ui_timeline_repeat_step", async (args) =>
+      editOp("repeat_step", args)
+    ),
+    sharedTool("ui_timeline_rotate_pattern", async (args) =>
+      editOp("rotate_pattern", args)
+    ),
+    sharedTool("ui_timeline_transpose_pattern", async (args) =>
+      editOp("transpose_pattern", args)
+    ),
+    sharedTool("ui_timeline_randomize_pattern", async (args) =>
+      editOp("randomize_pattern", args)
+    ),
+    sharedTool("ui_timeline_nudge_pattern_values", async (args) =>
+      editOp("nudge_pattern_values", args)
+    ),
+    sharedTool("ui_timeline_tie_steps", async (args) =>
+      editOp("tie_steps", args)
+    ),
+    sharedTool("ui_timeline_list_step_patterns", async (args) =>
+      editOp("list_step_patterns", args)
+    ),
+    sharedTool("ui_timeline_apply_step_pattern", async (args) =>
+      editOp("apply_step_pattern", args)
+    ),
+    sharedTool("ui_timeline_save_step_pattern", async (args) =>
+      editOp("save_step_pattern", args)
+    ),
+    sharedTool("ui_timeline_set_track_step_template", async (args) =>
+      editOp("set_track_step_template", args)
+    ),
+    sharedTool("ui_timeline_create_step_pattern_folder", async (args) =>
+      editOp("create_step_pattern_folder", args)
+    ),
+    sharedTool("ui_timeline_rename_step_pattern_folder", async (args) =>
+      editOp("rename_step_pattern_folder", args)
+    ),
+    sharedTool("ui_timeline_delete_step_pattern_folder", async (args) =>
+      editOp("delete_step_pattern_folder", args)
+    ),
+    sharedTool("ui_timeline_move_step_pattern", async (args) =>
+      editOp("move_step_pattern", args)
+    ),
+
+    // VST/AU Plug-in Hosting (VST1)
+    sharedTool("ui_timeline_list_plugins", async (args) =>
+      editOp("list_plugins", args)
+    ),
+    sharedTool("ui_timeline_load_plugin", async (args) =>
+      editOp("load_plugin", args)
+    ),
+    sharedTool("ui_timeline_list_plugin_presets", async (args) =>
+      editOp("list_plugin_presets", args)
+    ),
+    sharedTool("ui_timeline_select_plugin_preset", async (args) =>
+      editOp("select_plugin_preset", args)
+    ),
+    sharedTool("ui_timeline_get_plugin_parameters", async (args) =>
+      editOp("get_plugin_parameters", args)
+    ),
+    sharedTool("ui_timeline_set_plugin_parameters", async (args) =>
+      editOp("set_plugin_parameters", args)
     )
   ];
 
@@ -1931,6 +2178,9 @@ export function createTimelineToolBridge(
         structuredClone(sequence)
       ),
       tempo: tempo ? structuredClone(tempo) : undefined,
+      music: structuredClone(documentMusic),
+      master: structuredClone(documentMaster),
+      trackFolders: structuredClone(documentFolders),
       camera2d: structuredClone(seed?.camera2d ?? null),
       setup: setup ? structuredClone(setup) : null,
       transitionCandidates: structuredClone(transitionCandidates),

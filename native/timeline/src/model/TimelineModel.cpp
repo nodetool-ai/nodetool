@@ -1,11 +1,19 @@
+#include "midi/MultisampleSampler.h"
+#include "audio/automation/Automation.h"
+#include "midi/BassSynthPresets.h"
+#include "midi/WavetablePresets.h"
+#include "midi/modal/ModalPresets.h"
 #include "motion/gesture/ClipDelta.h"
 #include "model/TimelineModel.h"
+#include "audio/automation/AutomationRecorder.h"
 
 #include "model/TimelineJson.h"
 #include "app/EditRegistry.h"
 
 #include <utility>
 #include <QHash>
+#include <QPointer>
+#include <QScopedValueRollback>
 #include <QJsonDocument>
 #include <QUndoCommand>
 #include <QUuid>
@@ -27,15 +35,40 @@ QString mediaKey(const QJsonObject& raw) {
 }
 
 // The top-level keys whose values differ between two documents, in one pass.
-QSet<QString> differingKeys(const QJsonObject& a, const QJsonObject& b) {
+QSet<QString> differingKeys(const QJsonObject& a, const QJsonObject& b, const QString& ignored = {}) {
     QSet<QString> keys;
     for (auto it = a.begin(); it != a.end(); ++it) {
+        if (!ignored.isEmpty() && it.key() == ignored) { continue; }
         if (b.value(it.key()) != it.value()) keys.insert(it.key());
     }
     for (auto it = b.begin(); it != b.end(); ++it) {
+        if (!ignored.isEmpty() && it.key() == ignored) { continue; }
         if (!a.contains(it.key())) keys.insert(it.key());
     }
     return keys;
+}
+
+void entityChanges(const QJsonArray& before, const QJsonArray& after,
+                   QHash<QString, QSet<QString>>& changes, bool& structural) {
+    QHash<QString, QJsonObject> previous;
+    QStringList oldIds, newIds;
+    for (const auto& value : before) {
+        const auto object = value.toObject();
+        const auto id = object.value("id").toString();
+        previous.insert(id, object);
+        oldIds.append(id);
+    }
+    for (const auto& value : after) {
+        const auto object = value.toObject();
+        const auto id = object.value("id").toString();
+        newIds.append(id);
+        const auto fields = differingKeys(previous.take(id), object);
+        if (!fields.isEmpty()) { changes.insert(id, fields); }
+    }
+    for (auto it = previous.cbegin(); it != previous.cend(); ++it) {
+        changes.insert(it.key(), differingKeys(it.value(), {}));
+    }
+    structural = oldIds != newIds;
 }
 
 bool onlyKey(const QSet<QString>& keys, const QString& key) {
@@ -128,6 +161,9 @@ TimelineModel::TimelineModel(QObject* parent)
       m_timeline(std::make_shared<const nt::Timeline>()),
       m_tracks(new TrackListModel(this)),
       m_undo(new QUndoStack(this)) {
+    connect(m_undo, &QUndoStack::indexChanged, this, [this] {
+        if (!pushingCommand()) { clearMixerOverrides(); }
+    });
     connect(this, &TimelineModel::timelineChanged, this, &TimelineSource::sourceChanged);
     connect(this, &TimelineModel::previewChanged, this, &TimelineSource::sourceChanged);
 }
@@ -181,6 +217,7 @@ bool TimelineModel::rebaseHistory(const HistoryRebase& rebase) {
 }
 
 void TimelineModel::installTimeline(nt::Timeline timeline, const HistoryRebase* rebase) {
+    clearMixerOverrides();
     timeline.matteClipId.clear();
     timeline.matteEffectId.clear();
     m_media.clear();
@@ -195,17 +232,23 @@ void TimelineModel::installTimeline(nt::Timeline timeline, const HistoryRebase* 
     m_timeline = std::make_shared<const nt::Timeline>(std::move(timeline));
     markAllChanged();
     ++m_generation;
+    // The track rows point into the document just freed, so they move to the
+    // new one before any signal lets QML read them.
+    m_tracks->reset(m_timeline.get());
     emit effectMatteChanged();
     emit documentReplaced();
     // An external change keeps undo when every checkpoint can take its delta
     // (web useTimelineExternalSync rebases the zundo history the same way).
     if (!rebase || !rebaseHistory(*rebase)) { m_undo->clear(); }
-    m_tracks->reset(m_timeline.get());
     // A new document replaces the clips too: lane models that outlive the
     // reset must drop the old snapshot.
-    emit clipsChanged();
-    emit timelineChanged();
-    emit markersChanged();
+    {
+        const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
+        emit clipsChanged();
+        emit timelineChanged();
+        emit markersChanged();
+    }
 }
 
 double TimelineModel::contentEndMs() const {
@@ -225,6 +268,7 @@ QByteArray TimelineModel::documentJson() const {
 }
 
 bool TimelineModel::replaceClips(const QJsonArray& clips) {
+    const Measurement measurement(*this, "clip_diff");
     // Incremental: a clip whose JSON did not change keeps its typed copy, and
     // only the changed clips are parsed. An unchanged clip shares its JSON
     // with the old one, so the comparison is a pointer check.
@@ -313,8 +357,97 @@ void TimelineModel::settleTransient() {
     m_changedClipIds = std::move(pending.clipIds);
     m_changedTrackIds = std::move(pending.trackIds);
     if (pending.takesChanged) ++m_takesRevision;
-    emit clipsChanged();
-    emit timelineChanged();
+    {
+        const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
+        emit clipsChanged();
+        emit timelineChanged();
+    }
+}
+
+void TimelineModel::notifyChanges() {
+    ChangeSet changes;
+    changes.fullReplacement = !m_notifiedSnapshot || m_notifiedGeneration != m_generation;
+    const auto before = m_notifiedSnapshot ? m_notifiedSnapshot->raw : QJsonObject{};
+    const auto& after = m_timeline->raw;
+    // Clip-only application already recorded the exact IDs. Avoid comparing
+    // the whole clip array again before diffing those clips.
+    changes.documentFields = differingKeys(before, after, QStringLiteral("clips"));
+    const auto collect = [&](const QString& key, auto& entities, bool& structural) {
+        if (changes.documentFields.contains(key)) {
+            entityChanges(before.value(key).toArray(), after.value(key).toArray(), entities, structural);
+        }
+    };
+    if (!changes.fullReplacement && m_changedClipIds && m_notifiedSnapshot) {
+        auto ids = *m_changedClipIds;
+        if (m_transient) { ids.unite(m_transient->clipIds); }
+        for (const auto& id : ids) {
+            const auto* old = m_notifiedSnapshot->findClip(id.toStdString());
+            const auto* next = m_timeline->findClip(id.toStdString());
+            const auto fields = differingKeys(old ? old->raw : QJsonObject{}, next ? next->raw : QJsonObject{});
+            if (!fields.isEmpty()) { changes.clips.insert(id, fields); }
+            changes.clipsStructural = changes.clipsStructural || !old || !next;
+        }
+        if (!changes.clips.isEmpty() || changes.clipsStructural) { changes.documentFields.insert("clips"); }
+    } else {
+        if (before.value("clips") != after.value("clips")) { changes.documentFields.insert("clips"); }
+        collect("clips", changes.clips, changes.clipsStructural);
+    }
+    collect("tracks", changes.tracks, changes.tracksStructural);
+    collect("markers", changes.markers, changes.markersStructural);
+    for (auto it = changes.clips.cbegin(); it != changes.clips.cend(); ++it) {
+        if (it.value().contains("notes")) {
+            changes.noteClipIds.insert(it.key());
+            const auto* old = m_notifiedSnapshot ? m_notifiedSnapshot->findClip(it.key().toStdString()) : nullptr;
+            const auto* next = m_timeline->findClip(it.key().toStdString());
+            changes.recordNoteRanges(it.key(), old ? old->raw.value("notes").toArray() : QJsonArray{},
+                next ? next->raw.value("notes").toArray() : QJsonArray{});
+        }
+    }
+    // Resolved media may change without changing the persisted document.
+    if (m_changedClipIds) {
+        for (const auto& id : *m_changedClipIds) {
+            const auto* old = m_notifiedSnapshot ? m_notifiedSnapshot->findClip(id.toStdString()) : nullptr;
+            const auto* next = m_timeline->findClip(id.toStdString());
+            if (!old || !next) { continue; }
+            if (old->mediaPath != next->mediaPath) { changes.clips[id].insert("mediaPath"); }
+            if (old->audioPath != next->audioPath) { changes.clips[id].insert("audioPath"); }
+            if (old->originalMediaPath != next->originalMediaPath) { changes.clips[id].insert("originalMediaPath"); }
+            if (old->generatedMattePath != next->generatedMattePath) { changes.clips[id].insert("generatedMattePath"); }
+        }
+    }
+    const bool sourcePathChangedValue = changes.fullReplacement ||
+        (m_notifiedSnapshot && m_notifiedSnapshot->sourcePath != m_timeline->sourcePath);
+    const bool clipCountChangedValue = changes.fullReplacement || !m_notifiedSnapshot ||
+        m_notifiedSnapshot->clips.size() != m_timeline->clips.size();
+    const auto contentEnd = [this](const nt::Timeline& timeline) {
+        double end = timeline.durationMs;
+        for (const auto& clip : timeline.clips) { ++m_notificationClipVisits; end = std::max(end, clip.endMs()); }
+        return end;
+    };
+    const bool clipEndsChanged = std::any_of(changes.clips.cbegin(), changes.clips.cend(), [](const auto& fields) {
+        return fields.contains("startMs") || fields.contains("durationMs");
+    });
+    const bool recomputeEnd = changes.fullReplacement || changes.clipsStructural || clipEndsChanged ||
+        changes.documentFields.contains("durationMs");
+    const double nextEnd = recomputeEnd ? contentEnd(*m_timeline) : m_notifiedContentEnd;
+    const bool contentEndChangedValue = changes.fullReplacement || nextEnd != m_notifiedContentEnd;
+    m_notifiedContentEnd = nextEnd;
+    // Publish the baseline and delta before scalar slots can make a nested edit.
+    m_notifiedSnapshot = m_timeline;
+    m_notifiedGeneration = m_generation;
+    emit changed(changes);
+    if (changes.fullReplacement || changes.documentFields.contains("id")) { emit timelineIdChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("projectId")) { emit projectIdChanged(); }
+    if (sourcePathChangedValue) { emit sourcePathChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("name")) { emit nameChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("fps")) { emit fpsChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("dropFrame")) { emit dropFrameChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("durationMs")) { emit durationMsChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("width")) { emit canvasWidthChanged(); }
+    if (changes.fullReplacement || changes.documentFields.contains("height")) { emit canvasHeightChanged(); }
+    if (clipCountChangedValue) { emit clipCountChanged(); }
+    if (contentEndChangedValue) { emit contentEndMsChanged(); }
 }
 
 bool TimelineModel::patch(const QJsonArray& changed, bool transient) {
@@ -337,6 +470,7 @@ bool TimelineModel::patch(const QJsonArray& changed, bool transient) {
 }
 
 bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& reuse, bool sameIds, bool transient) {
+    const Measurement measurement(*this, "snapshot_and_rows");
     const nt::Timeline& old = *m_timeline;
     QJsonObject raw = old.raw;
     raw.insert(QStringLiteral("clips"), clips);
@@ -350,9 +484,25 @@ bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& 
         // sequence's fields and tracks.
         QJsonObject part = raw;
         part.insert(QStringLiteral("clips"), changed);
-        nt::ParseResult parsed = nt::parseTimeline(part);
-        if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) return false;
-        parsedClips = std::move(parsed.timeline->clips);
+        bool cached = true;
+        for (const auto& value : changed) {
+            const auto object = value.toObject();
+            const auto it = m_validatedClips.constFind(object.value("id").toString());
+            if (it == m_validatedClips.cend() || it->raw != object) { cached = false; break; }
+        }
+        if (cached) {
+            for (const auto& value : changed) {
+                parsedClips.push_back(m_validatedClips.value(value.toObject().value("id").toString()));
+            }
+        } else {
+            nt::ParseResult parsed = [&] {
+                const Measurement measurement(*this, "parse");
+                return nt::parseTimeline(part);
+            }();
+            if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) { return false; }
+            parsedClips = std::move(parsed.timeline->clips);
+        }
+        m_validatedClips.clear();
         // The parse knows neither the load's base folder nor the server's
         // asset cache: take the media the document's load resolved.
         for (auto& c : parsedClips) {
@@ -392,7 +542,35 @@ bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& 
     full.clips = std::move(nextClips);
     full.revision = nt::nextTimelineRevision();
     if (!sameIds) full.indexClips();
+    // In-place patches retain clip offsets. Update only the affected lanes.
+    const bool incrementalIndex = sameIds && m_trackIndexSource == m_timeline;
     m_timeline = std::make_shared<const nt::Timeline>(std::move(full));
+    if (incrementalIndex) {
+        m_indexChangedTracks = changedTracks;
+        if (m_transient) { m_indexChangedTracks.unite(m_transient->trackIds); }
+        for (size_t i=0; i<reuse.size(); ++i) {
+            if (reuse[i]>=0) { continue; }
+            const auto& before=m_trackIndexSource->clips[i];
+            const auto& after=m_timeline->clips[i];
+            if (before.trackId==after.trackId) { continue; }
+            auto& source=m_trackClipIndices[QString::fromStdString(before.trackId)];
+            std::erase(source,i);
+            m_trackClipIndices[QString::fromStdString(after.trackId)].push_back(i);
+        }
+        for (const auto& track : changedTracks) {
+            auto& indices=m_trackClipIndices[track];
+            m_trackIndexVisits+=indices.size();
+            std::stable_sort(indices.begin(),indices.end(),[this](size_t a,size_t b) {
+                return m_timeline->clips[a].startMs<m_timeline->clips[b].startMs;
+            });
+            auto& ends=m_trackMaxEnds[track];
+            ends.clear();
+            double end=-std::numeric_limits<double>::infinity();
+            for (const auto i : indices) { end=std::max(end,m_timeline->clips[i].endMs()); ends.push_back(end); }
+        }
+        m_trackIndexSource=m_timeline;
+    }
+
     m_tracks->rebind(m_timeline.get());
     if (transient) {
         if (!m_transient) m_transient.emplace(Transient{});
@@ -412,8 +590,12 @@ bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& 
     m_changedClipIds = sameIds ? std::optional<QSet<QString>>(std::move(changedIds)) : std::nullopt;
     m_changedTrackIds = std::move(changedTracks);
     if (takesChanged) ++m_takesRevision;
-    emit clipsChanged();
-    emit timelineChanged();
+    {
+        const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
+        emit clipsChanged();
+        emit timelineChanged();
+    }
     return true;
 }
 
@@ -447,13 +629,21 @@ void TimelineModel::markClipsChanged(QSet<QString> clipIds, QSet<QString> trackI
     m_changedTrackIds = std::move(trackIds);
 }
 
+void TimelineModel::pushCommand(std::unique_ptr<QUndoCommand> command) {
+    const Measurement measurement(*this, "undo_stack");
+    const QScopedValueRollback<bool> pushing(m_pushingCommand, true);
+    // QUndoStack takes ownership and destroys discarded commands on the UI thread.
+    m_undo->push(command.release());
+}
+
 quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId,
                                bool continuation) {
     const QJsonArray savedBefore = before;
     const QJsonArray savedAfter = after;
     if (m_readOnly || savedBefore == savedAfter) return false;
+    const Measurement measurement(*this, "commit_edit");
     const auto liveBefore = clipsJson();
-    emit beforeCommand();
+    { const Measurement measurement(*this, "before_command_fanout"); emit beforeCommand(); }
     const auto restored = clipsJson();
     // An external command may have been computed against a transient preview.
     // Apply only its observable changes to the restored committed clips.
@@ -468,7 +658,8 @@ quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before,
     const auto token = nextCommandToken();
     auto command = std::make_unique<DocumentCommand>(text, std::move(beforeDocument), std::move(afterDocument),
         [this](const QJsonObject& raw) { replaceFromHistory(raw); }, token, mergeId, continuation);
-    m_undo->push(command.release());
+    pushCommand(std::move(command));
+    m_validatedClips.clear();
     return token;
 }
 
@@ -491,12 +682,15 @@ QJsonArray TimelineModel::markersJson() const {
 }
 
 QVariantList TimelineModel::markers() const {
-    return markersJson().toVariantList();
+    const auto json = markersJson();
+    crossing("TimelineModel.markers", [&json] { return json; });
+    return json.toVariantList();
 }
 
 bool TimelineModel::replaceMarkers(const QJsonArray& incoming) {
+    const Measurement measurement(*this, "marker_replace");
     const QJsonArray markers = incoming;
-    emit beforeCommand();
+    { const Measurement measurement(*this, "before_command_fanout"); emit beforeCommand(); }
     if (markers == markersJson()) return false;
     nt::Timeline next = *m_timeline;
     next.raw.insert(QStringLiteral("markers"), markers);
@@ -504,8 +698,12 @@ bool TimelineModel::replaceMarkers(const QJsonArray& incoming) {
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
     // No clip changed: the clip change state and the takes stay.
     m_tracks->rebind(m_timeline.get());
-    emit markersChanged();
-    emit sourceChanged();
+    {
+        const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
+        emit markersChanged();
+        emit sourceChanged();
+    }
     return true;
 }
 
@@ -517,8 +715,7 @@ QString TimelineModel::addMarker(double timeMs, const QString& label) {
     after.append(QJsonObject{{QStringLiteral("id"), id},
                              {QStringLiteral("timeMs"), std::max(0.0, std::round(timeMs))},
                              {QStringLiteral("label"), label}});
-    // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
-    m_undo->push(new MarkersCommand(this, markersJson(), after, QStringLiteral("Add marker")));
+    pushCommand(std::make_unique<MarkersCommand>(this, markersJson(), after, QStringLiteral("Add marker")));
     return id;
 }
 
@@ -530,8 +727,7 @@ bool TimelineModel::deleteMarker(const QString& markerId) {
         if (m.toObject().value(u"id").toString() != markerId) after.append(m);
     }
     if (after.size() == before.size()) return false;
-    // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
-    m_undo->push(new MarkersCommand(this, before, after, QStringLiteral("Delete marker")));
+    pushCommand(std::make_unique<MarkersCommand>(this, before, after, QStringLiteral("Delete marker")));
     return true;
 }
 
@@ -552,12 +748,109 @@ void TimelineModel::setReadOnly(bool readOnly) {
 }
 
 quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload) {
-    const auto edit = nt::app::findEdit(name);
+    return applyEdit(name, payload, nt::app::findEdit(name));
+}
+
+quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload,
+                                const std::function<QJsonObject(QJsonObject, const QJsonObject&)>& edit) {
     if (m_readOnly || !edit) {
         return false;
     }
+    const Measurement measurement(*this, "apply_edit");
+    if (const auto* typed = edit.target<nt::app::RegisteredTypedEdit>()) {
+        const auto runTyped = [&](const nt::Timeline& snapshot) {
+            try { return typed->typed(snapshot, payload); }
+            catch (const std::exception& error) {
+                qWarning("edit %s failed: %s", qPrintable(name), error.what());
+                return nt::app::TypedEditResult{};
+            }
+        };
+        auto before = m_timeline;
+        auto result = runTyped(*before);
+        if (!result.snapshot) { return 0; }
+        const QPointer<TimelineModel> owner(this);
+        emit beforeCommand();
+        if (!owner || m_readOnly) { return 0; }
+        if (m_timeline != before) {
+            before = m_timeline;
+            result = runTyped(*before);
+            if (!result.snapshot) { return 0; }
+        }
+        const auto token = nextCommandToken();
+        const auto after = result.snapshot;
+        const auto changes = result.changes;
+        auto command = std::make_unique<DocumentCommand>(name, before->raw, after->raw,
+            [owner, before, after, changes](const QJsonObject& raw) {
+                if (!owner) { return; }
+                // Rebasing history invalidates the cached snapshot. The JSON path
+                // remains the codec fallback for rebased checkpoints.
+                auto snapshot = raw == after->raw ? after : raw == before->raw ? before : nullptr;
+                if (!snapshot) { owner->replaceFromHistory(raw); return; }
+                emit owner->beforeCommand();
+                if (!owner) { return; }
+                const auto previous = owner->m_timeline;
+                const bool notesOnly = !changes.fullReplacement && !changes.clips.isEmpty() && !changes.clipsStructural &&
+                    !changes.tracksStructural && !changes.markersStructural && changes.tracks.isEmpty() && changes.markers.isEmpty() &&
+                    changes.documentFields == QSet<QString>{QStringLiteral("clips")} &&
+                    std::all_of(changes.clips.cbegin(), changes.clips.cend(), [](const auto& fields) {
+                        return fields.size() == 1 && fields.contains("notes");
+                    });
+                auto next = notesOnly ? *previous : *snapshot;
+                if (notesOnly) {
+                    // Runtime media paths and live mixer handoffs can change between
+                    // checkpoints. A note undo replaces only the cached note arrays.
+                    auto clips = next.raw.value("clips").toArray();
+                    for (auto it = changes.clips.cbegin(); it != changes.clips.cend(); ++it) {
+                        const auto* target = snapshot->findClip(it.key().toStdString());
+                        const auto* current = previous->findClip(it.key().toStdString());
+                        if (!target || !current) { owner->replaceFromHistory(raw); return; }
+                        const auto index = static_cast<std::size_t>(current - previous->clips.data());
+                        auto& clip = next.clips[index];
+                        clip.notes = target->notes;
+                        clip.raw.insert("notes", target->raw.value("notes"));
+                        clips.replace(static_cast<qsizetype>(index), clip.raw);
+                    }
+                    next.raw.insert("clips", clips);
+                }
+                const auto project = previous->raw.value("projectId");
+                if (project.isUndefined()) { next.raw.remove("projectId"); }
+                else { next.raw.insert("projectId", project); }
+                next.revision = nt::nextTimelineRevision();
+                owner->m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+                if (notesOnly && owner->m_trackIndexSource == previous) {
+                    // Note patches keep track membership, clip offsets and prefix ends.
+                    owner->m_trackIndexSource = owner->m_timeline;
+                    owner->m_indexChangedTracks.clear();
+                    for (auto it = changes.clips.cbegin(); it != changes.clips.cend(); ++it) {
+                        const auto* clip = owner->findClip(it.key());
+                        if (clip) { owner->m_indexChangedTracks.insert(QString::fromStdString(clip->trackId)); }
+                    }
+                }
+                owner->m_changedClipIds = QSet<QString>{};
+                owner->m_changedTrackIds = QSet<QString>{};
+                for (auto it = changes.clips.cbegin(); it != changes.clips.cend(); ++it) { owner->m_changedClipIds->insert(it.key()); }
+                owner->m_tracks->rebind(owner->m_timeline.get());
+                const Measurement fanout(*owner, "signal_fanout");
+                {
+                    const Measurement notify(*owner, "typed_change_notification");
+                    if (notesOnly && owner->m_notifiedSnapshot == previous && owner->m_notifiedGeneration == owner->m_generation && !owner->m_transient) {
+                        // The registry already computed the exact note ranges. No
+                        // scalar document property changes in a note-only patch.
+                        owner->m_notifiedSnapshot = owner->m_timeline;
+                        emit owner->changed(changes);
+                    } else { owner->notifyChanges(); }
+                }
+                if (!owner) { return; }
+                { const Measurement source(*owner, "source_notification"); emit owner->sourceChanged(); }
+            }, token);
+        pushCommand(std::move(command));
+        return token;
+    }
     // False when nothing changed or `after` is not a valid document. `before` is the current document.
+    m_validatedClips.clear();
     const auto valid = [this](const QJsonObject& before, const QJsonObject& after) {
+        const Measurement measurement(*this, "validation");
+        m_validatedClips.clear();
         const auto keys = differingKeys(before, after);
         if (keys.isEmpty()) {
             return false;
@@ -580,17 +873,24 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
             if (!changed.isEmpty()) {
                 auto part = after;
                 part.insert("clips", changed);
-                const auto parsed = nt::parseTimeline(part);
+                auto parsed = [&] {
+                    const Measurement measurement(*this, "parse");
+                    return nt::parseTimeline(part);
+                }();
                 if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) {
                     return false;
+                }
+                for (auto& clip : parsed.timeline->clips) {
+                    m_validatedClips.insert(QString::fromStdString(clip.id), std::move(clip));
                 }
             }
         } else if (onlyKey(keys, QStringLiteral("markers"))) {
             if (!after.value("markers").isArray()) {
                 return false;
             }
-        } else if (!nt::parseTimeline(after).timeline) {
-            return false;
+        } else {
+            const Measurement measurement(*this, "parse");
+            if (!nt::parseTimeline(after).timeline) { return false; }
         }
         return true;
     };
@@ -598,6 +898,7 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
     // That leaves the document as it was instead of ending the process.
     const auto run = [&](const QJsonObject& raw) -> std::optional<QJsonObject> {
         try {
+            const Measurement measurement(*this, "edit_function");
             return edit(raw, payload);
         } catch (const std::exception& error) {
             qWarning("edit %s failed: %s", qPrintable(name), error.what());
@@ -608,16 +909,24 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
     auto before = snapshot->raw;
     auto after = run(before);
     if (!after || !valid(before, *after)) { return false; }
-    emit beforeCommand();
+    { const Measurement measurement(*this, "before_command_fanout"); emit beforeCommand(); }
     if (m_timeline != snapshot && m_timeline->raw != before) {
         before = m_timeline->raw;
         after = run(before);
         if (!after || !valid(before, *after)) { return false; }
     }
     const auto token = nextCommandToken();
-    auto command = std::make_unique<DocumentCommand>(name, before, *after,
-        [this](const QJsonObject& raw) { replaceFromHistory(raw); }, token);
-    m_undo->push(command.release());
+    const QPointer<TimelineModel> owner(this);
+    const QHash<QString, QString> musicLabels{
+        {QStringLiteral("insert_time"), tr("Insert silence")}, {QStringLiteral("delete_time"), tr("Delete section")},
+        {QStringLiteral("duplicate_range"), tr("Duplicate section")}, {QStringLiteral("paste_range"), tr("Paste section")},
+        {QStringLiteral("music.setAutoCrossfade"), tr("Set automatic crossfade")}, {QStringLiteral("set_clip_params"), tr("Set clip parameters")}, {QStringLiteral("join_clips"), tr("Join clips")}, {QStringLiteral("loop_clip"), tr("Loop clip")}, {QStringLiteral("duplicate_clip"), tr("Repeat clip")},
+        {QStringLiteral("move_clip"), tr("Move clip")}, {QStringLiteral("split_clip"), tr("Split clip")},
+        {QStringLiteral("trim_clip"), tr("Trim clip")}, {QStringLiteral("add_media_clip"), tr("Add media clip")}};
+    auto command = std::make_unique<DocumentCommand>(musicLabels.value(name, name), before, *after,
+        [owner](const QJsonObject& raw) { if (owner) owner->replaceFromHistory(raw); }, token);
+    pushCommand(std::move(command));
+    m_validatedClips.clear();
     return token;
 }
 
@@ -638,8 +947,9 @@ bool TimelineModel::setProjectId(const QString& projectId) {
 }
 
 bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
+    const Measurement measurement(*this, "document_replace");
     const QJsonObject raw = incoming;
-    emit beforeCommand();
+    { const Measurement measurement(*this, "before_command_fanout"); emit beforeCommand(); }
     const auto keys = differingKeys(m_timeline->raw, raw);
     if (keys.isEmpty()) {
         return false;
@@ -660,7 +970,10 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
         // Only the sequence's fields or the tracks changed: parse them alone and keep the typed clips.
         auto part = raw;
         part.remove(QStringLiteral("clips"));
-        auto parsed = nt::parseTimeline(part);
+        auto parsed = [&] {
+            const Measurement measurement(*this, "parse");
+            return nt::parseTimeline(part);
+        }();
         if (!parsed.timeline) {
             return false;
         }
@@ -674,7 +987,10 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
         next.clips = previous->clips;
         next.clipIndex = previous->clipIndex;
     } else {
-        auto parsed = nt::parseTimeline(raw);
+        auto parsed = [&] {
+            const Measurement measurement(*this, "parse");
+            return nt::parseTimeline(raw);
+        }();
         if (!parsed.timeline) {
             return false;
         }
@@ -705,10 +1021,12 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
     } else if (!m_tracks->refresh(m_timeline.get())) {
         m_tracks->reset(m_timeline.get());
     }
-    emit clipsChanged();
-    emit timelineChanged();
-    if (markersChangedValue) {
-        emit markersChanged();
+    {
+        const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
+        emit clipsChanged();
+        emit timelineChanged();
+        if (markersChangedValue) { emit markersChanged(); }
     }
     return true;
 }
@@ -750,8 +1068,12 @@ void TimelineModel::registerMedia(const nt::Clip& media) {
     // Only the matching clips changed, and no take did.
     markClipsChanged(std::move(changedIds), std::move(changedTracks));
     m_tracks->rebind(m_timeline.get());
-    emit clipsChanged();
-    emit timelineChanged();
+    {
+        const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
+        emit clipsChanged();
+        emit timelineChanged();
+    }
 }
 
 QSet<QString> TimelineModel::resolvedMediaPaths() const {
@@ -787,15 +1109,22 @@ void TimelineModel::registerMatteMedia(const QString& assetId, const std::string
     // Only the matching clips changed, and no take did.
     markClipsChanged(std::move(changedIds), std::move(changedTracks));
     m_tracks->rebind(m_timeline.get());
-    emit clipsChanged();
-    emit timelineChanged();
+    {
+        const Measurement measurement(*this, "signal_fanout");
+        notifyChanges();
+        emit clipsChanged();
+        emit timelineChanged();
+    }
 }
 
 bool TimelineModel::settleDocument(const QJsonObject& document) {
-    if (!nt::parseTimeline(document).timeline) { return false; }
+    {
+        const Measurement measurement(*this, "parse");
+        if (!nt::parseTimeline(document).timeline) { return false; }
+    }
     const auto before = m_timeline->raw;
     const QJsonObject incoming = document;
-    emit beforeCommand();
+    { const Measurement measurement(*this, "before_command_fanout"); emit beforeCommand(); }
     const auto restored = m_timeline->raw;
     const auto after = before == restored ? incoming : nt::motion::rebaseDocumentDelta(restored, before, incoming);
     if (!replaceDocument(after)) { return false; }
@@ -816,7 +1145,7 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
         const bool current = m_undo->index() == i + 1;
         if (current) {
             const auto before = m_timeline->raw;
-            emit beforeCommand();
+            { const Measurement measurement(*this, "before_command_fanout"); emit beforeCommand(); }
             // A listener can put its running edit on the stack, and then this token is stale.
             if (i + 1 != m_undo->count()) { return false; }
             const auto restored = m_timeline->raw;
@@ -831,4 +1160,320 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
         return true;
     }
     return false;
+}
+
+namespace {
+QString deviceKey(const QString& track, const QString& device, const QString& param) {
+    return track + QChar(0x1f) + device + QChar(0x1f) + param;
+}
+QJsonObject deviceValues(QJsonObject object, bool instrument) {
+    QJsonObject result;
+    const auto collect = [&](const QJsonObject& fields, const QString& prefix) {
+        for (auto it=fields.begin();it!=fields.end();++it) {
+            if (it.value().isDouble()) { result[prefix+it.key()]=it.value(); }
+        }
+    };
+    if (instrument) {
+        if (object["type"]=="sampler") { object=nt::midi::samplerSpecToJson(nt::midi::samplerSpecFromJson(object)); }
+        const auto type=object["type"].toString();
+        if (type=="bass") { object=nt::midi::bassParamsToJson(nt::midi::bassParamsFromJson(object)); }
+        else if (type=="wavetable") { object=nt::midi::wavetableParamsToJson(nt::midi::wavetableParamsFromJson(object)); }
+        else if (type=="modal") { object=nt::midi::modalParamsToJson(nt::midi::modalParamsFromJson(object)); }
+        for (const auto& entry:nt::automation::instrumentAutomationSpecs(object)) {
+            const auto spec=entry.toObject(); result[spec["target"].toObject()["param"].toString()]=spec["value"];
+        }
+        for (const auto* osc:{"oscA","oscB"}) {
+            const auto fields=object[osc].toObject();
+            for (auto it=fields.begin();it!=fields.end();++it) {
+                if (!it.value().isDouble()) { continue; }
+                auto field=it.key(); field[0]=field[0].toUpper(); result[QString::fromLatin1(osc)+field]=it.value();
+            }
+        }
+        for (const auto* env:{"amp","mod"}) {
+            const auto fields=object[QString::fromLatin1(env)+"Env"].toObject();
+            for (auto it=fields.begin();it!=fields.end();++it) {
+                if (!it.value().isDouble()) { continue; }
+                auto field=it.key(); field[0]=field[0].toUpper(); result[QString::fromLatin1(env)+field]=it.value();
+            }
+        }
+        if ((object["type"]=="vst" || object["type"]=="drum") && !object.contains("gainDb")) { object["gainDb"]=0.; }
+    } else {
+        auto type=object["type"].toString();
+        if (type=="fable") { type="fable:"+object["kind"].toString(); }
+        const auto defaults=nt::automation::trackEffectDefaults(type);
+        for (auto it=defaults.begin();it!=defaults.end();++it) {
+            if (!object.contains(it.key())) { object[it.key()]=it.value(); }
+        }
+        auto params=defaults["params"].toObject();
+        const auto stored=object["params"].toObject();
+        for (auto it=stored.begin();it!=stored.end();++it) { params[it.key()]=it.value(); }
+        object["params"]=params;
+        collect(object["params"].toObject(),{});
+    }
+    collect(object,{});
+    return result;
+}
+}
+void TimelineModel::setDeviceOverride(const QString& trackId,const QString& deviceId,const QJsonObject& patch,bool hold) {
+    if (readOnly() && !patch.isEmpty()) { return; }
+    const auto current=snapshot();
+    const auto* track=current->findTrack(trackId.toStdString());
+    const auto& parameters=trackId.isEmpty() ? current->masterDeviceParameters : track ? track->deviceParameters : current->masterDeviceParameters;
+    if (!trackId.isEmpty() && !track) { return; }
+    if (track && track->locked && !patch.isEmpty()) { return; }
+    const auto device=deviceId.toStdString();
+    const auto values=patch.contains("params") ? patch["params"].toObject() : patch;
+    for (const auto& parameter:parameters) {
+        const auto name=QString::fromStdString(parameter.name);
+        if (parameter.deviceId!=device || (!hold && !patch.isEmpty() && !values.contains(name))) { continue; }
+        auto& state=*parameter.state;
+        const double value=values[name].isDouble() ? values[name].toDouble() : std::numeric_limits<double>::quiet_NaN();
+        nt::MixerReturn::Snapshot next;
+        if (std::isfinite(value)) {
+            next.untilPlan=hold; next.startMs=0; next.values.fill(value);
+        }
+        state.volumeReturn.publish(next);
+    }
+    if (const auto revision=m_deviceRevisions.value(trackId)) { revision->fetch_add(1,std::memory_order_release); }
+}
+std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
+    if (m_mixerSnapshotSource==m_timeline && m_mixerSnapshot) { return m_mixerSnapshot; }
+    auto next=std::make_shared<nt::Timeline>(*m_timeline);
+    QSet<QString> present;
+    QSet<QString> deviceKeys;
+    const auto attachDevices=[&](const QString& trackId,const QJsonObject& raw,std::vector<nt::DeviceParameter>& parameters) {
+        auto& revision=m_deviceRevisions[trackId];
+        // The model and audio plans share this lock-free input revision.
+        if (!revision) { revision=std::make_shared<std::atomic<std::uint64_t>>(0); }
+        const auto append=[&](const QString& device,const QJsonObject& values) {
+            for (auto it=values.begin();it!=values.end();++it) {
+                const auto key=deviceKey(trackId,device,it.key()); deviceKeys.insert(key);
+                auto& state=m_deviceOverrides[key];
+                // Both the model and immutable plans retain the handoff until their last release.
+                if (!state) { state=std::make_shared<nt::MixerOverride>(); }
+                parameters.push_back({device.toStdString(),it.key().toStdString(),it.value().toDouble(),state,revision,state->volumeReturn.generation()});
+            }
+        };
+        if (raw["instrument"].isObject()) { append("instrument",deviceValues(raw["instrument"].toObject(),true)); }
+        for (const auto& value:raw["effects"].toArray()) {
+            const auto effect=value.toObject(); append(effect["id"].toString(),deviceValues(effect,false));
+        }
+    };
+    attachDevices({},next->raw["master"].toObject(),next->masterDeviceParameters);
+    auto& master=m_masterMixerOverride;
+    // The model and immutable audio plans share this atomic handoff.
+    if (!master) { master=std::make_shared<nt::MixerOverride>(); }
+    next->masterMixerOverride=master;
+    for (auto& track:next->tracks) {
+        if (track.type!=nt::TrackType::Audio && track.type!=nt::TrackType::Midi) { continue; }
+        const auto id=QString::fromStdString(track.id); present.insert(id);
+        auto& state=m_mixerOverrides[id];
+        // Every published sound track already has its handoff, including before its first gesture.
+        if (!state) { state=std::make_shared<nt::MixerOverride>(); }
+        track.mixerOverride=state;
+        attachDevices(id,track.raw,track.deviceParameters);
+    }
+    for (auto i=m_mixerOverrides.begin();i!=m_mixerOverrides.end();) {
+        if (present.contains(i.key())) { ++i; continue; }
+        i.value()->volumeReturn.publish({}); i.value()->panReturn.publish({});
+        i.value()->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+        i.value()->pan.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+        i=m_mixerOverrides.erase(i);
+    }
+    for (auto it=m_deviceOverrides.begin();it!=m_deviceOverrides.end();) {
+        if (deviceKeys.contains(it.key())) { ++it; continue; }
+        it.value()->volumeReturn.publish({});
+        it.value()->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+        const auto trackId=it.key().section(QChar(0x1f),0,0);
+        if (const auto revision=m_deviceRevisions.value(trackId)) { revision->fetch_add(1,std::memory_order_release); }
+        it=m_deviceOverrides.erase(it);
+    }
+    for (auto it=m_deviceRevisions.begin();it!=m_deviceRevisions.end();) {
+        if (it.key().isEmpty() || present.contains(it.key())) { ++it; continue; }
+        it.value()->fetch_add(1,std::memory_order_release);
+        it=m_deviceRevisions.erase(it);
+    }
+    m_mixerSnapshotSource=m_timeline; m_mixerSnapshot=next;
+    return next;
+}
+void TimelineModel::setMixerOverride(const QString& trackId,const QString& param,std::optional<double> value,bool master) {
+    if ((master && param!="volumeDb") || (param!="volumeDb" && param!="pan")) { return; }
+    auto state=master ? m_masterMixerOverride : m_mixerOverrides.value(trackId);
+    if (!state) {
+        if (!value || (!master && !m_timeline->findTrack(trackId.toStdString()))) { return; }
+        state=std::make_shared<nt::MixerOverride>();
+        if (master) { m_masterMixerOverride=state; } else { m_mixerOverrides.insert(trackId,state); }
+    }
+    if (!value) { (param=="volumeDb" ? state->volumeReturn : state->panReturn).publish({}); }
+    auto& slot=param=="volumeDb" ? state->volumeDb : state->pan;
+    const double next=value.value_or(std::numeric_limits<double>::quiet_NaN());
+    const double previous=slot.exchange(next,std::memory_order_release);
+    if (previous!=next && !(std::isnan(previous) && std::isnan(next))) { emit mixerOverrideChanged(trackId,param); }
+}
+void TimelineModel::holdMixerOverride(const QString& trackId,const QString& param,double value,bool master) {
+    const auto state=master ? m_masterMixerOverride : m_mixerOverrides.value(trackId);
+    if (!state || (param!="volumeDb" && param!="pan") || !std::isfinite(value)) { return; }
+    nt::MixerReturn::Snapshot hold;
+    hold.untilPlan=true;
+    hold.values.fill(param=="volumeDb" ? std::pow(10.,value/20.) : value);
+    (param=="volumeDb" ? state->volumeReturn : state->panReturn).publish(hold);
+    (param=="volumeDb" ? state->volumeDb : state->pan).store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+    emit mixerOverrideChanged(trackId,param);
+}
+void TimelineModel::releaseMixerOverride(const QString& trackId,const QString& param,double endMs,double value,double after) {
+    const auto state=m_mixerOverrides.value(trackId);
+    if (!state) { return; }
+    nt::MixerReturn::Snapshot ramp; ramp.startMs=endMs;
+    for (std::size_t i=0;i<ramp.values.size();++i) {
+        const double v=value+(after-value)*static_cast<double>(i)/20.;
+        ramp.values[i]=param=="volumeDb" ? std::pow(10.,v/20.) : v;
+    }
+    (param=="volumeDb" ? state->volumeReturn : state->panReturn).publish(ramp);
+    (param=="volumeDb" ? state->volumeDb : state->pan).store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+    emit mixerOverrideChanged(trackId,param);
+}
+
+AutomationRecorder* TimelineModel::automationRecorder() {
+    if (!m_automationRecorder) {
+        m_automationRecorder=std::make_unique<AutomationRecorder>();
+        m_automationRecorder->setTimeline(this);
+    }
+    return m_automationRecorder.get();
+}
+TimelineModel::~TimelineModel() {
+    m_automationRecorder.reset();
+    clearMixerOverrides();
+}
+void TimelineModel::clearMixerOverrides() {
+    for (const auto& state:m_deviceOverrides) {
+        state->volumeReturn.publish({});
+        state->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+    }
+    for (const auto& revision:m_deviceRevisions) { revision->fetch_add(1,std::memory_order_release); }
+    m_deviceOverrides.clear();
+    m_deviceRevisions.clear();
+    if (m_masterMixerOverride) {
+        m_masterMixerOverride->volumeReturn.publish({});
+        m_masterMixerOverride->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+        m_masterMixerOverride.reset();
+    }
+    for (const auto& state : m_mixerOverrides) {
+        state->volumeReturn.publish({}); state->panReturn.publish({});
+        state->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+        state->pan.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+    }
+    m_mixerOverrides.clear();
+    m_mixerSnapshot.reset(); m_mixerSnapshotSource.reset();
+}
+std::optional<double> TimelineModel::mixerOverrideValue(const QString& trackId, const QString& param,bool master) const {
+    const auto state=master ? m_masterMixerOverride : m_mixerOverrides.value(trackId);
+    if (!state) { return {}; }
+    const double value=(param=="pan" ? state->pan : state->volumeDb).load(std::memory_order_relaxed);
+    return std::isfinite(value) ? std::optional<double>(value) : std::nullopt;
+}
+
+const std::vector<size_t>& TimelineModel::trackClipIndices(const QString& trackId) const {
+    if (m_trackIndexSource != m_timeline) {
+        m_indexChangedTracks.clear();
+        auto previousIndices=std::move(m_trackClipIndices);
+        m_trackClipIndices.clear();
+        auto previousEnds=std::move(m_trackMaxEnds);
+        m_trackMaxEnds.clear();
+        for (size_t i=0; i<m_timeline->clips.size(); ++i) {
+            ++m_trackIndexVisits;
+            m_trackClipIndices[QString::fromStdString(m_timeline->clips[i].trackId)].push_back(i);
+        }
+        QSet<QString> unchangedTracks;
+        for (auto it=m_trackClipIndices.begin(); it!=m_trackClipIndices.end(); ++it) {
+            auto& indices=it.value();
+            const auto previous=previousIndices.constFind(it.key());
+            bool same=m_trackIndexSource && previous!=previousIndices.cend() && previous->size()==indices.size();
+            if (same) {
+                for (const auto i : indices) {
+                    if (i>=m_trackIndexSource->clips.size()) { same=false; break; }
+                    const auto& a=m_trackIndexSource->clips[i];
+                    const auto& b=m_timeline->clips[i];
+                    if (a.id!=b.id || a.trackId!=b.trackId || a.startMs!=b.startMs || a.durationMs!=b.durationMs || a.raw!=b.raw || a.mediaPath!=b.mediaPath || a.audioPath!=b.audioPath) { same=false; break; }
+                }
+            }
+            if (same) {
+                // Stable clip offsets let untouched tracks retain their sorted index and prefix ends.
+                unchangedTracks.insert(it.key());
+                indices=*previous;
+                m_trackMaxEnds[it.key()]=std::move(previousEnds[it.key()]);
+                continue;
+            }
+            std::stable_sort(indices.begin(),indices.end(),[this](size_t a,size_t b) { return m_timeline->clips[a].startMs<m_timeline->clips[b].startMs; });
+            auto& ends=m_trackMaxEnds[it.key()];
+            double end=-std::numeric_limits<double>::infinity();
+            for (const auto i : indices) { end=std::max(end,m_timeline->clips[i].endMs()); ends.push_back(end); }
+        }
+        for (auto it=m_trackClipIndices.cbegin(); it!=m_trackClipIndices.cend(); ++it) {
+            if (unchangedTracks.contains(it.key())) { continue; }
+            const auto previous=previousIndices.constFind(it.key());
+            bool changed=!m_trackIndexSource || previous==previousIndices.cend() || previous->size()!=it->size();
+            if (!changed) {
+                for (size_t p=0; p<it->size(); ++p) {
+                    const auto& a=m_trackIndexSource->clips[(*previous)[p]];
+                    const auto& b=m_timeline->clips[(*it)[p]];
+                    if (a.id!=b.id || a.trackId!=b.trackId || a.startMs!=b.startMs || a.durationMs!=b.durationMs || a.raw!=b.raw || a.mediaPath!=b.mediaPath || a.audioPath!=b.audioPath) { changed=true; break; }
+                }
+            }
+            if (changed) { m_indexChangedTracks.insert(it.key()); }
+        }
+        for (auto it=previousIndices.cbegin(); it!=previousIndices.cend(); ++it) {
+            if (!m_trackClipIndices.contains(it.key())) { m_indexChangedTracks.insert(it.key()); }
+        }
+        m_trackIndexSource=m_timeline;
+    }
+    static const std::vector<size_t> empty;
+    const auto found=m_trackClipIndices.constFind(trackId);
+    return found==m_trackClipIndices.cend() ? empty : found.value();
+}
+
+namespace {
+QVariantMap effectClip(const nt::Clip& c, const nt::Timeline& timeline) {
+    const auto* track=timeline.findTrack(c.trackId);
+    return {{"id",QString::fromStdString(c.id)}, {"name",QString::fromStdString(c.name)},
+            {"trackId",QString::fromStdString(c.trackId)}, {"mediaType",c.raw.value("mediaType").toString()},
+            {"locked",c.raw.value("locked").toBool() || (track && track->locked)}};
+}
+}
+QVariantMap TimelineModel::clipAt(const QString& trackId, double ms) const {
+    const auto& indices=trackClipIndices(trackId);
+    static const std::vector<double> empty;
+    const auto foundEnds=m_trackMaxEnds.constFind(trackId);
+    const auto& ends=foundEnds==m_trackMaxEnds.cend() ? empty : foundEnds.value();
+    const auto first=std::upper_bound(ends.begin(),ends.end(),ms,[this](double value,double end) { ++m_clipQueryVisits; return value<end; });
+    size_t found=m_timeline->clips.size();
+    for (size_t pos=static_cast<size_t>(first-ends.begin()); pos<indices.size(); ++pos) {
+        ++m_clipQueryVisits;
+        const auto i=indices[pos];
+        const auto& c=m_timeline->clips[i];
+        if (c.startMs>ms) { break; }
+        if (ms>=c.startMs && ms<c.endMs()) { found=std::min(found,i); }
+    }
+    if (found<m_timeline->clips.size()) { return effectClip(m_timeline->clips[found],*m_timeline); }
+    return {};
+}
+QVariantList TimelineModel::effectClips(const QStringList& ids) const {
+    std::vector<size_t> selected;
+    QSet<QString> seen;
+    for (const auto& id : ids) {
+        if (seen.contains(id)) { continue; }
+        seen.insert(id);
+        ++m_effectClipReads;
+        if (const auto* c=findClip(id)) { selected.push_back(static_cast<size_t>(c-m_timeline->clips.data())); }
+    }
+    // Match document order and select each clip once, as the original document filter did.
+    std::sort(selected.begin(),selected.end());
+    QVariantList result;
+    result.reserve(static_cast<qsizetype>(selected.size()));
+    for (const auto i : selected) { result.append(effectClip(m_timeline->clips[i],*m_timeline)); }
+    return result;
+}
+
+bool TimelineModel::trackClipIndexChanged(const QString& trackId) const {
+    trackClipIndices(trackId);
+    return m_indexChangedTracks.contains(trackId);
 }

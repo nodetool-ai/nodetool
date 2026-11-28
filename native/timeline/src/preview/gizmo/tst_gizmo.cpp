@@ -2,6 +2,9 @@
 #include "GizmoMath.h"
 #include "TransformGizmoController.h"
 #include "app/PanelRegistry.h"
+#include "app/EditRegistry.h"
+#include "app/startup/LocalDocumentSaver.h"
+#include <QFile>
 #include "model/TimelineJson.h"
 #include <QJsonDocument>
 #include "edit/ClipGestureController.h"
@@ -487,6 +490,53 @@ TransformGizmoController { width: 200; height: 100; selection: ["picture"] })", 
         QVERIFY(dragged > 0);
         QCOMPARE(rows.rowLive("position").value("values").toList().at(0).toDouble(), dragged);
     }
+    void typedHistoryCancelsGizmoBeforeLocalSave() {
+        TimelineModel model;
+        load(model);
+        PlaybackClock clock;
+        TransformGizmoController controller;
+        bind(controller, model, clock);
+        QTemporaryDir folder;
+        const auto path = folder.filePath("timeline.json");
+        auto raw = model.timeline().raw;
+        auto tracks = raw.value("tracks").toArray();
+        tracks.append(QJsonObject{{"id", "m"}, {"name", "Midi"}, {"type", "midi"}});
+        raw.insert("tracks", tracks);
+        auto clips = raw.value("clips").toArray();
+        clips.append(QJsonObject{{"id", "notes"}, {"trackId", "m"}, {"mediaType", "midi"},
+            {"startMs", 0}, {"durationMs", 2000}, {"notes", QJsonArray{QJsonObject{
+                {"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 480}}}}});
+        raw.insert("clips", clips);
+        auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        nt::app::LocalDocumentSaver noteSaver(model, path, 60000);
+        const auto edit = nt::app::findEdit("midi.moveNotes");
+        QVERIFY(edit.target<nt::app::RegisteredTypedEdit>());
+        QVERIFY(model.applyEdit("midi.moveNotes", {{"clipId", "notes"},
+            {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 62}}}}}));
+        const auto checkSaved = [&] {
+            QVERIFY(noteSaver.flush());
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::ReadOnly));
+            const auto saved = QJsonDocument::fromJson(file.readAll()).object();
+            QCOMPARE(transformOf(saved.value("clips").toArray()[0].toObject()).position.x, 0.0);
+        };
+        QVERIFY(controller.begin("body", {100, 50}));
+        controller.move({130, 70});
+        QVERIFY(transformOf(model.clipsJson()[0].toObject()).position.x != 0);
+        model.undoStack()->undo();
+        controller.cancel();
+        QCOMPARE(transformOf(model.clipsJson()[0].toObject()).position.x, 0.0);
+        checkSaved();
+        QVERIFY(controller.begin("body", {100, 50}));
+        controller.move({130, 70});
+        model.undoStack()->redo();
+        controller.end();
+        QCOMPARE(transformOf(model.clipsJson()[0].toObject()).position.x, 0.0);
+        checkSaved();
+    }
+
     void gestureIsOneUndoAndActionsAreSeparate() {
         TimelineModel model;
         load(model);

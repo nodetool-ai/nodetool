@@ -935,7 +935,7 @@ replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem"
 [[file]]
 path = "native/timeline/qml/Tracks/Clip.qml"
 category = "domain"
-controls = ["ClipContextMenu", "MouseArea"]
+controls = ["ClipContextMenu", "MouseArea", "Ui.Icon"]
 signals = []
 test_host = "tst_tracksui"
 test_scope = "build/import"
@@ -945,12 +945,32 @@ replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls 
 [[file]]
 path = "native/timeline/qml/Tracks/ClipBody.qml"
 category = "domain"
-controls = ["Rectangle", "Shape", "ShapePath", "MouseArea", "Ui.Text", "Ui.Icon"]
+controls = ["Rectangle", "Shape", "ShapePath", "MouseArea", "Ui.Text", "Ui.Icon", "Canvas"]
 signals = []
 test_host = "tst_tracksui"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/Tracks/Clip.qml"]
 replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/ClipLaneRow.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_tracksui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "Typed track-row geometry for pooled timeline lanes"
+
+[[file]]
+path = "native/timeline/qml/Tracks/ClipChrome.qml"
+category = "domain"
+controls = ["ClipChromeLayer"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/ClipBody.qml"]
+replacement = "TimelineVisuals/TimelineMetrics and Ui tokens passed to the C++ clip chrome layer"
 
 [[file]]
 path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
@@ -1169,13 +1189,13 @@ controls = ["Rectangle", "Ui.Text", "Ui.ToolbarIconButton", "Ui.Separator"]
 signals = []
 test_host = "tst_automationui"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml"]
+qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.ToolbarIconButton, Ui.Separator"
 
 [[file]]
 path = "native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml"
 category = "chrome"
-controls = ["AutomationLaneHeader", "AutomationAddLaneHeader"]
+controls = ["AutomationHeaderRow", "AutomationAddLaneHeader"]
 signals = []
 test_host = "tst_automationui"
 test_scope = "build/import"
@@ -1189,7 +1209,7 @@ controls = ["Rectangle", "Canvas", "Ui.Text", "MouseArea", "Ui.ContextMenu", "Ui
 signals = []
 test_host = "tst_automationui"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Tracks/automation/AutomationLanes.qml"]
+qml_callers = ["native/timeline/qml/Tracks/automation/AutomationCurveOverlay.qml", "native/timeline/qml/Tracks/automation/AutomationLanes.qml"]
 replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
 
 [[file]]
@@ -1209,7 +1229,7 @@ controls = []
 signals = []
 test_host = "tst_automationui"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Tracks/TrackHeader.qml", "native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml", "native/timeline/qml/Tracks/automation/AutomationLanes.qml", "native/timeline/qml/mixer/MixerPanel.qml", "native/timeline/qml/mixer/MixerToolbar.qml"]
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml", "native/timeline/qml/Tracks/automation/AutomationHeaderRow.qml", "native/timeline/qml/Tracks/automation/AutomationCurveOverlay.qml", "native/timeline/qml/mixer/ChannelStrip.qml", "native/timeline/qml/Tracks/TrackHeader.qml", "native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml", "native/timeline/qml/Tracks/automation/AutomationLanes.qml", "native/timeline/qml/mixer/MixerPanel.qml", "native/timeline/qml/mixer/MixerToolbar.qml"]
 replacement = "Domain state and edit behavior; presentation lives in shared Ui controls"
 
 [[file]]
@@ -1765,7 +1785,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.TextField, Ui.Tooltip, Ui.S
 [[file]]
 path = "native/timeline/qml/menus/ClipContextMenu.qml"
 category = "chrome"
-controls = ["Ui.ContextMenu", "Ui.Separator"]
+controls = ["Ui.ContextMenu", "Ui.Separator", "Ui.MenuItem", "Ui.Dialog", "Ui.NumberField", "Ui.EditorButton", "Ui.Text"]
 signals = []
 test_host = "tst_menus"
 test_scope = "build/import"
@@ -1831,6 +1851,16 @@ test_host = "tst_mixerui"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/mixer/MixerView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.ScrollBar, Ui.Text, Ui.ToolbarIconButton, Ui.Surface, Ui.Select, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/mixer/InstrumentDevicePopover.qml"
+category = "chrome"
+controls = ["Ui.Popover", "Column", "Row", "Ui.Text", "Ui.ToolbarIconButton", "Connections", "AutomationController", "InstrumentRack"]
+signals = []
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/MixerView.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.Text, Ui.ToolbarIconButton"
 
 [[file]]
 path = "native/timeline/qml/mixer/InsertSlots.qml"
@@ -2221,6 +2251,26 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Surface"
 
 [[file]]
+path = "native/timeline/qml/vst/VstPluginControl.qml"
+category = "chrome"
+controls = ["Column", "Row", "Ui.Text", "Ui.Select", "Ui.Status", "Ui.EditorButton", "Ui.ToolbarIconButton", "InspectorSliderRow"]
+signals = ["pluginChosen", "wetChangedRequested", "gainDbChangedRequested"]
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/instruments/InstrumentRack.qml", "native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Select, Ui.Status, Ui.EditorButton, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/vst/VstStateSync.qml"
+category = "chrome"
+controls = ["Item", "Connections"]
+signals = []
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
 path = "native/timeline/qml/wiring/FrameGizmoOverlay.qml"
 category = "domain"
 controls = []
@@ -2317,7 +2367,7 @@ controls = []
 signals = ["preview", "commit", "editCanceled"]
 test_host = "tst_wiringw"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/wiring/w/ChromaKeyEditor.qml", "native/timeline/qml/wiring/w/ColorCorrectionEditor.qml", "native/timeline/qml/wiring/w/CompressorEditor.qml", "native/timeline/qml/wiring/w/Eq3Editor.qml", "native/timeline/qml/wiring/w/FilterEditor.qml", "native/timeline/qml/wiring/w/GainEditor.qml", "native/timeline/qml/wiring/w/SharpenEditor.qml", "native/timeline/qml/wiring/w/VideoBlurEditor.qml", "native/timeline/qml/wiring/w/VignetteEditor.qml"]
+qml_callers = ["native/timeline/qml/wiring/w/ChromaKeyEditor.qml", "native/timeline/qml/wiring/w/ColorCorrectionEditor.qml", "native/timeline/qml/wiring/w/CompressorEditor.qml", "native/timeline/qml/wiring/w/Eq3Editor.qml", "native/timeline/qml/wiring/w/FableEffectEditor.qml", "native/timeline/qml/wiring/w/FilterEditor.qml", "native/timeline/qml/wiring/w/GainEditor.qml", "native/timeline/qml/wiring/w/SharpenEditor.qml", "native/timeline/qml/wiring/w/VideoBlurEditor.qml", "native/timeline/qml/wiring/w/VignetteEditor.qml"]
 replacement = "Feature composition through migrated native Ui wrappers"
 
 [[file]]
@@ -2327,8 +2377,18 @@ controls = ["Rectangle", "Canvas", "Ui.Text", "MouseArea"]
 signals = ["preview", "commit", "editCanceled"]
 test_host = "tst_wiringw"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/wiring/w/Eq3Editor.qml"]
+qml_callers = ["native/timeline/qml/wiring/w/Eq3Editor.qml", "native/timeline/qml/wiring/w/FableEffectEditor.qml"]
 replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/FableEffectEditor.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text", "Ui.Toggle", "Ui.SegmentedControl", "Ui.Select", "FxKnob", "Eq3Curve", "CompressorCurve"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Toggle, Ui.SegmentedControl, Ui.Select"
 
 [[file]]
 path = "native/timeline/qml/wiring/w/Eq3Editor.qml"
@@ -2429,6 +2489,16 @@ test_host = "tst_wiringw"
 test_scope = "build/import"
 qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/TrackEffectsDockPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Text", "Loader", "TrackEffectsModel"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text"
 
 [[file]]
 path = "native/timeline/qml/wiring/w/TrackEffectsPanel.qml"
@@ -3877,6 +3947,14 @@ reason = "Editors read a red edit point as a ripple and a yellow one as a roll o
 [[exception]]
 path = "native/timeline/qml/TimelineVisuals.qml"
 object = "QtObject[0]"
+binding = "rangeFill"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The music range band is the edit blue of the playhead and track targets, translucent so the clips under it stay readable in either theme."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
 binding = "overlay"
 rule = "color"
 owner = "Timeline document presentation"
@@ -4163,44 +4241,12 @@ owner = "Timeline document list"
 reason = "Right click augments the selectable document row with its actions menu; Menu key and Shift+F10 invoke the same menu."
 
 [[exception]]
-path = "native/timeline/qml/Tracks/ClipBody.qml"
-object = "body/headerRow/dot"
-binding = "radius"
-rule = "metric"
-owner = "Timeline clip rendering"
-reason = "The fx badge is a one-pixel-rounded box drawn on the clip fill, sized to the clip name band."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/ClipBody.qml"
-object = "body/headerRow/dot"
-binding = "border.width"
-rule = "metric"
-owner = "Timeline clip rendering"
-reason = "The one-pixel outline draws the fx badge on the clip fill inside the track lane."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/ClipBody.qml"
-object = "body/Rectangle[1]"
-binding = "border.width"
-rule = "metric"
-owner = "Timeline clip rendering"
-reason = "The clip selection border changes from one to one-and-a-half pixels to distinguish selected document content."
-
-[[exception]]
 path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
 object = "root/Repeater[0]/grip/Rectangle[0]"
 binding = "radius"
 rule = "metric"
 owner = "Timeline clip fade editor"
 reason = "The nine-pixel fade curve handle is circular so its radius follows the plotted handle width."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
-object = "root/Repeater[0]/grip/pointer"
-binding = "anchors.margins"
-rule = "metric"
-owner = "Timeline clip fade editor"
-reason = "The negative margin enlarges the drag target around a fade point without moving the point in clip coordinates."
 
 [[exception]]
 path = "native/timeline/qml/Tracks/FadeRamp.qml"
@@ -4243,14 +4289,6 @@ owner = "Timeline marker navigation"
 reason = "Clicking a marker glyph seeks to its document time, and Alt+drag sets its duration; the marker menu deletes it."
 
 [[exception]]
-path = "native/timeline/qml/Tracks/TrackLane.qml"
-object = "lane/Rectangle[0]"
-binding = "color"
-rule = "color"
-owner = "Timeline gap selection"
-reason = "The translucent band shows a selected gap range in track coordinates."
-
-[[exception]]
 path = "native/timeline/qml/Tracks/TracksRegion.qml"
 object = "region/headerColumn/Item[0]/headerRepeater/header/MouseArea[0]"
 binding = "onClicked"
@@ -4273,14 +4311,6 @@ binding = "onTapped"
 rule = "manual-control"
 owner = "Timeline automation editor"
 reason = "Tapping the target field opens available track parameters; typing or Down opens it and Enter chooses the highlighted option."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/automation/AutomationLaneView.qml"
-object = "root/Repeater[0]/Rectangle[0]"
-binding = "radius"
-rule = "metric"
-owner = "Timeline automation editor"
-reason = "The automation keyframe point is a circular handle plotted in time and value coordinates."
 
 [[exception]]
 path = "native/timeline/qml/Tracks/automation/AutomationLaneView.qml"
@@ -4610,6 +4640,169 @@ rule = "manual-control"
 owner = "Program monitor effect mask overlay"
 reason = "A double click on a mask vertex converts it between a corner and a smooth point, as in Premiere. The overlay's one pointer target hit-tests vertices, tangents, the body and the feather and expansion handles."
 
+# Music mode MM2 (native/timeline/docs/MUSIC-MODE.md section 15).
+[[file]]
+path = "native/timeline/qml/music/MusicPanel.qml"
+category = "chrome"
+controls = ["Ui.EmptyState", "Ui.ScrollBar", "Ui.Text", "Ui.Select", "Ui.EditorButton", "Ui.TextArea", "Ui.NumberField", "Ui.Status", "Ui.Banner", "Ui.StatusDot", "Shortcut", "Flow", "Rectangle", "MusicPanelModel", "MusicSequenceState", "MusicSetup", "MusicJobList", "MusicTakeList"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+# Music mode, package H: the job list, take list, setup and clip job state.
+[[file]]
+path = "native/timeline/qml/music/MusicJobList.qml"
+category = "chrome"
+controls = ["Ui.Text", "ListView", "Rectangle", "Ui.EditorButton", "Ui.Progress"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicPanel.qml"]
+replacement = "Job rows composed from Ui.Text, Ui.EditorButton and Ui.Progress on a Ui.Theme card"
+
+[[file]]
+path = "native/timeline/qml/music/MusicTakeList.qml"
+category = "chrome"
+controls = ["Ui.Text", "Repeater", "Rectangle", "Ui.EditorButton", "HoverHandler", "Ui.Tooltip", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicPanel.qml"]
+replacement = "Take cards composed from Ui.Text, Ui.EditorButton, Ui.Tooltip and Ui.ContextMenu on a Ui.Theme card"
+
+[[file]]
+path = "native/timeline/qml/music/MusicSetup.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.Progress", "Ui.Status"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicPanel.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/music/MusicClipJob.qml"
+category = "domain"
+controls = ["Rectangle", "Repeater", "Ui.Text"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Clip job state drawn in Ui.Theme and TimelineVisuals colors with Ui.Text labels"
+
+[[file]]
+path = "native/timeline/qml/music/MusicToolbar.qml"
+category = "chrome"
+controls = ["Ui.Text", "ToolbarDivider", "Ui.MenuButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.MenuSeparator", "Ui.Select", "Ui.Slider", "Ui.Icon", "ToolButton", "MusicSequenceState", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Timeline ToolButton, Ui.MenuButton, Ui.ContextMenu, Ui.Select and Ui.Slider over NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/timeline/qml/music/MusicControlBar.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Icon", "Ui.Select", "Ui.Tooltip", "Rectangle", "MouseArea", "ToolButton", "MusicSequenceState", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Timeline ToolButton, Ui.Select and Ui.Text over NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/timeline/qml/music/MusicHint.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text", "Ui.ShortcutHint", "Flow", "Repeater", "MusicSequenceState", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Hint line of Ui.Text and Ui.ShortcutHint chips on Ui.Theme surfaces"
+
+[[file]]
+path = "native/timeline/qml/music/MusicContextBracket.qml"
+category = "domain"
+controls = ["Shape", "Rectangle", "Ui.Text", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Ruler bracket in Ui.Theme colors with a Ui.Text label"
+
+[[file]]
+path = "native/timeline/qml/music/MusicToast.qml"
+category = "chrome"
+controls = ["Ui.Toast", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Toast"
+
+[[file]]
+path = "native/timeline/qml/music/MusicRangeOverlay.qml"
+category = "domain"
+controls = ["Rectangle", "Ui.Text", "Ui.EditorButton", "MusicSequenceState", "MusicSectionRange"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Timeline lane band in Ui.Theme colors; Ui controls for labels and the loop action"
+
+[[file]]
+path = "native/timeline/qml/music/MusicRangeTool.qml"
+category = "chrome"
+controls = ["ToolButton", "MusicSequenceState"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Timeline ToolButton over NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/timeline/qml/music/MusicMode.qml"
+category = "chrome"
+controls = ["MusicSequenceState", "Timer", "Binding"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Non-visual layout state; no presentation"
+
+[[file]]
+path = "native/timeline/qml/music/NewMusicProjectDialog.qml"
+category = "chrome"
+controls = ["ProjectSettingsDialog.TimelineListDialog", "Ui.Text", "Ui.NumberField", "Ui.Select"]
+signals = ["createRequested", "cancelled"]
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/TimelineListPanel.qml", "native/timeline/qml/TimelineDocumentActions.qml", "native/timeline/qml/music/MusicProjectWindow.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog through TimelineListDialog, Ui.Text, Ui.NumberField, Ui.Select"
+
+[[file]]
+path = "native/timeline/qml/music/MusicProjectWindow.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.EmptyState", "NewMusicProjectDialog"]
+signals = ["dismissed"]
+test_host = "tst_musicui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EmptyState"
+
+# Music mode MM7 (TK-5): the clean-up dialog.
+[[file]]
+path = "native/timeline/qml/music/MusicCleanupHost.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.BusyIndicator", "Ui.Text", "ListView", "Ui.ScrollBar", "Ui.EditorButton", "MusicCleanup"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.ScrollBar, Ui.EditorButton over the MusicCleanup controller"
+
 [[exception]]
 path = "native/chat/qml/MessageDelegate.qml"
 object = "root/Repeater[0]/partFrame/partContent/Flow[0]/Repeater[0]/tile/TapHandler[0]"
@@ -4715,3 +4908,317 @@ test_host = "tst_projectfiles"
 test_scope = "interaction"
 qml_callers = []
 replacement = "NodeTool.Files: FilesPanel"
+
+[[file]]
+path = "native/timeline/qml/pianoroll/PianoRollPanel.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Separator", "Ui.EmptyState", "Ui.Select", "Ui.SegmentedControl", "PianoRollController", "PianoRollToolbar", "PianoRollInspector", "Canvas", "MouseArea", "Rectangle", "Item"]
+signals = []
+test_host = "tst_pianorollui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Separator, Ui.EmptyState, Ui.Select, Ui.SegmentedControl"
+
+[[file]]
+path = "native/timeline/qml/pianoroll/PianoRollToolbar.qml"
+category = "chrome"
+controls = ["Item", "Rectangle", "Flickable", "Row", "Ui.MenuButton", "Ui.ContextMenu", "Ui.ToolbarIconButton", "Ui.Separator", "Ui.Text", "Ui.Select", "Ui.Icon", "Ui.Slider"]
+signals = []
+test_host = "tst_pianorollui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.MenuButton, Ui.ContextMenu, Ui.ToolbarIconButton, Ui.Separator, Ui.Text, Ui.Select, Ui.Icon, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/pianoroll/PianoRollInspector.qml"
+category = "chrome"
+controls = ["Rectangle", "Row", "Column", "Ui.Separator", "Ui.ScrollArea", "Ui.Icon", "Ui.Text", "Ui.Select", "Ui.EditorButton", "Ui.Slider", "Ui.CheckBox", "Ui.NumberField"]
+signals = []
+test_host = "tst_pianorollui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.ScrollArea, Ui.Icon, Ui.Text, Ui.Select, Ui.EditorButton, Ui.Slider, Ui.CheckBox, Ui.NumberField"
+
+[[exception]]
+path = "native/timeline/qml/pianoroll/PianoRollPanel.qml"
+object = "root/body/gridArea/gridMouse"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline piano roll"
+reason = "Double click on a note deletes it, as in the web piano roll. The grid is a domain canvas with keyboard editing for every note action."
+
+[[exception]]
+path = "native/timeline/qml/pianoroll/PianoRollPanel.qml"
+object = "root/body/curveLane/laneMouse"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline piano roll"
+reason = "Double click on a controller or expression point deletes it. The lane is a domain canvas with keyboard deletion for the selected points."
+
+[[file]]
+path = "native/timeline/qml/markers/MarkerLane.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Icon", "MarkerSession", "MusicSequenceState", "MouseArea", "Rectangle", "Repeater", "Item"]
+signals = []
+test_host = "tst_markers"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Icon"
+
+[[exception]]
+path = "native/timeline/qml/markers/MarkerLane.qml"
+object = "root/lane/content/Repeater[0]/block/pointer"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Timeline marker lane"
+reason = "A marker block is drawn in the exact document colour and sized by time, which no Ui control draws. One pointer area selects, seeks, and drags the marker."
+
+[[exception]]
+path = "native/timeline/qml/markers/MarkerLane.qml"
+object = "root/lane/content/Repeater[0]/block/pointer"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline marker lane"
+reason = "Double-clicking a block opens the Edit Marker dialog, with the same pointer area as the single click."
+
+[[file]]
+path = "native/timeline/qml/Tracks/MidiNoteLines.qml"
+category = "domain"
+controls = ["MidiNoteLinesItem", "Loader"]
+signals = []
+test_host = "tst_midinotelines"
+test_scope = "interaction"
+qml_callers = []
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry"
+
+[[file]]
+path = "native/timeline/qml/Tracks/automation/AutomationHeaderRow.qml"
+category = "chrome"
+controls = ["Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Text", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = []
+test_host = "tst_automationui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml"]
+replacement = "Automation modes and parameter selection through Ui primitives"
+
+[[file]]
+path = "native/timeline/qml/Tracks/automation/AutomationCurveOverlay.qml"
+category = "domain"
+controls = ["AutomationLaneView"]
+signals = []
+test_host = "tst_automationui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Automation curve composed over the clip lane"
+
+[[exception]]
+path = "native/timeline/qml/pianoroll/PianoRollPanel.qml"
+object = "root"
+binding = "clipAccent"
+rule = "color"
+owner = "Timeline piano roll"
+reason = "Clip and track colors are document data. CSS alpha hex is reordered for Qt without changing its channels."
+
+[[exception]]
+path = "native/timeline/qml/pianoroll/PianoRollPanel.qml"
+object = "root"
+binding = "stripInk"
+rule = "color"
+owner = "Timeline piano roll"
+reason = "Caption ink is selected by the document fill luminance. Its dark and light channels come from theme tokens, with opaque dark ink for contrast."
+
+[[file]]
+path = "native/timeline/qml/pianoroll/StepEditorPanel.qml"
+category = "chrome"
+controls = ["StepEditorToolbar", "StepEditorInspector", "StepEditorRow", "PianoRollController", "StepEditorLaneModel", "Ui.Banner", "Ui.EmptyState", "Ui.Dialog", "Ui.NumberField", "Ui.EditorButton", "Ui.Text", "ListView", "Canvas", "MouseArea"]
+signals = ["repaintRequested"]
+test_host = "tst_pianorollui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives and virtualized Step Editor lanes"
+
+[[file]]
+path = "native/timeline/qml/pianoroll/StepEditorToolbar.qml"
+category = "chrome"
+controls = ["Ui.MenuButton", "Ui.ContextMenu", "Ui.ToolbarIconButton", "Ui.Text", "Ui.Icon", "Ui.Slider"]
+signals = []
+test_host = "tst_pianorollui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/pianoroll/StepEditorPanel.qml"]
+replacement = "NodeTool.UiPrimitives and virtualized Step Editor lanes"
+
+[[file]]
+path = "native/timeline/qml/pianoroll/StepEditorInspector.qml"
+category = "chrome"
+controls = ["Ui.ScrollArea", "Ui.Select", "Ui.NumberField", "Ui.Text"]
+signals = []
+test_host = "tst_pianorollui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/pianoroll/StepEditorPanel.qml"]
+replacement = "NodeTool.UiPrimitives and virtualized Step Editor lanes"
+
+[[file]]
+path = "native/timeline/qml/pianoroll/StepEditorRow.qml"
+category = "chrome"
+controls = ["Ui.EditorButton", "Canvas"]
+signals = []
+test_host = "tst_pianorollui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/pianoroll/StepEditorPanel.qml"]
+replacement = "NodeTool.UiPrimitives and virtualized Step Editor lanes"
+
+[[file]]
+path = "native/timeline/qml/music/MusicSectionRange.qml"
+category = "domain"
+controls = ["Rectangle", "Ui.EditorButton", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicRangeOverlay.qml"]
+replacement = "Section range band and menu use Ui controls and timeline colors"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerPanel.qml"
+category = "chrome"
+controls = ["StepSequencerToolbar", "StepSequencerPatternBar", "StepSequencerBrowser", "StepSequencerInspector", "StepSequencerRow", "StepSequencerController", "Ui.Banner", "Ui.EmptyState", "Ui.Dialog", "Ui.TextField", "Ui.ContextMenu", "ListView", "WheelHandler"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerToolbar.qml"
+category = "chrome"
+controls = ["Ui.MenuButton", "Ui.ContextMenu", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Select", "Ui.Slider", "Ui.Icon"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerPatternBar.qml"
+category = "chrome"
+controls = ["Ui.MenuButton", "Ui.ContextMenu", "Ui.ToolbarIconButton", "Ui.Select", "Ui.Text", "Repeater", "MouseArea"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerRow.qml"
+category = "chrome"
+controls = ["Ui.EditorButton", "Ui.Select", "Ui.Icon", "Ui.Text", "Repeater", "MouseArea"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerInspector.qml"
+category = "chrome"
+controls = ["Ui.TabBar", "Ui.Select", "Ui.NumberField", "Ui.Toggle", "Ui.Text", "Flickable"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerBrowser.qml"
+category = "chrome"
+controls = ["Ui.TextField", "Ui.EditorButton", "Ui.Text", "ListView"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/instruments/DeviceMenu.qml"
+category = "chrome"
+controls = ["Ui.Popover", "Column", "Ui.TextField", "ListView", "Item", "Ui.Text", "Ui.ListRow"]
+signals = ["chosen"]
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/instruments/InstrumentRack.qml", "native/timeline/qml/mixer/InsertSlots.qml", "native/timeline/qml/wiring/w/TrackEffectsPanel.qml"]
+replacement = "NodeTool.UiPrimitives grouped device menu with search"
+
+[[file]]
+path = "native/timeline/qml/instruments/DrumKitPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Column", "Ui.Text", "Ui.Select"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/instruments/InstrumentRack.qml"]
+replacement = "NodeTool.UiPrimitives drum kit panel"
+
+[[file]]
+path = "native/timeline/qml/instruments/InstrumentRack.qml"
+category = "chrome"
+controls = ["Column", "Ui.EditorButton", "DeviceMenu", "Loader", "Component", "BassSynthPanel", "WavetableSynthPanel", "SamplerPanel", "ModalSynthPanel", "DrumKitPanel", "Ui.Text", "VstPluginControl"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/mixer/InstrumentDevicePopover.qml", "native/timeline/qml/wiring/w/TrackEffectsPanel.qml"]
+replacement = "NodeTool.UiPrimitives instrument device with one instrument menu"
+
+[[file]]
+path = "native/timeline/qml/instruments/BassSynthPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.PanelHeader", "Ui.Select", "Ui.SegmentedControl", "Ui.Slider", "Ui.Toggle", "Ui.Text", "Ui.Separator"]
+signals = ["presetSelected", "parameterCommitted"]
+test_host = "tst_basssynth"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives compact analog bass instrument panel"
+
+[[file]]
+path = "native/timeline/qml/instruments/SamplerPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.PanelHeader", "Ui.SegmentedControl", "Ui.Slider", "Ui.NumberField", "Ui.Text", "Ui.Icon", "Ui.Chip", "Ui.Separator", "Ui.ListRow", "Ui.CloseButton"]
+signals = ["parameterCommitted", "zoneActionCommitted"]
+test_host = "tst_multisamplesampler"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives compact multisample sampler panel"
+
+[[file]]
+path = "native/timeline/qml/instruments/WavetableSynthPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.PanelHeader", "Ui.Select", "Ui.Slider", "Ui.Toggle", "Ui.Text", "Ui.Separator", "FxKnob"]
+signals = ["presetSelected", "parameterCommitted"]
+test_host = "tst_wavetablesynth"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives compact WT-1 wavetable synth instrument panel"
+
+[[file]]
+path = "native/timeline/qml/instruments/ModalSynthPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.PanelHeader", "Ui.Select", "Ui.SegmentedControl", "Ui.Slider", "Ui.Toggle", "Ui.Text", "Ui.Separator"]
+signals = ["presetSelected", "parameterCommitted"]
+test_host = "tst_modalsynth"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives compact physically modeled modal percussion panel"
+
+[[exception]]
+path = "native/timeline/qml/stepsequencer/StepSequencerPatternBar.qml"
+object = "root/Row[1]/Repeater[0]/page/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Step Sequencer page overview"
+reason = "A page overview is a thumbnail of 16 steps per row. A click shows that page of the grid, as in the Logic Step Sequencer."
+
+[[exception]]
+path = "native/timeline/qml/stepsequencer/StepSequencerRow.qml"
+object = "root/lane/header/headerArea"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Step Sequencer row header"
+reason = "A double click on the row header opens Rename Row, as Shift-Return does."

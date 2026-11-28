@@ -91,6 +91,172 @@ Ui.ContextMenu {
             menu.removeItem(object)
         }
     }
+    Ui.MenuItem {
+        objectName: "clipMenu-joinClips"
+        visible: menu.gestures.keymapContext === "music"
+        height: visible ? implicitHeight : 0
+        text: qsTr("Join clips")
+        readonly property string refusal: {
+            const selection = menu.gestures.selection
+            const context = menu.context
+            return context.editable === false ? qsTr("Unlock the clip first.") : menu.gestures.joinClipsReason(selection)
+        }
+        enabled: refusal === ""
+        reasonText: refusal
+        onTriggered: {
+            const error = menu.gestures.joinSelectedClips()
+            if (error !== "") { joinFailure.message = error; joinFailure.open() }
+        }
+    }
+    Ui.Dialog {
+        id: joinFailure
+        property string message: ""
+        title: qsTr("Cannot join clips")
+        returnFocusTo: menu.gestures
+        contentItem: Ui.Text { text: joinFailure.message; wrapMode: Text.Wrap; role: Ui.Typography.SansBody }
+        footer: Ui.EditorButton { text: qsTr("Close"); onClicked: joinFailure.close() }
+    }
+    // Loop repeats the clip's current length four times. Remove loop takes the repeats off. One undo each.
+    Ui.MenuItem {
+        objectName: "clipMenu-loopClip"
+        readonly property var clip: menu.context.clip || ({})
+        visible: menu.gestures.keymapContext === "music" && ["audio", "midi"].includes(clip.mediaType) && !clip.timeRemap
+        height: visible ? implicitHeight : 0
+        readonly property bool looped: (clip.loopLengthMs ?? 0) > 0 && clip.loopLengthMs < (clip.durationMs ?? 0)
+        text: looped ? qsTr("Remove loop") : qsTr("Loop")
+        enabled: menu.context.editable !== false
+        reasonText: enabled ? "" : qsTr("Unlock the clip first.")
+        onTriggered: {
+            const params = looped ? { clipId: menu.context.clipId, loopLengthMs: null }
+                                   : { clipId: menu.context.clipId, times: 4 }
+            menu.gestures.timeline.applyEdit("loop_clip", params)
+        }
+    }
+    Ui.MenuItem {
+        objectName: "clipMenu-repeatClip"
+        visible: menu.gestures.keymapContext === "music"
+        height: visible ? implicitHeight : 0
+        text: qsTr("Repeat…")
+        onTriggered: {
+            repeatDialog.clipId = menu.context.clipId || ""
+            repeatCount.value = 1
+            repeatCount.text = "1"
+            repeatDialog.open()
+        }
+    }
+    Ui.Dialog {
+        id: repeatDialog
+        property string clipId: ""
+        title: qsTr("Repeat clip")
+        width: Math.min(Ui.Metrics.dialogCompactWidth, parent ? parent.width - Ui.Metrics.dialogNarrowInset * 2 : Ui.Metrics.dialogCompactWidth)
+        returnFocusTo: menu.gestures
+        onOpened: { repeatCount.forceActiveFocus(); repeatCount.selectAll() }
+        function applyCopies() {
+            const count = Number(repeatCount.text)
+            if (!Number.isInteger(count) || count < 1 || count > 64) return
+            if (menu.gestures.timeline.applyEdit("duplicate_clip", { clipId: clipId, count: count })) close()
+        }
+        contentItem: Column {
+            spacing: Ui.Metrics.md
+            Ui.Text { text: qsTr("Additional copies, placed back to back"); role: Ui.Typography.SansLabel }
+            Ui.NumberField {
+                id: repeatCount
+                objectName: "musicRepeatCount"
+                width: parent.width
+                value: 1
+                from: 1
+                to: 64
+                stepSize: 1
+                accessibleName: qsTr("Additional copies")
+                valid: Number.isInteger(Number(text))
+                errorText: qsTr("Enter a whole number from 1 to 64.")
+                onAccepted: repeatDialog.applyCopies()
+            }
+        }
+        footer: Item {
+            implicitHeight: repeatApply.implicitHeight + repeatDialog.padding * 2
+            Row {
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: repeatDialog.padding
+                spacing: Ui.Metrics.sm
+                Ui.EditorButton { text: qsTr("Cancel"); onClicked: repeatDialog.close() }
+                Ui.EditorButton {
+                    id: repeatApply
+                    objectName: "musicRepeatApply"
+                    text: qsTr("Repeat")
+                    variant: Ui.EditorButton.Primary
+                    enabled: repeatCount.draftValid && Number.isInteger(Number(repeatCount.text))
+                    onClicked: repeatDialog.applyCopies()
+                }
+            }
+        }
+    }
+    Ui.MenuItem {
+        objectName: "clipMenu-renameClip"
+        text: qsTr("Rename…")
+        enabled: menu.context.editable !== false
+        reasonText: qsTr("Unlock the clip first.")
+        onTriggered: {
+            renameDialog.clipId = menu.context.clipId || ""
+            renameDialog.originalName = menu.context.clip?.name || ""
+            renameField.value = renameDialog.originalName
+            renameField.errorText = ""
+            renameField.text = renameDialog.originalName
+            renameDialog.open()
+        }
+    }
+    Ui.Dialog {
+        id: renameDialog
+        property string clipId: ""
+        property string originalName: ""
+        title: qsTr("Rename clip")
+        width: Math.min(Ui.Metrics.dialogCompactWidth, parent ? parent.width - Ui.Metrics.dialogNarrowInset * 2 : Ui.Metrics.dialogCompactWidth)
+        returnFocusTo: menu.gestures
+        onOpened: { renameField.forceActiveFocus(); renameField.selectAll() }
+        function applyName() {
+            if (renameField.text === originalName || menu.gestures.timeline.applyEdit("set_clip_params", {clipId: clipId, name: renameField.text})) close()
+            else renameField.errorText = qsTr("Rename failed. The clip may be locked, removed, or read-only.")
+        }
+        contentItem: Column {
+            spacing: Ui.Metrics.sm
+            Ui.TextField {
+                id: renameField
+                objectName: "clipRenameField"
+                width: parent.width
+                accessibleName: qsTr("Clip name")
+                valid: errorText === ""
+                onTextEdited: errorText = ""
+                onAccepted: renameDialog.applyName()
+            }
+            Ui.Text {
+                objectName: "clipRenameError"
+                width: parent.width
+                text: renameField.errorText
+                visible: text !== ""
+                wrapMode: Text.Wrap
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Error
+            }
+        }
+        footer: Item {
+            implicitHeight: renameApply.implicitHeight + renameDialog.padding * 2
+            Row {
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: renameDialog.padding
+                spacing: Ui.Metrics.sm
+                Ui.EditorButton { text: qsTr("Cancel"); onClicked: renameDialog.close() }
+                Ui.EditorButton {
+                    id: renameApply
+                    objectName: "clipRenameApply"
+                    text: qsTr("Rename")
+                    variant: Ui.EditorButton.Primary
+                    onClicked: renameDialog.applyName()
+                }
+            }
+        }
+    }
     MenuSeparator {
         id: labelDivider
         objectName: "clipMenu-labelDivider"
@@ -164,7 +330,6 @@ Ui.ContextMenu {
     MenuActionItem {
         objectName: "clipMenu-rippleDeleteSelected"
         text: "Ripple delete"
-        iconName: "deleteOutline"
         destructive: true
         actionName: "rippleDeleteSelected"
         actionContext: menu.actionContext
@@ -173,7 +338,6 @@ Ui.ContextMenu {
     MenuActionItem {
         objectName: "clipMenu-deleteSelected"
         text: "Delete"
-        iconName: "deleteOutline"
         destructive: true
         actionName: "deleteSelected"
         actionContext: menu.actionContext

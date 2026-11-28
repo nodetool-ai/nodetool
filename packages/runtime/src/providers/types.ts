@@ -1,4 +1,5 @@
 import type { Chunk, ProviderId, ProviderSession } from "@nodetool-ai/protocol";
+import type { MusicRole } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 
 // Provider identifiers are owned by @nodetool-ai/protocol (the base dependency
 // for the whole monorepo). Re-exported here so existing runtime importers keep
@@ -692,6 +693,61 @@ export interface TextToMusicParams {
   audioFormat?: string | null;
   /** Per-call timeout. Providers translate this into a max polling window. */
   timeoutSeconds?: number | null;
+}
+
+/** Every task the music backend interface names. The first release calls three. */
+export type MusicTaskName = "text2music" | "repaint" | "lego" | "extract" | "cover" | "complete";
+
+/**
+ * One music backend job (MUSIC-MODE.md section 12.1, BE-2). A backend adapter
+ * maps this onto its own request. ace-server builds its instruction from
+ * `task` and `trackRole`; a backend that takes an instruction string reads
+ * `instruction`.
+ */
+export interface MusicTaskParams {
+  task: MusicTaskName;
+  /** DiT model id. */
+  model: string;
+  lmModel?: string;
+  caption: string;
+  /** Defaults to "[Instrumental]". */
+  lyrics?: string;
+  instruction?: string;
+  trackRole?: MusicRole;
+  /** WAV, 48 kHz stereo. Repaint and lego. */
+  sourceAudio?: Uint8Array;
+  /** Seconds into `sourceAudio`. Repaint only: lego runs over the whole source. */
+  regionStartSec?: number;
+  regionEndSec?: number;
+  /** Integer BPM. */
+  bpm: number;
+  /** "A minor". Absent lets the model choose. */
+  key?: string;
+  /** Beats per bar. */
+  timeSignature: number;
+  durationSec: number;
+  seed?: number;
+  /** Replay without the language model. */
+  audioCodes?: string;
+  candidates: number;
+  steps?: number;
+  signal?: AbortSignal;
+  /** Called when the backend starts working on the job, after any queue wait. */
+  onRunning?: () => void;
+}
+
+export interface MusicTaskCandidate {
+  /** WAV bytes. ace-server returns 32-bit float. */
+  audio: Uint8Array;
+  seed: number;
+  audioCodes?: string;
+}
+
+export interface MusicTaskResult {
+  candidates: MusicTaskCandidate[];
+  /** Backend name and version, e.g. "acestep.cpp@07abf07". */
+  backend: string;
+  timing: { queueMs: number; lmMs: number; synthMs: number };
 }
 
 export interface TextToVideoParams {

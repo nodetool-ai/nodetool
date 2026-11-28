@@ -1,4 +1,5 @@
 #pragma once
+#include "GestureFeedback.h"
 
 // The clip gestures and the editing keys of the tracks region (M4), copied
 // from useClipDrag.ts, useClipTrim.ts (trimModeFor), clipSnap.ts and the
@@ -20,6 +21,12 @@
 //   an edge drag into a speed change (rateStretchClip). Hand and Zoom act on
 //   the lanes, in TracksRegion.qml. Under these body tools a press on an
 //   edge acts on the body (BODY_TOOLS).
+// - The Range tool (docs/MUSIC-MODE.md MD11): a drag on an audio lane, over
+//   clips or empty space, selects a range on that track in `musicSelection`.
+//   Edges snap to the ruler's grid division (bar, or beat when finer) on
+//   barStartFrame frames; Alt places an edge freely. A double-click on a clip
+//   selects its span. A click clears the range, and on empty space it parks
+//   the playhead.
 // - Keys resolve through the web keymap (Keymap.h): delete, ripple delete,
 //   split at the playhead, select all/none, nudge, undo/redo, the tools,
 //   snap and zoom.
@@ -39,6 +46,7 @@
 
 #include <functional>
 
+#include <QElapsedTimer>
 #include <QHash>
 #include <QJsonArray>
 #include <QPointer>
@@ -48,12 +56,15 @@
 #include <QTimer>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+class ClipInteractionState;
 class TrimMode;
+class MusicSelection;
 
 class ClipGestureController : public QQuickItem {
     Q_OBJECT
     QML_ELEMENT
     Q_MOC_INCLUDE("edit/trim/TrimMode.h")
+    Q_MOC_INCLUDE("music/MusicSelection.h")
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(TimelineViewState* viewState READ viewState WRITE setViewState NOTIFY changed)
     Q_PROPERTY(TrackWindowModel* rows READ rows WRITE setRows NOTIFY changed)
@@ -61,12 +72,17 @@ class ClipGestureController : public QQuickItem {
     // The lanes viewport: the pointer's lane and the edge auto-scroll.
     Q_PROPERTY(QQuickItem* lanesViewport READ lanesViewport WRITE setLanesViewport NOTIFY changed)
     Q_PROPERTY(QStringList selection READ selection WRITE setSelection NOTIFY selectionChanged)
+    Q_PROPERTY(bool selectionEmpty READ selectionEmpty NOTIFY selectionChanged)
     Q_PROPERTY(bool rippleMode READ rippleMode WRITE setRippleMode NOTIFY optionsChanged)
     Q_PROPERTY(bool snapEnabled READ snapEnabled WRITE setSnapEnabled NOTIFY optionsChanged)
     Q_PROPERTY(bool linkedSelection READ linkedSelection WRITE setLinkedSelection NOTIFY optionsChanged)
     Q_PROPERTY(QString dropMode READ dropMode WRITE setDropMode NOTIFY optionsChanged)
     Q_PROPERTY(QString activeTool READ activeTool WRITE setActiveTool NOTIFY optionsChanged)
     Q_PROPERTY(QString keyboardPreset READ keyboardPreset WRITE setKeyboardPreset NOTIFY optionsChanged)
+    // The editor context whose keys apply over the preset ("music" in the Music
+    // layout, KeymapOverlay.h), or empty. Keys, shortcutFor and the sheet read
+    // the keymap nt::edit::keymapName(keyboardPreset, keymapContext).
+    Q_PROPERTY(QString keymapContext READ keymapContext WRITE setKeymapContext NOTIFY optionsChanged)
     // The clip under the gesture, for the lanes' pin (D28); empty when idle.
     Q_PROPERTY(QString activeClipId READ activeClipId NOTIFY gestureChanged)
     Q_PROPERTY(QString gestureKind READ gestureKind NOTIFY gestureChanged)
@@ -77,9 +93,15 @@ class ClipGestureController : public QQuickItem {
     // Goes up when the live list of a move changes (liveStartMs).
     Q_PROPERTY(int liveRevision READ liveRevision NOTIFY liveChanged)
     Q_PROPERTY(double trackDropY READ trackDropY NOTIFY gestureChanged)
-    Q_PROPERTY(QVariantMap rubberBand READ rubberBand NOTIFY gestureChanged)
+    Q_PROPERTY(QVariantMap rubberBand READ rubberBand NOTIFY rubberBandChanged)
+    Q_PROPERTY(GestureFeedback gapFeedback READ gapFeedback NOTIFY selectionChanged)
+    Q_PROPERTY(GestureFeedback sourceFeedback READ sourceFeedback NOTIFY trimSourceRangeChanged)
+    Q_PROPERTY(GestureFeedback previewFeedback READ previewFeedback NOTIFY toolPreviewChanged)
+    Q_PROPERTY(QString selectedEditClipId READ selectedEditClipId NOTIFY selectionChanged)
+    Q_PROPERTY(QString selectedEditEdge READ selectedEditEdge NOTIFY selectionChanged)
     Q_PROPERTY(QVariantMap selectedGap READ selectedGap NOTIFY selectionChanged)
-    Q_PROPERTY(QVariantMap trimSourceRange READ trimSourceRange NOTIFY gestureChanged)
+    Q_PROPERTY(QString trimSourceClipId READ trimSourceClipId NOTIFY trimSourceRangeChanged)
+    Q_PROPERTY(QVariantMap trimSourceRange READ trimSourceRange NOTIFY trimSourceRangeChanged)
     Q_PROPERTY(QVariantMap toolPreview READ toolPreview NOTIFY toolPreviewChanged)
     // The edge E and the keyboard trims act on: {clipId, edge}, or empty.
     Q_PROPERTY(QVariantMap selectedEdit READ selectedEdit NOTIFY selectionChanged)
@@ -90,6 +112,10 @@ class ClipGestureController : public QQuickItem {
     Q_PROPERTY(bool keyframeRowOnly READ keyframeRowOnly WRITE setKeyframeRowOnly NOTIFY optionsChanged)
     // Selected edit points, keyboard and dynamic trimming, and the Trim Monitor's state.
     Q_PROPERTY(TrimMode* trimMode READ trimMode CONSTANT)
+    // The music generation target the Range tool selects (MD10): view state, never saved or undone.
+    Q_PROPERTY(MusicSelection* musicSelection READ musicSelection CONSTANT)
+    Q_PROPERTY(QVariantMap sectionRange READ sectionRange NOTIFY selectionChanged)
+    Q_PROPERTY(bool hasMusicSectionClipboard READ hasMusicSectionClipboard NOTIFY selectionChanged)
 
 public:
     explicit ClipGestureController(QQuickItem* parent = nullptr);
@@ -106,6 +132,10 @@ public:
     QQuickItem* lanesViewport() const { return m_viewport; }
     void setLanesViewport(QQuickItem* v);
     QStringList selection() const { return m_selection; }
+    quint64 selectionReads() const { return m_selectionReads; }
+    bool selectionEmpty() const { return m_selectionSet.isEmpty(); }
+    Q_INVOKABLE QString joinClipsReason(const QStringList& ids) const;
+    Q_INVOKABLE QString joinSelectedClips();
     void setSelection(const QStringList& ids);
     bool rippleMode() const { return m_rippleMode; }
     void setRippleMode(bool on);
@@ -119,6 +149,8 @@ public:
     void setActiveTool(const QString& tool);
     QString keyboardPreset() const { return m_preset; }
     void setKeyboardPreset(const QString& preset);
+    QString keymapContext() const { return m_keymapContext; }
+    void setKeymapContext(const QString& context);
     QString activeClipId() const { return m_gesture.clipId; }
     QString gestureKind() const { return m_gesture.kind; }
     double snapGuideMs() const { return m_snapGuideMs; }
@@ -132,9 +164,25 @@ public:
     Q_INVOKABLE double liveDurationMs(const QString& clipId) const;
     double trackDropY() const { return m_trackDropY; }
     QVariantMap rubberBand() const { return m_rubberBand; }
+    GestureFeedback gapFeedback() const { return GestureFeedback::fromMap(m_selectedGap); }
+    GestureFeedback sourceFeedback() const { return GestureFeedback::fromMap(m_trimSourceRange); }
+    GestureFeedback previewFeedback() const { return GestureFeedback::fromMap(m_toolPreview); }
+    QString selectedEditClipId() const { return m_selectedEdit.value("clipId").toString(); }
+    QString selectedEditEdge() const { return m_selectedEdit.value("edge").toString(); }
+    Q_INVOKABLE void selectClip(const QString& id) { setSelection({id}); }
+    Q_INVOKABLE bool clipMuted(const QString& id) const {
+        const auto* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
+        return clip && clip->muted;
+    }
+    Q_INVOKABLE QString clipLinkIdFor(const QString& id) const {
+        const auto* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
+        return clip ? clip->raw.value("linkId").toString() : QString();
+    }
     QVariantMap selectedGap() const { return m_selectedGap; }
+    QString trimSourceClipId() const { return m_trimSourceRange.value("clipId").toString(); }
     QVariantMap trimSourceRange() const { return m_trimSourceRange; }
     QVariantMap toolPreview() const { return m_toolPreview; }
+    Q_INVOKABLE QVariantMap toolPreviewForClip(const QString& id) const { return m_toolPreview.value("clipId").toString()==id || m_toolPreview.value("clipIds").toStringList().contains(id) ? m_toolPreview : QVariantMap{}; }
     Q_INVOKABLE void updateToolHover(const QString& clipId, const QString& part, double sceneX, double sceneY, int modifiers = 0);
     Q_INVOKABLE void clearToolHover(const QString& clipId = {});
     Q_INVOKABLE bool previewsCut(const QString& clipId) const { return m_razorTargets.contains(clipId); }
@@ -150,6 +198,13 @@ public:
     void setKeyframeRowOnly(bool only);
     void setKeyframeRow(const QString& row);
     TrimMode* trimMode() const { return m_trimMode; }
+    MusicSelection* musicSelection() const { return m_musicSelection; }
+    // Makes the music range the sequence In and Out range and turns the loop on, so
+    // playback loops on it (MUSIC-MODE.md section 7). False when there is no range.
+    Q_INVOKABLE bool loopMusicSelection();
+    QVariantMap sectionRange() const { return m_sectionRange; }
+    bool hasMusicSectionClipboard() const;
+    Q_INVOKABLE bool editMusicSection(const QString& action);
     Q_INVOKABLE bool pressTrack(const QString& trackId, const QString& kind, double sceneX, double sceneY);
     Q_INVOKABLE void pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers);
     Q_INVOKABLE QVariantMap groupSpan(const QString& clipId) const;
@@ -166,6 +221,9 @@ public:
     // mode decides whether later clips follow. A `merge` folds into the previous
     // keyboard trim, for a held key. False when no edit point is selected.
     bool trimEditPoint(double edgeTargetMs, bool merge);
+    Q_INVOKABLE QString clipMediaType(const QString& clipId) const;
+    Q_INVOKABLE QString clipTrack(const QString& clipId) const;
+    Q_INVOKABLE bool hasClip(const QString& clipId) const;
     Q_INVOKABLE QVariantMap clipData(const QString& clipId) const;
     // True when the last clips change touched the clip (TimelineModel::clipTouched).
     Q_INVOKABLE bool clipTouched(const QString& clipId) const { return !m_timeline || m_timeline->clipTouched(clipId); }
@@ -181,7 +239,7 @@ public slots:
     bool pressLane(const QString& trackId, double atMs, int modifiers);
     void undo();
     void redo();
-    bool isSelected(const QString& clipId) const { return m_selection.contains(clipId); }
+    Q_INVOKABLE bool isSelected(const QString& clipId) const { ++m_selectionReads; return m_selectionSet.contains(clipId); }
     // Ends the active gesture and puts the document back to the press state,
     // with no undo entry (Escape, or a key command during a gesture).
     void cancelGesture();
@@ -206,9 +264,12 @@ signals:
     void selectionChanged();
     void optionsChanged();
     void gestureChanged();
+    void trimSourceRangeChanged();
+    void rubberBandChanged();
     void liveChanged();
     void snapGuideChanged();
     void toolPreviewChanged();
+    void clipToolPreviewChanged(const QString& clipId, const QVariantMap& preview);
     // The `?` key: open or close the shortcut sheet.
     void shortcutsToggled();
     void pasteAttributesRequested(QVariantMap source, QVariantList targets);
@@ -217,10 +278,15 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    // The second press of a double-click during a Range tool drag belongs to that drag.
+    void mouseDoubleClickEvent(QMouseEvent* event) override;
     void mouseUngrabEvent() override;
     void updatePolish() override;
 
 private:
+    friend class ClipInteractionState;
+    void writeSelection(const QStringList& ids);
+    QMultiHash<QString,ClipInteractionState*> m_clipObservers; // UI thread, borrowed QML-owned observers unregister on destruction.
     void watchWindow(QQuickWindow* window);
     friend class TrimMode;
     bool runBuiltinAction(const QString& action, bool autoRepeat, const QVariantMap& context);
@@ -254,12 +320,23 @@ private:
         double dragStartMs = 0;
         double edgeMsAtStart = 0;
         double durationMsAtStart = 0;
+        double repeatWindowMs = 0;
         double inAtStart = 0;  // slip: the source in-point at the press
         bool dragging = false;
         SnapCandidates candidates;
         QJsonArray before;
         // The document the gesture edits; a replacement ends it.
         quint64 generation = 0;
+        // range: the edge at the press (48 kHz frames), the clip pressed, and the selection before.
+        std::int64_t rangeAnchor = 0;
+        QString rangeClipId;
+        QString rangeTrackAtStart;
+        std::int64_t rangeStartAtStart = 0;
+        std::int64_t rangeEndAtStart = 0;
+        // The rest of a double-click that selected a clip's span: the release keeps the range.
+        bool rangeHeld = false;
+        bool sectionRangeDrag = false;
+        QVariantMap sectionRangeAtStart;
     };
 
     nt::edit::ClipList resolveEdit(const QString& name, QJsonObject payload,
@@ -271,11 +348,16 @@ private:
     void clearLive();
     void applyMove();
     void applyTrim();
+    void applyLoop();
+    void setSectionRange(QVariantMap range);
     void updateTrimFeedback(const nt::edit::EditDoc& doc, const QJsonObject& clip, double requestedMs, bool landed);
     void applySlip();
     void applySlide();
     void updateTrackDrag();
     void updateMarquee();
+    bool beginRange(const QString& trackId, const QString& clipId, double sceneX, double sceneY, int modifiers);
+    void updateRange();
+    bool selectClipRange(const QString& clipId);
     QJsonObject targetingPayload() const;
     double laneMsAt(double sceneX) const;
     void finishGesture(bool completed, Qt::KeyboardModifiers modifiers);
@@ -295,19 +377,29 @@ private:
     void clearClipSelection();
 
     TrimMode* m_trimMode = nullptr;
+    // Qt child of this controller, which deletes it.
+    MusicSelection* m_musicSelection = nullptr;
+    // The last Range tool click on a clip, for its double-click.
+    QString m_rangeClickClip;
+    QElapsedTimer m_rangeClick;
     QPointer<TimelineModel> m_timeline;
     QPointer<TimelineViewState> m_view;
     QPointer<TrackWindowModel> m_rows;
     QPointer<PlaybackClock> m_clock;
     QPointer<QQuickItem> m_viewport;
     QPointer<QQuickWindow> m_eventWindow;
+    mutable quint64 m_selectionReads=0;
     QStringList m_selection;
+    QSet<QString> m_selectionSet;
     bool m_rippleMode = false;
     bool m_snapEnabled = true;
     bool m_linked = true;
     QString m_dropMode = QStringLiteral("overwrite");
     QString m_tool = QStringLiteral("select");
     QString m_preset = QStringLiteral("premiere");
+    QString m_keymapContext;
+    // The keymap keys resolve in: the preset under the editor context.
+    QString keymap() const;
     Gesture m_gesture;
     QTimer m_autoScrollTimer;
     double m_snapGuideMs = -1;
@@ -334,7 +426,9 @@ private:
     QStringList m_trackOrder;
     QVariantMap m_rubberBand;
     QVariantMap m_selectedGap;
+    QVariantMap m_sectionRange;
     QVariantMap m_trimSourceRange;
+    void publishToolPreview(const QVariantMap& preview);
     QVariantMap m_toolPreview;
     QString m_hoverPlanId;
     nt::edit::ClipList m_hoverClips;
@@ -349,4 +443,39 @@ private:
     QVariantMap m_selectedEdit;
     QString m_keyframeRow = QStringLiteral("opacity");
     bool m_keyframeRowOnly = false;
+};
+
+// UI thread only. QML owns each subscription, the controller is a guarded borrow.
+class ClipInteractionState : public QObject {
+    Q_OBJECT
+    Q_DISABLE_COPY_MOVE(ClipInteractionState)
+    QML_ELEMENT
+    Q_PROPERTY(ClipGestureController* gestures READ gestures WRITE setGestures NOTIFY subscriptionChanged)
+    Q_PROPERTY(QString clipId READ clipId WRITE setClipId NOTIFY subscriptionChanged)
+    Q_PROPERTY(bool selected READ selected NOTIFY selectedChanged)
+    Q_PROPERTY(GestureFeedback previewFeedback READ previewFeedback NOTIFY toolPreviewChanged)
+    Q_PROPERTY(QVariantMap toolPreview READ toolPreview NOTIFY toolPreviewChanged)
+public:
+    explicit ClipInteractionState(QObject* parent=nullptr) : QObject(parent) {}
+    ~ClipInteractionState() override;
+    ClipGestureController* gestures() const { return m_gestures; }
+    QString clipId() const { return m_clipId; }
+    void setGestures(ClipGestureController* value);
+    void setClipId(const QString& value);
+    bool selected() const { return m_selected; }
+    GestureFeedback previewFeedback() const { return GestureFeedback::fromMap(m_preview); }
+    QVariantMap toolPreview() const { return m_preview; }
+    void refreshSelection();
+    void refreshPreview();
+signals:
+    void subscriptionChanged();
+    void selectedChanged();
+    void toolPreviewChanged();
+private:
+    void detach();
+    void attach();
+    QPointer<ClipGestureController> m_gestures;
+    QString m_clipId;
+    bool m_selected=false;
+    QVariantMap m_preview;
 };

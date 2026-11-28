@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/TimelineSource.h"
+#include "model/ChangeSet.h"
 #include "model/TimelineTypes.h"
 #include "model/TrackListModel.h"
 
@@ -9,6 +10,8 @@
 #include <QObject>
 #include <QSet>
 #include <QUndoStack>
+#include <QThread>
+#include <atomic>
 
 #include <functional>
 #include <memory>
@@ -16,28 +19,32 @@
 #include <vector>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+class AutomationRecorder;
+
 // The document the editor shows. It owns the timeline; QML only observes it.
 // As a TimelineSource it forwards timelineChanged and previewChanged to
 // sourceChanged.
 // Thread affinity: UI thread only.
 class TimelineModel : public TimelineSource {
     Q_OBJECT
+    Q_MOC_INCLUDE("audio/automation/AutomationRecorder.h")
     QML_ELEMENT
     QML_UNCREATABLE("Created by main")
     Q_PROPERTY(QString effectMatteId READ effectMatteId NOTIFY effectMatteChanged)
-    Q_PROPERTY(QString timelineId READ timelineId NOTIFY timelineChanged)
-    Q_PROPERTY(QString projectId READ projectId NOTIFY timelineChanged)
-    Q_PROPERTY(QString sourcePath READ sourcePath NOTIFY timelineChanged)
-    Q_PROPERTY(QString name READ name NOTIFY timelineChanged)
-    Q_PROPERTY(double fps READ fps NOTIFY timelineChanged)
-    Q_PROPERTY(bool dropFrame READ dropFrame NOTIFY timelineChanged)
-    Q_PROPERTY(double durationMs READ durationMs NOTIFY timelineChanged)
-    Q_PROPERTY(int canvasWidth READ canvasWidth NOTIFY timelineChanged)
-    Q_PROPERTY(int canvasHeight READ canvasHeight NOTIFY timelineChanged)
+    Q_PROPERTY(QString timelineId READ timelineId NOTIFY timelineIdChanged)
+    Q_PROPERTY(QString projectId READ projectId NOTIFY projectIdChanged)
+    Q_PROPERTY(QString sourcePath READ sourcePath NOTIFY sourcePathChanged)
+    Q_PROPERTY(QString name READ name NOTIFY nameChanged)
+    Q_PROPERTY(double fps READ fps NOTIFY fpsChanged)
+    Q_PROPERTY(bool dropFrame READ dropFrame NOTIFY dropFrameChanged)
+    Q_PROPERTY(double durationMs READ durationMs NOTIFY durationMsChanged)
+    Q_PROPERTY(int canvasWidth READ canvasWidth NOTIFY canvasWidthChanged)
+    Q_PROPERTY(int canvasHeight READ canvasHeight NOTIFY canvasHeightChanged)
     // The later of `durationMs` and the last clip end (TracksRegion `contentEndMs`).
-    Q_PROPERTY(double contentEndMs READ contentEndMs NOTIFY timelineChanged)
-    Q_PROPERTY(int clipCount READ clipCount NOTIFY timelineChanged)
+    Q_PROPERTY(double contentEndMs READ contentEndMs NOTIFY contentEndMsChanged)
+    Q_PROPERTY(int clipCount READ clipCount NOTIFY clipCountChanged)
     Q_PROPERTY(TrackListModel* tracks READ tracks CONSTANT)
+    Q_PROPERTY(AutomationRecorder* automationRecorder READ automationRecorder CONSTANT)
     // The edit history (D5): one command per edit, one per gesture.
     Q_PROPERTY(QUndoStack* undoStack READ undoStack CONSTANT)
     // The document's `markers` ({id, timeMs, label, color?, note?}), in
@@ -49,9 +56,72 @@ class TimelineModel : public TimelineSource {
     Q_PROPERTY(bool readOnly READ readOnly NOTIFY readOnlyChanged)
 
 public:
+    // Observer installation and callbacks are UI-thread only. The disabled path
+    // reads one relaxed atomic and never constructs payloads or lifetime guards.
+    class MeasurementObserver {
+    public:
+        virtual ~MeasurementObserver() = default;
+        virtual void phase(const char*, bool) const noexcept = 0;
+        virtual void crossing(const char*, const QJsonValue&) const noexcept = 0;
+    };
+private:
+    struct MeasurementRegistration {
+        // Shared with scopes because a callback may destroy the model.
+        std::shared_ptr<const MeasurementObserver> observer;
+        unsigned active = 0; // UI thread only.
+    };
+public:
+    bool clearMeasurementObserver() noexcept {
+        Q_ASSERT(QThread::currentThread() == thread());
+        if (m_measurement && m_measurement->active) { return false; }
+        m_measuring.store(false, std::memory_order_relaxed);
+        m_measurement.reset();
+        return true;
+    }
+    bool setMeasurementObserver(std::shared_ptr<const MeasurementObserver> observer) {
+        Q_ASSERT(QThread::currentThread() == thread());
+        if (m_measurement && m_measurement->active) { return false; }
+        m_measurement = observer ? std::make_shared<MeasurementRegistration>(MeasurementRegistration{std::move(observer), 0}) : nullptr;
+        m_measuring.store(bool(m_measurement), std::memory_order_relaxed);
+        return true;
+    }
+    template<class Payload>
+    void crossing(const char* site, Payload&& payload) const {
+        if (!m_measuring.load(std::memory_order_relaxed)) { return; }
+        Q_ASSERT(QThread::currentThread() == thread());
+        // Keep the observer alive if the callback destroys the model.
+        const auto observer = m_measurement;
+        ++observer->active;
+        observer->observer->crossing(site, payload());
+        --observer->active;
+    }
+    class Measurement {
+    public:
+        Measurement(const TimelineModel& model, const char* phase) : m_phase(phase) {
+            if (!model.m_measuring.load(std::memory_order_relaxed)) { return; }
+            Q_ASSERT(QThread::currentThread() == model.thread());
+            m_observer = model.m_measurement;
+            ++m_observer->active;
+            m_observer->observer->phase(m_phase, true);
+        }
+        ~Measurement() noexcept {
+            if (!m_observer) { return; }
+            m_observer->observer->phase(m_phase, false);
+            --m_observer->active;
+        }
+        Measurement(const Measurement&) = delete;
+        Measurement& operator=(const Measurement&) = delete;
+    private:
+        // Shared with the model because a synchronous signal can destroy it
+        // before this scope closes. Destruction never accesses the model.
+        std::shared_ptr<MeasurementRegistration> m_observer;
+        const char* m_phase;
+    };
     explicit TimelineModel(QObject* parent = nullptr);
+    ~TimelineModel() override;
 
     void setTimeline(nt::Timeline timeline);
+    AutomationRecorder* automationRecorder();
     // Rewrites one undo checkpoint (a raw sequence) for an adopted external change.
     using HistoryRebase = std::function<QJsonObject(const QJsonObject&)>;
     // Replace the document with an adopted external change and rebase the
@@ -69,7 +139,13 @@ public:
     const nt::Timeline& timeline() const { return *m_timeline; }
     // An immutable snapshot the render thread keeps by pointer (D8). A new
     // document makes a new snapshot; an old one stays valid while held.
-    std::shared_ptr<const nt::Timeline> snapshot() const override { return m_timeline; }
+    std::shared_ptr<const nt::Timeline> snapshot() const override;
+    // UI-thread writes, audio-thread atomic reads. Never changes document/undo.
+    std::optional<double> mixerOverrideValue(const QString& trackId, const QString& param, bool master = false) const;
+    void setMixerOverride(const QString& trackId, const QString& param, std::optional<double> value, bool master = false);
+    void setDeviceOverride(const QString& trackId, const QString& deviceId, const QJsonObject& patch, bool hold = false);
+    void holdMixerOverride(const QString& trackId,const QString& param,double value, bool master = false);
+    void releaseMixerOverride(const QString& trackId,const QString& param,double endMs,double value,double after);
 
     QString timelineId() const { return QString::fromStdString(m_timeline->id); }
     QString projectId() const { return m_timeline->raw.value(u"projectId").toString(); }
@@ -85,6 +161,10 @@ public:
     TrackListModel* tracks() const { return m_tracks; }
 
     QUndoStack* undoStack() const { return m_undo; }
+    // Initial command application preserves active automation gestures. History
+    // navigation and source changes outside this scope invalidate them.
+    bool pushingCommand() const { return m_pushingCommand; }
+    void pushCommand(std::unique_ptr<QUndoCommand> command);
     // Counts document replacements (setTimeline, close). A gesture started
     // under one generation never writes into another.
     quint64 documentGeneration() const override { return m_generation; }
@@ -114,6 +194,15 @@ public:
     void settleTransient();
     // O(1) through the snapshot's id index. Null: no such clip.
     const nt::Clip* findClip(const QString& clipId) const;
+    // Borrowed indices into timeline(), built once per document snapshot on the UI thread.
+    const std::vector<size_t>& trackClipIndices(const QString& trackId) const;
+    bool trackClipIndexChanged(const QString& trackId) const;
+    quint64 notificationClipVisits() const { return m_notificationClipVisits; }
+    quint64 trackIndexVisits() const { return m_trackIndexVisits; }
+    quint64 clipQueryVisits() const { return m_clipQueryVisits; }
+    quint64 effectClipReads() const { return m_effectClipReads; }
+    Q_INVOKABLE QVariantMap clipAt(const QString& trackId, double ms) const;
+    Q_INVOKABLE QVariantList effectClips(const QStringList& ids) const;
     // True when the last clips change touched the clip. A change that added,
     // removed or reordered clips, or a new document, touches every clip.
     Q_INVOKABLE bool clipTouched(const QString& clipId) const;
@@ -131,6 +220,9 @@ public:
                     bool continuation = false);
 
     Q_INVOKABLE quint64 applyEdit(const QString& name, const QJsonObject& payload);
+    // Synchronous callback. Undo stores document snapshots, never this callable.
+    quint64 applyEdit(const QString& label, const QJsonObject& payload,
+                      const std::function<QJsonObject(QJsonObject, const QJsonObject&)>& edit);
 
     bool readOnly() const { return m_readOnly; }
     // Turning it on clears the undo history, so undo cannot change the
@@ -160,7 +252,20 @@ public:
     Q_INVOKABLE bool deleteMarker(const QString& markerId);
 
 signals:
+    void mixerOverrideChanged(const QString& trackId, const QString& param);
     void beforeCommand();
+    void timelineIdChanged();
+    void projectIdChanged();
+    void sourcePathChanged();
+    void nameChanged();
+    void fpsChanged();
+    void dropFrameChanged();
+    void durationMsChanged();
+    void canvasWidthChanged();
+    void canvasHeightChanged();
+    void contentEndMsChanged();
+    void clipCountChanged();
+    void changed(const ChangeSet& changes);
     void timelineChanged();
     void commandSettled();
     // The clips changed: an edit, or a new document (then the tracks reset too).
@@ -175,6 +280,24 @@ signals:
     void effectMatteChanged();
 
 private:
+    void notifyChanges();
+    // Notification comparisons retain the previous immutable snapshot across edits.
+    std::shared_ptr<const nt::Timeline> m_notifiedSnapshot;
+    quint64 m_notifiedGeneration = 0;
+    quint64 m_notificationClipVisits = 0;
+    double m_notifiedContentEnd = 0;
+    QHash<QString, nt::Clip> m_validatedClips;
+    std::atomic<bool> m_measuring{false};
+    // Shared with active scopes, UI-thread only.
+    std::shared_ptr<MeasurementRegistration> m_measurement;
+    mutable std::shared_ptr<const nt::Timeline> m_trackIndexSource; // Keeps indexed storage alive across edits.
+    mutable QHash<QString, std::vector<size_t>> m_trackClipIndices;
+    mutable QSet<QString> m_indexChangedTracks;
+    mutable quint64 m_trackIndexVisits = 0;
+    mutable quint64 m_clipQueryVisits = 0;
+    mutable quint64 m_effectClipReads = 0;
+    mutable QHash<QString,std::vector<double>> m_trackMaxEnds;
+    bool m_pushingCommand = false;
     bool replaceDocument(const QJsonObject& raw);
     // An undo or redo step: the document, keeping the current project.
     bool replaceFromHistory(QJsonObject raw);
@@ -193,6 +316,17 @@ private:
     // Marks only these clips and tracks changed, with no takes change.
     void markClipsChanged(QSet<QString> clipIds, QSet<QString> trackIds);
     std::optional<QSet<QString>> m_changedClipIds;
+    // UI-only map. The model and published plans share each atomic handoff.
+    // Model and published audio snapshots share the atomic master handoff.
+    mutable QHash<QString, std::shared_ptr<std::atomic<std::uint64_t>>> m_deviceRevisions;
+    mutable QHash<QString, std::shared_ptr<nt::MixerOverride>> m_deviceOverrides;
+    mutable std::shared_ptr<nt::MixerOverride> m_masterMixerOverride;
+    mutable QHash<QString, std::shared_ptr<nt::MixerOverride>> m_mixerOverrides;
+    // Shared with snapshot readers. Keep the source alive to compare cache identity safely.
+    mutable std::shared_ptr<const nt::Timeline> m_mixerSnapshotSource, m_mixerSnapshot;
+    // UI thread, uniquely model-owned. Views borrow the recorder and its host clock.
+    std::unique_ptr<AutomationRecorder> m_automationRecorder;
+    void clearMixerOverrides();
     QSet<QString> m_changedTrackIds;
     quint64 m_takesRevision = 0;
     // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible

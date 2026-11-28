@@ -333,7 +333,8 @@ const LEAN_SERVER_PACKAGES = [
 const NATIVE_UI_PYTHON = process.platform === "win32" ? "py -3" : "python3";
 const NATIVE_UI_DESIGN_CHECK =
   `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_design.py --strict && ` +
-  `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_dependencies.py`;
+  `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_dependencies.py && ` +
+  `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_performance.py`;
 
 const LEAN_SERVER_CHECK =
   `npm run test ${LEAN_SERVER_PACKAGES.map(name => `--workspace=packages/${name}`).join(" ")} && ` +
@@ -1758,7 +1759,7 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "native-ui-design",
-    title: "Native UI presentation and dependency contracts",
+    title: "Native UI presentation, dependency and performance contracts",
     command: NATIVE_UI_DESIGN_CHECK,
     kind: "static",
     capabilities: ["no-db"],

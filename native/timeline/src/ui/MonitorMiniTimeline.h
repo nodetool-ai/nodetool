@@ -13,6 +13,7 @@
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+// Properties belong to the UI thread. Qt paints while the UI thread is blocked.
 class MonitorMiniTimeline : public QQuickPaintedItem {
     Q_OBJECT
     QML_ELEMENT
@@ -100,6 +101,8 @@ protected:
 
 private:
     void changedValue();
+    void positionPlayhead();
+    QQuickPaintedItem* m_playheadItem; // QObject child owned by this item, UI thread only.
     void changedBackdrop();
     void rebuildBackdrop(double dpr);
     void setScrubbing(bool on);

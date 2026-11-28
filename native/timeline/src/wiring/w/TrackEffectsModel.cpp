@@ -27,7 +27,11 @@ void TrackEffectsModel::setTimeline(TimelineModel* timeline) {
     if (m_timeline == timeline) { return; }
     if (m_timeline) { disconnect(m_timeline, nullptr, this, nullptr); }
     m_timeline = timeline;
-    if (timeline) { connect(timeline, &TimelineModel::timelineChanged, this, &TrackEffectsModel::changed); }
+    if (timeline) {
+        connect(timeline, &TimelineModel::changed, this, [this](const ChangeSet& changes) {
+            if (changes.trackChanged(m_trackId)) { emit changed(); }
+        });
+    }
     emit changed();
 }
 void TrackEffectsModel::setTrackId(const QString& id) {

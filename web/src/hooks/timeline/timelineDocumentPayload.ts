@@ -18,6 +18,7 @@ interface TimelineDocumentPayload {
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
   tempo: TimelineStoreState["tempo"];
+  music: TimelineStoreState["music"];
   master: TimelineStoreState["master"];
   storyboardMaterializations: TimelineStoreState["storyboardMaterializations"];
   camera2d: TimelineStoreState["camera2d"];
@@ -43,6 +44,7 @@ export function buildTimelineDocumentPayload(
     // Null on the store, undefined on the payload it produces — so the builder
     // takes either and answers only the payload's shape.
   > & {
+    music?: TimelineStoreState["music"];
     setup?: TimelineStoreState["setup"];
     storyboardMaterializations?: TimelineStoreState["storyboardMaterializations"];
   }
@@ -56,6 +58,7 @@ export function buildTimelineDocumentPayload(
     transcript: state.transcript,
     scriptEnabled: state.scriptEnabled,
     tempo: state.tempo,
+    music: state.music,
     master: state.master,
     storyboardMaterializations: state.storyboardMaterializations,
     camera2d: state.camera2d ?? null,

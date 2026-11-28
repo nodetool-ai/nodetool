@@ -74,15 +74,15 @@ beforeEach(() => {
 });
 
 describe("AutomationLaneView", () => {
-  it("adds a point where the lane is pressed and drags it as one undo entry", () => {
+  it("adds a point where the curve is pressed and drags it as one undo entry", () => {
     setup();
     const { root } = renderLane();
-    const middle = AUTOMATION_LANE_HEIGHT_PX / 2;
-    fireEvent.pointerDown(root, { button: 0, pointerId: 1, clientX: 50, clientY: middle });
+    // The empty lane draws a flat line at 0 dB: 6px inset + (1 - 60/66) of 44px.
+    const lineY = 10;
+    fireEvent.pointerDown(root, { button: 0, pointerId: 1, clientX: 50, clientY: lineY });
     expect(lanePoints()).toHaveLength(1);
-    // 10 ms per px; the lane's middle is halfway up its -60..6 dB range.
     expect(lanePoints()[0].timeMs).toBe(500);
-    expect(lanePoints()[0].value).toBeCloseTo(-27);
+    expect(lanePoints()[0].value).toBeCloseTo(0);
     fireEvent.pointerMove(root, { pointerId: 1, clientX: 80, clientY: 0 });
     fireEvent.pointerMove(root, { pointerId: 1, clientX: 90, clientY: 0 });
     fireEvent.pointerUp(root, { pointerId: 1, clientX: 90, clientY: 0 });
@@ -98,7 +98,51 @@ describe("AutomationLaneView", () => {
     fireEvent.pointerMove(root, { pointerId: 1, clientX: 120, clientY: y, shiftKey: true });
     fireEvent.pointerUp(root, { pointerId: 1 });
     expect(lanePoints()[0].timeMs).toBe(500);
-    expect(lanePoints()[0].value).toBeCloseTo(-27);
+    // The point moves by the pointer's travel: 22 of 44px down from 0 dB.
+    expect(lanePoints()[0].value).toBeCloseTo(-33);
+  });
+
+  it("does not add a point on a click off the curve, and adds one on a double-click there", () => {
+    setup();
+    const { root } = renderLane();
+    fireEvent.pointerDown(root, { button: 0, pointerId: 1, clientX: 50, clientY: 40 });
+    fireEvent.pointerUp(root, { pointerId: 1 });
+    expect(lanePoints()).toHaveLength(0);
+    fireEvent.doubleClick(root, { clientX: 50, clientY: 40 });
+    expect(lanePoints()).toHaveLength(1);
+    expect(lanePoints()[0].timeMs).toBe(500);
+  });
+
+  it("selects points with a box and Shift-click, moves them together and deletes them all", () => {
+    setup({
+      ...VOLUME,
+      points: [{ timeMs: 500, value: 0 }, { timeMs: 1000, value: 0 }, { timeMs: 1500, value: 0 }]
+    });
+    const { root, rerender } = renderLane();
+    fireEvent.pointerDown(root, { button: 0, pointerId: 1, clientX: 40, clientY: 2 });
+    fireEvent.pointerMove(root, { pointerId: 1, clientX: 110, clientY: 20 });
+    fireEvent.pointerUp(root, { pointerId: 1 });
+    expect(screen.getAllByTestId("automation-selected-bar-lane-1")).toHaveLength(2);
+    fireEvent.pointerDown(root, { button: 0, pointerId: 1, clientX: 150, clientY: 10, shiftKey: true });
+    expect(screen.getAllByTestId("automation-selected-bar-lane-1")).toHaveLength(3);
+    fireEvent.pointerDown(root, { button: 0, pointerId: 2, clientX: 100, clientY: 10 });
+    fireEvent.pointerMove(root, { pointerId: 2, clientX: 110, clientY: 10 });
+    fireEvent.pointerUp(root, { pointerId: 2 });
+    expect(lanePoints().map((p) => p.timeMs)).toEqual([600, 1100, 1600]);
+    rerender();
+    fireEvent.keyDown(root, { key: "Delete" });
+    expect(lanePoints()).toEqual([]);
+  });
+
+  it("bends a segment with Control-Shift-drag", () => {
+    setup({ ...VOLUME, points: [{ timeMs: 0, value: -60 }, { timeMs: 2000, value: 6 }] });
+    const { root } = renderLane();
+    // Halfway along the ramp, the curve is at the lane's middle.
+    fireEvent.pointerDown(root, { button: 0, pointerId: 1, clientX: 100, clientY: 28, ctrlKey: true, shiftKey: true });
+    fireEvent.pointerMove(root, { pointerId: 1, clientX: 100, clientY: 12 });
+    fireEvent.pointerUp(root, { pointerId: 1 });
+    expect(lanePoints()[1].easing).toBe("easeOut");
+    expect(lanePoints()).toHaveLength(2);
   });
 
   it("removes a point on double-click", () => {

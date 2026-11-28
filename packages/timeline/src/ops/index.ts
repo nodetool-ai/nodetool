@@ -10,5 +10,15 @@
 export * from "./types.js";
 export * from "./op.js";
 export * from "./serialize.js";
+export { keyLabel, signatureLabel } from "./chords.js";
 export * from "./apply.js";
 export * from "./parse.js";
+export { readSectionContent } from "./pasteRange.js";
+export type { SectionContent, SectionReadRange } from "./pasteRange.js";
+export { createMemoryStepPatternLibrary } from "./stepPattern.js";
+export * from "./stepPatternFolders.js";
+export { createMemoryPluginHost, vstEditorInstanceKey } from "./plugin.js";
+export type {
+  MemoryPluginDefinition,
+  MemoryPluginParameterDef
+} from "./plugin.js";

@@ -99,6 +99,17 @@ describe("server render mixer", () => {
     expect(trimmed / dryL).toBeLessThan(0.28);
   }, 30_000);
 
+  it("pans the master channel like Web Audio's StereoPannerNode", async () => {
+    const [dryL] = await channelRms({});
+    const [hardL, hardR] = await channelRms({ master: { volumeDb: 0, pan: -1 } });
+    expect(hardR).toBeLessThan(0.001);
+    expect(hardL / dryL).toBeGreaterThan(1.9);
+    expect(hardL / dryL).toBeLessThan(2.1);
+    const [halfL, halfR] = await channelRms({ master: { volumeDb: 0, pan: 0.5 } });
+    expect(halfL / dryL).toBeCloseTo(Math.SQRT1_2, 1);
+    expect(halfR / dryL).toBeCloseTo(1 + Math.SQRT1_2, 1);
+  }, 30_000);
+
   it("leaves a centred track's filter graph alone", () => {
     expect(panSteps(undefined)).toEqual([]);
     expect(panSteps(0)).toEqual([]);

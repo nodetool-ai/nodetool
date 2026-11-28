@@ -35,12 +35,7 @@ Item {
         keyboardPreset: settingsStore.keyboardLayout
         onSettingsRequested: { if (!providerDialog.visible) preferencesDialog.open() }
     }
-    Shortcut {
-        sequence: "Ctrl+,"
-        context: Qt.WindowShortcut
-        enabled: !providerDialog.visible
-        onActivated: preferencesDialog.open()
-    }
+
     // Set by main only for a person at the app: no bench, screenshot or test sees it.
     KeyboardLayoutPrompt {
         objectName: "keyboardLayoutPrompt"

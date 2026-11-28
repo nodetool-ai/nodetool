@@ -1,15 +1,23 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic as Basic
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
+import "../../vst"
+import "../../instruments"
+import "../../instruments/DeviceCatalog.js" as Catalog
 
 Ui.Surface {
     id: effectsPanel
     property bool playheadPassthrough: true
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var track
     required property TimelineModel timeline
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var reference: TrackEffectsReference.data
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var strings: reference.strings
+    // JSON data from the document, controller, or shared JavaScript API.
     readonly property var effects: orderedEffects()
     readonly property bool isVideo: track.type === "video"
     property int draggingIndex: -1
@@ -67,31 +75,30 @@ Ui.Surface {
             iconName: "add"
             density: Ui.EditorButton.Compact
             variant: Ui.EditorButton.Primary
+            menuButton: true
+            menuExpanded: addMenu.visible
             onClicked: addMenu.openAt(add)
-            Ui.ContextMenu {
+            DeviceMenu {
                 id: addMenu
-                width: 180
-                Instantiator {
-                    model: effectsPanel.isVideo ? effectsPanel.reference.videoTypes : effectsPanel.reference.audioTypes.concat(effectsPanel.reference.fableKinds)
-                    delegate: Ui.MenuItem {
-                        id: entry
-                        required property string modelData
-                        objectName: "fx-add-type-" + effectsPanel.track.id + "-" + modelData
-                        text: effectsPanel.strings.labels[modelData]
-                        onTriggered: {
-                            const effect = effectsPanel.reference.fableKinds.includes(modelData) ? TrackEffectsReference.makeFableEffect(modelData) : modelData
-                            effectsPanel.timeline.applyEdit("addTrackEffect", {trackId: effectsPanel.track.id, effect: effect})
-                        }
-                    }
-                    onObjectAdded: (index, object) => addMenu.insertItem(index, object)
-                    onObjectRemoved: (index, object) => addMenu.removeItem(object)
+                rowPrefix: "fx-add-type-" + effectsPanel.track.id + "-"
+                searchLabel: qsTr("Search effects")
+                entries: effectsPanel.isVideo
+                    ? Catalog.effectEntries(effectsPanel.reference.videoTypes, effectsPanel.strings.labels, [], null)
+                    : Catalog.effectEntries(effectsPanel.reference.audioTypes.concat(effectsPanel.reference.fableKinds),
+                                            effectsPanel.strings.labels, effectsPanel.reference.fableKinds, VstHost.effects)
+                onChosen: entry => {
+                    const effect = entry.kind === "fable" ? TrackEffectsReference.makeFableEffect(entry.type)
+                        : entry.kind === "vst" ? VstHost.makeVstEffect(entry.plugin
+                            ? { uid: entry.plugin.uid, name: entry.plugin.name, vendor: entry.plugin.vendor, path: entry.plugin.path } : ({}))
+                        : entry.type
+                    effectsPanel.timeline.applyEdit("addTrackEffect", {trackId: effectsPanel.track.id, effect: effect})
                 }
             }
         }
     }
     Ui.Text {
         objectName: "fx-empty-" + effectsPanel.track.id
-        visible: effectsPanel.effects.length === 0
+        visible: effectsPanel.effects.length === 0 && effectsPanel.track.type !== "midi"
         x: Ui.Metrics.lg
         y: header.y + header.height + Ui.Metrics.md
         text: effectsPanel.strings.emptyPrefix + " <b>" + effectsPanel.strings.add + "</b> " + effectsPanel.strings.emptySuffix
@@ -114,10 +121,34 @@ Ui.Surface {
         Row {
             id: devices
             spacing: Ui.Metrics.md
+            Ui.Surface {
+                id: instrumentCard
+                objectName: "midi-instrument-card-" + effectsPanel.track.id
+                visible: effectsPanel.track.type === "midi"
+                width: visible ? instrumentRack.preferredWidth + 2 * Ui.Metrics.md : 0
+                height: rack.height
+                Flickable {
+                    x: Ui.Metrics.md
+                    y: Ui.Metrics.md
+                    width: parent.width - 2 * Ui.Metrics.md
+                    height: parent.height - 2 * Ui.Metrics.md
+                    clip: true
+                    contentHeight: instrumentRack.implicitHeight
+                    boundsBehavior: Flickable.StopAtBounds
+                    Basic.ScrollBar.vertical: Ui.ScrollBar { }
+                    InstrumentRack {
+                        id: instrumentRack
+                        width: parent.width
+                        timeline: effectsPanel.timeline
+                        track: effectsPanel.track
+                    }
+                }
+            }
             Repeater {
                 id: cards
                 model: effectsPanel.effects
                 delegate: EffectCard {
+                    // JSON record supplied by the delegate model.
                     required property var modelData
                     required property int index
                     effect: modelData

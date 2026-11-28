@@ -7,6 +7,8 @@ function(nt_matte_carrier_tests)
     qt_add_executable(tst_mattecarrier src/motion/mattes/tst_mattecarrier.cpp
         ${NT_EFFECTS_REGISTRAR} src/export/OffscreenFrames.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_compile_definitions(tst_mattecarrier PRIVATE NT_MATTE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/preview/effects/fixtures")
     target_link_libraries(tst_mattecarrier PRIVATE nodetool_timeline_player timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test ${NT_APP_PLATFORM_LIBS})

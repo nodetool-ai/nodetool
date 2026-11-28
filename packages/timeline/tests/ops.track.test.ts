@@ -1,3 +1,4 @@
+import { FIXTURES } from "../src/testing/ops.js";
 import { describe, expect, it } from "vitest";
 import { makeClip, makeTrack } from "../src/defaults.js";
 import { applyTimelineTrackOp } from "../src/ops/apply.js";
@@ -26,6 +27,16 @@ const seed = (): TimelineOpState => ({
 const ctx = { newId: () => "new-track" };
 
 describe("track operations", () => {
+  it("uses the shared unnamed MIDI track default in the parity fixture", () => {
+    const fixture = FIXTURES.find((entry) => entry.op.op === "add_track" && entry.args.type === "midi" && entry.args.name === undefined);
+    expect(fixture).toBeDefined();
+    if (!fixture) { throw new Error("Missing unnamed MIDI parity fixture"); }
+    const state = seed();
+    state.tracks = [];
+    const result = applyTimelineTrackOp(state, fixture.op, ctx);
+    expect(result.error).toBeUndefined();
+    expect(result.state.tracks[0]?.name).toBe("midi 1");
+  });
   it("keeps the input and selection intact on populated deletion failure", () => {
     const state = seed();
     const before = structuredClone(state);

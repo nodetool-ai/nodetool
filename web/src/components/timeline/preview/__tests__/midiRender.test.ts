@@ -11,7 +11,7 @@
  */
 import { DEFAULT_MIDI_INSTRUMENT, renderMidiClip } from "@nodetool-ai/timeline";
 import type { MidiNote } from "@nodetool-ai/timeline";
-import { clearMidiRenderCache, getMidiClipBuffer } from "../midiRender";
+import { clearMidiRenderCache, getMidiClipBuffer, liveMidiScheduleKey } from "../midiRender";
 import * as workerClientModule from "../midiRenderWorkerClient";
 
 const note = (overrides: Partial<MidiNote> = {}): MidiNote => ({
@@ -184,5 +184,20 @@ describe("getMidiClipBuffer — worker path", () => {
     });
     expect(buffer.length).toBe(expected.length);
     expect(Array.from(buffer.getChannelData(0))).toEqual(Array.from(expected));
+  });
+});
+
+describe("liveMidiScheduleKey (F20)", () => {
+  const base = { notes: [note()], inPointMs: 0, durationMs: 1000, startMs: 0 };
+  it("reads an inactive quantize as none, as midiRenderKey does", () => {
+    expect(
+      liveMidiScheduleKey({ ...base, quantize: { grid: "1/16", strength: 0 } }, 120, 0)
+    ).toBe(liveMidiScheduleKey(base, 120, 0));
+  });
+  it("changes with the grid position of a quantized clip", () => {
+    const quantize = { grid: "1/4", strength: 100 } as const;
+    const a = liveMidiScheduleKey({ ...base, quantize }, 120, 0);
+    expect(liveMidiScheduleKey({ ...base, startMs: 250, quantize }, 120, 0)).not.toBe(a);
+    expect(liveMidiScheduleKey({ ...base, quantize }, 120, 100)).not.toBe(a);
   });
 });

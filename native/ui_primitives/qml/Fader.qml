@@ -9,6 +9,7 @@ Item {
     property string accessibleValueText: ""
     property real stepSize: 0.01
     property real resetValue: 0
+    property bool cancelOnFocusLoss: false
     property bool editing: false
     property bool customEndKey: false
     property real draft: value
@@ -31,7 +32,7 @@ Item {
     function preview(v) { draft = clamp(v); valuePreviewed(draft) }
     function finish() { if (editing) { editing = false; valueCommitted(draft) } }
     function cancel() { if (editing) { editing = false; editCanceled() } }
-    onActiveFocusChanged: if (!activeFocus && editing) { if (enabled) finish(); else cancel() }
+    onActiveFocusChanged: if (!activeFocus && editing) { if (enabled && !cancelOnFocusLoss) finish(); else cancel() }
     onEnabledChanged: if (!enabled) cancel()
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Escape && editing) { cancel(); event.accepted = true; return }

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import "automationTargets.js" as Targets
@@ -6,15 +7,22 @@ import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: root
     property TimelineModel timeline: null
+    // JSON data from the document, controller, or shared JavaScript API.
     property var track: ({})
     property string query: ""
     property int highlighted: 0
+    onHighlightedChanged: if (highlighted >= 0 && highlighted < options.length) optionList.positionViewAtIndex(highlighted,ListView.Contain)
     readonly property alias popupControl: optionsPopup
+    // JSON options consumed by the shared menu or select control.
     readonly property var options: {
-        const used = (track.automation || []).map(lane => Targets.key(lane.target))
-        return Targets.automationTargetSpecs(track).filter(spec => !used.includes(spec.key)
-            && (spec.group + " " + spec.label).toLowerCase().includes(query.toLowerCase()))
+        const used = new Set((track.automation || []).map(lane => Targets.key(lane.target)))
+        const shown = AutomationUIState.shownKey(track)
+        const needle = query.toLowerCase()
+        return Targets.automationTargetSpecs(track).filter(spec => !used.has(spec.key) && spec.key !== shown
+            && (spec.group + " " + spec.label).toLowerCase().includes(needle))
     }
+    // The parameter column of AutomationHeaderRow.
+    readonly property real parameterX: Ui.Metrics.small + Ui.Metrics.xxxl * 2
     objectName: "automation-add-" + track.id
     height: TimelineMetrics.automationAddHeight
     color: Ui.Theme.surfacePanel
@@ -36,7 +44,8 @@ Rectangle {
         id: picker
         objectName: "automation-picker-" + root.track.id
         anchors.fill: parent
-        anchors.leftMargin: Ui.Metrics.xl
+        // Aligned with the parameter column of the rows above.
+        anchors.leftMargin: root.parameterX
         anchors.rightMargin: Ui.Metrics.sm
         anchors.topMargin: Ui.Metrics.xs
         anchors.bottomMargin: Ui.Metrics.xs
@@ -58,38 +67,38 @@ Rectangle {
         focus: false
         width: parent ? Math.min(Math.max(picker.width, Ui.Metrics.dialogCompactWidth), parent.width - 2 * Ui.Metrics.dialogNarrowInset) : picker.width
         height: Math.min(implicitHeight, parent ? parent.height - 2 * Ui.Metrics.dialogNarrowInset : implicitHeight)
-        implicitHeight: Math.max(Ui.Metrics.standard, Math.min(root.options.length, 8) * Ui.Metrics.comfortable + 2 * Ui.Metrics.md)
-        contentItem: Flickable {
+        implicitHeight: Math.max(Ui.Metrics.standard, Math.min(root.options.length, 8) * Ui.Metrics.comfortable) + 2 * Ui.Metrics.md
+        contentItem: ListView {
+            id: optionList
             clip: true
-            contentWidth: width
-            contentHeight: optionColumn.implicitHeight
-            Column {
-                id: optionColumn
-                width: parent.width
-                Repeater {
-                    model: root.options
-                    delegate: Ui.ListRow {
-                        required property var modelData
-                        required property int index
-                        objectName: "automation-option-" + modelData.key
-                        width: optionColumn.width
-                        active: index === root.highlighted
-                        accessibleName: modelData.group + " · " + modelData.label
-                        Ui.Text {
-                            x: Ui.Metrics.md
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: modelData.group + " · " + modelData.label
-                            role: Ui.Typography.SansLabel
-                        }
-                        onClicked: root.choose(index)
-                    }
-                }
+            reuseItems: true
+            model: root.options
+            onCountChanged: if (root.highlighted >= 0 && root.highlighted < count) positionViewAtIndex(root.highlighted,ListView.Contain)
+            delegate: Ui.ListRow {
+                id: addLaneEntry
+                // JSON record supplied by the delegate model.
+                required property var modelData
+                required property int index
+                objectName: "automation-option-"+modelData.key
+                width: optionList.width
+                height: Ui.Metrics.comfortable
+                active: index===root.highlighted
+                accessibleName: modelData.group+" · "+modelData.label
                 Ui.Text {
-                    visible: root.options.length === 0
-                    text: "No matching parameters"
+                    width: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: addLaneEntry.modelData.group+" · "+addLaneEntry.modelData.label
                     role: Ui.Typography.SansLabel
-                    tone: Ui.Text.Secondary
+                    elide: Text.ElideRight
                 }
+                onClicked: root.choose(index)
+            }
+            footer: Ui.Text {
+                visible: root.options.length===0
+                text: "No matching parameters"
+                role: Ui.Typography.SansLabel
+                tone: Ui.Text.Secondary
             }
         }
     }

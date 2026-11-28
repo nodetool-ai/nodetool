@@ -17,6 +17,7 @@ import type { DocumentOp } from "@nodetool-ai/protocol";
 import { timelineCamera2d } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type {
   TimelineMasterChannel,
+  TimelineMusic,
   TimelineSequence,
   TimelineSetup,
   TimelineTempo
@@ -48,6 +49,8 @@ export interface TimelineMergeDoc {
   master?: TimelineMasterChannel;
   /** Guided-setup state; null when the sequence never went through the flow. */
   setup?: TimelineSetup | null;
+  /** The music-project settings; a scalar record, so an external change to them is not lost to autosave. */
+  music?: TimelineMusic;
 }
 
 interface ClipLike {
@@ -97,6 +100,7 @@ const KEYED_UNIT_KINDS: Record<string, TimelineUnitKind> = {
   clipId: "clip",
   track_id: "track",
   trackId: "track",
+  track: "track",
   marker_id: "marker"
 };
 
@@ -151,6 +155,57 @@ export const timelineUnitsTouchedByOp = (
   }
   if (tool === "bind_to_track" || tool === "unbind_track") {
     return [{ kind: "clip" }];
+  }
+  if (
+    tool === "set_track" ||
+    tool === "load_plugin" ||
+    tool === "select_plugin_preset" ||
+    tool === "set_plugin_parameters"
+  ) {
+    if (
+      typeof input.track === "string" &&
+      input.track.toLowerCase() === "master" &&
+      input.id === undefined
+    ) {
+      return [{ kind: "field", unitId: "master" }];
+    }
+    const hits: { kind: string; unitId?: string }[] = [];
+    const seenTrackIds = new Set<string>();
+    for (const key of ["track_id", "trackId", "track", "id", "target"]) {
+      for (const unitId of idsUnder(input, key)) {
+        if (!seenTrackIds.has(unitId)) {
+          seenTrackIds.add(unitId);
+          hits.push({ kind: "track", unitId });
+        }
+      }
+    }
+    if (hits.length === 0) {
+      hits.push({ kind: "track" });
+    }
+    if (tool === "set_track" && input.folder !== undefined && input.folder !== null) {
+      hits.push({ kind: "trackFolder" });
+    }
+    return hits;
+  }
+  if (tool === "set_tempo") {
+    const hits: { kind: string; unitId?: string }[] = [];
+    const touchesTempo =
+      input.bpm !== undefined ||
+      input.offset_ms !== undefined ||
+      input.beats_per_bar !== undefined ||
+      input.beat_unit !== undefined ||
+      input.key !== undefined ||
+      input.auto_crossfade_ms === undefined;
+    if (touchesTempo) {
+      hits.push({ kind: "field", unitId: "tempo" });
+    }
+    if (input.auto_crossfade_ms !== undefined) {
+      hits.push({ kind: "field", unitId: "music" });
+    }
+    if (input.bpm !== undefined || input.offset_ms !== undefined) {
+      hits.push({ kind: "clip" });
+    }
+    return hits;
   }
   const ownKind = opUnitKind(op.tool);
   const hits: { kind: string; unitId?: string }[] = [];
@@ -208,6 +263,11 @@ export const timelineMergeAdapter: DocumentMergeAdapter<TimelineMergeDoc> = {
         ...doc,
         master: v as TimelineMasterChannel | undefined
       })
+    },
+    {
+      name: "music",
+      read: (doc) => doc.music,
+      write: (doc, v) => ({ ...doc, music: v as TimelineMusic | undefined })
     },
     {
       name: "setup",

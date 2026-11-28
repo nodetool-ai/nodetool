@@ -15,7 +15,7 @@
  *
  * Also registers window-level keyboard shortcuts for clip operations:
  *   Delete/Backspace → deleteSelected
- *   ← / →            → nudge selected clips one frame (Shift: 1 s)
+ *   ← / →            → nudge selected clips one frame (Shift: 1 s); with the bars ruler one grid step (Shift: one bar)
  *   Ctrl+A           → select every clip
  *   Escape           → clear selection and return to the select tool
  *   Ctrl+C / X / V   → copy / cut / paste clips (paste lands at the playhead)
@@ -55,6 +55,7 @@ import React, {
   useState
 } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -98,7 +99,9 @@ import { TrackHeader } from "./TrackHeader";
 import { TrackFolderHeader } from "./TrackFolderHeader";
 import { TrackLane } from "./TrackLane";
 import { ChordLane } from "./ChordLane";
+import { CHORD_GLOBAL_ROWS_PX, ChordGlobalRows } from "../daw/harmony/ChordGlobalRows";
 import { RubberBandOverlay } from "./RubberBandOverlay";
+import { SectionRangeOverlay } from "./SectionRangeOverlay";
 import { SnapGuideOverlay } from "./SnapGuideOverlay";
 import { GestureReadout } from "./GestureReadout";
 import { TimeRuler } from "./TimeRuler";
@@ -114,9 +117,18 @@ import {
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
 import { ScriptLane, ScriptLaneHeader } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX, steppedTrackHeightPx } from "./trackHeight";
-import { AutomationAddLaneHeader, AutomationLaneHeader } from "./automation/AutomationLaneHeader";
-import { AutomationLaneView } from "./automation/AutomationLaneView";
-import { AUTOMATION_FOOTER_HEIGHT_PX } from "./automation/automationLayout";
+import { AutomationLaneHeader } from "./automation/AutomationLaneHeader";
+import { AutomationHeaderRow } from "./automation/AutomationHeaderRow";
+import { AutomationSubLane } from "./automation/AutomationCurveOverlay";
+import {
+  AUTOMATION_HEADER_ROW_PX,
+  automationSubLanes,
+  shownAutomationKey,
+  trackSupportsAutomation,
+  type AutomationLayoutInput
+} from "./automation/automationLayout";
+import { ShowAutomationButton } from "./ShowAutomationButton";
+import { automationTargetSpecs } from "./automation/automationTargets";
 import { layoutTrackRows, scriptVoiceoverTrackId, TRACK_FOLDER_HEIGHT_PX, visibleTrackWindow } from "./trackWindow";
 import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
@@ -146,6 +158,9 @@ import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport
 import { deserializeDragData } from "../../../lib/dragdrop";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { dropShotOnTrack, isShotDrag } from "../dnd/shotToClipAdapter";
+import { isStepPatternDrag, patternDropOps, snapPatternDropMs } from "./stepPatternDrop";
+import { STEP_PATTERN_DRAG_TYPE } from "../stepSequencer/StepPatternBrowser";
+import { useStepPatternOps } from "../stepSequencer/useStepPatternOps";
 import { getSourceCapMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
 import {
@@ -154,6 +169,7 @@ import {
   wheelZoomFactor
 } from "./timelineWheel";
 import { followScrollLeft } from "./followPlayhead";
+import { musicNudgeDeltaMs } from "./tempoGrid";
 import { nextToolbarFit, type ToolbarFit } from "./toolbarFit";
 import {
   pinchMsPerPx,
@@ -188,7 +204,9 @@ import {
   groupDescendantIds,
   isGroupClip,
   keyframeTimesMs,
-  type TimelineClip
+  resolveTempo,
+  type TimelineClip,
+  type TimelineTrack
 } from "@nodetool-ai/timeline";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 
@@ -262,8 +280,11 @@ const containerStyles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.background.default
   });
 
+/** The keys a track's controls have now, so the shown parameter skips a stale one. */
+const automationValidKeys = (track: TimelineTrack, t: TFunction): ReadonlySet<string> =>
+  new Set(automationTargetSpecs(track, t).map((spec) => spec.key));
+
 const TOOLBAR_HEIGHT_PX = 36;
-const NO_TRACK_IDS: readonly string[] = [];
 /** Simple mode's fixed header column: glyph, name, index and one toggle. */
 const SIMPLE_TRACK_HEADER_WIDTH_PX = 176;
 /** Phone toolbar: tall enough for the app-wide 44px touch target. */
@@ -314,7 +335,7 @@ const trackCountChipStyles = (theme: Theme) =>
     letterSpacing: "0"
   });
 
-/** The lanes side of a track's add-lane row: a strip under its last lane. */
+/** The lanes side of a track's automation header row. */
 const automationFooterStyles = (theme: Theme) =>
   css({
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
@@ -524,9 +545,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       );
     }, []);
 
+    const patternOps = useStepPatternOps();
+
     const handleEmptyAreaDragOver = useCallback(
       (e: React.DragEvent<HTMLDivElement>) => {
-        if (!isAssetDrag(e) && !isShotDrag(e.dataTransfer)) return;
+        if (!isAssetDrag(e) && !isShotDrag(e.dataTransfer) && !isStepPatternDrag(e.dataTransfer)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
       },
@@ -536,9 +559,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const handleEmptyAreaDrop = useCallback(
       (e: React.DragEvent<HTMLDivElement>) => {
         const shotDrag = isShotDrag(e.dataTransfer);
-        if (!isAssetDrag(e) && !shotDrag) return;
+        const patternDrag = isStepPatternDrag(e.dataTransfer);
+        if (!isAssetDrag(e) && !shotDrag && !patternDrag) return;
         e.preventDefault();
         e.stopPropagation();
+
+        // A Pattern Browser entry below the last track: a new MIDI track
+        // holding the pattern region, in one undo step (SQ43).
+        if (patternDrag) {
+          const patternId = e.dataTransfer.getData(STEP_PATTERN_DRAG_TYPE);
+          const scroller = scrollableRef.current;
+          if (!patternId || !scroller) return;
+          const left = scroller.getBoundingClientRect().left;
+          const pointerMs = (Math.max(0, e.clientX - left) + scroller.scrollLeft) * msPerPx;
+          const atMs = snapPatternDropMs(pointerMs, docStore.getState(), uiStoreApi.getState());
+          void patternOps.run(patternDropOps(patternId, atMs, null)).catch(() => undefined);
+          return;
+        }
 
         const dragData = deserializeDragData(e.dataTransfer);
         if (!dragData) return;
@@ -597,7 +634,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         addImportedClip,
         importVideoWithAudio,
         docStore,
-        uiStoreApi
+        uiStoreApi,
+        patternOps
       ]
     );
 
@@ -618,7 +656,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const RULER_HEIGHT = 28;
     const lanesHeight = Math.max(
       0,
-      heightPx - TOOLBAR_HEIGHT - RULER_HEIGHT - TIMELINE_SCROLLBAR_HEIGHT_PX
+      heightPx -
+        TOOLBAR_HEIGHT -
+        RULER_HEIGHT -
+        (dawMode ? CHORD_GLOBAL_ROWS_PX : 0) -
+        TIMELINE_SCROLLBAR_HEIGHT_PX
     );
 
     const scrollToLeft = useCallback((px: number) => {
@@ -1478,6 +1520,18 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             if (selectedClipIds.size === 0) return;
             e.preventDefault();
             const direction = action.startsWith("nudgeLeft") ? -1 : 1;
+            // Music layout (the bars ruler): one grid step, Shift one bar.
+            if (ui.rulerMode === "bars") {
+              nudge(
+                musicNudgeDeltaMs(
+                  resolveTempo(doc),
+                  ui.gridDivision,
+                  direction,
+                  action.endsWith("Large")
+                )
+              );
+              return;
+            }
             if (action.endsWith("Large")) {
               nudge(direction * 1000);
               return;
@@ -2185,29 +2239,46 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // Effect chains and automation lanes are Expert mode's. A chain or lane
     // left open there stays closed in Simple mode.
     const storedFxTrackId = useTimelineUIStore((s) => s.expandedFxTrackId);
-    const storedAutomationTrackIds = useTimelineUIStore((s) => s.shownAutomationTrackIds);
+    const storedShowAutomation = useTimelineUIStore((s) => s.showAutomation);
+    const storedOpenAutomationIds = useTimelineUIStore((s) => s.automationOpenTrackIds);
+    const automationShownParams = useTimelineUIStore((s) => s.automationShownParams);
     const expandedFxTrackId = simpleMode ? null : storedFxTrackId;
-    const shownAutomationTrackIds = simpleMode ? NO_TRACK_IDS : storedAutomationTrackIds;
+    const showAutomation = storedShowAutomation && !simpleMode;
+    const automationLayout = useMemo<AutomationLayoutInput>(
+      () => ({
+        show: showAutomation,
+        openTrackIds: storedOpenAutomationIds,
+        shownParams: automationShownParams
+      }),
+      [showAutomation, storedOpenAutomationIds, automationShownParams]
+    );
 
     const hasClips = useTimelineStore((s) => s.clips.length > 0);
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
     const scriptTrackId = useTimelineStore((s) => scriptVoiceoverTrackId(s.clips));
+    // The music view shows the first chord track as the global Chord row, so
+    // it does not also take a row among the tracks.
+    const layoutTracks = useMemo(() => {
+      if (!dawMode) return tracks;
+      const chordTrack = tracks.find((track) => track.type === "chord");
+      return chordTrack ? tracks.filter((track) => track.id !== chordTrack.id) : tracks;
+    }, [tracks, dawMode]);
     const trackLayout = useMemo(
       () =>
         layoutTrackRows(
-          tracks,
+          layoutTracks,
           hasScript,
           expandedFxTrackId,
           verticalZoom,
           trackFolders,
           collapsedFolderIds,
           dawMode,
-          shownAutomationTrackIds,
+          automationLayout,
           scriptTrackId
         ),
-      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode, shownAutomationTrackIds, scriptTrackId]
+      [layoutTracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode, automationLayout, scriptTrackId]
     );
     const previousTrackLayoutRef = useRef(trackLayout);
     const previousVerticalZoomRef = useRef(verticalZoom);
@@ -2343,6 +2414,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           data-testid="timeline-toolbar"
         >
           {!simpleMode && <ToolToggle compact={toolbarCompact} />}
+          {!simpleMode && <ShowAutomationButton />}
           {onGenerate && (
             <EditorButton
               variant="contained"
@@ -2403,6 +2475,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             <TimeRuler totalWidthPx={totalWidthPx} headerWidthPx={0} />
           </div>
         </FlexRow>
+
+        {dawMode && (
+          <ChordGlobalRows headerWidth={trackHeaderWidthCss} totalWidthPx={totalWidthPx} />
+        )}
 
         {!isMobile && !simpleMode && (
           <ResizeHandle
@@ -2480,12 +2556,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                       aria-hidden="true"
                     />
                   )}
-                  {shownAutomationTrackIds.includes(row.track.id) && (
+                  {showAutomation && trackSupportsAutomation(row.track) && (
                     <>
-                      {(row.track.automation ?? []).map((lane) => (
-                        <AutomationLaneHeader key={lane.id} track={row.track} lane={lane} />
-                      ))}
-                      <AutomationAddLaneHeader track={row.track} />
+                      <AutomationHeaderRow track={row.track} />
+                      {storedOpenAutomationIds.includes(row.track.id) && (
+                        <>
+                          {automationSubLanes(
+                            row.track,
+                            shownAutomationKey(row.track, automationShownParams[row.track.id], automationValidKeys(row.track, t))
+                          ).map((lane) => (
+                            <AutomationLaneHeader key={lane.id} track={row.track} lane={lane} />
+                          ))}
+                        </>
+                      )}
                     </>
                   )}
                 </React.Fragment>
@@ -2535,7 +2618,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                     {row.track.type === "chord" ? (
                       <ChordLane track={row.track} />
                     ) : (
-                      <TrackLane track={row.track} virtualizeClips collapsedFolderIds={collapsedFolderIds} />
+                      <TrackLane
+                        track={row.track}
+                        virtualizeClips
+                        collapsedFolderIds={collapsedFolderIds}
+                        automationWidthPx={
+                          showAutomation && trackSupportsAutomation(row.track) ? totalWidthPx : undefined
+                        }
+                      />
                     )}
                     {expandedFxTrackId === row.track.id && (
                       <div
@@ -2550,21 +2640,28 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                         <TrackEffectsPanel trackId={row.track.id} />
                       </div>
                     )}
-                    {shownAutomationTrackIds.includes(row.track.id) && (
+                    {showAutomation && trackSupportsAutomation(row.track) && (
                       <>
-                        {(row.track.automation ?? []).map((lane) => (
-                          <AutomationLaneView
-                            key={lane.id}
-                            track={row.track}
-                            lane={lane}
-                            widthPx={totalWidthPx}
-                          />
-                        ))}
                         <div
-                          style={{ height: AUTOMATION_FOOTER_HEIGHT_PX }}
+                          style={{ height: AUTOMATION_HEADER_ROW_PX }}
                           css={automationFooterStyles(theme)}
                           aria-hidden="true"
                         />
+                        {storedOpenAutomationIds.includes(row.track.id) && (
+                          <>
+                            {automationSubLanes(
+                              row.track,
+                              shownAutomationKey(row.track, automationShownParams[row.track.id], automationValidKeys(row.track, t))
+                            ).map((lane) => (
+                              <AutomationSubLane
+                                key={lane.id}
+                                track={row.track}
+                                lane={lane}
+                                widthPx={totalWidthPx}
+                              />
+                            ))}
+                          </>
+                        )}
                       </>
                     )}
                   </React.Fragment>
@@ -2574,6 +2671,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               {/* Marquee rect — drawn here, above every lane, because a band
                   started on one lane may cover several. */}
               <RubberBandOverlay />
+              <SectionRangeOverlay />
               <SnapGuideOverlay />
             </div>
             {/* Empty-sequence guidance. pointer-events:none keeps the whole
@@ -2624,7 +2722,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           }}
         >
           <Playhead
-            heightPx={RULER_HEIGHT + lanesHeight}
+            heightPx={RULER_HEIGHT + (dawMode ? CHORD_GLOBAL_ROWS_PX : 0) + lanesHeight}
             grabTopPx={RULER_HEIGHT}
             trackAreaOffsetPx={0}
             endMs={contentEndMs}

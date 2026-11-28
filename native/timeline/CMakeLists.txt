@@ -14,7 +14,7 @@ include(cmake/Sanitizers.cmake)
 
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>).
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Svg Core Gui GuiPrivate Qml Quick QuickControls2 ShaderTools Test QuickTest)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Svg Core Gui GuiPrivate Qml Quick QuickPrivate QuickControls2 ShaderTools Test QuickTest)
 # QRhi through GuiPrivate is only compatible within one Qt minor version, so
 # the build accepts the tested 6.12 only.
 if(Qt6_VERSION VERSION_GREATER_EQUAL 6.13)
@@ -68,6 +68,7 @@ endif()
 if(NOT TARGET nodetool_timeline_scene)
     add_subdirectory(../timeline-player ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
 endif()
+get_target_property(NT_UI_IMPORT_PATH nodetool_ui_primitives BINARY_DIR)
 get_target_property(NT_PLAYER_IMPORT_PATH nodetool_timeline_player BINARY_DIR)
 get_target_property(NT_PLAYER_DECODE_DEFINITIONS nodetool_timeline_decode INTERFACE_COMPILE_DEFINITIONS)
 # The startup registrars of the standard preview hooks: each executable that
@@ -129,10 +130,109 @@ endfunction()
 function(nt_tests callback)
     set_property(GLOBAL APPEND PROPERTY NT_test_callbacks ${callback})
 endfunction()
-file(GLOB_RECURSE NT_MODULES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*/module.cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/qml/module.cmake")
-list(SORT NT_MODULES)
+set(NT_MODULES
+    qml/dock/module.cmake
+    qml/menus/module.cmake
+    src/account/module.cmake
+    src/activity/local/module.cmake
+    src/activity/module.cmake
+    src/activity/ui/module.cmake
+    src/ai/catalog/module.cmake
+    src/ai/module.cmake
+    src/aiassist/module.cmake
+    src/app/Menus/module.cmake
+    src/app/Preferences/module.cmake
+    src/app/example/module.cmake
+    src/app/module.cmake
+    src/app/startup/module.cmake
+    src/assets/librarydata/module.cmake
+    src/assets/librarypreview/module.cmake
+    src/assets/libraryscrub/module.cmake
+    src/assets/libraryui/module.cmake
+    src/assets/module.cmake
+    src/audio/automation/module.cmake
+    src/audio/effects/module.cmake
+    src/audio/hooks/module.cmake
+    src/audio/module.cmake
+    src/audio/vst/module.cmake
+    src/bench/module.cmake
+    src/chat/module.cmake
+    src/color/module.cmake
+    src/colorpanel/module.cmake
+    src/edit/audioroles/module.cmake
+    src/edit/clipaudio/module.cmake
+    src/edit/clipboard/module.cmake
+    src/edit/clipeffects/module.cmake
+    src/edit/framehold/module.cmake
+    src/edit/groups/module.cmake
+    src/edit/inspectorsections/module.cmake
+    src/edit/keyframes/module.cmake
+    src/edit/keys/module.cmake
+    src/edit/module.cmake
+    src/edit/registry/module.cmake
+    src/edit/sourceEdit/module.cmake
+    src/edit/speed/module.cmake
+    src/edit/targeting/module.cmake
+    src/edit/tracks/module.cmake
+    src/edit/transitions/module.cmake
+    src/edit/trim/module.cmake
+    src/entities/module.cmake
+    src/export/module.cmake
+    src/interchange/module.cmake
+    src/markers/module.cmake
+    src/midi/module.cmake
+    src/model/hooks/module.cmake
+    src/model/module.cmake
+    src/motion/beat/module.cmake
+    src/motion/blur/module.cmake
+    src/motion/blurcontrols/module.cmake
+    src/motion/border/module.cmake
+    src/motion/capacity/module.cmake
+    src/motion/capturedeadline/module.cmake
+    src/motion/conformance/module.cmake
+    src/motion/controls/module.cmake
+    src/motion/dof/module.cmake
+    src/motion/gesture/module.cmake
+    src/motion/maskoutsets/module.cmake
+    src/motion/mattes/module.cmake
+    src/motion/module.cmake
+    src/motion/orientation/module.cmake
+    src/motion/pixels/module.cmake
+    src/motion/prism/module.cmake
+    src/motion/shipped/module.cmake
+    src/motion/tracking/module.cmake
+    src/motion/wipe/module.cmake
+    src/music/module.cmake
+    src/platform/module.cmake
+    src/playback/module.cmake
+    src/preview/compose/module.cmake
+    src/preview/crop/module.cmake
+    src/preview/effects/module.cmake
+    src/preview/gizmo/module.cmake
+    src/preview/layers/module.cmake
+    src/preview/module.cmake
+    src/preview/transitions/module.cmake
+    src/projectfiles/module.cmake
+    src/providersettings/module.cmake
+    src/reference/module.cmake
+    src/remix/clip/module.cmake
+    src/remix/module.cmake
+    src/render2d/module.cmake
+    src/scene/module.cmake
+    src/scenedetect/module.cmake
+    src/server/TimelineList/module.cmake
+    src/server/module.cmake
+    src/server/projectfolder/module.cmake
+    src/server/recovery/module.cmake
+    src/server/sync/module.cmake
+    src/storyworkspace/module.cmake
+    src/takes/module.cmake
+    src/transcript/module.cmake
+    src/ui/Tempo/module.cmake
+    src/ui/module.cmake
+    src/wiring/module.cmake
+    src/wiring/w/module.cmake
+)
 foreach(module IN LISTS NT_MODULES)
     include(${module})
 endforeach()
@@ -174,6 +274,7 @@ target_compile_options(timeline_decode PRIVATE ${NT_WARNINGS})
 
 # The app's audio controller and editing features use the shared engine.
 add_library(timeline_audio STATIC ${NT_audio})
+target_include_directories(timeline_audio PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../vst-host/source")
 target_link_libraries(timeline_audio PUBLIC timeline_core nodetool_timeline_audio PRIVATE Qt6::Gui)
 target_compile_options(timeline_audio PRIVATE ${NT_WARNINGS})
 # Clang on arm64 contracts by default, which changes a remix's features and plan from every other platform's.
@@ -217,12 +318,13 @@ qt_add_qml_module(timeline_qml
     # TimelineModel. The QML files import it.
     DEPENDENCIES NodeTool.TimelinePlayer
     # Where qmlcachegen and qmllint find that module's qmldir and types.
-    IMPORT_PATH ${NT_PLAYER_IMPORT_PATH}
+    IMPORT_PATH ${NT_PLAYER_IMPORT_PATH} ${NT_UI_IMPORT_PATH}
     QML_FILES ${NT_qml_files}
     RESOURCES ${NT_qml_resources}
     SOURCES ${NT_qml})
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
+target_link_libraries(timeline_qml PRIVATE Qt6::QuickPrivate)
 target_link_libraries(timeline_qml PUBLIC nodetool_timeline_player timeline_core timeline_decode timeline_audio
     nodetool_model_picker nodetool_media nodetool_files nodetool_entities nodetool_storyboard nodetool_chat nodetool_account_qt Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
@@ -281,6 +383,54 @@ get_property(NT_TEST_CALLBACKS GLOBAL PROPERTY NT_test_callbacks)
 foreach(callback IN LISTS NT_TEST_CALLBACKS)
     cmake_language(CALL ${callback})
 endforeach()
+
+# Headless stress workload. Private profiler API is pinned by the Qt version above.
+qt_add_executable(tst_timeline_perf tests/tst_timeline_perf.cpp src/edit/tracks/TrackEditRegistrations.cpp
+    src/app/startup/LocalDocumentSaver.h src/app/startup/LocalDocumentSaver.cpp)
+set_target_properties(tst_timeline_perf PROPERTIES MACOSX_BUNDLE FALSE)
+target_compile_options(tst_timeline_perf PRIVATE ${NT_WARNINGS})
+target_link_libraries(tst_timeline_perf PRIVATE timeline_core timeline_decode timeline_server
+    Qt6::GuiPrivate Qt6::QmlPrivate Qt6::QuickPrivate Qt6::Quick Qt6::QuickControls2 Qt6::Test
+    PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+nt_add_timeline_qml(tst_timeline_perf OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_timeline_perf_qml/NodeTool/Timeline)
+add_test(NAME tst_timeline_perf_observers COMMAND tst_timeline_perf --selfcheck)
+set_tests_properties(tst_timeline_perf_observers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME tst_timeline_perf_budget_checker COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/test_check_perf.py)
+add_test(NAME tst_timeline_aot_checker COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/test_aot.py)
+add_test(NAME tst_timeline_aot COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/check_aot.py
+    ${CMAKE_CURRENT_BINARY_DIR}/.rcc/qmlcache ${CMAKE_CURRENT_SOURCE_DIR}/budgets/aot-hot-files.json)
+foreach(scenario playback scroll zoom clip_drag note_drag model_change note_patch)
+    add_test(NAME tst_timeline_perf_${scenario} COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/check_perf.py
+        --binary $<TARGET_FILE:tst_timeline_perf> --scenario ${scenario}
+        --budget ${CMAKE_CURRENT_SOURCE_DIR}/budgets/ui-120hz.json
+        --output ${CMAKE_CURRENT_BINARY_DIR}/perf-${scenario}.json)
+    set_tests_properties(tst_timeline_perf_${scenario} PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic;QT_SCALE_FACTOR=1;QT_FONT_DPI=96;QT_QUICK_CONTROLS_STYLE=Basic"
+        TIMEOUT 360 LABELS perf RUN_SERIAL TRUE)
+endforeach()
+
+add_test(NAME tst_timeline_perf_agent COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/check_perf.py
+    --binary $<TARGET_FILE:tst_timeline_perf> --scenario model_change --agent
+    --budget ${CMAKE_CURRENT_SOURCE_DIR}/budgets/ui-120hz.json
+    --output ${CMAKE_CURRENT_BINARY_DIR}/perf-agent.json)
+set_tests_properties(tst_timeline_perf_agent PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic;QT_SCALE_FACTOR=1;QT_FONT_DPI=96;QT_QUICK_CONTROLS_STYLE=Basic"
+    TIMEOUT 360 LABELS perf RUN_SERIAL TRUE)
+
+add_test(NAME tst_timeline_perf_agent_note_patch COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/measure/check_perf.py
+    --binary $<TARGET_FILE:tst_timeline_perf> --scenario note_patch --agent
+    --budget ${CMAKE_CURRENT_SOURCE_DIR}/budgets/ui-120hz.json
+    --output ${CMAKE_CURRENT_BINARY_DIR}/perf-agent-note-patch.json)
+set_tests_properties(tst_timeline_perf_agent_note_patch PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QSG_RENDER_LOOP=basic;QT_SCALE_FACTOR=1;QT_FONT_DPI=96;QT_QUICK_CONTROLS_STYLE=Basic"
+    TIMEOUT 360 LABELS perf RUN_SERIAL TRUE)
 
 # What scripts/op-conformance.mjs and scripts/plan-conformance.mjs run: the
 # app, timeline-ops and the oracle each suite in scripts/conformance/suites/

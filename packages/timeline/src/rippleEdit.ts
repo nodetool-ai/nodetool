@@ -16,6 +16,9 @@
  * of sync.
  */
 
+import { unrollLoopedClips } from "./clipLoop.js";
+import { createTimeOrderedUuid } from "./defaults.js";
+import { DEFAULT_TEMPO } from "./midi/tempo.js";
 import { trimClip } from "./trimClip.js";
 import type { TimelineClip } from "./types.js";
 
@@ -26,6 +29,10 @@ export interface RippleOptions {
   lockedClipIds?: ReadonlySet<string>;
   /** Linked siblings follow the edited clip (default). Off, only it moves. */
   followLinks?: boolean;
+  /** Tempo of the document, to unroll a looped clip whose start edge moves. Default 120. */
+  bpm?: number;
+  /** `tempo.offsetMs`, the origin of the grid a region quantize snaps to, when a looped clip is unrolled. Default 0. */
+  gridOffsetMs?: number;
 }
 
 const clipEndMs = (c: TimelineClip): number => c.startMs + c.durationMs;
@@ -168,11 +175,23 @@ export function rippleTrim(
   deltaMs: number,
   options: RippleOptions & { maxSourceDurationMs?: number } = {}
 ): TimelineClip[] {
-  const clip = clips.find((c) => c.id === clipId);
-  if (!clip) throw new Error(`rippleTrim: clip ${clipId} not found`);
+  const found = clips.find((c) => c.id === clipId);
+  if (!found) throw new Error(`rippleTrim: clip ${clipId} not found`);
+  // A start trim of a looped clip writes it out as plain copies first (CE3).
+  if (edge === "start") {
+    clips = unrollLoopedClips(
+      clips,
+      linkGroupIds(clips, found, options.followLinks),
+      options.bpm ?? DEFAULT_TEMPO.bpm,
+      createTimeOrderedUuid,
+      options.gridOffsetMs ?? 0
+    );
+  }
+  const clip = clips.find((c) => c.id === clipId)!;
   const group = linkGroupIds(clips, clip, options.followLinks);
   const oldEndMs = clipEndMs(clip);
 
+  const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
   const trimmed = new Map<string, TimelineClip>();
   for (const c of clips) {
     if (!group.has(c.id)) continue;
@@ -182,7 +201,8 @@ export function rippleTrim(
       subject,
       edge,
       deltaMs,
-      c.id === clipId ? options.maxSourceDurationMs : undefined
+      c.id === clipId ? options.maxSourceDurationMs : undefined,
+      bpm
     );
     trimmed.set(
       c.id,
@@ -228,23 +248,35 @@ export function rollEdit(
   clipId: string,
   edge: "start" | "end",
   deltaMs: number,
-  options: Pick<RippleOptions, "followLinks"> = {}
+  options: Pick<RippleOptions, "followLinks" | "bpm" | "gridOffsetMs"> = {}
 ): TimelineClip[] {
-  const clip = clips.find((c) => c.id === clipId);
-  if (!clip) throw new Error(`rollEdit: clip ${clipId} not found`);
-  const neighbour = findRollNeighbour(clips, clip, edge);
-  if (!neighbour)
+  const found = clips.find((c) => c.id === clipId);
+  if (!found) throw new Error(`rollEdit: clip ${clipId} not found`);
+  const foundNeighbour = findRollNeighbour(clips, found, edge);
+  if (!foundNeighbour)
     throw new Error("rollEdit: no clip on the other side of the cut");
+  // The right side of the cut trims its start: a looped one is unrolled first.
+  const rightSide = edge === "end" ? foundNeighbour : found;
+  clips = unrollLoopedClips(
+    clips,
+    linkGroupIds(clips, rightSide, options.followLinks),
+    options.bpm ?? DEFAULT_TEMPO.bpm,
+    createTimeOrderedUuid,
+    options.gridOffsetMs ?? 0
+  );
+  const clip = clips.find((c) => c.id === clipId)!;
+  const neighbour = clips.find((c) => c.id === foundNeighbour.id)!;
 
   const left = edge === "end" ? clip : neighbour;
   const right = edge === "end" ? neighbour : clip;
   const leftIds = linkGroupIds(clips, left, options.followLinks);
   const rightIds = linkGroupIds(clips, right, options.followLinks);
 
+  const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
   const next = new Map<string, TimelineClip>();
   for (const c of clips) {
-    if (leftIds.has(c.id)) next.set(c.id, trimClip(c, "end", deltaMs));
-    else if (rightIds.has(c.id)) next.set(c.id, trimClip(c, "start", -deltaMs));
+    if (leftIds.has(c.id)) next.set(c.id, trimClip(c, "end", deltaMs, undefined, bpm));
+    else if (rightIds.has(c.id)) next.set(c.id, trimClip(c, "start", -deltaMs, undefined, bpm));
   }
   return clips.map((c) => next.get(c.id) ?? c);
 }

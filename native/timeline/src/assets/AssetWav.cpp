@@ -27,6 +27,32 @@ bool writeStereoWav(const QString& path, std::span<const float> samples) {
     return out.status() == QDataStream::Ok && file.commit();
 }
 
+bool writeStereoFloatWav(const QString& path, std::span<const float> samples, quint32 sampleRate) {
+    constexpr quint32 header = 12 + 8 + 18 + 8 + 4 + 8;
+    if (samples.size() % 2 != 0 || sampleRate == 0 || samples.size() > (std::numeric_limits<quint32>::max() - header) / 4) {
+        return false;
+    }
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly)) { return false; }
+    QDataStream out(&file);
+    out.setByteOrder(QDataStream::LittleEndian);
+    out.setFloatingPointPrecision(QDataStream::SinglePrecision);
+    const auto size = static_cast<quint32>(samples.size() * 4);
+    out.writeRawData("RIFF", 4);
+    out << quint32(header - 8 + size);
+    out.writeRawData("WAVEfmt ", 8);
+    out << quint32(18) << quint16(3) << quint16(2) << sampleRate << quint32(sampleRate * 8) << quint16(8)
+        << quint16(32) << quint16(0);
+    out.writeRawData("fact", 4);
+    out << quint32(4) << static_cast<quint32>(samples.size() / 2);
+    out.writeRawData("data", 4);
+    out << size;
+    for (const float sample : samples) {
+        out << (std::isfinite(sample) ? sample : 0.0f);
+    }
+    return out.status() == QDataStream::Ok && file.commit();
+}
+
 std::optional<quint64> writeStereoWavStream(const QString& path, const StereoWavReader& read,
                                           const std::function<bool()>& interrupted,
                                           quint32 maxDataBytes) {

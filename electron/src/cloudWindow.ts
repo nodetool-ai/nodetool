@@ -60,6 +60,14 @@ const MAX_PENDING_DOCUMENTS = 32;
 /** How long a closing page may take to write its drafts. AC77 allows 5 seconds until Signed out shows. */
 export const CLOSE_GRACE_MS = 3_000;
 
+/** Every cloud window webContents id opened in this process, for lightweight checks without pulling in window/main. */
+const cloudWindowPageIds = new Set<number>();
+
+/** Whether `webContentsId` belongs to a cloud window opened in this launch. */
+export function isCloudWindowId(webContentsId: number): boolean {
+  return cloudWindowPageIds.has(webContentsId);
+}
+
 /**
  * Thread affinity: Electron's main process, on its event loop only. Owns at
  * most one cloud window, which it closes in stateChanged() when the account
@@ -109,6 +117,7 @@ export class CloudWindow {
     this.closeWindow();
     const window = this.deps.createWindow();
     this.pages.add(window.webContentsId);
+    cloudWindowPageIds.add(window.webContentsId);
     this.window = window;
     this.origin = origin;
     this.ready = false;
@@ -128,6 +137,11 @@ export class CloudWindow {
     return this.window && !this.window.isDestroyed() && this.window.webContentsId === webContentsId
       ? this.origin
       : null;
+  }
+
+  /** Whether `webContentsId` belongs to a cloud window opened in this launch. */
+  isCloudWindow(webContentsId: number): boolean {
+    return this.pages.has(webContentsId);
   }
 
   /**

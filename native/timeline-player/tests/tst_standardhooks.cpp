@@ -83,6 +83,27 @@ QStringList allMissing() { return nt::missingStandardHooks() + missingDecorators
 class TestStandardHooks : public QObject {
     Q_OBJECT
 private slots:
+    void audioLoopRepeatsSourceWindowsThroughSharedPlaybackHooks() {
+        const auto hooks = nt::registerStandardHooks();
+        const auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":64,"height":64,
+          "tracks":[{"id":"a","type":"audio"}],"clips":[
+          {"id":"loop","trackId":"a","mediaType":"audio","status":"generated","audioPath":"synthetic",
+           "startMs":0,"durationMs":5500,"inPointMs":250,"loopLengthMs":2000,"speedMultiplier":2}]})");
+        if (!parsed.timeline) {
+            QFAIL("the loop fixture did not parse");
+        }
+        const auto plan = nt::audio::buildMixPlan(*parsed.timeline);
+        QCOMPARE(plan.voices.size(), size_t(3));
+        for (size_t i = 0; i < plan.voices.size(); ++i) {
+            const auto& voice = plan.voices[i];
+            QCOMPARE(voice.startMs, double(i) * 2000);
+            QCOMPARE(voice.durationMs, i == 2 ? 1500.0 : 2000.0);
+            QCOMPARE(voice.inPointMs, 250.0);
+            QCOMPARE(voice.sourceRate, 2.0);
+        }
+        QCOMPARE(plan.voices[1].sourceFrameAt(2500, 48000), 60000.0);
+    }
+
     void timeRemapAndMixerAutomation() {
         const auto hooks = nt::registerStandardHooks();
         const auto plan = nt::audio::buildMixPlan(playbackDocument());
@@ -139,6 +160,7 @@ private slots:
 #elif !defined(NT_EFFECTS_STARTUP_ONLY)
     void nothingRegisteredWithoutRegistrars() {
         const auto missing = allMissing();
+        QVERIFY(missing.contains(QStringLiteral("mix:clip-loops")));
         for (const auto mode : nt::effects::blendModes) {
             QVERIFY(missing.contains(QStringLiteral("blend:") + QLatin1StringView(mode.data(), qsizetype(mode.size()))));
         }

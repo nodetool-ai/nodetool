@@ -548,7 +548,8 @@ export function bindingKeys(binding: KeyBinding): string[] {
   if (binding.ctrl) parts.push("Ctrl");
   if (binding.alt) parts.push("Alt");
   if (binding.shift) parts.push("Shift");
-  const label = KEY_LABELS[binding.key] ?? binding.key.toUpperCase();
+  const label = KEY_LABELS[binding.key] ??
+    (binding.key.length === 1 ? binding.key.toUpperCase() : binding.key);
   parts.push(label);
   return parts;
 }

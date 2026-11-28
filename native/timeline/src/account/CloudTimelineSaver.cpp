@@ -115,6 +115,26 @@ bool CloudTimelineSaver::eventFilter(QObject* watched, QEvent* event) {
     return true;
 }
 
+nt::server::SaveDocumentResult CloudTimelineSaver::saveDocument() {
+    if (m_model.timeline().raw.isEmpty()) {
+        return {.ok = false, .error = QStringLiteral("Open a document first.")};
+    }
+    if (m_model.readOnly()) {
+        return {.ok = false, .error = QStringLiteral("The document is read-only.")};
+    }
+    const QString current = QString::fromUtf8(QJsonDocument(cloudDraft(m_model.timeline().raw)).toJson(QJsonDocument::Compact));
+    if (current != m_lastSent) {
+        return {.ok = false, .error = tr("Finish or cancel the current edit before saving.")};
+    }
+    const bool ok = m_document->writeLocally();
+    if (!ok) {
+        fail(tr("Could not write the cloud document's local draft."));
+    } else if (!m_error.isEmpty()) {
+        fail({});
+    }
+    return {.ok = ok, .error = ok ? QString() : m_error};
+}
+
 void CloudTimelineSaver::retryClose() {
     cancelClose();
     if (m_window) {

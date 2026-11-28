@@ -111,9 +111,9 @@ describe("nodetool runtime", () => {
     };
 
     // The conda and uv tool packages, the npm packages, sd-cpp, the one
-    // binary package, and Wan2GP, which its own installer sets up.
+    // binary packages, and Wan2GP, which its own installer sets up.
     expect(listed.packages.map((row) => row.id).sort()).toEqual(
-      [...managedRuntimeIds(), ...Object.keys(RUNTIME_NPM_PACKAGES), "sd-cpp", "wan2gp"].sort()
+      [...managedRuntimeIds(), ...Object.keys(RUNTIME_NPM_PACKAGES), "sd-cpp", "acestep", "wan2gp"].sort()
     );
     expect(managedRuntimeIds()).toEqual(expect.arrayContaining(["python", "yt-dlp", "manimgx"]));
     const byId = new Map(listed.packages.map((row) => [row.id, row]));

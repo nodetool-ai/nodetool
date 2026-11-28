@@ -4,15 +4,14 @@ import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 
-Ui.EditorButton {
+ToolButton {
     id: button
     objectName: "quickExportButton"
     required property TimelineModel timeline
     property var panel: null
-    text: "Quick export"
-    accessibleName: text
+    label: "Quick export"
+    iconOnly: true
     description: panel ? "Export with the last settings: " + panel.quickLabel : ""
-    density: Ui.EditorButton.Compact
     iconName: "send"
     enabled: panel !== null && timeline.contentEndMs > 0
     disabledReason: "Add a clip before exporting."

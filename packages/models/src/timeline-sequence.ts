@@ -123,6 +123,8 @@ export interface TimelineDocument {
   tempo?: TimelineTempo;
   /** The master channel. Unset means 0 dB with no effects. */
   master?: TimelineMasterChannel;
+  /** Marks a music project and holds its prompt history. Unset elsewhere. */
+  music?: TimelineSequenceDoc["music"];
   camera2d?: TimelineSequenceDoc["camera2d"];
   /** Guided video-flow state (PRD § 8.5). Unset outside the flow. */
   setup?: TimelineSetup;
@@ -482,6 +484,7 @@ export class TimelineSequence extends DBModel {
       scriptEnabled: doc.scriptEnabled,
       tempo: doc.tempo,
       master: doc.master,
+      music: doc.music,
       camera2d: doc.camera2d,
       setup: doc.setup,
       templateId: doc.templateId,
@@ -514,6 +517,7 @@ export class TimelineSequence extends DBModel {
       scriptEnabled: seq.scriptEnabled,
       tempo: seq.tempo,
       master: seq.master,
+      music: seq.music,
       camera2d: seq.camera2d,
       setup: seq.setup,
       templateId: seq.templateId,

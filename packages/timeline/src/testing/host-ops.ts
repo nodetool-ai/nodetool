@@ -3,7 +3,7 @@ import type {
   TimelineOpState,
   TimelineOpContext
 } from "../ops/index.js";
-import { directState } from "./ops.js";
+import { directState, seedClips } from "./ops.js";
 import type {
   TimelineClip,
   TimelineTrack,
@@ -163,7 +163,7 @@ export const HOST_OP_FIXTURES: readonly HostOpFixture[] = [
     },
     context: { resolveAsset: async (ref) => sourceAsset(ref, 10000) },
     clips: [
-      { id: "clip_a", durationMs: 2000, inPointMs: 1500, outPointMs: 2000 }
+      { id: "clip_a", durationMs: 2000, inPointMs: 1500, outPointMs: 3500 }
     ]
   },
   {
@@ -272,7 +272,7 @@ export const HOST_OP_FIXTURES: readonly HostOpFixture[] = [
     name: "linked split divides both clips",
     initial: linked,
     op: { op: "split_clip", target: "clip_a", atMs: 3000 },
-    clipCount: 9
+    clipCount: seedClips().length + 3
   },
   {
     name: "delete repairs the last linked sibling",

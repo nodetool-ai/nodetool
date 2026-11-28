@@ -18,6 +18,7 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
+import { isShortResourceId } from "@nodetool-ai/protocol";
 import { libraryMatchIds, ownedRowsInOrder } from "./library-matches.js";
 import { timelineColorSpaceError } from "@nodetool-ai/timeline";
 import type {
@@ -27,7 +28,7 @@ import type {
 } from "@nodetool-ai/models";
 import type { TimelineValidation } from "@nodetool-ai/execution/timeline-debug";
 import type { TimelineBridgeFinalState } from "./timeline-bridge.js";
-import { parseOps, applyOps, TOOL_PREFIX, READ_ONLY_OPS, timelineModel3DBaker, timelineModel3DReferenceRenderer } from "./timeline-operations.js";
+import { parseOps, applyOps, TOOL_PREFIX, isReadOnlyRecord, timelineModel3DBaker, timelineModel3DReferenceRenderer } from "./timeline-operations.js";
 export { parseOps, applyOps } from "./timeline-operations.js";
 export type { ParsedOp, OpRecord, ApplyOutcome } from "./timeline-operations.js";
 import type { IsolateSubjectInput } from "./timeline-isolate-subject.js";
@@ -491,7 +492,11 @@ const TIMELINE_OP_ID_KEYS = {
   clip_id: "any",
   track_id: "any",
   clip: "clip",
-  track: "track"
+  track: "track",
+  clipId: "clip",
+  trackId: "track",
+  toClipId: "clip",
+  fromClipId: "clip"
 } as const satisfies Record<string, "any" | "clip" | "track">;
 
 function resolveNamedUnit(
@@ -501,11 +506,19 @@ function resolveNamedUnit(
   scope: "any" | "clip" | "track"
 ): string {
   const lower = value.toLowerCase();
-  const match = (units: { id: string; name: string }[]): string | undefined =>
-    (
-      units.find((u) => u.id === value) ??
-      units.find((u) => u.name.toLowerCase() === lower)
-    )?.id;
+  const match = (units: { id: string; name: string }[]): string | undefined => {
+    const exact = units.find((u) => u.id === value);
+    if (exact) return exact.id;
+    if (isShortResourceId(value)) {
+      const prefixIds = new Set(
+        units.filter((u) => u.id.startsWith(value)).map((u) => u.id)
+      );
+      if (prefixIds.size === 1) {
+        return prefixIds.values().next().value;
+      }
+    }
+    return units.find((u) => u.name.toLowerCase() === lower)?.id;
+  };
   if (scope !== "track") {
     const clip = match(clips);
     if (clip) return clip;
@@ -513,6 +526,50 @@ function resolveNamedUnit(
   if (scope !== "clip") {
     const track = match(tracks);
     if (track) return track;
+  }
+  return value;
+}
+
+function resolveEffectIdFromUnits(
+  value: string,
+  effects: readonly { id: string; type?: string; plugin?: { name?: string } | null }[],
+  result: unknown
+): string {
+  if (isRecord(result)) {
+    if (isString(result["effectId"]) && result["effectId"].length > 0) {
+      return result["effectId"];
+    }
+    if (
+      isRecord(result["effect"]) &&
+      isString(result["effect"]["id"]) &&
+      result["effect"]["id"].length > 0
+    ) {
+      return result["effect"]["id"];
+    }
+  }
+  const exact = effects.find((e) => e.id === value);
+  if (exact) return exact.id;
+  if (isShortResourceId(value)) {
+    const prefixIds = new Set(
+      effects.filter((e) => e.id.startsWith(value)).map((e) => e.id)
+    );
+    if (prefixIds.size === 1) {
+      return prefixIds.values().next().value!;
+    }
+  }
+  const lower = value.toLowerCase();
+  const byPluginName = new Set(
+    effects
+      .filter(
+        (e) =>
+          e.type === "vst" &&
+          typeof e.plugin?.name === "string" &&
+          e.plugin.name.toLowerCase() === lower
+      )
+      .map((e) => e.id)
+  );
+  if (byPluginName.size === 1) {
+    return byPluginName.values().next().value!;
   }
   return value;
 }
@@ -539,6 +596,9 @@ export function resultUnitIds(result: unknown): string[] {
     for (const clip of clips) push(clip);
   }
   if (isString(result["id"])) ids.push(result["id"]);
+  if (isString(result["clipId"]) && !ids.includes(result["clipId"])) {
+    ids.push(result["clipId"]);
+  }
   return ids;
 }
 
@@ -564,7 +624,26 @@ export function resolveTimelineOpInput(
     ...state.tracks
   ];
   const resultIds = resultUnitIds(result);
+  const isMasterResult =
+    isRecord(result) &&
+    result["master"] !== undefined &&
+    result["track"] === undefined;
   const next = { ...input };
+  if (isMasterResult && typeof next["track"] === "string") {
+    next["track"] = "master";
+    if (typeof next["effectId"] === "string" && next["effectId"].length > 0) {
+      const masterEffects = [
+        ...(before.master?.effects ?? []),
+        ...(state.master?.effects ?? [])
+      ];
+      next["effectId"] = resolveEffectIdFromUnits(
+        next["effectId"],
+        masterEffects,
+        result
+      );
+    }
+    return next;
+  }
   for (const [key, scope] of Object.entries(TIMELINE_OP_ID_KEYS)) {
     const value = next[key];
     if (typeof value !== "string" || value.length === 0) continue;
@@ -573,6 +652,34 @@ export function resolveTimelineOpInput(
       continue;
     }
     next[key] = resolveNamedUnit(value, clips, tracks, scope);
+  }
+  if (typeof next["effectId"] === "string" && next["effectId"].length > 0) {
+    const trackId =
+      typeof next["track"] === "string"
+        ? next["track"]
+        : typeof next["trackId"] === "string"
+          ? next["trackId"]
+          : typeof next["track_id"] === "string"
+            ? next["track_id"]
+            : undefined;
+    const trackEffects = [
+      ...(before.tracks ?? []),
+      ...(state.documentTracks ?? [])
+    ]
+      .filter((t) => !trackId || t.id === trackId)
+      .flatMap((t) => t.effects ?? []);
+    next["effectId"] = resolveEffectIdFromUnits(
+      next["effectId"],
+      trackEffects,
+      result
+    );
+  }
+  if (Array.isArray(next["clipIds"])) {
+    next["clipIds"] = next["clipIds"].map((entry) =>
+      typeof entry === "string" && entry.length > 0
+        ? resolveNamedUnit(entry, clips, tracks, "clip")
+        : entry
+    );
   }
   // An op that named no unit either created one or addressed the selection;
   // the result says which, so stamp it.
@@ -661,6 +768,11 @@ async function applyTimelineEdit(
     // stored document keeps the old BPM while the clips carry the rescaled
     // milliseconds, so the part plays at the wrong speed on the next read.
     if (state.tempo) next.tempo = state.tempo;
+    // The music marker, the master bus and the track folders are document
+    // state that `set_tempo`, `set_master` and `set_track` write.
+    if (state.music) next.music = state.music;
+    if (state.master) next.master = state.master;
+    if (state.trackFolders) next.trackFolders = state.trackFolders;
     // The guided flow's stage and plan are document state like the rest: an
     // op run that moved the flow on has to be what the row holds afterwards,
     // or the next surface to open the sequence resumes at the old step.
@@ -680,7 +792,7 @@ async function applyTimelineEdit(
     // hand an open editor a merge with nothing in it.
     const appliedOps = ops
       .map((parsed, index) => ({ parsed, index }))
-      .filter(({ parsed, index }) => records[index]?.ok && !READ_ONLY_OPS.has(parsed.op));
+      .filter(({ parsed, index }) => records[index]?.ok && !isReadOnlyRecord(parsed, records[index]?.result));
     if (appliedOps.length === 0) {
       return {
         timeline_id: timelineId,
@@ -1654,6 +1766,10 @@ const RENDER_OUTPUT_NAME = "video";
 const RENDER_FRAMES_OUTPUT_NODE_ID = "frames_output";
 /** The handle a png_sequence's zip comes back under. */
 const RENDER_FRAMES_OUTPUT_NAME = "frames";
+/** The Output node a wav audio export goes through. */
+const RENDER_AUDIO_OUTPUT_NODE_ID = "audio_output";
+/** The handle a wav audio export comes back under. */
+const RENDER_AUDIO_OUTPUT_NAME = "audio";
 
 /**
  * Bits per second from a `bitrate` argument, or undefined when there is none
@@ -1692,7 +1808,9 @@ const RENDER_NODE_PROPS: readonly string[] = [
   "motion_blur_samples",
   "shutter_angle",
   "preview_scale",
-  "include_audio"
+  "include_audio",
+  "audio_sample_rate",
+  "audio_bit_depth"
 ];
 
 /**
@@ -1745,7 +1863,11 @@ export function buildRenderTimelineGraph(
   // A png_sequence leaves the zip on the node's `frames` handle and an empty
   // ref on `output`, so a graph wired to `output` alone comes back with
   // nothing to open.
-  if (params["format"] === "png_sequence") {
+  const normalizedFormat =
+    typeof params["format"] === "string"
+      ? params["format"].trim().toLowerCase()
+      : "";
+  if (normalizedFormat === "png_sequence") {
     nodes.push({
       id: RENDER_FRAMES_OUTPUT_NODE_ID,
       type: "nodetool.output.Output",
@@ -1758,15 +1880,28 @@ export function buildRenderTimelineGraph(
       target: RENDER_FRAMES_OUTPUT_NODE_ID,
       targetHandle: "value"
     });
+  } else if (normalizedFormat === "wav") {
+    nodes.push({
+      id: RENDER_AUDIO_OUTPUT_NODE_ID,
+      type: "nodetool.output.Output",
+      data: { name: RENDER_AUDIO_OUTPUT_NAME }
+    });
+    edges.push({
+      id: "render-to-audio-output",
+      source: RENDER_NODE_ID,
+      sourceHandle: "audio",
+      target: RENDER_AUDIO_OUTPUT_NODE_ID,
+      targetHandle: "value"
+    });
   }
   return { nodes, edges };
 }
 
 /**
  * The ref a finished render left on the job row, wherever it sits — a video,
- * or the zipped document a png_sequence renders to. A png_sequence leaves an
- * empty ref on the video handle beside the zip, so a ref carrying an asset id
- * wins over one that carries none.
+ * the zipped document a png_sequence renders to, or the audio file a wav
+ * export renders to. Non-video formats leave an empty ref on the video handle,
+ * so a ref carrying an asset id wins over one that carries none.
  */
 export function findRenderedVideo(
   outputs: unknown
@@ -1778,7 +1913,11 @@ export function findRenderedVideo(
       return;
     }
     if (!isRecord(value)) return;
-    if (value["type"] === "video" || value["type"] === "document") {
+    if (
+      value["type"] === "video" ||
+      value["type"] === "document" ||
+      value["type"] === "audio"
+    ) {
       found.push(value);
       return;
     }

@@ -1,4 +1,8 @@
-import { timelineOpFromToolArgs } from "@nodetool-ai/timeline/ops";
+import {
+  applyTimelineOp,
+  timelineOpFromToolArgs,
+  type TimelineOp
+} from "@nodetool-ai/timeline/ops";
 import { z } from "zod";
 import { trpcClient } from "../../../trpc/client";
 import {
@@ -10,8 +14,7 @@ import {
   CUSTOM_ANIMATION_CONTRACT,
   DEFAULT_BEAT_TOLERANCE_MS,
   STAGGER_UNITS,
-  type MidiInstrument,
-  type QuantizeOptions
+  type MidiInstrument
 } from "@nodetool-ai/timeline";
 import {
   resolveDeleteTrackArgs,
@@ -107,6 +110,28 @@ const sharedWithoutSequence = <K extends TimelineToolName>(name: K) => ({
   parameters: uiToolParams(TIMELINE_CONTRACTS[name])
 });
 
+/** Runs an op that reads a static catalog, so it needs no open sequence. */
+const applyStaticTimelineOp = async (op: TimelineOp) => {
+  const outcome = await applyTimelineOp(
+    {
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      tracks: [],
+      clips: [],
+      markers: [],
+      playheadMs: 0,
+      selectedClipIds: []
+    },
+    op,
+    { newId: () => "unused" }
+  );
+  if (outcome.error) {
+    throw new Error(outcome.error);
+  }
+  return outcome.result;
+};
+
 /** One note as the tool schema writes it, in the document's own field names. */
 const toNoteInput = (note: MidiNoteParams): MidiNoteInput => {
   const input: MidiNoteInput = {
@@ -119,6 +144,18 @@ const toNoteInput = (note: MidiNoteParams): MidiNoteInput => {
   }
   if (note.velocity !== undefined) {
     input.velocity = note.velocity;
+  }
+  if (note.muted !== undefined) {
+    input.muted = note.muted;
+  }
+  if (note.channel !== undefined) {
+    input.channel = note.channel;
+  }
+  if (note.release_velocity !== undefined) {
+    input.releaseVelocity = note.release_velocity;
+  }
+  if (note.expression !== undefined) {
+    input.expression = note.expression;
   }
   return input;
 };
@@ -147,9 +184,21 @@ const resolveInstrumentArg = (
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_get_state"),
-  async execute({ timeline_id }) {
-    const snapshot = getTimelineAgentHandler(timeline_id).getSnapshot();
-    return { ok: true, ...snapshot };
+  async execute({ timeline_id, clip, track }) {
+    const handler = getTimelineAgentHandler(timeline_id);
+    const snapshot = handler.getSnapshot();
+    if (clip === undefined && track === undefined) {
+      return { ok: true, ...snapshot };
+    }
+    // The detail reads (a clip's notes, a track's automation) come from the
+    // op the headless bridge runs, so both hosts answer with the same shape.
+    const detail = await handler.applyOp(
+      timelineOpFromToolArgs("get_state", { clip, track })
+    );
+    const result: Record<string, unknown> = { ok: true, ...snapshot };
+    if (detail.clipDetail !== undefined) result.clipDetail = detail.clipDetail;
+    if (detail.trackDetail !== undefined) result.trackDetail = detail.trackDetail;
+    return result;
   }
 });
 
@@ -445,10 +494,11 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_split_clip"),
-  async execute({ timeline_id, target, atMs }) {
+  async execute({ timeline_id, target, atMs, atBar, beat, crossing }) {
     const clips = await getTimelineAgentHandler(timeline_id).splitClip(
       target,
-      atMs
+      atMs,
+      { atBar, beat, crossing }
     );
     return { ok: true, clips, url: docUrl("timeline", timeline_id) };
   }
@@ -456,11 +506,23 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_trim_clip"),
-  async execute({ timeline_id, target, durationMs, inPointMs, outPointMs }) {
+  async execute({
+    timeline_id,
+    target,
+    startMs,
+    durationMs,
+    inPointMs,
+    outPointMs,
+    atBar,
+    beat
+  }) {
     const clip = await getTimelineAgentHandler(timeline_id).trimClip(target, {
+      startMs,
       durationMs,
       inPointMs,
-      outPointMs
+      outPointMs,
+      atBar,
+      beat
     });
     return {
       ok: true,
@@ -472,10 +534,12 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_move_clip"),
-  async execute({ timeline_id, target, startMs, trackId }) {
+  async execute({ timeline_id, target, startMs, trackId, atBar, beat }) {
     const clip = await getTimelineAgentHandler(timeline_id).moveClip(target, {
       startMs,
-      trackId
+      trackId,
+      atBar,
+      beat
     });
     return {
       ok: true,
@@ -495,16 +559,15 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_duplicate_clip"),
-  async execute({ timeline_id, target, gapMs }) {
-    const clip = await getTimelineAgentHandler(timeline_id).duplicateClip(
-      target,
-      gapMs
-    );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+  async execute({ timeline_id, target, gapMs, count, atBar, beat }) {
+    const { clips, children, ...clip } = await getTimelineAgentHandler(
+      timeline_id
+    ).duplicateClip(target, gapMs, { count, atBar, beat });
+    const result: Record<string, unknown> = { ok: true, clip };
+    if (clips) result.clips = clips;
+    if (children) result.children = children;
+    result.url = docUrl("timeline", timeline_id, { key: "clip", value: clip.id });
+    return result;
   }
 });
 
@@ -829,33 +892,41 @@ FrontendToolRegistry.register({
   }
 });
 
+function clipDocUrl(
+  timelineId: string,
+  result: Record<string, unknown>
+): string {
+  const clip = result.clip;
+  const clipId =
+    typeof clip === "object" &&
+    clip !== null &&
+    typeof (clip as { id?: unknown }).id === "string"
+      ? (clip as { id: string }).id
+      : undefined;
+  return clipId
+    ? docUrl("timeline", timelineId, { key: "clip", value: clipId })
+    : docUrl("timeline", timelineId);
+}
+
 FrontendToolRegistry.register({
   ...shared("ui_timeline_set_notes"),
-  async execute({ timeline_id, clip: target, notes }) {
-    const clip = await getTimelineAgentHandler(timeline_id).setNotes(
-      target,
-      notes.map(toNoteInput)
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("set_notes", args)
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return { ...result, url: clipDocUrl(timeline_id, result) };
   }
 });
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_set_tempo"),
-  async execute({ timeline_id, bpm, offset_ms, beats_per_bar, beat_unit }) {
-    const snapshot = await getTimelineAgentHandler(timeline_id).setTempo({
-      bpm,
-      offsetMs: offset_ms ?? 0,
-      timeSignature: {
-        beatsPerBar: beats_per_bar ?? 4,
-        beatUnit: beat_unit ?? 4
-      }
-    });
-    return { ok: true, ...snapshot, url: docUrl("timeline", timeline_id) };
+  async execute({ timeline_id, ...args }) {
+    // The op keeps the offset, the signature and the project key the call
+    // leaves out, as the headless bridge does.
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("set_tempo", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -890,53 +961,31 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_transpose_clip"),
-  async execute({ timeline_id, clip: target, semitones }) {
-    const clip = await getTimelineAgentHandler(timeline_id).transposeClip(
-      target,
-      semitones
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("transpose_clip", args)
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return { ...result, url: clipDocUrl(timeline_id, result) };
   }
 });
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_quantize_notes"),
-  async execute({ timeline_id, clip: target, division, strength, target: to }) {
-    const options: QuantizeOptions = { division };
-    if (strength !== undefined) {
-      options.strength = strength;
-    }
-    if (to !== undefined) {
-      options.target = to;
-    }
-    const clip = await getTimelineAgentHandler(timeline_id).quantizeClip(
-      target,
-      options
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("quantize_notes", args)
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return { ...result, url: clipDocUrl(timeline_id, result) };
   }
 });
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_scale_velocity"),
-  async execute({ timeline_id, clip: target, factor }) {
-    const clip = await getTimelineAgentHandler(timeline_id).scaleClipVelocity(
-      target,
-      factor
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("scale_velocity", args)
     );
-    return {
-      ok: true,
-      clip,
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    return { ...result, url: clipDocUrl(timeline_id, result) };
   }
 });
 
@@ -996,6 +1045,154 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_chords"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("set_chords", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_clear_chords"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("clear_chords", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_loop_clip"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("loop_clip", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_join_clips"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("join_clips", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_insert_time"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("insert_time", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_delete_time"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("delete_time", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_duplicate_range"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("duplicate_range", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_paste_range"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("paste_range", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...sharedWithoutSequence("ui_timeline_list_progressions"),
+  async execute() {
+    return applyStaticTimelineOp(
+      timelineOpFromToolArgs("list_progressions", {})
+    );
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_apply_progression"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("apply_progression", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_transpose_chords"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("transpose_chords", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_detect_chords"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("detect_chords", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_clip_harmony"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("set_clip_harmony", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...sharedWithoutSequence("ui_timeline_list_harmony_presets"),
+  async execute() {
+    return applyStaticTimelineOp(
+      timelineOpFromToolArgs("list_harmony_presets", {})
+    );
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_fit_notes_to_chords"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("fit_notes_to_chords", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
   ...shared("ui_timeline_close_gap"),
   async execute({ timeline_id, ...args }) {
     const result = await getTimelineAgentHandler(timeline_id).applyOp(
@@ -1015,6 +1212,78 @@ FrontendToolRegistry.register({
   }
 });
 
+// ── Step Sequencer (SQ48–SQ54) ──────────────────────────────────────────────
+
+const STEP_SEQUENCER_SHARED_OPS = [
+  "get_pattern",
+  "create_pattern_region",
+  "convert_pattern_to_midi",
+  "convert_midi_to_pattern",
+  "separate_pattern_rows",
+  "set_pattern",
+  "set_pattern_seed",
+  "add_pattern_rows",
+  "set_pattern_row",
+  "remove_pattern_rows",
+  "move_pattern_row",
+  "sort_pattern_rows",
+  "set_pattern_row_sort",
+  "copy_pattern_row",
+  "set_steps",
+  "set_pattern_text",
+  "clear_pattern",
+  "copy_steps",
+  "repeat_step",
+  "rotate_pattern",
+  "transpose_pattern",
+  "randomize_pattern",
+  "nudge_pattern_values",
+  "tie_steps",
+  "list_step_patterns",
+  "apply_step_pattern",
+  "save_step_pattern",
+  "set_track_step_template",
+  "create_step_pattern_folder",
+  "rename_step_pattern_folder",
+  "delete_step_pattern_folder",
+  "move_step_pattern"
+] as const;
+
+for (const opName of STEP_SEQUENCER_SHARED_OPS) {
+  FrontendToolRegistry.register({
+    ...shared(`ui_timeline_${opName}`),
+    async execute({ timeline_id, ...args }) {
+      const result = await getTimelineAgentHandler(timeline_id).applyOp(
+        timelineOpFromToolArgs(opName, args)
+      );
+      return { ...result, url: docUrl("timeline", timeline_id) };
+    }
+  });
+}
+
+// ── VST/AU Plug-in Hosting (VST1) ───────────────────────────────────────────
+
+const PLUGIN_SHARED_OPS = [
+  "list_plugins",
+  "load_plugin",
+  "list_plugin_presets",
+  "select_plugin_preset",
+  "get_plugin_parameters",
+  "set_plugin_parameters"
+] as const;
+
+for (const opName of PLUGIN_SHARED_OPS) {
+  FrontendToolRegistry.register({
+    ...shared(`ui_timeline_${opName}`),
+    async execute({ timeline_id, ...args }) {
+      const result = await getTimelineAgentHandler(timeline_id).applyOp(
+        timelineOpFromToolArgs(opName, args)
+      );
+      return { ...result, url: docUrl("timeline", timeline_id) };
+    }
+  });
+}
+
 FrontendToolRegistry.register({
   name: "ui_timeline_undo",
   description:
@@ -1028,10 +1297,7 @@ FrontendToolRegistry.register({
       .max(50)
       .optional()
       .describe("How many steps to undo or redo. Default 1."),
-    redo: z
-      .boolean()
-      .optional()
-      .describe("Redo instead of undo.")
+    redo: z.boolean().optional().describe("Redo instead of undo.")
   }),
   async execute({ timeline_id, steps, redo }) {
     const result = await getTimelineAgentHandler(timeline_id).undo({

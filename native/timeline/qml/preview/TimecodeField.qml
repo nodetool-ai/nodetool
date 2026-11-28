@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // The editable timecode of the Program and Source monitors. Click to type a
 // timecode, a frame form or a relative jump, or drag to scrub by frames. Enter
 // commits, Escape restores, and invalid text never seeks.
@@ -15,7 +16,13 @@ Item {
     property int tone: Ui.Text.Secondary
     property int textRole: Ui.Typography.MonoLabel
     // A feature colour for the digits, such as the playhead blue of the Program monitor.
-    property var domainColor: undefined
+    property color domainColor: tone === Ui.Text.Secondary ? Ui.Theme.textSecondary
+        : tone === Ui.Text.Disabled ? Ui.Theme.textDisabled
+        : tone === Ui.Text.OnAccent ? Ui.Theme.textOnAccent
+        : tone === Ui.Text.Success ? Ui.Theme.statusSuccess
+        : tone === Ui.Text.Warning ? Ui.Theme.statusWarning
+        : tone === Ui.Text.Error ? Ui.Theme.statusError
+        : tone === Ui.Text.Info ? Ui.Theme.statusInfo : Ui.Theme.textPrimary
     signal seekRequested(real ms)
 
     readonly property string text: TimelineFormat.timecode(timeMs, fps, dropFrame)

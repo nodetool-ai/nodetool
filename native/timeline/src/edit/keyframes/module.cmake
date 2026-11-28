@@ -3,11 +3,14 @@ nt_qml_sources(src/edit/keyframes/KeyframeEdits.cpp
     src/edit/keyframes/ClipInspectorController.h src/edit/keyframes/ClipInspectorController.cpp)
 function(nt_keyframe_tests)
     qt_add_executable(tst_keyframes src/edit/keyframes/tst_keyframes.cpp
-        src/model/TimelineModel.cpp src/model/TrackListModel.cpp
+        src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        src/model/TrackListModel.cpp
         src/edit/keyframes/ClipInspectorController.cpp src/edit/keyframes/KeyframeEdits.cpp)
     set_target_properties(tst_keyframes PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_keyframes PRIVATE ${NT_WARNINGS})
-    target_link_libraries(tst_keyframes PRIVATE nodetool_timeline_player timeline_core Qt6::Gui Qt6::Qml Qt6::Test)
+    target_link_libraries(tst_keyframes PRIVATE nodetool_timeline_player timeline_core timeline_audio Qt6::Gui Qt6::Qml Qt6::Test)
     target_compile_definitions(tst_keyframes PRIVATE NT_KEYFRAME_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/src/edit/keyframes/fixtures")
     add_test(NAME tst_keyframes COMMAND tst_keyframes)
     set_tests_properties(tst_keyframes PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
@@ -26,6 +29,8 @@ function(nt_keyframe_ui_tests)
     nt_add_timeline_qml(tst_keyframesui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_keyframesui_qml/NodeTool/Timeline)
     add_test(NAME tst_keyframesui COMMAND tst_keyframesui -input ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/keyframes/qmltests)
     set_tests_properties(tst_keyframesui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    add_test(NAME tst_perf3_qml COMMAND tst_keyframesui -input ${CMAKE_CURRENT_SOURCE_DIR}/tests/perf3)
+    set_tests_properties(tst_perf3_qml PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QSG_RENDER_LOOP=basic;QT_QUICK_BACKEND=software")
 endfunction()
 nt_tests(nt_keyframe_ui_tests)
 function(nt_keyed_render_tests)
@@ -33,6 +38,8 @@ function(nt_keyed_render_tests)
         src/edit/keyframes/KeyframeEdits.cpp
         ${NT_EFFECTS_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp)
     set_target_properties(tst_keyedrender PROPERTIES MACOSX_BUNDLE FALSE)

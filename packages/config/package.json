@@ -32,6 +32,18 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./acestep-runtime": {
+      "nodetool-dev": "./src/acestep-runtime.ts",
+      "types": "./dist/acestep-runtime.d.ts",
+      "import": "./dist/acestep-runtime.js",
+      "default": "./dist/acestep-runtime.js"
+    },
+    "./acestep-models": {
+      "nodetool-dev": "./src/acestep-models.ts",
+      "types": "./dist/acestep-models.d.ts",
+      "import": "./dist/acestep-models.js",
+      "default": "./dist/acestep-models.js"
+    },
     "./sd-cpp-runtime": {
       "nodetool-dev": "./src/sd-cpp-runtime.ts",
       "types": "./dist/sd-cpp-runtime.d.ts",

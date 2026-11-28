@@ -9,14 +9,14 @@ double automationValueAt(const QJsonArray& points, double time, double fallback)
     const auto value = [](const QJsonValue& p) { return p.toObject()["value"].toDouble(); };
     if (time <= points.first().toObject()["timeMs"].toDouble()) { return value(points.first()); }
     if (time >= points.last().toObject()["timeMs"].toDouble()) { return value(points.last()); }
-    for (qsizetype i=1; i<points.size(); ++i) {
-        const auto b = points[i].toObject(), a = points[i-1].toObject();
-        const double end=b["timeMs"].toDouble(), start=a["timeMs"].toDouble();
-        if (time > end) { continue; }
-        const double f=end>start ? scene::ease(b["easing"].toString("linear").toStdString(),(time-start)/(end-start)) : 1;
-        return a["value"].toDouble() + (b["value"].toDouble()-a["value"].toDouble())*f;
-    }
-    return value(points.last());
+    const auto next=std::lower_bound(points.begin()+1,points.end(),time,[](const QJsonValue& point,double at) {
+        return point.toObject()["timeMs"].toDouble()<at;
+    });
+    if (next==points.end()) { return value(points.last()); }
+    const auto b=(*next).toObject(), a=(*(next-1)).toObject();
+    const double end=b["timeMs"].toDouble(), start=a["timeMs"].toDouble();
+    const double f=end>start ? scene::ease(b["easing"].toString("linear").toStdString(),(time-start)/(end-start)) : 1;
+    return a["value"].toDouble() + (b["value"].toDouble()-a["value"].toDouble())*f;
 }
 QJsonArray automationBreakpoints(const QJsonArray& points,double from,const QJsonObject& options) {
     if (points.empty()) { return {}; }

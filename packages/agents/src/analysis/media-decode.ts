@@ -207,6 +207,74 @@ export async function decodeAudio(
   });
 }
 
+/**
+ * The primary audio track as mono samples (channels averaged), or null without
+ * audio. `range` (seconds) decodes only that span, and `startSec` reports where
+ * `samples[0]` sits in the source. Channels are averaged chunk by chunk, so
+ * the interleaved buffer never exists whole. `truncated` is true when the
+ * span ran past `maxSeconds`.
+ */
+export async function decodeMonoAudio(
+  bytes: Uint8Array,
+  maxSeconds = MAX_AUDIO_SECONDS,
+  range?: { startSec: number; endSec: number }
+): Promise<{ samples: Float32Array; sampleRate: number; startSec: number; truncated: boolean } | null> {
+  return withInput(bytes, async (input) => {
+    const track = await input.getPrimaryAudioTrack();
+    if (!track) return null;
+    const sampleRate = await track.getSampleRate();
+    const limit = Math.min(maxSeconds, MAX_AUDIO_SECONDS);
+    const maxFrames = Math.ceil(limit * sampleRate);
+    const chunks: Float32Array[] = [];
+    let frames = 0;
+    let truncated = false;
+    let startSec = range ? Math.max(0, range.startSec) : 0;
+    let first = true;
+    const sink = new AudioSampleSink(track);
+    const stream = range
+      ? sink.samples(Math.max(0, range.startSec), range.endSec)
+      : sink.samples();
+    for await (const sample of stream) {
+      try {
+        if (first) {
+          startSec = Math.max(0, sample.timestamp);
+          first = false;
+        }
+        const wanted = Math.min(sample.numberOfFrames, maxFrames - frames);
+        if (wanted <= 0) {
+          truncated = true;
+          break;
+        }
+        const channels = sample.numberOfChannels;
+        const buffer = new Float32Array(sample.numberOfFrames * channels);
+        sample.copyTo(buffer, { planeIndex: 0, format: "f32" });
+        const mono = new Float32Array(wanted);
+        for (let i = 0; i < wanted; i++) {
+          let sum = 0;
+          for (let c = 0; c < channels; c++) sum += buffer[i * channels + c];
+          mono[i] = sum / channels;
+        }
+        chunks.push(mono);
+        frames += wanted;
+      } finally {
+        sample.close();
+      }
+      if (frames >= maxFrames) {
+        truncated = true;
+        break;
+      }
+    }
+    if (frames === 0) return null;
+    const samples = new Float32Array(frames);
+    let offset = 0;
+    for (const chunk of chunks) {
+      samples.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return { samples, sampleRate, startSec, truncated };
+  });
+}
+
 /** The bounded decode schedule, distinct from response series decimation. */
 export interface VideoSamplingPlan {
   readonly requestedFps: number;

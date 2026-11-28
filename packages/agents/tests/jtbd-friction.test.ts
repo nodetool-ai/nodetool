@@ -349,7 +349,39 @@ describe("the job registry", () => {
 
   it("finds a job by id", () => {
     expect(findJob("workflow-from-prompt")?.id).toBe("workflow-from-prompt");
+    expect(findJob("step-sequencer-boom-bap")?.id).toBe("step-sequencer-boom-bap");
     expect(findJob("no-such-job")).toBeUndefined();
+  });
+
+  it("step-sequencer-boom-bap: a solved world passes every outcome (SQ56)", async () => {
+    const job = findJob("step-sequencer-boom-bap");
+    if (!job) throw new Error("step-sequencer-boom-bap is not registered");
+    const world = await job.start();
+    const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
+    const created = (await tool["ui_timeline_apply_step_pattern"].execute({
+      trackId: "Drums",
+      atBar: 1,
+      bars: 4,
+      pattern: "Boom Bap"
+    })) as { clip: { id: string } };
+    await tool["ui_timeline_set_steps"].execute({
+      clipId: created.clip.id,
+      row: "Snare",
+      steps: "8,16",
+      values: { on: true, velocity: 50 }
+    });
+    await tool["ui_timeline_set_steps"].execute({
+      clipId: created.clip.id,
+      row: "Closed Hi-Hat",
+      steps: "1,3,5,7,9,11,13,15",
+      values: { on: true, chance: 70 }
+    });
+    await tool["ui_timeline_get_pattern"].execute({
+      clipId: created.clip.id,
+      modes: ["velocity", "chance"]
+    });
+    const graded = world.grade();
+    expect(graded.filter((o) => !o.passed).map((o) => o.name)).toEqual([]);
   });
 });
 

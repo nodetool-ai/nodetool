@@ -3,6 +3,7 @@ import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 Basic.Switch {
     id: root
+    focusPolicy: Qt.TabFocus
     property string accessibleName: text
     signal checkedChangedByUser(bool checked)
     Accessible.name: accessibleName

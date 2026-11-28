@@ -37,6 +37,8 @@ import {
   DEFAULT_TEMPO,
   resolveTempo,
   validateNotes,
+  validateStepPattern,
+  expandPatternClip,
   visibleNotes
 } from "@nodetool-ai/timeline";
 import type { Model3DBakeSequence } from "@nodetool-ai/timeline";
@@ -1506,6 +1508,27 @@ function checkMidi(doc: TimelineDocument): TimelineDebugIssue[] {
       });
     }
 
+    if (clip.pattern !== undefined) {
+      if (clip.notes !== undefined) {
+        issues.push({
+          severity: "error",
+          code: "midi_pattern_with_notes",
+          message: `Clip "${label}" (${clip.id}) carries both \`pattern\` and stored \`notes\`. A pattern region derives its notes from \`pattern\`; remove \`notes\` or convert it with convert_pattern_to_midi.`,
+          path: "notes",
+          ...at
+        });
+      }
+      for (const msg of validateStepPattern(clip.pattern)) {
+        issues.push({
+          severity: "error",
+          code: "midi_pattern_invalid",
+          message: `Clip "${label}": ${msg}`,
+          path: "pattern",
+          ...at
+        });
+      }
+    }
+
     if (clip.mediaType !== "midi") continue;
 
     const retimed: string[] = [];
@@ -1524,18 +1547,30 @@ function checkMidi(doc: TimelineDocument): TimelineDebugIssue[] {
       });
     }
 
-    const carried = clip.notes?.length ?? 0;
-    if (visibleNotes(clip, bpm).length === 0) {
-      const windowStart = clip.inPointMs ?? 0;
-      issues.push({
-        severity: "warning",
-        code: "midi_clip_silent",
-        message:
-          carried === 0
-            ? `Clip "${label}" carries no notes, so it makes no sound. Give it some with set_notes, or delete it.`
-            : `Clip "${label}" plays none of its ${carried} notes: not one of them starts inside the clip's window (${windowStart}–${windowStart + clip.durationMs}ms of content at ${bpm} BPM). Widen the window or move the notes.`,
-        ...at
-      });
+    if (clip.pattern !== undefined) {
+      const expanded = expandPatternClip(clip, doc);
+      if (!expanded || (expanded.notes.length === 0 && expanded.controllers.length === 0 && expanded.deviceAutomation.length === 0)) {
+        issues.push({
+          severity: "warning",
+          code: "midi_clip_silent",
+          message: `Pattern clip "${label}" produces no notes or automation inside its window. Turn steps on with set_steps or set_pattern_text.`,
+          ...at
+        });
+      }
+    } else {
+      const carried = clip.notes?.length ?? 0;
+      if (visibleNotes(clip, bpm).length === 0) {
+        const windowStart = clip.inPointMs ?? 0;
+        issues.push({
+          severity: "warning",
+          code: "midi_clip_silent",
+          message:
+            carried === 0
+              ? `Clip "${label}" carries no notes, so it makes no sound. Give it some with set_notes, or delete it.`
+              : `Clip "${label}" plays none of its ${carried} notes: not one of them starts inside the clip's window (${windowStart}–${windowStart + clip.durationMs}ms of content at ${bpm} BPM). Widen the window or move the notes.`,
+          ...at
+        });
+      }
     }
   }
 

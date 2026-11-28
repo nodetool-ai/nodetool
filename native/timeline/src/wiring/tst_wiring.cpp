@@ -255,7 +255,7 @@ private slots:
     void clipBodySlot() {
         QTRY_VERIFY_WITH_TIMEOUT(item("probe-clipBody"), 1000);
         auto* probe = item("probe-clipBody");
-        QCOMPARE(probe->property("clip").toMap().value("id").toString(), QString("c"));
+        QCOMPARE(probe->property("clip").value<QObject*>()->property("clipId").toString(), QString("c"));
         QCOMPARE(probe->property("timeline").value<QObject*>(), &model);
         QCOMPARE(probe->property("gestures").value<QObject*>(), item("clipGestures"));
         QCOMPARE(probe->property("viewState").value<QObject*>(), item("tracksRegion")->property("viewState").value<QObject*>());
@@ -267,9 +267,9 @@ private slots:
         QCOMPARE(gestures->selection(), QStringList{"c"});
         QTest::keyClick(view.get(), Qt::Key_Right, Qt::AltModifier);
         QVERIFY(model.clipsJson()[0].toObject().value("startMs").toDouble() != 1000);
-        QCOMPARE(probe->property("clip").toMap(), model.clipsJson()[0].toObject().toVariantMap());
+        QCOMPARE(probe->property("clip").value<QObject*>()->property("startMs").toDouble(), model.clipsJson()[0].toObject().value("startMs").toDouble());
         click(item("undoButton"));
-        QCOMPARE(probe->property("clip").toMap().value("startMs").toDouble(), 1000.0);
+        QCOMPARE(probe->property("clip").value<QObject*>()->property("startMs").toDouble(), 1000.0);
     }
     void manyClipBodies() {
         auto fixture = QJsonDocument::fromJson(model.documentJson()).object();
@@ -289,14 +289,14 @@ private slots:
         QTRY_VERIFY(item("clip-many0"));
         QTRY_VERIFY(named(item("clip-many0"), "probe-clipBody"));
         auto* probe = named(item("clip-many0"), "probe-clipBody");
-        QCOMPARE(probe->property("clip").toMap().value("id").toString(), QString("many0"));
+        QCOMPARE(probe->property("clip").value<QObject*>()->property("clipId").toString(), QString("many0"));
         click(item("clip-many0"));
         QTest::keyClick(view.get(), Qt::Key_Right, Qt::AltModifier);
         QVERIFY(model.clipsJson()[0].toObject().value("startMs").toDouble() > 0);
-        QCOMPARE(probe->property("clip").toMap(), model.clipsJson()[0].toObject().toVariantMap());
+        QCOMPARE(probe->property("clip").value<QObject*>()->property("startMs").toDouble(), model.clipsJson()[0].toObject().value("startMs").toDouble());
         QCOMPARE(model.undoStack()->count(), 1);
         click(item("undoButton"));
-        QCOMPARE(probe->property("clip").toMap().value("startMs").toDouble(), 0.0);
+        QCOMPARE(probe->property("clip").value<QObject*>()->property("startMs").toDouble(), 0.0);
     }
     void toolbarSlot() {
         QTRY_VERIFY_WITH_TIMEOUT(item("probe-toolbar"), 1000);

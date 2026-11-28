@@ -8,6 +8,7 @@ import {
   liftCustomAnimation
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
 import {
+  automationEditSchemas,
   applyTransitionAtCutParams,
   setBakedAnimationParams,
   setGeneratedMatteParams,
@@ -38,6 +39,109 @@ type OpParser<N extends TimelineOpName> = (
 
 /** One parser per op, so each is checked against its own op type. */
 const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
+  "automation.addPoints": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.addPoints"
+    ].parse({
+      ...payload,
+      edit: "automation.addPoints"
+    });
+    return {
+      op: "automation.addPoints",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  "automation.movePoints": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.movePoints"
+    ].parse({
+      ...payload,
+      edit: "automation.movePoints"
+    });
+    return {
+      op: "automation.movePoints",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  "automation.deletePoints": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.deletePoints"
+    ].parse({
+      ...payload,
+      edit: "automation.deletePoints"
+    });
+    return {
+      op: "automation.deletePoints",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  "automation.clearLane": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.clearLane"
+    ].parse({
+      ...payload,
+      edit: "automation.clearLane"
+    });
+    return {
+      op: "automation.clearLane",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  "automation.setLaneEnabled": (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "automation.setLaneEnabled"
+    ].parse({
+      ...payload,
+      edit: "automation.setLaneEnabled"
+    });
+    return {
+      op: "automation.setLaneEnabled",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+  setTrackAutomationMode: (args) => {
+    if (Object.hasOwn(args, "edit")) {
+      throw new Error("Unexpected edit parameter.");
+    }
+    const { track_id, ...payload } = args;
+    const { edit: _edit, ...parsed } = automationEditSchemas[
+      "setTrackAutomationMode"
+    ].parse({
+      ...payload,
+      edit: "setTrackAutomationMode"
+    });
+    return {
+      op: "setTrackAutomationMode",
+      track_id: z.string().min(1).parse(track_id),
+      ...parsed
+    };
+  },
+
   add_midi_clip: (args) => ({
     op: "add_midi_clip",
     ...parseContract(contracts.ui_timeline_add_midi_clip, args)
@@ -81,6 +185,66 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
   scale_velocity: (args) => ({
     op: "scale_velocity",
     ...parseContract(contracts.ui_timeline_scale_velocity, args)
+  }),
+  set_chords: (args) => ({
+    op: "set_chords",
+    ...parseContract(contracts.ui_timeline_set_chords, args)
+  }),
+  loop_clip: (args) => ({
+    op: "loop_clip",
+    ...parseContract(contracts.ui_timeline_loop_clip, args)
+  }),
+  join_clips: (args) => ({
+    op: "join_clips",
+    ...parseContract(contracts.ui_timeline_join_clips, args)
+  }),
+  insert_time: (args) => ({
+    op: "insert_time",
+    ...parseContract(contracts.ui_timeline_insert_time, args)
+  }),
+  delete_time: (args) => ({
+    op: "delete_time",
+    ...parseContract(contracts.ui_timeline_delete_time, args)
+  }),
+  duplicate_range: (args) => ({
+    op: "duplicate_range",
+    ...parseContract(contracts.ui_timeline_duplicate_range, args)
+  }),
+  paste_range: (args) => ({
+    op: "paste_range",
+    ...parseContract(contracts.ui_timeline_paste_range, args)
+  }),
+  clear_chords: (args) => ({
+    op: "clear_chords",
+    ...parseContract(contracts.ui_timeline_clear_chords, args)
+  }),
+  list_progressions: (args) => ({
+    op: "list_progressions",
+    ...parseContract(contracts.ui_timeline_list_progressions, args)
+  }),
+  apply_progression: (args) => ({
+    op: "apply_progression",
+    ...parseContract(contracts.ui_timeline_apply_progression, args)
+  }),
+  transpose_chords: (args) => ({
+    op: "transpose_chords",
+    ...parseContract(contracts.ui_timeline_transpose_chords, args)
+  }),
+  detect_chords: (args) => ({
+    op: "detect_chords",
+    ...parseContract(contracts.ui_timeline_detect_chords, args)
+  }),
+  set_clip_harmony: (args) => ({
+    op: "set_clip_harmony",
+    ...parseContract(contracts.ui_timeline_set_clip_harmony, args)
+  }),
+  list_harmony_presets: (args) => ({
+    op: "list_harmony_presets",
+    ...parseContract(contracts.ui_timeline_list_harmony_presets, args)
+  }),
+  fit_notes_to_chords: (args) => ({
+    op: "fit_notes_to_chords",
+    ...parseContract(contracts.ui_timeline_fit_notes_to_chords, args)
   }),
   set_reframe_subject: (args) => ({
     op: "set_reframe_subject",
@@ -383,14 +547,16 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
     };
   },
   set_clip_params: (args) => {
-    const { target, ...patch } = z
+    const { target, maxSourceDurationMs, ...patch } = z
       .object({
         ...contracts.ui_timeline_set_clip_params.shape,
         textStyle: textStylePatchParams.optional()
       })
       .passthrough()
       .parse(unwrapClipParams(args));
-    return { op: "set_clip_params", target, patch };
+    return maxSourceDurationMs !== undefined
+      ? { op: "set_clip_params", target, maxSourceDurationMs, patch }
+      : { op: "set_clip_params", target, patch };
   },
   animate_clip: (args) => {
     const parsed = parseContract(contracts.ui_timeline_animate_clip, args);
@@ -399,7 +565,159 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
       op: "animate_clip",
       animations: parsed.animations.map(liftCustomAnimation)
     };
-  }
+  },
+  get_pattern: (args) => ({
+    op: "get_pattern",
+    ...parseContract(contracts.ui_timeline_get_pattern, args)
+  }),
+  create_pattern_region: (args) => ({
+    op: "create_pattern_region",
+    ...parseContract(contracts.ui_timeline_create_pattern_region, args)
+  }),
+  convert_pattern_to_midi: (args) => ({
+    op: "convert_pattern_to_midi",
+    ...parseContract(contracts.ui_timeline_convert_pattern_to_midi, args)
+  }),
+  convert_midi_to_pattern: (args) => ({
+    op: "convert_midi_to_pattern",
+    ...parseContract(contracts.ui_timeline_convert_midi_to_pattern, args)
+  }),
+  separate_pattern_rows: (args) => ({
+    op: "separate_pattern_rows",
+    ...parseContract(contracts.ui_timeline_separate_pattern_rows, args)
+  }),
+  set_pattern: (args) => ({
+    op: "set_pattern",
+    ...parseContract(contracts.ui_timeline_set_pattern, args)
+  }),
+  set_pattern_seed: (args) => ({
+    op: "set_pattern_seed",
+    ...parseContract(contracts.ui_timeline_set_pattern_seed, args)
+  }),
+  add_pattern_rows: (args) => ({
+    op: "add_pattern_rows",
+    ...parseContract(contracts.ui_timeline_add_pattern_rows, args)
+  }),
+  set_pattern_row: (args) => ({
+    op: "set_pattern_row",
+    ...parseContract(contracts.ui_timeline_set_pattern_row, args)
+  }),
+  remove_pattern_rows: (args) => ({
+    op: "remove_pattern_rows",
+    ...parseContract(contracts.ui_timeline_remove_pattern_rows, args)
+  }),
+  move_pattern_row: (args) => ({
+    op: "move_pattern_row",
+    ...parseContract(contracts.ui_timeline_move_pattern_row, args)
+  }),
+  sort_pattern_rows: (args) => ({
+    op: "sort_pattern_rows",
+    ...parseContract(contracts.ui_timeline_sort_pattern_rows, args)
+  }),
+  set_pattern_row_sort: (args) => ({
+    op: "set_pattern_row_sort",
+    ...parseContract(contracts.ui_timeline_set_pattern_row_sort, args)
+  }),
+  copy_pattern_row: (args) => ({
+    op: "copy_pattern_row",
+    ...parseContract(contracts.ui_timeline_copy_pattern_row, args)
+  }),
+  set_steps: (args) => ({
+    op: "set_steps",
+    ...parseContract(contracts.ui_timeline_set_steps, args)
+  }),
+  set_pattern_text: (args) => ({
+    op: "set_pattern_text",
+    ...parseContract(contracts.ui_timeline_set_pattern_text, args)
+  }),
+  clear_pattern: (args) => ({
+    op: "clear_pattern",
+    ...parseContract(contracts.ui_timeline_clear_pattern, args)
+  }),
+  copy_steps: (args) => ({
+    op: "copy_steps",
+    ...parseContract(contracts.ui_timeline_copy_steps, args)
+  }),
+  repeat_step: (args) => ({
+    op: "repeat_step",
+    ...parseContract(contracts.ui_timeline_repeat_step, args)
+  }),
+  rotate_pattern: (args) => ({
+    op: "rotate_pattern",
+    ...parseContract(contracts.ui_timeline_rotate_pattern, args)
+  }),
+  transpose_pattern: (args) => ({
+    op: "transpose_pattern",
+    ...parseContract(contracts.ui_timeline_transpose_pattern, args)
+  }),
+  randomize_pattern: (args) => ({
+    op: "randomize_pattern",
+    ...parseContract(contracts.ui_timeline_randomize_pattern, args)
+  }),
+  nudge_pattern_values: (args) => ({
+    op: "nudge_pattern_values",
+    ...parseContract(contracts.ui_timeline_nudge_pattern_values, args)
+  }),
+  tie_steps: (args) => ({
+    op: "tie_steps",
+    ...parseContract(contracts.ui_timeline_tie_steps, args)
+  }),
+  list_step_patterns: (args) => ({
+    op: "list_step_patterns",
+    ...parseContract(contracts.ui_timeline_list_step_patterns, args)
+  }),
+  apply_step_pattern: (args) => ({
+    op: "apply_step_pattern",
+    ...parseContract(contracts.ui_timeline_apply_step_pattern, args)
+  }),
+  save_step_pattern: (args) => ({
+    op: "save_step_pattern",
+    ...parseContract(contracts.ui_timeline_save_step_pattern, args)
+  }),
+  set_track_step_template: (args) => ({
+    op: "set_track_step_template",
+    ...parseContract(contracts.ui_timeline_set_track_step_template, args)
+  }),
+  create_step_pattern_folder: (args) => ({
+    op: "create_step_pattern_folder",
+    ...parseContract(contracts.ui_timeline_create_step_pattern_folder, args)
+  }),
+  rename_step_pattern_folder: (args) => ({
+    op: "rename_step_pattern_folder",
+    ...parseContract(contracts.ui_timeline_rename_step_pattern_folder, args)
+  }),
+  delete_step_pattern_folder: (args) => ({
+    op: "delete_step_pattern_folder",
+    ...parseContract(contracts.ui_timeline_delete_step_pattern_folder, args)
+  }),
+  move_step_pattern: (args) => ({
+    op: "move_step_pattern",
+    ...parseContract(contracts.ui_timeline_move_step_pattern, args)
+  }),
+  list_plugins: (args) => ({
+    op: "list_plugins",
+    ...parseContract(contracts.ui_timeline_list_plugins, args)
+  }),
+  load_plugin: (args) => ({
+    op: "load_plugin",
+    ...parseContract(contracts.ui_timeline_load_plugin, args)
+  }),
+  list_plugin_presets: (args) => ({
+    op: "list_plugin_presets",
+    ...parseContract(contracts.ui_timeline_list_plugin_presets, args)
+  }),
+  select_plugin_preset: (args) => ({
+    op: "select_plugin_preset",
+    ...parseContract(contracts.ui_timeline_select_plugin_preset, args)
+  }),
+  get_plugin_parameters: (args) => ({
+    op: "get_plugin_parameters",
+    ...parseContract(contracts.ui_timeline_get_plugin_parameters, args)
+  }),
+  set_plugin_parameters: (args) => ({
+    op: "set_plugin_parameters",
+    ...parseContract(contracts.ui_timeline_set_plugin_parameters, args)
+  })
 };
 
 /** Parse tool arguments once at the shared edit boundary. */

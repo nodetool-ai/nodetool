@@ -10,9 +10,17 @@ import userEvent from "@testing-library/user-event";
 import type { VstMidiInstrument } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../../__mocks__/themeMock";
-import { useTimelineStore } from "../../../../../stores/timeline/TimelineStore";
+import {
+  getTimelineTemporal,
+  useTimelineStore
+} from "../../../../../stores/timeline/TimelineStore";
 import VstDeviceView from "../VstDeviceView";
-import type { VstBridge, VstHostEvent } from "../vstBridge";
+import {
+  vstEditorInstance,
+  type VstBridge,
+  type VstHostEvent
+} from "../vstBridge";
+import { vstEditorInstanceKey } from "@nodetool-ai/timeline/ops";
 
 const plugin = {
   uid: "VST3-Pad",
@@ -147,5 +155,68 @@ describe("VstDeviceView", () => {
     window.api = { ...api, vst: bridge } as typeof window.api;
     renderView(midiTrackWithVst({ plugin: { uid: "VST3-Gone", name: "Gone", vendor: "Old", path: "/plugins/Gone.vst3" } }));
     expect(await screen.findByText("Gone · Old (not installed here)")).toBeInTheDocument();
+  });
+
+  it("F2: closes the open editor window when the track plugin is swapped externally", async () => {
+    const bridge = makeBridge();
+    window.api = { ...api, vst: bridge } as typeof window.api;
+    const trackId = midiTrackWithVst({
+      plugin: { uid: plugin.uid, name: "Pad", vendor: "Acme", path: plugin.path },
+      state: "S1"
+    });
+    renderView(trackId);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open plug-in window" }));
+    expect(await screen.findByRole("button", { name: "Close plug-in window" })).toBeInTheDocument();
+
+    act(() => {
+      useTimelineStore.getState().setTrackInstrument(trackId, {
+        type: "vst",
+        plugin: { uid: "VST3-Lead", name: "Lead", vendor: "Acme", path: "/plugins/Lead.vst3" },
+        state: null,
+        gainDb: 0
+      });
+    });
+
+    await waitFor(() => expect(bridge.closeEditor).toHaveBeenCalledWith(`track:${trackId}`));
+    expect(await screen.findByRole("button", { name: "Open plug-in window" })).toBeInTheDocument();
+  });
+
+  it("F2: resyncs the open editor window when undo restores an earlier plugin state", async () => {
+    const bridge = makeBridge();
+    window.api = { ...api, vst: bridge } as typeof window.api;
+    const trackId = midiTrackWithVst({
+      plugin: { uid: plugin.uid, name: "Pad", vendor: "Acme", path: plugin.path },
+      state: "S1"
+    });
+    renderView(trackId);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open plug-in window" }));
+    await waitFor(() => expect(bridge.openEditor).toHaveBeenCalledTimes(1));
+
+    act(() => bridge.emit({ event: "state", instance: `track:${trackId}`, state: "S2" }));
+    expect(instrumentOf(trackId).state).toBe("S2");
+
+    act(() => {
+      getTimelineTemporal().undo();
+    });
+    expect(instrumentOf(trackId).state).toBe("S1");
+
+    await waitFor(() => expect(bridge.closeEditor).toHaveBeenCalledWith(`track:${trackId}`));
+    await waitFor(() =>
+      expect(bridge.openEditor).toHaveBeenLastCalledWith({
+        instance: `track:${trackId}`,
+        plugin: { path: plugin.path, uid: plugin.uid },
+        state: "S1",
+        title: "Pad · Keys"
+      })
+    );
+  });
+
+  it("F8: vstEditorInstance matches vstEditorInstanceKey for unsanitized and overlong track IDs", () => {
+    const weirdId = `legacy track/with spaces/${"z".repeat(130)}`;
+    const key = vstEditorInstance(weirdId);
+    expect(key).toBe(vstEditorInstanceKey(weirdId));
+    expect(key).toMatch(/^[A-Za-z0-9_.:-]{1,128}$/);
   });
 });

@@ -5,8 +5,9 @@
 // its miniaudio context and device and releases both in `close()` or in the
 // destructor.
 //
-// Thread affinity: `open`, `start`, `close`, the accessors and
-// `outputLatency` run on one control thread. The render callback runs on the
+// Thread affinity: `open`, `start` and `close` run on one control thread.
+// Accessors and `outputLatency` may run on a non-realtime worker while the
+// device is open. The owner joins that worker before `close`. The render callback runs on the
 // device's realtime thread and must not lock, allocate or block. The
 // notification callback runs on a miniaudio or backend thread. Both callbacks
 // receive the `user` pointer of `Callbacks`, which must outlive the device:
@@ -60,6 +61,8 @@ public:
     void close();
 
     double sampleRate() const { return m_sampleRate; }
+    int periodFrames() const;
+    double internalSampleRate() const;
     int channels() const { return m_channels; }
     const std::string& backendName() const { return m_backendName; }
     const std::string& deviceName() const { return m_deviceName; }

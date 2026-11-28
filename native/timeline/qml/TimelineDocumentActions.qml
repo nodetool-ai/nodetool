@@ -37,22 +37,35 @@ Item {
         // shows only the timelines on this computer.
         accountServers: typeof nativeAccountServers !== "undefined" ? nativeAccountServers : null
         listShown: listPopup.visible
-        onOpenRequested: root.showList()
+        onOpenRequested: { if (!actions.switching) root.showList() }
         onSwitched: listPopup.close()
-        onErrorChanged: { if (error) root.showList(false) }
+        onErrorChanged: {
+            if (error && musicDialog.opened) musicDialog.error = error
+            else if (error) root.showList(false)
+        }
+    }
+    // File > New Music Project (docs/MUSIC-MODE.md section 15) opens this.
+    function openNewMusicProject() {
+        musicDialog.returnFocusTo = root.Window.window ? root.Window.window.activeFocusItem : null
+        // Loads the projects and selects the open timeline's project, the dialog's default.
+        actions.prepareList()
+        musicDialog.open()
+        return true
+    }
+    NewMusicProjectDialog {
+        id: musicDialog
+        busy: actions.controller.busy
+        projects: actions.controller.projects
+        currentProjectId: actions.controller.projectId
+        onCreateRequested: settings => actions.createMusicAndOpen(settings)
     }
     function showList(refresh = true) {
         if (!listPopup.opened) returnFocus = root.Window.window ? root.Window.window.activeFocusItem : null
         if (refresh) actions.prepareList()
         listPopup.open()
     }
-    Shortcut {
-        sequence: "Ctrl+O"
-        context: Qt.WindowShortcut
-        enabled: !listPopup.visible && !actions.switching
-        onActivated: root.showList()
-    }
-    component ActionButton: ToolButton { activeFocusOnTab: true }
+
+    component ActionButton: ToolButton { focusPolicy: Qt.TabFocus }
     Row {
         id: buttons
         spacing: Ui.Metrics.micro
@@ -64,14 +77,6 @@ Item {
             iconName: "videocam"
             enabled: !actions.switching
             onClicked: root.showList()
-        }
-        ActionButton {
-            objectName: "newTimelineButton"
-            label: "New timeline"
-            iconOnly: true
-            iconName: "add"
-            enabled: !actions.switching
-            onClicked: actions.createAndOpen()
         }
     }
     Ui.Popover {
@@ -109,13 +114,14 @@ Item {
                 }
             }
             // The account's Cloud and Shared with me timelines below the ones
-            // on this computer, at most half the list's height.
+            // on this computer, at most half the list's height, only after the
+            // person signed in from the File menu.
             Loader {
                 id: cloudList
                 objectName: "timelineListCloud"
                 width: parent.width
                 height: item ? Math.min(item.contentHeight, listPopup.height / 2) : 0
-                active: listPopup.visible && actions.cloudBrowser !== null
+                active: listPopup.visible && actions.cloudBrowser !== null && actions.cloudBrowser.signedIn
                 visible: active
                 enabled: !actions.switching
                 sourceComponent: Flickable {

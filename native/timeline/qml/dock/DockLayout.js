@@ -4,20 +4,28 @@ var regions = ["left", "right", "bottom", "viewport"];
 var workspaces = ["Editing", "Script", "Assistant", "Review"];
 // Presets only this editor has, so they stay out of the port below. The web list
 // above must match TIMELINE_WORKSPACES, which dock-conformance.mjs checks.
-var nativeWorkspaces = ["Color", "Audio"];
+var nativeWorkspaces = ["Color", "Audio", "Music"];
 var sidePanels = ["inspector", "effectControls", "motion", "color", "shot", "instruments", "assistant", "ai", "history", "code"];
-var requiredPanels = ["program", "tracks"];
+var requiredPanels = ["tracks"];
 // Panels only this editor has, which a ported preset would otherwise show. Review leaves the
 // right side empty for the picture, and the port above keeps its own list of what it hides.
-var nativeHidden = {Review: ["effectControls", "effects", "motion", "ai", "color", "audio"]};
+// The music panel belongs to the Music workspace (docs/MUSIC-MODE.md section 15), and Music
+// leaves out the picture tools.
+var nativeHidden = {
+    Editing: ["music", "trackEffects"], Script: ["music", "trackEffects"], Assistant: ["music", "trackEffects"],
+    Review: ["effectControls", "effects", "motion", "ai", "color", "audio", "music", "trackEffects"],
+    Color: ["music", "trackEffects"], Audio: ["music", "trackEffects"],
+    Music: ["effectControls", "motion", "ai", "color", "scopes", "trackEffects"]
+};
 // The tab a native panel takes its place beside when a layout first meets it. A panel the layout
 // already places, as a saved layout may, stays where it is.
-var nativeNeighbours = {effectControls: "inspector", motion: "effectControls", effects: "assets", ai: "assistant"};
+var nativeNeighbours = {effectControls: "inspector", motion: "effectControls", effects: "assets", ai: "assistant", stepEditor: "pianoRoll"};
 
 // Field-for-field port of TimelineDockLayout.ts, checked by dock-conformance.mjs.
 function createLayout(name) {
     var layout = createWebLayout(name);
-    if (nativeWorkspaces.indexOf(name) >= 0) { applyNativePreset(layout, name); }
+    if (name === "Music") { applyMusicPreset(layout); }
+    else if (nativeWorkspaces.indexOf(name) >= 0) { applyNativePreset(layout, name); }
     return layout;
 }
 function workspaceNames() { return workspaces.concat(nativeWorkspaces); }
@@ -38,6 +46,24 @@ function applyNativePreset(layout, name) {
     layout.regions.viewport[1].activePanelId = workArea;
     layout.sizes = {left: 320, right: 400, bottom: 280};
     layout.hidden = leftPanels.concat(["source"]);
+}
+// Music (UI-4): the tracks fill the work area, the music panel is on the right, the mixer
+// below and the Files panel on the left. The program monitor sits above the music panel. The
+// editor leaves it out while the sequence has no video track (DockCanvas.suppressedIds), since a layout must place it.
+function applyMusicPreset(layout) {
+    var leftPanels = ["transcript", "storyboard", "script", "entities", "markers", "files", "assets", "effects"];
+    layout.regions.left[0].panels = leftPanels;
+    layout.regions.left[0].activePanelId = "files";
+    layout.regions.right = [
+        {id: "right-program", panels: ["program"], activePanelId: "program", weight: 0.8},
+        {id: "right-main", panels: ["music"].concat(sidePanels), activePanelId: "music", weight: 1.6}
+    ];
+    layout.regions.viewport = [{id: "viewport-tracks", panels: ["tracks", "source"], activePanelId: "tracks"}];
+    layout.regions.bottom = [{id: "bottom-main", panels: ["mixer"], activePanelId: "mixer"}];
+    layout.sizes = {left: 320, right: 400, bottom: 260};
+    // The left dock opens on the project's files, as in the node editor. The panels for picture
+    // work stay in the group, hidden, so the layout menu can show them.
+    layout.hidden = ["transcript", "storyboard", "script", "entities", "source"];
 }
 // What a native preset hides is its own choice. Leaving it would hide those
 // panels in the next workspace too, the first time that one opens.

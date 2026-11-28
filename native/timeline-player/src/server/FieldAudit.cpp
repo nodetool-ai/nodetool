@@ -64,15 +64,16 @@ const Fields kClipPixels = {
     QStringLiteral("caption"), QStringLiteral("compositionId"), QStringLiteral("compositionParams"),
 };
 const Fields kClipAudio = {
-    QStringLiteral("audioEffects"), QStringLiteral("notes"), QStringLiteral("harmony"),
+    QStringLiteral("audioEffects"), QStringLiteral("notes"), QStringLiteral("controllers"), QStringLiteral("harmony"),
+    QStringLiteral("pattern"), QStringLiteral("patternPhaseTicks"), QStringLiteral("patternRowCycles"),
 };
 
 const Fields kTrackSupported = {
     QStringLiteral("id"),      QStringLiteral("name"), QStringLiteral("index"), QStringLiteral("visible"),
     QStringLiteral("locked"),  QStringLiteral("muted"), QStringLiteral("solo"), QStringLiteral("heightPx"),
-    QStringLiteral("volumeDb"), QStringLiteral("pan"),
+    QStringLiteral("volumeDb"), QStringLiteral("pan"), QStringLiteral("automationMode"),
 };
-const Fields kTrackInert = {QStringLiteral("folderId")};
+const Fields kTrackInert = {QStringLiteral("folderId"), QStringLiteral("stepTemplate")};
 const Fields kTrackAudio = {
     QStringLiteral("instrument"), QStringLiteral("chords"), QStringLiteral("automation"),
 };

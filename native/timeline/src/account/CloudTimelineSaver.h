@@ -26,6 +26,7 @@
 // The model is read-only while the document is: a viewer's window, or one
 // whose access was removed, takes no edit (TimelineModel::readOnly).
 
+#include "server/AutosaveController.h"
 #include "server/ServerTimeline.h"
 
 #include <QObject>
@@ -97,6 +98,7 @@ public:
     void guardClose(QWindow* window);
     // The answers to closeBlocked: write again and close, close without the
     // last edits, or keep the window open.
+    Q_INVOKABLE nt::server::SaveDocumentResult saveDocument();
     Q_INVOKABLE void retryClose();
     Q_INVOKABLE void discardAndClose();
     Q_INVOKABLE void cancelClose();

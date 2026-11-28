@@ -212,6 +212,8 @@ TestCase {
         compare(menuCount, 1000)
     }
     function test_entriesBuildItems() {
+        dataMenu.openAt(trigger)
+        tryVerify(() => dataMenu.visible)
         compare(dataMenu.count, 7)
         compare(dataMenu.itemFor("open").shortcutText, "Ctrl+O")
         verify(!dataMenu.itemFor("open").checkable)
@@ -223,15 +225,44 @@ TestCase {
         verify(dataMenu.itemFor("more").subMenu !== null)
         compare(dataMenu.itemFor("nope"), null)
         compare(dataMenu.itemFor("open").objectName, "menu-item-open")
+        dataMenu.close()
+        tryVerify(() => !dataMenu.visible)
+    }
+    function test_closedEntriesWaitForOpen() {
+        dataMenu.close()
+        tryVerify(() => !dataMenu.visible)
+        const before = dataMenu.entries
+        const count = dataMenu.count
+        dataMenu.entries = [{ id: "deferred", label: "Deferred" }]
+        compare(dataMenu.count, count)
+        compare(dataMenu.itemFor("deferred"), null)
+        dataMenu.openAt(trigger)
+        tryVerify(() => dataMenu.visible)
+        compare(dataMenu.count, 1)
+        verify(dataMenu.itemFor("deferred") !== null)
+        dataMenu.close()
+        tryVerify(() => !dataMenu.visible)
+        dataMenu.entries = []
+        compare(dataMenu.count, 0)
+        compare(dataMenu.itemFor("deferred"), null)
+        dataMenu.openAt(trigger)
+        tryVerify(() => dataMenu.visible)
+        compare(dataMenu.count, 0)
+        dataMenu.entries = before
+        dataMenu.close()
+        tryVerify(() => !dataMenu.visible)
     }
     function test_entriesEmitTheChosenId() {
         dataMenu.openAt(trigger)
-        tryVerify(() => dataMenu.visible)
+        tryVerify(() => dataMenu.opened)
+        verify(waitForRendering(dataMenu.contentItem))
         mouseClick(dataMenu.itemFor("pick"))
         compare(chosen, ["pick"])
         tryVerify(() => !dataMenu.visible)
     }
     function test_changingEntriesRebuildsTheMenu() {
+        dataMenu.openAt(trigger)
+        tryVerify(() => dataMenu.visible)
         const before = dataMenu.entries
         dataMenu.entries = [{ id: "only", label: "Only" }]
         compare(dataMenu.count, 1)
@@ -239,6 +270,8 @@ TestCase {
         verify(dataMenu.itemFor("only") !== null)
         dataMenu.entries = before
         compare(dataMenu.count, 7)
+        dataMenu.close()
+        tryVerify(() => !dataMenu.visible)
     }
     function test_disabledItemShowsItsReason() {
         menu.popup(trigger)
@@ -253,6 +286,63 @@ TestCase {
         verify(!first.visible)
         menu.close()
         tryVerify(() => !menu.visible)
+    }
+    function test_popupAtClearsPreviousFocusTarget() {
+        dataMenu.openAt(trigger)
+        tryVerify(() => dataMenu.opened)
+        dataMenu.close()
+        tryVerify(() => !dataMenu.visible)
+        dataMenu.popupAt(row, 0, 0)
+        tryVerify(() => dataMenu.opened)
+        compare(dataMenu.returnFocusTo, null)
+        dataMenu.close()
+        tryVerify(() => !dataMenu.visible)
+        compare(dataMenu.returnFocusTo, null)
+    }
+    Component { id: lazyMenuComponent; Ui.ContextMenu {} }
+    Component { id: lazyRowComponent; Ui.MenuItem { text: "A late populated, wide menu action" } }
+    function test_lateRowsAreMeasuredAndClamped_data() {
+        return [{ tag: "point", point: true }, { tag: "trigger", point: false }, { tag: "direct", direct: true }]
+    }
+    function test_lateRowsAreMeasuredAndClamped(data) {
+        const late = createTemporaryObject(lazyMenuComponent, test)
+        verify(late !== null)
+        late.aboutToShow.connect(() => {
+            for (let i = 0; i < 4; ++i) late.addItem(lazyRowComponent.createObject(late))
+        })
+        if (data.direct) late.open()
+        else if (data.point) late.popupAt(trigger, trigger.width, trigger.height)
+        else late.openAt(trigger)
+        tryVerify(() => late.opened)
+        verify(waitForRendering(late.contentItem))
+        verify(late.width >= late.itemAt(0).implicitWidth)
+        verify(late.x + late.width <= late.parent.width + 0.5)
+        verify(late.y + late.height <= late.parent.height + 0.5)
+        late.close()
+    }
+    Component {
+        id: nullProbeComponent
+        Item {
+            property var menuItemCreationProbe: null
+            Ui.MenuItem { text: "Without a probe" }
+        }
+    }
+    function test_nullCreationProbeIsSafe() {
+        failOnWarning(/TypeError/)
+        verify(createTemporaryObject(nullProbeComponent, test) !== null)
+    }
+    Component { id: anchorComponent; Item { width: 30; height: 30 } }
+    function test_invalidatingPopupAnchorClosesMenu_data() {
+        return [{ tag: "destroyed", destroy: true }, { tag: "hidden", destroy: false }]
+    }
+    function test_invalidatingPopupAnchorClosesMenu(data) {
+        const anchor = createTemporaryObject(anchorComponent, test)
+        const late = createTemporaryObject(lazyMenuComponent, test, { entries: [{ id: "one", label: "One" }] })
+        late.popupAt(anchor, 0, 0)
+        tryVerify(() => late.opened)
+        if (data.destroy) anchor.destroy()
+        else anchor.visible = false
+        tryVerify(() => !late.visible)
     }
     function test_menuKeyboardAndFocus() {
         trigger.forceActiveFocus()

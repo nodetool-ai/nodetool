@@ -3,6 +3,10 @@ function(nt_library_data_tests)
         src/assets/librarydata/tst_librarydata.cpp
         src/assets/AssetBrowser.h src/assets/AssetBrowser.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         src/model/TrackWindowModel.h src/model/TrackWindowModel.cpp
         src/ui/TimelineViewState.h src/ui/TimelineViewState.cpp)

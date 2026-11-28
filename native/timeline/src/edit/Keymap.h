@@ -25,6 +25,13 @@ struct KeyEventLike {
     bool altKey = false;
 };
 
+// The keymap of a preset in an editor context: the preset itself for an empty
+// context, else "<preset>@<context>" (KEYMAP_CONTEXT_JSON in KeymapOverlay.h).
+// Every function below that takes `preset` also takes this name.
+QString keymapName(const QString& preset, const QString& context);
+// The contexts with keys of their own ("music").
+QStringList keymapContexts();
+
 // The action id `e` triggers under `preset` ("premiere", "fcp"),
 // or an empty string.
 QString resolveTimelineAction(const KeyEventLike& e, const QString& preset);

@@ -4,7 +4,7 @@
  * toggle. Outside an editor in Simple mode every control stays.
  */
 import { describe, it, expect, jest } from "@jest/globals";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../../__mocks__/themeMock";
@@ -85,7 +85,9 @@ describe("TracksRegion in Simple mode", () => {
     renderRegion(false);
     const { video } = seedTracks();
     const picture = screen.getByTestId(`track-header-${video}`);
-    expect(within(picture).getByRole("button", { name: "Delete track" })).toBeInTheDocument();
+    // D65: Delete track lives in the track header context menu.
+    fireEvent.contextMenu(picture);
+    expect(screen.getByRole("menuitem", { name: "Delete track" })).toBeInTheDocument();
     expect(screen.getByTestId(`track-target-${video}`)).toBeInTheDocument();
     expect(screen.getByTestId("tracks-header-add-track")).toBeInTheDocument();
   });

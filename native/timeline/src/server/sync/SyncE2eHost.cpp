@@ -158,6 +158,9 @@ int main(int argc, char** argv) {
             } else if (cmd == u"sync") {
                 save.setExternalSync(command.value("on").toBool());
                 reply({{"ok", true}});
+            } else if (cmd == u"saveDocument") {
+                const auto saved = save.saveDocument();
+                reply(QJsonObject{{"ok", saved.ok}, {"error", saved.error}, {"conflict", saved.conflict}});
             } else if (cmd == u"saveNow") {
                 reply(resultJson(save.saveNow()));
             } else if (cmd == u"undo") {

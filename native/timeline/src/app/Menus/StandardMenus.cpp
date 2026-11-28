@@ -10,7 +10,10 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "edit/sourceEdit/SourceViewerState.h"
+#include "edit/trim/TrimMode.h"
 #include "ui/TimelineViewState.h"
+#include "wiring/w/SceneItems.h"
+#include "wiring/KeyActions.h"
 
 #include <QJsonArray>
 #include <QQmlEngine>
@@ -25,6 +28,29 @@ using menu::anyTarget;
 using menu::clipTargets;
 using menu::gestures;
 using menu::hasEditor;
+
+QQuickItem* saveHost(const QVariantMap& context) {
+    return nt::wiring::w::windowItem(gestures(context), QStringLiteral("timelineEditor"));
+}
+const bool saveKeyRegistered = nt::wiring::registerKeyAction({"saveDocument", "Save", {QKeySequence(Qt::CTRL | Qt::Key_S)},
+    [](ClipGestureController& gestures, const QVariantMap&) {
+        auto* host = nt::wiring::w::windowItem(&gestures, QStringLiteral("timelineEditor"));
+        QVariant result;
+        // Dispatch consumes the key even when saving fails. Returning the
+        // save result lets the same event bubble and invoke Save again.
+        return host && host->property("canSaveDocument").toBool()
+            && QMetaObject::invokeMethod(host, "saveDocument", Q_RETURN_ARG(QVariant, result));
+    }});
+const bool saveRegistered = registerShellMenuItem({"File", "saveDocument", "Save", {}, {}, "save", -10,
+    [](const QVariantMap& context) {
+        auto* host = saveHost(context);
+        auto* model = qobject_cast<TimelineModel*>(context.value("timeline").value<QObject*>());
+        return model && !model->timeline().raw.isEmpty() && host && host->property("canSaveDocument").toBool();
+    }, {}, [](const QVariantMap& context) {
+        auto* host = saveHost(context);
+        QVariant result;
+        return host && QMetaObject::invokeMethod(host, "saveDocument", Q_RETURN_ARG(QVariant, result)) && result.toBool();
+    }, QStringLiteral("Open a writable document first.")});
 
 struct Need {
     MenuPredicate enabled;
@@ -55,6 +81,9 @@ bool outSet(const QVariantMap& c) { return viewOf(c) && viewOf(c)->rangeOutMs() 
 QJsonArray markersOf(const QVariantMap& c) { return hasEditor(c) ? gestures(c)->timeline()->markersJson() : QJsonArray{}; }
 bool hasClips(const QVariantMap& c) { return hasEditor(c) && !gestures(c)->timeline()->clipsJson().isEmpty(); }
 bool hasSelection(const QVariantMap& c) { return !clipTargets(c).isEmpty(); }
+bool hasSectionRange(const QVariantMap& c) {
+    return hasEditor(c) && gestures(c)->keymapContext() == u"music" && !gestures(c)->sectionRange().isEmpty();
+}
 QString option(const QVariantMap& c, const char* name) {
     auto* g = gestures(c);
     return g ? g->property(name).toString() : QString{};
@@ -63,9 +92,9 @@ QString option(const QVariantMap& c, const char* name) {
 const Need editor{hasEditor, QStringLiteral("Open a timeline first.")};
 const Need selection{hasSelection, QStringLiteral("Select a clip first.")};
 const Need twoClips{[](const QVariantMap& c) { return clipTargets(c).size() >= 2; }, QStringLiteral("Select two or more clips first.")};
-const Need clipOrGap{[](const QVariantMap& c) {
-    return hasSelection(c) || (gestures(c) && !gestures(c)->selectedGap().isEmpty());
-}, QStringLiteral("Select a clip or a gap first.")};
+const Need deletionSelection{[](const QVariantMap& c) {
+    return hasSelection(c) || hasSectionRange(c) || (gestures(c) && !gestures(c)->selectedGap().isEmpty());
+}, QStringLiteral("Select clips, a gap or a section first.")};
 const Need canUndo{[](const QVariantMap& c) { return hasEditor(c) && gestures(c)->timeline()->undoStack()->canUndo(); }, QStringLiteral("Nothing to undo.")};
 const Need canRedo{[](const QVariantMap& c) { return hasEditor(c) && gestures(c)->timeline()->undoStack()->canRedo(); }, QStringLiteral("Nothing to redo.")};
 const Need oneClip{[](const QVariantMap& c) { return clipTargets(c).size() == 1; }, QStringLiteral("Select one clip first.")};
@@ -75,7 +104,13 @@ const Need playheadOnSelectedClip{[](const QVariantMap& c) {
     const double at = gestures(c)->clock()->currentTimeMs();
     return clipStartMs(clips.first()) <= at && at <= clipEndMs(clips.first());
 }, QStringLiteral("Select one clip and move the playhead over it.")};
-const Need clipboardClips{[](const QVariantMap& c) { return hasEditor(c) && nt::edit::clipboard::hasClipboardClips(); }, QStringLiteral("Copy a clip first.")};
+const Need clipOrSection{[](const QVariantMap& c) {
+    return hasSelection(c) || hasSectionRange(c);
+}, QStringLiteral("Select clips or a section first.")};
+const Need clipboardClips{[](const QVariantMap& c) {
+    return hasEditor(c) && (nt::edit::clipboard::hasClipboardClips() ||
+        (gestures(c)->keymapContext() == u"music" && gestures(c)->hasMusicSectionClipboard()));
+}, QStringLiteral("Copy a clip or section first.")};
 const Need attributes{[](const QVariantMap& c) { return hasSelection(c) && nt::edit::clipboard::hasClipboardClips(); },
                       QStringLiteral("Copy a clip, then select the clips to paste onto.")};
 const Need linkable{[](const QVariantMap& c) {
@@ -136,9 +171,9 @@ bool clipEnabled(const QJsonObject& clip) {
 std::vector<Group> table() {
     return {
         {"Edit", "history", 0, {{"undo", "Undo", canUndo}, {"redo", "Redo", canRedo}}},
-        {"Edit", "clipboard", 10, {{"cut", "Cut", selection}, {"copy", "Copy", selection}, {"paste", "Paste", clipboardClips},
+        {"Edit", "clipboard", 10, {{"cut", "Cut", clipOrSection}, {"copy", "Copy", clipOrSection}, {"paste", "Paste", clipboardClips},
                                    {"pasteInsert", "Paste Insert", clipboardClips}, {"pasteAttributes", "Paste Attributes…", attributes}}},
-        {"Edit", "delete", 20, {{"deleteSelected", "Delete", clipOrGap}, {"rippleDeleteSelected", "Ripple Delete", clipOrGap}, {"duplicate", "Duplicate", selection},
+        {"Edit", "delete", 20, {{"deleteSelected", "Delete", deletionSelection}, {"rippleDeleteSelected", "Ripple Delete", deletionSelection}, {"duplicate", "Duplicate", clipOrSection},
                                 {"duplicateWithGap", "Duplicate with Gap", selection}}},
         {"Edit", "select", 30, {{"selectAll", "Select All", sequenceClips}, {"deselectAll", "Deselect All", selection},
                                 {"selectClipAtPlayhead", "Select Clips at Playhead", sequenceClips},
@@ -186,7 +221,8 @@ std::vector<Group> table() {
                                    {"slipTool", "Slip", editor, toolIs("slip"), "Tools"},
                                    {"slideTool", "Slide", editor, toolIs("slide"), "Tools"},
                                    {"handTool", "Hand", editor, toolIs("hand"), "Tools"},
-                                   {"zoomTool", "Zoom", editor, toolIs("zoom"), "Tools"}}},
+                                   {"zoomTool", "Zoom", editor, toolIs("zoom"), "Tools"},
+                                   {"rangeTool", "Range", editor, toolIs("range"), "Tools"}}},
         {"Sequence", "options", 70, {{"toggleSnap", "Snap in Timeline", editor, [](const QVariantMap& c) { return gestures(c) && gestures(c)->snapEnabled(); }},
                                      {"sequence.linkedSelection", "Linked Selection", editor, [](const QVariantMap& c) { return gestures(c) && gestures(c)->linkedSelection(); }, {},
                                       [](const QVariantMap& c) { auto* g = gestures(c); if (!g) { return false; } g->setLinkedSelection(!g->linkedSelection()); return true; }}}},
@@ -205,7 +241,9 @@ std::vector<Group> table() {
         {"Playback", "play", 0, {{"playPause", "Play / Pause", editor, {}, {}, [](const QVariantMap& c) {
                                      auto* g = gestures(c);
                                      if (!g || !g->clock()) { return false; }
-                                     g->clock()->toggle();
+                                     if (c.value("autoRepeat").toBool()) { return true; }
+                                     if (g->trimMode()->active()) { g->trimMode()->toggleLoop(); }
+                                     else { g->clock()->toggle(); }
                                      return true;
                                  }, "Space"},
                                  {"playInToOut", "Play In to Out", editor},
@@ -231,7 +269,10 @@ const bool registered = [] {
         for (const auto& row : group.rows) {
             const Need& need = row.need.enabled ? row.need : editor;
             registerShellMenuItem({group.menu, row.action, row.label, row.shortcut, row.submenu, group.group, order++,
-                                   need.enabled, row.checked, row.run, need.reason});
+                                   need.enabled, row.checked, row.run, need.reason,
+                                   group.group == "history" || group.group == "step" || group.group == "goTo"
+                                       || group.group == "goToMarker" || group.group == "tracks"
+                                       || row.action == "zoomIn" || row.action == "zoomOut"});
         }
     }
     return true;

@@ -35,26 +35,62 @@ bool assign(T& field, const T& value) {
 }
 }
 
+namespace {
+// Parent-owned. UI-thread geometry, render-thread paint while the UI thread is blocked.
+class MiniPlayhead final : public QQuickPaintedItem {
+public:
+    explicit MiniPlayhead(MonitorMiniTimeline* parent) : QQuickPaintedItem(parent), owner(parent) {
+        setAcceptedMouseButtons(Qt::NoButton);
+        setAntialiasing(true);
+    }
+    void paint(QPainter* painter) override {
+        const double s=owner->uiScale(), x=width()/2, h=height();
+        const double hy=h-kPlayheadRise*s, hw=kPlayheadWidth*s/2;
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(owner->playheadColor());
+        const std::array head{QPointF(x-hw,hy),QPointF(x+hw,hy),QPointF(x+hw,hy+kPlayheadShoulder*s),
+            QPointF(x,hy+kPlayheadHeight*s),QPointF(x-hw,hy+kPlayheadShoulder*s)};
+        painter->drawPolygon(head.data(),static_cast<int>(head.size()));
+        painter->fillRect(QRectF(x-0.5,hy+kPlayheadHeight*s-s,1,h-hy-kPlayheadHeight*s+s),owner->playheadColor());
+    }
+private:
+    MonitorMiniTimeline* owner; // Borrowed parent outlives its child.
+};
+}
+
 MonitorMiniTimeline::MonitorMiniTimeline(QQuickItem* parent) : QQuickPaintedItem(parent) {
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): parented to this
+    m_playheadItem=new MiniPlayhead(this);
+    m_playheadItem->setObjectName(QStringLiteral("monitorMiniPlayhead"));
+    setClip(true);
     setAntialiasing(true);
     setAcceptedMouseButtons(Qt::LeftButton | Qt::RightButton);
     connect(this, &QQuickItem::widthChanged, this, &MonitorMiniTimeline::changedBackdrop);
     connect(this, &QQuickItem::heightChanged, this, &MonitorMiniTimeline::changedBackdrop);
 }
 
+void MonitorMiniTimeline::positionPlayhead() {
+    const QSizeF size(kPlayheadWidth*m_scale+2,height());
+    if (m_playheadItem->size()!=size) { m_playheadItem->setSize(size); }
+    m_playheadItem->setX(xForTime(m_timeMs)-size.width()/2);
+    m_playheadItem->setVisible(m_durationMs>0 && m_timeMs>=shownStartMs() && m_timeMs<=shownEndMs());
+}
+
 void MonitorMiniTimeline::changedValue() {
+    positionPlayhead();
     emit changed();
     update();
 }
 
 void MonitorMiniTimeline::changedBackdrop() {
     m_backdropDirty = true;
+    m_playheadItem->update();
     changedValue();
 }
 
 void MonitorMiniTimeline::setDurationMs(double v) { if (assign(m_durationMs, std::max(0.0, v))) { changedBackdrop(); } }
 void MonitorMiniTimeline::setFps(double v) { if (v > 0 && assign(m_fps, v)) { changedBackdrop(); } }
-void MonitorMiniTimeline::setTimeMs(double v) { if (assign(m_timeMs, v)) { changedValue(); } }
+void MonitorMiniTimeline::setTimeMs(double v) { if (assign(m_timeMs, v)) { positionPlayhead(); emit changed(); } }
 void MonitorMiniTimeline::setZoomStart(double v) { if (assign(m_zoomStart, std::clamp(v, 0.0, 1.0))) { changedBackdrop(); } }
 void MonitorMiniTimeline::setZoomEnd(double v) { if (assign(m_zoomEnd, std::clamp(v, 0.0, 1.0))) { changedBackdrop(); } }
 void MonitorMiniTimeline::setRangeInMs(double v) { if (assign(m_rangeInMs, v)) { changedBackdrop(); } }
@@ -198,7 +234,6 @@ void MonitorMiniTimeline::paint(QPainter* painter) {
     ++m_paintCount;
     const double w = width();
     const double h = height();
-    const double s = m_scale;
     if (w <= 0 || h <= 0 || m_durationMs <= 0) {
         emit painted();
         return;
@@ -211,20 +246,6 @@ void MonitorMiniTimeline::paint(QPainter* painter) {
     }
     painter->drawImage(QPointF(0, 0), m_backdrop);
 
-    const double startMs = shownStartMs();
-    const double endMs = shownEndMs();
-    // The playhead: a pentagon over a 1 px line.
-    if (m_timeMs >= startMs && m_timeMs <= endMs) {
-        const double x = xForTime(m_timeMs);
-        const double hy = h - kPlayheadRise * s;
-        const double hw = kPlayheadWidth * s / 2;
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(m_playhead);
-        const std::array head{QPointF(x - hw, hy), QPointF(x + hw, hy), QPointF(x + hw, hy + kPlayheadShoulder * s),
-                              QPointF(x, hy + kPlayheadHeight * s), QPointF(x - hw, hy + kPlayheadShoulder * s)};
-        painter->drawPolygon(head.data(), static_cast<int>(head.size()));
-        painter->fillRect(QRectF(x - 0.5, hy + kPlayheadHeight * s - s, 1.0, h - hy - kPlayheadHeight * s + s), m_playhead);
-    }
     emit painted();
 }
 

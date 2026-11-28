@@ -4,6 +4,10 @@ function(nt_activity_tests)
         src/activity/ActivityController.h src/activity/ActivityController.cpp
         src/activity/local/LocalActivity.h src/activity/local/LocalActivity.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     nodetool_use_ui_primitives(tst_activity)
     target_compile_definitions(tst_activity PRIVATE NT_ACTIVITY_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}")

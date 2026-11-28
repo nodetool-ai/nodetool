@@ -293,18 +293,37 @@ add_library(nodetool_timeline_audio STATIC
     src/audio/AudioEngine.cpp
     src/audio/AudioSource.h
     src/audio/AudioSource.cpp
+    src/audio/DenormalGuard.h
     src/audio/FadeCurves.h
     src/audio/FadeCurves.cpp
     src/audio/LoopbackCapture.h
     src/audio/LoopbackCapture.cpp
+    src/audio/MasterLimiter.h
+    src/audio/MasterLimiter.cpp
     src/audio/Mixer.h
     src/audio/Mixer.cpp
+    src/audio/ParameterSmoother.h
     src/audio/ShuttleStretch.h
     src/audio/ShuttleStretch.cpp
+    src/audio/SincResampler.h
     src/audio/effects/Effects.h
     src/audio/effects/Effects.cpp
     src/audio/effects/Oversampler.h
     src/audio/effects/Oversampler.cpp
+    src/audio/effects/fable/FableDsp.h
+    src/audio/effects/fable/FableDsp.cpp
+    src/audio/effects/fable/FableParametricEq.h
+    src/audio/effects/fable/FableParametricEq.cpp
+    src/audio/effects/fable/FableDynamics.h
+    src/audio/effects/fable/FableDynamics.cpp
+    src/audio/effects/fable/FableDynamicsEffects.h
+    src/audio/effects/fable/FableDynamicsEffects.cpp
+    src/audio/effects/fable/FableDriveOs.h
+    src/audio/effects/fable/FablePlateReverb.h
+    src/audio/effects/fable/FableColorTime.h
+    src/audio/effects/fable/FableColorTime.cpp
+    src/audio/effects/fable/FableColorTimeEffects.h
+    src/audio/effects/fable/FableColorTimeEffects.cpp
     src/audio/hooks/MixerHooks.h
     src/audio/hooks/MixerHooks.cpp
     src/audio/hooks/SpeedMixRegistration.cpp
@@ -445,12 +464,14 @@ if(BUILD_TESTING)
         ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
 
     qt_add_executable(tst_audioeffects tests/tst_audioeffects.cpp)
+    qt_add_executable(tst_fabledynamics tests/tst_fabledynamics.cpp)
+    qt_add_executable(tst_fablecolortime tests/tst_fablecolortime.cpp)
     qt_add_executable(tst_ducking tests/tst_ducking.cpp)
     qt_add_executable(tst_liveloudness tests/tst_liveloudness.cpp)
     qt_add_executable(tst_loudness tests/tst_loudness.cpp)
     qt_add_executable(tst_loudnessengine tests/tst_loudnessengine.cpp)
     qt_add_executable(tst_shuttlestretch tests/tst_shuttlestretch.cpp)
-    foreach(test_name tst_audioeffects tst_ducking tst_liveloudness tst_loudness tst_loudnessengine tst_shuttlestretch)
+    foreach(test_name tst_audioeffects tst_fabledynamics tst_fablecolortime tst_ducking tst_liveloudness tst_loudness tst_loudnessengine tst_shuttlestretch)
         set_target_properties(${test_name} PROPERTIES MACOSX_BUNDLE FALSE AUTOMOC ON)
         target_compile_options(${test_name} PRIVATE ${NT_PLAYER_WARNINGS})
         target_link_libraries(${test_name} PRIVATE nodetool_timeline_audio nodetool_audio_io_test_support Qt6::Test)

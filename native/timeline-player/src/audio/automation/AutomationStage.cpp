@@ -1,4 +1,6 @@
 #include "audio/automation/AutomationCurves.h"
+#include "audio/effects/fable/FableColorTimeEffects.h"
+#include "audio/effects/fable/FableDynamicsEffects.h"
 #include "preview/PlaybackHooks.h"
 #include "audio/Mixer.h"
 #include <algorithm>
@@ -35,6 +37,150 @@ public:
 private:
     std::vector<Breakpoint> points_;
 };
+// Control-thread construction, then one render thread owns the glide state.
+// UI input is sampled once per block. Rendering then evaluates only cached data.
+class LiveParameter final : public audio::ParameterSource {
+public:
+    // RenderLease on the shared prepared mix grants one renderer access to this cache.
+    struct Glide {
+        bool prepared=false,live=false;
+        double raw=0,from=0,target=0,start=0,offset=0;
+        double renderTime=0,blockTime=0,step=0,sampleRate=48000,timeScale=1;
+        int frames=0;
+        MixerReturn::Snapshot release;
+    };
+    LiveParameter(std::shared_ptr<MixerOverride> state,std::shared_ptr<const audio::ParameterSource> curve,bool gain,
+                  std::shared_ptr<Glide> glide={})
+        : state_(std::move(state)),curve_(std::move(curve)),gain_(gain),
+          curveGeneration_((gain ? state_->volumeReturn : state_->panReturn).generation()),
+          glide_(glide ? std::move(glide) : std::make_shared<Glide>()) {}
+    std::shared_ptr<Glide> glide() const { return glide_; }
+    std::shared_ptr<const audio::ParameterSource> curve() const { return curve_; }
+    void beginBlock(const audio::BlockContext& context,int frames,double base) const noexcept override {
+        if (curve_) { curve_->beginBlock(context,frames,base); }
+        auto& g=*glide_;
+        const double time=context.timelineMs;
+        const double previous=g.prepared ? valueAt(g.blockTime+g.frames*g.step,base) : curveAt(time,base,g.release);
+        if (g.prepared) { g.renderTime+=static_cast<double>(g.frames)*1000./g.sampleRate; }
+        g.blockTime=time; g.frames=frames; g.step=context.msPerFrame; g.sampleRate=context.sampleRate;
+        g.timeScale=g.step!=0 ? 1000./(g.sampleRate*g.step) : 0;
+        const double raw=(gain_ ? state_->volumeDb : state_->pan).load(std::memory_order_acquire);
+        const auto previousGeneration=g.release.generation;
+        (gain_ ? state_->volumeReturn : state_->panReturn).read(g.release);
+        const bool live=std::isfinite(raw);
+        if (!g.prepared || live!=g.live || (live && raw!=g.raw) || (!live && g.release.generation!=previousGeneration)) {
+            g.from=previous; g.start=g.renderTime;
+            g.target=live ? (gain_ ? std::pow(10.,raw/20.) : raw) : 0;
+            g.offset=live ? 0 : previous-curveAt(time,base,g.release);
+        }
+        g.live=live; g.raw=raw; g.prepared=true;
+    }
+    double valueAt(double time,double base) const noexcept override {
+        const auto& g=*glide_;
+        // A probe before rendering starts does not drive the render-thread glide.
+        if (!g.prepared) {
+            const double raw=(gain_ ? state_->volumeDb : state_->pan).load(std::memory_order_acquire);
+            if (std::isfinite(raw)) { return gain_ ? std::pow(10.,raw/20.) : raw; }
+            MixerReturn::Snapshot release;
+            (gain_ ? state_->volumeReturn : state_->panReturn).read(release);
+            return curveAt(time,base,release);
+        }
+        const double fraction=std::clamp((g.renderTime+(time-g.blockTime)*g.timeScale-g.start)/10.,0.,1.);
+        return g.live ? g.from+(g.target-g.from)*fraction : curveAt(time,base,g.release)+g.offset*(1-fraction);
+    }
+private:
+    double curveAt(double time,double base,const MixerReturn::Snapshot& release) const noexcept {
+        if (release.generation>curveGeneration_ && release.active(time)) { return release.at(time); }
+        return curve_ ? curve_->valueAt(time,base) : base;
+    }
+    // The model and plans share the atomic input. Immutable plans share their base curve across live-override refreshes.
+    std::shared_ptr<MixerOverride> state_;
+    std::shared_ptr<const audio::ParameterSource> curve_;
+    bool gain_;
+    const std::uint64_t curveGeneration_;
+    // Old/new immutable plans coexist during publication. Their shared prepared mix's
+    // RenderLease protects this continuation; the control thread copies only its owner.
+    std::shared_ptr<Glide> glide_;
+};
+// Constructed on the control thread. Only the render lease holder mutates bases/active flags.
+// Shared ownership keeps the inner processor and atomic inputs alive across plan publication.
+class LiveDevice final : public audio::BlockProcessor {
+    struct Binding {
+        std::string name;
+        double base;
+        std::shared_ptr<MixerOverride> state;
+        std::uint64_t generation;
+        double live=std::numeric_limits<double>::quiet_NaN();
+        MixerReturn::Snapshot release;
+    };
+public:
+    LiveDevice(std::shared_ptr<audio::BlockProcessor> inner,const std::vector<DeviceParameter>& parameters)
+        : inner_(std::move(inner)) {
+        id=inner_->id;
+        for (const auto& p:parameters) {
+            if (p.deviceId==id || (id=="vst-instrument" && p.deviceId=="instrument")) { bindings_.push_back({p.name,p.base,p.state,p.generation,std::numeric_limits<double>::quiet_NaN(),{}}); revision_=p.revision; }
+        }
+        std::sort(bindings_.begin(),bindings_.end(),[](const auto& a,const auto& b) { return a.name<b.name; });
+    }
+    void prepare(double rate) override { inner_->prepare(rate); }
+    void prepare(double rate,int frames) override { inner_->prepare(rate,frames); }
+    void reset() noexcept override { audio::BlockProcessor::reset(); inner_->reset(); }
+    bool hasPendingOutput(int n) const noexcept override { return inner_->hasPendingOutput(n); }
+    bool keepsActiveInput() const noexcept override { return inner_->keepsActiveInput(); }
+    bool drivesDeviceAutomation() const noexcept override { return inner_->drivesDeviceAutomation(); }
+    bool setParameter(std::string_view name,double value) noexcept override {
+        const auto p=std::lower_bound(bindings_.begin(),bindings_.end(),name,[](const auto& binding,std::string_view key) { return binding.name<key; });
+        if (p!=bindings_.end() && p->name==name) {
+            p->base=value;
+            if (std::isfinite(p->live)) { return true; }
+        }
+        return inner_->setParameter(name,value);
+    }
+    int latencySamples() const noexcept override { return inner_->latencySamples(); }
+    void setBypassed(bool b) noexcept override { inner_->setBypassed(b); }
+    bool bypassed() const noexcept override { return inner_->bypassed(); }
+    void onBypassedBlock(std::span<const float> stereo,const audio::BlockContext& ctx) noexcept override { inner_->onBypassedBlock(stereo,ctx); }
+    void reprobeLatency(double rate) override { inner_->reprobeLatency(rate); }
+    void serviceControlThread() override { inner_->serviceControlThread(); }
+    void armForPlayback() override { inner_->armForPlayback(); }
+    void process(std::span<float> stereo,const audio::BlockContext& ctx) noexcept override {
+        const auto revision=revision_->load(std::memory_order_acquire);
+        if (revision!=lastRevision_) {
+            bool coherent=true;
+            for (std::size_t i=0;i<bindings_.size();++i) {
+                auto& p=bindings_[i];
+                p.state->volumeReturn.read(p.release);
+                coherent &= p.release.generation==p.state->volumeReturn.generation();
+                const bool active=std::isfinite(p.release.startMs) && (!p.release.untilPlan || p.release.generation>p.generation);
+                const double value=active ? p.release.values[0] : std::numeric_limits<double>::quiet_NaN();
+                if (std::isfinite(value) && value!=p.live) { inner_->setParameter(p.name,value); }
+                else if (!std::isfinite(value) && std::isfinite(p.live)) { inner_->setParameter(p.name,p.base); }
+                p.live=value;
+            }
+            if (coherent) { lastRevision_=revision; }
+        }
+        inner_->process(stereo,ctx);
+    }
+private:
+    std::shared_ptr<audio::BlockProcessor> inner_;
+    std::vector<Binding> bindings_;
+    // The model and plans share the release/acquire revision for this channel's inputs.
+    std::shared_ptr<std::atomic<std::uint64_t>> revision_;
+    std::uint64_t lastRevision_=std::numeric_limits<std::uint64_t>::max();
+};
+void attachLiveDevices(const nt::Timeline& tl,audio::MixPlan& plan) {
+    const auto attach=[](audio::Processors& processors,const std::vector<DeviceParameter>& parameters) {
+        for (auto& processor:processors) {
+            if (std::any_of(parameters.begin(),parameters.end(),[&](const auto& p) { return p.deviceId==processor->id || (processor->id=="vst-instrument" && p.deviceId=="instrument"); })) {
+                processor=std::make_shared<LiveDevice>(processor,parameters);
+            }
+        }
+    };
+    for (auto& bus:plan.tracks) {
+        if (const auto* track=tl.findTrack(bus.trackId)) { attach(bus.processors,track->deviceParameters); }
+    }
+    attach(plan.processors,tl.masterDeviceParameters);
+}
 struct Parameter {
     std::string name;
     Ramp ramp;
@@ -50,6 +196,13 @@ public:
     bool hasPendingOutput(int n) const noexcept override { return inner_->hasPendingOutput(n); }
     bool keepsActiveInput() const noexcept override { return inner_->keepsActiveInput(); }
     bool setParameter(std::string_view name,double value) noexcept override { return inner_->setParameter(name,value); }
+    int latencySamples() const noexcept override { return inner_->latencySamples(); }
+    void setBypassed(bool b) noexcept override { inner_->setBypassed(b); }
+    bool bypassed() const noexcept override { return inner_->bypassed(); }
+    void onBypassedBlock(std::span<const float> stereo,const audio::BlockContext& ctx) noexcept override { inner_->onBypassedBlock(stereo,ctx); }
+    void reprobeLatency(double rate) override { inner_->reprobeLatency(rate); }
+    void serviceControlThread() override { inner_->serviceControlThread(); }
+    void armForPlayback() override { inner_->armForPlayback(); }
     void process(std::span<float> stereo,const audio::BlockContext& context) noexcept override {
         if (quantum_) {
             // DynamicsCompressorNode's AudioParams are k-rate.
@@ -79,27 +232,49 @@ private:
     bool quantum_;
 };
 bool supports(const QString& type,const QString& param) {
+    if (type=="instrument") { return param=="cutoffHz" || param=="filter.cutoff"; }
     if (type=="gain") { return param=="gainDb"; }
     if (type=="filter") { return param=="frequency" || param=="q"; }
     if (type=="eq3") { return QStringList{"lowFreq","lowGainDb","midFreq","midQ","midGainDb","highFreq","highGainDb"}.contains(param); }
     if (type=="compressor") { return QStringList{"thresholdDb","ratio","attackMs","releaseMs","kneeDb"}.contains(param); }
+    if (type=="fable") {
+        const std::string key = param.toStdString();
+        for (const char* kind : {"eq", "comp", "ott", "limiter"}) {
+            for (const auto& def : audio::effects::fable::fableDynamicsParams(kind)) {
+                if (def.id == key) { return true; }
+            }
+        }
+        for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
+            for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+                if (def.id == key) { return true; }
+            }
+        }
+    }
+    return false;
+}
+bool isFableLogParam(const QString& param) {
+    const std::string key = param.toStdString();
+    for (const char* kind : {"eq", "comp", "ott", "limiter"}) {
+        for (const auto& def : audio::effects::fable::fableDynamicsParams(kind)) {
+            if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+        }
+    }
+    for (const char* kind : {"drive", "chorus", "echo", "reverb"}) {
+        for (const auto& def : audio::effects::fable::fableColorTimeParams(kind)) {
+            if (def.id == key) { return def.curve == audio::effects::fable::ParamCurve::Log; }
+        }
+    }
     return false;
 }
 void attach(const nt::Timeline& tl,audio::MixPlan& plan) {
+    refreshMixerAutomation(tl,plan);
     for (auto& bus : plan.tracks) {
         const auto* track=tl.findTrack(bus.trackId);
-        if (!track || (track->type!=TrackType::Audio && track->type!=TrackType::Midi)) { continue; }
+        if (!track || track->raw["automationMode"] == "off" || (track->type!=TrackType::Audio && track->type!=TrackType::Midi)) { continue; }
         const auto lanes=track->raw["automation"].toArray();
-        for (const auto& v : lanes) {
-            const auto lane=v.toObject(),target=lane["target"].toObject();
-            const auto points=lane["points"].toArray();
-            if (lane["enabled"]==false || points.empty() || target["kind"]!="mixer") { continue; }
-            const bool gain=target["param"]=="volumeDb";
-            auto source=std::make_shared<Ramp>(points,gain,gain,!gain);
-            if (gain) { bus.gainSource=std::move(source); } else { bus.panSource=std::move(source); }
-        }
         for (auto& processor : bus.processors) {
-            QString type;
+            if (processor->drivesDeviceAutomation()) { continue; }
+            QString type = processor->id == "instrument" ? QStringLiteral("instrument") : QString{};
             for (const auto& fx : track->raw["effects"].toArray()) { if (fx.toObject()["id"].toString().toStdString()==processor->id) { type=fx.toObject()["type"].toString(); break; } }
             std::vector<Parameter> parameters;
             for (const auto& v : lanes) {
@@ -107,7 +282,8 @@ void attach(const nt::Timeline& tl,audio::MixPlan& plan) {
                 const auto points=lane["points"].toArray(); const auto param=target["param"].toString();
                 if (lane["enabled"]==false || points.empty() || target["kind"]!="device" || target["deviceId"].toString().toStdString()!=processor->id || !supports(type,param)) { continue; }
                 const bool gain=type=="gain";
-                const bool curved=gain || (type=="eq3" && param.endsWith("Freq")) || (type=="filter" && param=="frequency");
+                const bool curved=gain || (type=="eq3" && param.endsWith("Freq")) || (type=="filter" && param=="frequency")
+                                  || (type=="fable" && isFableLogParam(param));
                 parameters.push_back({param.toStdString(),Ramp(points,gain,curved),gain});
             }
             if (!parameters.empty()) { processor=std::make_shared<AutomatedInsert>(processor,std::move(parameters),type=="compressor"); }
@@ -116,6 +292,42 @@ void attach(const nt::Timeline& tl,audio::MixPlan& plan) {
 }
 }
 
+void refreshMixerAutomation(const nt::Timeline& tl,audio::MixPlan& plan) {
+    const auto* previousMaster=dynamic_cast<const LiveParameter*>(plan.gainSource.get());
+    const auto masterCurve=previousMaster ? previousMaster->curve() : plan.gainSource;
+    if (tl.masterMixerOverride) {
+        // Plans share the atomic handoff and the render continuation across publication.
+        plan.gainSource=std::make_shared<LiveParameter>(tl.masterMixerOverride,masterCurve,true,previousMaster ? previousMaster->glide() : nullptr);
+    } else { plan.gainSource=masterCurve; }
+    for (auto& bus:plan.tracks) {
+        const auto* track=tl.findTrack(bus.trackId);
+        if (!track || (track->type!=TrackType::Audio && track->type!=TrackType::Midi)) { continue; }
+        const auto* previousGain=dynamic_cast<const LiveParameter*>(bus.gainSource.get());
+        const auto* previousPan=dynamic_cast<const LiveParameter*>(bus.panSource.get());
+        const auto gainGlide=previousGain ? previousGain->glide() : nullptr;
+        const auto panGlide=previousPan ? previousPan->glide() : nullptr;
+        std::unique_ptr<const audio::ParameterSource> gainCurve,panCurve;
+        if (track->raw["automationMode"]!="off") {
+            for (const auto& v:track->raw["automation"].toArray()) {
+                const auto lane=v.toObject(),target=lane["target"].toObject(); const auto points=lane["points"].toArray();
+                if (lane["enabled"]==false || points.empty() || target["kind"]!="mixer") { continue; }
+                const bool gain=target["param"]=="volumeDb";
+                auto source=std::make_unique<Ramp>(points,gain,gain,!gain);
+                if (gain) { gainCurve=std::move(source); } else { panCurve=std::move(source); }
+            }
+        }
+        if (track->mixerOverride) {
+            bus.gainSource=std::make_shared<LiveParameter>(track->mixerOverride,std::move(gainCurve),true,gainGlide);
+            bus.panSource=std::make_shared<LiveParameter>(track->mixerOverride,std::move(panCurve),false,panGlide);
+        } else {
+            bus.gainSource=std::move(gainCurve); bus.panSource=std::move(panCurve);
+        }
+    }
+}
+
+audio::MixPlanStageToken registerLiveDeviceOverrides() {
+    return audio::registerMixPlanStage("liveDevices",attachLiveDevices,98);
+}
 audio::MixPlanStageToken registerMixerAutomation() {
     return audio::registerMixPlanStage("automation", attach, 100);
 }

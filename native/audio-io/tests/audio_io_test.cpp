@@ -174,6 +174,8 @@ void nullDevicePlaysAndCloses() {
     }
     check(selectorCalled && !device->selectedDevice(), "the selector runs and an empty choice keeps the default device");
     check(device->sampleRate() == 48000.0 && device->channels() == 2, "the device reports its rate and layout");
+    check(device->periodFrames() > 0 && device->internalSampleRate() > 0.0,
+          "the device reports its internal period and rate");
     check(device->backendName() == "Null", "the null backend is selected");
     const auto latency = device->outputLatency();
     check(std::isfinite(latency.seconds) && latency.seconds >= 0.0 && !latency.coreAudio, "the null device reports its buffer latency");

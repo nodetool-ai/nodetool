@@ -1,6 +1,6 @@
 import { createDockLayoutModel, type DockLayout } from "../dock/DockLayout";
 
-/** Every panel the timeline editor can dock. `program` and `tracks` are required. */
+/** Every panel the timeline editor can dock. `tracks` is required. */
 export const TIMELINE_PANEL_IDS = [
   "program", "source", "tracks", "transcript", "storyboard",
   "inspector", "effectControls", "motion", "color", "shot", "instruments",
@@ -56,14 +56,14 @@ function createPreset(name: string): DockLayout {
 }
 
 /**
- * The timeline editor's dock. The program monitor and the tracks are required,
+ * The timeline editor's dock. The tracks are required,
  * the tracks may take most of the height, and layouts persist under
  * `nodetool.timeline-layout.v1`.
  */
 export const timelineDockLayoutModel = createDockLayoutModel({
   editorLabel: "timeline",
   persistKeyPrefix: "nodetool.timeline-layout.v1",
-  requiredPanels: ["program", "tracks"],
+  requiredPanels: ["tracks"],
   presets: TIMELINE_WORKSPACES,
   maxBottomFraction: 0.75,
   createPreset

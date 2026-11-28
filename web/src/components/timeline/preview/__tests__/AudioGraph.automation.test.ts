@@ -140,7 +140,7 @@ describe("AudioGraph automation", () => {
       { timeMs: 2000, value: 1 }
     ]);
     await graph.scheduleClips([], [audioTrack([pan])], 0, undefined, 2);
-    const ramps = ctx.pans[0].calls.filter(([name]) => name === "ramp");
+    const ramps = ctx.pans[1].calls.filter(([name]) => name === "ramp");
     expect(ramps).toEqual([["ramp", 1, 11]]);
   });
 
@@ -170,7 +170,7 @@ describe("AudioGraph automation", () => {
     const edited = { ...pan, points: [{ timeMs: 0, value: 0 }, { timeMs: 1000, value: -1 }] };
     graph.updateTracks([audioTrack([edited])]);
     await Promise.resolve();
-    const calls = ctx.pans[0].calls;
+    const calls = ctx.pans[1].calls;
     const lastSet = calls.filter(([name]) => name === "set").at(-1)!;
     expect(lastSet[1]).toBeCloseTo(-0.25);
     expect(lastSet[2]).toBeCloseTo(10.25);
@@ -207,7 +207,78 @@ describe("AudioGraph automation", () => {
     const off = { ...lane({ kind: "mixer", param: "pan" }, [{ timeMs: 0, value: 1 }]), enabled: false };
     const empty = lane({ kind: "mixer", param: "volumeDb" }, []);
     await graph.scheduleClips([], [audioTrack([off, empty])], 0);
-    expect(ctx.pans[0].calls.some(([name]) => name === "set")).toBe(false);
+    expect(ctx.pans[1].calls.some(([name]) => name === "set")).toBe(false);
     expect(ctx.gains.some((g) => g.calls.some(([name]) => name === "ramp" || name === "set"))).toBe(false);
+  });
+
+  it("plays no lane of a track whose automation mode is off", async () => {
+    const ctx = new FakeContext();
+    const graph = new AudioGraph(ctx as unknown as BaseAudioContext);
+    const volume = lane({ kind: "mixer", param: "volumeDb" }, [{ timeMs: 0, value: -20 }, { timeMs: 1000, value: 0 }]);
+    await graph.scheduleClips([], [audioTrack([volume], { automationMode: "off" })], 0);
+    expect(ctx.gains.some((g) => g.calls.some(([name]) => name === "ramp"))).toBe(false);
+  });
+
+  it("plays a write-mode lane except the target a recording pass holds", async () => {
+    const ctx = new FakeContext();
+    const graph = new AudioGraph(ctx as unknown as BaseAudioContext);
+    const volume = lane({ kind: "mixer", param: "volumeDb" }, [{ timeMs: 0, value: -20 }, { timeMs: 1000, value: 0 }]);
+    const pan = lane({ kind: "mixer", param: "pan" }, [{ timeMs: 0, value: -1 }, { timeMs: 1000, value: 1 }]);
+    const track = audioTrack([volume, pan], { automationMode: "write" });
+    await graph.scheduleClips([], [track], 0);
+    graph.setMixerOverride("a1", "volumeDb", -4);
+    graph.updateTracks([{ ...track, automation: [{ ...volume }, { ...pan }] }]);
+    await Promise.resolve();
+    // The held fader plays the control's value; the pan lane still ramps.
+    const fader = ctx.gains.find((g) =>
+      g.calls.some(([name, value]) => name === "target" && Math.abs(value - dbToGain(-4)) < 1e-9)
+    );
+    expect(fader).toBeDefined();
+    expect(ctx.pans[1].calls.some(([name]) => name === "ramp")).toBe(true);
+    graph.setMixerOverride("a1", "volumeDb", null);
+  });
+
+  it("returns a released override to the lane, without a track edit in between", async () => {
+    const ctx = new FakeContext();
+    const graph = new AudioGraph(ctx as unknown as BaseAudioContext);
+    const volume = lane({ kind: "mixer", param: "volumeDb" }, [{ timeMs: 0, value: -20 }, { timeMs: 1000, value: 0 }]);
+    const track = audioTrack([volume]);
+    graph.updateTracks([track]);
+    await graph.scheduleClips([], [track], 0);
+    const fader = rampedGain(ctx);
+    graph.setMixerOverride("a1", "volumeDb", -4);
+    const held = fader.calls.length;
+    graph.setMixerOverride("a1", "volumeDb", null);
+    await Promise.resolve();
+    expect(fader.calls.slice(held).some(([name]) => name === "ramp")).toBe(true);
+  });
+
+  it("returns a released override to the track's own value when no lane plays", async () => {
+    const ctx = new FakeContext();
+    const graph = new AudioGraph(ctx as unknown as BaseAudioContext);
+    const track = audioTrack([]);
+    graph.getContext();
+    graph.updateTracks([track]);
+    graph.setMixerOverride("a1", "volumeDb", -4);
+    graph.setMixerOverride("a1", "volumeDb", null);
+    const fader = ctx.gains.find((g) =>
+      g.calls.some(([name, value]) => name === "target" && Math.abs(value - dbToGain(-4)) < 1e-9)
+    )!;
+    const last = fader.calls.filter(([name]) => name === "target").at(-1)!;
+    expect(last[1]).toBeCloseTo(dbToGain(-6), 9);
+  });
+
+  it("drops the override of a deleted track", () => {
+    const ctx = new FakeContext();
+    const graph = new AudioGraph(ctx as unknown as BaseAudioContext);
+    const track = audioTrack([]);
+    graph.getContext();
+    graph.updateTracks([track]);
+    graph.setMixerOverride("a1", "volumeDb", -4);
+    graph.updateTracks([]);
+    graph.updateTracks([track]);
+    const faders = ctx.gains.filter((g) => g.calls.length > 0);
+    const last = faders[faders.length - 1].calls.filter(([name]) => name === "target").at(-1)!;
+    expect(last[1]).toBeCloseTo(dbToGain(-6), 9);
   });
 });

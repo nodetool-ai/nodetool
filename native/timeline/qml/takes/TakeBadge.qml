@@ -1,5 +1,6 @@
 // nt-panel: slot=clipBody id=takeBadge order=20 title="Take"
-// The current take and the take count on a clip with more than one.
+// The current take and the take count on a clip with more than one. A music
+// clip shows its count in its name band instead (music/MusicClipJob.qml).
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -10,12 +11,12 @@ Item {
     property var timeline: null
     property var gestures: null
     property var viewState: null
-    readonly property string badge: TakeInfo.badge(clip)
+    readonly property string badge: clip.takeBadge || ""
     anchors.fill: parent
 
     Rectangle {
-        objectName: "takeBadge-" + root.clip.id
-        visible: root.badge !== "" && root.width >= width + 2 * Ui.Metrics.md
+        objectName: "takeBadge-" + root.clip.clipId
+        visible: root.badge !== "" && root.clip.audioRole !== "music" && root.width >= width + 2 * Ui.Metrics.md
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Ui.Metrics.xs

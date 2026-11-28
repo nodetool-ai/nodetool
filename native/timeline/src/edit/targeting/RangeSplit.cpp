@@ -92,6 +92,10 @@ void splitMediaTracks(QJsonArray& mediaTracks, const QString& originalId, QJsonO
     mediaTracks = next;
 }
 }
+QJsonObject sliceMediaTrack(QJsonObject track, const QJsonObject& clip) { return reslice(std::move(track), clip); }
+void splitOwnedMediaTracks(QJsonArray& tracks, const QString& originalId, QJsonObject& left, QJsonObject& right) {
+    splitMediaTracks(tracks, originalId, left, right);
+}
 RangeResult splitRangeClips(const ClipList& clips, const QJsonArray& mediaTracks, double atMs, const IdSet& targets) {
     const auto contains = [atMs](const auto& c) {
         return !isGroupClip(c) && atMs > clipStartMs(c) && atMs < clipEndMs(c);

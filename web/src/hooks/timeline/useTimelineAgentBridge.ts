@@ -11,12 +11,20 @@
  * stays addressable by id. The handler is cleared on unmount.
  */
 
-import { isShortResourceId } from "@nodetool-ai/protocol";
+import {
+  isFullResourceId,
+  isShortResourceId,
+  listsByDirectory,
+  projectDirectoryId
+} from "@nodetool-ai/protocol";
+import { midiInstrument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type {
   ClipAnimation,
   ClipModel3DStylePatch,
   MidiInstrument,
   QuantizeOptions,
+  StepPattern,
+  StepPatternLibraryKind,
   TimelineBeat,
   TimelineClip,
   TimelineMarker,
@@ -25,18 +33,41 @@ import type {
   TimelineTrack
 } from "@nodetool-ai/timeline";
 import {
+  STEP_PATTERN_ASSET_CONTENT_TYPE,
+  STEP_PATTERN_FOLDER_METADATA_KEY,
+  STEP_PATTERN_METADATA_KEY,
+  activeLoopMs,
+  autoCrossfadeMsOf,
+  chordTrackFor,
   createTimeOrderedUuid,
+  expandMidiLoop,
+  loopRepeatCount,
+  normalizePattern,
+  normalizeStepPatternFolderPath,
   presetIdForInstrument,
-  resolveTempo
+  resolveTempo,
+  stepPatternFolderName,
+  stepPatternRootFolder,
+  visibleNotes
 } from "@nodetool-ai/timeline";
 import {
   applyTimelineOp,
+  collectStepPatternFolders,
   resolveBeatTarget,
+  resolveCreateStepPatternFolderTarget,
+  resolveMoveDestinationFolder,
+  resolveUserStepPatternRef,
+  chordTrackFields,
+  keyLabel,
+  serializeMaster,
+  signatureLabel,
+  type FullStepPatternLibrary,
   type TimelineOp,
   type TimelineOpAsset,
   type TimelineOpContext,
   type TimelineOpResult,
-  type TimelineOpState
+  type TimelineOpState,
+  type TimelineOpUserStepPattern
 } from "@nodetool-ai/timeline/ops";
 import { parseSvgPath } from "@nodetool-ai/timeline/scene";
 import { useEffect, useMemo } from "react";
@@ -53,6 +84,7 @@ import {
 } from "./usePlanBeats";
 
 import { renderRasterClipFrames } from "../../components/timeline/preview/rasterClipFrames";
+import { createBrowserPluginHost } from "../../components/timeline/daw/devices/vstBridge";
 import {
   getTimelineAgentHandler,
   hasTimelineAgentHandler,
@@ -88,6 +120,7 @@ import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
 import { trpcClient } from "../../trpc/client";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import { persistAdaptedTimeline } from "./useCreateFormatAdaptation";
+import { decodeAssetAudio } from "./useDetectClipBeats";
 import { useModel3DBake } from "./useModel3DBake";
 import { useBlockoutReference } from "./useBlockoutReference";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
@@ -162,16 +195,449 @@ function sourceTimeForTimelineTime(
   return Math.max(0, inPointMs + (timelineTimeMs - clipStart) * speed);
 }
 
+function slugForBrowserPatternFile(name: string, fallback: string): string {
+  return trimDashes(name.trim().replace(/[^\w.-]+/g, "-")) || fallback;
+}
+
+/** `value` without leading and trailing dashes, in one linear pass. */
+function trimDashes(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === "-") start++;
+  while (end > start && value[end - 1] === "-") end--;
+  return value.slice(start, end);
+}
+
+/**
+ * Browser-backed step pattern library (SQ43, SQ44, D92).
+ * Exposes `list`, `save`, `listFolders`, `createFolder`, `renameFolder`,
+ * `deleteFolder`, and `movePattern` for both the `ui_timeline_*` agent tools
+ * and the Pattern Browser UI.
+ */
+export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
+  const scanLibrary = async () => {
+    const store = useAssetStore.getState();
+    const { assets } = await store.load({
+      content_type: STEP_PATTERN_ASSET_CONTENT_TYPE
+    });
+
+    type BrowserFolderAsset = {
+      type: "folder";
+      id: string;
+      kind: StepPatternLibraryKind;
+      name: string;
+      folder: string;
+      asset: (typeof assets)[number];
+    };
+    type BrowserPatternAsset = {
+      type: "pattern";
+      entry: TimelineOpUserStepPattern;
+      asset: (typeof assets)[number];
+    };
+
+    const read = async (
+      asset: (typeof assets)[number]
+    ): Promise<BrowserFolderAsset | BrowserPatternAsset | null> => {
+      const folderMeta =
+        asset.metadata &&
+        typeof asset.metadata === "object" &&
+        typeof asset.metadata[STEP_PATTERN_FOLDER_METADATA_KEY] === "object" &&
+        asset.metadata[STEP_PATTERN_FOLDER_METADATA_KEY] !== null
+          ? (asset.metadata[STEP_PATTERN_FOLDER_METADATA_KEY] as Record<
+              string,
+              unknown
+            >)
+          : null;
+      if (folderMeta && typeof folderMeta.folder === "string") {
+        const kind: StepPatternLibraryKind =
+          folderMeta.kind === "template" ? "template" : "pattern";
+        const folder = normalizeStepPatternFolderPath(kind, folderMeta.folder);
+        const name =
+          typeof folderMeta.name === "string"
+            ? folderMeta.name
+            : stepPatternFolderName(folder);
+        return { type: "folder", id: asset.id, kind, name, folder, asset };
+      }
+
+      const url = getAssetUrl(asset);
+      if (!url) return null;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const parsed = (await response.json()) as unknown;
+        if (!parsed || typeof parsed !== "object") {
+          return null;
+        }
+        const rec = parsed as Record<string, unknown>;
+        if (rec.entryType === "folder" && typeof rec.folder === "string") {
+          const kind: StepPatternLibraryKind =
+            rec.kind === "template" ? "template" : "pattern";
+          const folder = normalizeStepPatternFolderPath(kind, rec.folder);
+          const name =
+            typeof rec.name === "string"
+              ? rec.name
+              : stepPatternFolderName(folder);
+          return { type: "folder", id: asset.id, kind, name, folder, asset };
+        }
+        if (!rec.pattern || typeof rec.pattern !== "object") {
+          return null;
+        }
+        const meta =
+          asset.metadata &&
+          typeof asset.metadata === "object" &&
+          typeof asset.metadata[STEP_PATTERN_METADATA_KEY] === "object" &&
+          asset.metadata[STEP_PATTERN_METADATA_KEY] !== null
+            ? (asset.metadata[STEP_PATTERN_METADATA_KEY] as Record<
+                string,
+                unknown
+              >)
+            : {};
+        const name =
+          typeof meta.name === "string"
+            ? meta.name
+            : typeof rec.name === "string"
+              ? rec.name
+              : asset.name;
+        const kind: StepPatternLibraryKind =
+          meta.kind === "template" || rec.kind === "template"
+            ? "template"
+            : "pattern";
+        const category =
+          typeof rec.category === "string"
+            ? rec.category
+            : kind === "template"
+              ? "templates"
+              : "user";
+        const tags = Array.isArray(rec.tags)
+          ? rec.tags.filter((t): t is string => typeof t === "string")
+          : [kind, "user"];
+        const rawFolder =
+          typeof meta.folder === "string"
+            ? meta.folder
+            : typeof rec.folder === "string"
+              ? rec.folder
+              : undefined;
+        const folder =
+          rawFolder !== undefined
+            ? normalizeStepPatternFolderPath(kind, rawFolder)
+            : undefined;
+        const parsedInstrument =
+          rec.instrument !== undefined
+            ? midiInstrument.safeParse(rec.instrument)
+            : null;
+        const rawInstrumentPreset =
+          typeof rec.instrumentPreset === "string"
+            ? rec.instrumentPreset.trim()
+            : typeof meta.instrumentPreset === "string"
+              ? meta.instrumentPreset.trim()
+              : "";
+        const instrumentPreset =
+          rawInstrumentPreset.length > 0 ? rawInstrumentPreset : undefined;
+        const entry: TimelineOpUserStepPattern = {
+          id: asset.id,
+          name,
+          kind,
+          category,
+          tags,
+          pattern: normalizePattern(rec.pattern as Partial<StepPattern>)
+        };
+        if (folder !== undefined) entry.folder = folder;
+        if (parsedInstrument?.success) entry.instrument = parsedInstrument.data as MidiInstrument;
+        if (instrumentPreset !== undefined) entry.instrumentPreset = instrumentPreset;
+        return { type: "pattern", asset, entry };
+      } catch {
+        // Skip unreadable user pattern assets without breaking the library list.
+        return null;
+      }
+    };
+
+    const items = await Promise.all(assets.map(read));
+    const folderAssets: BrowserFolderAsset[] = [];
+    const patternAssets: BrowserPatternAsset[] = [];
+    for (const item of items) {
+      if (!item) continue;
+      if (item.type === "folder") folderAssets.push(item);
+      else patternAssets.push(item);
+    }
+    return { folderAssets, patternAssets };
+  };
+
+  const rewriteBrowserPatternFolder = async (
+    item: {
+      entry: TimelineOpUserStepPattern;
+      asset: {
+        id: string;
+        project_id?: string;
+        metadata?: Record<string, unknown> | null;
+      };
+    },
+    nextFolder: string
+  ): Promise<void> => {
+    const store = useAssetStore.getState();
+    const category =
+      item.entry.category ??
+      (item.entry.kind === "template" ? "templates" : "user");
+    const tags = [...(item.entry.tags ?? [item.entry.kind, "user"])];
+    const instrumentFields: { instrument?: MidiInstrument; instrumentPreset?: string } = {};
+    if (item.entry.instrument) instrumentFields.instrument = structuredClone(item.entry.instrument);
+    if (item.entry.instrumentPreset) instrumentFields.instrumentPreset = item.entry.instrumentPreset;
+    const presetField: { instrumentPreset?: string } = {};
+    if (item.entry.instrumentPreset) presetField.instrumentPreset = item.entry.instrumentPreset;
+    const nextEnvelope = {
+      version: 1 as const,
+      name: item.entry.name,
+      kind: item.entry.kind,
+      category,
+      tags,
+      folder: nextFolder,
+      pattern: item.entry.pattern,
+      ...instrumentFields
+    };
+    const prevMeta =
+      item.asset.metadata &&
+      typeof item.asset.metadata === "object" &&
+      typeof item.asset.metadata[STEP_PATTERN_METADATA_KEY] === "object" &&
+      item.asset.metadata[STEP_PATTERN_METADATA_KEY] !== null
+        ? (item.asset.metadata[STEP_PATTERN_METADATA_KEY] as Record<
+            string,
+            unknown
+          >)
+        : {};
+    const parentField: { parent_id?: string } = {};
+    if (listsByDirectory(item.asset.project_id)) {
+      parentField.parent_id = projectDirectoryId(item.asset.project_id, nextFolder);
+    }
+    await store.update({
+      id: item.asset.id,
+      ...parentField,
+      metadata: {
+        ...(item.asset.metadata ?? {}),
+        [STEP_PATTERN_METADATA_KEY]: {
+          ...prevMeta,
+          name: item.entry.name,
+          kind: item.entry.kind,
+          folder: nextFolder,
+          category,
+          tags,
+          ...presetField
+        }
+      },
+      data: `${JSON.stringify(nextEnvelope, null, 2)}\n`
+    });
+  };
+
+  return {
+    async list(): Promise<TimelineOpUserStepPattern[]> {
+      const { patternAssets } = await scanLibrary();
+      return patternAssets.map((p) => p.entry);
+    },
+    async listFolders() {
+      const { folderAssets, patternAssets } = await scanLibrary();
+      return collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        patternAssets.map((p) => p.entry)
+      );
+    },
+    async save({ name, kind, folder, pattern, instrument, instrumentPreset }) {
+      let folderInput = folder;
+      const trimmedFolder = folderInput?.trim();
+      if (
+        trimmedFolder &&
+        (isShortResourceId(trimmedFolder) || isFullResourceId(trimmedFolder))
+      ) {
+        const { folderAssets, patternAssets } = await scanLibrary();
+        const allFolders = collectStepPatternFolders(
+          folderAssets.map((f) => ({
+            id: f.id,
+            kind: f.kind,
+            folder: f.folder
+          })),
+          patternAssets.map((p) => p.entry)
+        );
+        folderInput = resolveMoveDestinationFolder(
+          allFolders,
+          kind,
+          trimmedFolder
+        );
+      }
+      const fullFolder = normalizeStepPatternFolderPath(kind, folderInput);
+      const category = kind === "template" ? "templates" : "user";
+      const tags = [kind, "user"];
+      const savedInstrument = instrument ? structuredClone(instrument) : undefined;
+      const savedInstrumentPreset =
+        instrumentPreset ??
+        (savedInstrument ? presetIdForInstrument(savedInstrument) : undefined);
+      const presetField: { instrumentPreset?: string } = {};
+      if (savedInstrumentPreset) presetField.instrumentPreset = savedInstrumentPreset;
+      const instrumentFields: { instrument?: MidiInstrument; instrumentPreset?: string } = {};
+      if (savedInstrument) instrumentFields.instrument = savedInstrument;
+      if (savedInstrumentPreset) instrumentFields.instrumentPreset = savedInstrumentPreset;
+      const envelope = {
+        version: 1 as const,
+        name,
+        kind,
+        category,
+        tags,
+        folder: fullFolder,
+        pattern: normalizePattern(structuredClone(pattern)),
+        ...instrumentFields
+      };
+      const fileSlug = slugForBrowserPatternFile(name, "pattern");
+      const file = new File(
+        [`${JSON.stringify(envelope, null, 2)}\n`],
+        `${fileSlug}.step-pattern.json`,
+        { type: STEP_PATTERN_ASSET_CONTENT_TYPE }
+      );
+      const store = useAssetStore.getState();
+      const created = await store.createAsset(
+        file,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        fullFolder
+      );
+      if (typeof store.update === "function") {
+        await store
+          .update({
+            id: created.id,
+            metadata: {
+              ...(created.metadata ?? {}),
+              [STEP_PATTERN_METADATA_KEY]: {
+                name,
+                kind,
+                folder: fullFolder,
+                category,
+                tags,
+                ...presetField
+              }
+            }
+          })
+          .catch(() => undefined);
+      }
+      return { id: created.id, assetId: created.id, folder: fullFolder };
+    },
+    async createFolder({ kind, name, parentFolder }) {
+      const { folderAssets, patternAssets } = await scanLibrary();
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        patternAssets.map((p) => p.entry)
+      );
+      const target = resolveCreateStepPatternFolderTarget(allFolders, {
+        kind,
+        name,
+        parentFolder
+      });
+      const envelope = {
+        version: 1 as const,
+        entryType: "folder" as const,
+        kind: target.kind,
+        name: target.name,
+        folder: target.folder
+      };
+      const fileSlug = slugForBrowserPatternFile(target.name, "folder");
+      const file = new File(
+        [`${JSON.stringify(envelope, null, 2)}\n`],
+        `folder-${fileSlug}.step-pattern.json`,
+        { type: STEP_PATTERN_ASSET_CONTENT_TYPE }
+      );
+      const store = useAssetStore.getState();
+      const created = await store.createAsset(
+        file,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        target.folder
+      );
+      if (typeof store.update === "function") {
+        await store
+          .update({
+            id: created.id,
+            metadata: {
+              ...(created.metadata ?? {}),
+              [STEP_PATTERN_FOLDER_METADATA_KEY]: {
+                kind: target.kind,
+                name: target.name,
+                folder: target.folder
+              }
+            }
+          })
+          .catch(() => undefined);
+      }
+      return {
+        id: created.id,
+        name: target.name,
+        kind: target.kind,
+        folder: target.folder,
+        parentFolder: target.parentFolder
+      };
+    },
+    async renameFolder({ folder, newName, kind }) {
+      const result = await trpcClient.timeline.stepPatternFolders.rename.mutate(
+        {
+          folder,
+          newName,
+          kind
+        }
+      );
+      useAssetStore.getState().invalidateQueries?.(["assets"]);
+      return result;
+    },
+    async deleteFolder({ folder, kind }) {
+      const result = await trpcClient.timeline.stepPatternFolders.delete.mutate(
+        {
+          folder,
+          kind
+        }
+      );
+      useAssetStore.getState().invalidateQueries?.(["assets"]);
+      return result;
+    },
+    async movePattern({ pattern, folder }) {
+      const { folderAssets, patternAssets } = await scanLibrary();
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        patternAssets.map((p) => p.entry)
+      );
+      const match = resolveUserStepPatternRef(
+        patternAssets.map((p) => p.entry),
+        pattern
+      );
+      const targetFolder = resolveMoveDestinationFolder(
+        allFolders,
+        match.kind,
+        folder
+      );
+      const previousFolder = match.folder ?? stepPatternRootFolder(match.kind);
+      const item = patternAssets.find((p) => p.entry.id === match.id)!;
+      await rewriteBrowserPatternFolder(item, targetFolder);
+      return {
+        id: match.id,
+        name: match.name,
+        kind: match.kind,
+        previousFolder,
+        folder: targetFolder
+      };
+    }
+  };
+}
+
 /** Serialize a clip to the agent-facing shape. */
 function toClipNode(
   clip: TimelineClip,
-  trackById: Map<string, TimelineTrack>
+  trackById: Map<string, TimelineTrack>,
+  tempo: TimelineTempo,
+  tracks: readonly TimelineTrack[]
 ): TimelineClipNode {
+  const track = trackById.get(clip.trackId);
   return {
     id: clip.id,
     name: clip.name,
     trackId: clip.trackId,
-    trackName: trackById.get(clip.trackId)?.name ?? null,
+    trackName: track?.name ?? null,
     mediaType: clip.mediaType,
     sourceType: clip.sourceType,
     bindingKind: clip.bindingKind,
@@ -180,6 +646,12 @@ function toClipNode(
     endMs: clip.startMs + clip.durationMs,
     inPointMs: clip.inPointMs,
     outPointMs: clip.outPointMs,
+    loopLengthMs: clip.loopLengthMs,
+    transpose: clip.transpose,
+    velocityOffset: clip.velocityOffset,
+    quantize: clip.quantize,
+    loopRepeats:
+      activeLoopMs(clip) !== undefined ? loopRepeatCount(clip) : undefined,
     status: clip.status,
     hasRender: !!clip.currentAssetId,
     activeTakeId: clip.activeTakeId,
@@ -214,7 +686,30 @@ function toClipNode(
           keyframeCount: clip.reframe.keyframes?.length ?? 0
         }
       : undefined,
-    noteCount: clip.mediaType === "midi" ? (clip.notes?.length ?? 0) : undefined
+    noteCount: clip.mediaType === "midi" ? (clip.notes?.length ?? 0) : undefined,
+    controllerLaneCount: clip.controllers?.length,
+    pattern: clip.pattern
+      ? `${clip.pattern.rows.length} rows x ${clip.pattern.lengthSteps} @${clip.pattern.stepRate}`
+      : undefined,
+    patternName: clip.pattern?.name,
+    audibleNoteCount:
+      clip.mediaType === "midi"
+        ? (() => {
+            const chords = clip.pattern
+              ? chordTrackFor(clip.harmony, tracks)?.chords
+              : undefined;
+            return visibleNotes(
+              expandMidiLoop(
+                clip,
+                tempo.bpm,
+                tempo.offsetMs,
+                track?.instrument,
+                { chords, key: tempo.key }
+              ),
+              tempo.bpm
+            ).length;
+          })()
+        : undefined
   };
 }
 
@@ -251,9 +746,10 @@ function toMarkerNode(marker: TimelineMarker): TimelineMarkerNode {
 
 function toTrackNode(
   track: TimelineTrack,
-  clipCount: number
+  clipCount: number,
+  tempoDoc?: { tempo?: TimelineTempo }
 ): TimelineTrackNode {
-  return {
+  const node: TimelineTrackNode = {
     id: track.id,
     name: track.name,
     type: track.type,
@@ -263,12 +759,23 @@ function toTrackNode(
     muted: !!track.muted,
     solo: !!track.solo,
     clipCount,
+    volumeDb: track.volumeDb,
+    pan: track.pan,
+    heightPx: track.heightPx,
+    folderId: track.folderId,
+    musicRole: track.musicRole,
+    effectCount: track.effects?.length ?? 0,
+    automationMode: track.automationMode,
+    automationLaneCount: track.automation?.length ?? 0,
     instrument: track.type === "midi" ? track.instrument : undefined,
     presetId:
       track.type === "midi" && track.instrument
         ? presetIdForInstrument(track.instrument)
         : undefined
   };
+  if (track.type !== "chord" || !tempoDoc) return node;
+  // The chart that headless `get_state` returns, so a section edit can be read back.
+  return { ...node, ...chordTrackFields(tempoDoc as never, track) };
 }
 
 export const useTimelineAgentBridge = (
@@ -295,6 +802,8 @@ export const useTimelineAgentBridge = (
         markers: state.markers,
         mediaTracks: state.mediaTracks,
         tempo: state.tempo,
+        music: state.music,
+        master: state.master,
         setup: state.setup,
         transcript: state.transcript,
         scriptEnabled: state.scriptEnabled,
@@ -319,6 +828,10 @@ export const useTimelineAgentBridge = (
       };
       const task = pending.then(async () => {
         const assets = new Map<string, TimelineOpAsset | null>();
+        const decodedAudio = new Map<
+          string,
+          Promise<{ samples: Float32Array; sampleRate: number } | null>
+        >();
         const ids = new Map<string, string[]>();
         let positions = new Map<string, number>();
         const context: TimelineOpContext = {
@@ -334,6 +847,23 @@ export const useTimelineAgentBridge = (
           followLinks: doc.getState().linkedSelection,
           parseSvgPath,
           allowUnknownMediaDuration: true,
+          decodeClipAudio: async (clip) => {
+            if (!clip.currentAssetId) {
+              return null;
+            }
+            const assetId = clip.currentAssetId;
+            let decoded = decodedAudio.get(assetId);
+            if (!decoded) {
+              // An unreadable file reads as no audio, as on the headless host,
+              // and a failure is not kept, so a retry decodes again.
+              decoded = decodeAssetAudio(assetId).catch(() => {
+                decodedAudio.delete(assetId);
+                return null;
+              });
+              decodedAudio.set(assetId, decoded);
+            }
+            return decoded;
+          },
           resolveAsset: async (ref) => {
             if (assets.has(ref)) {
               return assets.get(ref) ?? null;
@@ -359,6 +889,8 @@ export const useTimelineAgentBridge = (
             assets.set(ref, resolved);
             return resolved;
           },
+          stepPatternLibrary: createBrowserStepPatternLibrary(),
+          pluginHost: createBrowserPluginHost(),
           // The browser renders a Blockout reference itself, through the
           // three.js session the preview uses.
           renderModel3DReference: (request) =>
@@ -390,28 +922,126 @@ export const useTimelineAgentBridge = (
             name: sequence.name
           });
         }
+        const skipsDocumentWrite =
+          op.op === "get_state" ||
+          op.op === "list_animation_presets" ||
+          op.op === "list_instruments" ||
+          op.op === "list_tracks" ||
+          op.op === "list_takes" ||
+          op.op === "list_progressions" ||
+          op.op === "list_harmony_presets" ||
+          op.op === "get_pattern" ||
+          op.op === "list_step_patterns" ||
+          op.op === "save_step_pattern" ||
+          op.op === "create_step_pattern_folder" ||
+          op.op === "rename_step_pattern_folder" ||
+          op.op === "delete_step_pattern_folder" ||
+          op.op === "move_step_pattern" ||
+          op.op === "list_plugins" ||
+          op.op === "list_plugin_presets" ||
+          op.op === "get_plugin_parameters" ||
+          op.op === "retarget_format" ||
+          op.op === "select_clip" ||
+          op.op === "seek" ||
+          (op.op === "detect_chords" && op.write === false);
         assertSameSequence();
+        // Keep side-effecting out-of-process plugin mutations idempotent across
+        // concurrent store updates and cap retries so the loop stays bounded.
+        const MAX_CONCURRENT_OP_RETRIES = 3;
+        const basePluginHost = context.pluginHost;
+        let cachedSelectPreset:
+          | {
+              instance: string;
+              path: string;
+              uid: string;
+              result: Awaited<ReturnType<NonNullable<typeof basePluginHost>["selectPreset"]>>;
+            }
+          | undefined;
+        let cachedSetParameters:
+          | {
+              instance: string;
+              path: string;
+              uid: string;
+              result: Awaited<ReturnType<NonNullable<typeof basePluginHost>["setParameters"]>>;
+            }
+          | undefined;
+        const opContext: TimelineOpContext = basePluginHost
+          ? {
+              ...context,
+              pluginHost: {
+                ...basePluginHost,
+                selectPreset: async (req) => {
+                  if (cachedSelectPreset) {
+                    if (
+                      cachedSelectPreset.instance === req.instance &&
+                      cachedSelectPreset.path === req.plugin.path &&
+                      cachedSelectPreset.uid === req.plugin.uid
+                    ) {
+                      return cachedSelectPreset.result;
+                    }
+                    throw new Error(
+                      "Plugin slot changed concurrently while applying select_plugin_preset."
+                    );
+                  }
+                  const result = await basePluginHost.selectPreset(req);
+                  cachedSelectPreset = {
+                    instance: req.instance,
+                    path: req.plugin.path,
+                    uid: req.plugin.uid,
+                    result
+                  };
+                  return result;
+                },
+                setParameters: async (req) => {
+                  if (cachedSetParameters) {
+                    if (
+                      cachedSetParameters.instance === req.instance &&
+                      cachedSetParameters.path === req.plugin.path &&
+                      cachedSetParameters.uid === req.plugin.uid
+                    ) {
+                      return cachedSetParameters.result;
+                    }
+                    throw new Error(
+                      "Plugin slot changed concurrently while applying set_plugin_parameters."
+                    );
+                  }
+                  const result = await basePluginHost.setParameters(req);
+                  cachedSetParameters = {
+                    instance: req.instance,
+                    path: req.plugin.path,
+                    uid: req.plugin.uid,
+                    result
+                  };
+                  return result;
+                }
+              }
+            }
+          : context;
         let before = doc.getState();
-        let outcome = await applyTimelineOp(stateOf(), op, context);
-        while (doc.getState() !== before && op.op !== "retarget_format") {
+        let outcome = await applyTimelineOp(stateOf(), op, opContext);
+        let retries = 0;
+        while (doc.getState() !== before && !skipsDocumentWrite) {
+          if (retries >= MAX_CONCURRENT_OP_RETRIES) {
+            throw new Error(
+              `Timeline changed concurrently while applying ${op.op}; retry limit (${MAX_CONCURRENT_OP_RETRIES}) exceeded.`
+            );
+          }
+          retries++;
           assertSameSequence();
           before = doc.getState();
           positions = new Map();
-          outcome = await applyTimelineOp(stateOf(), op, context);
+          outcome = await applyTimelineOp(stateOf(), op, opContext);
         }
         assertSameSequence();
         if (outcome.error) {
           throw new Error(outcome.error);
         }
         if (
-          op.op !== "get_state" &&
-          op.op !== "list_animation_presets" &&
-          op.op !== "list_instruments" &&
-          op.op !== "list_tracks" &&
-          op.op !== "list_takes" &&
-          op.op !== "retarget_format" &&
-          op.op !== "select_clip" &&
-          op.op !== "seek"
+          !skipsDocumentWrite &&
+          !(
+            op.op === "detect_chords" &&
+            (outcome.result as { written?: unknown }).written === false
+          )
         ) {
           doc.getState().applyAgentEdit(
             {
@@ -627,8 +1257,10 @@ export const useTimelineAgentBridge = (
       throw new Error(`Track not found on the timeline: ${target}`);
     };
 
-    const clipNode = (clip: TimelineClip): TimelineClipNode =>
-      toClipNode(clip, trackMap());
+    const clipNode = (clip: TimelineClip): TimelineClipNode => {
+      const state = doc.getState();
+      return toClipNode(clip, trackMap(), resolveTempo(state), state.tracks);
+    };
 
     const reReadClip = (id: string): TimelineClip => {
       const clip = doc.getState().clips.find((c) => c.id === id);
@@ -673,6 +1305,7 @@ export const useTimelineAgentBridge = (
             (clipCountByTrack.get(c.trackId) ?? 0) + 1
           );
         }
+        const tempo = resolveTempo(state);
         return {
           sequenceId: state.sequenceId,
           fps: state.fps,
@@ -682,9 +1315,9 @@ export const useTimelineAgentBridge = (
           playheadMs: Math.round(playback.getState().getTimeMs()),
           selectedClipIds: [...ui.getState().selectedClipIds],
           tracks: tracks.map((t) =>
-            toTrackNode(t, clipCountByTrack.get(t.id) ?? 0)
+            toTrackNode(t, clipCountByTrack.get(t.id) ?? 0, state)
           ),
-          clips: state.clips.map((c) => toClipNode(c, map)),
+          clips: state.clips.map((c) => toClipNode(c, map, tempo, tracks)),
           markers: state.markers.map(toMarkerNode),
           mediaTracks: state.mediaTracks.map((track) => ({
             id: track.id,
@@ -693,7 +1326,13 @@ export const useTimelineAgentBridge = (
             kind: track.kind,
             status: track.status
           })),
-          tempo: resolveTempo(state)
+          tempo,
+          music: state.music,
+          autoCrossfadeMs: autoCrossfadeMsOf(state),
+          key: keyLabel(tempo) ?? null,
+          signature: signatureLabel(tempo),
+          master: serializeMaster(state.master),
+          trackFolders: state.trackFolders ?? []
         };
       },
 
@@ -946,8 +1585,13 @@ export const useTimelineAgentBridge = (
         return clipNode(reReadClip(clip.id));
       },
 
-      async splitClip(target, atMs) {
-        const result = await editOp({ op: "split_clip", target, atMs });
+      async splitClip(target, atMs, extra) {
+        const result = await editOp({
+          op: "split_clip",
+          target,
+          atMs,
+          ...extra
+        });
         if (!Array.isArray(result.clips)) {
           throw new Error("Split returned no clips.");
         }
@@ -972,9 +1616,29 @@ export const useTimelineAgentBridge = (
         return node;
       },
 
-      async duplicateClip(target, gapMs) {
-        const result = await editOp({ op: "duplicate_clip", target, gapMs });
-        return clipNode(reReadClip(resultClipId(result)));
+      async duplicateClip(target, gapMs, extra) {
+        const result = await editOp({
+          op: "duplicate_clip",
+          target,
+          gapMs,
+          ...extra
+        });
+        const node = clipNode(reReadClip(resultClipId(result)));
+        const copies = Array.isArray(result.clips)
+          ? (result.clips as { id?: unknown }[]).flatMap((c) =>
+              typeof c.id === "string" ? [clipNode(reReadClip(c.id))] : []
+            )
+          : undefined;
+        const children = Array.isArray(result.children)
+          ? (result.children as string[])
+          : undefined;
+        const duplicated: typeof node & {
+          clips?: typeof copies;
+          children?: string[];
+        } = { ...node };
+        if (copies) duplicated.clips = copies;
+        if (children) duplicated.children = children;
+        return duplicated;
       },
 
       async setClipParams(target, patch) {
@@ -1195,7 +1859,11 @@ export const useTimelineAgentBridge = (
             pitch: note.pitch,
             start_tick: note.startTick,
             duration_tick: note.durationTick,
-            velocity: note.velocity
+            velocity: note.velocity,
+            muted: note.muted,
+            channel: note.channel,
+            release_velocity: note.releaseVelocity,
+            expression: note.expression
           }))
         });
         return clipNode(reReadClip(resultClipId(result)));
@@ -1210,7 +1878,11 @@ export const useTimelineAgentBridge = (
             pitch: note.pitch,
             start_tick: note.startTick,
             duration_tick: note.durationTick,
-            velocity: note.velocity
+            velocity: note.velocity,
+            muted: note.muted,
+            channel: note.channel,
+            release_velocity: note.releaseVelocity,
+            expression: note.expression
           }))
         });
         return clipNode(requireClip(target));
@@ -1222,7 +1894,8 @@ export const useTimelineAgentBridge = (
           bpm: tempo.bpm,
           beats_per_bar: tempo.timeSignature.beatsPerBar,
           beat_unit: tempo.timeSignature.beatUnit,
-          offset_ms: tempo.offsetMs
+          offset_ms: tempo.offsetMs,
+          key: tempo.key ?? null
         });
         return handlerImpl.getSnapshot();
       },

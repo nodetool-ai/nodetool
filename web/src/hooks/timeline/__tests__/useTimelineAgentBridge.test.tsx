@@ -36,6 +36,7 @@ import {
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
 import { useTimelineAgentBridge } from "../useTimelineAgentBridge";
 import { useLastModelStore } from "../../../stores/lastModelStore";
+import { DEFAULT_TIMELINE_INSTRUMENT } from "../../../stores/timeline/instrumentPresets";
 /** The waveform of a voice, when the voice is the built-in synth. */
 const waveformOf = (instrument: MidiInstrument | undefined) =>
   instrument?.type === "subtractive" ? instrument.waveform : undefined;
@@ -44,6 +45,11 @@ let mockUi: TimelineUIStoreApi;
 let mockPlayback: TimelinePlaybackStoreApi;
 const mockStartEdit = jest.fn();
 const mockAssetGet = jest.fn();
+const mockDecodeAssetAudio = jest.fn();
+jest.mock("../useDetectClipBeats", () => ({
+  ...jest.requireActual("../useDetectClipBeats"),
+  decodeAssetAudio: (assetId: string) => mockDecodeAssetAudio(assetId)
+}));
 // The hook reads its three stores off the surrounding editor's contexts; a test
 // hands it standalone instances instead of mounting a whole TimelineEditor.
 jest.mock("../../../stores/timeline/TimelineStore", () => ({
@@ -616,6 +622,27 @@ describe("useTimelineAgentBridge midi", () => {
       })
     ).rejects.toThrow(/midi track/i);
   });
+  it("shows the chord chart of a chord track, as headless get_state does", () => {
+    mockDoc.getState().addTrack("chord", "Chords");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.setState({
+      tracks: mockDoc.getState().tracks.map((t) =>
+        t.id === trackId
+          ? {
+              ...t,
+              chords: [
+                { id: "c1", startTick: 0, durationTick: 3840, root: 0, quality: "maj", inversion: 0 }
+              ]
+            }
+          : t
+      )
+    } as never);
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const node = getTimelineAgentHandler(SEQ_ID).getSnapshot().tracks[0];
+    expect(node.chordCount).toBe(1);
+    expect(node.chordChart).toBeDefined();
+    expect(node.signature).toBe("4/4");
+  });
   it("reports the resolved tempo even when the document stores none", async () => {
     await seedMidi();
     expect(getTimelineAgentHandler(SEQ_ID).getSnapshot().tempo).toEqual({
@@ -652,6 +679,43 @@ describe("useTimelineAgentBridge midi", () => {
     const clip = snapshot.clips.find((c) => c.id === clipId)!;
     expect(clip.startMs).toBe(2000);
     expect(clip.durationMs).toBe(4000);
+  });
+  it("writes the master bus, the key, the crossfade, automation and controllers through the shared ops", async () => {
+    const clipId = await seedMidi();
+    mockDoc.setState({ music: {} });
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    const trackId = clipById(clipId).trackId;
+    await handler.applyOp({ op: "set_track", track: "master", volumeDb: -4 } as never);
+    await handler.applyOp({
+      op: "set_tempo",
+      bpm: 120,
+      key: { tonic: "D", mode: "minor" },
+      auto_crossfade_ms: 30
+    } as never);
+    await handler.applyOp({
+      op: "set_track",
+      track: trackId,
+      automationMode: "write",
+      automation: [
+        { target: { kind: "mixer", param: "pan" }, points: [{ timeMs: 0, value: 0.5 }] }
+      ]
+    } as never);
+    await handler.applyOp({
+      op: "set_notes",
+      clip: clipId,
+      controllers: [{ kind: "cc", cc: 1, points: [{ tick: 0, value: 50 }] }]
+    } as never);
+    const state = mockDoc.getState();
+    expect(state.master?.volumeDb).toBe(-4);
+    expect(state.tempo?.key).toEqual({ tonic: "D", mode: "minor" });
+    expect(state.music?.autoCrossfadeMs).toBe(30);
+    const track = state.tracks.find((t) => t.id === trackId)!;
+    expect(track.automationMode).toBe("write");
+    expect(track.automation).toHaveLength(1);
+    expect(clipById(clipId).controllers).toHaveLength(1);
+    const snapshot = handler.getSnapshot();
+    expect(snapshot.master?.volumeDb).toBe(-4);
+    expect(snapshot.tracks.find((t) => t.id === trackId)?.automationLaneCount).toBe(1);
   });
   it("sets a midi track's instrument and reports it in the snapshot", async () => {
     await seedMidi();
@@ -859,11 +923,11 @@ describe("shared timeline fixtures through the web handler", () => {
     it(fixture.tool, async () => {
       const initial = directState();
       mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
-      const expected = await applyTimelineOp(
-        initial,
-        fixture.op,
-        directContext(initial)
-      );
+      // The web bridge creates MIDI tracks with the web default instrument.
+      const expected = await applyTimelineOp(initial, fixture.op, {
+        ...directContext(initial),
+        defaultMidiInstrument: DEFAULT_TIMELINE_INSTRUMENT
+      });
       expect(expected.error).toBeUndefined();
       const context = directContext(initial);
       renderHook(() => useTimelineAgentBridge(SEQ_ID, context));
@@ -875,6 +939,9 @@ describe("shared timeline fixtures through the web handler", () => {
       expect(state.mediaTracks).toEqual(expected.state.mediaTracks ?? []);
       expect(state.setup).toEqual(expected.state.setup);
       expect(state.tempo).toEqual(expected.state.tempo);
+      expect(state.master).toEqual(expected.state.master);
+      expect(state.music).toEqual(expected.state.music);
+      expect(state.trackFolders).toEqual(expected.state.trackFolders ?? []);
     });
   }
   for (const fixture of HOST_OP_FIXTURES) {
@@ -1118,5 +1185,127 @@ describe("useTimelineAgentBridge target resolution", () => {
     release();
     await expect(pendingEdit).rejects.toThrow("open timeline changed");
     expect(mockDoc.getState().clips).toEqual([]);
+  });
+});
+
+describe("detect_chords on an audio clip through the web handler", () => {
+  it("reads the chords of the decoded clip audio", async () => {
+    const sampleRate = 22050;
+    const hz = (p: number) => 440 * 2 ** ((p - 69) / 12);
+    // 120 bpm 4/4: one bar is 2 s. C then G.
+    const samples = new Float32Array(4 * sampleRate);
+    [[60, 64, 67], [55, 59, 62]].forEach((pitches, bar) => {
+      for (let i = 0; i < 2 * sampleRate; i++) {
+        const at = bar * 2 * sampleRate + i;
+        samples[at] =
+          pitches.reduce(
+            (a, p) => a + Math.sin((2 * Math.PI * hz(p) * at) / sampleRate),
+            0
+          ) / 6;
+      }
+    });
+    mockDecodeAssetAudio.mockResolvedValue({ samples, sampleRate });
+    mockDoc.getState().addTrack("audio", "Stem");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "stem",
+        name: "Stem",
+        trackId,
+        mediaType: "audio",
+        sourceType: "imported",
+        currentAssetId: "asset-1",
+        startMs: 0,
+        durationMs: 4000
+      })
+    );
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const result = await getTimelineAgentHandler(SEQ_ID).applyOp({
+      op: "detect_chords",
+      clipIds: ["stem"],
+      write: false
+    });
+    expect(mockDecodeAssetAudio).toHaveBeenCalledWith("asset-1");
+    expect(mockDecodeAssetAudio).toHaveBeenCalledTimes(1);
+    expect(result.chart).toBe("| C | G |");
+  });
+
+  const addStem = () => {
+    mockDoc.getState().addTrack("audio", "Stem");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "stem",
+        name: "Stem",
+        trackId,
+        mediaType: "audio",
+        sourceType: "imported",
+        currentAssetId: "asset-1",
+        startMs: 0,
+        durationMs: 4000
+      })
+    );
+  };
+
+  it("does not commit an edit when a silent range wrote nothing", async () => {
+    mockDecodeAssetAudio.mockResolvedValue({
+      samples: new Float32Array(4 * 22050),
+      sampleRate: 22050
+    });
+    addStem();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const before = mockDoc.getState().clips;
+    const result = await getTimelineAgentHandler(SEQ_ID).applyOp({
+      op: "detect_chords",
+      clipIds: ["stem"]
+    });
+    expect(result.written).toBe(false);
+    expect(mockDoc.getState().clips).toBe(before);
+  });
+
+  it("reports an unreadable file with the clip named, and decodes again on a retry", async () => {
+    mockDecodeAssetAudio.mockReset();
+    mockDecodeAssetAudio.mockRejectedValueOnce(new Error("bad data"));
+    addStem();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    await expect(
+      handler.applyOp({ op: "detect_chords", clipIds: ["stem"], write: false })
+    ).rejects.toThrow(/Could not read the audio of clip "Stem"/);
+    mockDecodeAssetAudio.mockResolvedValueOnce({
+      samples: new Float32Array(22050),
+      sampleRate: 22050
+    });
+    const retry = await handler.applyOp({
+      op: "detect_chords",
+      clipIds: ["stem"],
+      write: false
+    });
+    expect(retry.ok).toBe(true);
+    expect(mockDecodeAssetAudio).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("useTimelineAgentBridge duplicateClip parity", () => {
+  it("returns every copy in `clips` when count is above 1", async () => {
+    mockDoc.getState().addTrack("video", "Video 1");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "src",
+        name: "Src",
+        trackId,
+        mediaType: "video",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 500
+      })
+    );
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const result = await getTimelineAgentHandler(SEQ_ID).duplicateClip("src", 0, {
+      count: 3
+    });
+    expect(result.clips).toHaveLength(3);
+    expect(result.clips?.[0].id).toBe(result.id);
   });
 });

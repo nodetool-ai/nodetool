@@ -16,14 +16,14 @@ import { useShallow } from "zustand/react/shallow";
 import {
   DEFAULT_MIDI_INSTRUMENT,
   effectiveAssetId,
-  harmonizeClips,
+  instrumentCutoffControls,
+  mergeTrackMidiControllers,
   midiRenderKey,
-  previewTake,
   resolveTempo,
+  tracksWithPatternAutomation,
   videoClipsWithOwnAudio
 } from "@nodetool-ai/timeline";
 import type {
-  HarmonyDocument,
   MidiInstrument,
   TimelineClip,
   TimelineTrack
@@ -63,13 +63,13 @@ import {
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import type { TimelineAudition } from "../../../stores/timeline/TimelineUIStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
 import type { ScheduledAudioClip } from "./AudioGraph";
 import { AudioScrubber } from "./audioScrub";
-import { getMidiClipBuffer } from "./midiRender";
+import { getMidiClipBuffer, liveMidiScheduleKey } from "./midiRender";
+import { auditionedClips } from "./auditionedClips";
 import { PreviewCompositor } from "./PreviewCompositor";
 import { getAssetMediaUrl } from "../../../utils/assetHelpers";
 import { useCombo } from "../../../stores/KeyPressedStore";
@@ -149,7 +149,9 @@ function isPendingAudioClip(
 ): boolean {
   if (clip.muted || clip.startMs + clip.durationMs <= atMs) return false;
   if (clip.mediaType === "midi") {
-    return (clip.notes?.length ?? 0) > 0;
+    return (
+      (clip.notes?.length ?? 0) > 0 || (clip.controllers?.length ?? 0) > 0
+    );
   }
   if (clip.mediaType === "video") return ownAudio.has(clip.id);
   return clip.mediaType === "audio" && effectiveAssetId(clip) !== undefined;
@@ -163,6 +165,22 @@ function instrumentForTrack(
   return (
     tracks.find((t) => t.id === trackId)?.instrument ?? DEFAULT_MIDI_INSTRUMENT
   );
+}
+
+/**
+ * Merge overlapping same-track controller clips onto note-bearing MIDI clips on
+ * pre-rendered tracks so controller-only patterns affect overlapping note clips.
+ * Live-device tracks share one device across all clips and schedule per clip.
+ */
+function clipsForPreviewAudio(
+  clips: TimelineClip[],
+  tracks: readonly TimelineTrack[],
+  tempo: { bpm: number; offsetMs: number }
+): TimelineClip[] {
+  return mergeTrackMidiControllers(clips, tempo, {
+    shouldMergeTrack: (trackId) =>
+      !liveDeviceFactory(instrumentForTrack(tracks, trackId))
+  });
 }
 
 const containerStyles = (theme: Theme) =>
@@ -354,25 +372,6 @@ const PlaybackScrubber: React.FC<PlaybackScrubberProps> = memo(
   }
 );
 PlaybackScrubber.displayName = "PlaybackScrubber";
-
-/**
- * The clips as the audio graph should hear them. Auditioning a take swaps its
- * media into the clip for preview only, the same projection the picture uses
- * in `PreviewCompositor`, so a Preview Candidate on an audio take is heard.
- */
-function auditionedClips(
-  clips: TimelineClip[],
-  audition: TimelineAudition | null,
-  doc: HarmonyDocument
-): TimelineClip[] {
-  // A midi clip with `harmony` sounds its arp or comp expansion.
-  const heard = harmonizeClips(clips, doc);
-  if (!audition) return heard;
-  const target = heard.find((clip) => clip.id === audition.clipId);
-  const preview = target && previewTake(target, audition.takeId);
-  if (!target || !preview) return heard;
-  return heard.map((clip) => (clip.id === target.id ? preview : clip));
-}
 
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
   ({
@@ -591,8 +590,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     useEffect(() => {
       const graph = graphRef.current;
       if (!graph.context) return;
-      graph.updateTracks(tracks);
-    }, [tracks]);
+      const state = timelineApi.getState();
+      graph.updateTracks(
+        tracksWithPatternAutomation(state.tracks, state.clips, state)
+      );
+    }, [tracks, timelineApi]);
 
     // The master channel is kept by the graph until its context exists.
     useEffect(() => {
@@ -618,15 +620,36 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       ): Promise<ScheduledAudioClip | null> => {
         if (clip.mediaType === "midi") {
           const state = timelineApi.getState();
-          if (liveDeviceFactory(instrumentForTrack(state.tracks, clip.trackId))) {
-            return { clip, live: { bpm: resolveTempo(state).bpm } };
+          const instrument = instrumentForTrack(state.tracks, clip.trackId);
+          const tempo = resolveTempo(state);
+          if (liveDeviceFactory(instrument)) {
+            return {
+              clip,
+              live: {
+                bpm: tempo.bpm,
+                gridOffsetMs: tempo.offsetMs
+              }
+            };
           }
           try {
+            const ctx = graphRef.current.getContext();
+            const effectiveTracks = tracksWithPatternAutomation(
+              state.tracks,
+              state.clips,
+              state
+            );
+            const track = effectiveTracks.find((t) => t.id === clip.trackId);
+            const controls =
+              instrument.type === "subtractive"
+                ? instrumentCutoffControls(track, clip, ctx.sampleRate)
+                : undefined;
             const buffer = await getMidiClipBuffer(
-              graphRef.current.getContext(),
+              ctx,
               clip,
-              resolveTempo(state).bpm,
-              instrumentForTrack(state.tracks, clip.trackId)
+              tempo.bpm,
+              instrument,
+              tempo.offsetMs,
+              controls
             );
             return { clip, buffer };
           } catch {
@@ -671,16 +694,31 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const midiKey = (() => {
           if (clip.mediaType !== "midi") return null;
           const state = timelineApi.getState();
+          const instrument = instrumentForTrack(state.tracks, clip.trackId);
+          const tempo = resolveTempo(state);
           // A live device plays the notes as they are; its sound follows the
           // instrument without rescheduling, so only the notes and tempo key it.
-          if (liveDeviceFactory(instrumentForTrack(state.tracks, clip.trackId))) {
-            return JSON.stringify({ notes: clip.notes ?? [], bpm: resolveTempo(state).bpm });
+          if (liveDeviceFactory(instrument)) {
+            return liveMidiScheduleKey(clip, tempo.bpm, tempo.offsetMs);
           }
+          const sampleRate = graphRef.current.context?.sampleRate ?? 48_000;
+          const effectiveTracks = tracksWithPatternAutomation(
+            state.tracks,
+            state.clips,
+            state
+          );
+          const track = effectiveTracks.find((t) => t.id === clip.trackId);
+          const controls =
+            instrument.type === "subtractive"
+              ? instrumentCutoffControls(track, clip, sampleRate)
+              : undefined;
           return midiRenderKey({
             clip,
-            bpm: resolveTempo(state).bpm,
-            instrument: instrumentForTrack(state.tracks, clip.trackId),
-            sampleRate: graphRef.current.context?.sampleRate ?? 48_000
+            bpm: tempo.bpm,
+            gridOffsetMs: tempo.offsetMs,
+            controls,
+            instrument,
+            sampleRate
           });
         })();
         return JSON.stringify({
@@ -691,6 +729,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           trackId: clip.trackId,
           startMs: clip.startMs,
           durationMs: clip.durationMs,
+          loopLengthMs: clip.loopLengthMs ?? null,
           inPointMs: clip.inPointMs ?? 0,
           outPointMs: clip.outPointMs ?? null,
           speedMultiplier: clip.speedMultiplier ?? 1,
@@ -733,10 +772,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           while (!isStale()) {
             const atMs = position();
             const state = timelineApi.getState();
-            const clipsNow = auditionedClips(
-              state.clips,
-              useTimelineUIStore.getState().audition,
-              state
+            const clipsNow = clipsForPreviewAudio(
+              auditionedClips(
+                state.clips,
+                useTimelineUIStore.getState().audition,
+                state
+              ),
+              state.tracks,
+              resolveTempo(state)
             );
             const ownAudio = ownAudioClipIds(clipsNow, state.tracks);
             const sounding = clipsNow.filter((clip) =>
@@ -752,7 +795,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             // the destination before acknowledging the pending scrub request.
             await graph.playGrain(
               resolved.filter((c): c is ScheduledAudioClip => c !== null),
-              state.tracks,
+              tracksWithPatternAutomation(state.tracks, state.clips, state),
               atMs,
               () => isStale() || position() !== atMs
             );
@@ -795,16 +838,18 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const graph = graphRef.current;
         const liveMs = getTimeMs();
         const windowEndMs = liveMs + AUDIO_LOOKAHEAD_MS;
-        const clipsNow = auditionedClips(
-          timelineApi.getState().clips,
-          useTimelineUIStore.getState().audition,
-          timelineApi.getState()
+        const stateNow = timelineApi.getState();
+        const clipsNow = clipsForPreviewAudio(
+          auditionedClips(
+            stateNow.clips,
+            useTimelineUIStore.getState().audition,
+            stateNow
+          ),
+          stateNow.tracks,
+          resolveTempo(stateNow)
         );
         const clipIdsNow = new Set(clipsNow.map((c) => c.id));
-        const ownAudio = ownAudioClipIds(
-          clipsNow,
-          timelineApi.getState().tracks
-        );
+        const ownAudio = ownAudioClipIds(clipsNow, stateNow.tracks);
 
         const removedClipIds = [...scheduledClipIdsRef.current].filter(
           (id) => !clipIdsNow.has(id)
@@ -881,9 +926,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
         // Pass the clock reader: addClips awaits fetch and decode, and the
         // playhead keeps moving meanwhile.
+        const st = timelineApi.getState();
         await graph.addClips(
           validClips,
-          timelineApi.getState().tracks,
+          tracksWithPatternAutomation(st.tracks, st.clips, st),
           getTimeMs,
           isStale,
           playbackApi.getState().rate
@@ -928,6 +974,13 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     useEffect(
       () =>
         timelineApi.subscribe(() => {
+          const graph = graphRef.current;
+          if (graph.context) {
+            const st = timelineApi.getState();
+            graph.updateTracks(
+              tracksWithPatternAutomation(st.tracks, st.clips, st)
+            );
+          }
           if (!audioSessionActiveRef.current) return;
           const generation = playGenRef.current;
           queueTopUpAudio(
@@ -1049,17 +1102,19 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // Read fresh rather than closing over the reactive `clips` value so
       // this component never needs to subscribe to (and re-render on) the
       // clips array itself.
-      const clipsNow = auditionedClips(
-        timelineApi.getState().clips,
-        useTimelineUIStore.getState().audition,
-        timelineApi.getState()
+      const playState = timelineApi.getState();
+      const clipsNow = clipsForPreviewAudio(
+        auditionedClips(
+          playState.clips,
+          useTimelineUIStore.getState().audition,
+          playState
+        ),
+        playState.tracks,
+        resolveTempo(playState)
       );
       // Backwards playback (J) is picture only: the audio graph schedules
       // forward from a source position.
-      const ownAudio = ownAudioClipIds(
-        clipsNow,
-        timelineApi.getState().tracks
-      );
+      const ownAudio = ownAudioClipIds(clipsNow, playState.tracks);
       const remainingAudioClips =
         globalRate < 0
           ? []
@@ -1106,9 +1161,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // Clear any sources an older gesture registered, right before
       // scheduling the new ones — so the latest gesture always wins.
       graph.stopAll();
+      const st = timelineApi.getState();
       const anchorSec = await graph.scheduleClips(
         validClips,
-        tracks,
+        tracksWithPatternAutomation(st.tracks, st.clips, st),
         startMs,
         isStale,
         globalRate

@@ -1,0 +1,218 @@
+import sys
+import unittest
+
+sys.dont_write_bytecode = True
+from check_perf import check_connections, coarse_connections, check, loads, ratchet, result_from, update_budget
+from unittest.mock import patch
+import json
+import subprocess
+import tempfile
+from pathlib import Path
+
+
+class BudgetTest(unittest.TestCase):
+    def test_note_drag_cannot_rebuild_retained_geometry(self):
+        ceiling = {'noteLayerRebuildsDuringDrag': 0}
+        check({'noteLayerRebuildsDuringDrag': 0}, ceiling)
+        with self.assertRaises(ValueError):
+            check({'noteLayerRebuildsDuringDrag': 1}, ceiling)
+
+    def test_new_scenarios_need_explicit_adoption_without_raising_old_limits(self):
+        base = {'scenarios': {'old': {'objects': 2}}}
+        current = {'scenarios': {'old': {'objects': 1}, 'new': {'objects': 3}}}
+        with self.assertRaises(ValueError):
+            ratchet(current, base)
+        ratchet(current, base, allow_new=True)
+        current['scenarios']['old']['objects'] = 3
+        with self.assertRaises(ValueError):
+            ratchet(current, base, allow_new=True)
+        with self.assertRaises(ValueError):
+            ratchet({'scenarios': {'new': {'objects': 1}}}, base, allow_new=True)
+
+    def test_connection_audit_preserves_strings_and_aliases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'src').mkdir()
+            (root / 'src/model.cpp').write_text(
+                'QString url("https://example.test"); connect(m, &TimelineModel::timelineChanged, this, f);'
+                '\nconnect(m, SIGNAL(clipsChanged()), this, SLOT(f()));'
+                '\nauto coarse = &TimelineModel::clipsChanged; connect(m, coarse, this, f);'
+                '\nQString ignored("connect(m, &TimelineModel::clipsChanged, this, f);");')
+            self.assertEqual(coarse_connections(root),
+                             {'src/model.cpp': {'timelineChanged': 1, 'clipsChanged': 2}})
+
+    def test_connection_baseline_cannot_raise_prior_limits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'src').mkdir()
+            (root / 'src/model.cpp').write_text('// no connections')
+            with self.assertRaises(ValueError):
+                check_connections(root, {'src/model.cpp': {'clipsChanged': 2}},
+                                  {'src/model.cpp': {'clipsChanged': 1}})
+
+    def test_coarse_connections_only_decrease(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'src').mkdir()
+            source = root / 'src/model.cpp'
+            source.write_text('connect(model, &TimelineModel::timelineChanged, this, refresh);')
+            baseline = {'src/model.cpp': {'timelineChanged': 1}}
+            self.assertEqual(check_connections(root, baseline), baseline)
+            source.write_text(source.read_text() + '\nconnect(model, &TimelineModel::clipsChanged, this, refresh);')
+            with self.assertRaises(ValueError):
+                check_connections(root, baseline)
+            source.write_text('// connect(model, &TimelineModel::timelineChanged, this, refresh);')
+            self.assertEqual(check_connections(root, baseline), {})
+            source.unlink()
+            with self.assertRaises(ValueError):
+                coarse_connections(root)
+
+    def test_updates_merge_with_current_budget_and_publish_atomically(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'budget.json'
+            base = {'scenarios': {'scroll': {'objects': 10}, 'zoom': {'objects': 10}}}
+            path.write_text(json.dumps(base))
+            update_budget(path, 'scroll', {'objects': 4}, base)
+            update_budget(path, 'zoom', {'objects': 5}, base)
+            expected = {'scenarios': {'scroll': {'objects': 4}, 'zoom': {'objects': 5}}}
+            self.assertEqual(loads(path.read_text()), expected)
+            self.assertEqual(base['scenarios']['scroll']['objects'], 10)
+            with patch('check_perf.os.replace', side_effect=OSError('interrupted')):
+                with self.assertRaises(OSError):
+                    update_budget(path, 'scroll', {'objects': 3}, base)
+            self.assertEqual(loads(path.read_text()), expected)
+            with self.assertRaises(ValueError):
+                update_budget(path, 'scroll', {'objects': 6}, base)
+            self.assertEqual(loads(path.read_text()), expected)
+
+    def test_parallel_updates_keep_every_scenario(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'budget.json'
+            base = {'scenarios': {str(i): {'objects': 10} for i in range(16)}}
+            path.write_text(json.dumps(base))
+            with ThreadPoolExecutor(max_workers=8) as workers:
+                list(workers.map(lambda i: update_budget(path, str(i), {'objects': i % 10}, base), range(16)))
+            self.assertEqual(loads(path.read_text())['scenarios'],
+                             {str(i): {'objects': i % 10} for i in range(16)})
+
+    def test_cli_regression_and_restore(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary = root / 'fake-harness'
+            binary.write_text('#!' + sys.executable + '\nimport json\nprint("PERF_RESULT=" + json.dumps(' + repr({
+                'stress': {'clips': 2000, 'tracks': 64, 'notes': 20000, 'markers': 500},
+                'scene': {'pianoRollNotesCount': 2000}, 'counters': {'objects': 10}}) + '))\n')
+            binary.chmod(0o755)
+            budget = root / 'budget.json'
+            baseline = root / 'base.json'
+            def write(path, value):
+                path.write_text(json.dumps({'scenarios': {'playback': {'objects': value}}}))
+            write(budget, 10)
+            write(baseline, 10)
+            # Connection audits have separate fixtures. This CLI test isolates counter ceilings.
+            checker = root / 'checker.py'
+            checker.write_text('import sys\nsys.path.insert(0, ' + repr(str(Path(__file__).parent)) + ')\n'
+                               'from check_perf import main\nfrom unittest.mock import patch\n'
+                               'with patch("check_perf.check_connections"):\n    main()\n')
+            command = [sys.executable, str(checker),
+                       '--binary', str(binary), '--scenario', 'playback', '--budget', str(budget),
+                       '--base-budget', str(baseline), '--output', str(root / 'result.json')]
+            # A shallow checkout has no origin/main. A non-repository fixture
+            # proves the default gate needs only its committed budget file.
+            checkout_command = command.copy()
+            base_index = checkout_command.index('--base-budget')
+            del checkout_command[base_index:base_index + 2]
+            self.assertEqual(subprocess.run(checkout_command, capture_output=True).returncode, 0)
+            def run():
+                return subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(run().returncode, 0)
+            write(budget, 9)  # Real measured regression: 10 objects against 9.
+            regression = run()
+            self.assertNotEqual(regression.returncode, 0)
+            self.assertIn('10 exceeds 9', regression.stderr)
+            write(budget, 11)  # Loosening a ceiling is a separate ratchet failure.
+            increase = run()
+            self.assertNotEqual(increase.returncode, 0)
+            self.assertIn('11 exceeds 10', increase.stderr)
+            write(budget, 10)
+            self.assertEqual(run().returncode, 0)
+            write(budget, 9)
+            rejected = subprocess.run(command + ['--update'], capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertEqual(json.loads(budget.read_text())['scenarios']['playback']['objects'], 9)
+            write(budget, 10)
+            self.assertEqual(subprocess.run(command + ['--update'], capture_output=True).returncode, 0)
+            self.assertEqual(json.loads(budget.read_text())['scenarios']['playback']['objects'], 10)
+            write(budget, 11)
+            write(baseline, 11)
+            self.assertEqual(subprocess.run(command + ['--update'], capture_output=True).returncode, 0)
+            self.assertEqual(json.loads(budget.read_text())['scenarios']['playback']['objects'], 10)
+
+    def test_scenario_schema(self):
+        for scenarios in ({}, {'a': {'objects': 0}, 'b': {'objects': 0}}):
+            with self.assertRaises(ValueError):
+                ratchet({'scenarios': scenarios}, {'scenarios': {'a': {'objects': 0}}})
+
+    def test_non_finite_json(self):
+        for value in ('NaN', 'Infinity', '-Infinity'):
+            with self.assertRaises(ValueError):
+                loads('{"value":' + value + '}')
+
+    def test_result_rejects_playback_and_zoom_without_motion(self):
+        base = {'stress': {'clips': 2000, 'tracks': 64, 'notes': 20000, 'markers': 500},
+                'scene': {'pianoRollNotesCount': 2000}}
+        for scenario, motion in [('playback', {'clockAdvanceMs': 0}),
+                                 ('zoom', {'zoomInFrames': 60, 'zoomOutFrames': 0}),
+                                 ('zoom', {'zoomInFrames': 0, 'zoomOutFrames': 60})]:
+            with self.subTest(scenario=scenario, motion=motion):
+                with self.assertRaises(ValueError):
+                    result_from('PERF_RESULT=' + json.dumps(dict(base, scenario=scenario, motion=motion)))
+        for scenario, motion in [('playback', {'clockAdvanceMs': 2000}),
+                                 ('zoom', {'zoomInFrames': 60, 'zoomOutFrames': 60})]:
+            result_from('PERF_RESULT=' + json.dumps(dict(base, scenario=scenario, motion=motion)))
+
+    def test_result_validation(self):
+        valid = 'PERF_RESULT=' + json.dumps({'stress': {'clips': 2000, 'tracks': 64, 'notes': 20000, 'markers': 500}, 'scene': {'pianoRollNotesCount': 2000}})
+        result_from(valid)
+        for output in ('', valid + '\n' + valid, valid.replace('20000', '20')):
+            with self.assertRaises(ValueError):
+                result_from(output)
+
+    def test_lower_or_equal(self):
+        check({'objects': 9}, {'objects': 10})
+        check({'objects': 10}, {'objects': 10})
+
+    def test_reject_increase(self):
+        with self.assertRaises(ValueError):
+            check({'objects': 11}, {'objects': 10})
+
+    def test_new_write_back_counter_starts_at_zero(self):
+        base = {'scenarios': {'clip_drag': {'objects': 10}}}
+        budget = {'scenarios': {'clip_drag': {'objects': 10, 'valueTypeWriteBacks': 0}}}
+        ratchet(budget, base)
+        with self.assertRaises(ValueError):
+            check({'valueTypeWriteBacks': 1}, {'valueTypeWriteBacks': 0})
+        budget['scenarios']['clip_drag']['valueTypeWriteBacks'] = 1
+        with self.assertRaises(ValueError):
+            ratchet(budget, base)
+
+    def test_reject_missing_counter(self):
+        with self.assertRaises(ValueError):
+            check({}, {'objects': 10})
+
+    def test_reject_bad_types(self):
+        for value in (True, False, 1.5, float("inf"), float("nan"), -1):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    check({"objects": 0}, {"objects": value})
+                with self.assertRaises(ValueError):
+                    check({"objects": value}, {"objects": 10})
+
+    def test_reject_negative(self):
+        with self.assertRaises(ValueError):
+            check({'objects': -1}, {'objects': 10})
+
+
+if __name__ == '__main__':
+    unittest.main()

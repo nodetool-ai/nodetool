@@ -1,7 +1,7 @@
 file(REMOVE_RECURSE "${NT_TEST_DIR}")
 file(MAKE_DIRECTORY "${NT_TEST_DIR}/source/qml")
 file(WRITE "${NT_TEST_DIR}/source/CMakeLists.txt"
-    "cmake_minimum_required(VERSION 3.21)\nproject(MarkerDiscovery NONE)\ninclude(\"${NT_DISCOVERY}\")\n")
+    "cmake_minimum_required(VERSION 3.21)\nproject(MarkerDiscovery NONE)\nset(NT_QML_DISCOVERY_FILES qml/Probe.qml)\ninclude(\"${NT_DISCOVERY}\")\n")
 function(configure_marker marker expected)
     file(WRITE "${NT_TEST_DIR}/source/qml/Probe.qml" "${marker}\nimport QtQuick\nItem {}\n")
     execute_process(COMMAND "${CMAKE_COMMAND}" -S "${NT_TEST_DIR}/source" -B "${NT_TEST_DIR}/build"

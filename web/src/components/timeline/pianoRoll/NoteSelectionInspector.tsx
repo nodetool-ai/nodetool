@@ -1,32 +1,29 @@
-import type { ReactNode } from "react";
-import { moveNotes, setVelocity } from "@nodetool-ai/timeline";
+import { fitExpressionToDuration, moveNotes, setVelocity } from "@nodetool-ai/timeline";
 import type { MidiNote } from "@nodetool-ai/timeline";
 import { useTranslation } from "react-i18next";
-import { Caption, FlexRow, SPACING, TextInput } from "../../ui_primitives";
+import { Caption, FlexColumn, FlexRow, SPACING, TextInput } from "../../ui_primitives";
 
 /** Wide enough for "127" or "12.25" beside the number spinner. */
-const FIELD_WIDTH_PX = 76;
+/** The label column: every field starts at the same x. */
+const LABEL_COLUMN = "6ch";
 
 interface Props {
   notes: readonly MidiNote[];
   selectedIds: ReadonlySet<string>;
   beatTicks: number;
   onChange: (notes: MidiNote[]) => void;
-  /** Placed right after the Velocity field: the relative velocity slider. */
-  velocityAdjust?: ReactNode;
 }
 
 /**
- * Number fields for the selected notes, laid inline in the piano roll's
- * toolbar. Each field shows a short visible label; its accessible name is the
+ * Number fields for the selected notes, shown in the local inspector's Note
+ * section. Each field shows a short visible label; its accessible name is the
  * full one.
  */
 export function NoteSelectionInspector({
   notes,
   selectedIds,
   beatTicks,
-  onChange,
-  velocityAdjust
+  onChange
 }: Props) {
   const { t } = useTranslation();
   const selected = notes.filter((note) => selectedIds.has(note.id));
@@ -36,11 +33,11 @@ export function NoteSelectionInspector({
     (min, note) => Math.min(min, note.startTick),
     Infinity
   );
-  const common = (key: "durationTick" | "velocity") =>
-    first && selected.every((note) => note[key] === first[key])
-      ? first[key]
+  const common = (read: (note: MidiNote) => number) =>
+    first && selected.every((note) => read(note) === read(first))
+      ? read(first)
       : null;
-  const length = common("durationTick");
+  const length = common((note) => note.durationTick);
   const fields = [
     {
       id: "pitch",
@@ -79,10 +76,10 @@ export function NoteSelectionInspector({
       apply: (value: number) =>
         notes.map((note) =>
           selectedIds.has(note.id)
-            ? {
+            ? fitExpressionToDuration({
                 ...note,
                 durationTick: Math.max(1, Math.round(value * beatTicks))
-              }
+              })
             : note
         )
     },
@@ -90,18 +87,46 @@ export function NoteSelectionInspector({
       id: "velocity",
       label: t("pass3_20.pianoRoll.inspector.velocity"),
       short: t("pass3_20.pianoRoll.inspector.velocityShort"),
-      value: common("velocity"),
+      value: common((note) => note.velocity),
       min: 1,
       max: 127,
       step: 1,
       apply: (value: number) => setVelocity(notes, selectedIds, value)
+    },
+    {
+      id: "releaseVelocity",
+      label: t("pass3_20.pianoRoll.inspector.releaseVelocity"),
+      short: t("pass3_20.pianoRoll.inspector.releaseVelocityShort"),
+      // An absent release velocity plays as 0, so it reads as 0.
+      value: common((note) => note.releaseVelocity ?? 0),
+      min: 0,
+      max: 127,
+      step: 1,
+      apply: (value: number) =>
+        notes.map((note) =>
+          selectedIds.has(note.id) ? { ...note, releaseVelocity: value } : note
+        )
+    },
+    {
+      id: "channel",
+      label: t("pass3_20.pianoRoll.inspector.channel"),
+      short: t("pass3_20.pianoRoll.inspector.channelShort"),
+      // Shown 1..16, stored 0..15.
+      value: common((note) => (note.channel ?? 0) + 1),
+      min: 1,
+      max: 16,
+      step: 1,
+      apply: (value: number) =>
+        notes.map((note) =>
+          selectedIds.has(note.id) ? { ...note, channel: value - 1 } : note
+        )
     }
   ];
   return (
-    <FlexRow align="center" gap={SPACING.sm} sx={{ flexWrap: "wrap", rowGap: SPACING.xs }}>
+    <FlexColumn gap={SPACING.xs}>
       {fields.map((field) => (
-        <FlexRow key={field.id} align="center" gap={SPACING.xs}>
-          <Caption color="muted" aria-hidden sx={{ whiteSpace: "nowrap" }}>
+        <FlexRow key={field.id} align="center" gap={SPACING.sm}>
+          <Caption color="muted" aria-hidden sx={{ whiteSpace: "nowrap", width: LABEL_COLUMN, flexShrink: 0 }}>
             {field.short}
           </Caption>
           <TextInput
@@ -110,12 +135,16 @@ export function NoteSelectionInspector({
             hideLabel
             type="number"
             compact
-            fullWidth={false}
-            sx={{ width: FIELD_WIDTH_PX }}
+            fullWidth
             disabled={!first}
             defaultValue={field.value ?? ""}
-            placeholder={first ? t("pass3_20.pianoRoll.inspector.mixed") : "—"}
-            inputProps={{ min: field.min, max: field.max, step: field.step }}
+            placeholder={first ? "*" : "—"}
+            inputProps={{
+              min: field.min,
+              max: field.max,
+              step: field.step,
+              title: first && field.value === null ? t("pass3_20.pianoRoll.inspector.mixed") : undefined
+            }}
             onBlur={(event) => {
               const value = Math.round(Number(event.target.value) / field.step) * field.step;
               if (
@@ -137,9 +166,8 @@ export function NoteSelectionInspector({
                 (event.target as HTMLInputElement).blur();
             }}
           />
-          {field.id === "velocity" && velocityAdjust}
         </FlexRow>
       ))}
-    </FlexRow>
+    </FlexColumn>
   );
 }

@@ -12,6 +12,7 @@ Rectangle {
     objectName: "documentBar"
     required property TimelineModel timeline
     property QtObject autosave: null
+    property bool manualSaved: false
     // An open cloud timeline. Its synchronization status replaces the save
     // status.
     property CloudDocument cloudDocument: null
@@ -19,8 +20,8 @@ Rectangle {
     // sees Share, which opens the share dialog.
     property AccountController cloudAccount: null
     readonly property bool canShare: cloudDocument !== null && cloudAccount !== null && cloudDocument.role === "owner"
-    // The cloud servers and their accounts. Null hides the Account control,
-    // which shows the current server's account.
+    // The cloud servers and their accounts. Null leaves the File menu's
+    // account entries off.
     property AccountServers accountServers: null
     readonly property AccountController account: accountServers ? accountServers.current : null
     // The folder of the open timeline's project. With an account and
@@ -43,9 +44,9 @@ Rectangle {
     }
 
     Row {
-        x: Ui.Metrics.lg
+        x: Ui.Metrics.md
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Ui.Metrics.md
+        spacing: Ui.Metrics.sm
         Ui.EditorButton {
             id: documentProjectButton
             objectName: "documentProjectButton"
@@ -87,6 +88,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             // Without an autosave it stays idle and hidden.
             autosave: bar.cloudDocument === null ? bar.autosave : null
+            manualSaved: bar.cloudDocument === null && bar.manualSaved
             compact: bar.width < TimelineMetrics.compactDocumentBarWidth
         }
         Loader {
@@ -129,14 +131,14 @@ Rectangle {
         Row {
             id: leadingRow
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Ui.Metrics.md
+            spacing: Ui.Metrics.sm
         }
     }
     Row {
         anchors.right: parent.right
         anchors.rightMargin: Ui.Metrics.md
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Ui.Metrics.md
+        spacing: Ui.Metrics.xs
         ToolButton {
             objectName: "shareButton"
             anchors.verticalCenter: parent.verticalCenter
@@ -194,12 +196,34 @@ Rectangle {
                 onClosed: transferDialog.active = false
             }
         }
-        Loader {
+        // The File menu's account entries (AccountMenu.cpp) read and drive
+        // this item. It shows nothing in the bar: it only holds the server
+        // menu and the server dialog of the control.
+        Item {
+            id: accountMenuHost
             objectName: "documentAccount"
+            readonly property bool available: bar.account !== null
+            readonly property int state: bar.account ? bar.account.state : AccountController.SignedOut
+            readonly property bool signedIn: state === AccountController.SignedIn
+            readonly property bool signingIn: state === AccountController.SigningIn
+            readonly property bool cloudAvailable: bar.account !== null && bar.account.cloudAvailable
+            readonly property string displayName: bar.account ? bar.account.displayName : ""
+            readonly property bool canSwitchServer: bar.accountServers !== null && bar.accountServers.servers.length > 1
+            readonly property bool canShare: bar.canShare
+            function signIn() { if (!available || signedIn || signingIn) return false; bar.account.signIn(); return true }
+            function cancelSignIn() { if (!signingIn) return false; bar.account.cancelSignIn(); return true }
+            function signOut() { if (!signedIn) return false; bar.account.signOut(); return true }
+            function openServerDialog() { return accountControl.item ? accountControl.item.openServerDialog() : false }
+            function openServerMenu() { return accountControl.item ? accountControl.item.openServerMenu() : false }
+            function share() { if (!bar.canShare) return false; shareDialog.active = true; return true }
             anchors.verticalCenter: parent.verticalCenter
-            active: bar.account !== null
-            visible: active
-            sourceComponent: AccountControl { account: bar.account; servers: bar.accountServers }
+            width: 0
+            height: parent.height
+            Loader {
+                id: accountControl
+                active: bar.account !== null
+                sourceComponent: AccountControl { account: bar.account; servers: bar.accountServers; showInline: false }
+            }
         }
     }
 }

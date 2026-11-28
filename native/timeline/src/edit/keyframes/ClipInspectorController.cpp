@@ -17,12 +17,19 @@ void ClipInspectorController::setTimeline(TimelineModel* model) {
         connect(model, &TimelineModel::beforeCommand, this, [this] {
             if (m_gesturing) { cancelGesture(); m_ignoreCommit = true; }
         });
-        // Clip contents arrive on clipsChanged, a track lock on timelineChanged alone.
-        connect(model, &TimelineModel::clipsChanged, this, [this] {
-            if (m_active && m_timeline->clipTouched(m_clipId)) { refresh(); }
-        });
-        connect(model, &TimelineModel::timelineChanged, this, [this] {
-            if (m_active && computeLocked(m_clip) != m_locked) { refresh(); }
+        connect(model, &TimelineModel::changed, this, [this](const ChangeSet& changes) {
+            if (!m_active) { return; }
+            auto fields = changes.clips.value(m_clipId);
+            fields.remove("notes");
+            fields.remove("controllers");
+            if (!changes.fullReplacement && changes.clipChanged(m_clipId) && fields.isEmpty() &&
+                !changes.trackChanged(m_clip.value("trackId").toString())) {
+                // Notes and controller lanes are absent from every inspector property.
+                // Keep the internal document current without invalidating scalar bindings.
+                m_clip = selected();
+                return;
+            }
+            if (changes.clipChanged(m_clipId) || changes.trackChanged(m_clip.value("trackId").toString())) { refresh(); }
         });
         connect(model, &TimelineModel::documentReplaced, this, [this] {
             m_ignoreCommit = m_gesturing;
@@ -111,7 +118,12 @@ QJsonObject ClipInspectorController::selected() const {
 }
 QVariantMap ClipInspectorController::clip() const {
     if (!m_clipMapValid) {
-        m_clipMap = m_clip.toVariantMap();
+        auto fields = m_clip;
+        fields.remove("notes");
+        fields.remove("controllers");
+        fields.remove("versions");
+        if (m_timeline) { m_timeline->crossing("ClipInspector.clip", [&fields] { return fields; }); }
+        m_clipMap = fields.toVariantMap();
         m_clipMapValid = true;
     }
     return m_clipMap;
@@ -168,21 +180,46 @@ QVariantMap ClipInspectorController::rowState(const QString& row) const {
     state.insert("times", nt::keyframes::times(c, nt::keyframes::properties(row)).toVariantList());
     return state;
 }
+QJsonObject ClipInspectorController::rowClip() const {
+    const auto current = selected();
+    if (current != m_rowClip) {
+        m_rowClip = current;
+        m_playbackRows.clear();
+        m_documentRows.clear();
+        m_graphRows.clear();
+    }
+    return current;
+}
 QVariantMap ClipInspectorController::rowDocument(const QString& row) const {
-    const auto c = nt::keyframes::withBypassRestored(selected());
-    return {{"keyframed", nt::keyframes::helper("isRowKeyframed", {c, row}).toBool()},
-            {"blocked", nt::keyframes::rowDrivenElsewhere(c, row)},
-            {"times", nt::keyframes::times(c, nt::keyframes::properties(row)).toVariantList()}};
+    const auto clip = rowClip();
+    auto found = m_documentRows.constFind(row);
+    if (found == m_documentRows.cend()) {
+        const auto c = nt::keyframes::withBypassRestored(clip);
+        m_documentRows.insert(row, {{"keyframed", nt::keyframes::helper("isRowKeyframed", {c, row}).toBool()},
+                                   {"blocked", nt::keyframes::rowDrivenElsewhere(c, row)},
+                                   {"times", nt::keyframes::times(c, nt::keyframes::properties(row)).toVariantList()}});
+    }
+    return m_documentRows.value(row);
 }
 QVariantMap ClipInspectorController::rowLive(const QString& row) const {
-    const auto c = nt::keyframes::withBypassRestored(selected());
-    return liveState(c, row, m_clock && !c.isEmpty() ? m_clock->currentTimeMs() - c["startMs"].toDouble() : -1);
+    const auto clip = rowClip();
+    auto& prepared = m_playbackRows[row];
+    if (!prepared) {
+        prepared = std::make_unique<nt::keyframes::RowPlayback>(nt::keyframes::withBypassRestored(clip), row);
+        ++m_preparedRowCount;
+    }
+    return prepared->live(m_clock && !clip.isEmpty() ? m_clock->currentTimeMs() - clip.value("startMs").toDouble() : -1).toVariantMap();
 }
 QVariantMap ClipInspectorController::rowGraph(const QString& row, double fromMs, double toMs, int samples) const {
     return nt::keyframes::rowGraphSamples(nt::keyframes::withBypassRestored(selected()), row, fromMs, toMs, samples).toVariantMap();
 }
 QVariantMap ClipInspectorController::rowGraphKeys(const QString& row) const {
-    return nt::keyframes::rowGraphKeys(nt::keyframes::withBypassRestored(selected()), row).toVariantMap();
+    const auto clip = rowClip();
+    if (!m_graphRows.contains(row)) {
+        ++m_graphBuildCount;
+        m_graphRows.insert(row, nt::keyframes::rowGraphKeys(nt::keyframes::withBypassRestored(clip), row).toVariantMap());
+    }
+    return m_graphRows.value(row);
 }
 double ClipInspectorController::fieldValue(const QString& field) const {
     const auto t = nt::keyframes::transform(nt::keyframes::withBypassRestored(selected()));

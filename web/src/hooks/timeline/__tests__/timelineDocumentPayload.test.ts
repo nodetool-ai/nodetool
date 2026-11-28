@@ -25,6 +25,7 @@ describe("buildTimelineDocumentPayload", () => {
       "markers",
       "master",
       "mediaTracks",
+      "music",
       "scriptEnabled",
       "setup",
       "storyboardMaterializations",
@@ -41,6 +42,13 @@ describe("buildTimelineDocumentPayload", () => {
     expect(
       buildTimelineDocumentPayload(baseState as never).setup
     ).toBeUndefined();
+  });
+
+  it("carries the music marker through saves (CE7)", () => {
+    const music = { autoCrossfadeMs: 10 };
+    expect(
+      buildTimelineDocumentPayload({ ...baseState, music } as never).music
+    ).toBe(music);
   });
 
   it("preserves the tracks array by reference", () => {

@@ -1,12 +1,40 @@
 import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { z } from "zod";
-import { applyTimelineTrackOp, type TimelineTrackOp, type TimelineOpState } from "@nodetool-ai/timeline/ops";
+import {
+  applyTimelineTrackOp,
+  collectStepPatternFolders,
+  resolveCreateStepPatternFolderTarget,
+  resolveMoveDestinationFolder,
+  resolveRenameStepPatternFolderTarget,
+  resolveStepPatternFolderRef,
+  resolveUserStepPatternRef,
+  type FullStepPatternLibrary,
+  type TimelineOpState,
+  type TimelineOpUserStepPattern,
+  type TimelineTrackOp
+} from "@nodetool-ai/timeline/ops";
 import {
   ANIMATED_PROPERTIES,
   DEFAULT_BEAT_TOLERANCE_MS,
   STAGGER_UNITS,
-  createTimeOrderedUuid
+  STEP_PATTERN_ASSET_CONTENT_TYPE,
+  STEP_PATTERN_FOLDER_METADATA_KEY,
+  STEP_PATTERN_METADATA_KEY,
+  createTimeOrderedUuid,
+  isWithinStepPatternFolder,
+  normalizePattern,
+  normalizeStepPatternFolderPath,
+  parentStepPatternFolder,
+  presetIdForInstrument,
+  remapStepPatternFolderPath,
+  stepPatternFolderName,
+  stepPatternRootFolder,
+  type MidiInstrument,
+  type StepPattern,
+  type StepPatternLibraryKind
 } from "@nodetool-ai/timeline";
+import { directoryFolderId } from "@nodetool-ai/protocol";
+import { midiInstrument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { buildTimelineToolContracts } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
 import { resolveMoveTrackArgs, resolveDeleteTrackArgs } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
@@ -37,7 +65,30 @@ export const TOOL_PREFIX = "ui_timeline_";
 
 /** Browser generation without a real provider adapter remains excluded. */
 const EXCLUDED_OPS = new Set([`${TOOL_PREFIX}generate_clip`]);
-export const READ_ONLY_OPS = new Set([`${TOOL_PREFIX}get_clip_frames`]);
+export const READ_ONLY_OPS = new Set([
+  `${TOOL_PREFIX}get_clip_frames`,
+  `${TOOL_PREFIX}get_pattern`,
+  `${TOOL_PREFIX}list_step_patterns`,
+  `${TOOL_PREFIX}save_step_pattern`,
+  `${TOOL_PREFIX}create_step_pattern_folder`,
+  `${TOOL_PREFIX}rename_step_pattern_folder`,
+  `${TOOL_PREFIX}delete_step_pattern_folder`,
+  `${TOOL_PREFIX}move_step_pattern`,
+  `${TOOL_PREFIX}list_plugins`,
+  `${TOOL_PREFIX}list_plugin_presets`,
+  `${TOOL_PREFIX}get_plugin_parameters`
+]);
+
+/**
+ * True when an applied op changed nothing in the document: a read-only tool,
+ * or a `detect_chords` that did not write (`write: false`, or a silent range).
+ */
+export function isReadOnlyRecord(parsed: ParsedOp, result: unknown): boolean {
+  if (READ_ONLY_OPS.has(parsed.op)) return true;
+  if (parsed.op !== `${TOOL_PREFIX}detect_chords`) return false;
+  if (parsed.input.write === false) return true;
+  return isRecord(result) && result.written === false;
+}
 
 /** `add_track`, `ui_add_track`, and `ui_timeline_add_track` all name one tool. */
 function normalizeOpName(name: string): string {
@@ -93,12 +144,75 @@ export interface ApplyOutcome {
   state: TimelineBridgeFinalState;
 }
 
+/** Largest audio file a chord read loads (bytes). */
+const MAX_DECODE_BYTES = 300 * 1024 * 1024;
+
+/** Audio bytes by asset ref, kept for one run so a CAS retry or split clips of one asset load the file once. */
+const audioBytesCache = new WeakMap<object, Map<string, Promise<Uint8Array | null>>>();
+
+/** The media ref a clip's `currentAssetId` names, or null for an id that is no asset ref. */
+function audioRefOf(assetId: string): { uri?: string; asset_id?: string; type: "audio" } | null {
+  if (assetId.startsWith("package://")) return { uri: assetId, type: "audio" };
+  const bare = assetId.startsWith("asset://")
+    ? assetId.slice("asset://".length).replace(/\.[A-Za-z0-9]{1,8}$/, "")
+    : assetId;
+  if (!/^[A-Za-z0-9_-]+$/.test(bare)) return null;
+  return { asset_id: bare, type: "audio" };
+}
+
 /**
- * Read one of the caller's assets for `add_media_clip`.
- *
- * The ref a model has in hand is whatever `list_assets` printed — a bare id or
- * an `asset://<id>.<ext>` URI — so both resolve here.
+ * Mono source audio of a clip's asset, for chord detection. Decodes only the
+ * requested source span. A file that cannot be read gives null, as on the web.
  */
+async function decodeTimelineClipAudio(
+  run: CapabilityRun,
+  clip: { currentAssetId?: string },
+  range?: { startMs: number; endMs: number }
+): Promise<{ samples: Float32Array; sampleRate: number; startMs: number } | null> {
+  const assetId = clip.currentAssetId;
+  if (!assetId) return null;
+  const ref = audioRefOf(assetId);
+  if (!ref) return null;
+  const key = ref.uri ?? ref.asset_id ?? assetId;
+  let cache = audioBytesCache.get(run.context);
+  if (!cache) {
+    cache = new Map();
+    audioBytesCache.set(run.context, cache);
+  }
+  let loading = cache.get(key);
+  if (!loading) {
+    loading = (async () => {
+      const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
+      return loadMediaRefBytes(ref, run.context);
+    })();
+    cache.set(key, loading);
+    loading.catch(() => cache.delete(key));
+  }
+  const bytes = await loading;
+  if (!bytes) return null;
+  if (bytes.length > MAX_DECODE_BYTES) {
+    throw new Error(
+      `The audio of this clip is ${Math.round(bytes.length / 1048576)} MB. Chord detection reads files up to ${Math.round(MAX_DECODE_BYTES / 1048576)} MB.`
+    );
+  }
+  const { decodeMonoAudio } = await import("../analysis/media-decode.js");
+  let audio;
+  try {
+    audio = await decodeMonoAudio(
+      bytes,
+      undefined,
+      range ? { startSec: range.startMs / 1000, endSec: range.endMs / 1000 } : undefined
+    );
+  } catch {
+    return null;
+  }
+  if (!audio) return null;
+  if (audio.truncated) {
+    throw new Error("The audio span to read is longer than one hour. Pass a smaller startBar and endBar range.");
+  }
+  return { samples: audio.samples, sampleRate: audio.sampleRate, startMs: audio.startSec * 1000 };
+}
+
 /**
  * The `updated_at` of the caller's 3D model asset, or null when it is not
  * theirs or not there. A set is saved in place, so this is what shows a
@@ -115,6 +229,12 @@ async function timelineModel3DAssetRevision(
   return asset?.updated_at ?? null;
 }
 
+/**
+ * Read one of the caller's assets for `add_media_clip`.
+ *
+ * The ref a model has in hand is whatever `list_assets` printed — a bare id or
+ * an `asset://<id>.<ext>` URI — so both resolve here.
+ */
 async function resolveTimelineAsset(
   run: CapabilityRun,
   ref: string
@@ -220,6 +340,771 @@ export function timelineModel3DBaker(run: CapabilityRun): TimelineModel3DBaker {
   };
 }
 
+const STEP_PATTERN_ASSET_LIMIT = 500;
+
+interface StoredStepPatternEnvelope {
+  version: 1;
+  name: string;
+  kind: StepPatternLibraryKind;
+  category: string;
+  tags: string[];
+  folder: string;
+  pattern: StepPattern;
+  instrument?: MidiInstrument;
+  instrumentPreset?: string;
+}
+
+interface StoredStepPatternFolderEnvelope {
+  version: 1;
+  entryType: "folder";
+  kind: StepPatternLibraryKind;
+  name: string;
+  folder: string;
+}
+
+function stepPatternProjectIdForAsset(
+  userId: string,
+  projectId: string | null | undefined
+): string {
+  return projectId && projectId !== "default" ? projectId : `personal:${userId}`;
+}
+
+function slugForStepPatternFile(name: string, fallback: string): string {
+  return trimDashes(name.trim().replace(/[^\w.-]+/g, "-")) || fallback;
+}
+
+/** `value` without leading and trailing dashes, in one linear pass. */
+function trimDashes(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === "-") start++;
+  while (end > start && value[end - 1] === "-") end--;
+  return value.slice(start, end);
+}
+
+/**
+ * Server-backed user step pattern library (SQ43, SQ44, D92): persists JSON
+ * assets of content type `application/x-nodetool-step-pattern` under
+ * `Step Patterns/<Patterns|Templates>/<folder>`.
+ *
+ * Folder rename and delete commit all affected marker and pattern rows in one
+ * database transaction via {@link Asset.applyBatch}, staging project file moves
+ * ahead of the commit and updating JSON bytes only after commit so a halfway
+ * failure leaves no partial move.
+ */
+export function createServerStepPatternLibrary(
+  run: Pick<CapabilityRun, "context">
+): FullStepPatternLibrary {
+  type AssetModelInstance = InstanceType<
+    typeof import("@nodetool-ai/models").Asset
+  >;
+  type AssetBatchUpdate = import("@nodetool-ai/models").AssetBatchUpdate;
+  type ProjectAssetFileChange =
+    import("@nodetool-ai/asset-services/project-asset").ProjectAssetFileChange;
+
+  interface ScannedPatternAsset {
+    entry: {
+      id: string;
+      name: string;
+      kind: StepPatternLibraryKind;
+      category?: string;
+      tags?: readonly string[];
+      folder?: string;
+      pattern?: StepPattern;
+      instrument?: MidiInstrument;
+      instrumentPreset?: string;
+    };
+    asset: AssetModelInstance;
+    hasPattern: boolean;
+  }
+
+  interface StagedAssetWrite {
+    asset: AssetModelInstance;
+    nextFolder: string;
+    metadataKey:
+      | typeof STEP_PATTERN_METADATA_KEY
+      | typeof STEP_PATTERN_FOLDER_METADATA_KEY;
+    buildMetadataEntry: (
+      existing: Record<string, unknown>
+    ) => Record<string, unknown>;
+    nextEnvelope:
+      | StoredStepPatternEnvelope
+      | StoredStepPatternFolderEnvelope
+      | null;
+  }
+
+  const paginateAssets = async (userId: string) => {
+    const { Asset } = await import("@nodetool-ai/models");
+    const assets: AssetModelInstance[] = [];
+    const seenAssetIds = new Set<string>();
+    const seenCursors = new Set<string>();
+    let startKey: string | undefined;
+    for (;;) {
+      const [page, nextCursor] = await Asset.paginate(userId, {
+        contentType: STEP_PATTERN_ASSET_CONTENT_TYPE,
+        limit: STEP_PATTERN_ASSET_LIMIT,
+        startKey: startKey || undefined
+      });
+      for (const asset of page) {
+        if (!seenAssetIds.has(asset.id)) {
+          seenAssetIds.add(asset.id);
+          assets.push(asset);
+        }
+      }
+      if (!nextCursor || seenCursors.has(nextCursor)) break;
+      seenCursors.add(nextCursor);
+      startKey = nextCursor;
+    }
+    return assets;
+  };
+
+  const scanLibrary = async (userId: string) => {
+    const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
+    const assets = await paginateAssets(userId);
+    const folderAssets: Array<{
+      id: string;
+      kind: StepPatternLibraryKind;
+      name: string;
+      folder: string;
+      asset: AssetModelInstance;
+    }> = [];
+    const patternAssets: Array<{
+      entry: TimelineOpUserStepPattern;
+      asset: AssetModelInstance;
+      parsed: Record<string, unknown>;
+    }> = [];
+    const allPatternAssets: ScannedPatternAsset[] = [];
+
+    for (const asset of assets) {
+      try {
+        const folderMeta = isRecord(
+          asset.metadata?.[STEP_PATTERN_FOLDER_METADATA_KEY]
+        )
+          ? asset.metadata![STEP_PATTERN_FOLDER_METADATA_KEY]!
+          : null;
+        if (folderMeta && isString(folderMeta["folder"])) {
+          const kind: StepPatternLibraryKind =
+            folderMeta["kind"] === "template" ? "template" : "pattern";
+          const folder = normalizeStepPatternFolderPath(
+            kind,
+            folderMeta["folder"]
+          );
+          const name = isString(folderMeta["name"])
+            ? folderMeta["name"]
+            : stepPatternFolderName(folder);
+          folderAssets.push({ id: asset.id, kind, name, folder, asset });
+          continue;
+        }
+
+        const bytes = await loadMediaRefBytes(
+          { uri: `asset://${asset.id}`, asset_id: asset.id },
+          run.context
+        );
+        if (!bytes || bytes.length === 0) {
+          const meta = isRecord(asset.metadata?.[STEP_PATTERN_METADATA_KEY])
+            ? asset.metadata![STEP_PATTERN_METADATA_KEY]!
+            : null;
+          if (meta && isString(meta["folder"])) {
+            const kind: StepPatternLibraryKind =
+              meta["kind"] === "template" ? "template" : "pattern";
+            const folder = normalizeStepPatternFolderPath(kind, meta["folder"]);
+            const name = isString(meta["name"]) ? meta["name"] : asset.name;
+            const category = isString(meta["category"])
+              ? meta["category"]
+              : kind === "template"
+                ? "templates"
+                : "user";
+            const tags = Array.isArray(meta["tags"])
+              ? meta["tags"].filter(isString)
+              : [kind, "user"];
+            const rawPreset = isString(meta["instrumentPreset"])
+              ? meta["instrumentPreset"].trim()
+              : "";
+            allPatternAssets.push({
+              asset,
+              hasPattern: false,
+              entry: {
+                id: asset.id,
+                name,
+                kind,
+                category,
+                tags,
+                folder,
+                instrumentPreset: rawPreset.length > 0 ? rawPreset : undefined
+              }
+            });
+          }
+          continue;
+        }
+        const parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+        if (!isRecord(parsed)) continue;
+
+        if (parsed["entryType"] === "folder" && isString(parsed["folder"])) {
+          const kind: StepPatternLibraryKind =
+            parsed["kind"] === "template" ? "template" : "pattern";
+          const folder = normalizeStepPatternFolderPath(kind, parsed["folder"]);
+          const name = isString(parsed["name"])
+            ? parsed["name"]
+            : stepPatternFolderName(folder);
+          folderAssets.push({ id: asset.id, kind, name, folder, asset });
+          continue;
+        }
+
+        if (!isRecord(parsed["pattern"])) continue;
+        const meta = isRecord(asset.metadata?.[STEP_PATTERN_METADATA_KEY])
+          ? asset.metadata![STEP_PATTERN_METADATA_KEY]!
+          : {};
+        const name = isString(meta["name"])
+          ? meta["name"]
+          : isString(parsed["name"])
+            ? parsed["name"]
+            : asset.name;
+        const kind: StepPatternLibraryKind =
+          meta["kind"] === "template" || parsed["kind"] === "template"
+            ? "template"
+            : "pattern";
+        const category = isString(parsed["category"])
+          ? parsed["category"]
+          : kind === "template"
+            ? "templates"
+            : "user";
+        const tags = Array.isArray(parsed["tags"])
+          ? parsed["tags"].filter(isString)
+          : [kind, "user"];
+        const rawFolder = isString(meta["folder"])
+          ? meta["folder"]
+          : isString(parsed["folder"])
+            ? parsed["folder"]
+            : undefined;
+        const folder =
+          rawFolder !== undefined
+            ? normalizeStepPatternFolderPath(kind, rawFolder)
+            : undefined;
+        const parsedInstrument =
+          parsed["instrument"] !== undefined
+            ? midiInstrument.safeParse(parsed["instrument"])
+            : null;
+        const rawInstrumentPreset = isString(parsed["instrumentPreset"])
+          ? parsed["instrumentPreset"].trim()
+          : isString(meta["instrumentPreset"])
+            ? meta["instrumentPreset"].trim()
+            : "";
+        const instrumentPreset =
+          rawInstrumentPreset.length > 0 ? rawInstrumentPreset : undefined;
+        const entry: TimelineOpUserStepPattern = {
+          id: asset.id,
+          name,
+          kind,
+          category,
+          tags,
+          pattern: normalizePattern(parsed["pattern"] as Partial<StepPattern>)
+        };
+        if (folder !== undefined) entry.folder = folder;
+        if (parsedInstrument?.success) entry.instrument = parsedInstrument.data as MidiInstrument;
+        if (instrumentPreset !== undefined) entry.instrumentPreset = instrumentPreset;
+        patternAssets.push({ asset, parsed, entry });
+        allPatternAssets.push({ asset, hasPattern: true, entry });
+      } catch {
+        // Skip unreadable user pattern assets without breaking the library list.
+      }
+    }
+
+    return { folderAssets, patternAssets, allPatternAssets };
+  };
+
+  const tryUpdateBytes = async (
+    assetId: string,
+    payload: unknown
+  ): Promise<void> => {
+    if (typeof run.context.updateAssetBytes !== "function") return;
+    try {
+      await run.context.updateAssetBytes({
+        assetId,
+        content: new TextEncoder().encode(`${JSON.stringify(payload, null, 2)}\n`),
+        contentType: STEP_PATTERN_ASSET_CONTENT_TYPE
+      });
+    } catch {
+      // Minimal contexts without an updateAssetBytes model interface still
+      // persist authoritative folder state in asset metadata and parent_id.
+    }
+  };
+
+  const tryMoveProjectFile = async (
+    asset: AssetModelInstance,
+    nextFolder: string
+  ) => {
+    if (!asset.workspace_path) return null;
+    try {
+      const { moveProjectAssetToDirectory } = await import(
+        "@nodetool-ai/asset-services/project-asset"
+      );
+      return await moveProjectAssetToDirectory(asset, nextFolder);
+    } catch {
+      // Test or virtual contexts without a reachable project folder still
+      // persist authoritative folder placement in metadata and parent_id.
+      return null;
+    }
+  };
+
+  const stagePatternWrite = (
+    item: ScannedPatternAsset,
+    nextFolder: string
+  ): StagedAssetWrite => {
+    const category =
+      item.entry.category ??
+      (item.entry.kind === "template" ? "templates" : "user");
+    const tags = [...(item.entry.tags ?? [item.entry.kind, "user"])];
+    let nextEnvelope: StoredStepPatternEnvelope | null = null;
+    if (item.hasPattern && item.entry.pattern) {
+      nextEnvelope = {
+        version: 1,
+        name: item.entry.name,
+        kind: item.entry.kind,
+        category,
+        tags,
+        folder: nextFolder,
+        pattern: item.entry.pattern
+      };
+      if (item.entry.instrument) nextEnvelope.instrument = structuredClone(item.entry.instrument);
+      if (item.entry.instrumentPreset) nextEnvelope.instrumentPreset = item.entry.instrumentPreset;
+    }
+    return {
+      asset: item.asset,
+      nextFolder,
+      metadataKey: STEP_PATTERN_METADATA_KEY,
+      buildMetadataEntry: (prevMeta) => {
+        const meta = {
+          ...prevMeta,
+          name: item.entry.name,
+          kind: item.entry.kind,
+          folder: nextFolder,
+          category,
+          tags
+        };
+        return item.entry.instrumentPreset
+          ? { ...meta, instrumentPreset: item.entry.instrumentPreset }
+          : meta;
+      },
+      nextEnvelope
+    };
+  };
+
+  const stageFolderMarkerWrite = (
+    item: {
+      id: string;
+      kind: StepPatternLibraryKind;
+      asset: AssetModelInstance;
+    },
+    nextFolder: string
+  ): StagedAssetWrite => {
+    const nextName = stepPatternFolderName(nextFolder);
+    return {
+      asset: item.asset,
+      nextFolder,
+      metadataKey: STEP_PATTERN_FOLDER_METADATA_KEY,
+      buildMetadataEntry: () => ({
+        kind: item.kind,
+        name: nextName,
+        folder: nextFolder
+      }),
+      nextEnvelope: {
+        version: 1,
+        entryType: "folder",
+        kind: item.kind,
+        name: nextName,
+        folder: nextFolder
+      }
+    };
+  };
+
+  const commitAtomicFolderMutation = async (
+    userId: string,
+    stagedWrites: readonly StagedAssetWrite[],
+    deleteAssets: readonly AssetModelInstance[] = []
+  ): Promise<void> => {
+    const { Asset } = await import("@nodetool-ai/models");
+    const stagedMoves: ProjectAssetFileChange[] = [];
+    const updates: AssetBatchUpdate[] = [];
+    try {
+      for (const write of stagedWrites) {
+        const fresh = (await Asset.find(userId, write.asset.id)) ?? write.asset;
+        const rawPrev = fresh.metadata?.[write.metadataKey];
+        const prevEntry: Record<string, unknown> = isRecord(rawPrev)
+          ? rawPrev
+          : {};
+        fresh.metadata = {
+          ...(fresh.metadata ?? {}),
+          [write.metadataKey]: write.buildMetadataEntry(prevEntry)
+        };
+        const moved = await tryMoveProjectFile(fresh, write.nextFolder);
+        if (moved) stagedMoves.push(moved);
+        const patch: AssetBatchUpdate = {
+          id: fresh.id,
+          parent_id: directoryFolderId(
+            userId,
+            stepPatternProjectIdForAsset(userId, fresh.project_id),
+            write.nextFolder
+          ),
+          metadata: fresh.metadata
+        };
+        if (moved) {
+          patch.workspace_path = fresh.workspace_path;
+        }
+        updates.push(patch);
+      }
+
+      await Asset.applyBatch(userId, {
+        updates,
+        deleteIds: deleteAssets.map((a) => a.id)
+      });
+    } catch (error) {
+      for (const move of stagedMoves.reverse()) {
+        await move.undo().catch(() => undefined);
+      }
+      throw error;
+    }
+
+    for (const move of stagedMoves) {
+      await move.commit().catch(() => undefined);
+    }
+    for (const write of stagedWrites) {
+      if (write.nextEnvelope !== null) {
+        await tryUpdateBytes(write.asset.id, write.nextEnvelope);
+      }
+    }
+    for (const deleted of deleteAssets) {
+      if (deleted.workspace_path) {
+        try {
+          const { deleteProjectAssetFile } = await import(
+            "@nodetool-ai/asset-services/project-asset"
+          );
+          await deleteProjectAssetFile(deleted);
+        } catch {
+          // Best-effort project file removal after the DB transaction committed.
+        }
+      }
+      if (run.context.assetStorage) {
+        try {
+          const { getAssetStorageKey } = await import(
+            "@nodetool-ai/asset-services/asset-paths"
+          );
+          const key = getAssetStorageKey(
+            userId,
+            deleted.id,
+            deleted.content_type
+          );
+          const uri = run.context.assetStorage.uriForKey(key);
+          if (await run.context.assetStorage.exists(uri)) {
+            await run.context.assetStorage.delete(uri);
+          }
+        } catch {
+          // Best-effort storage object removal after the DB transaction committed.
+        }
+      }
+    }
+  };
+
+  return {
+    async list(): Promise<TimelineOpUserStepPattern[]> {
+      const userId = run.context.userId;
+      if (!userId) return [];
+      const { patternAssets } = await scanLibrary(userId);
+      return patternAssets.map((p) => p.entry);
+    },
+    async listFolders() {
+      const userId = run.context.userId;
+      if (!userId) return [];
+      const { folderAssets, allPatternAssets } = await scanLibrary(userId);
+      return collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        allPatternAssets.map((p) => p.entry)
+      );
+    },
+    async save({ name, kind, folder, pattern, instrument, instrumentPreset }) {
+      const userId = run.context.userId;
+      if (!userId) {
+        throw new Error("No user is bound to this session to save a step pattern.");
+      }
+      if (typeof run.context.createAsset !== "function") {
+        throw new Error("This session has no asset store to persist step patterns.");
+      }
+      const fullFolder = normalizeStepPatternFolderPath(kind, folder);
+      const category = kind === "template" ? "templates" : "user";
+      const tags = [kind, "user"];
+      const savedInstrument = instrument ? structuredClone(instrument) : undefined;
+      const savedInstrumentPreset =
+        instrumentPreset ??
+        (savedInstrument ? presetIdForInstrument(savedInstrument) : undefined);
+      const envelope: StoredStepPatternEnvelope = {
+        version: 1,
+        name,
+        kind,
+        category,
+        tags,
+        folder: fullFolder,
+        pattern: normalizePattern(structuredClone(pattern))
+      };
+      if (savedInstrument) envelope.instrument = savedInstrument;
+      if (savedInstrumentPreset) envelope.instrumentPreset = savedInstrumentPreset;
+      const fileSlug = slugForStepPatternFile(name, "pattern");
+      const fileName = `${fileSlug}-${createTimeOrderedUuid()}.step-pattern.json`;
+      const assetPath = `${fullFolder}/${fileName}`;
+      const effectiveProjectId = stepPatternProjectIdForAsset(
+        userId,
+        run.context.projectId
+      );
+      const parentId = directoryFolderId(userId, effectiveProjectId, fullFolder);
+      const baseMeta = { name, kind, folder: fullFolder, category, tags };
+      const stepPatternMeta = savedInstrumentPreset
+        ? { ...baseMeta, instrumentPreset: savedInstrumentPreset }
+        : baseMeta;
+      const created = await run.context.createAsset({
+        name: fileName,
+        contentType: STEP_PATTERN_ASSET_CONTENT_TYPE,
+        content: new TextEncoder().encode(`${JSON.stringify(envelope, null, 2)}\n`),
+        path: assetPath,
+        parentId,
+        metadata: { [STEP_PATTERN_METADATA_KEY]: stepPatternMeta }
+      });
+      const assetId =
+        isRecord(created) && isString(created["id"]) ? created["id"] : null;
+      if (!assetId) {
+        throw new Error("The step pattern asset was created without an id.");
+      }
+      const { Asset } = await import("@nodetool-ai/models");
+      const asset = await Asset.find(userId, assetId);
+      if (asset && !isRecord(asset.metadata?.[STEP_PATTERN_METADATA_KEY])) {
+        asset.metadata = {
+          ...(asset.metadata ?? {}),
+          [STEP_PATTERN_METADATA_KEY]: stepPatternMeta
+        };
+        await asset.save();
+      }
+      return { id: assetId, assetId, folder: fullFolder };
+    },
+    async createFolder({ kind, name, parentFolder }) {
+      const userId = run.context.userId;
+      if (!userId) {
+        throw new Error(
+          "No user is bound to this session to create a step pattern folder."
+        );
+      }
+      if (typeof run.context.createAsset !== "function") {
+        throw new Error(
+          "This session has no asset store to persist step pattern folders."
+        );
+      }
+      const { folderAssets, allPatternAssets } = await scanLibrary(userId);
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        allPatternAssets.map((p) => p.entry)
+      );
+      const target = resolveCreateStepPatternFolderTarget(allFolders, {
+        kind,
+        name,
+        parentFolder
+      });
+      const envelope: StoredStepPatternFolderEnvelope = {
+        version: 1,
+        entryType: "folder",
+        kind: target.kind,
+        name: target.name,
+        folder: target.folder
+      };
+      const folderMeta = {
+        kind: target.kind,
+        name: target.name,
+        folder: target.folder
+      };
+      const fileSlug = slugForStepPatternFile(target.name, "folder");
+      const fileName = `folder-${fileSlug}-${createTimeOrderedUuid()}.step-pattern.json`;
+      const assetPath = `${target.folder}/${fileName}`;
+      const effectiveProjectId = stepPatternProjectIdForAsset(
+        userId,
+        run.context.projectId
+      );
+      const parentId = directoryFolderId(
+        userId,
+        effectiveProjectId,
+        target.folder
+      );
+      const created = await run.context.createAsset({
+        name: fileName,
+        contentType: STEP_PATTERN_ASSET_CONTENT_TYPE,
+        content: new TextEncoder().encode(`${JSON.stringify(envelope, null, 2)}\n`),
+        path: assetPath,
+        parentId,
+        metadata: { [STEP_PATTERN_FOLDER_METADATA_KEY]: folderMeta }
+      });
+      const assetId =
+        isRecord(created) && isString(created["id"]) ? created["id"] : null;
+      if (!assetId) {
+        throw new Error("The step pattern folder asset was created without an id.");
+      }
+      const { Asset } = await import("@nodetool-ai/models");
+      const asset = await Asset.find(userId, assetId);
+      if (asset && !isRecord(asset.metadata?.[STEP_PATTERN_FOLDER_METADATA_KEY])) {
+        asset.metadata = {
+          ...(asset.metadata ?? {}),
+          [STEP_PATTERN_FOLDER_METADATA_KEY]: folderMeta
+        };
+        await asset.save();
+      }
+      return {
+        id: assetId,
+        name: target.name,
+        kind: target.kind,
+        folder: target.folder,
+        parentFolder: target.parentFolder
+      };
+    },
+    async renameFolder({ folder, newName, kind }) {
+      const userId = run.context.userId;
+      if (!userId) {
+        throw new Error(
+          "No user is bound to this session to rename a step pattern folder."
+        );
+      }
+      const { folderAssets, allPatternAssets } = await scanLibrary(userId);
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        allPatternAssets.map((p) => p.entry)
+      );
+      const plan = resolveRenameStepPatternFolderTarget(allFolders, {
+        folder,
+        newName,
+        kind
+      });
+      const stagedWrites: StagedAssetWrite[] = [];
+      for (const marker of folderAssets) {
+        if (
+          marker.kind === plan.kind &&
+          isWithinStepPatternFolder(marker.folder, plan.previousFolder)
+        ) {
+          const nextFolder = remapStepPatternFolderPath(
+            marker.folder,
+            plan.previousFolder,
+            plan.folder
+          );
+          stagedWrites.push(stageFolderMarkerWrite(marker, nextFolder));
+        }
+      }
+      const movedPatterns: Array<{ id: string; name: string; folder: string }> = [];
+      for (const item of allPatternAssets) {
+        if (
+          item.entry.kind === plan.kind &&
+          isWithinStepPatternFolder(item.entry.folder, plan.previousFolder)
+        ) {
+          const nextFolder = remapStepPatternFolderPath(
+            item.entry.folder!,
+            plan.previousFolder,
+            plan.folder
+          );
+          stagedWrites.push(stagePatternWrite(item, nextFolder));
+          movedPatterns.push({
+            id: item.entry.id,
+            name: item.entry.name,
+            folder: nextFolder
+          });
+        }
+      }
+      await commitAtomicFolderMutation(userId, stagedWrites);
+      const renamed = {
+        name: plan.name,
+        kind: plan.kind,
+        previousFolder: plan.previousFolder,
+        folder: plan.folder,
+        parentFolder: plan.parentFolder,
+        movedPatternCount: movedPatterns.length,
+        movedPatterns
+      };
+      return plan.current.id !== undefined ? { id: plan.current.id, ...renamed } : renamed;
+    },
+    async deleteFolder({ folder, kind }) {
+      const userId = run.context.userId;
+      if (!userId) {
+        throw new Error(
+          "No user is bound to this session to delete a step pattern folder."
+        );
+      }
+      const { folderAssets, allPatternAssets } = await scanLibrary(userId);
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        allPatternAssets.map((p) => p.entry)
+      );
+      const target = resolveStepPatternFolderRef(allFolders, folder, kind);
+      const parentFolder = parentStepPatternFolder(target.kind, target.folder);
+      const stagedWrites: StagedAssetWrite[] = [];
+      const movedPatterns: Array<{ id: string; name: string; folder: string }> = [];
+      for (const item of allPatternAssets) {
+        if (
+          item.entry.kind === target.kind &&
+          isWithinStepPatternFolder(item.entry.folder, target.folder)
+        ) {
+          stagedWrites.push(stagePatternWrite(item, parentFolder));
+          movedPatterns.push({
+            id: item.entry.id,
+            name: item.entry.name,
+            folder: parentFolder
+          });
+        }
+      }
+      const markersToDelete: AssetModelInstance[] = [];
+      for (const marker of folderAssets) {
+        if (
+          marker.kind === target.kind &&
+          isWithinStepPatternFolder(marker.folder, target.folder)
+        ) {
+          markersToDelete.push(marker.asset);
+        }
+      }
+      await commitAtomicFolderMutation(userId, stagedWrites, markersToDelete);
+      return {
+        kind: target.kind,
+        deletedFolder: target.folder,
+        parentFolder,
+        movedPatternCount: movedPatterns.length,
+        movedPatterns
+      };
+    },
+    async movePattern({ pattern, folder }) {
+      const userId = run.context.userId;
+      if (!userId) {
+        throw new Error(
+          "No user is bound to this session to move a step pattern."
+        );
+      }
+      const { folderAssets, patternAssets, allPatternAssets } =
+        await scanLibrary(userId);
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        allPatternAssets.map((p) => p.entry)
+      );
+      const match = resolveUserStepPatternRef(
+        patternAssets.map((p) => p.entry),
+        pattern
+      );
+      const targetFolder = resolveMoveDestinationFolder(
+        allFolders,
+        match.kind,
+        folder
+      );
+      const previousFolder = match.folder ?? stepPatternRootFolder(match.kind);
+      const item = allPatternAssets.find((p) => p.entry.id === match.id)!;
+      await commitAtomicFolderMutation(userId, [
+        stagePatternWrite(item, targetFolder)
+      ]);
+      return {
+        id: match.id,
+        name: match.name,
+        kind: match.kind,
+        previousFolder,
+        folder: targetFolder
+      };
+    }
+  };
+}
+
 /**
  * A reference render that runs once per clip, pass and dependency hash, for
  * the reason {@link timelineModel3DBaker} gives: a compare-and-swap retry
@@ -283,6 +1168,8 @@ function writingHooks(
         derivedDocument.scriptEnabled = adapted.scriptEnabled;
       }
       if (adapted.tempo !== undefined) derivedDocument.tempo = adapted.tempo;
+      if (adapted.music !== undefined) derivedDocument.music = adapted.music;
+      if (adapted.master !== undefined) derivedDocument.master = adapted.master;
       if (adapted.camera2d !== undefined) derivedDocument.camera2d = adapted.camera2d;
       if (adapted.setup !== undefined) derivedDocument.setup = adapted.setup;
       if (adapted.templateId !== undefined) {
@@ -331,10 +1218,13 @@ function applyTrackOps(
     width: sequence.width,
     height: sequence.height,
     tracks: document.tracks,
+    trackFolders: document.trackFolders,
     clips: document.clips,
     markers: document.markers,
     mediaTracks: document.mediaTracks,
     tempo: document.tempo,
+    music: document.music,
+    master: document.master,
     playheadMs: 0,
     selectedClipIds: []
   };
@@ -411,6 +1301,9 @@ function applyTrackOps(
       mediaTracks: state.mediaTracks ?? [],
       derivedSequences: [],
       tempo: state.tempo,
+      music: state.music,
+      master: state.master,
+      trackFolders: state.trackFolders,
       camera2d: document.camera2d ?? null,
       setup: document.setup ?? null,
       transitionCandidates: [],
@@ -441,6 +1334,8 @@ export async function applyOps(
     generateMediaEdit?: (request: MediaEditRequest, operationIndex: number) => Promise<{ generationId: string; assetId: string }>;
     /** A baker shared across retries of one call; see {@link timelineModel3DBaker}. */
     bakeModel3DClip?: TimelineModel3DBaker;
+    /** Optional plugin host override for VST/AU ops. */
+    pluginHost?: import("@nodetool-ai/timeline/ops").TimelineOpContext["pluginHost"];
     /** A reference renderer shared across retries of one call. */
     renderModel3DReference?: TimelineModel3DReferenceRenderer;
   } = {}
@@ -470,11 +1365,14 @@ export async function applyOps(
       trackFolders: document.trackFolders,
       storyboardMaterializations: document.storyboardMaterializations,
       tempo: document.tempo,
+      music: document.music,
+      master: document.master,
       camera2d: document.camera2d,
       setup: document.setup,
       mediaTracks: document.mediaTracks
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
+    decodeClipAudio: (clip, range) => decodeTimelineClipAudio(run, clip, range),
     bakeAnimation: (request) => bakeTimelineAnimation(run, request),
     loadComposition: {
       get: async (id) => {
@@ -493,6 +1391,12 @@ export async function applyOps(
       }
     }
   };
+  if (options.pluginHost) {
+    init.pluginHost = options.pluginHost;
+  } else if (!options.hermetic) {
+    const { getSharedNodePluginHost } = await import("./vst-host-adapter.js");
+    init.pluginHost = getSharedNodePluginHost();
+  }
   if (!options.hermetic) {
     Object.assign(init, writingHooks(run, sequence));
     if (options.bakeModel3DClip) {
@@ -506,6 +1410,7 @@ export async function applyOps(
     const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
     const generate = options.generateMediaEdit ?? timelineMediaEditGenerator(run);
     init.generateMediaEdit = (request) => generate(request, operationIndex);
+    init.stepPatternLibrary = createServerStepPatternLibrary(run);
     init.getClipFrames = async (clip, frameOptions) => {
       const current = bridge.finalState();
       const { inspectTimelineClipFrames } = await import("./timeline-clip-frames.js");
@@ -521,7 +1426,7 @@ export async function applyOps(
   const bridge = createTimelineToolBridge(init);
   const byName = new Map(
     bridge.tools
-      .filter((tool) => !EXCLUDED_OPS.has(tool.name) && !(options.hermetic && (tool.name === `${TOOL_PREFIX}generatively_edit_clip` || READ_ONLY_OPS.has(tool.name))))
+      .filter((tool) => !EXCLUDED_OPS.has(tool.name) && !(options.hermetic && (tool.name === `${TOOL_PREFIX}generatively_edit_clip` || tool.name === `${TOOL_PREFIX}get_clip_frames`)))
       .map((tool) => [tool.name, tool])
   );
 

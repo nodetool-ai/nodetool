@@ -11,7 +11,8 @@ MenuActionItem {
     enabled: modelData.enabled ?? true
     checkable: modelData.checkable ?? false
     checked: modelData.checked ?? false
-    iconName: modelData.icon ?? ""
+    // The clip menu is a text menu, as in a DAW, so every label starts at one edge.
+    iconName: ""
     reasonText: modelData.reason ?? ""
     actionName: modelData.action
     actionContext: host.actionContext

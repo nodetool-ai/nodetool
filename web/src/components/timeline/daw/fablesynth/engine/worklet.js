@@ -711,8 +711,8 @@ function makeOscState() {
 class Voice {
   constructor() {
     this.note = 60; this.vel = 1; this.gate = false; this.age = 0;
-    this.pitch = 60; this.velGain = 0;
-    this.pending = null; // {n, vel, start, age} queued behind a steal fade (Env state 5)
+    this.pitch = 60; this.pitchOffset = 0; this.velGain = 0;
+    this.pending = null; // {n, vel, start, age, pitchOffset} queued behind a steal fade (Env state 5)
     this.ampEnv = new Env(); this.modEnv = new Env(); this.modEnv2 = new Env();
     this.lfo1 = new LFO(); this.lfo2 = new LFO(); this.lfo3 = new LFO(); this.lfo4 = new LFO();
     this.rand = 0; // RANDOM source: one unipolar draw per note
@@ -728,9 +728,10 @@ class Voice {
 
   // `modRng` feeds LFO 3/4 and RANDOM. It is separate from `rng` so the
   // appended modulators leave every existing patch's random draws unchanged.
-  noteOn(note, vel, startPitch, age, rng, phaseRandA, phaseRandB, modRng) {
+  noteOn(note, vel, startPitch, age, rng, phaseRandA, phaseRandB, modRng, pitchOffset = 0) {
     this.note = note; this.vel = vel; this.gate = true; this.age = age;
     this.pitch = startPitch;
+    this.pitchOffset = Number.isFinite(pitchOffset) ? pitchOffset : 0;
     this.velGain = 0.25 + 0.75 * vel * vel;
     this.ampEnv.trigger(); this.modEnv.trigger(); this.modEnv2.trigger();
     this.lfo1.reset(rng); this.lfo2.reset(rng);
@@ -1648,9 +1649,17 @@ class FableProcessor extends AudioWorkletProcessor {
     // (finding W6): same algorithm as juce/source/dsp/Fx.cpp, testable offline.
     this.fx = new Fx();
     this.fxLatency = this.fx.latencySamples();
-    // Timeline event queue: sorted { f, on, n, v }, consumed from evHead.
+    // Timeline event queue: sorted { f, on, n, v, pitchOffset }, consumed from evHead.
     this.evq = [];
     this.evHead = 0;
+    this.cevq = [];
+    this.cevHead = 0;
+    this.controllerTags = new Set();
+    this.cc7 = 1;
+    this.cc11 = 1;
+    this.ccGain = 1;
+    this.sustainPedal = false;
+    this.sustainHeld = new Set();
     this.eventHeld = new Map();
     this.liveEventTag = Symbol();
     // Timeline automation lanes (devices/param-automation-worklet.js).
@@ -1663,22 +1672,70 @@ class FableProcessor extends AudioWorkletProcessor {
     if (po) {
       if (Array.isArray(po.tables)) this.tables = po.tables.map((x) => this.makeTable(x));
       if (po.params) this.onMsg({ t: 'init', params: po.params });
-      if (po.events) this.queueEvents(po.events);
+      if (po.events) this.queueEvents(po.events, undefined, po.eventPitchOffsets);
+      if (po.controllers) this.queueControllers(po.controllers);
       this.port.postMessage({ t: 'ready' });
     }
   }
 
-  queueEvents(ev, tag) {
+  queueEvents(ev, tag, pitchOffsets) {
     const q = this.evHead ? this.evq.slice(this.evHead) : this.evq;
     for (let i = 0; i + 3 < ev.length; i += 4) {
       const n = ev[i + 2] | 0;
       if (!Number.isFinite(ev[i]) || n < 0 || n > 127) continue;
-      q.push({ f: ev[i], on: ev[i + 1] > 0, n, tag, v: Math.min(1, Math.max(0, ev[i + 3] || 0)) });
+      const po = pitchOffsets && Number.isFinite(pitchOffsets[i >> 2]) ? pitchOffsets[i >> 2] : 0;
+      q.push({ f: ev[i], on: ev[i + 1] > 0, n, tag, v: Math.min(1, Math.max(0, ev[i + 3] || 0)), pitchOffset: po });
     }
     // Same frame: a note-off sorts first, so a repeated note retriggers.
     q.sort((a, b) => a.f - b.f || (a.on === b.on ? 0 : a.on ? 1 : -1));
     this.evq = q;
     this.evHead = 0;
+  }
+
+  queueControllers(ev, tag) {
+    if (tag !== undefined) this.controllerTags.add(tag);
+    const q = this.cevHead ? this.cevq.slice(this.cevHead) : this.cevq;
+    for (let i = 0; i + 3 < ev.length; i += 4) {
+      if (!Number.isFinite(ev[i])) continue;
+      q.push({ f: ev[i], kind: ev[i + 1] | 0, param: ev[i + 2] | 0, v: ev[i + 3], tag });
+    }
+    q.sort((a, b) => a.f - b.f);
+    this.cevq = q;
+    this.cevHead = 0;
+  }
+
+  applyController(e) {
+    if (e.kind === 1) {
+      if (Number.isFinite(e.v)) this.bend = e.v;
+    } else if (e.kind === 2 && e.param === 7) {
+      const x = Math.min(1, Math.max(0, e.v / 127));
+      this.cc7 = x * x;
+      this.ccGain = this.cc7 * this.cc11;
+    } else if (e.kind === 2 && e.param === 11) {
+      this.cc11 = Math.min(1, Math.max(0, e.v / 127));
+      this.ccGain = this.cc7 * this.cc11;
+    } else if (e.kind === 2 && e.param === 64) {
+      const down = e.v >= 64;
+      if (this.sustainPedal && !down) {
+        this.sustainPedal = false;
+        const release = [...this.sustainHeld];
+        this.sustainHeld.clear();
+        for (const pitch of release) this.noteOff(pitch);
+      } else {
+        this.sustainPedal = down;
+      }
+    }
+  }
+
+  applyControllers(frame) {
+    const q = this.cevq;
+    while (this.cevHead < q.length && q[this.cevHead].f <= frame) {
+      this.applyController(q[this.cevHead++]);
+    }
+    if (this.cevHead > 512 && this.cevHead * 2 > q.length) {
+      this.cevq = q.slice(this.cevHead);
+      this.cevHead = 0;
+    }
   }
 
   // Apply every queued event due at or before `frame`. Events that were
@@ -1688,7 +1745,20 @@ class FableProcessor extends AudioWorkletProcessor {
     const late = blockStart - EV_LATE_S * sampleRate;
     while (this.evHead < q.length && q[this.evHead].f <= frame) {
       const e = q[this.evHead++];
-      if (!e.on || e.f >= late) this.applyTaggedEvent(e, e.n, () => this.noteOn(e.n, e.v), () => this.noteOff(e.n));
+      if (!e.on || e.f >= late) {
+        this.applyTaggedEvent(
+          e,
+          e.n,
+          () => {
+            this.sustainHeld.delete(e.n);
+            this.noteOn(e.n, e.v, e.pitchOffset || 0);
+          },
+          () => {
+            if (this.sustainPedal) this.sustainHeld.add(e.n);
+            else this.noteOff(e.n);
+          }
+        );
+      }
     }
     if (this.evHead > 512 && this.evHead * 2 > q.length) {
       this.evq = q.slice(this.evHead);
@@ -1720,6 +1790,21 @@ class FableProcessor extends AudioWorkletProcessor {
   clearEventTag(tag) {
     this.evq = this.evq.slice(this.evHead).filter((e) => e.tag !== tag);
     this.evHead = 0;
+    const hadControllerTag = this.controllerTags.delete(tag);
+    this.cevq = this.cevq.slice(this.cevHead).filter((e) => e.tag !== tag);
+    this.cevHead = 0;
+    if (hadControllerTag && this.cevq.length === 0 && this.controllerTags.size === 0) {
+      this.bend = 0;
+      this.cc7 = 1;
+      this.cc11 = 1;
+      this.ccGain = 1;
+      if (this.sustainPedal) {
+        this.sustainPedal = false;
+        const release = [...this.sustainHeld];
+        this.sustainHeld.clear();
+        for (const pitch of release) this.noteOff(pitch);
+      }
+    }
     const held = this.eventHeld.get(tag);
     this.eventHeld.delete(tag);
     if (held) for (const pitch of held) {
@@ -1730,12 +1815,22 @@ class FableProcessor extends AudioWorkletProcessor {
   onMsg(d) {
     if (this.pauto && this.pauto.onMsg(d, this.port)) return;
     switch (d.t) {
-      case 'evs': this.queueEvents(d.ev, d.tag); break;
+      case 'evs': this.queueEvents(d.ev, d.tag, d.pitchOffsets); break;
+      case 'cevs': this.queueControllers(d.ev, d.tag); break;
       case 'evclear':
         if (d.tag !== undefined) { this.clearEventTag(d.tag); break; }
         this.eventHeld.clear();
         this.evq = [];
         this.evHead = 0;
+        this.cevq = [];
+        this.cevHead = 0;
+        this.controllerTags.clear();
+        this.bend = 0;
+        this.cc7 = 1;
+        this.cc11 = 1;
+        this.ccGain = 1;
+        this.sustainPedal = false;
+        this.sustainHeld.clear();
         this.releaseAll();
         break;
       case 'reverb':
@@ -2272,7 +2367,7 @@ class FableProcessor extends AudioWorkletProcessor {
     this.port.postMessage({ t: 'step', s, pat });
   }
 
-  noteOn(n, vel) {
+  noteOn(n, vel, pitchOffset = 0) {
     // Track held keys mode-independently (in place compaction, no extra
     // allocation beyond one small per-event push, same profile as
     // seqOffQueue) so a mono<->poly flip can't strand a key that was only
@@ -2283,11 +2378,11 @@ class FableProcessor extends AudioWorkletProcessor {
     this.held.length = w;
     this.held.push(n);
 
-    if (this.p[MASTER_MONO]) this.monoNoteOn(n, vel);
-    else this.polyNoteOn(n, vel);
+    if (this.p[MASTER_MONO]) this.monoNoteOn(n, vel, pitchOffset);
+    else this.polyNoteOn(n, vel, pitchOffset);
   }
 
-  monoNoteOn(n, vel) {
+  monoNoteOn(n, vel, pitchOffset = 0) {
     // The newest gated voice carries the mono line; release any others (they
     // can only exist right after a poly -> mono flip).
     let voice = null;
@@ -2297,6 +2392,7 @@ class FableProcessor extends AudioWorkletProcessor {
       if (v.age > voice.age) { voice.noteOff(); voice = v; } else v.noteOff();
     }
     if (voice) {
+      voice.pitchOffset = Number.isFinite(pitchOffset) ? pitchOffset : 0;
       // Legato: retune only — renderVoice glides v.pitch toward v.note, and
       // not calling Voice.noteOn is what keeps the envelopes running.
       if (this.p[MASTER_LEGATO]) voice.note = n;
@@ -2304,7 +2400,7 @@ class FableProcessor extends AudioWorkletProcessor {
       this.lastPitch = n;
       return;
     }
-    this.polyNoteOn(n, vel); // from silence: normal trigger (glide-from-lastPitch, steal fade)
+    this.polyNoteOn(n, vel, pitchOffset); // from silence: normal trigger (glide-from-lastPitch, steal fade)
   }
 
   monoNoteOff(n) {
@@ -2321,7 +2417,7 @@ class FableProcessor extends AudioWorkletProcessor {
     }
   }
 
-  polyNoteOn(n, vel) {
+  polyNoteOn(n, vel, pitchOffset = 0) {
     let voice = this.voices.find((v) => v.gate && v.note === n);
     // Same note already queued behind a steal fade: replace it in place.
     if (!voice) voice = this.voices.find((v) => v.pending && v.pending.n === n);
@@ -2345,11 +2441,11 @@ class FableProcessor extends AudioWorkletProcessor {
       // Steal / same-note retrigger of an audible voice: hard-resetting phases
       // and filter state under a hot envelope clicks. Fade out instead (Env
       // state 5) and start the note once the voice reaches silence.
-      voice.pending = { n, vel, start, age: this.clock++ };
+      voice.pending = { n, vel, start, age: this.clock++, pitchOffset };
       voice.gate = false;
       voice.ampEnv.state = 5;
     } else {
-      voice.noteOn(n, vel, start, this.clock++, this.rng, 1, 1, this.modRng);
+      voice.noteOn(n, vel, start, this.clock++, this.rng, 1, 1, this.modRng, pitchOffset);
     }
   }
 
@@ -2375,7 +2471,7 @@ class FableProcessor extends AudioWorkletProcessor {
     const table = this.tables[p[base + O_TABLE] | 0];
     if (!table) return false;
 
-    const basePitch = voice.pitch + this.bend + p[base + O_OCT] * 12 + p[base + O_SEMI] + p[base + O_FINE] / 100 + mPitch * 12;
+    const basePitch = voice.pitch + (voice.pitchOffset || 0) + this.bend + p[base + O_OCT] * 12 + p[base + O_SEMI] + p[base + O_FINE] / 100 + mPitch * 12;
     const freq = 440 * Math.pow(2, (basePitch - 69) / 12);
     if (!(freq > 0 && freq <= sampleRate * 0.45)) return false; // inverted: NaN-safe
 
@@ -2842,7 +2938,7 @@ class FableProcessor extends AudioWorkletProcessor {
       const subLvl = pm[SUB_LEVEL];
       const lvl = subLvl * subLvl * 0.3;
       if (lvl > 1e-6) {
-        const sf = 440 * Math.pow(2, (v.pitch + this.bend + p[SUB_OCT] * 12 + mPitch * 12 - 69) / 12);
+        const sf = 440 * Math.pow(2, (v.pitch + (v.pitchOffset || 0) + this.bend + p[SUB_OCT] * 12 + mPitch * 12 - 69) / 12);
         const inc1 = sf / sampleRate;
         if (inc1 > 0 && inc1 < 0.45) {
           // Finding W1: ramp the sub increment across the chunk so glide /
@@ -3012,8 +3108,12 @@ class FableProcessor extends AudioWorkletProcessor {
       let run = Math.min(128, n - off);
       this.frameNow = currentFrame + off;
 
-      // Timeline notes land on their own sample: apply what is due, then end
-      // the chunk where the next event starts.
+      // Timeline controllers and notes land on their own sample: apply what is
+      // due, then end the chunk where the next event starts.
+      if (this.cevHead < this.cevq.length) {
+        this.applyControllers(this.frameNow);
+        if (this.cevHead < this.cevq.length) run = Math.min(run, Math.max(1, Math.ceil(this.cevq[this.cevHead].f - this.frameNow)));
+      }
       if (this.evHead < this.evq.length) {
         this.applyEvents(this.frameNow, currentFrame);
         if (this.evHead < this.evq.length) run = Math.min(run, Math.max(1, Math.ceil(this.evq[this.evHead].f - this.frameNow)));
@@ -3044,6 +3144,13 @@ class FableProcessor extends AudioWorkletProcessor {
       this.fx.setParams(this.p, this.bpm);
       this.fx.lab.setTransport(ppq, true); // the GLITCH grid follows this chunk's beat
       this.fx.process(L, R, run, off);
+      if (this.ccGain !== 1) {
+        const g = this.ccGain;
+        for (let i = off; i < off + run; i++) {
+          L[i] *= g;
+          if (R !== L) R[i] *= g;
+        }
+      }
       this.transportBeats += (run / sampleRate) * (this.bpm / 60);
       if (!hosted && this.seqPlaying) this.seqToNext -= run;
 
@@ -3138,7 +3245,7 @@ class FableProcessor extends AudioWorkletProcessor {
       if (!v.active && v.pending) {
         const pd = v.pending;
         v.pending = null;
-        v.noteOn(pd.n, pd.vel, pd.start, this.clock++, this.rng, 1, 1, this.modRng);
+        v.noteOn(pd.n, pd.vel, pd.start, this.clock++, this.rng, 1, 1, this.modRng, pd.pitchOffset || 0);
       }
       if (!v.active) continue;
       const r = this.renderVoice(v, L, R, off, n);

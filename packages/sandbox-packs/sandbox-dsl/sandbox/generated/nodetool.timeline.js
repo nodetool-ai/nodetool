@@ -1,7 +1,7 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
 function renderTimeline(inputs, options) {
-  return createNode("nodetool.timeline.RenderTimeline", inputs, { id: options?.id, outputNames: ["output", "frames"], outputTypes: { "output": "video", "frames": "document" } });
+  return createNode("nodetool.timeline.RenderTimeline", inputs, { id: options?.id, outputNames: ["output", "frames", "audio"], outputTypes: { "output": "video", "frames": "document", "audio": "audio" } });
 }
 function transcript(inputs, options) {
   return createNode("nodetool.timeline.Transcript", inputs, { id: options?.id, outputNames: ["text", "lines"], outputTypes: { "text": "str", "lines": "list[str]" } });

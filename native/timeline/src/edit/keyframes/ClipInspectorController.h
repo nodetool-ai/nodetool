@@ -1,12 +1,14 @@
 #pragma once
 #include "model/TimelineModel.h"
+#include "Keyframes.h"
+#include <map>
 #include "playback/PlaybackClock.h"
 #include <QPointer>
 #include <QUuid>
 #include <QVariantMap>
 #include <QtQmlIntegration/qqmlintegration.h>
 
-// Document state changes on edits only. The separate playhead notification
+// UI thread only. Document state changes on edits only. The separate playhead notification
 // feeds inspector values, never TimelineModel or a lane delegate.
 class ClipInspectorController : public QObject {
     Q_OBJECT
@@ -14,6 +16,14 @@ class ClipInspectorController : public QObject {
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(PlaybackClock* clock READ clock WRITE setClock NOTIFY playheadChanged)
     Q_PROPERTY(QString clipId READ clipId WRITE setClipId NOTIFY changed)
+    Q_PROPERTY(QString selectedClipId READ selectedClipId NOTIFY changed)
+    Q_PROPERTY(QString clipName READ clipName NOTIFY changed)
+    Q_PROPERTY(QString mediaType READ mediaType NOTIFY changed)
+    Q_PROPERTY(double startMs READ startMs NOTIFY changed)
+    Q_PROPERTY(double durationMs READ durationMs NOTIFY changed)
+    Q_PROPERTY(double clipWidth READ clipWidth NOTIFY changed)
+    Q_PROPERTY(double clipHeight READ clipHeight NOTIFY changed)
+    Q_PROPERTY(bool hasAnimations READ hasAnimations NOTIFY changed)
     Q_PROPERTY(QVariantMap clip READ clip NOTIFY changed)
     // Changes with `clip`, for a binding that must rerun on an edit but needs no copy of the clip.
     Q_PROPERTY(int revision READ revision NOTIFY changed)
@@ -25,7 +35,7 @@ class ClipInspectorController : public QObject {
     Q_PROPERTY(QVariantList rows READ rows CONSTANT)
   public:
     explicit ClipInspectorController(QObject* parent = nullptr) : QObject(parent) {
-        connect(this, &ClipInspectorController::changed, this, [this] { ++m_revision; }, Qt::DirectConnection);
+        connect(this, &ClipInspectorController::changed, this, [this] { ++m_revision; m_playbackRows.clear(); m_documentRows.clear(); m_graphRows.clear(); }, Qt::DirectConnection);
     }
     TimelineModel* timeline() const { return m_timeline; }
     PlaybackClock* clock() const { return m_clock; }
@@ -33,8 +43,18 @@ class ClipInspectorController : public QObject {
     void setTimeline(TimelineModel* model);
     void setClock(PlaybackClock* clock);
     void setClipId(const QString& id);
+    QString selectedClipId() const { return m_clip.value("id").toString(); }
+    QString clipName() const { return m_clip.value("name").toString(); }
+    QString mediaType() const { return m_clip.value("mediaType").toString(); }
+    double startMs() const { return m_clip.value("startMs").toDouble(); }
+    double durationMs() const { return m_clip.value("durationMs").toDouble(); }
+    double clipWidth() const { return m_clip.value("width").toDouble(); }
+    double clipHeight() const { return m_clip.value("height").toDouble(); }
+    bool hasAnimations() const { return !m_clip.value("animations").toArray().isEmpty(); }
     QVariantMap clip() const;
     int revision() const { return m_revision; }
+    int preparedRowCount() const { return m_preparedRowCount; }
+    int graphBuildCount() const { return m_graphBuildCount; }
     bool locked() const { return m_locked; }
     bool active() const { return m_active; }
     void setActive(bool active);
@@ -73,6 +93,8 @@ class ClipInspectorController : public QObject {
 
   private:
     QJsonObject selected() const;
+    QJsonObject rowClip() const;
+    mutable QJsonObject m_rowClip;
     // Re-reads the selected clip and its lock. Emits `changed` only when either differs, or when forced.
     void refresh(bool force = false);
     void updatePlayhead(bool forcePlayheadSignal = false);
@@ -84,6 +106,11 @@ class ClipInspectorController : public QObject {
     int m_revision = 0;
     QJsonObject m_clip;
     mutable QVariantMap m_clipMap;
+    mutable std::map<QString, std::unique_ptr<nt::keyframes::RowPlayback>> m_playbackRows;
+    mutable QHash<QString, QVariantMap> m_documentRows;
+    mutable QHash<QString, QVariantMap> m_graphRows;
+    mutable int m_preparedRowCount = 0;
+    mutable int m_graphBuildCount = 0;
     mutable bool m_clipMapValid = false;
     bool m_locked = true;
     bool m_active = true;

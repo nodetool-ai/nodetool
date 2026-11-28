@@ -4,7 +4,7 @@
 namespace nt::automation {
 namespace {
 struct Registry {
-    // native-rules #10: mutex does not say that it guards channels
+    // Guards channels and weak-reference lookup/publication.
     std::mutex mutex;
     std::unordered_map<std::string,std::weak_ptr<MeterPeaks>> channels;
 };
@@ -21,6 +21,20 @@ std::shared_ptr<MeterPeaks> publishMeter(const std::string& id) {
     const std::scoped_lock lock(r.mutex);
     r.channels[id]=peaks;
     return peaks;
+}
+bool metersHaveSignal() {
+    auto& r=registry();
+    const std::scoped_lock lock(r.mutex);
+    for (const auto& [id, weak] : r.channels) {
+        const auto peaks=weak.lock();
+        if (peaks && (peaks->left.load(std::memory_order_relaxed)>0 || peaks->right.load(std::memory_order_relaxed)>0)) { return true; }
+    }
+    return false;
+}
+bool hasMeter(const std::string& id) {
+    auto& r=registry(); const std::scoped_lock lock(r.mutex);
+    const auto found=r.channels.find(id);
+    return found!=r.channels.end() && !found->second.expired();
 }
 std::array<float,2> takeMeter(const std::string& id) {
     auto& r=registry();

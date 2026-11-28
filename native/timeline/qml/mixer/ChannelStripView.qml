@@ -1,19 +1,35 @@
+pragma ComponentBehavior: Bound
 import QtQuick
+import NodeTool.TimelinePlayer
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 import "faderTaper.js" as Taper
 Item {
     id: root
+    property PlaybackClock meterClock: null
+    property bool metering: true
+    // JSON data from the document, controller, or shared JavaScript API.
     property var channel: ({})
     property string channelId: ""
     property string channelName: ""
     property bool master: false
     property bool compact: false
+    property real liveDb: channel.volumeDb || 0
+    property real livePan: channel.pan || 0
     property real draftDb: channel.volumeDb || 0
     property real draftPan: channel.pan || 0
+    property bool volumeRecording: false
     property bool volumeGesture: false
     property bool panGesture: false
+    signal volumeStarted()
+    signal volumePreview(real db)
+    signal volumeEnded()
+    signal volumeCanceled()
+    signal panStarted()
+    signal panPreview(real value)
+    signal panEnded()
+    signal panCanceled()
     signal volumeCommit(real db)
     signal panCommit(real pan)
     signal mute()
@@ -21,11 +37,16 @@ Item {
     signal addEffect(var effect)
     signal toggleEffect(string effectId, bool enabled)
     signal openEffect(string effectId, var anchor)
-    readonly property real displayDb: volumeGesture ? draftDb : (channel.volumeDb || 0)
-    readonly property real displayPan: panGesture ? draftPan : (channel.pan || 0)
-    function cancelGesture() { volumeGesture=false; panGesture=false; fader.dragging=false; pan.dragging=false }
-    function endVolume() { if(volumeGesture) { volumeGesture=false; volumeCommit(draftDb) } }
-    function endPan() { if(panGesture) { panGesture=false; panCommit(draftPan) } }
+    signal openInstrument(var anchor)
+    readonly property real displayDb: volumeGesture ? draftDb : liveDb
+    readonly property real displayPan: panGesture ? draftPan : livePan
+    function cancelGesture() {
+        if (volumeGesture) { volumeCanceled() }
+        if (panGesture) { panCanceled() }
+        volumeGesture=false; panGesture=false; fader.dragging=false; pan.dragging=false
+    }
+    function endVolume() { if(volumeGesture) { volumeCommit(draftDb); volumeGesture=false; volumeEnded() } }
+    function endPan() { if(panGesture) { panCommit(draftPan); panGesture=false; panEnded() } }
     Ui.Icon {
         visible: !root.master; name: TimelineVisuals.trackIconName(root.channel.type)
         size: Ui.Metrics.iconXs; y: 1; domainColor: TimelineVisuals.trackAccent(root.channel.type)
@@ -37,8 +58,34 @@ Item {
     Ui.Surface {
         id: device; variant: Ui.Surface.Input; anchors.top: head.bottom; anchors.topMargin: Ui.Metrics.xs
         width: parent.width; height: Math.max(Ui.Metrics.small, deviceLabel.implicitHeight + Ui.Metrics.xs)
-        Ui.Text { id: deviceLabel; role: Ui.Typography.SansCaption; anchors.fill: parent; anchors.leftMargin: Ui.Metrics.xs; verticalAlignment: Text.AlignVCenter; text: root.master ? "Stereo out" : root.channel.type === "midi"
-            ? ({subtractive:"Synth",wavetable:"WT-1 Wavetable",bass:"BL-1 Bass",drum:"DR-1 Drums",sampler:"Sampler",vst:"VST"})[(root.channel.instrument || {}).type || "subtractive"] || "Instrument" : "Audio"; tone: Ui.Text.Secondary }
+        // JSON data from the document, controller, or shared JavaScript API.
+        readonly property var inst: root.channel.instrument || ({})
+        readonly property string midiDeviceText: inst.type === "vst"
+            ? ((inst.plugin && inst.plugin.name) || "VST3 Instrument")
+            : (({subtractive:"Synth",wavetable:"WT-1 Wavetable",bass:"BL-1 Bass",drum:"DR-1 Drums",sampler:"Sampler"})[inst.type || "subtractive"] || "Instrument")
+        Ui.Text {
+            id: deviceLabel
+            visible: root.master || root.channel.type !== "midi"
+            role: Ui.Typography.SansCaption
+            anchors.fill: parent
+            anchors.leftMargin: Ui.Metrics.xs
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+            text: root.master ? "Stereo out" : "Audio"
+            tone: Ui.Text.Secondary
+        }
+        Ui.EditorButton {
+            id: instrumentButton
+            objectName: "instrument-device-" + root.channelId
+            visible: !root.master && root.channel.type === "midi"
+            anchors.fill: parent
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
+            contentAlignment: Qt.AlignLeft
+            text: device.midiDeviceText
+            accessibleName: root.channelName + " instrument: " + device.midiDeviceText
+            onClicked: root.openInstrument(instrumentButton)
+        }
     }
     InsertSlots {
         id: inserts; anchors.top: device.bottom; anchors.topMargin: Ui.Metrics.xs
@@ -69,9 +116,16 @@ Item {
                 Accessible.name: root.channelName + " pan"
                 Accessible.description: Taper.panValueText(root.displayPan)
                 function finish() { dragging=false; root.endPan() }
-                function cancel() { dragging=false; root.panGesture=false; root.draftPan=root.channel.pan || 0 }
-                function nudge(next) { root.panGesture=true; root.draftPan=Math.max(-1,Math.min(1,next)) }
-                onActiveFocusChanged: if(!activeFocus) finish()
+                function cancel() { dragging=false; root.panGesture=false; root.draftPan=root.channel.pan || 0; root.panCanceled() }
+                function nudge(next) {
+                    if (!root.panGesture) { root.panStarted() }
+                    root.panGesture=true
+                    root.draftPan=Math.max(-1,Math.min(1,next))
+                    root.panPreview(root.draftPan)
+                }
+                onEnabledChanged: if (!enabled && root.panGesture) cancel()
+                onVisibleChanged: if (!visible && root.panGesture) cancel()
+                onActiveFocusChanged: if(!activeFocus && root.panGesture) cancel()
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape && root.panGesture) { cancel(); event.accepted=true; return }
                     var current=root.displayPan, next=current
@@ -114,7 +168,7 @@ Item {
                     onPressed: event => {
                         pan.forceActiveFocus(); pan.startValue=root.displayPan
                         pan.startX=event.x; pan.startY=event.y; pan.dragging=true
-                        root.draftPan=root.displayPan; root.panGesture=true
+                        root.panStarted(); root.draftPan=root.displayPan; root.panGesture=true
                     }
                     onPositionChanged: event => {
                         if(!pan.dragging) return
@@ -123,7 +177,7 @@ Item {
                     }
                     onReleased: pan.finish()
                     onCanceled: pan.cancel()
-                    onDoubleClicked: { pan.dragging=false; root.panGesture=false; root.panCommit(0) }
+                    onDoubleClicked: { pan.dragging=false; root.panStarted(); root.panGesture=false; root.panCommit(0); root.panEnded() }
                 }
             }
             Ui.Text { role: Ui.Typography.MonoCaption; x: root.compact ? 30 : 0; y: root.compact ? 8 : 30; width: 36; text: Taper.formatPan(root.displayPan); tone: Ui.Text.Secondary; horizontalAlignment: Text.AlignHCenter }
@@ -164,12 +218,18 @@ Item {
                 height: parent.height; width: Math.max(24,Math.min(54,parent.width-18))
                 x: Math.max(0,(parent.width-72)/2)
                 value: root.displayDb
+                minimumDb: root.volumeRecording ? -60 : -120
+                maximumDb: root.volumeRecording ? 6 : 24
                 label: root.channelName+" volume"
-                onPreview: db => { root.volumeGesture=true; root.draftDb=db }
-                onCommit: db => { root.volumeGesture=false; root.volumeCommit(db) }
-                onCanceled: { root.volumeGesture=false; root.draftDb=root.channel.volumeDb || 0 }
+                onStarted: root.volumeStarted()
+                onPreview: db => { root.volumeGesture=true; root.draftDb=db; root.volumePreview(db) }
+                onCommit: db => { root.volumeCommit(db); root.volumeGesture=false; root.volumeEnded() }
+                onCanceled: { root.volumeGesture=false; root.draftDb=root.channel.volumeDb || 0; root.volumeCanceled() }
             }
             MixerMeter {
+                objectName: "mixer-meter-"+root.channelId
+                clock: root.meterClock
+                active: root.metering
                 x: fader.x+fader.width+Ui.Metrics.xs; width: 12; height: parent.height
                 channelId: root.channelId
             }
@@ -188,7 +248,7 @@ Item {
         accessibleName: root.channelName + " level (dB)"
         onValueCommitted: text => {
             const next = Taper.parseDb(text)
-            if (next !== null) root.volumeCommit(next)
+            if (next !== null) { root.volumeStarted(); root.volumeCommit(next); root.volumeEnded() }
         }
     }
 }

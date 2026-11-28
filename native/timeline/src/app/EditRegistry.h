@@ -1,4 +1,6 @@
 #pragma once
+#include "model/TimelineTypes.h"
+#include "model/ChangeSet.h"
 #include <QDebug>
 #include <QHash>
 #include <QJsonObject>
@@ -8,6 +10,17 @@
 
 namespace nt::app {
 using Edit = std::function<QJsonObject(QJsonObject, const QJsonObject&)>;
+// UI-thread edit result. Snapshots share immutable note arrays with undo and render readers.
+struct TypedEditResult {
+    std::shared_ptr<const nt::Timeline> snapshot;
+    ChangeSet changes;
+};
+using TypedEdit = std::function<TypedEditResult(const nt::Timeline&, const QJsonObject&)>;
+struct RegisteredTypedEdit {
+    Edit json;
+    TypedEdit typed;
+    QJsonObject operator()(QJsonObject raw, const QJsonObject& payload) const { return json(std::move(raw), payload); }
+};
 struct EditRegistration {
     QString name;
     QString registrar;

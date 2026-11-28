@@ -1,4 +1,9 @@
 #include "aiassist/AgentBridge.h"
+#include "server/TimelineList/TimelineSession.h"
+#include <QScopeGuard>
+#include "audio/vst/VstHostClient.h"
+#include <QDir>
+#include <QFileInfo>
 #include "aiassist/AssistantCommands.h"
 #include "aiassist/AssistantSession.h"
 #include "app/EditRegistry.h"
@@ -10,6 +15,9 @@
 #include "wiring/WiringFixture.h"
 #include <QJsonArray>
 #include <QSignalSpy>
+#include <QTemporaryDir>
+#include <QFile>
+#include <QElapsedTimer>
 
 using nt::aiassist::AssistantCommands;
 
@@ -81,6 +89,37 @@ class TestAssistantCommands : public WiringFixture {
     QJsonObject rawClip(const QString& id) { return clip(id); }
 
 private slots:
+    void agentAutomationCommands() {
+        const QVariantMap target{{"kind", "mixer"}, {"param", "pan"}};
+        const auto added = run("automation.addPoints", {{"track_id", TRACK_A.left(12)}, {"target", target},
+            {"points", QVariantList{QVariantMap{{"timeMs", 100}, {"value", 9}}}}});
+        QVERIFY2(added.value("ok").toBool(), qPrintable(QJsonDocument::fromVariant(added).toJson()));
+        const auto changed = run("setTrackAutomationMode", {{"track_id", TRACK_A.left(12)}, {"mode", "touch"}});
+        QVERIFY(changed.value("ok").toBool());
+        const auto read = session->executeHostTool("ui_timeline_get_state", {{"timeline_id", TIMELINE}}, {});
+        bool found = false;
+        for (const auto& value : read.value("tracks").toArray()) {
+            const auto track = value.toObject();
+            if (track["id"].toString() != TRACK_A) { continue; }
+            found = true;
+            QCOMPARE(track["automationMode"].toString(), QString("touch"));
+            QCOMPARE(track["automation"].toArray().first().toObject()["points"].toArray().first().toObject()["value"].toDouble(), 1.);
+        }
+        QVERIFY(found);
+        QVERIFY(!run("setTrackAutomation", {{"track_id", TRACK_A}, {"automation", QVariantList{}}}).value("ok").toBool());
+        QVERIFY(!run("writeTrackAutomationPass", {{"track_id", TRACK_A}}).value("ok").toBool());
+    }
+    void automationNoopsAndErrors() {
+        const QVariantMap target{{"kind", "mixer"}, {"param", "pan"}};
+        QVERIFY(run("automation.addPoints", {{"track_id", TRACK_A}, {"target", target},
+            {"points", QVariantList{QVariantMap{{"timeMs", 100}, {"value", 0}}}}}).value("ok").toBool());
+        const auto before = model.undoStack()->count();
+        QVERIFY(run("automation.setLaneEnabled", {{"track_id", TRACK_A}, {"target", target}, {"enabled", true}}).value("ok").toBool());
+        QCOMPARE(model.undoStack()->count(), before);
+        const auto missing = run("automation.clearLane", {{"track_id", TRACK_A}, {"target", QVariantMap{{"kind", "mixer"}, {"param", "volumeDb"}}}});
+        QVERIFY(!missing.value("ok").toBool());
+        QCOMPARE(missing.value("error").toString(), QString("Automation lane does not exist."));
+    }
     // A window takes seconds to open, so the tests share one and each gets a fresh document.
     void initTestCase() {
         open();
@@ -96,6 +135,155 @@ private slots:
     }
     void init() { loadDocument(); }
 
+    void saveResultSurvivesEditsDuringSave_data() {
+        QTest::addColumn<bool>("saveOk");
+        QTest::newRow("failure") << false;
+        QTest::newRow("success") << true;
+    }
+    void saveResultSurvivesEditsDuringSave() {
+        QFETCH(bool, saveOk);
+        QTemporaryDir folder;
+        nt::server::TimelineSession documentSession(model, clock, nt::server::AssetCacheRoot(folder.path()));
+        documentSession.setFlushLocalCallback([&] {
+            model.addMarker(100, "During save one");
+            model.addMarker(200, "During save two");
+            return saveOk;
+        }, [] { return QStringLiteral("Local save failed"); });
+        auto* root = view->rootObject();
+        root->setProperty("documentSession", QVariant::fromValue<QObject*>(&documentSession));
+        const auto detach = qScopeGuard([root] { root->setProperty("documentSession", QVariant::fromValue<QObject*>(nullptr)); });
+        const auto result = run("saveDocument");
+        QCOMPARE(result.value("ok").toBool(), saveOk);
+        if (!saveOk) { QCOMPARE(result.value("error").toString(), QStringLiteral("Local save failed")); }
+        QCOMPARE(model.undoStack()->count(), 2);
+        model.undoStack()->undo();
+        QCOMPARE(model.markersJson().size(), 2);
+        model.undoStack()->undo();
+        QCOMPARE(model.markersJson().size(), 1);
+    }
+
+    void compactNoteIdsRoundTrip() {
+        const QString full = "abcdef01234567890123456789012345";
+        auto raw = model.timeline().raw;
+        auto clips = raw.value("clips").toArray(); auto clip = clips[0].toObject();
+        const QJsonObject note{{"id", full}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 480}};
+        clip.insert("mediaType", "midi"); clip.insert("notes", QJsonArray{note}); clips[0] = clip; raw.insert("clips", clips);
+        const auto parsed = nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto read = session->executeHostTool("ui_timeline_get_state", {{"timeline_id", TIMELINE}, {"clip", CLIP_A}}, {});
+        const auto readId = read.value("clips").toArray().first().toObject().value("notes").toArray().first().toObject().value("id").toString();
+        QCOMPARE(readId, full);
+        const auto compact = readId.left(12);
+        const QList<QPair<QString, QVariantMap>> patches{
+            {"midi.moveNotes", {{"notes", QVariantList{QVariantMap{{"id", compact}, {"pitch", 64}}}}}},
+            {"midi.resizeNotes", {{"notes", QVariantList{QVariantMap{{"id", compact}, {"durationTick", 120}}}}}},
+            {"midi.setNoteVelocities", {{"notes", QVariantList{QVariantMap{{"id", compact}, {"velocity", 42}}}}}},
+            {"midi.patchNotes", {{"notes", QVariantList{QVariantMap{{"id", compact}, {"pitch", 64}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}}}}}},
+            {"midi.removeNotes", {{"noteIds", QVariantList{compact}}}},
+            {"midi.patchNotes", {{"notes", QVariantList{}}, {"noteIds", QVariantList{compact}}}}
+        };
+        for (const auto& [name, fields] : patches) {
+            model.setTimeline(*parsed.timeline);
+            auto params = fields; params.insert("clip_id", CLIP_A);
+            const auto result = run(name, params);
+            QVERIFY2(!result.contains("error"), qPrintable(QJsonDocument::fromVariant(result).toJson()));
+            for (const auto& n : *model.findClip(CLIP_A)->notes) { QCOMPARE(n.id, full); }
+            auto other = note; other.insert("id", "abcdef012345ffffffffffffffffffff");
+            clip.insert("notes", QJsonArray{note, other}); clips[0] = clip; raw.insert("clips", clips);
+            const auto ambiguous = nt::parseTimeline(raw); QVERIFY(ambiguous.timeline); model.setTimeline(*ambiguous.timeline);
+            const auto rejected = run(name, params);
+            QVERIFY2(rejected.value("error").toString().contains("Ambiguous"), qPrintable(QJsonDocument::fromVariant(rejected).toJson()));
+            QCOMPARE(model.findClip(CLIP_A)->notes->size(), std::size_t{2});
+        }
+        model.setTimeline(*parsed.timeline);
+        const auto unknown = run("midi.patchNotes", {{"clip_id", CLIP_A}, {"notes", QVariantList{QVariantMap{
+            {"id", "missing"}, {"pitch", 64}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 120}}}}});
+        QVERIFY(unknown.contains("error"));
+        QCOMPARE(model.findClip(CLIP_A)->notes->size(), std::size_t{1});
+    }
+
+    void notePatchCommandsUseRegisteredEdits() {
+        auto raw = model.timeline().raw;
+        auto clips = raw.value("clips").toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("mediaType", "midi");
+        clip.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 480}}});
+        clips[0] = clip;
+        raw.insert("clips", clips);
+        const auto parsed = nt::parseTimeline(raw);
+        if (!parsed.timeline) { QFAIL("Fixture must parse"); }
+        model.setTimeline(*parsed.timeline);
+        const QList<QPair<QString, QJsonObject>> fixtures{
+            {"midi.moveNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 62}, {"startTick", 120}}}}}},
+            {"midi.resizeNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"durationTick", 240}}}}}},
+            {"midi.setNoteVelocities", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"velocity", 42}}}}}},
+            {"midi.addNotes", {{"notes", QJsonArray{QJsonObject{{"id", "new"}, {"pitch", 64}, {"velocity", 80}, {"startTick", 960}, {"durationTick", 240}}}}}},
+            {"midi.patchNotes", {{"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 63}, {"velocity", 42}, {"startTick", 120}, {"durationTick", 240}}}}}},
+            {"midi.removeNotes", {{"noteIds", QJsonArray{"new"}}}}
+        };
+        QSignalSpy coarse(&model, &TimelineModel::timelineChanged);
+        for (const auto& [name, payload] : fixtures) {
+            QVERIFY2(!commandEntry(name).isEmpty(), qPrintable(name));
+            auto params = payload.toVariantMap();
+            params.insert("clip_id", CLIP_A);
+            auto expectedPayload = payload;
+            expectedPayload.insert("clipId", CLIP_A);
+            const auto expected = nt::app::findEdit(name)(model.timeline().raw, expectedPayload);
+            const auto result = run(name, params);
+            QVERIFY2(result.value("error").toString().isEmpty(), qPrintable(result.value("error").toString()));
+            QCOMPARE(model.timeline().raw, expected);
+            QCOMPARE(coarse.size(), 0);
+            const auto properties = commandEntry(name).value("parameters").toMap().value("properties").toMap();
+            const auto itemSchema = properties.value(name == "midi.removeNotes" ? "noteIds" : "notes").toMap().value("items").toMap();
+            if (name == "midi.removeNotes") { QCOMPARE(itemSchema.value("type").toString(), QString("string")); }
+            else { QVERIFY(itemSchema.contains("additionalProperties")); QVERIFY(!itemSchema.value("additionalProperties").toBool()); }
+            if (name != "midi.addNotes" && name != "midi.removeNotes") {
+                const int count = model.undoStack()->count();
+                const auto noop = run(name, params);
+                QVERIFY2(noop.value("error").toString().isEmpty(), qPrintable(noop.value("error").toString()));
+                QCOMPARE(model.undoStack()->count(), count);
+            }
+        }
+        const auto invalid = run("midi.moveNotes", {{"clip_id", CLIP_A},
+            {"notes", QVariantList{QVariantMap{{"id", "missing"}, {"pitch", 62}}}}});
+        QVERIFY(invalid.value("error").toString().contains("id", Qt::CaseInsensitive));
+        for (const auto* name : {"midi.resizeNotes", "midi.setNoteVelocities"}) {
+            const auto missingField = run(name, {{"clip_id", CLIP_A}, {"notes", QVariantList{QVariantMap{{"id", "n"}}}}});
+            QVERIFY2(!missingField.value("error").toString().isEmpty(), name);
+        }
+    }
+
+    void closingCancelsPluginRequest() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile helper(dir.filePath("host"));
+        QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json, sys, time
+for line in sys.stdin:
+    req = json.loads(line)
+    if req['cmd'] == 'quit': break
+    open(__file__ + '.started', 'w').close()
+    time.sleep(1)
+    print(json.dumps(dict(id=req['id'], ok=True, plugins=[])), flush=True)
+)PY");
+        helper.close();
+        QVERIFY(helper.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const auto client = nt::audio::vst::sharedVstHostClient();
+        const auto original = client->executablePath();
+        client->setOverrideExecutable(helper.fileName());
+        const auto result = commands->execute("ui_timeline_list_plugins", {{"timeline_id", TIMELINE}, {"rescan", true}}, "close-test");
+        QVERIFY(result.value("deferred").toBool());
+        QTRY_VERIFY(QFileInfo::exists(helper.fileName() + ".started"));
+        QElapsedTimer elapsed;
+        elapsed.start();
+        commands.reset();
+        const auto closeMs = elapsed.elapsed();
+        client->setOverrideExecutable(original);
+        commands = std::make_unique<AssistantCommands>(model, clock);
+        commands->setEditor(view->rootObject());
+        QVERIFY2(closeMs < 300, qPrintable(QStringLiteral("Closing waited %1 ms for plugin RPC").arg(closeMs)));
+    }
+
     // Acceptance: a registered command that is neither allowed nor denied fails this test.
     void everyRegisteredCommandIsDecided() {
         const auto audit = nt::aiassist::auditCommands();
@@ -103,6 +291,8 @@ private slots:
         QVERIFY2(audit.stale.isEmpty(), qPrintable("Not registered: " + audit.stale.join(", ")));
         QVERIFY2(audit.conflicting.isEmpty(), qPrintable("Allowed and denied: " + audit.conflicting.join(", ")));
         QVERIFY2(audit.unrunnable.isEmpty(), qPrintable("Allowed with no runner: " + audit.unrunnable.join(", ")));
+        QVERIFY(nt::aiassist::registeredCommandIds().contains("effect.setParams"));
+        QVERIFY(!commandEntry("effect.setParams").isEmpty());
         // The audit looked at something: the registries really hold these.
         QVERIFY(nt::aiassist::registeredCommandIds().size() > 300);
         QVERIFY(audit.allowed > 100);
@@ -119,9 +309,10 @@ private slots:
     }
     void securityDenials_data() {
         QTest::addColumn<QString>("id");
-        for (const auto* id : {"exportVideo", "quickExport", "exportFrame", "exportPremiere", "importPremiere", "exportMarkersCsv",
+        for (const auto* id : {"accountSignIn", "accountOtherServer", "accountSwitchServer", "shareTimeline",
+                               "exportVideo", "quickExport", "exportFrame", "exportPremiere", "importPremiere", "exportMarkersCsv",
                                "remixClip", "sceneEditDetection", "projectSettings", "toggleSnap", "playPause", "resetWorkspace", "updateTrackEffect",
-                               "ai.insertGeneration", "assets.dropAsset", "restoreDocument", "acceptExternalUnit", "toggleScrubAudio"}) {
+                               "ai.insertGeneration", "music.insertPlaceholder", "music.applyResult", "music.removeTakes", "musicCleanUpTakes", "assets.dropAsset", "restoreDocument", "acceptExternalUnit", "toggleScrubAudio"}) {
             QTest::newRow(id) << QString(id);
         }
     }
@@ -141,7 +332,7 @@ private slots:
         const auto entry = commandEntry("rippleDeleteSelected");
         QCOMPARE(entry.value("label").toString(), QString("Ripple Delete"));
         QCOMPARE(entry.value("enabled").toBool(), false);
-        QCOMPARE(entry.value("disabledReason").toString(), QString("Select a clip or a gap first."));
+        QCOMPARE(entry.value("disabledReason").toString(), QString("Select clips, a gap or a section first."));
         const auto properties = entry.value("parameters").toMap().value("properties").toMap();
         QVERIFY(properties.contains("clip_ids"));
         QCOMPARE(properties.value("clip_ids").toMap().value("type").toString(), QString("array"));
@@ -154,6 +345,27 @@ private slots:
         for (const auto& value : enabledOnly) { QVERIFY(value.toMap().value("enabled").toBool()); }
         QVERIFY(enabledOnly.size() < list().value("commands").toList().size());
     }
+    void clipParamsAdvertisesSourceAndStyleFields() {
+        const auto schema = commandEntry("set_clip_params").value("parameters").toMap();
+        const auto properties = schema.value("properties").toMap();
+        const auto required = schema.value("required").toList();
+        for (const auto* name : {"inPointMs", "outPointMs", "transform", "blendMode", "borderRadius",
+                                 "crop", "fontSizePx", "textStyle", "shapeStyle", "captionStyle"}) {
+            QVERIFY2(properties.contains(name), name);
+            QVERIFY(!required.contains(QString(name)));
+        }
+        const auto before = doc();
+        const auto result = run("set_clip_params", {{"target", CLIP_VIDEO}, {"inPointMs", 100.0},
+            {"outPointMs", 2100.0}, {"transform", QVariantMap{{"rotation", 15.0}}},
+            {"blendMode", "multiply"}, {"borderRadius", 8.0}, {"crop", QVariantMap{{"left", 0.1}, {"right", 0.0}, {"top", 0.0}, {"bottom", 0.0}}}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(rawClip(CLIP_VIDEO).value("inPointMs").toDouble(), 100.0);
+        QCOMPARE(rawClip(CLIP_VIDEO).value("blendMode").toString(), QString("multiply"));
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+    }
+
     void listingChangesNothing() {
         gestures()->setSelection({CLIP_B});
         const auto before = doc();
@@ -228,7 +440,7 @@ private slots:
         QTest::addColumn<QString>("id");
         QTest::addColumn<QVariantMap>("params");
         QTest::addColumn<QString>("message");
-        QTest::newRow("no selection") << QString("rippleDeleteSelected") << QVariantMap{} << QString("Select a clip or a gap first.");
+        QTest::newRow("no selection") << QString("rippleDeleteSelected") << QVariantMap{} << QString("Select clips, a gap or a section first.");
         QTest::newRow("no range") << QString("liftRange") << QVariantMap{{"inMs", 3000.0}} << QString("Set In and Out points first.");
         QTest::newRow("one clip group") << QString("groupClips") << QVariantMap{{"clip_ids", QStringList{CLIP_A}}}
                                         << QString("Select two or more clips first.");
@@ -236,7 +448,7 @@ private slots:
                                                << QString("Select one clip and move the playhead over it.");
         QTest::newRow("no undo") << QString("undo") << QVariantMap{} << QString("Nothing to undo.");
         QTest::newRow("no edit point") << QString("trimEditLeft") << QVariantMap{} << QString("Pass clip_id and edge, or select an edit point first.");
-        QTest::newRow("empty clipboard") << QString("paste") << QVariantMap{{"atMs", 3000.0}} << QString("Copy a clip first.");
+        QTest::newRow("empty clipboard") << QString("paste") << QVariantMap{{"atMs", 3000.0}} << QString("Copy a clip or section first.");
     }
     void disabledCommands() {
         QFETCH(QString, id);
@@ -400,6 +612,57 @@ private slots:
         QVERIFY(!masterId.isEmpty());
         QVERIFY(run("removeMasterEffect", {{"effect_id", masterId.left(12)}}).value("ok").toBool());
     }
+    void fableParams() {
+        const QList<QStringList> cases{
+            {"eq", "fx.eq.low"}, {"comp", "fx.comp.thr"}, {"ott", "fx.ott.depth"},
+            {"limiter", "fx.limit.gain"}, {"drive", "fx.drive.amt"}, {"chorus", "fx.chorus.rate"},
+            {"echo", "fx.delay.fb"}, {"reverb", "fx.reverb.size"}, {"lab", "fx.crush.bits"}};
+        const QList<double> maxima{15, 0, 1, 24, 1, 8, 0.92, 1, 16};
+        const QList<double> minima{-15, -40, 0, 0, 0, 0.05, 0, 0, 1};
+        int caseIndex = 0;
+        for (const auto& row : cases) {
+            QVERIFY(run("addTrackEffect", {{"track_id", TRACK_A}, {"effect", "fable:" + row[0]}}).value("ok").toBool());
+            const auto effect = track(TRACK_A).value("effects").toArray().last().toObject();
+            const auto id = effect.value("id").toString();
+            const auto before = doc();
+            const auto index = model.undoStack()->index();
+            auto result = run("effect.setParams", {{"trackId", TRACK_A.left(12)}, {"effectId", id.left(12)},
+                {"params", QVariantMap{{row[1], 1e100}}}});
+            QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+            QCOMPARE(model.undoStack()->index(), index + 1);
+            const auto changed = track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject();
+            QCOMPARE(changed.value(row[1]).toDouble(), maxima[caseIndex]);
+            QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+                {"params", QVariantMap{{row[1], -1e100}}}}).value("ok").toBool());
+            QCOMPARE(track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject().value(row[1]).toDouble(), minima[caseIndex]);
+            model.undoStack()->undo();
+            ++caseIndex;
+            model.undoStack()->undo();
+            QCOMPARE(doc(), before);
+            for (const auto& bad : QList<QVariantMap>{{{"unknown", 1}}, {{row[1], "bad"}}, {{row[1], QVariant()}}, {}}) {
+                QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id}, {"params", bad}}).value("ok").toBool());
+                QCOMPARE(doc(), before);
+            }
+        }
+        const auto id = track(TRACK_A).value("effects").toArray().last().toObject().value("id").toString();
+        QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+            {"params", QVariantMap{{"fx.crush.bits", 8}, {"fx.reso.note", 49.7}, {"fx.reso.chord", 5}, {"fx.reso.on", 1}}}}).value("ok").toBool());
+        const auto params = track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject();
+        QCOMPARE(params.value("fx.reso.note").toDouble(), 50.0);
+        QCOMPARE(params.value("fx.reso.chord").toDouble(), 5.0);
+        QCOMPARE(params.value("fx.reso.on").toDouble(), 1.0);
+        QVERIFY(run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+            {"params", QVariantMap{{"fx.crush.bits", 10}}}}).value("ok").toBool());
+        QCOMPARE(track(TRACK_A).value("effects").toArray().last().toObject().value("params").toObject().value("fx.reso.chord").toDouble(), 5.0);
+        const auto before = doc();
+        for (const auto value : {-1.0, 6.0, 1.5}) {
+            QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", id},
+                {"params", QVariantMap{{"fx.reso.chord", value}, {"fx.crush.bits", 8}}}}).value("ok").toBool());
+            QCOMPARE(doc(), before);
+        }
+        QVERIFY(!run("effect.setParams", {{"trackId", TRACK_A}, {"effectId", "missing"},
+            {"params", QVariantMap{{"fx.crush.bits", 8}}}}).value("ok").toBool());
+    }
     // Unbounded numbers can allocate without limit in the audio plan, so these stay out.
     void effectValuesAreNotExposed() {
         for (const auto* id : {"updateTrackEffect", "updateMasterEffect", "patchClipAudioEffect"}) {
@@ -463,6 +726,12 @@ private slots:
         QCOMPARE(doc().value("tracks").toArray().first().toObject().value("name").toString(), QString("Top"));
         // addTrack appends and has no position to ignore.
         QVERIFY(!run("addTrack", {{"type", "video"}, {"atIndex", 0}}).value("ok").toBool());
+    }
+    void addTrackMakesAMidiTrack() {
+        QVERIFY(run("addTrack", {{"type", "midi"}, {"name", "Keys"}}).value("ok").toBool());
+        const auto added = doc().value("tracks").toArray().last().toObject();
+        QCOMPARE(added.value("type").toString(), QString("midi"));
+        QCOMPARE(added.value("name").toString(), QString("Keys"));
     }
     // Captions go to the clip the time finds, so the command doesn't pretend to take one.
     void captionAddHasNoClipParameter() {
@@ -596,6 +865,7 @@ private slots:
         add("setTrackVolume", {{"track_id", TRACK_A}, {"db", -3.0}});
         add("setTrackPan", {{"track_id", TRACK_A}, {"pan", 0.5}});
         add("setMasterVolume", {{"db", -3.0}});
+        add("setMasterLimiter", {{"enabled", false}});
         add("addTrackEffect", {{"track_id", TRACK_A}, {"effect", "eq3"}});
         add("addMasterEffect", {{"effect", "eq3"}});
         add("addClipAudioEffect", {{"clip_id", CLIP_AUDIO}, {"type", "eq3"}});
@@ -671,8 +941,46 @@ private slots:
     }
     void toolsAdvertiseSchemas() {
         const auto tools = AssistantCommands::tools();
-        QCOMPARE(tools.size(), 4);
-        for (const auto& name : {"ui_timeline_list_commands", "ui_timeline_run_command", "ui_timeline_read_scopes", "ui_timeline_capture_frame"}) {
+        QCOMPARE(tools.size(), 47);
+        for (const auto& name : {"ui_timeline_list_commands", "ui_timeline_run_command", "ui_timeline_read_scopes", "ui_timeline_capture_frame",
+                                 "ui_timeline_music_generate", "ui_timeline_music_regenerate", "ui_timeline_music_add_instrument",
+                                 "ui_timeline_get_pattern",
+                                 "ui_timeline_create_pattern_region",
+                                 "ui_timeline_convert_pattern_to_midi",
+                                 "ui_timeline_convert_midi_to_pattern",
+                                 "ui_timeline_separate_pattern_rows",
+                                 "ui_timeline_set_pattern",
+                                 "ui_timeline_set_pattern_seed",
+                                 "ui_timeline_add_pattern_rows",
+                                 "ui_timeline_set_pattern_row",
+                                 "ui_timeline_remove_pattern_rows",
+                                 "ui_timeline_move_pattern_row",
+                                 "ui_timeline_sort_pattern_rows",
+                                 "ui_timeline_set_pattern_row_sort",
+                                 "ui_timeline_copy_pattern_row",
+                                 "ui_timeline_set_steps",
+                                 "ui_timeline_set_pattern_text",
+                                 "ui_timeline_clear_pattern",
+                                 "ui_timeline_copy_steps",
+                                 "ui_timeline_repeat_step",
+                                 "ui_timeline_rotate_pattern",
+                                 "ui_timeline_transpose_pattern",
+                                 "ui_timeline_randomize_pattern",
+                                 "ui_timeline_nudge_pattern_values",
+                                 "ui_timeline_tie_steps",
+                                 "ui_timeline_list_step_patterns",
+                                 "ui_timeline_apply_step_pattern",
+                                 "ui_timeline_save_step_pattern",
+                                 "ui_timeline_set_track_step_template",
+                                 "ui_timeline_create_step_pattern_folder",
+                                 "ui_timeline_rename_step_pattern_folder",
+                                 "ui_timeline_delete_step_pattern_folder",
+                                 "ui_timeline_move_step_pattern",
+                                 "ui_timeline_learn_pattern_row",
+                                 "ui_timeline_step_record",
+                                 "ui_timeline_list_plugins", "ui_timeline_load_plugin",
+                                 "ui_timeline_list_plugin_presets", "ui_timeline_select_plugin_preset",
+                                 "ui_timeline_get_plugin_parameters", "ui_timeline_set_plugin_parameters"}) {
             QVERIFY(AssistantCommands::handles(name));
             const auto found = std::find_if(tools.begin(), tools.end(), [&](const QVariant& tool) { return tool.toMap().value("name") == name; });
             QVERIFY(found != tools.end());
@@ -681,6 +989,60 @@ private slots:
         }
         QVERIFY(!AssistantCommands::handles("ui_timeline_get_state"));
     }
+    // GN-8: the music tools reach the timeline's job module, which refuses a sequence that is not a music project.
+    void musicToolsDispatch() {
+        const QVariantMap args{{"timeline_id", TIMELINE}, {"track_id", TRACK_A}, {"start_bar", 1}, {"end_bar", 2}, {"prompt", "drums"}};
+        for (const auto* name : {"ui_timeline_music_generate", "ui_timeline_music_regenerate", "ui_timeline_music_add_instrument"}) {
+            const auto result = commands->execute(name, args);
+            QVERIFY(!result.value("ok").toBool());
+            QVERIFY2(result.value("error").toString().contains("not a music project"), qPrintable(result.value("error").toString()));
+        }
+        auto other = args;
+        other.insert("timeline_id", "00000000000000000000000000000000");
+        QVERIFY(commands->execute("ui_timeline_music_generate", other).value("error").toString().contains("not open"));
+        QCOMPARE(model.undoStack()->count(), 0);
+    }
+    void pluginToolsDispatchAsynchronously() {
+        const QDir build(QCoreApplication::applicationDirPath());
+        const auto host = build.absoluteFilePath("../../vst-host/build/tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol");
+        const auto plugin = build.absoluteFilePath("../../vst-host/build/GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3");
+        QVERIFY(QFileInfo::exists(host));
+        QVERIFY(QFileInfo::exists(plugin));
+        const auto client = nt::audio::vst::sharedVstHostClient();
+        client->setOverrideExecutable(host);
+        client->setExtraScanDirs({QFileInfo(plugin).absolutePath()});
+        QSignalSpy completed(commands.get(), &AssistantCommands::toolCompleted);
+        const QVariantMap args{{"timeline_id", TIMELINE}, {"track", TRACK_A}, {"plugin", "NodeTool Test Gain"}};
+        const auto pending = commands->execute("ui_timeline_load_plugin", args, "plugin-load");
+        QVERIFY(pending.value("deferred").toBool());
+        QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 180000);
+        QCOMPARE(completed[0][0].toString(), QStringLiteral("plugin-load"));
+        const auto result = completed[0][1].toMap();
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(model.undoStack()->count(), 1);
+        const auto loaded = doc();
+        const auto effectId = result.value("effectId").toString();
+        QCOMPARE(effectId.size(), 32);
+        completed.clear();
+        QVERIFY(commands->execute("ui_timeline_set_plugin_parameters", {{"timeline_id", TIMELINE}, {"track", TRACK_A},
+            {"effectId", effectId.left(12)}, {"parameter", "Gain"}, {"value", 0.75}}, "plugin-change").value("deferred").toBool());
+        QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 30000);
+        const auto changed = completed[0][1].toMap();
+        QVERIFY2(changed.value("ok").toBool(), qPrintable(changed.value("error").toString()));
+        QCOMPARE(model.undoStack()->count(), 2);
+        QVERIFY(doc() != loaded);
+        model.undoStack()->undo();
+        QCOMPARE(doc(), loaded);
+        completed.clear();
+        QVERIFY(commands->execute("ui_timeline_load_plugin", args, "stale-plugin-load").value("deferred").toBool());
+        QVERIFY(run("setTrackName", {{"track_id", TRACK_A}, {"name", "Changed during plugin RPC"}}).value("ok").toBool());
+        const auto edited = doc();
+        QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 30000);
+        QVERIFY(!completed[0][1].toMap().value("ok").toBool());
+        QVERIFY(completed[0][1].toMap().value("error").toString().contains("changed"));
+        QCOMPARE(doc(), edited);
+    }
+
     void scopesRefuseBadInputSynchronously() {
         const auto base = QVariantMap{{"timeline_id", TIMELINE}};
         auto args = base;
@@ -734,6 +1096,209 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(done.size() == 4, 60000);
         QVERIFY(done[3][1].toMap().value("frames").toList().value(0).toMap().value("height").toInt() <= 1920);
     }
+    void samplerUpdateZoneClearsLoopModeOverride() {
+        static const QString TRACK_MIDI = "33333333333300000000000000000003";
+        const auto text = QStringLiteral(R"({"id":"%1","name":"Sampler","fps":30,"width":640,"height":360,"durationMs":10000,
+          "tracks":[{"id":"%2","name":"Sampler","type":"midi","index":0,"heightPx":80,"visible":true,"locked":false,
+            "instrument":{"type":"sampler","oneShot":true,"attackMs":2,"decayMs":100,"sustain":1,"releaseMs":120,"gainDb":-6,
+              "zones":[{"id":"z1","name":"Zone 1","assetId":"","mediaPath":"samples/a.wav","rootNote":60,"lowNote":0,"highNote":127,"gainDb":0,"loopMode":"sustain"}]}}],
+          "clips":[]})")
+            .arg(TIMELINE, TRACK_MIDI);
+        auto parsed = nt::parseTimelineJson(text.toUtf8());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCoreApplication::processEvents();
+
+        const auto entry = commandEntry("sampler.updateZone");
+        QVERIFY2(!entry.isEmpty(), "sampler.updateZone missing from allowed commands");
+        const auto loopModeSchema =
+            entry.value("parameters").toMap().value("properties").toMap().value("loopMode").toMap();
+        QVERIFY2(loopModeSchema.value("enum").toStringList().contains("inherit"),
+                 qPrintable(QStringLiteral("sampler.updateZone loopMode enum missing 'inherit': %1")
+                                .arg(loopModeSchema.value("enum").toStringList().join(", "))));
+
+        // Invalid choice must still be rejected by command validation.
+        const auto bad = run("sampler.updateZone", {{"track_id", TRACK_MIDI}, {"zoneId", "z1"}, {"loopMode", "bogus"}});
+        QVERIFY(!bad.value("ok").toBool());
+
+        // Clearing via validated "inherit" choice must succeed and remove loopMode from the zone JSON.
+        const auto cleared = run("sampler.updateZone", {{"track_id", TRACK_MIDI}, {"zoneId", "z1"}, {"loopMode", "inherit"}});
+        QVERIFY2(cleared.value("ok").toBool(), qPrintable(cleared.value("error").toString()));
+        QVERIFY(cleared.value("changed").toBool());
+        auto zoneAfterClear = doc().value("tracks").toArray().at(0).toObject()
+                                  .value("instrument").toObject()
+                                  .value("zones").toArray().at(0).toObject();
+        QVERIFY2(!zoneAfterClear.contains("loopMode"), "loopMode override was not cleared by sampler.updateZone");
+
+        // Setting an explicit override and clearing it again works cleanly.
+        const auto setOneShot = run("sampler.updateZone", {{"track_id", TRACK_MIDI}, {"zoneId", "z1"}, {"loopMode", "oneShot"}});
+        QVERIFY2(setOneShot.value("ok").toBool(), qPrintable(setOneShot.value("error").toString()));
+        auto zoneAfterSet = doc().value("tracks").toArray().at(0).toObject()
+                                .value("instrument").toObject()
+                                .value("zones").toArray().at(0).toObject();
+        QCOMPARE(zoneAfterSet.value("loopMode").toString(), QStringLiteral("oneShot"));
+
+        const auto clearedAgain = run("sampler.updateZone", {{"track_id", TRACK_MIDI}, {"zoneId", "z1"}, {"loopMode", "inherit"}});
+        QVERIFY2(clearedAgain.value("ok").toBool(), qPrintable(clearedAgain.value("error").toString()));
+        auto zoneAfterClear2 = doc().value("tracks").toArray().at(0).toObject()
+                                   .value("instrument").toObject()
+                                   .value("zones").toArray().at(0).toObject();
+        QVERIFY(!zoneAfterClear2.contains("loopMode"));
+    }
+
+    // instrument.setBuiltin replaces a MIDI track's instrument, the same edit the instrument menu uses.
+    void builtinInstrumentCommand() {
+        static const QString TRACK_MIDI = "44444444444400000000000000000005";
+        const auto text = QStringLiteral(R"({"id":"%1","name":"Inst","fps":30,"width":640,"height":360,"durationMs":10000,
+          "tracks":[{"id":"%2","name":"Keys","type":"midi","index":0,"heightPx":80,"visible":true,"locked":false,
+            "instrument":{"type":"subtractive"}}],
+          "clips":[]})")
+            .arg(TIMELINE, TRACK_MIDI);
+        auto parsed = nt::parseTimelineJson(text.toUtf8());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCoreApplication::processEvents();
+        const auto entry = commandEntry("instrument.setBuiltin");
+        QVERIFY2(!entry.isEmpty(), "instrument.setBuiltin missing from allowed commands");
+        const auto types = entry.value("parameters").toMap().value("properties").toMap().value("type").toMap().value("enum").toStringList();
+        QCOMPARE(types, QStringList({"drum", "bass", "wavetable", "sampler", "modal", "subtractive"}));
+        const auto before = doc();
+        const auto instrument = [this] { return doc().value("tracks").toArray().at(0).toObject().value("instrument").toObject(); };
+        QVERIFY(!run("instrument.setBuiltin", {{"track_id", TRACK_MIDI}, {"type", "theremin"}}).value("ok").toBool());
+        QCOMPARE(model.undoStack()->count(), 0);
+        auto res = run("instrument.setBuiltin", {{"track_id", TRACK_MIDI}, {"type", "drum"}, {"preset", "uzu"}});
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        QCOMPARE(instrument().value("type").toString(), QStringLiteral("drum"));
+        QCOMPARE(instrument().value("kit").toString(), QStringLiteral("uzu"));
+        res = run("instrument.setBuiltin", {{"track_id", TRACK_MIDI.left(12)}, {"type", "modal"}});
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        QCOMPARE(instrument().value("type").toString(), QStringLiteral("modal"));
+        QVERIFY(!instrument().value("preset").toString().isEmpty());
+        QCOMPARE(model.undoStack()->count(), 2);
+        model.undoStack()->undo();
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+    }
+
+    // E2: wavetable.setPreset and wavetable.setParams dispatched through ui_timeline_run_command.
+    void wavetableAssistantCommands() {
+        static const QString TRACK_MIDI = "44444444444400000000000000000004";
+        const auto text = QStringLiteral(R"({"id":"%1","name":"WT1","fps":30,"width":640,"height":360,"durationMs":10000,
+          "tracks":[{"id":"%2","name":"Lead","type":"midi","index":0,"heightPx":80,"visible":true,"locked":false,
+            "instrument":{"type":"subtractive","waveform":"saw"}}],
+          "clips":[]})")
+            .arg(TIMELINE, TRACK_MIDI);
+        auto parsed = nt::parseTimelineJson(text.toUtf8());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCoreApplication::processEvents();
+
+        // Schema inspection: both commands are advertised with track_id required and valid preset choices.
+        const auto presetEntry = commandEntry("wavetable.setPreset");
+        const auto paramsEntry = commandEntry("wavetable.setParams");
+        QVERIFY2(!presetEntry.isEmpty(), "wavetable.setPreset missing from allowed commands");
+        QVERIFY2(!paramsEntry.isEmpty(), "wavetable.setParams missing from allowed commands");
+        const auto presetReq = presetEntry.value("parameters").toMap().value("required").toStringList();
+        const auto paramsReq = paramsEntry.value("parameters").toMap().value("required").toStringList();
+        QVERIFY(presetReq.contains("track_id"));
+        QVERIFY(presetReq.contains("preset"));
+        QVERIFY(paramsReq.contains("track_id"));
+        const auto presetChoices =
+            presetEntry.value("parameters").toMap().value("properties").toMap().value("preset").toMap().value("enum").toStringList();
+        QVERIFY(presetChoices.contains("wt1-init"));
+        QVERIFY(presetChoices.contains("wt1-hyper-saw"));
+
+        // Invalid preset choice is rejected by command validation with zero undo entries.
+        const auto beforePreset = doc();
+        const auto badPreset = run("wavetable.setPreset", {{"track_id", TRACK_MIDI}, {"preset", "not-a-preset"}});
+        QVERIFY(!badPreset.value("ok").toBool());
+        QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(doc(), beforePreset);
+
+        // Dispatch wavetable.setPreset through ui_timeline_run_command (with full track_id).
+        const auto setPresetRes = run("wavetable.setPreset", {{"track_id", TRACK_MIDI}, {"preset", "wt1-hyper-saw"}});
+        QVERIFY2(setPresetRes.value("ok").toBool(), qPrintable(setPresetRes.value("error").toString()));
+        QVERIFY(setPresetRes.value("changed").toBool());
+        QCOMPARE(setPresetRes.value("undo").toMap().value("added").toBool(), true);
+        QCOMPARE(model.undoStack()->count(), 1);
+        const auto instAfterPreset = doc().value("tracks").toArray().at(0).toObject().value("instrument").toObject();
+        QCOMPARE(instAfterPreset.value("type").toString(), QStringLiteral("wavetable"));
+        QCOMPARE(instAfterPreset.value("preset").toString(), QStringLiteral("wt1-hyper-saw"));
+        QCOMPARE(instAfterPreset.value("oscA").toObject().value("unison").toInt(), 7);
+        QCOMPARE(instAfterPreset.value("filterType").toString(), QStringLiteral("lp12"));
+        QVERIFY(std::abs(instAfterPreset.value("cutoffHz").toDouble() - 12000.0) < 1e-3);
+
+        // Undo restores the document byte-for-byte.
+        model.undoStack()->undo();
+        QCOMPARE(doc(), beforePreset);
+
+        // Redo before testing wavetable.setParams.
+        model.undoStack()->redo();
+        QCOMPARE(doc().value("tracks").toArray().at(0).toObject().value("instrument").toObject().value("preset").toString(),
+                 QStringLiteral("wt1-hyper-saw"));
+        const auto beforeParams = doc();
+        const int undoBeforeParams = model.undoStack()->count();
+
+        // Invalid enum choice on wavetable.setParams is rejected without mutating or pushing undo.
+        const auto badParam = run("wavetable.setParams", {{"track_id", TRACK_MIDI.left(12)}, {"filterType", "bogus"}});
+        QVERIFY(!badParam.value("ok").toBool());
+        QCOMPARE(model.undoStack()->count(), undoBeforeParams);
+        QCOMPARE(doc(), beforeParams);
+
+        // Dispatch wavetable.setParams through ui_timeline_run_command (using 12-char track_id prefix).
+        const auto setParamsRes = run("wavetable.setParams", {
+            {"track_id", TRACK_MIDI.left(12)},
+            {"oscATable", "pulse"},
+            {"oscAPosition", 0.35},
+            {"oscAUnison", 5},
+            {"oscADetune", 0.4},
+            {"filterType", "hp24"},
+            {"cutoffHz", 1250.0},
+            {"resonance", 0.55},
+            {"drive", 0.3},
+            {"ampAttackMs", 45.0},
+            {"ampReleaseMs", 600.0},
+            {"lfoShape", "tri"},
+            {"lfoToCutoff", 0.25},
+            {"mono", true},
+            {"glideMs", 120.0},
+            {"masterVolume", 0.85},
+        });
+        QVERIFY2(setParamsRes.value("ok").toBool(), qPrintable(setParamsRes.value("error").toString()));
+        QVERIFY(setParamsRes.value("changed").toBool());
+        QCOMPARE(setParamsRes.value("undo").toMap().value("added").toBool(), true);
+        QCOMPARE(model.undoStack()->count(), undoBeforeParams + 1);
+
+        const auto instAfterParams = doc().value("tracks").toArray().at(0).toObject().value("instrument").toObject();
+        const auto oscAAfter = instAfterParams.value("oscA").toObject();
+        const auto ampEnvAfter = instAfterParams.value("ampEnv").toObject();
+        const auto lfoAfter = instAfterParams.value("lfo").toObject();
+        QCOMPARE(instAfterParams.value("type").toString(), QStringLiteral("wavetable"));
+        QVERIFY(!instAfterParams.contains("preset"));
+        QCOMPARE(oscAAfter.value("table").toString(), QStringLiteral("pulse"));
+        QVERIFY(std::abs(oscAAfter.value("position").toDouble() - 0.35) < 1e-4);
+        QCOMPARE(oscAAfter.value("unison").toInt(), 5);
+        QVERIFY(std::abs(oscAAfter.value("detune").toDouble() - 0.4) < 1e-4);
+        QCOMPARE(instAfterParams.value("filterType").toString(), QStringLiteral("hp24"));
+        QCOMPARE(instAfterParams.value("filterOn").toBool(), true);
+        QVERIFY(std::abs(instAfterParams.value("cutoffHz").toDouble() - 1250.0) < 1e-3);
+        QVERIFY(std::abs(instAfterParams.value("resonance").toDouble() - 0.55) < 1e-4);
+        QVERIFY(std::abs(instAfterParams.value("drive").toDouble() - 0.3) < 1e-4);
+        QVERIFY(std::abs(ampEnvAfter.value("attackMs").toDouble() - 45.0) < 1e-3);
+        QVERIFY(std::abs(ampEnvAfter.value("releaseMs").toDouble() - 600.0) < 1e-3);
+        QCOMPARE(lfoAfter.value("shape").toString(), QStringLiteral("tri"));
+        QVERIFY(std::abs(lfoAfter.value("toCutoff").toDouble() - 0.25) < 1e-4);
+        QCOMPARE(instAfterParams.value("mono").toBool(), true);
+        QVERIFY(std::abs(instAfterParams.value("glideMs").toDouble() - 120.0) < 1e-3);
+        QVERIFY(std::abs(instAfterParams.value("masterVolume").toDouble() - 0.85) < 1e-4);
+
+        // Exact undo restoration for wavetable.setParams and wavetable.setPreset.
+        model.undoStack()->undo();
+        QCOMPARE(doc(), beforeParams);
+        model.undoStack()->undo();
+        QCOMPARE(doc(), beforePreset);
+    }
+
     // Last, because the registry has no way to remove an entry: a real registration fails the audit.
     void aRealNewRegistrationFailsTheAudit() {
         QVERIFY(nt::wiring::registerKeyAction({"test.newCommand", "New command", {}, [](ClipGestureController&, const QVariantMap&) { return true; }}));

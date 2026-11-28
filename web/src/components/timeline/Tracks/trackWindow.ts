@@ -5,7 +5,11 @@ import type {
 } from "@nodetool-ai/timeline";
 
 import { SCRIPT_LANE_HEIGHT_PX } from "./ScriptLane";
-import { automationSectionHeightPx } from "./automation/automationLayout";
+import {
+  automationSectionHeightPx,
+  NO_AUTOMATION_LAYOUT,
+  type AutomationLayoutInput
+} from "./automation/automationLayout";
 import { FX_PANEL_HEIGHT_PX, trackRowHeightPx } from "./trackHeight";
 
 export type TrackRow =
@@ -29,7 +33,7 @@ export function layoutTrackRows(
   folders: readonly TimelineTrackFolder[] = [],
   collapsedFolderIds: ReadonlySet<string> = new Set(),
   dawMode = false,
-  shownAutomationTrackIds: readonly string[] = [],
+  automation: AutomationLayoutInput = NO_AUTOMATION_LAYOUT,
   /** The script lane sits directly above this track when it is shown. */
   scriptTrackId: string | null = null
 ): { rows: TrackRow[]; height: number } {
@@ -93,7 +97,7 @@ export function layoutTrackRows(
     const height =
       trackRowHeightPx(track, dawMode) * verticalZoom +
       (track.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0) +
-      automationSectionHeightPx(track, shownAutomationTrackIds);
+      automationSectionHeightPx(track, automation);
     rows.push({ kind: "track", track, top, height });
     top += height;
   });

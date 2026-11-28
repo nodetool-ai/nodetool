@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import NodeTool.TimelinePlayer
 import QtQuick.Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -10,6 +11,9 @@ Ui.ContextMenu {
     property string trackId: ""
     property string trackName: ""
     property string trackType: "video"
+    // The tracks area selection and the playhead, for New Pattern Region.
+    property ClipGestureController gestures: null
+    property PlaybackClock clock: null
     readonly property string typeLabel: trackType === "midi" ? "MIDI" : trackType === "chord" ? "chords"
                                        : trackType === "subtitle" ? "text" : trackType
     signal renameRequested(string trackId)
@@ -54,6 +58,21 @@ Ui.ContextMenu {
         iconName: "insertBelow"
         onTriggered: menu.timeline.applyEdit("insertTrack", {
             type: menu.trackType, atIndex: TrackHeaderActions.position(menu.timeline, menu.trackId) + 1 })
+    }
+    // The same controller path as the Step Sequencer empty state: one undo entry.
+    readonly property StepSequencerController patternCreator: StepSequencerController { timeline: menu.timeline }
+    HeaderMenuItem {
+        objectName: "trackMenu-newPatternRegion"
+        text: qsTr("New Pattern Region")
+        iconName: "add"
+        visible: menu.trackType === "midi"
+        height: visible ? implicitHeight : 0
+        onTriggered: {
+            const clock = menu.clock
+            const ms = clock ? clock.time : 0
+            const result = menu.patternCreator.createPatternRegion(menu.trackId, ms)
+            if (result.ok && menu.gestures) menu.gestures.selection = [result.clip.id]
+        }
     }
     MenuSeparator {
         objectName: "trackMenu-deleteDivider"

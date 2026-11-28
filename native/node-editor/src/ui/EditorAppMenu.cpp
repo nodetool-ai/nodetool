@@ -3,6 +3,7 @@
 // constructor, and QMainWindow owns the bar and its menus. An entry that names
 // an editor command runs it on the active tab, as the More menu does.
 #include "EditorWindow.h"
+#include "AccountMenu.h"
 
 #include <QAction>
 #include <QApplication>
@@ -118,6 +119,11 @@ void EditorWindow::installApplicationMenu() {
     command(file, tr("Publish to Cloud…"), QStringLiteral("Publish to cloud"));
     command(file, tr("Synchronize…"), QStringLiteral("Synchronize"));
     file->addSeparator();
+    // Cloud sign-in lives here only. A fresh install works on this computer.
+    if (accountServers_) {
+        node_editor::addAccountEntries(file, accountServers_.get(), this);
+        file->addSeparator();
+    }
     auto *settings = entry(file, tr("Settings…"), [this] { openSettings(); }, {QKeySequence(QStringLiteral("Ctrl+,"))});
     settings->setMenuRole(QAction::PreferencesRole);
     file->addSeparator();

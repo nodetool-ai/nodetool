@@ -81,6 +81,10 @@ const IpcChannels = {
   VST_RENDER: "vst-render",
   VST_OPEN_EDITOR: "vst-open-editor",
   VST_CLOSE_EDITOR: "vst-close-editor",
+  VST_LIST_PRESETS: "vst-list-presets",
+  VST_SELECT_PRESET: "vst-select-preset",
+  VST_GET_PARAMETERS: "vst-get-parameters",
+  VST_SET_PARAMETERS: "vst-set-parameters",
   VST_EVENT: "vst-event",
   SYSTEM_NOTIFICATION_SHOW: "system-notification-show",
   CLOUD_ACCOUNT_STATE: "cloud-account-state",
@@ -236,13 +240,19 @@ describe("preload contract", () => {
     jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
     jest.mocked(electronMock.ipcRenderer.on).mockClear();
     const plugin = { path: "/plugins/Pad.vst3", uid: "VST3-Pad" };
+    const vst = api.vst;
+    expect(vst).toBeDefined();
 
-    api.vst.status();
-    api.vst.scan(true);
-    api.vst.render({ plugin, state: null, sampleRate: 48000, frames: 4, events: [] });
-    api.vst.openEditor({ instance: "track:t1", plugin, state: null, title: "Pad" });
-    api.vst.closeEditor("track:t1");
-    api.vst.onEvent(() => {});
+    vst!.status();
+    vst!.scan(true);
+    vst!.render({ plugin, state: null, sampleRate: 48000, frames: 4, events: [] });
+    vst!.openEditor({ instance: "track:t1", plugin, state: null, title: "Pad" });
+    vst!.closeEditor("track:t1");
+    vst!.listPresets({ instance: "track:t1", plugin, state: null });
+    vst!.selectPreset({ instance: "track:t1", plugin, state: null, presetIndex: 0 });
+    vst!.getParameters({ instance: "track:t1", plugin, state: null });
+    vst!.setParameters({ instance: "track:t1", plugin, state: null, changes: [{ id: "cutoff", value: 0.5 }] });
+    vst!.onEvent(() => {});
 
     const channels = jest.mocked(electronMock.ipcRenderer.invoke).mock.calls
       .map((c: unknown[]) => c[0]);
@@ -252,9 +262,38 @@ describe("preload contract", () => {
       IpcChannels.VST_RENDER,
       IpcChannels.VST_OPEN_EDITOR,
       IpcChannels.VST_CLOSE_EDITOR,
+      IpcChannels.VST_LIST_PRESETS,
+      IpcChannels.VST_SELECT_PRESET,
+      IpcChannels.VST_GET_PARAMETERS,
+      IpcChannels.VST_SET_PARAMETERS,
     ]);
     expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls[1][1]).toEqual({ rescan: true });
     expect(jest.mocked(electronMock.ipcRenderer.on).mock.calls[0][0]).toBe(IpcChannels.VST_EVENT);
+  });
+
+  test("F14: api.vst validates inputs at the preload trust boundary and matches Window['api']['vst']", () => {
+    // Compile-time check that Window["api"]["vst"] is declared in electron/src/types.d.ts.
+    const typedVst: NonNullable<Window["api"]["vst"]> = api.vst!;
+    expect(typedVst).toBeDefined();
+
+    const plugin = { path: "/plugins/Pad.vst3", uid: "VST3-Pad" };
+    expect(() =>
+      api.vst!.listPresets({ instance: "../bad id", plugin, state: null })
+    ).toThrow(/invalid/i);
+    expect(() =>
+      api.vst!.getParameters({ instance: "track:t1", plugin: { path: "/tmp/a\0b", uid: "x" }, state: null })
+    ).toThrow(/invalid/i);
+    expect(() =>
+      api.vst!.selectPreset({ instance: "track:t1", plugin, state: null })
+    ).toThrow(/presetIndex|presetName/i);
+    expect(() =>
+      api.vst!.setParameters({
+        instance: "track:t1",
+        plugin,
+        state: null,
+        changes: [{ id: "cutoff", value: Number.NaN }],
+      })
+    ).toThrow(/invalid|value/i);
   });
 
   test("cloudAccount methods route to their channels and pass no arguments", () => {

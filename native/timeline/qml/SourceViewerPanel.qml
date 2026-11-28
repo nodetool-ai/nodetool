@@ -245,8 +245,11 @@ Rectangle {
                     objectName: "sourcePoster"
                     anchors.fill: parent
                     visible: root.mediaType === "image" || (root.mediaType === "video" && !root.monitor.ready)
-                    source: root.posterUrl()
+                    source: visible && stage.width > 0 && stage.height > 0 ? root.posterUrl() : ""
                     asynchronous: true
+                    // Bucket physical decode sizes across dock resize frames.
+                    sourceSize.width: Math.max(128, Math.ceil(stage.width * Screen.devicePixelRatio / 128) * 128)
+                    sourceSize.height: Math.max(128, Math.ceil(stage.height * Screen.devicePixelRatio / 128) * 128)
                     fillMode: Image.PreserveAspectFit
                     Accessible.name: root.asset.name || ""
                 }

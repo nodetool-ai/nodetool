@@ -33,6 +33,8 @@ public:
     double samplePeak() const noexcept;
     double truePeak() const noexcept;
     double truePeakDb() const noexcept;
+    bool clipped() const noexcept { return clipped_; }
+    void resetClip() noexcept;
     int channels() const noexcept;
     double sampleRate() const noexcept;
     void setChannelWeights(std::span<const double> weights);
@@ -51,6 +53,7 @@ private:
         float samplePeak = 0, truePeak = 0;
         std::array<float, 2 * kTaps> history{};
         int position = 0;
+        int samplesSinceClipReset = kTaps;
     };
     struct Histogram {
         std::array<std::uint64_t, 9000> count{};
@@ -73,6 +76,7 @@ private:
     std::vector<float> coefficients_;
     Histogram integratedHist_, rangeHist_;
     double momentary_ = kNone, shortTerm_ = kNone, maxMomentary_ = kNone, maxShortTerm_ = kNone;
+    bool clipped_ = false;
 };
 double normalizeGainDb(double measuredLufs, double targetLufs);
 }

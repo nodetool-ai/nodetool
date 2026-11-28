@@ -22,6 +22,7 @@ import {
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
+import { getTimelineAgentHandler } from "../timelineAgentBridge";
 import {
   canDetectClipBeats,
   useDetectClipBeats
@@ -43,8 +44,13 @@ export interface ClipMenuActions {
   /** Audio and video clips can set the tempo from their own beat. */
   canDetectBeats: boolean;
 
-  splitAtPlayhead: () => void;
+  /** MIDI only: `crossing: "split"` also continues a crossing note on the right (D46). */
+  splitAtPlayhead: (crossing?: "shorten" | "split") => void;
   duplicate: () => void;
+  /** CE4: act on the time span of the selection, on every track. */
+  insertSilence: () => void;
+  deleteSection: () => void;
+  duplicateSection: () => void;
   editNotes: () => void;
   regenerateAsCopy: () => void;
   toggleLock: () => void;
@@ -79,12 +85,12 @@ export function useClipMenuActions(
   const playbackApi = useTimelinePlaybackStoreApi();
   const timelineApi = useTimelineStoreApi();
 
-  const splitAtPlayhead = useCallback(() => {
+  const splitAtPlayhead = useCallback((crossing?: "shorten" | "split") => {
     const current = findClipById(timelineApi.getState().clips, clipId);
     if (!current) return;
     const at = playbackApi.getState().getTimeMs();
     if (at > current.startMs && at < current.startMs + current.durationMs) {
-      splitClipAtTime(clipId, at);
+      splitClipAtTime(clipId, at, crossing);
     } else {
       onError("Move the playhead inside the clip to split it.");
     }
@@ -99,6 +105,43 @@ export function useClipMenuActions(
         )
       );
   }, [clipId, duplicateClip, onError, selectClip]);
+
+  // The section is the time span of the selection (or of this clip alone).
+  const runSection = useCallback(
+    (op: "insert_time" | "delete_time" | "duplicate_range") => {
+      const state = timelineApi.getState();
+      const picked = useTimelineUIStore.getState().selectedClipIds;
+      const ids = picked.has(clipId) ? [...picked] : [clipId];
+      const spans = ids.flatMap((id) => {
+        const c = findClipById(state.clips, id);
+        return c ? [c] : [];
+      });
+      if (spans.length === 0 || !state.sequenceId) return;
+      const fromMs = Math.min(...spans.map((c) => c.startMs));
+      const toMs = Math.max(...spans.map((c) => c.startMs + c.durationMs));
+      const args =
+        op === "insert_time"
+          ? { atMs: fromMs, ms: toMs - fromMs }
+          : { fromMs, toMs };
+      const fail = (err: unknown): void =>
+        onError(err instanceof Error ? err.message : "Section edit failed");
+      try {
+        // The handler lookup throws when the editor has no handler for the sequence.
+        getTimelineAgentHandler(state.sequenceId)
+          .applyOp({ op, ...args } as never)
+          .catch(fail);
+      } catch (err) {
+        fail(err);
+      }
+    },
+    [clipId, onError, timelineApi]
+  );
+  const insertSilence = useCallback(() => runSection("insert_time"), [runSection]);
+  const deleteSection = useCallback(() => runSection("delete_time"), [runSection]);
+  const duplicateSection = useCallback(
+    () => runSection("duplicate_range"),
+    [runSection]
+  );
 
   const regenerateAsCopy = useCallback(() => {
     try {
@@ -157,6 +200,9 @@ export function useClipMenuActions(
       canDetectBeats,
       splitAtPlayhead,
       duplicate,
+      insertSilence,
+      deleteSection,
+      duplicateSection,
       editNotes,
       regenerateAsCopy,
       toggleLock,
@@ -173,6 +219,9 @@ export function useClipMenuActions(
       sequenceId,
       splitAtPlayhead,
       duplicate,
+      insertSilence,
+      deleteSection,
+      duplicateSection,
       editNotes,
       regenerateAsCopy,
       toggleLock,

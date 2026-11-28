@@ -1,6 +1,7 @@
 #pragma once
 // The editor's commands as Assistant tools: ui_timeline_list_commands, ui_timeline_run_command,
-// ui_timeline_read_scopes and ui_timeline_capture_frame. Commands come from the registries the keys
+// ui_timeline_read_scopes and ui_timeline_capture_frame, and the three music operations of
+// src/music/MusicAssistant.h. Commands come from the registries the keys
 // and menus use. The tables in AssistantCommandTable.cpp say which ones the Assistant may run, so a
 // new registration fails `nodetool-timeline --audit-assistant-commands` until someone decides.
 // The id, enabled state and undo model follow FilmCraft's crates/engine/src/commands.rs at 8c171a0
@@ -14,6 +15,7 @@
 #include <QStringList>
 #include <QThreadPool>
 #include <QVariantMap>
+#include <stop_token>
 
 class ClipGestureController;
 class FrameCapture;
@@ -37,7 +39,7 @@ CommandAudit auditCommands(const QSet<QString>& registered = registeredCommandId
 // more than one would otherwise take several undos to reverse.
 void foldUndoEntries(TimelineModel& model, int indexBefore, const QString& label);
 
-// native-rules #9: a QThreadPool job posts results back to it from another thread, no affinity comment
+// GUI thread only. Worker jobs receive snapshots and post results through queued invocations.
 class AssistantCommands : public QObject {
     Q_OBJECT
 public:
@@ -65,6 +67,7 @@ private:
     PlaybackClock& m_clock;
     QPointer<QObject> m_editor;
     ScopesController* m_scopes = nullptr;
+    std::stop_source m_pluginStop;
     QThreadPool m_encoder;
 };
 }

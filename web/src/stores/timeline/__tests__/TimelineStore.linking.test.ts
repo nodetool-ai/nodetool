@@ -454,3 +454,121 @@ describe("atomic linked trim (FIX 5)", () => {
     expect(clips.find((c) => c.id === audioId)?.durationMs).toBe(8500);
   });
 });
+
+describe("split link-aware with a looped partner", () => {
+  it("keeps the cut halves of a later repeat linked to the partner's halves", () => {
+    const { store, videoId, audioId } = storeWithLinkedPair();
+    store.setState({
+      clips: store
+        .getState()
+        .clips.map((c) => (c.id === audioId ? { ...c, loopLengthMs: 2000 } : c))
+    });
+    // The audio repeats at 1000, 3000 and 5000. The cut at 4000 is in the second repeat.
+    store.getState().splitClipAtTime(videoId, 4000);
+    const clips = store.getState().clips;
+    const rightVideo = clips.find((c) => c.mediaType === "video" && c.startMs === 4000)!;
+    const rightAudio = clips.find((c) => c.mediaType === "audio" && c.startMs === 4000)!;
+    expect(rightVideo.linkId).toBeDefined();
+    expect(rightAudio.linkId).toBe(rightVideo.linkId);
+  });
+
+  it("leaves no singleton link when the cut falls on a repeat boundary", () => {
+    const { store, videoId, audioId } = storeWithLinkedPair();
+    store.setState({
+      clips: store
+        .getState()
+        .clips.map((c) => (c.id === audioId ? { ...c, loopLengthMs: 2000 } : c))
+    });
+    store.getState().splitClipAtTime(videoId, 3000);
+    const counts = new Map<string, number>();
+    for (const c of store.getState().clips) {
+      if (c.linkId) counts.set(c.linkId, (counts.get(c.linkId) ?? 0) + 1);
+    }
+    expect(counts.size).toBeGreaterThan(0);
+    for (const n of counts.values()) expect(n).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps the loop when the clip cannot be cut", () => {
+    const { store, videoId, audioId } = storeWithLinkedPair();
+    store.setState({
+      clips: store.getState().clips.map((c) =>
+        c.id === audioId
+          ? {
+              ...c,
+              loopLengthMs: 2000,
+              timeRemap: { keyframes: [{ t: 0, sourceMs: 0 }, { t: 5000, sourceMs: 2500 }] }
+            }
+          : c
+      )
+    });
+    store.getState().splitClipAtTime(videoId, 4000);
+    const audios = store.getState().clips.filter((c) => c.mediaType === "audio");
+    expect(audios).toHaveLength(1);
+    expect(audios[0]!.loopLengthMs).toBe(2000);
+  });
+});
+
+describe("a partner that cannot be cut (CE4 round 3, F12)", () => {
+  it("refuses the whole split and leaves every partner as it was", () => {
+    const { store, videoId, audioId } = storeWithLinkedPair();
+    store.setState({
+      clips: store.getState().clips.map((c) =>
+        c.id === audioId
+          ? {
+              ...c,
+              timeRemap: { keyframes: [{ t: 0, sourceMs: 0 }, { t: 5000, sourceMs: 2500 }] }
+            }
+          : c
+      )
+    });
+    store.getState().splitClipAtTime(videoId, 3000);
+    expect(store.getState().clips).toHaveLength(2);
+    store.getState().splitSelectedAtPlayhead(3000, new Set([videoId]));
+    expect(store.getState().clips).toHaveLength(2);
+  });
+});
+
+describe("splitClipsAtTimes with an unsplittable clip (CE4 round 4, F30)", () => {
+  const remap = { keyframes: [{ t: 0, sourceMs: 0 }, { t: 5000, sourceMs: 2500 }] };
+
+  it("skips an unlinked remapped clip, names it, and still splits the others", () => {
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "V1");
+    store.getState().addTrack("video", "V2");
+    const [t1, t2] = store.getState().tracks.map((t) => t.id);
+    const remapped = makeClip({
+      trackId: t1!, mediaType: "video", name: "Remapped", startMs: 0, durationMs: 5000,
+      inPointMs: 0, outPointMs: 5000, status: "generated", timeRemap: remap as never
+    });
+    const plain = makeClip({
+      trackId: t2!, mediaType: "video", name: "Plain", startMs: 0, durationMs: 5000,
+      inPointMs: 0, outPointMs: 5000, status: "generated"
+    });
+    store.getState().addClips([remapped, plain]);
+    const result = store.getState().splitClipsAtTimes([2000]);
+    const clips = store.getState().clips;
+    expect(clips.filter((c) => c.trackId === t2)).toHaveLength(2);
+    expect(clips.filter((c) => c.trackId === t1)).toHaveLength(1);
+    expect(result.skipped.map((s) => s.name)).toEqual(["Remapped"]);
+  });
+
+  it("refuses only the linked group that holds the remapped clip", () => {
+    const { store, audioId } = storeWithLinkedPair();
+    store.setState({
+      clips: store.getState().clips.map((c) =>
+        c.id === audioId ? { ...c, timeRemap: remap as never } : c
+      )
+    });
+    const t3 = store.getState().tracks[0]!.id;
+    store.getState().addClips([
+      makeClip({
+        trackId: t3, mediaType: "video", name: "Free", startMs: 0, durationMs: 5000,
+        inPointMs: 0, outPointMs: 5000, status: "generated"
+      })
+    ]);
+    store.getState().splitClipsAtTimes([3000]);
+    const clips = store.getState().clips;
+    expect(clips.filter((c) => c.linkId === "lnk-1")).toHaveLength(2);
+    expect(clips.filter((c) => c.name === "Free" || c.startMs === 3000)).toHaveLength(1 + 1);
+  });
+});

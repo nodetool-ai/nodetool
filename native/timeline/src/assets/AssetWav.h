@@ -9,6 +9,12 @@
 namespace nt::assets {
 // Interleaved stereo float samples to 16-bit PCM, 48000 Hz, RIFF/WAVE.
 bool writeStereoWav(const QString& path, std::span<const float> samples);
+// Interleaved stereo float samples to 32-bit IEEE float, RIFF/WAVE, with no
+// clamping or requantising (MUSIC-MODE.md section 11). The layout is the
+// server's `encodeFloatWav` (packages/websocket/src/lib/float-wav.ts): an
+// 18-byte `fmt ` chunk with format 3, a `fact` chunk, then `data`.
+// Non-finite samples are written as 0.
+bool writeStereoFloatWav(const QString& path, std::span<const float> samples, quint32 sampleRate = 48000);
 
 inline constexpr std::size_t stereoWavChunkFrames = 48000;
 // Reader returns stereo frames, 0 at EOF, or a negative count on decode failure.

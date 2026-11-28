@@ -21,7 +21,10 @@ QVariantMap LoudnessMeters::read() {
             {"maxMomentary", reading.maxMomentary},
             {"maxShortTerm", reading.maxShortTerm},
             {"truePeakDb", reading.truePeakDb},
-            {"loudnessRange", reading.loudnessRange}};
+            {"loudnessRange", reading.loudnessRange},
+            {"clipped", reading.clipped}};
 }
 
 void LoudnessMeters::reset() { nt::audio::appLoudnessReadout().requestReset(); }
+
+void LoudnessMeters::resetClip() { nt::audio::appLoudnessReadout().requestClipReset(); }

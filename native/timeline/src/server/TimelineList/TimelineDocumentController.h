@@ -48,6 +48,8 @@ public:
     // and refreshes the list.
     Q_INVOKABLE void prepareList();
     Q_INVOKABLE void createAndOpen();
+    // New music project from the editor: creates the music sequence and opens it (MUSIC-MODE.md section 15).
+    Q_INVOKABLE void createMusicAndOpen(const QVariantMap& settings);
     bool listShown() const { return m_listShown; }
     void setListShown(bool shown);
     QObject* accountServers() const;

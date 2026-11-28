@@ -215,6 +215,18 @@ describe("RenderTimeline — format pass-through", () => {
     expect(mux && "outPath" in mux ? mux.outPath : "").toMatch(/mixed\.webm/);
   });
 
+  it("forwards audio_sample_rate to muxAudioWithVideoCopy and refuses unsupported format/rate pairs", async () => {
+    const seq = sequence();
+    seq.clips.push(audioClip as never);
+    await render(seq, { format: "mp4", audio_sample_rate: 96000 });
+    const mux = mediaCalls.find((call) => call.fn === "muxAudioWithVideoCopy");
+    expect(mux).toMatchObject({ codec: "aac", sampleRate: 96000 });
+
+    await expect(
+      render(seq, { format: "webm", audio_sample_rate: 96000 })
+    ).rejects.toThrow(/sample rate/i);
+  });
+
   it("reports the format and alpha it actually wrote", async () => {
     const out = await render(sequence(), { format: "mov", alpha: true });
     expect(out.output.format).toBe("mov");
@@ -250,5 +262,46 @@ describe("RenderTimeline — png_sequence", () => {
     await render(seq, { format: "png_sequence" });
     expect(logs("warning")).toMatch(/PNG sequence carries no audio/);
     expect(mediaCalls.some((call) => call.fn === "openFilterComplex")).toBe(false);
+  });
+});
+
+describe("RenderTimeline — wav audio export", () => {
+  it("skips video compositing, encodes WAV with bit depth and sample rate, and populates the audio handle", async () => {
+    fakeEncoders.names = ["libx264", "aac", "pcm_s16le", "pcm_s24le", "pcm_f32le"];
+    const seq = sequence();
+    seq.clips.push(audioClip as never);
+    const out = await render(seq, {
+      format: "wav",
+      audio_bit_depth: 32,
+      audio_sample_rate: 192000
+    });
+    expect(renderComposited).not.toHaveBeenCalled();
+    expect(mediaCalls.some((call) => call.fn === "muxAudioWithVideoCopy")).toBe(false);
+    const encodeCall = mediaCalls.find((call) => call.fn === "encodeAudioToFile");
+    expect(encodeCall).toMatchObject({ codec: "pcm_f32le", sampleRate: 192000 });
+    expect(out.output.data).toBeNull();
+    expect(out.output.uri).toBe("");
+    expect(out.audio.type).toBe("audio");
+    expect(typeof out.audio.data).toBe("string");
+    expect(out.audio.metadata).toMatchObject({
+      render_mode: "audio",
+      format: "wav",
+      audio_bit_depth: 32,
+      audio_sample_rate: 192000,
+      audio_codec: "pcm_f32le",
+      content_type: "audio/wav"
+    });
+  });
+
+  it("refuses WAV with include_audio disabled or unsupported bit depth", async () => {
+    fakeEncoders.names = ["pcm_s16le", "pcm_s24le", "pcm_f32le"];
+    const seq = sequence();
+    seq.clips.push(audioClip as never);
+    await expect(
+      render(seq, { format: "wav", include_audio: false })
+    ).rejects.toThrow(/include_audio/i);
+    await expect(
+      render(seq, { format: "wav", audio_bit_depth: 8 })
+    ).rejects.toThrow(/bit depth/i);
   });
 });

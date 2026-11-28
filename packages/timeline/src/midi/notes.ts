@@ -8,6 +8,7 @@
 
 import { createTimeOrderedUuid } from "../defaults.js";
 import type { MidiNote, TimelineClip } from "../types.js";
+import { expressionProblems } from "./expression.js";
 import { noteWindowMs } from "./ticks.js";
 
 /**
@@ -30,6 +31,9 @@ export interface MidiNoteProblem {
     | "non_integer_tick"
     | "non_positive_duration"
     | "duplicate_id"
+    | "channel_out_of_range"
+    | "release_velocity_out_of_range"
+    | "bad_expression"
     | "too_many_notes";
   message: string;
   noteId?: string;
@@ -45,13 +49,20 @@ export function createMidiNote(
   partial: Pick<MidiNote, "pitch" | "startTick" | "durationTick"> &
     Partial<MidiNote>
 ): MidiNote {
-  return {
+  const note: MidiNote = {
     id: partial.id ?? createTimeOrderedUuid(),
     pitch: partial.pitch,
     velocity: partial.velocity ?? DEFAULT_MIDI_VELOCITY,
     startTick: partial.startTick,
     durationTick: partial.durationTick
   };
+  if (partial.muted !== undefined) note.muted = partial.muted;
+  if (partial.channel !== undefined) note.channel = partial.channel;
+  if (partial.releaseVelocity !== undefined) {
+    note.releaseVelocity = partial.releaseVelocity;
+  }
+  if (partial.expression !== undefined) note.expression = partial.expression;
+  return note;
 }
 
 /**
@@ -121,6 +132,33 @@ export function validateNotes(
         index
       });
     }
+    if (
+      note.channel !== undefined &&
+      (!Number.isInteger(note.channel) || note.channel < 0 || note.channel > 15)
+    ) {
+      problems.push({
+        code: "channel_out_of_range",
+        message: `channel must be an integer 0..15, got ${note.channel}.`,
+        noteId: note.id,
+        index
+      });
+    }
+    if (
+      note.releaseVelocity !== undefined &&
+      (!Number.isInteger(note.releaseVelocity) ||
+        note.releaseVelocity < 0 ||
+        note.releaseVelocity > 127)
+    ) {
+      problems.push({
+        code: "release_velocity_out_of_range",
+        message: `releaseVelocity must be an integer 0..127, got ${note.releaseVelocity}.`,
+        noteId: note.id,
+        index
+      });
+    }
+    for (const message of expressionProblems(note)) {
+      problems.push({ code: "bad_expression", message, noteId: note.id, index });
+    }
     if (seen.has(note.id)) {
       problems.push({
         code: "duplicate_id",
@@ -151,4 +189,16 @@ export function visibleNotes(
     const { startMs } = noteWindowMs(note, bpm);
     return startMs >= windowStartMs && startMs < windowEndMs;
   });
+}
+
+/**
+ * The notes a clip actually plays: `visibleNotes` without the muted ones. A
+ * muted note stays in the document and in the editor, but it emits no events
+ * and no sound.
+ */
+export function playableNotes(
+  clip: Pick<TimelineClip, "notes" | "inPointMs" | "durationMs">,
+  bpm: number
+): MidiNote[] {
+  return visibleNotes(clip, bpm).filter((note) => !note.muted);
 }

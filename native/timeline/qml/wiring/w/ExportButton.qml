@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -6,7 +7,7 @@ Ui.EditorButton {
     id: button
     objectName: "exportButton"
     required property TimelineModel timeline
-    property var panel: null
+    property Item panel: null
     text: "Export"
     accessibleName: text
     variant: Ui.EditorButton.Primary

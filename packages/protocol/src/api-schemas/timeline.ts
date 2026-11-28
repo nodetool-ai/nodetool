@@ -28,6 +28,122 @@ export const clipFadeShapeEnum = z.enum(CLIP_FADE_SHAPE_TUPLE);
 
 // ── Shared sub-schemas ───────────────────────────────────────────────────────
 
+/** Key tonics the music model accepts (MUSIC-MODE.md MF6). */
+export const MUSIC_KEY_TONICS = [
+  "C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab",
+  "A", "A#", "Bb", "B"
+] as const;
+
+/** A project key. Stored on the tempo object (MUSIC-MODE.md MD2). */
+export const musicKey = z.object({
+  tonic: z.enum(MUSIC_KEY_TONICS),
+  mode: z.enum(["major", "minor"])
+});
+export type MusicKey = z.infer<typeof musicKey>;
+
+/**
+ * Document-level constant tempo. Milliseconds stay the stored master clock —
+ * ticks are read against `bpm` — so changing the tempo rescales every midi
+ * clip's timing around `offsetMs` and leaves every other clip where it is.
+ */
+export const timelineTempo = z.object({
+  bpm: z.number().positive(),
+  /** Where beat one sits on the timeline, in ms. */
+  offsetMs: z.number().min(0),
+  timeSignature: z.object({
+    beatsPerBar: z.number().int().positive(),
+    beatUnit: z.number().int().positive()
+  }),
+  /** Project key for music generation. Absent lets the model pick one. */
+  key: musicKey.optional()
+});
+export type TimelineTempo = z.infer<typeof timelineTempo>;
+
+/** The twelve ACE-Step track names a music track can carry (MUSIC-MODE.md MD4). */
+export const MUSIC_ROLES = [
+  "vocals", "backing_vocals", "drums", "bass", "guitar", "keyboard",
+  "percussion", "strings", "synth", "fx", "brass", "woodwinds"
+] as const;
+export const musicRole = z.enum(MUSIC_ROLES);
+export type MusicRole = z.infer<typeof musicRole>;
+
+/** The three music generation tasks of the first release. */
+export const MUSIC_TASKS = ["text2music", "repaint", "lego"] as const;
+export const musicTask = z.enum(MUSIC_TASKS);
+export type MusicTask = z.infer<typeof musicTask>;
+
+/** Most prompts one sequence keeps in its music prompt history (MD3). */
+export const MAX_MUSIC_PROMPT_HISTORY = 50;
+
+/** Marks a music project and holds its prompt history (MUSIC-MODE.md MD3). */
+export const timelineMusic = z.object({
+  /** Crossfade length in ms for touching audio clips on one track (CE7). Default 10, 0 turns it off. */
+  autoCrossfadeMs: z.number().min(0).max(1000).optional(),
+  promptHistory: z.array(z.string()).max(MAX_MUSIC_PROMPT_HISTORY).optional()
+});
+export type TimelineMusic = z.infer<typeof timelineMusic>;
+
+const frameIndex = z.number().int().min(0);
+
+/**
+ * The generation record of one music take (MUSIC-MODE.md MD5, TK-3). Every
+ * frame value counts 48 kHz frames. `ClipVersion` already holds the provider,
+ * DiT model, caption, request id and duration.
+ */
+export const musicGenerationRecord = z.object({
+  task: musicTask,
+  /** Backend and pinned commit, e.g. "acestep.cpp@07abf07". */
+  backend: z.string(),
+  lmModel: z.string().optional(),
+  steps: z.number().int().min(0),
+  /** Only for a backend that takes an instruction string. */
+  instruction: z.string().optional(),
+  trackRole: musicRole.optional(),
+  bpm: z.number().positive(),
+  key: musicKey.optional(),
+  beatsPerBar: z.number().int().positive(),
+  beatUnit: z.number().int().positive(),
+  seed: z.number().int(),
+  /** Language model output. A replay with these codes skips the language model. */
+  audioCodes: z.string().optional(),
+  candidateIndex: z.number().int().min(0),
+  segmentIndex: z.number().int().min(0),
+  /** Timeline position at 48 kHz. */
+  targetStartFrame: frameIndex,
+  targetEndFrame: frameIndex,
+  contextAssetId: z.string().optional(),
+  /** Timeline position at 48 kHz. */
+  contextStartFrame: frameIndex.optional(),
+  contextEndFrame: frameIndex.optional(),
+  /** Length asked of the model. */
+  requestFrames: z.number().int().positive(),
+  splice: z
+    .object({
+      parentAssetId: z.string(),
+      /** In the parent asset. */
+      startFrame: frameIndex,
+      endFrame: frameIndex,
+      crossfadeFrames: z.number().int().min(0),
+      /** Set when the parent was not 48 kHz stereo and was resampled once. */
+      parentResampled: z.boolean().optional()
+    })
+    .optional(),
+  alignment: z
+    .object({
+      offsetFrames: z.number().int(),
+      corrected: z.boolean(),
+      confidence: z.number().min(0),
+      /** Measured tempo divided by project tempo. */
+      tempoRatio: z.number().positive(),
+      lastBeatErrorMs: z.number().min(0),
+      drifting: z.boolean().optional()
+    })
+    .optional(),
+  gainDb: z.number().optional()
+});
+export type MusicGenerationRecord = z.infer<typeof musicGenerationRecord>;
+
+
 export const clipVersion = z.object({
   id: z.string(),
   createdAt: z.string(),
@@ -137,7 +253,9 @@ export const clipVersion = z.object({
       strength: z.number().optional(),
       resolution: z.string().optional()
     })
-    .optional()
+    .optional(),
+  /** Generation record of a music take. */
+  musicGeneration: musicGenerationRecord.optional()
 });
 export type ClipVersion = z.infer<typeof clipVersion>;
 
@@ -314,12 +432,39 @@ export const trackChromaKeyEffect = z.object({
   spill: z.number()
 });
 
+/** Plug-in format reported by the host scan (`vst3` on all platforms, `au` on macOS). */
+export const vstPluginFormat = z.enum(["vst3", "au"]);
+export type VstPluginFormat = z.infer<typeof vstPluginFormat>;
+
+/** `VstPluginRef` in `@nodetool-ai/timeline`: the VST3/AU plug-in a track or insert loads. */
+export const vstPluginRef = z.object({
+  uid: z.string().min(1).max(512),
+  name: z.string().max(256),
+  vendor: z.string().max(256),
+  path: z.string().min(1).max(4096),
+  format: vstPluginFormat.optional()
+});
+
+/** Base64 plug-in state above this is refused, so one track cannot bloat the document. */
+export const VST_STATE_MAX_CHARS = 8_000_000;
+
+/** `TrackVstEffect` in `@nodetool-ai/timeline`: a third-party VST3/AU insert effect. */
+export const trackVstEffect = z.object({
+  id: z.string(),
+  type: z.literal("vst"),
+  enabled: z.boolean(),
+  plugin: vstPluginRef.nullable(),
+  state: z.string().max(VST_STATE_MAX_CHARS).nullable(),
+  wet: z.number().min(0).max(1)
+});
+
 export const trackEffect = z.discriminatedUnion("type", [
   trackGainEffect,
   trackEq3Effect,
   trackFilterEffect,
   trackCompressorEffect,
   trackFableEffect,
+  trackVstEffect,
   trackColorCorrectionEffect,
   trackVideoBlurEffect,
   trackSharpenEffect,
@@ -380,6 +525,52 @@ export type ClipAudioEffect = z.infer<typeof clipAudioEffect>;
  */
 export const MIDI_MAX_NOTES_PER_CLIP = 4096;
 
+/** Most points one expression curve of one note may carry. */
+export const MIDI_MAX_EXPRESSION_POINTS_PER_NOTE = 256;
+/** Most controller lanes one midi clip may carry. */
+export const MIDI_MAX_CONTROLLER_LANES_PER_CLIP = 32;
+/** Most points one controller lane may carry. */
+export const MIDI_MAX_POINTS_PER_LANE = 4096;
+/** The pitch-bend range of the built-in synth, in semitones. */
+export const MIDI_PITCH_BEND_RANGE_SEMITONES = 2;
+
+/** One point of a per-note expression curve. `tick` counts from the note's start. */
+export const midiExpressionPoint = z.object({
+  tick: z.number().int().min(0),
+  value: z.number().finite()
+});
+export type MidiExpressionPoint = z.infer<typeof midiExpressionPoint>;
+
+const expressionCurve = (min: number, max: number) =>
+  z
+    .array(midiExpressionPoint)
+    .max(MIDI_MAX_EXPRESSION_POINTS_PER_NOTE)
+    .superRefine((points, ctx) => {
+      points.forEach((point, i) => {
+        if (point.value < min || point.value > max) {
+          ctx.addIssue({
+            code: "custom",
+            path: [i, "value"],
+            message: `value must be within ${min}..${max}.`
+          });
+        }
+      });
+    });
+
+/**
+ * Per-note expression. Before the first point the value is neutral, between
+ * points it interpolates linearly, after the last point it holds.
+ * Pitch is in semitones (-48..48), volume a linear gain (0..4), pan -1..1 and
+ * brightness 0..1 (neutral 0.5).
+ */
+export const midiNoteExpression = z.object({
+  pitch: expressionCurve(-48, 48).optional(),
+  volume: expressionCurve(0, 4).optional(),
+  pan: expressionCurve(-1, 1).optional(),
+  brightness: expressionCurve(0, 1).optional()
+});
+export type MidiNoteExpression = z.infer<typeof midiNoteExpression>;
+
 /**
  * One note inside a midi clip. `startTick`/`durationTick` are ticks (960 per
  * quarter note, `MIDI_PPQ` in `@nodetool-ai/timeline`) measured from the
@@ -387,14 +578,146 @@ export const MIDI_MAX_NOTES_PER_CLIP = 4096;
  * samples are measured from the head of its source. Trimming the window
  * therefore hides notes rather than deleting them.
  */
-export const midiNote = z.object({
-  id: z.string(),
-  pitch: z.number().int().min(0).max(127),
-  velocity: z.number().int().min(1).max(127),
-  startTick: z.number().int().min(0),
-  durationTick: z.number().int().positive()
-});
+export const midiNote = z
+  .object({
+    id: z.string(),
+    pitch: z.number().int().min(0).max(127),
+    velocity: z.number().int().min(1).max(127),
+    startTick: z.number().int().min(0),
+    durationTick: z.number().int().positive(),
+    /** A muted note is not played and emits no events. It stays in the
+     * document and can still be edited. */
+    muted: z.boolean().optional(),
+    /** MIDI channel 0..15. Absent means 0. The built-in synth ignores it. */
+    channel: z.number().int().min(0).max(15).optional(),
+    /** The note-off velocity, 0..127. Absent keeps the existing output. */
+    releaseVelocity: z.number().int().min(0).max(127).optional(),
+    /** Per-note expression curves, with ticks measured from the note's start. */
+    expression: midiNoteExpression.optional()
+  })
+  .superRefine((note, ctx) => {
+    if (!note.expression) return;
+    for (const [name, points] of Object.entries(note.expression)) {
+      if (!points) continue;
+      for (let i = 0; i < points.length; i++) {
+        if (points[i].tick > note.durationTick) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["expression", name, i, "tick"],
+            message: `tick must be <= the note's durationTick (${note.durationTick}).`
+          });
+        }
+        if (i > 0 && points[i].tick < points[i - 1].tick) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["expression", name, i, "tick"],
+            message: "points must be sorted by non-decreasing tick."
+          });
+        }
+      }
+    }
+  });
 export type MidiNote = z.infer<typeof midiNote>;
+
+/** One point of a controller lane. `tick` is a clip content tick, like a note's startTick. */
+export const midiControllerPoint = z.object({
+  id: z.string(),
+  tick: z.number().int().min(0),
+  value: z.number().int()
+});
+export type MidiControllerPoint = z.infer<typeof midiControllerPoint>;
+
+export const midiControllerKind = z.enum([
+  "cc",
+  "pitchBend",
+  "channelPressure",
+  "polyPressure"
+]);
+export type MidiControllerKind = z.infer<typeof midiControllerKind>;
+
+/**
+ * A controller lane of a midi clip: CC, pitch bend, channel pressure or poly
+ * pressure. Values are 0..127 except pitch bend, which is -8192..8191.
+ */
+export const midiControllerLane = z
+  .object({
+    id: z.string(),
+    kind: midiControllerKind,
+    cc: z.number().int().min(0).max(127).optional(),
+    pitch: z.number().int().min(0).max(127).optional(),
+    channel: z.number().int().min(0).max(15).optional(),
+    interpolation: z.enum(["linear", "step"]).optional(),
+    points: z.array(midiControllerPoint).max(MIDI_MAX_POINTS_PER_LANE)
+  })
+  .superRefine((lane, ctx) => {
+    if (lane.kind === "cc" && lane.cc === undefined) {
+      ctx.addIssue({ code: "custom", path: ["cc"], message: "cc is required for a cc lane." });
+    }
+    if (lane.kind !== "cc" && lane.cc !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["cc"], message: "cc is only allowed on a cc lane." });
+    }
+    if (lane.kind === "polyPressure" && lane.pitch === undefined) {
+      ctx.addIssue({ code: "custom", path: ["pitch"], message: "pitch is required for a polyPressure lane." });
+    }
+    if (lane.kind !== "polyPressure" && lane.pitch !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["pitch"], message: "pitch is only allowed on a polyPressure lane." });
+    }
+    const [min, max] = lane.kind === "pitchBend" ? [-8192, 8191] : [0, 127];
+    const ids = new Set<string>();
+    lane.points.forEach((point, i) => {
+      if (point.value < min || point.value > max) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["points", i, "value"],
+          message: `value must be within ${min}..${max}.`
+        });
+      }
+      if (i > 0 && point.tick < lane.points[i - 1].tick) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["points", i, "tick"],
+          message: "points must be sorted by non-decreasing tick."
+        });
+      }
+      if (ids.has(point.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["points", i, "id"],
+          message: `duplicate point id "${point.id}".`
+        });
+      }
+      ids.add(point.id);
+    });
+  });
+export type MidiControllerLane = z.infer<typeof midiControllerLane>;
+
+/** The controller lanes of one midi clip: at most 32, one per identity. */
+export const midiControllerLanes = z
+  .array(midiControllerLane)
+  .max(MIDI_MAX_CONTROLLER_LANES_PER_CLIP)
+  .superRefine((lanes, ctx) => {
+    const seen = new Set<string>();
+    const ids = new Set<string>();
+    lanes.forEach((lane, i) => {
+      if (ids.has(lane.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [i, "id"],
+          message: `duplicate lane id "${lane.id}".`
+        });
+      }
+      ids.add(lane.id);
+      const key = `${lane.kind}|${lane.cc ?? ""}|${lane.pitch ?? ""}|${lane.channel ?? 0}`;
+      if (seen.has(key)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [i],
+          message: "two lanes share the same (kind, cc, pitch, channel)."
+        });
+      }
+      seen.add(key);
+    });
+  });
 
 /** An ADSR envelope, in milliseconds with a 0..1 sustain level. */
 export const midiEnvelope = z.object({
@@ -486,39 +809,55 @@ export type DrumPad = z.infer<typeof drumPad>;
  * synth, BL-1 the acid bassline, DR-1 the drum machine. `vst` is a VST3
  * instrument the desktop app hosts.
  */
+export const samplerLoopMode = z.enum(["oneShot", "sustain"]);
+export type SamplerLoopMode = z.infer<typeof samplerLoopMode>;
+
 export const samplerZone = z.object({
   id: z.string().min(1),
   name: z.string(),
-  assetId: z.string().regex(/^[a-f0-9]{32}$/, "Use a full audio asset id"),
+  assetId: z.string().regex(/^$|^[a-f0-9]{32}$/, "Use a full audio asset id"),
+  mediaPath: z.string().min(1).optional(),
   rootNote: z.number().int().min(0).max(127),
   lowNote: z.number().int().min(0).max(127),
   highNote: z.number().int().min(0).max(127),
-  gainDb: z.number().min(-60).max(12)
+  lowVelocity: z.number().int().min(0).max(127).optional(),
+  highVelocity: z.number().int().min(0).max(127).optional(),
+  gainDb: z.number().min(-60).max(12),
+  pan: z.number().min(-1).max(1).optional(),
+  tuneCents: z.number().min(-100).max(100).optional(),
+  loopMode: samplerLoopMode.optional(),
+  loopStart: z.number().min(0).max(1).optional(),
+  loopEnd: z.number().min(0).max(1).optional(),
+  loopCrossfadeMs: z.number().min(0).max(500).optional(),
+  releaseAssetId: z.string().regex(/^$|^[a-f0-9]{32}$/, "Use a full audio asset id").optional(),
+  releaseMediaPath: z.string().min(1).optional(),
+  releaseGainDb: z.number().min(-60).max(12).optional()
 }).refine(zone => zone.lowNote <= zone.highNote, {
   message: "The lowest key must not exceed the highest key"
+}).refine(zone => (zone.lowVelocity ?? 0) <= (zone.highVelocity ?? 127), {
+  message: "The lowest velocity must not exceed the highest velocity"
+}).refine(zone => (zone.loopStart ?? 0) <= (zone.loopEnd ?? 1), {
+  message: "The loop start must not exceed the loop end"
+}).refine(zone => zone.assetId.length > 0 || Boolean(zone.mediaPath), {
+  message: "A sampler zone needs an assetId or a mediaPath"
 });
 
 export const samplerMidiInstrument = z.object({
     type: z.literal("sampler"),
-    zones: z.array(samplerZone).max(32),
+    zones: z.array(samplerZone).max(64),
     oneShot: z.boolean(),
     attackMs: z.number().min(0).max(10000),
+    decayMs: z.number().min(0).max(10000).optional(),
+    sustain: z.number().min(0).max(1).optional(),
     releaseMs: z.number().min(0).max(30000),
+    velocityCurve: z.number().min(-1).max(1).optional(),
+    glideMs: z.number().min(0).max(2000).optional(),
+    voiceLimit: z.number().int().min(1).max(64).optional(),
+    pitchBendRange: z.number().min(1).max(24).optional(),
     gainDb: z.number().min(-60).max(12)
   });
 
-/** `VstPluginRef` in `@nodetool-ai/timeline`: the VST3 plug-in a track loads. */
-export const vstPluginRef = z.object({
-  uid: z.string().min(1).max(512),
-  name: z.string().max(256),
-  vendor: z.string().max(256),
-  path: z.string().min(1).max(4096)
-});
-
-/** Base64 plug-in state above this is refused, so one track cannot bloat the document. */
-export const VST_STATE_MAX_CHARS = 8_000_000;
-
-/** A VST3 instrument hosted by the desktop app. Silent wherever no host runs. */
+/** A VST3/AU instrument hosted by the desktop app. Silent wherever no host runs. */
 export const vstMidiInstrument = z.object({
   type: z.literal("vst"),
   plugin: vstPluginRef.nullable(),
@@ -618,21 +957,107 @@ export const midiInstrument = z.discriminatedUnion("type", [
 ]);
 export type MidiInstrument = z.infer<typeof midiInstrument>;
 
-/**
- * Document-level constant tempo. Milliseconds stay the stored master clock —
- * ticks are read against `bpm` — so changing the tempo rescales every midi
- * clip's timing around `offsetMs` and leaves every other clip where it is.
- */
-export const timelineTempo = z.object({
-  bpm: z.number().positive(),
-  /** Where beat one sits on the timeline, in ms. */
-  offsetMs: z.number().min(0),
-  timeSignature: z.object({
-    beatsPerBar: z.number().int().positive(),
-    beatUnit: z.number().int().positive()
-  })
+/** Physically modeled percussion/mallet instrument schema (ported from RipplerX, MOD1). */
+export const modalModelEnum = z.enum([
+  "string", "beam", "squared", "membrane", "plate", "drumhead",
+  "marimba", "openTube", "closedTube", "marimba2", "bell", "djembe"
+]);
+export type ModalModel = z.infer<typeof modalModelEnum>;
+
+export const modalCouplingEnum = z.enum(["parallel", "serial"]);
+export type ModalCoupling = z.infer<typeof modalCouplingEnum>;
+
+export const modalNoiseFilterModeEnum = z.enum(["lp", "bp", "hp"]);
+export type ModalNoiseFilterMode = z.infer<typeof modalNoiseFilterModeEnum>;
+
+export const modalPresetIdEnum = z.enum([
+  "modal-marimba", "modal-concert-marimba", "modal-vibes", "modal-tubular-bells",
+  "modal-church-bell", "modal-kalimba", "modal-steel-drum", "modal-concert-tom",
+  "modal-djembe", "modal-plucked-harp", "modal-crystal-glass", "modal-wood-block",
+  "modal-open-tube", "modal-closed-tube"
+]);
+export type ModalPresetId = z.infer<typeof modalPresetIdEnum>;
+
+export const modalMidiInstrument = z.object({
+  type: z.literal("modal"),
+  preset: modalPresetIdEnum.optional(),
+  malletMix: z.number().min(0).max(1).optional(),
+  malletRes: z.number().min(0).max(1).optional(),
+  malletStiff: z.number().min(100).max(5000).optional(),
+  velMalletMix: z.number().min(-1).max(1).optional(),
+  velMalletRes: z.number().min(-1).max(1).optional(),
+  velMalletStiff: z.number().min(-1).max(1).optional(),
+  noiseOsc: z.number().min(0).max(1).optional(),
+  noiseMix: z.number().min(0).max(1).optional(),
+  noiseRes: z.number().min(0).max(1).optional(),
+  noiseFilterMode: modalNoiseFilterModeEnum.optional(),
+  noiseFilterFreq: z.number().min(20).max(20000).optional(),
+  noiseFilterQ: z.number().min(0.707).max(4).optional(),
+  noiseAttackMs: z.number().min(1).max(20000).optional(),
+  noiseDecayMs: z.number().min(1).max(20000).optional(),
+  noiseSustain: z.number().min(0).max(1).optional(),
+  noiseReleaseMs: z.number().min(1).max(20000).optional(),
+  noiseAttackTension: z.number().min(-1).max(1).optional(),
+  noiseDecayTension: z.number().min(-1).max(1).optional(),
+  noiseReleaseTension: z.number().min(-1).max(1).optional(),
+  velNoiseMix: z.number().min(-1).max(1).optional(),
+  velNoiseRes: z.number().min(-1).max(1).optional(),
+  velNoiseFreq: z.number().min(-1).max(1).optional(),
+  velNoiseQ: z.number().min(-1).max(1).optional(),
+  velNoiseAttack: z.number().min(-1).max(1).optional(),
+  velNoiseDecay: z.number().min(-1).max(1).optional(),
+  velNoiseSustain: z.number().min(-1).max(1).optional(),
+  velNoiseRelease: z.number().min(-1).max(1).optional(),
+  aOn: z.boolean().optional(),
+  aModel: modalModelEnum.optional(),
+  aPartials: z.number().int().min(1).max(64).optional(),
+  aDecay: z.number().min(0.01).max(100).optional(),
+  aDamp: z.number().min(-1).max(1).optional(),
+  aTone: z.number().min(-1).max(1).optional(),
+  aHit: z.number().min(0.02).max(0.5).optional(),
+  aRelease: z.number().min(0.001).max(1).optional(),
+  aInharm: z.number().min(0).max(1).optional(),
+  aRatio: z.number().min(0.1).max(10).optional(),
+  aCut: z.number().min(-1).max(1).optional(),
+  aRadius: z.number().min(0).max(1).optional(),
+  aCoarse: z.number().min(-48).max(48).optional(),
+  aFine: z.number().min(-99).max(99).optional(),
+  velADecay: z.number().min(-1).max(1).optional(),
+  velAHit: z.number().min(-1).max(1).optional(),
+  velAInharm: z.number().min(-1).max(1).optional(),
+  velADamp: z.number().min(-1).max(1).optional(),
+  velATone: z.number().min(-1).max(1).optional(),
+  bOn: z.boolean().optional(),
+  bModel: modalModelEnum.optional(),
+  bPartials: z.number().int().min(1).max(64).optional(),
+  bDecay: z.number().min(0.01).max(100).optional(),
+  bDamp: z.number().min(-1).max(1).optional(),
+  bTone: z.number().min(-1).max(1).optional(),
+  bHit: z.number().min(0.02).max(0.5).optional(),
+  bRelease: z.number().min(0.001).max(1).optional(),
+  bInharm: z.number().min(0).max(1).optional(),
+  bRatio: z.number().min(0.1).max(10).optional(),
+  bCut: z.number().min(-1).max(1).optional(),
+  bRadius: z.number().min(0).max(1).optional(),
+  bCoarse: z.number().min(-48).max(48).optional(),
+  bFine: z.number().min(-99).max(99).optional(),
+  velBDecay: z.number().min(-1).max(1).optional(),
+  velBHit: z.number().min(-1).max(1).optional(),
+  velBInharm: z.number().min(-1).max(1).optional(),
+  velBDamp: z.number().min(-1).max(1).optional(),
+  velBTone: z.number().min(-1).max(1).optional(),
+  coupling: modalCouplingEnum.optional(),
+  abMix: z.number().min(0).max(1).optional(),
+  abSplit: z.number().min(0.01).max(1).optional(),
+  gainDb: z.number().min(-24).max(24).optional(),
+  pitchBendRange: z.number().int().min(1).max(24).optional(),
+  stereoizer: z.boolean().optional(),
+  polyphony: z.number().int().min(1).max(16).optional(),
+  reuseVoices: z.boolean().optional(),
+  fadeoutRepeats: z.boolean().optional()
 });
-export type TimelineTempo = z.infer<typeof timelineTempo>;
+export type ModalMidiInstrument = z.infer<typeof modalMidiInstrument>;
+
 
 /** `ChordQuality` in `@nodetool-ai/timeline`: the FableSynth chord qualities. */
 export const chordQuality = z.enum([
@@ -688,6 +1113,281 @@ export const clipHarmony = z.object({
 });
 export type ClipHarmony = z.infer<typeof clipHarmony>;
 
+// ── Step Sequencer (SQ) ─────────────────────────────────────────────────────
+
+export const STEP_PATTERN_MAX_ROWS = 128;
+export const STEP_PATTERN_MAX_STEPS = 64;
+
+export const STEP_RATE_VALUES = [
+  "4", "2", "1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64",
+  "1T", "2T", "4T", "8T", "16T", "32T",
+  "1D", "2D", "4D", "8D", "16D", "32D", "64D"
+] as const;
+
+export const stepRate = z.enum(STEP_RATE_VALUES);
+export type StepRate = z.infer<typeof stepRate>;
+
+export const STEP_PLAYBACK_MODES = [
+  "forward",
+  "backward",
+  "pingPong",
+  "pendulum",
+  "wander",
+  "shuffle",
+  "random"
+] as const;
+export const stepPlaybackMode = z.enum(STEP_PLAYBACK_MODES);
+export type StepPlaybackMode = z.infer<typeof stepPlaybackMode>;
+
+export const STEP_EDIT_MODES = [
+  "onOff",
+  "velocity",
+  "value",
+  "gate",
+  "tie",
+  "note",
+  "octave",
+  "repeat",
+  "chance",
+  "offset",
+  "stepRate",
+  "skip",
+  "loop"
+] as const;
+export const stepEditMode = z.enum(STEP_EDIT_MODES);
+export type StepEditMode = z.infer<typeof stepEditMode>;
+
+export const stepAutomationMode = z.enum(["latch", "slide"]);
+export type StepAutomationMode = z.infer<typeof stepAutomationMode>;
+
+export const stepSwingDivision = z.enum(["1/8", "1/16"]);
+export type StepSwingDivision = z.infer<typeof stepSwingDivision>;
+
+export const stepPitchSource = z.enum(["off", "key", "chords"]);
+export type StepPitchSource = z.infer<typeof stepPitchSource>;
+
+export const STEP_ROW_SORTS = [
+  "none",
+  "typeAsc",
+  "typeDesc",
+  "typeAndNoteAsc",
+  "typeAndNoteDesc",
+  "typeAndNameAsc",
+  "typeAndNameDesc",
+  "typeAndKitPadAsc",
+  "typeAndKitPadDesc"
+] as const;
+export const stepRowSort = z.enum(STEP_ROW_SORTS);
+export type StepRowSort = z.infer<typeof stepRowSort>;
+
+export const STEP_SCALE_IDS = [
+  "chromatic", "major", "minor", "dorian", "mixolydian", "phrygian", "lydian",
+  "locrian", "harmMinor", "melMinor", "phrygDom", "lydDom", "locrian2",
+  "altered", "wholeTone", "dimHW", "dimWH", "majPent", "minPent", "blues"
+] as const;
+export const stepScaleId = z.enum(STEP_SCALE_IDS);
+export type StepScaleId = z.infer<typeof stepScaleId>;
+
+export const stepKey = z.object({
+  tonic: z.number().int().min(0).max(11),
+  mode: z.enum(["major", "minor"])
+});
+export type StepKey = z.infer<typeof stepKey>;
+
+export const STEP_DEGREES = [
+  "root", "2nd", "3rd", "4th", "5th", "6th", "7th"
+] as const;
+export const stepDegree = z.enum(STEP_DEGREES);
+export type StepDegree = z.infer<typeof stepDegree>;
+
+export const stepAutomationTarget = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("cc"), cc: z.number().int().min(0).max(127) }),
+  z.object({ kind: z.literal("pitchBend") }),
+  z.object({ kind: z.literal("channelPressure") }),
+  z.object({ kind: z.literal("device"), deviceId: z.string().min(1), param: z.string().min(1) })
+]);
+export type StepAutomationTarget = z.infer<typeof stepAutomationTarget>;
+
+export const stepRowAssignment = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("note"), pitch: z.number().int().min(0).max(127) }),
+  z.object({ type: z.literal("melodic"), pitch: z.number().int().min(0).max(127) }),
+  z.object({ type: z.literal("kit"), pad: z.number().int().min(0).max(15) }),
+  z.object({ type: z.literal("degree"), degree: stepDegree, octave: z.number().int().min(-2).max(8) }),
+  z.object({ type: z.literal("automation"), target: stepAutomationTarget })
+]);
+export type StepRowAssignment = z.infer<typeof stepRowAssignment>;
+
+export const stepCondition = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("always") }),
+  z
+    .object({
+      type: z.literal("recurrence"),
+      iteration: z.number().int().min(1).max(16),
+      cycles: z.number().int().min(2).max(16)
+    })
+    .refine((c) => c.iteration <= c.cycles, {
+      message: "iteration must be <= cycles."
+    }),
+  z.object({ type: z.literal("first") }),
+  z.object({ type: z.literal("last") })
+]);
+export type StepCondition = z.infer<typeof stepCondition>;
+
+export const stepCell = z.object({
+  on: z.boolean().optional(),
+  velocity: z.number().int().min(1).max(127).optional(),
+  gate: z.number().int().min(1).max(100).optional(),
+  tie: z.boolean().optional(),
+  note: z.number().int().min(-12).max(12).optional(),
+  octave: z.number().int().min(-2).max(8).optional(),
+  repeat: z.number().int().min(1).max(16).optional(),
+  chance: z.number().int().min(0).max(100).optional(),
+  offset: z.number().int().min(-50).max(50).optional(),
+  stepRate: stepRate.optional(),
+  skip: z.boolean().optional(),
+  value: z.number().finite().optional(),
+  condition: stepCondition.optional(),
+  midiChannel: z.number().int().min(1).max(16).optional(),
+  articulation: z.number().int().min(0).max(255).optional(),
+  velocityRamp: z.number().int().min(-100).max(100).optional(),
+  velocityCurve: z.number().int().min(-100).max(100).optional(),
+  distribution: z.number().int().min(-100).max(100).optional()
+});
+export type Step = z.infer<typeof stepCell>;
+
+export const stepRow = z
+  .object({
+    id: z.string().min(1),
+    assignment: stepRowAssignment,
+    name: z.string().optional(),
+    color: z.string().optional(),
+    mute: z.boolean(),
+    solo: z.boolean(),
+    lengthSteps: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS),
+    loopStart: z.number().int().min(0).max(STEP_PATTERN_MAX_STEPS - 1),
+    loopEnd: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS),
+    stepRate,
+    playback: stepPlaybackMode,
+    midiChannel: z.number().int().min(1).max(16),
+    automationMode: stepAutomationMode,
+    subrows: z.array(stepEditMode),
+    subrowsExpanded: z.boolean().optional(),
+    steps: z.array(stepCell).min(1).max(STEP_PATTERN_MAX_STEPS)
+  })
+  .superRefine((row, ctx) => {
+    if (row.steps.length !== row.lengthSteps) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["steps"],
+        message: `steps length (${row.steps.length}) must equal lengthSteps (${row.lengthSteps}).`
+      });
+    }
+    if (row.loopStart >= row.loopEnd || row.loopEnd > row.lengthSteps) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["loopEnd"],
+        message: `loop range [${row.loopStart}, ${row.loopEnd}) is outside 0..${row.lengthSteps}.`
+      });
+    }
+    if (new Set(row.subrows).size !== row.subrows.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["subrows"],
+        message: "Two subrows of one row cannot share a mode."
+      });
+    }
+  });
+export type StepRow = z.infer<typeof stepRow>;
+
+export const stepPattern = z.object({
+  version: z.literal(1),
+  seed: z.number().int().min(0).max(0xffffffff),
+  lengthSteps: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS),
+  stepRate,
+  playback: stepPlaybackMode,
+  legato: z.boolean(),
+  swing: z.number().int().min(0).max(100),
+  swingDivision: stepSwingDivision,
+  pitchSource: stepPitchSource,
+  key: stepKey.optional(),
+  scale: stepScaleId,
+  noTranspose: z.boolean(),
+  scaleQuantize: z.boolean(),
+  midiChannel: z.number().int().min(1).max(16),
+  automationMode: stepAutomationMode,
+  mono: z.boolean(),
+  name: z.string(),
+  rowSort: stepRowSort.optional(),
+  rows: z.array(stepRow).max(STEP_PATTERN_MAX_ROWS)
+});
+export type StepPattern = z.infer<typeof stepPattern>;
+
+/**
+ * Stored JSON envelope for a user-saved Step Sequencer pattern or template
+ * asset (`application/x-nodetool-step-pattern`, SQ43, SQ44, D92).
+ */
+export const stepPatternAssetEnvelope = z.object({
+  version: z.literal(1),
+  name: z.string().min(1),
+  kind: z.enum(["pattern", "template"]),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  folder: z.string().optional(),
+  pattern: stepPattern,
+  instrument: midiInstrument.optional(),
+  instrumentPreset: z.string().min(1).optional()
+});
+export type StepPatternAssetEnvelope = z.infer<typeof stepPatternAssetEnvelope>;
+
+export const stepPatternMoveSummary = z.object({
+  id: z.string(),
+  name: z.string(),
+  folder: z.string()
+});
+export type StepPatternMoveSummary = z.infer<typeof stepPatternMoveSummary>;
+
+export const renameStepPatternFolderInput = z.object({
+  folder: z.string().min(1),
+  newName: z.string().min(1),
+  kind: z.enum(["pattern", "template"]).optional()
+});
+export type RenameStepPatternFolderInput = z.infer<
+  typeof renameStepPatternFolderInput
+>;
+
+export const renameStepPatternFolderOutput = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  kind: z.enum(["pattern", "template"]),
+  previousFolder: z.string(),
+  folder: z.string(),
+  parentFolder: z.string(),
+  movedPatternCount: z.number().int().nonnegative(),
+  movedPatterns: z.array(stepPatternMoveSummary)
+});
+export type RenameStepPatternFolderOutput = z.infer<
+  typeof renameStepPatternFolderOutput
+>;
+
+export const deleteStepPatternFolderInput = z.object({
+  folder: z.string().min(1),
+  kind: z.enum(["pattern", "template"]).optional()
+});
+export type DeleteStepPatternFolderInput = z.infer<
+  typeof deleteStepPatternFolderInput
+>;
+
+export const deleteStepPatternFolderOutput = z.object({
+  kind: z.enum(["pattern", "template"]),
+  deletedFolder: z.string(),
+  parentFolder: z.string(),
+  movedPatternCount: z.number().int().nonnegative(),
+  movedPatterns: z.array(stepPatternMoveSummary)
+});
+export type DeleteStepPatternFolderOutput = z.infer<
+  typeof deleteStepPatternFolderOutput
+>;
+
 /** How many lanes one track may hold, and points one lane. */
 export const MAX_AUTOMATION_LANES_PER_TRACK = 256;
 export const MAX_AUTOMATION_POINTS_PER_LANE = 10000;
@@ -739,14 +1439,22 @@ export const timelineTrack = z.object({
    * every PATCH, so the progression disappears after one save. */
   chords: z.array(timelineChord).max(MAX_CHORDS_PER_TRACK).optional(),
   /** Automation lanes. Without this field Zod strips them on every PATCH. */
-  automation: z.array(automationLane).max(MAX_AUTOMATION_LANES_PER_TRACK).optional()
+  automation: z.array(automationLane).max(MAX_AUTOMATION_LANES_PER_TRACK).optional(),
+  /** Automation mode. Without this field Zod strips it on every PATCH. */
+  automationMode: z.enum(["off", "read", "touch", "latch", "write"]).optional(),
+  /** The stem this track holds in a music project. */
+  musicRole: musicRole.optional(),
+  /** Default Step Sequencer template for new pattern regions on this track (SQ45). */
+  stepTemplate: stepPattern.optional()
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
 
 /** `TimelineMasterChannel` in `@nodetool-ai/timeline`. */
 export const timelineMasterChannel = z.object({
   volumeDb: z.number().min(-120).max(24),
-  effects: z.array(trackEffect).optional()
+  pan: z.number().min(-1).max(1).optional(),
+  effects: z.array(trackEffect).optional(),
+  limiter: z.boolean().optional()
 });
 export type TimelineMasterChannel = z.infer<typeof timelineMasterChannel>;
 
@@ -1984,6 +2692,17 @@ export const timelineClip = z.object({
   durationMs: z.number(),
   inPointMs: z.number().optional(),
   outPointMs: z.number().optional(),
+  /** Region loop: the window `[inPointMs, inPointMs + loopLengthMs)` repeats until `durationMs`. */
+  loopLengthMs: z.number().positive().optional(),
+  /** Non-destructive midi region parameters (CE6). */
+  transpose: z.number().int().min(-48).max(48).optional(),
+  velocityOffset: z.number().int().min(-127).max(127).optional(),
+  quantize: z
+    .object({
+      grid: z.enum(["1/4", "1/8", "1/16", "1/32", "1/8T", "1/16T"]),
+      strength: z.number().min(0).max(100)
+    })
+    .optional(),
   /** `"group"` carries no media: it is a transform parent children name with
    * `parentId`. `"adjustment"` carries none either: its effects treat the
    * composite of the layers drawn beneath it. Without them here Zod fails a
@@ -2182,9 +2901,35 @@ export const timelineClip = z.object({
   /** Notes carried inline by a `midi` clip, in content ticks. Without this
    * field Zod strips it on every PATCH, so autosave erases the performance. */
   notes: z.array(midiNote).max(MIDI_MAX_NOTES_PER_CLIP).optional(),
+  /** Controller lanes of a `midi` clip. Stripped on PATCH without this field. */
+  controllers: midiControllerLanes.optional(),
   /** Arp, chord comping or scale snapping of a `midi` clip. Without this
    * field Zod strips it on every PATCH. */
-  harmony: clipHarmony.optional()
+  harmony: clipHarmony.optional(),
+  /** Step Sequencer pattern (SQ1, D71). Mutually exclusive with stored `notes`. */
+  pattern: stepPattern.optional(),
+  /** Phase offset in content ticks for split/left-trimmed pattern regions (D87). */
+  patternPhaseTicks: z.number().int().min(0).optional(),
+  /** Per-row cycle state preserved across unrolled loop repeats (SQ13, SQ25). */
+  patternRowCycles: z
+    .record(
+      z.string(),
+      z.object({
+        cycleOffset: z.number().int().min(0),
+        lastCycle: z.number().int().min(0).optional(),
+        wanderPos: z.number().int().min(0).optional()
+      })
+    )
+    .optional()
+}).superRefine((clip, ctx) => {
+  if (clip.pattern !== undefined && clip.notes !== undefined) {
+    const label = clip.name || clip.id;
+    ctx.addIssue({
+      code: "custom",
+      path: ["notes"],
+      message: `Clip "${label}" (${clip.id}) cannot hold both \`pattern\` and stored \`notes\`.`
+    });
+  }
 });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
@@ -2335,6 +3080,9 @@ export const timelineDocument = z.object({
   /** The mix bus. Without this field Zod strips it on every PATCH, so the
    * master fader and its effects reset on the first save. */
   master: timelineMasterChannel.optional(),
+  /** Marks a music project. Without this field Zod strips it on every PATCH,
+   * so the sequence reopens without its music layout and prompt history. */
+  music: timelineMusic.optional(),
   /** Guided-setup state. Absent on every sequence not built through the flow. */
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from. Without this field Zod strips it
@@ -2410,6 +3158,8 @@ export const timelineSequenceResponse = z.object({
   tempo: timelineTempo.optional(),
   /** The master channel, mirroring the document's. */
   master: timelineMasterChannel.optional(),
+  /** Music project marker, mirroring the document's. */
+  music: timelineMusic.optional(),
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from, mirroring the document's. */
   templateId: z.string().nullable().optional(),

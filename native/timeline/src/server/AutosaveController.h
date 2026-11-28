@@ -23,7 +23,7 @@
 //     The conflict property stays true throughout recovery until the merged
 //     document is saved or clean again, and while recovery is stopped.
 //   - any other failure: the current document is written to
-//     `<id>.recovery.json`; a transient one (no answer, 5xx, 429) is retried
+//     `<id>.recovery.json`; a transient one (no answer, 5xx, 408, 429) is retried
 //     with a doubling delay, up to 30 s.
 // A recovery or conflict file that cannot be written is reported
 // (`recoveryError`, `lastError`). The client never saves without a base.
@@ -112,6 +112,18 @@ struct SaveResult {
     QString recoveryError;  // a recovery or conflict file that could not be written
 };
 
+// What a manual save returns to QML, the menus and the assistant.
+struct SaveDocumentResult {
+    Q_GADGET
+    Q_PROPERTY(bool ok MEMBER ok)
+    Q_PROPERTY(QString error MEMBER error)
+    Q_PROPERTY(bool conflict MEMBER conflict)
+public:
+    bool ok = false;
+    QString error;
+    bool conflict = false;
+};
+
 // The document part of a raw sequence: everything but the sequence-row fields.
 QJsonObject documentForSave(const QJsonObject& rawSequence);
 
@@ -180,6 +192,7 @@ public:
 
     // Saves now, dirty or not. Blocks until the server answers.
     SaveResult saveNow();
+    Q_INVOKABLE nt::server::SaveDocumentResult saveDocument();
     // Before the app quits: saves pending edits within `timeoutMs` of elapsed
     // time. Returns true when the server holds the current document; otherwise
     // the current document is in `<id>.recovery.json` (or `<id>.local.json` on
@@ -193,6 +206,8 @@ public:
 
 signals:
     void stateChanged();
+    // Measurement seam: one serialization and SHA-256 pass for save identity.
+    void contentHashed() const;
     void saved(const QString& updatedAt);
     void conflictDetected();
     void strippedWarning(const QStringList& paths);
@@ -268,6 +283,9 @@ private:
     QElapsedTimer m_fetchElapsed;
     int m_retryBaseMs = 1000;
     int m_retryAttempt = 0;
+    // UI-thread cache includes previews and row settings, independently of undo indices.
+    mutable QJsonObject m_hashDocument;
+    mutable QByteArray m_currentHash;
     QByteArray m_ackHash;  // the content the server acknowledged (or the load)
     QByteArray m_committedHash;  // updated only by committed-change notifications
     bool m_ackComplete = true;  // false when the server stripped fields

@@ -1,15 +1,24 @@
 import {
   automationBreakpoints,
+  automationModeOf,
+  automationModePlays,
   fadeShapeGain,
   INSTRUMENT_DEVICE_ID,
   isAutomationLaneActive,
+  midiClipControllerEvents,
   midiClipNoteEvents,
   paramCurveAt,
   resolveClipFades,
   sampleFadeShape,
   timeRemapAudioSegments
 } from "@nodetool-ai/timeline";
-import type { ClipFadeShape, TimeRemapAudioSegment } from "@nodetool-ai/timeline";
+import type {
+  AutomationMode,
+  ClipFadeShape,
+  MidiClipNoteEvent,
+  MidiControllerEvent,
+  TimeRemapAudioSegment
+} from "@nodetool-ai/timeline";
 import type {
   AutomationLane,
   MidiInstrument,
@@ -21,6 +30,7 @@ import type {
 import {
   liveDeviceFactory,
   type DeviceAutomationLane,
+  type LiveControllerEvent,
   type LiveInstrumentDevice,
   type LiveNoteEvent
 } from "../daw/devices/liveDevice";
@@ -70,7 +80,7 @@ export type ScheduledAudioClip =
        * clip's notes to the device instead of playing a buffer.
        */
       clip: TimelineClip;
-      live: { bpm: number };
+      live: { bpm: number; gridOffsetMs?: number };
       assetUrl?: undefined;
       buffer?: undefined;
     };
@@ -146,12 +156,34 @@ interface TrackAutomationState {
   automation: TimelineTrack["automation"];
   effects: TimelineTrack["effects"];
   instrumentType: MidiInstrument["type"] | undefined;
+  /** The mode it was scheduled under; `off` schedules nothing. */
+  mode: AutomationMode;
   /** Automated params and the value each returns to when automation stops. */
   params: Map<AudioParam, number>;
   devices: Set<AutomatedDevice>;
 }
 
 /** Longest straight ramp a curved automation segment is cut into. */
+/** A clip note event as a live device schedules it, at `timeSec`. */
+function liveNoteEvent(event: MidiClipNoteEvent, timeSec: number): LiveNoteEvent {
+  const live: LiveNoteEvent = {
+    timeSec,
+    pitch: event.pitch,
+    velocity: event.velocity,
+    on: event.on
+  };
+  if (event.pitchOffset !== undefined) live.pitchOffset = event.pitchOffset;
+  return live;
+}
+
+/** A clip controller event as a live device schedules it, at `timeSec`. */
+function liveControllerEvent(event: MidiControllerEvent, timeSec: number): LiveControllerEvent {
+  const live: LiveControllerEvent = { timeSec, kind: event.kind, value: event.value };
+  if (event.cc !== undefined) live.cc = event.cc;
+  if (event.pitch !== undefined) live.pitch = event.pitch;
+  return live;
+}
+
 const AUTOMATION_STEP_MS = 10;
 
 /**
@@ -488,16 +520,24 @@ interface ScrubVoice {
   grain: number;
 }
 
+function clampPan(pan: number | undefined): number {
+  return typeof pan === "number" && Number.isFinite(pan)
+    ? Math.min(1, Math.max(-1, pan))
+    : 0;
+}
+
 export class AudioGraph {
   private ctx: BaseAudioContext | null = null;
   private masterGain: GainNode | null = null;
   /**
    * The document's master channel: every track channel sums here, then runs
-   * through the master inserts and the master fader (`masterFader`) into the
-   * listener volume (`masterGain`). The analyser taps the fader's output.
+   * through the master inserts, the master fader (`masterFader`) and the master
+   * panner (`masterPanner`) into the listener volume (`masterGain`). The
+   * analyser taps the panner's output.
    */
   private mixBus: GainNode | null = null;
   private masterFader: GainNode | null = null;
+  private masterPanner: StereoPannerNode | null = null;
   private masterChain: EffectChainState = { effects: [], units: [] };
   /** Tempo the `fable` inserts sync their echo and LAB stages to. */
   private fxBpm = 120;
@@ -538,6 +578,13 @@ export class AudioGraph {
   /** Set while a play gesture runs its automation lanes. */
   private automationClock: AutomationClock | null = null;
   private trackAutomation = new Map<string, TrackAutomationState>();
+  /**
+   * Values a recording pass holds for a track's fader or pan. The control
+   * plays its own value instead of its lane while one is set.
+   */
+  private mixerOverrides = new Map<string, { volumeDb?: number; pan?: number }>();
+  /** The last track list `updateTracks` saw: a released override returns to it. */
+  private knownTracks = new Map<string, TimelineTrack>();
 
   constructor(
     private readonly injectedContext?: BaseAudioContext,
@@ -559,12 +606,17 @@ export class AudioGraph {
       this.mixBus = this.ctx.createGain();
       this.masterFader = this.ctx.createGain();
       this.masterFader.gain.value = dbToGain(this.master?.volumeDb);
+      this.masterPanner = this.ctx.createStereoPanner();
+      this.masterPanner.channelCount = 2;
+      this.masterPanner.channelCountMode = "explicit";
+      this.masterPanner.pan.value = clampPan(this.master?.pan);
       this.mixAnalyser = this.ctx.createAnalyser();
       this.mixAnalyser.fftSize = METER_FFT_SIZE;
       this.masterChain = { effects: [], units: [] };
       this.mixBus.connect(this.masterFader);
-      this.masterFader.connect(this.masterGain);
-      this.masterFader.connect(this.mixAnalyser);
+      this.masterFader.connect(this.masterPanner);
+      this.masterPanner.connect(this.masterGain);
+      this.masterPanner.connect(this.mixAnalyser);
       this.applyEffectChain(
         this.masterChain,
         this.mixBus,
@@ -577,15 +629,21 @@ export class AudioGraph {
 
   /**
    * Set the document's master channel: its inserts run on the summed mix,
-   * then its fader. Unlike {@link setMasterVolume} this is part of the
-   * document, so the export renders it too. Kept until a context exists.
+   * then its fader and stereo panner. Unlike {@link setMasterVolume} this is
+   * part of the document, so the export renders it too. Kept until a context
+   * exists.
    */
   setMaster(master: TimelineMasterChannel | undefined): void {
     this.master = master;
     const ctx = this.ctx;
-    if (!ctx || !this.mixBus || !this.masterFader) return;
+    if (!ctx || !this.mixBus || !this.masterFader || !this.masterPanner) return;
     this.masterFader.gain.setTargetAtTime(
       dbToGain(master?.volumeDb),
+      ctx.currentTime,
+      0.01
+    );
+    this.masterPanner.pan.setTargetAtTime(
+      clampPan(master?.pan),
       ctx.currentTime,
       0.01
     );
@@ -831,6 +889,8 @@ export class AudioGraph {
       this.disposeTrackDevice(id);
       for (const unit of chain.units) releaseEffectUnit(unit);
       this.trackChains.delete(id);
+      this.mixerOverrides.delete(id);
+      this.knownTracks.delete(id);
     }
   }
 
@@ -853,6 +913,7 @@ export class AudioGraph {
     const now = this.ctx.currentTime;
 
     for (const track of audioTracks) {
+      this.knownTracks.set(track.id, track);
       const chain = this.getOrCreateTrackChain(track.id);
       const muted = track.muted === true || (hasSolo && !track.solo);
       // Use a short ramp instead of a hard cut to avoid clicks.
@@ -863,12 +924,14 @@ export class AudioGraph {
       if (automated?.has(chain.fader.gain)) {
         automated.set(chain.fader.gain, dbToGain(track.volumeDb));
       } else {
-        chain.fader.gain.setTargetAtTime(dbToGain(track.volumeDb), now, 0.01);
+        const held = this.mixerOverrides.get(track.id)?.volumeDb;
+        chain.fader.gain.setTargetAtTime(dbToGain(held ?? track.volumeDb), now, 0.01);
       }
       if (automated?.has(chain.panner.pan)) {
         automated.set(chain.panner.pan, track.pan ?? 0);
       } else {
-        chain.panner.pan.setTargetAtTime(track.pan ?? 0, now, 0.01);
+        const held = this.mixerOverrides.get(track.id)?.pan;
+        chain.panner.pan.setTargetAtTime(held ?? track.pan ?? 0, now, 0.01);
       }
       this.setTrackEffects(track.id, track.effects ?? []);
       if (track.type === "midi") this.syncTrackDevice(track);
@@ -919,10 +982,47 @@ export class AudioGraph {
     this.automationClock = null;
   }
 
+  /**
+   * A recording pass holds `value` for a track's fader (`volumeDb`) or pan:
+   * the lane stops driving it and it plays the value. `null` ends the hold.
+   */
+  setMixerOverride(trackId: string, param: "volumeDb" | "pan", value: number | null): void {
+    const held = { ...(this.mixerOverrides.get(trackId) ?? {}) };
+    if (value === null) {
+      delete held[param];
+    } else {
+      held[param] = value;
+    }
+    if (held.volumeDb === undefined && held.pan === undefined) {
+      this.mixerOverrides.delete(trackId);
+    } else {
+      this.mixerOverrides.set(trackId, held);
+    }
+    if (!this.ctx) return;
+    const chain = this.trackChains.get(trackId);
+    if (!chain) return;
+    const node = param === "volumeDb" ? chain.fader.gain : chain.panner.pan;
+    if (value === null) {
+      // The hold ends: the param returns to its own value and, while the
+      // automation clock runs, to its lane.
+      const known = this.knownTracks.get(trackId);
+      const own = param === "volumeDb" ? dbToGain(known?.volumeDb ?? 0) : known?.pan ?? 0;
+      node.cancelScheduledValues(this.ctx.currentTime);
+      node.setTargetAtTime(own, this.ctx.currentTime, 0.01);
+      if (known && this.automationClock) void this.scheduleTrackAutomation(known);
+      return;
+    }
+    // The param leaves its lane: nothing returns it to its own value later.
+    this.trackAutomation.get(trackId)?.params.delete(node);
+    node.cancelScheduledValues(this.ctx.currentTime);
+    node.setTargetAtTime(param === "volumeDb" ? dbToGain(value) : value, this.ctx.currentTime, 0.01);
+  }
+
   private automationChanged(track: TimelineTrack): boolean {
     const state = this.trackAutomation.get(track.id);
     if (!state) return (track.automation?.length ?? 0) > 0;
     return (
+      state.mode !== automationModeOf(track) ||
       state.automation !== track.automation ||
       state.effects !== track.effects ||
       state.instrumentType !== this.trackDevices.get(track.id)?.type
@@ -950,11 +1050,24 @@ export class AudioGraph {
       automation: track.automation,
       effects: track.effects,
       instrumentType: this.trackDevices.get(track.id)?.type,
+      mode: automationModeOf(track),
       params: new Map(),
       devices: new Set()
     };
     this.trackAutomation.set(track.id, state);
-    const lanes = (track.automation ?? []).filter(isAutomationLaneActive);
+    // Off plays no lane. A recording pass holds its control's value instead
+    // of the lane's.
+    const held = this.mixerOverrides.get(track.id);
+    const lanes = automationModePlays(state.mode)
+      ? (track.automation ?? []).filter(
+          (lane) =>
+            isAutomationLaneActive(lane) &&
+            !(
+              lane.target.kind === "mixer" &&
+              held?.[lane.target.param] !== undefined
+            )
+        )
+      : [];
     if (lanes.length === 0) return;
 
     const ctx = this.getContext();
@@ -1013,7 +1126,11 @@ export class AudioGraph {
       }
       const entry = effectAutomationParam(unit, target.param);
       if (entry) {
-        const own = (unit.effect as unknown as Record<string, unknown>)[target.param];
+        const ownKey =
+          unit.effect.type === "filter" && target.param === "cutoffHz"
+            ? "frequency"
+            : target.param;
+        const own = (unit.effect as unknown as Record<string, unknown>)[ownKey];
         automateParam(entry.param, lane, entry.map, entry.map(typeof own === "number" ? own : 0), entry.curved);
       }
     }
@@ -1084,10 +1201,10 @@ export class AudioGraph {
     return chain.meter;
   }
 
-  /** Left and right analysers after the master fader, or null before the context. */
+  /** Left and right analysers after the master panner, or null before the context. */
   getMasterMeter(): StereoMeterTap | null {
-    if (!this.ctx || !this.masterFader) return null;
-    this.masterMeter ??= this.createMeterTap(this.ctx, this.masterFader);
+    if (!this.ctx || !this.masterPanner) return null;
+    this.masterMeter ??= this.createMeterTap(this.ctx, this.masterPanner);
     return this.masterMeter;
   }
 
@@ -1127,9 +1244,13 @@ export class AudioGraph {
 
   /**
    * Create, replace or update a midi track's live device to match its
-   * instrument. `events` preloads an offline render's whole score.
+   * instrument. `events` and `controllers` preload an offline render's whole score.
    */
-  private syncTrackDevice(track: TimelineTrack, events?: LiveNoteEvent[]): void {
+  private syncTrackDevice(
+    track: TimelineTrack,
+    events?: LiveNoteEvent[],
+    controllers?: LiveControllerEvent[]
+  ): void {
     const instrument = track.instrument;
     const factory = liveDeviceFactory(instrument);
     const current = this.trackDevices.get(track.id);
@@ -1149,7 +1270,10 @@ export class AudioGraph {
       type: instrument.type,
       ready: null,
       instrument,
-      device: factory(ctx, instrument, { events }).then(
+      device: factory(ctx, instrument, {
+        events,
+        controllers: controllers && controllers.length > 0 ? controllers : undefined
+      }).then(
         (device) => {
           if (this.trackDevices.get(track.id) !== state) {
             device.dispose();
@@ -1188,23 +1312,39 @@ export class AudioGraph {
   async preloadLiveDevices(
     tracks: TimelineTrack[],
     clips: TimelineClip[],
-    bpm: number
+    bpm: number,
+    gridOffsetMs = 0
   ): Promise<Set<string>> {
     const preloaded = new Set<string>();
     for (const track of tracks) {
       if (track.type !== "midi" || !liveDeviceFactory(track.instrument)) continue;
-      const events = clips
-        .filter((clip) => clip.trackId === track.id && clip.mediaType === "midi")
+      const trackMidiClips = clips.filter(
+        (clip) => clip.trackId === track.id && clip.mediaType === "midi"
+      );
+      const events: LiveNoteEvent[] = trackMidiClips.flatMap((clip) =>
+        midiClipNoteEvents(
+          clip,
+          bpm,
+          Number.NEGATIVE_INFINITY,
+          gridOffsetMs,
+          track.instrument
+        ).map((event) =>
+          liveNoteEvent(event, event.timeMs / 1000)
+        )
+      );
+      const controllers: LiveControllerEvent[] = trackMidiClips
         .flatMap((clip) =>
-          midiClipNoteEvents(clip, bpm).map((event) => ({
-            timeSec: event.timeMs / 1000,
-            pitch: event.pitch,
-            velocity: event.velocity,
-            on: event.on
-          }))
-        );
+          midiClipControllerEvents(
+            clip,
+            bpm,
+            Number.NEGATIVE_INFINITY,
+            gridOffsetMs,
+            track.instrument
+          ).map((event) => liveControllerEvent(event, event.timeMs / 1000))
+        )
+        .sort((a, b) => a.timeSec - b.timeSec);
       this.getOrCreateTrackChain(track.id);
-      this.syncTrackDevice(track, events);
+      this.syncTrackDevice(track, events, controllers);
       await this.trackDevices.get(track.id)?.device;
       for (const clip of clips) {
         if (clip.trackId !== track.id) continue;
@@ -1234,23 +1374,42 @@ export class AudioGraph {
   private scheduleLiveClip(
     clip: TimelineClip,
     bpm: number,
+    gridOffsetMs: number,
     device: LiveInstrumentDevice,
     currentTimeMs: number,
     now: number,
-    globalRate: number
+    globalRate: number,
+    instrument?: MidiInstrument
   ): void {
     if (this.liveClips.has(clip.id)) return;
     const g = Math.max(0.0001, globalRate);
     this.beatZeroSec = now - currentTimeMs / 1000 / g;
     device.setTempo(bpm, this.beatZeroSec);
-    const events = midiClipNoteEvents(clip, bpm, currentTimeMs).map((event) => ({
-      timeSec: now + (event.timeMs - currentTimeMs) / 1000 / g,
-      pitch: event.pitch,
-      velocity: event.velocity,
-      on: event.on
-    }));
+    const events: LiveNoteEvent[] = midiClipNoteEvents(
+      clip,
+      bpm,
+      currentTimeMs,
+      gridOffsetMs,
+      instrument
+    ).map((event) =>
+      liveNoteEvent(event, now + (event.timeMs - currentTimeMs) / 1000 / g)
+    );
+    const controllerEvents: LiveControllerEvent[] = midiClipControllerEvents(
+      clip,
+      bpm,
+      currentTimeMs,
+      gridOffsetMs,
+      instrument
+    ).map((event) =>
+      liveControllerEvent(event, now + (event.timeMs - currentTimeMs) / 1000 / g)
+    );
     this.liveClips.set(clip.id, clip.trackId);
-    device.schedule(events, clip.id);
+    if (events.length > 0) {
+      device.schedule(events, clip.id);
+    }
+    if (controllerEvents.length > 0) {
+      device.scheduleControllers?.(controllerEvents, clip.id);
+    }
   }
 
   /**
@@ -1501,13 +1660,16 @@ export class AudioGraph {
     live.forEach((scheduled, i) => {
       const device = liveDevices[i];
       if (!device) return;
+      const track = tracks.find((t) => t.id === scheduled.clip.trackId);
       this.scheduleLiveClip(
         scheduled.clip,
         scheduled.live.bpm,
+        scheduled.live.gridOffsetMs ?? 0,
         device,
         currentTimeMs,
         now,
-        globalRate
+        globalRate,
+        track?.instrument
       );
     });
 
@@ -1976,6 +2138,7 @@ export class AudioGraph {
     this.masterGain = null;
     this.mixBus = null;
     this.masterFader = null;
+    this.masterPanner = null;
     this.mixAnalyser = null;
     this.masterMeter = null;
   }

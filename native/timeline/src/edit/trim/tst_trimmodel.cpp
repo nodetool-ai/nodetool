@@ -19,9 +19,11 @@ QJsonObject clip(const QString& id, const QString& track, double start, double d
             {"linkId", link}, {"name", id}, {"keep", QJsonObject{{"custom", 17}}}};
 }
 EditDoc fixture() {
-    return {{clip("v0", "V1", 0, 2000, "L0"), clip("a0", "A1", 0, 2000, "L0"),
-             clip("v1", "V1", 2000, 2000, "L1"), clip("a1", "A1", 2000, 2000, "L1")},
-            {{"V1", "video", false}, {"A1", "audio", false}}, {}, {}};
+    EditDoc doc;
+    doc.clips = {clip("v0", "V1", 0, 2000, "L0"), clip("a0", "A1", 0, 2000, "L0"),
+                 clip("v1", "V1", 2000, 2000, "L1"), clip("a1", "A1", 2000, 2000, "L1")};
+    doc.tracks = {{"V1", "video", false}, {"A1", "audio", false}};
+    return doc;
 }
 Env environment() {
     Env env;

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 // Mirrors web/src/components/timeline/Tracks/TimelineZoomControls.tsx: the
 // horizontal zoom, inline in the timeline toolbar. Zoom out (x1.25), the
 // log-scale slider, zoom in (x0.8), zoom to fit. A step or slider zoom keeps

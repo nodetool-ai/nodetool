@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  MUSIC_SAMPLE_RATE,
   generateMediaDataSchema,
+  musicGenerationRequestSchema,
   type GenerateMediaRequest
 } from "../src/ws-commands.js";
 
@@ -98,5 +100,34 @@ describe("generate_media request payload", () => {
     expect(
       generateMediaDataSchema.safeParse({ mode: "video", ...input }).success
     ).toBe(false);
+  });
+});
+
+describe("music request segments", () => {
+  const music = {
+    task: "text2music",
+    bpm: 120,
+    beats_per_bar: 4,
+    beat_unit: 4,
+    candidates: 1,
+    request_frames: 10 * MUSIC_SAMPLE_RATE
+  };
+
+  it("accepts a segment index for a replay, and segments without one", () => {
+    const replay = { ...music, segments: [{ start_frame: 2 * 96000, end_frame: 3 * 96000, index: 2 }] };
+    expect(musicGenerationRequestSchema.parse(replay).segments).toEqual(replay.segments);
+    const plain = { ...music, segments: [{ start_frame: 0, end_frame: 96000 }] };
+    expect(musicGenerationRequestSchema.parse(plain).segments?.[0]?.index).toBeUndefined();
+  });
+
+  it("refuses an index that would place the clip before frame 0", () => {
+    const early = { ...music, segments: [{ start_frame: 96000, end_frame: 192000, index: 2 }] };
+    expect(musicGenerationRequestSchema.safeParse(early).success).toBe(false);
+    expect(musicGenerationRequestSchema.safeParse({ ...early, window_start_frame: 96000 }).success).toBe(true);
+  });
+
+  it.each([-1, 1.5])("refuses the segment index %s", (index) => {
+    const bad = { ...music, segments: [{ start_frame: 0, end_frame: 96000, index }] };
+    expect(musicGenerationRequestSchema.safeParse(bad).success).toBe(false);
   });
 });

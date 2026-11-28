@@ -1,3 +1,5 @@
+// First, so structuredClone exists before any imported module evaluates.
+import './models-env.mjs';
 import { randomUUID } from '../guest/host/crypto.mjs';
 import { Buffer } from 'buffer/';
 globalThis.Buffer ??= Buffer;

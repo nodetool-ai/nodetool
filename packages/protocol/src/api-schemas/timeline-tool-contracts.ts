@@ -23,6 +23,8 @@
  */
 
 import { z } from "zod";
+import { isRecord } from "../predicates.js";
+import { BLEND_MODE_TUPLE } from "../blend-modes.js";
 import { clipAudioEffect, clipFadeShapeEnum } from "./timeline.js";
 import {
   ADD_MODEL3D_CLIP_DESCRIPTION,
@@ -33,6 +35,34 @@ import {
   ADD_TRACK_DESCRIPTION,
   DELETE_TRACK_DESCRIPTION,
   MOVE_TRACK_DESCRIPTION,
+  APPLY_PROGRESSION_DESCRIPTION,
+  CLEAR_CHORDS_DESCRIPTION,
+  LOOP_CLIP_DESCRIPTION,
+  loopClipParams,
+  insertTimeParams,
+  deleteTimeParams,
+  duplicateRangeParams,
+  pasteRangeParams,
+  joinClipsParams,
+  JOIN_CLIPS_DESCRIPTION,
+  INSERT_TIME_DESCRIPTION,
+  DELETE_TIME_DESCRIPTION,
+  DUPLICATE_RANGE_DESCRIPTION,
+  PASTE_RANGE_DESCRIPTION,
+  DETECT_CHORDS_DESCRIPTION,
+  FIT_NOTES_TO_CHORDS_DESCRIPTION,
+  LIST_HARMONY_PRESETS_DESCRIPTION,
+  LIST_PROGRESSIONS_DESCRIPTION,
+  SET_CHORDS_DESCRIPTION,
+  SET_CLIP_HARMONY_DESCRIPTION,
+  TRANSPOSE_CHORDS_DESCRIPTION,
+  applyProgressionParams,
+  clearChordsParams,
+  detectChordsParams,
+  fitNotesToChordsParams,
+  setChordsParams,
+  setClipHarmonyParams,
+  transposeChordsParams,
   QUANTIZE_NOTES_DESCRIPTION,
   SCALE_VELOCITY_DESCRIPTION,
   SET_TEMPO_DESCRIPTION,
@@ -63,6 +93,7 @@ import {
   shapeStyleParams,
   transposeClipParams,
   targetParam,
+  barTimeShape,
   textStyleParams,
   transitionParams,
   retargetFormatParams,
@@ -72,7 +103,87 @@ import {
   generativelyEditClipParams,
   strictGenerativelyEditClipParams,
   applyTakeParams,
-  withTextClipRemedies
+  withTextClipRemedies,
+  QUANTIZE_DIVISION_VALUES,
+  SET_NOTES_DESCRIPTION,
+  setTrackMixShape,
+  getPatternParams,
+  GET_PATTERN_DESCRIPTION,
+  createPatternRegionParams,
+  CREATE_PATTERN_REGION_DESCRIPTION,
+  convertPatternToMidiParams,
+  CONVERT_PATTERN_TO_MIDI_DESCRIPTION,
+  convertMidiToPatternParams,
+  CONVERT_MIDI_TO_PATTERN_DESCRIPTION,
+  separatePatternRowsParams,
+  SEPARATE_PATTERN_ROWS_DESCRIPTION,
+  setPatternParams,
+  SET_PATTERN_DESCRIPTION,
+  setPatternSeedParams,
+  SET_PATTERN_SEED_DESCRIPTION,
+  addPatternRowsParams,
+  ADD_PATTERN_ROWS_DESCRIPTION,
+  setPatternRowParams,
+  SET_PATTERN_ROW_DESCRIPTION,
+  removePatternRowsParams,
+  REMOVE_PATTERN_ROWS_DESCRIPTION,
+  movePatternRowParams,
+  MOVE_PATTERN_ROW_DESCRIPTION,
+  sortPatternRowsParams,
+  SORT_PATTERN_ROWS_DESCRIPTION,
+  setPatternRowSortParams,
+  SET_PATTERN_ROW_SORT_DESCRIPTION,
+  copyPatternRowParams,
+  COPY_PATTERN_ROW_DESCRIPTION,
+  setStepsParams,
+  SET_STEPS_DESCRIPTION,
+  setPatternTextParams,
+  SET_PATTERN_TEXT_DESCRIPTION,
+  clearPatternParams,
+  CLEAR_PATTERN_DESCRIPTION,
+  copyStepsParams,
+  COPY_STEPS_DESCRIPTION,
+  repeatStepParams,
+  REPEAT_STEP_DESCRIPTION,
+  rotatePatternParams,
+  ROTATE_PATTERN_DESCRIPTION,
+  transposePatternParams,
+  TRANSPOSE_PATTERN_DESCRIPTION,
+  randomizePatternParams,
+  RANDOMIZE_PATTERN_DESCRIPTION,
+  nudgePatternValuesParams,
+  NUDGE_PATTERN_VALUES_DESCRIPTION,
+  tieStepsParams,
+  TIE_STEPS_DESCRIPTION,
+  listStepPatternsParams,
+  LIST_STEP_PATTERNS_DESCRIPTION,
+  applyStepPatternParams,
+  APPLY_STEP_PATTERN_DESCRIPTION,
+  saveStepPatternParams,
+  SAVE_STEP_PATTERN_DESCRIPTION,
+  setTrackStepTemplateParams,
+  SET_TRACK_STEP_TEMPLATE_DESCRIPTION,
+  createStepPatternFolderParams,
+  CREATE_STEP_PATTERN_FOLDER_DESCRIPTION,
+  renameStepPatternFolderParams,
+  RENAME_STEP_PATTERN_FOLDER_DESCRIPTION,
+  deleteStepPatternFolderParams,
+  DELETE_STEP_PATTERN_FOLDER_DESCRIPTION,
+  moveStepPatternParams,
+  MOVE_STEP_PATTERN_DESCRIPTION,
+  listPluginsParams,
+  LIST_PLUGINS_DESCRIPTION,
+  loadPluginParams,
+  LOAD_PLUGIN_DESCRIPTION,
+  listPluginPresetsParams,
+  LIST_PLUGIN_PRESETS_DESCRIPTION,
+  selectPluginPresetParams,
+  SELECT_PLUGIN_PRESET_DESCRIPTION,
+  getPluginParametersParams,
+  GET_PLUGIN_PARAMETERS_DESCRIPTION,
+  setPluginParametersShape,
+  setPluginParametersParams,
+  SET_PLUGIN_PARAMETERS_DESCRIPTION
 } from "./timeline-tool-params.js";
 import {
   strictParams,
@@ -219,6 +330,7 @@ export const CLIP_PARAM_KEYS = [
   "durationMs",
   "inPointMs",
   "outPointMs",
+  "maxSourceDurationMs",
   "opacity",
   "transform",
   "speedMultiplier",
@@ -274,8 +386,21 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
   return {
     ui_timeline_get_state: {
       description:
-        "Read the specified timeline sequence: resolution + fps + duration, the playhead position, the current selection, every track, and every clip with its timing, media type, generation binding (prompt/provider/model/status) and render params. Call this first to discover what's on the timeline and to get the ids/names other timeline tools need.",
-      shape: {}
+        "Read the specified timeline sequence: resolution + fps + duration, the playhead position, the current selection, every track, and every clip with its timing, media type, generation binding (prompt/provider/model/status) and render params. Call this first to discover what's on the timeline and to get the ids/names other timeline tools need. It also reports the master bus and the project key. Send `clip` to read a midi clip's notes and controller lanes, or `track` to read a track's automation, effects and instrument.",
+      shape: {
+        clip: z
+          .string()
+          .optional()
+          .describe(
+            "A midi clip to read in full: every note with its id, tick, pitch and velocity, and every controller lane. Send the id or name."
+          ),
+        track: z
+          .string()
+          .optional()
+          .describe(
+            "A track to read in full: its automation lanes with every point, its insert effects and its instrument. Send the id or name."
+          )
+      }
     },
 
     ui_timeline_add_track: {
@@ -300,7 +425,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_set_track: {
       description:
-        "Change a track's own settings: `name`, `muted`, `solo`, `locked`, `visible`, `volumeDb` (the channel fader, audio and midi tracks only), `pan` (-1 left to 1 right, audio and midi tracks only) or `heightPx` (the row height in the editor). Send only the fields to change. Mute and volume here apply to every clip on the track; use ui_timeline_set_clip_params for one clip. A locked track refuses every other edit, so unlock it in its own call first.",
+        "Change a track's own settings: `name`, `muted`, `solo`, `locked`, `visible`, `volumeDb` (the channel fader, audio and midi tracks only), `pan` (-1 left to 1 right, audio and midi tracks only), `heightPx` (the row height in the editor), `effects` (the track's whole insert chain, in order; `[]` removes it), `folder` (a track folder by name, created when missing; `null` takes the track out of its folder), `musicRole` (the stem the track holds in a music project, `null` clears it), `automationMode` and `automation` (its automation lanes, each replaced by target; an empty `points` removes the lane). Name the track `master` for the master bus, which takes `volumeDb`, `pan` and `effects` only. Send only the fields to change. Mute and volume here apply to every clip on the track; use ui_timeline_set_clip_params for one clip. A locked track refuses every other edit, so unlock it in its own call first.",
       shape: {
         track: z.string().describe("Track id or name (case-insensitive)."),
         name: z.string().min(1).optional(),
@@ -310,9 +435,27 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         visible: z.boolean().optional(),
         volumeDb: z.number().min(-60).max(12).optional(),
         pan: z.number().min(-1).max(1).optional(),
-        heightPx: z.number().min(24).max(300).optional()
+        heightPx: z.number().min(24).max(300).optional(),
+        ...setTrackMixShape
       },
-      finalize: strictParams
+      finalize: (schema: z.ZodObject<z.ZodRawShape>) =>
+        strictParams(schema).superRefine((p, ctx) => {
+          if (
+            isRecord(p) &&
+            p.automationEdit !== undefined &&
+            Object.entries(p).some(
+              ([key, value]) =>
+                !["track", "automationEdit"].includes(key) &&
+                value !== undefined
+            )
+          ) {
+            ctx.addIssue({
+              code: "custom",
+              message: "automationEdit must be sent alone with track.",
+              path: ["automationEdit"]
+            });
+          }
+        })
     },
 
     ui_timeline_ripple_delete: {
@@ -350,11 +493,12 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_add_media_clip: {
       description:
-        "Place an existing asset — a video, image, or audio file already in the library — on the specified timeline sequence. `asset` is an asset id or `asset://<id>.<ext>` URI (list_assets returns both). Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset unless `durationMs` overrides it.",
+        "Place an existing asset — a video, image, or audio file already in the library — on the specified timeline sequence. `asset` is an asset id or `asset://<id>.<ext>` URI (list_assets returns both). Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset unless `durationMs` overrides it. `atBar` (with optional `beat`) places the clip at a bar position instead of `startMs`.",
       shape: {
         asset: z.string().trim().min(1),
         trackId: z.string().optional(),
         startMs: z.number().nonnegative().optional(),
+        ...barTimeShape,
         durationMs: z.number().positive().optional(),
         name: z.string().optional(),
         transform: clipTransformPatchParam
@@ -553,30 +697,35 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_split_clip: {
       description:
-        "Cut a clip in two at the given time (the razor tool). `atMs` is an absolute time on the timeline and must fall inside the clip; omit it to split at the current playhead. Returns the two resulting halves.",
+        "Cut a clip in two at the given time (the razor tool). `atMs` is an absolute time on the timeline and must fall inside the clip; omit it to split at the current playhead. `atBar` (with optional `beat`) names the cut as a bar position instead of `atMs`. A midi clip splits its content: the left clip keeps the notes, controllers and expression that start before the cut, the right clip the rest, re-based to its own start. A note that crosses the cut ends at the cut (`crossing` \"shorten\", the default) or, with `crossing` \"split\", also continues as a note at the start of the right clip. Returns the two resulting halves.",
       shape: {
         target: targetParam,
-        atMs: z.number().optional()
+        atMs: z.number().optional(),
+        ...barTimeShape,
+        crossing: z.enum(["shorten", "split"]).optional()
       }
     },
 
     ui_timeline_trim_clip: {
       description:
-        "Trim a clip's length or its source in/out points. `durationMs` sets the on-timeline length; `inPointMs`/`outPointMs` set the trimmed source window (ms into the source media). Omit a field to leave it unchanged.",
+        "Trim a clip's length or its source in/out points. `startMs` trims the clip's left edge (head) to that timeline position while keeping its end fixed (advancing `inPointMs`, or `patternPhaseTicks` on a pattern region); `durationMs` sets the on-timeline length; `inPointMs`/`outPointMs` set the trimmed source window (ms into the source media). `atBar` (with optional `beat`) ends the clip at that bar position instead of `durationMs`. Omit a field to leave it unchanged.",
       shape: {
         target: targetParam,
+        startMs: z.number().finite().min(0).optional(),
         durationMs: z.number().optional(),
         inPointMs: z.number().optional(),
-        outPointMs: z.number().optional()
+        outPointMs: z.number().optional(),
+        ...barTimeShape
       }
     },
 
     ui_timeline_move_clip: {
       description:
-        "Move a clip to a new absolute start time and/or onto a different track. `startMs` is the new start on the timeline (ms, clamped to >= 0); `trackId` reassigns the track. Omit a field to leave it unchanged.",
+        "Move a clip to a new absolute start time and/or onto a different track. `startMs` is the new start on the timeline (ms, clamped to >= 0); `trackId` reassigns the track. `atBar` (with optional `beat`) gives the new start as a bar position instead of `startMs`. Omit a field to leave it unchanged.",
       shape: {
         target: targetParam,
         startMs: z.number().optional(),
+        ...barTimeShape,
         trackId: z.string().optional()
       }
     },
@@ -588,16 +737,18 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_duplicate_clip: {
       description:
-        "Duplicate a clip. The copy is placed immediately after the source (add `gapMs` for a gap) and keeps its generation binding so you can tweak the copy for a variation.",
+        "Duplicate a clip. The copy is placed immediately after the source (add `gapMs` for a gap) and keeps its generation binding so you can tweak the copy for a variation. `count` (1..64, default 1) makes that many copies back to back, each starting where the previous ends. `atBar` (with optional `beat`) places the first copy at a bar position instead of right after the source.",
       shape: {
         target: targetParam,
-        gapMs: z.number().finite().optional()
+        gapMs: z.number().finite().optional(),
+        count: z.number().int().min(1).max(64).optional(),
+        ...barTimeShape
       }
     },
 
     ui_timeline_set_clip_params: {
       description:
-        "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs` (fade the audio and, on a visual clip, the picture), `fadeInShape`/`fadeOutShape` (`linear`, `sCurve`, `plus3dB`, `minus3dB`), `audioEffects` (the clip's whole real-time audio chain, in order: `gain`, `eq3`, `filter`, `compressor`, `echo`, `reverb`, `distortion`; `[]` removes them), `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
+        "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs` (fade the audio and, on a visual clip, the picture), `fadeInShape`/`fadeOutShape` (`linear`, `sCurve`, `plus3dB`, `minus3dB`), `audioEffects` (the clip's whole real-time audio chain, in order: `gain`, `eq3`, `filter`, `compressor`, `echo`, `reverb`, `distortion`; `[]` removes them), `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, `labelColor` (a CSS colour that tags the clip, `null` clears it; it does not change the picture), the non-destructive midi region params `transpose` (-48..48 semitones), `velocityOffset` (-127..127) and `quantize` (`{ grid: 1/4|1/8|1/16|1/32|1/8T|1/16T, strength: 0..100 }`), each cleared with `null`; they change what the clip plays and exports, not its stored notes, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
       shape: {
         target: targetParam,
         startMs: z.number().optional(),
@@ -605,7 +756,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         durationMs: z.number().optional(),
         inPointMs: z.number().optional(),
         outPointMs: z.number().optional(),
-        fontSizePx: z.number().optional(),
+        maxSourceDurationMs: z.number().finite().positive().optional(),
+        fontSizePx: z.number().finite().positive().optional(),
         name: z.string().optional(),
         opacity: z.number().min(0).max(1).optional(),
         transform: clipTransformPatchParam,
@@ -616,11 +768,21 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         fadeInShape: clipFadeShapeEnum.optional(),
         fadeOutShape: clipFadeShapeEnum.optional(),
         audioEffects: z.array(clipAudioEffect).optional(),
-        blendMode: z.string().optional(),
-        borderRadius: z.number().optional(),
+        blendMode: z.enum(BLEND_MODE_TUPLE).nullable().optional(),
+        borderRadius: z.number().finite().min(0).optional(),
         hidden: z.boolean().optional(),
         muted: z.boolean().optional(),
         locked: z.boolean().optional(),
+        labelColor: z.string().min(1).max(64).nullable().optional(),
+        transpose: z.number().int().min(-48).max(48).nullable().optional(),
+        velocityOffset: z.number().int().min(-127).max(127).nullable().optional(),
+        quantize: z
+          .object({
+            grid: z.enum(QUANTIZE_DIVISION_VALUES),
+            strength: z.number().min(0).max(100)
+          })
+          .nullable()
+          .optional(),
         textStyle: textStyleParams.optional(),
         shapeStyle: shapeStyleParams.optional(),
         captionStyle: captionStyleParams.optional()
@@ -973,8 +1135,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
     },
 
     ui_timeline_set_notes: {
-      description:
-        "Replace a midi clip's notes. This is the whole list, not a merge — send every note the clip should keep, each with `pitch`, `start_tick` and `duration_tick` (960 ticks = one quarter note, counted from the clip's content start). Pass a note's `id` to keep the one it already has.",
+      description: SET_NOTES_DESCRIPTION,
       shape: setNotesParams.shape
     },
 
@@ -1003,6 +1164,94 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       shape: scaleVelocityParams.shape
     },
 
+    ui_timeline_set_chords: {
+      description: SET_CHORDS_DESCRIPTION,
+      shape: setChordsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_clear_chords: {
+      description: CLEAR_CHORDS_DESCRIPTION,
+      shape: clearChordsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_loop_clip: {
+      description: LOOP_CLIP_DESCRIPTION,
+      shape: loopClipParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_join_clips: {
+      description: JOIN_CLIPS_DESCRIPTION,
+      shape: joinClipsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_insert_time: {
+      description: INSERT_TIME_DESCRIPTION,
+      shape: insertTimeParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_delete_time: {
+      description: DELETE_TIME_DESCRIPTION,
+      shape: deleteTimeParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_duplicate_range: {
+      description: DUPLICATE_RANGE_DESCRIPTION,
+      shape: duplicateRangeParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_paste_range: {
+      description: PASTE_RANGE_DESCRIPTION,
+      shape: pasteRangeParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_list_progressions: {
+      description: LIST_PROGRESSIONS_DESCRIPTION,
+      shape: {}
+    },
+
+    ui_timeline_apply_progression: {
+      description: APPLY_PROGRESSION_DESCRIPTION,
+      shape: applyProgressionParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_transpose_chords: {
+      description: TRANSPOSE_CHORDS_DESCRIPTION,
+      shape: transposeChordsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_detect_chords: {
+      description: DETECT_CHORDS_DESCRIPTION,
+      shape: detectChordsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_clip_harmony: {
+      description: SET_CLIP_HARMONY_DESCRIPTION,
+      shape: setClipHarmonyParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_list_harmony_presets: {
+      description: LIST_HARMONY_PRESETS_DESCRIPTION,
+      shape: {}
+    },
+
+    ui_timeline_fit_notes_to_chords: {
+      description: FIT_NOTES_TO_CHORDS_DESCRIPTION,
+      shape: fitNotesToChordsParams.shape,
+      finalize: strictParams
+    },
+
     ui_timeline_retarget_format: {
       description:
         "Create a new sequence adapted to another aspect ratio without changing the source sequence. Center uses a static centered crop. Smart derives source-time framing paths from current subject tracks or authored framing and refuses clips with neither signal. Track follows the per-clip MediaTrack ids in `track_ids`. Timing, audio, cuts, effects, takes, captions, markers and tracking are preserved.",
@@ -1029,6 +1278,248 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         "Remove Smart Reframe state from one clip while leaving its source asset, timing, static crop, transform and every other editorial property unchanged.",
       shape: clearReframeParams.shape,
       finalize: strictParams
+    },
+
+    // ── Step Sequencer (SQ48–SQ54) ───────────────────────────────────────
+
+    ui_timeline_get_pattern: {
+      description: GET_PATTERN_DESCRIPTION,
+      shape: getPatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_create_pattern_region: {
+      description: CREATE_PATTERN_REGION_DESCRIPTION,
+      shape: createPatternRegionParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_convert_pattern_to_midi: {
+      description: CONVERT_PATTERN_TO_MIDI_DESCRIPTION,
+      shape: convertPatternToMidiParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_convert_midi_to_pattern: {
+      description: CONVERT_MIDI_TO_PATTERN_DESCRIPTION,
+      shape: convertMidiToPatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_separate_pattern_rows: {
+      description: SEPARATE_PATTERN_ROWS_DESCRIPTION,
+      shape: separatePatternRowsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_pattern: {
+      description: SET_PATTERN_DESCRIPTION,
+      shape: setPatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_pattern_seed: {
+      description: SET_PATTERN_SEED_DESCRIPTION,
+      shape: setPatternSeedParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_add_pattern_rows: {
+      description: ADD_PATTERN_ROWS_DESCRIPTION,
+      shape: addPatternRowsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_pattern_row: {
+      description: SET_PATTERN_ROW_DESCRIPTION,
+      shape: setPatternRowParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_remove_pattern_rows: {
+      description: REMOVE_PATTERN_ROWS_DESCRIPTION,
+      shape: removePatternRowsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_move_pattern_row: {
+      description: MOVE_PATTERN_ROW_DESCRIPTION,
+      shape: movePatternRowParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_sort_pattern_rows: {
+      description: SORT_PATTERN_ROWS_DESCRIPTION,
+      shape: sortPatternRowsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_pattern_row_sort: {
+      description: SET_PATTERN_ROW_SORT_DESCRIPTION,
+      shape: setPatternRowSortParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_copy_pattern_row: {
+      description: COPY_PATTERN_ROW_DESCRIPTION,
+      shape: copyPatternRowParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_steps: {
+      description: SET_STEPS_DESCRIPTION,
+      shape: setStepsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_pattern_text: {
+      description: SET_PATTERN_TEXT_DESCRIPTION,
+      shape: setPatternTextParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_clear_pattern: {
+      description: CLEAR_PATTERN_DESCRIPTION,
+      shape: clearPatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_copy_steps: {
+      description: COPY_STEPS_DESCRIPTION,
+      shape: copyStepsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_repeat_step: {
+      description: REPEAT_STEP_DESCRIPTION,
+      shape: repeatStepParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_rotate_pattern: {
+      description: ROTATE_PATTERN_DESCRIPTION,
+      shape: rotatePatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_transpose_pattern: {
+      description: TRANSPOSE_PATTERN_DESCRIPTION,
+      shape: transposePatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_randomize_pattern: {
+      description: RANDOMIZE_PATTERN_DESCRIPTION,
+      shape: randomizePatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_nudge_pattern_values: {
+      description: NUDGE_PATTERN_VALUES_DESCRIPTION,
+      shape: nudgePatternValuesParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_tie_steps: {
+      description: TIE_STEPS_DESCRIPTION,
+      shape: tieStepsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_list_step_patterns: {
+      description: LIST_STEP_PATTERNS_DESCRIPTION,
+      shape: listStepPatternsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_apply_step_pattern: {
+      description: APPLY_STEP_PATTERN_DESCRIPTION,
+      shape: applyStepPatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_save_step_pattern: {
+      description: SAVE_STEP_PATTERN_DESCRIPTION,
+      shape: saveStepPatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_track_step_template: {
+      description: SET_TRACK_STEP_TEMPLATE_DESCRIPTION,
+      shape: setTrackStepTemplateParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_create_step_pattern_folder: {
+      description: CREATE_STEP_PATTERN_FOLDER_DESCRIPTION,
+      shape: createStepPatternFolderParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_rename_step_pattern_folder: {
+      description: RENAME_STEP_PATTERN_FOLDER_DESCRIPTION,
+      shape: renameStepPatternFolderParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_delete_step_pattern_folder: {
+      description: DELETE_STEP_PATTERN_FOLDER_DESCRIPTION,
+      shape: deleteStepPatternFolderParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_move_step_pattern: {
+      description: MOVE_STEP_PATTERN_DESCRIPTION,
+      shape: moveStepPatternParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_list_plugins: {
+      description: LIST_PLUGINS_DESCRIPTION,
+      shape: listPluginsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_load_plugin: {
+      description: LOAD_PLUGIN_DESCRIPTION,
+      shape: loadPluginParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_list_plugin_presets: {
+      description: LIST_PLUGIN_PRESETS_DESCRIPTION,
+      shape: listPluginPresetsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_select_plugin_preset: {
+      description: SELECT_PLUGIN_PRESET_DESCRIPTION,
+      shape: selectPluginPresetParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_get_plugin_parameters: {
+      description: GET_PLUGIN_PARAMETERS_DESCRIPTION,
+      shape: getPluginParametersParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_plugin_parameters: {
+      description: SET_PLUGIN_PARAMETERS_DESCRIPTION,
+      shape: setPluginParametersShape,
+      finalize: (schema) =>
+        schema.strict().superRefine((input, ctx) => {
+          const parsed = setPluginParametersParams.safeParse(input);
+          if (!parsed.success) {
+            for (const issue of parsed.error.issues) {
+              ctx.addIssue({
+                code: "custom",
+                path: issue.path,
+                message: issue.message
+              });
+            }
+          }
+        })
     }
   } satisfies Record<string, UiToolContract>;
 }

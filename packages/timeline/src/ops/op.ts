@@ -1,4 +1,13 @@
 import type { TimelineToolArgs } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
+import type { AutomationEditParams } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+
+export type AutomationOp = {
+  [E in AutomationEditParams["edit"]]: { op: E; track_id: string } & Omit<
+    Extract<AutomationEditParams, { edit: E }>,
+    "edit"
+  >;
+}[AutomationEditParams["edit"]];
+
 /**
  * The op union `applyTimelineOp` dispatches on.
  *
@@ -28,12 +37,18 @@ import type {
   ClipTransform,
   TimelineClip,
   TimelineTrack,
-  TrackBinding
+  TrackBinding,
+  MidiRegionGrid
 } from "../types.js";
 import type { ClipAnimation } from "../animation/types.js";
 import type { TimelineAnimationInput } from "./types.js";
 
 type TextStyleInput = NonNullable<TimelineClip["textStyle"]>;
+type TextStylePatchInput = {
+  [K in keyof TextStyleInput]?: K extends "text" | "fontSizePx" | "color"
+    ? TextStyleInput[K]
+    : TextStyleInput[K] | null;
+};
 type ShapeStyleInput = NonNullable<TimelineClip["shapeStyle"]>;
 export type ClipTransformPatch = {
   position?: Partial<ClipTransform["position"]>;
@@ -50,6 +65,10 @@ type CaptionStyleInput = NonNullable<
 
 export interface GetStateOp {
   op: "get_state";
+  /** A midi clip to read in full: notes and controller lanes. */
+  clip?: string;
+  /** A track to read in full: automation lanes, effects and instrument. */
+  track?: string;
 }
 
 export interface AddTrackOp {
@@ -89,7 +108,7 @@ export interface AddTextClipOp {
   loose?: Partial<TextStyleInput>;
 }
 
-export interface AddMediaClipOp {
+export interface AddMediaClipOp extends BarTimeArgs {
   op: "add_media_clip";
   asset: string;
   trackId?: string;
@@ -201,21 +220,34 @@ export interface GenerateClipOp {
   autoGenerate?: boolean;
 }
 
-export interface SplitClipOp {
+/**
+ * A time given as a bar position (D49): `atBar` counts from 1, `beat` from 1
+ * inside the bar. Resolved through the tempo map. Never sent with the ms form.
+ */
+export interface BarTimeArgs {
+  atBar?: number;
+  beat?: number;
+}
+
+export interface SplitClipOp extends BarTimeArgs {
   op: "split_clip";
   target: string;
   atMs?: number;
+  /** A midi note crossing the cut: "shorten" (default) or "split" (rest goes to the right clip). */
+  crossing?: "shorten" | "split";
 }
 
-export interface TrimClipOp {
+/** `atBar` on a trim is the bar where the clip now ends; `startMs` head-trims the start edge. */
+export interface TrimClipOp extends BarTimeArgs {
   op: "trim_clip";
   target: string;
+  startMs?: number;
   durationMs?: number;
   inPointMs?: number;
   outPointMs?: number;
 }
 
-export interface MoveClipOp {
+export interface MoveClipOp extends BarTimeArgs {
   op: "move_clip";
   target: string;
   startMs?: number;
@@ -227,22 +259,26 @@ export interface DeleteClipOp {
   target: string;
 }
 
-export interface DuplicateClipOp {
+/** `atBar` is the start of the first copy. `count` (1..64) copies sit back to back. */
+export interface DuplicateClipOp extends BarTimeArgs {
   op: "duplicate_clip";
   target: string;
   gapMs?: number;
+  count?: number;
 }
 
 /** Every key `set_clip_params` accepts, plus the unknown ones it refuses. */
 export interface SetClipParamsOp {
   op: "set_clip_params";
   target: string;
+  maxSourceDurationMs?: number;
   patch: Record<string, unknown> & {
     startMs?: number;
     trackId?: string;
     durationMs?: number;
     inPointMs?: number;
     outPointMs?: number;
+    maxSourceDurationMs?: number;
     fontSizePx?: number;
     name?: string;
     opacity?: number;
@@ -255,14 +291,21 @@ export interface SetClipParamsOp {
     fadeOutShape?: ClipFadeShape;
     /** Replaces the clip's whole real-time audio chain. */
     audioEffects?: ClipAudioEffect[];
-    blendMode?: string;
+    /** Null resets blendMode to the default normal compositing. */
+    blendMode?: TimelineClip["blendMode"] | null;
     borderRadius?: number;
     /** Null clears the crop and puts the whole source back. */
     crop?: ClipCrop | null;
     hidden?: boolean;
     muted?: boolean;
     locked?: boolean;
-    textStyle?: Partial<TextStyleInput>;
+    /** A CSS colour tag. Null clears it. */
+    labelColor?: string | null;
+    /** Midi region params (CE6). Null clears. */
+    transpose?: number | null;
+    velocityOffset?: number | null;
+    quantize?: { grid: MidiRegionGrid; strength: number } | null;
+    textStyle?: TextStylePatchInput;
     shapeStyle?: ShapeStyleInput;
     captionStyle?: CaptionStyleInput;
   };
@@ -391,6 +434,14 @@ export interface ListInstrumentsOp {
   op: "list_instruments";
 }
 
+export interface ListProgressionsOp {
+  op: "list_progressions";
+}
+
+export interface ListHarmonyPresetsOp {
+  op: "list_harmony_presets";
+}
+
 export interface SelectClipOp {
   op: "select_clip";
   target?: string | null;
@@ -514,6 +565,19 @@ type ContractOpName =
   | "transpose_clip"
   | "quantize_notes"
   | "scale_velocity"
+  | "set_chords"
+  | "clear_chords"
+  | "loop_clip"
+  | "join_clips"
+  | "insert_time"
+  | "delete_time"
+  | "duplicate_range"
+  | "paste_range"
+  | "apply_progression"
+  | "transpose_chords"
+  | "detect_chords"
+  | "set_clip_harmony"
+  | "fit_notes_to_chords"
   | "set_reframe_subject"
   | "add_reframe_keyframe"
   | "clear_reframe"
@@ -527,7 +591,45 @@ type ContractOpName =
   | "set_track"
   | "ripple_delete"
   | "close_gap"
-  | "cut_transcript";
+  | "cut_transcript"
+  | "get_pattern"
+  | "create_pattern_region"
+  | "convert_pattern_to_midi"
+  | "convert_midi_to_pattern"
+  | "separate_pattern_rows"
+  | "set_pattern"
+  | "set_pattern_seed"
+  | "add_pattern_rows"
+  | "set_pattern_row"
+  | "remove_pattern_rows"
+  | "move_pattern_row"
+  | "sort_pattern_rows"
+  | "set_pattern_row_sort"
+  | "copy_pattern_row"
+  | "set_steps"
+  | "set_pattern_text"
+  | "clear_pattern"
+  | "copy_steps"
+  | "repeat_step"
+  | "rotate_pattern"
+  | "transpose_pattern"
+  | "randomize_pattern"
+  | "nudge_pattern_values"
+  | "tie_steps"
+  | "list_step_patterns"
+  | "apply_step_pattern"
+  | "save_step_pattern"
+  | "set_track_step_template"
+  | "create_step_pattern_folder"
+  | "rename_step_pattern_folder"
+  | "delete_step_pattern_folder"
+  | "move_step_pattern"
+  | "list_plugins"
+  | "load_plugin"
+  | "list_plugin_presets"
+  | "select_plugin_preset"
+  | "get_plugin_parameters"
+  | "set_plugin_parameters";
 type ContractOp = {
   [K in ContractOpName]: { op: K } & (K extends "add_midi_clip"
     ? Omit<
@@ -538,6 +640,7 @@ type ContractOp = {
 }[ContractOpName];
 
 export type TimelineOp =
+  | AutomationOp
   | ContractOp
   | GetStateOp
   | AddTrackOp
@@ -573,6 +676,8 @@ export type TimelineOp =
   | ClearAnimationsOp
   | ListAnimationPresetsOp
   | ListInstrumentsOp
+  | ListProgressionsOp
+  | ListHarmonyPresetsOp
   | SelectClipOp
   | SeekOp
   | AddMarkerOp
@@ -596,6 +701,13 @@ export type TimelineOpName = TimelineOp["op"];
  * it samples rendered video and has no document mutation to share.
  */
 export const TIMELINE_OP_NAMES = [
+  "automation.addPoints",
+  "automation.movePoints",
+  "automation.deletePoints",
+  "automation.clearLane",
+  "automation.setLaneEnabled",
+  "setTrackAutomationMode",
+
   "add_midi_clip",
   "set_notes",
   "set_tempo",
@@ -603,6 +715,21 @@ export const TIMELINE_OP_NAMES = [
   "transpose_clip",
   "quantize_notes",
   "scale_velocity",
+  "set_chords",
+  "clear_chords",
+  "loop_clip",
+  "join_clips",
+  "insert_time",
+  "delete_time",
+  "duplicate_range",
+  "paste_range",
+  "list_progressions",
+  "apply_progression",
+  "transpose_chords",
+  "detect_chords",
+  "set_clip_harmony",
+  "list_harmony_presets",
+  "fit_notes_to_chords",
   "set_reframe_subject",
   "add_reframe_keyframe",
   "clear_reframe",
@@ -665,5 +792,43 @@ export const TIMELINE_OP_NAMES = [
   "list_tracks",
   "delete_track_object",
   "bind_to_track",
-  "unbind_track"
+  "unbind_track",
+  "get_pattern",
+  "create_pattern_region",
+  "convert_pattern_to_midi",
+  "convert_midi_to_pattern",
+  "separate_pattern_rows",
+  "set_pattern",
+  "set_pattern_seed",
+  "add_pattern_rows",
+  "set_pattern_row",
+  "remove_pattern_rows",
+  "move_pattern_row",
+  "sort_pattern_rows",
+  "set_pattern_row_sort",
+  "copy_pattern_row",
+  "set_steps",
+  "set_pattern_text",
+  "clear_pattern",
+  "copy_steps",
+  "repeat_step",
+  "rotate_pattern",
+  "transpose_pattern",
+  "randomize_pattern",
+  "nudge_pattern_values",
+  "tie_steps",
+  "list_step_patterns",
+  "apply_step_pattern",
+  "save_step_pattern",
+  "set_track_step_template",
+  "create_step_pattern_folder",
+  "rename_step_pattern_folder",
+  "delete_step_pattern_folder",
+  "move_step_pattern",
+  "list_plugins",
+  "load_plugin",
+  "list_plugin_presets",
+  "select_plugin_preset",
+  "get_plugin_parameters",
+  "set_plugin_parameters"
 ] as const satisfies readonly TimelineOpName[];

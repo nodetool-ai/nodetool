@@ -175,6 +175,7 @@
     "lint": "oxlint packages/*/src web/src electron mobile/src && npm run lint:anti-slop:enforced && npm run lint:design --workspace=web",
     "lint:fix": "oxlint packages/*/src web/src electron mobile/src --fix",
     "lint:packages": "oxlint packages/*/src",
+    "check:native-performance": "python3 native/ui_primitives/tools/check_performance.py",
     "lint:native": "node scripts/native-lint.mjs",
     "lint:anti-slop": "oxlint --config .oxlintrc.anti-slop.json packages/*/src web/src electron/src mobile/src",
     "lint:anti-slop:enforced": "oxlint --config .oxlintrc.anti-slop-enforced.json packages/*/src web/src electron/src mobile/src",

@@ -6,7 +6,7 @@ description: "Provider reference: what each provider offers, the secret it needs
 
 Open **Settings → Models & Providers**, find the provider, and paste its key. The provider's models then appear in every model dropdown. A **Test** button on each card checks that the key works. See [Getting keys in](#getting-keys-in) for the sign-in dialog and the command line.
 
-> **Runs:** cloud for API providers, local for Ollama, vLLM, LM Studio, llama.cpp, Wan2GP, and Transformers.js. **Needs:** one secret per cloud provider (named in each section), none for local servers. **Billing:** the provider bills you directly with no NodeTool markup. Only the `nodetool` provider, which exists in NodeTool's hosted cloud, is the exception (see [NodeTool managed models](#nodetool-managed-models)).
+> **Runs:** cloud for API providers, local for Ollama, vLLM, LM Studio, llama.cpp, ACE-Step, Wan2GP, and Transformers.js. **Needs:** one secret per cloud provider (named in each section), none for local servers. **Billing:** the provider bills you directly with no NodeTool markup. Only the `nodetool` provider, which exists in NodeTool's hosted cloud, is the exception (see [NodeTool managed models](#nodetool-managed-models)).
 {: .callout-note}
 
 [Models & Providers](models-and-providers.md) lists which models exist for each task, and [Local Models](models.md) covers what runs on your machine. This page says which key each provider needs and what it offers. Self-hosting or setting up a cloud account such as Azure, Bedrock, or Vertex AI? See [Cloud account configuration](developer/providers/index.md#cloud-account-configuration).
@@ -383,6 +383,10 @@ llama.cpp local runs GGUF models inside NodeTool, with no separate server. It se
 stable-diffusion.cpp generates images locally: text-to-image and image-to-image. Install it from **Tools → Package Manager → Engines & tools**. The model picker offers each model with a Download button, and one click downloads every file the model needs. Models include SD-Turbo, Stable Diffusion 1.5 and 3.5 Medium, FLUX.1 and FLUX.2, Z-Image, Qwen Image, and several edit-only models. An edit model receives the source image as a reference. Some weights have a non-commercial license, so check each model's license. On macOS it needs macOS 26 or later. Windows and Linux use the Vulkan build.
 
 `MODEL_FOLDERS` in the **Folders** settings adds single-file checkpoints from a folder, such as a ComfyUI `models` folder. A checkpoint qualifies when one `.safetensors` file holds the image model, the decoder, and the text encoders. LoRAs and models that need separate encoders are left out. No key. Local only. The **Generate Image** node under stable-diffusion.cpp is separate: it calls a server you start yourself.
+
+### ACE-Step
+
+ACE-Step (provider id `acestep`) generates music for the timeline's music mode: text-to-music, repaint and lego (add an instrument to a mix). It starts the `ace-server` binary from the `acestep` runtime package on the first request, or uses the server `ACESTEP_SERVER_URL` names. Install it from **Tools → Package Manager → Engines & tools**, or run `nodetool runtime add acestep`. `ACESTEP_SERVER_PATH` selects another `ace-server`, and `ACESTEP_MODELS_DIR` another folder of ACE-Step GGUF files. The model files come from `Serveurperso/ACE-Step-1.5-GGUF`. The first-run set is the text encoder, the language model, the turbo DiT and the VAE. The base DiT downloads on the first Add instrument. The catalog is in `packages/config/src/acestep-models.ts`, and the provider routes turbo for text-to-music and repaint, base for lego. NodeTool builds `ace-server` for macOS on Apple silicon only. The native timeline runs the install and the model download through the `acestep_*` commands of the [WebSocket API](websocket-api.md#rpc-commands). No key. Local only.
 
 ### Wan2GP
 

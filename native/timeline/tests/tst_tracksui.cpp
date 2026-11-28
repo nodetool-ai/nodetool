@@ -9,6 +9,7 @@
 // TracksRegionVirtualization, TimelineScrollbar and timelineWheel.
 #include "TestAssetCacheRoot.h"
 #include "model/LaneClipModel.h"
+#include "aiassist/AssistController.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "model/TrackWindowModel.h"
@@ -16,7 +17,10 @@
 #include <QSemaphore>
 #include <QThreadPool>
 #include "edit/ClipGestureController.h"
+#include "edit/transitions/TransitionEdits.h"
+#include "edit/trim/TrimMode.h"
 #include "app/EditRegistry.h"
+#include "app/MenuRegistry.h"
 #include <QScopeGuard>
 #include "edit/EditActions.h"
 #include "playback/PlaybackClock.h"
@@ -52,12 +56,14 @@
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickView>
+#include <QQuickItemGrabResult>
 #include <QRandomGenerator>
 #include <QSignalSpy>
 #include <QScopeGuard>
 #include <QTest>
 #include <QWheelEvent>
 #include <QAbstractItemModelTester>
+#include "ui/ClipChromeLayer.h"
 #include <QQuickRenderControl>
 #include <QQuickRenderTarget>
 #include <rhi/qrhi.h>
@@ -174,9 +180,11 @@ constexpr const char* kCloud = "https://nt.example";
 // `mutex_` guards the rows.
 class MemoryDrafts final : public nodetool::account::DraftStore {
 public:
+    std::atomic<bool> rejectWrites{false};
     std::optional<std::string> put(const nodetool::account::CloudDocumentKey& key,
                                    const nodetool::account::CloudBase& base, const std::string& draft) override {
         const std::lock_guard lock(mutex_);
+        if (rejectWrites.load()) { return std::nullopt; }
         rows_[key.documentId] = {key, "d" + std::to_string(++next_), base, draft, {}, {}};
         return rows_[key.documentId].draftId;
     }
@@ -590,6 +598,704 @@ class TestTracksUi : public QObject {
     }
 
 private slots:
+    void laneChromeHandlesLargeOverlapComponentsAndClearsThem() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 5000}));
+        TimelineViewState state;
+        state.setContentEndMs(doc.contentEndMs());
+        state.setViewportWidthPx(1000);
+        state.flush();
+        LaneClipModel lane;
+        lane.setTrackId("track-0");
+        lane.setViewState(&state);
+        lane.setTimeline(&doc);
+        // GUI-thread probe avoids constructing thousands of QML delegates.
+        struct ChromeProbe : ClipChromeLayer { using ClipChromeLayer::prepare; } chrome;
+        chrome.setModel(&lane);
+        chrome.setViewState(&state);
+        chrome.setHeight(48);
+        chrome.prepare();
+        QVERIFY(chrome.coversLane());
+        QVERIFY(chrome.clipCount() > 0 && chrome.clipCount() < 50);
+        auto overlapping = makeTimeline({1, 5000});
+        for (auto& clip : overlapping.clips) {
+            clip.startMs = 0;
+            clip.raw.insert("startMs", 0);
+        }
+        doc.setTimeline(std::move(overlapping));
+        chrome.prepare();
+        QVERIFY(!chrome.coversLane());
+        QVERIFY(chrome.overlaps("c-0-0") && chrome.overlaps("c-0-4999"));
+        QCOMPARE(chrome.clipCount(), 0);
+        doc.setTimeline(makeTimeline({1, 5000}));
+        chrome.prepare();
+        QVERIFY(chrome.coversLane());
+        QVERIFY(!chrome.overlaps("c-0-0") && !chrome.overlaps("c-0-4999"));
+        lane.setTimeline(nullptr);
+        chrome.prepare();
+        QVERIFY(!chrome.coversLane());
+        QCOMPARE(chrome.clipCount(), 0);
+    }
+
+    void clipChromeMatchesTheDelegateAndRetainsScrollGeometry() {
+        load({1, 60}, 10, 0);
+        seed(10, 0);
+        frame(); frame();
+        auto* chrome = qobject_cast<ClipChromeLayer*>(itemNamed("clipChrome-track-0"));
+        QVERIFY(chrome);
+        QVERIFY(chrome->coversLane());
+        QVERIFY(chrome->clipCount() > 0);
+        QTest::mouseMove(view.get(), QPoint(0,0));
+        frame();
+        const int builds = chrome->buildCount();
+        vs->setScrollLeftPx(1);
+        frame();
+        QCOMPARE(chrome->buildCount(), builds);
+        auto* clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        const QPointF bodyPoint = clip->mapToScene(QPointF(20, 25));
+        const QPointF bandPoint = clip->mapToScene(QPointF(60, 5));
+        const auto layered = view->grabWindow();
+        for (auto* shell : itemsNamed("clip-")) { shell->setProperty("layerChrome", false); }
+        chrome->setVisible(false);
+        frame();
+        const auto delegates = view->grabWindow();
+        for (const auto& point : {bodyPoint, bandPoint}) {
+            const auto a = layered.pixelColor(point.toPoint());
+            const auto b = delegates.pixelColor(point.toPoint());
+            QVERIFY(std::abs(a.red()-b.red()) <= 1 && std::abs(a.green()-b.green()) <= 1 && std::abs(a.blue()-b.blue()) <= 1);
+        }
+    }
+
+    void headerLaneHeightsReactWhenTheTotalHeightStaysTheSame() {
+        load({4, 10}, 10, 0);
+        frame(); frame();
+        rows->reportExtraHeight("track-0", 30);
+        frame();
+        const double total = rows->contentHeight();
+        auto* first = itemNamed("trackHeaderLanes-track-0");
+        auto* second = itemNamed("trackHeaderLanes-track-1");
+        QVERIFY(first && second);
+        QCOMPARE(first->height(), 30.0);
+        rows->setExtraRowHeights({{"track-0", 20.0}, {"track-1", 10.0}});
+        frame();
+        QCOMPARE(rows->contentHeight(), total);
+        QCOMPARE(first->height(), 20.0);
+        QCOMPARE(second->height(), 10.0);
+    }
+
+    void pooledTrackHeadersKeepTheFocusedResizeIdentity() {
+        load({100, 10}, 10, 0);
+        auto* header = itemNamed("trackHeader-track-0");
+        QVERIFY(header);
+        QVERIFY(QMetaObject::invokeMethod(region, "focusTrackResize", Q_ARG(QString, QString("track-0"))));
+        frame();
+        const QPointer<QQuickItem> focused = view->activeFocusItem();
+        QVERIFY(focused && header->isAncestorOf(focused));
+        vs->setScrollTopPx(5000);
+        frame(); frame();
+        QVERIFY(focused && focused->hasActiveFocus());
+        QCOMPARE(header->property("trackId").toString(), QString("track-0"));
+    }
+
+    void laneChromeTracksTypographyChangesOnTheGuiThread() {
+        load({1, 4}, 10, 0);
+        frame(); frame();
+        auto* chrome = qobject_cast<ClipChromeLayer*>(itemNamed("clipChrome-track-0"));
+        QVERIFY(chrome && chrome->nameStyle());
+        auto* style = chrome->nameStyle();
+        const auto original = style->property("font").value<QFont>();
+        const auto beforeImage = view->grabWindow();
+        auto resized = original;
+        resized.setLetterSpacing(QFont::AbsoluteSpacing, 2);
+        const int before = chrome->buildCount();
+        QVERIFY(style->setProperty("font", resized));
+        frame();
+        const bool rebuilt = chrome->buildCount() > before;
+        const bool changed = view->grabWindow() != beforeImage;
+        style->setProperty("font", original);
+        frame();
+        QVERIFY(rebuilt);
+        QVERIFY(changed);
+    }
+
+    void laneChromeRebindsSelectionWithoutLeavingAHole() {
+        load({1, 60}, 10, 0);
+        seed(10, 0);
+        controller()->setSelection({"c-0-2"});
+        frame(); frame();
+        QVERIFY(!itemNamed("clip-c-0-2")->property("layerChrome").toBool());
+        vs->setScrollLeftPx(15000);
+        frame(); frame();
+        for (auto* clip : itemsNamed("clip-")) {
+            QVERIFY(!clip->property("selected").toBool());
+            QVERIFY(clip->property("layerChrome").toBool());
+        }
+        vs->setScrollLeftPx(0);
+        frame(); frame();
+        auto* selected = itemNamed("clip-c-0-2");
+        QVERIFY(selected && selected->property("selected").toBool());
+        QVERIFY(!selected->property("layerChrome").toBool());
+        controller()->setSelection({});
+        frame(); frame();
+        QVERIFY(selected->property("layerChrome").toBool());
+    }
+
+    void overlappingClipsKeepTheirContentStacking() {
+        load({1, 4}, 10, 0);
+        seed(10, 0);
+        frame();
+        auto* chrome = qobject_cast<ClipChromeLayer*>(itemNamed("clipChrome-track-0"));
+        QVERIFY(chrome && chrome->coversLane());
+        QVERIFY(model->moveClip("c-0-2", 1200));
+        frame(); frame();
+        QVERIFY(!chrome->coversLane());
+        QVERIFY(!itemNamed("clip-c-0-2")->property("layerChrome").toBool());
+        QVERIFY(itemNamed("clip-c-0-0")->property("layerChrome").toBool());
+        QVERIFY(itemNamed("clip-c-0-3")->property("layerChrome").toBool());
+        controller()->setSelection({"c-0-2"});
+        frame();
+        QVERIFY(itemNamed("clip-c-0-2")->property("selected").toBool());
+    }
+
+    void emptyClipDoesNotLoadTrimGuide() {
+        load({1, 4}, 10, 0);
+        seed(10, 0);
+        auto* clip = itemNamed("clip-c-0-0");
+        QVERIFY(clip);
+        clip->setProperty("clipId", "");
+        QCoreApplication::processEvents();
+        QVERIFY(!itemNamed("trimSourceGuide-"));
+    }
+
+    void trimOverlayRetainsClipIdentity() {
+        load({1, 4}, 10, 0);
+        seed(10, 0);
+        QVERIFY(!itemNamed("trimEditMarks-c-0-0"));
+        controller()->trimMode()->selectEdge("c-0-0", true, "trim", false, false);
+        QTRY_VERIFY(itemNamed("trimEditMarks-c-0-0"));
+    }
+
+    void moveDoesNotNotifyTrimOrRubberBand() {
+        load({1, 4}, 10, 0);
+        seed(10, 0);
+        QSignalSpy trim(controller(), &ClipGestureController::trimSourceRangeChanged);
+        QSignalSpy band(controller(), &ClipGestureController::rubberBandChanged);
+        const auto from = clipPoint("c-0-2", 30);
+        drag(from, from + QPoint(40, 0), 6);
+        QCOMPARE(trim.count(), 0);
+        QCOMPARE(band.count(), 0);
+        QVERIFY(controller()->trimSourceClipId().isEmpty());
+    }
+
+    void assistNotifiesOnClipReorder() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 2}));
+        AssistController assist;
+        assist.setModel(&doc);
+        QSignalSpy updates(&assist, &AssistController::changed);
+        auto clips = doc.clipsJson();
+        const QJsonValue first = clips[0];
+        clips[0] = clips[1];
+        clips[1] = first;
+        QVERIFY(doc.replaceClips(clips));
+        QCOMPARE(updates.size(), 1);
+    }
+
+    void replacingDocumentReleasesExcessPooledLanes() {
+        load({64, 100}, 10, 0);
+        seed(10, 0);
+        vs->setScrollTopPx(2400);
+        frame();
+        model->setTimeline(makeTimeline({1, 2}));
+        frame();
+        frame();
+        QVERIFY(region->findChildren<LaneClipModel*>().size() <= 3);
+    }
+
+    void keyboardFocusedClipKeepsItsIdentityAcrossScroll() {
+        load({1, 400}, 10, 0);
+        seed(10, 0);
+        QPointer<QQuickItem> clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        clip->forceActiveFocus(Qt::TabFocusReason);
+        vs->setScrollLeftPx(20000);
+        frame();
+        QVERIFY(clip);
+        QCOMPARE(clip->property("clipId").toString(), QString("c-0-2"));
+        QVERIFY(clip->hasActiveFocus());
+        controller()->forceActiveFocus();
+        frame();
+        QVERIFY(!itemNamed("clip-c-0-2"));
+    }
+
+    void keyboardFocusSelectsAClipAndLoadsFadeDetails() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        auto* clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        QVERIFY(!itemNamed("fadeGrip-in-c-0-2"));
+        clip->forceActiveFocus(Qt::TabFocusReason);
+        QCOMPARE(controller()->selection(), QStringList{"c-0-2"});
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-2"));
+    }
+
+    void fadeTabReachesTheNextUnselectedClipInTimeOrder() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        QVERIFY(model->moveClip("c-0-2", 3500));
+        frame();
+        auto* earlier = itemNamed("clip-c-0-3");
+        auto* later = itemNamed("clip-c-0-2");
+        QVERIFY(earlier && later);
+        earlier->forceActiveFocus(Qt::TabFocusReason);
+        QTRY_VERIFY(itemNamed("fadeGrip-out-c-0-3"));
+        itemNamed("fadeGrip-out-c-0-3")->forceActiveFocus();
+        QTest::keyClick(view.get(), Qt::Key_Tab);
+        QVERIFY(later->hasActiveFocus());
+        QCOMPARE(controller()->selection(), QStringList{"c-0-2"});
+        QTest::keyClick(view.get(), Qt::Key_Tab);
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-2"));
+        QVERIFY(itemNamed("fadeGrip-in-c-0-2")->hasActiveFocus());
+    }
+
+    void fadeTabOrderFollowsTimelineAfterReuse() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        controller()->setSelection({"c-0-2", "c-0-3"});
+        QVERIFY(model->moveClip("c-0-2", 3500));
+        frame();
+        auto* earlierOut = itemNamed("fadeGrip-out-c-0-3");
+        auto* laterIn = itemNamed("fadeGrip-in-c-0-2");
+        QVERIFY(earlierOut && laterIn);
+        earlierOut->forceActiveFocus();
+        QTest::keyClick(view.get(), Qt::Key_Tab);
+        QVERIFY(itemNamed("clip-c-0-2")->hasActiveFocus());
+        QTest::keyClick(view.get(), Qt::Key_Tab);
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-2"));
+        laterIn = itemNamed("fadeGrip-in-c-0-2");
+        QVERIFY(laterIn->hasActiveFocus());
+        QTest::keyClick(view.get(), Qt::Key_Backtab);
+        QVERIFY(earlierOut->hasActiveFocus());
+    }
+
+    void transitionReuseCancelsItsPreview() {
+        if (!nt::app::findEdit("setTransitionDuration")) {
+            QVERIFY(nt::app::registerEdit("setTransitionDuration", nt::edit::transitions::setTransitionDuration));
+        }
+        load({1, 20}, 10, 0);
+        seed(10, 0);
+        auto values = model->clipsJson();
+        auto source = values[2].toObject();
+        source["transitionIn"] = QJsonObject{{"type", "crossfade"}, {"durationMs", 200}};
+        values[2] = source;
+        QVERIFY(model->replaceClips(values));
+        frame();
+        auto* grip = itemNamed("clip-transition-handle-c-0-2");
+        QVERIFY(grip);
+        const auto point = grip->mapToScene({4, 25}).toPoint();
+        QTest::mouseMove(view.get(), point);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, point);
+        QTest::mouseMove(view.get(), point + QPoint(10, 0));
+        QVERIFY(model->findClip("c-0-2")->transitionIn->durationMs > 200);
+        auto* clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        clip->setProperty("clipId", "c-0-3");
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, point + QPoint(10, 0));
+        QCOMPARE(model->findClip("c-0-2")->transitionIn->durationMs, 200.0);
+        QVERIFY(!model->findClip("c-0-3")->transitionIn);
+        QCOMPARE(model->undoStack()->count(), 0);
+    }
+
+    void returningTracksUseTheirRetainedLane() {
+        load({64, 100}, 10, 0);
+        seed(10, 0);
+        vs->setScrollTopPx(2400);
+        frame();
+        view->resize(kRegionWidth, 200);
+        frame();
+        for (const int offset : {0, 2800, 320, 960, 160, 2400, 640, 0, 1800, 3200, 0}) {
+            vs->setScrollTopPx(offset);
+            frame();
+            QSet<QString> tracks;
+            const auto lanes = region->findChildren<LaneClipModel*>();
+            QVERIFY(!lanes.isEmpty());
+            for (auto* lane : lanes) {
+                if (lane->trackId().isEmpty()) { continue; }
+                QVERIFY2(!tracks.contains(lane->trackId()), qPrintable(lane->trackId()));
+                tracks.insert(lane->trackId());
+            }
+        }
+    }
+
+    void reassignmentClearsToolHover() {
+        load({1, 400}, 10, 0);
+        seed(10, 0);
+        controller()->setActiveTool("cut");
+        QTest::mouseMove(view.get(), clipPoint("c-0-2", 30));
+        QVERIFY(controller()->previewsCut("c-0-2"));
+        QVERIFY(model->moveClip("c-0-2", 200000));
+        frame();
+        QVERIFY(!controller()->previewsCut("c-0-2"));
+    }
+
+    void idleSlotsNeverOwnAGesture() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        QVERIFY(model->moveClip("c-0-2", 90000));
+        frame();
+        const auto idle = itemsNamed("pooledClip");
+        QVERIFY(!idle.isEmpty());
+        for (auto* item : idle) { QVERIFY(!item->property("underGesture").toBool()); }
+    }
+
+    void verticalScrollKeepsTheGestureLane() {
+        load({64, 100}, 10, 0);
+        seed(10, 0);
+        QPointer<QQuickItem> clip = itemNamed("clip-c-0-2");
+        QVERIFY(clip);
+        const auto point = clipPoint("c-0-2", 30);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, point);
+        QCOMPARE(controller()->activeClipId(), QString("c-0-2"));
+        vs->setScrollTopPx(2400);
+        frame();
+        QVERIFY(clip);
+        QCOMPARE(clip->property("clipId").toString(), QString("c-0-2"));
+        QVERIFY(clip->isVisible());
+        QCOMPARE(controller()->activeClipId(), QString("c-0-2"));
+        controller()->cancelGesture();
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, point);
+    }
+
+    void detailPinClearsOnlyItsOwnerAndOnDeletion() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        auto* first = itemNamed("clip-c-0-1");
+        auto* second = itemNamed("clip-c-0-2");
+        QVERIFY(first && second);
+        auto bodyOf = [](QQuickItem* clip) {
+            for (auto* child : clip->childItems()) {
+                if (child->metaObject()->indexOfProperty("detailFocusActive") >= 0) { return child; }
+            }
+            return static_cast<QQuickItem*>(nullptr);
+        };
+        auto* a = bodyOf(first);
+        auto* b = bodyOf(second);
+        QVERIFY(a && b);
+        auto* lane = itemNamed("trackLane-track-0");
+        a->setProperty("detailFocusActive", true);
+        b->setProperty("detailFocusActive", true);
+        a->setProperty("detailFocusActive", false);
+        QCOMPARE(lane->property("detailClipId").toString(), QString("c-0-2"));
+        const auto point = clipPoint("c-0-3", 30);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, point);
+        auto* clips = lane->property("clipModel").value<LaneClipModel*>();
+        QCOMPARE(clips->pinnedClipId(), QString("c-0-3"));
+        vs->setScrollLeftPx(5000);
+        vs->flush();
+        QVERIFY(clips->clipIds().contains("c-0-2"));
+        QVERIFY(clips->clipIds().contains("c-0-3"));
+        controller()->cancelGesture();
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, point);
+        auto raw = model->clipsJson();
+        for (qsizetype i = raw.size(); i-- > 0;) {
+            if (raw[i].toObject().value("id") == "c-0-2") { raw.removeAt(i); }
+        }
+        QVERIFY(model->replaceClips(raw));
+        frame();
+        QVERIFY(lane->property("detailClipId").toString().isEmpty());
+    }
+
+    void reentrantEditsNotifyEveryRestackedClip() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 4}));
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        QSet<QString> notified;
+        bool edited = false;
+        connect(&lane, &QAbstractItemModel::dataChanged, &lane,
+            [&](const QModelIndex& first, const QModelIndex& last, const QList<int>& roles) {
+                if (roles.contains(LaneClipModel::StackingIndexRole)) {
+                    for (int row = first.row(); row <= last.row(); ++row) {
+                        notified.insert(lane.data(lane.index(row), LaneClipModel::ClipIdRole).toString());
+                    }
+                }
+                if (edited) { return; }
+                edited = true;
+                auto values = doc.clipsJson();
+                auto renamed = values[0].toObject();
+                renamed["name"] = "Renamed during notification";
+                values[0] = renamed;
+                QVERIFY(doc.replaceClips(values));
+            });
+        QVERIFY(doc.moveClip("c-0-3", 500));
+        QVERIFY(edited);
+        QCOMPARE(notified, (QSet<QString>{"c-0-1", "c-0-2", "c-0-3"}));
+    }
+
+    void poolNotificationsExposeACompleteWindow() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 100}));
+        TimelineViewState state;
+        state.setViewportWidthPx(1000);
+        state.setContentEndMs(doc.contentEndMs());
+        state.flush();
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setViewState(&state);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        QStringList observed;
+        connect(&lane, &QAbstractItemModel::dataChanged, &lane, [&] {
+            if (observed.isEmpty()) { observed = lane.clipIds(); }
+        });
+        state.setScrollLeftPx(5000);
+        state.flush();
+        QVERIFY(!observed.isEmpty());
+        observed.sort();
+        auto finalIds = lane.clipIds();
+        finalIds.sort();
+        QCOMPARE(observed, finalIds);
+    }
+
+    void reassignedClipRecreatesItsPanels() {
+        load({1, 400}, 10, 0);
+        seed(10, 0);
+        controller()->setSelection({"c-0-2", "c-0-200"});
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-2"));
+        QPointer<QQuickItem> oldGrip = itemNamed("fadeGrip-in-c-0-2");
+        QPointer<QQuickItem> clip = itemNamed("clip-c-0-2");
+        auto changed = model->clipsJson();
+        for (qsizetype i = 0; i < changed.size(); ++i) {
+            auto value = changed[i].toObject();
+            if (value["id"] == "c-0-2") { value["startMs"] = 200001; }
+            if (value["id"] == "c-0-200") { value["startMs"] = 2000; }
+            changed[i] = value;
+        }
+        QVERIFY(model->replaceClips(changed));
+        frame();
+        QVERIFY(!oldGrip);
+        QTRY_VERIFY(itemNamed("fadeGrip-in-c-0-200"));
+        QVERIFY(clip);
+    }
+
+    void releasingAPinDuringSlotRebindingKeepsTheWindowConsistent() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 50}));
+        bool released = false;
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        lane.setPinnedClipId("c-0-49");
+        TimelineViewState state;
+        state.setContentEndMs(doc.contentEndMs());
+        state.setViewportWidthPx(1000);
+        state.flush();
+        lane.setViewState(&state);
+        connect(&lane, &QAbstractItemModel::dataChanged, &lane, [&lane, &released] {
+            if (released) { return; }
+            released = true;
+            lane.setPinnedClipId({});
+        });
+        state.setScrollLeftPx(1000);
+        state.flush();
+        QVERIFY(released);
+        LaneClipModel expected;
+        expected.setTrackId("track-0");
+        expected.setTimeline(&doc);
+        expected.setViewState(&state);
+        auto actualIds = lane.clipIds();
+        auto expectedIds = expected.clipIds();
+        actualIds.sort();
+        expectedIds.sort();
+        QCOMPARE(actualIds, expectedIds);
+    }
+
+    void largeClipPoolShrinksOnlyAfterItsPinIsReleased() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 5000}));
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        QCOMPARE(lane.rowCount(), 5000);
+        lane.setPinnedClipId("c-0-4999");
+        const QPersistentModelIndex pin = lane.index(4999);
+        TimelineViewState state;
+        state.setContentEndMs(doc.contentEndMs());
+        state.setViewportWidthPx(1000);
+        state.flush();
+        lane.setViewState(&state);
+        QVERIFY(pin.isValid());
+        QCOMPARE(lane.data(pin, LaneClipModel::ClipIdRole).toString(), QString("c-0-4999"));
+        lane.setPinnedClipId({});
+        QVERIFY(lane.rowCount() <= 16);
+        QVERIFY(!lane.clipIds().contains("c-0-4999"));
+        QVERIFY(lane.clipIds().contains("c-0-0"));
+    }
+
+    void clipSlotsReuseAcrossScrollAndTrackChanges() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({4, 400}));
+        TimelineViewState state;
+        state.setViewportWidthPx(1000);
+        state.setContentEndMs(doc.contentEndMs());
+        state.flush();
+        LaneClipModel lane;
+        lane.setReuseDelegates(true);
+        lane.setViewState(&state);
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        const int slotCount = lane.rowCount();
+        QVERIFY(slotCount > 0);
+        lane.setPinnedClipId("c-0-2");
+        const auto pin = lane.clipIds().indexOf("c-0-2");
+        QVERIFY(pin >= 0);
+        QSignalSpy removed(&lane, &QAbstractItemModel::rowsRemoved);
+        state.setScrollLeftPx(20000);
+        state.flush();
+        QCOMPARE(lane.data(lane.index(pin), LaneClipModel::ClipIdRole).toString(), QString("c-0-2"));
+        lane.setPinnedClipId({});
+        const int capacity = lane.rowCount();
+        lane.setTrackId("track-1");
+        QCOMPARE(lane.rowCount(), capacity);
+        QCOMPARE(removed.size(), 0);
+        QVERIFY(!lane.clipIds().isEmpty());
+        for (const auto& id : lane.clipIds()) { QVERIFY(id.startsWith("c-1-")); }
+        lane.setTrackId("");
+        QVERIFY(lane.rowCount() <= capacity);
+        QVERIFY(lane.rowCount() <= 16);
+        QVERIFY(lane.clipIds().isEmpty());
+        const std::weak_ptr<const nt::Timeline> previous = doc.snapshot();
+        auto raw = doc.timeline().raw;
+        raw["name"] = "Rename while pooled";
+        QVERIFY(doc.settleDocument(raw));
+        doc.trackClipIndices("track-0");
+        QVERIFY(previous.expired());
+        lane.setTrackId("track-0");
+        QVERIFY(!lane.clipIds().isEmpty());
+    }
+
+    void lanesAndClipsSurviveVerticalScroll() {
+        load({64, 400}, 10, 0);
+        seed(10, 0);
+        QList<QPointer<QQuickItem>> previous;
+        for (auto* lane : itemsNamed("trackLane-")) { previous.append(lane); }
+        QVERIFY(!previous.isEmpty());
+        vs->setScrollTopPx(2400);
+        frame();
+        frame();
+        for (const auto& lane : previous) { QVERIFY(lane); }
+        QCOMPARE(itemsNamed("clip-").size(), expectedClipItems());
+        // A reused slot follows the new clip's selection and presentation.
+        auto* clip = itemsNamed("clip-").first();
+        const auto id = clip->property("clipId").toString();
+        controller()->setSelection({id});
+        frame();
+        QVERIFY(clip->property("selected").toBool());
+        QCOMPARE(clip->property("name").toString(), QString::fromStdString(model->findClip(id)->name));
+    }
+
+    void laneReleasesSnapshotAfterMetadataEdit() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 1}));
+        LaneClipModel lane;
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        const std::weak_ptr<const nt::Timeline> previous = doc.snapshot();
+        auto raw = doc.timeline().raw;
+        raw["name"] = "Renamed sequence";
+        QVERIFY(doc.settleDocument(raw));
+        doc.trackClipIndices("track-0");
+        QVERIFY(previous.expired());
+        QCOMPARE(lane.clipIds(), QStringList{"c-0-0"});
+    }
+
+    void trackWindowForwardsAllRoles() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({20, 1}));
+        TimelineViewState view;
+        view.setViewportHeightPx(100);
+        TrackWindowModel window;
+        window.setTracks(doc.tracks());
+        window.setViewState(&view);
+        view.setScrollTopPx(640);
+        QVERIFY(window.data(window.index(0), TrackWindowModel::SourceRowRole).toInt() > 0);
+        QSignalSpy updates(&window, &QAbstractItemModel::dataChanged);
+        const int source = window.data(window.index(0), TrackWindowModel::SourceRowRole).toInt();
+        emit doc.tracks()->dataChanged(doc.tracks()->index(source), doc.tracks()->index(source), {});
+        QCOMPARE(updates.size(), 1);
+        QCOMPARE(updates.first()[0].value<QModelIndex>().row(), 0);
+        QVERIFY(updates.first()[2].value<QList<int>>().isEmpty());
+    }
+
+    void trackRenameNotifiesOnlyItsRowAndRoles() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({2, 1}));
+        TrackWindowModel window;
+        window.setTracks(doc.tracks());
+        QSignalSpy sourceUpdates(doc.tracks(), &QAbstractItemModel::dataChanged);
+        QSignalSpy windowUpdates(&window, &QAbstractItemModel::dataChanged);
+        QVERIFY(doc.applyEdit("rename-test", {}, [](QJsonObject raw, const QJsonObject&) {
+            auto tracks = raw.value("tracks").toArray();
+            auto track = tracks[0].toObject();
+            track.insert("name", "Renamed");
+            tracks[0] = track;
+            raw.insert("tracks", tracks);
+            return raw;
+        }));
+        QCOMPARE(sourceUpdates.size(), 1);
+        QCOMPARE(sourceUpdates.first()[0].value<QModelIndex>().row(), 0);
+        QCOMPARE(sourceUpdates.first()[2].value<QList<int>>(), QList<int>{TrackListModel::NameRole});
+        QCOMPARE(windowUpdates.size(), 2);
+        QCOMPARE(windowUpdates[0][2].value<QList<int>>(), QList<int>{TrackListModel::NameRole});
+        QCOMPARE(windowUpdates[1][2].value<QList<int>>(), QList<int>{TrackWindowModel::TrackRole});
+        for (const auto& update : windowUpdates) {
+            QCOMPARE(update[0].value<QModelIndex>().row(), 0);
+            QCOMPARE(update[1].value<QModelIndex>().row(), 0);
+            const auto roles = update[2].value<QList<int>>();
+            QVERIFY(roles == QList<int>{TrackListModel::NameRole} || roles == QList<int>{TrackWindowModel::TrackRole});
+        }
+    }
+
+    void laneExposesOnlyScalarPresentationRoles() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({1, 1}));
+        LaneClipModel lane;
+        lane.setTrackId("track-0");
+        lane.setTimeline(&doc);
+        QSignalSpy updates(&lane, &QAbstractItemModel::dataChanged);
+        auto clip = doc.findClip("c-0-0")->raw;
+        clip.insert("labelColor", "#123456");
+        clip.insert("loopLengthMs", 400);
+        clip.insert("speedMultiplier", 2);
+        clip.insert("speedBaked", true);
+        clip.insert("effects", QJsonArray{QJsonObject{{"id", "fx"}, {"type", "blur"}}});
+        clip.insert("status", "queued");
+        QVERIFY(doc.patchClips({clip}));
+        QCOMPARE(updates.count(), 1);
+        const auto changedRoles = updates.first().at(2).value<QList<int>>();
+        QVERIFY(changedRoles.contains(LaneClipModel::StatusRole));
+        QVERIFY(changedRoles.contains(LaneClipModel::LabelColorRole));
+        QVERIFY(changedRoles.contains(LaneClipModel::SpeedMultiplierRole));
+        QVERIFY(!changedRoles.contains(LaneClipModel::StartMsRole));
+        QVERIFY(!changedRoles.contains(LaneClipModel::NameRole));
+        const auto row = lane.index(0);
+        QCOMPARE(lane.data(row, LaneClipModel::StatusRole).toString(), QString("queued"));
+        QCOMPARE(lane.data(row, LaneClipModel::LabelColorRole).toString(), QString("#123456"));
+        QCOMPARE(lane.data(row, LaneClipModel::LoopLengthMsRole).toDouble(), 400.0);
+        QCOMPARE(lane.data(row, LaneClipModel::SpeedMultiplierRole).toDouble(), 2.0);
+        QVERIFY(lane.data(row, LaneClipModel::SpeedBakedRole).toBool());
+        QVERIFY(lane.data(row, LaneClipModel::HasEffectsRole).toBool());
+        for (const auto role : lane.roleNames().keys()) {
+            const auto value = lane.data(row, role);
+            QVERIFY(value.metaType() != QMetaType::fromType<QVariantMap>());
+            QVERIFY(value.metaType() != QMetaType::fromType<QVariantList>());
+        }
+    }
     void cleanup() { unload(); }
 
     // ── Drag cost bench ──
@@ -1021,6 +1727,7 @@ private slots:
         QTest::mousePress(view.get(), Qt::LeftButton, {}, from);
         QTest::mouseMove(view.get(), from + QPoint(50, 0));
         QCOMPARE(clipJson("c-0-0").value("durationMs").toDouble(), 800.0);
+        QCOMPARE(controller()->trimSourceClipId(), QString("c-0-0"));
         const auto feedback = controller()->property("trimSourceRange").toMap();
         QCOMPARE(feedback.value("startMs").toDouble(), -200.0);
         QCOMPARE(feedback.value("endMs").toDouble(), 800.0);
@@ -1100,6 +1807,63 @@ private slots:
         QCOMPARE(model->documentJson(), before);
         QCOMPARE(model->undoStack()->count(), 0);
     }
+    void reusedClipsKeepTheirOverlapOrder() {
+        load({1, 100}, 10, 0);
+        seed(10, 0);
+        auto clips = model->clipsJson();
+        for (int i = 0; i < clips.size(); ++i) {
+            auto clip = clips[i].toObject();
+            const auto id = clip.value("id").toString();
+            if (id != "c-0-10" && id != "c-0-33") { continue; }
+            clip["durationMs"] = 100000;
+            clips[i] = clip;
+        }
+        QVERIFY(model->replaceClips(clips));
+        QPointer<QQuickItem> earlier = itemNamed("clip-c-0-10");
+        QVERIFY(earlier);
+        vs->setScrollLeftPx(3200);
+        frame();
+        frame();
+        auto* later = itemNamed("clip-c-0-33");
+        auto* lane = itemNamed("trackLane-track-0");
+        QVERIFY(earlier);
+        QVERIFY(later);
+        QVERIFY(lane);
+        QVERIFY(later->z() > earlier->z());
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, later->mapToScene(QPointF(20, 20)).toPoint());
+        QCOMPARE(controller()->selection(), QStringList{"c-0-33"});
+        QVERIFY(model->moveClip("c-0-33", 9500));
+        frame();
+        QVERIFY(earlier->z() > later->z());
+        const double withinEarlier = vs->scrollLeftPx() - earlier->x() + 100;
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, earlier->mapToScene(QPointF(withinEarlier, 20)).toPoint());
+        QCOMPARE(controller()->selection(), QStringList{"c-0-10"});
+    }
+
+    void sharedClipMenuClosesWhenItsSlotIsReassigned() {
+        load({2, 400}, 10, 0);
+        seed(10, 0);
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, clipPoint("c-0-2", 30));
+        auto* menu = region->findChild<QObject*>("registryContextMenu-clip");
+        QVERIFY(menu);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QPointer<QQuickItem> anchor = itemNamed("clip-c-0-2");
+        auto changed = model->clipsJson();
+        for (qsizetype i = 0; i < changed.size(); ++i) {
+            auto value = changed[i].toObject();
+            if (value["id"] == "c-0-2") { value["startMs"] = 200001; }
+            if (value["id"] == "c-0-200") { value["startMs"] = 2000; }
+            changed[i] = value;
+        }
+        QVERIFY(model->replaceClips(changed));
+        QVERIFY(anchor);
+        QVERIFY(anchor->isVisible());
+        QCOMPARE(anchor->property("clipId").toString(), QString("c-0-200"));
+        frame();
+        QVERIFY(model->findClip("c-0-2"));
+        QTRY_VERIFY_WITH_TIMEOUT(!menu->property("visible").toBool(), 1000);
+    }
+
     void contextMenuKeepsTheMultiSelectionAndUsesItForDelete() {
         load({2, 10}, 10, 0);
         seed(10, 0);
@@ -1113,12 +1877,19 @@ private slots:
         auto* clip = itemNamed("clip-c-0-2");
         QVERIFY(clip);
         QTest::mouseClick(view.get(), Qt::RightButton, {}, first);
-        auto* menu = clip->findChild<QObject*>("registryContextMenu-clip");
+        auto* menu = region->findChild<QObject*>("registryContextMenu-clip");
         QVERIFY(menu);
         QTRY_VERIFY(menu->property("opened").toBool());
         QCOMPARE(controller()->selection(), selected);
         QTest::keyClick(view.get(), Qt::Key_Delete);
         QCOMPARE(model->documentJson(), before);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTRY_VERIFY(!menu->property("visible").toBool());
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, second);
+        QTRY_VERIFY(menu->property("opened").toBool());
+        QCOMPARE(menu->property("context").toMap().value("clipId").toString(), QString("c-0-3"));
+        QCOMPARE(region->findChildren<QObject*>("registryContextMenu-clip").size(), 1);
+        QCOMPARE(controller()->selection(), selected);
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QTRY_VERIFY(!menu->property("visible").toBool());
         // The clip menu is taller than the default window, and this test clicks its last row.
@@ -1384,9 +2155,8 @@ private slots:
         QCOMPARE(clip->x() - vs->scrollLeftPx(), expectedStart / 10.0 - scroll);
     }
 
-    // The same drag with the pin removed: the delegate dies with the window.
-    // This is the failure the pin prevents.
-    void withoutThePinTheDelegateDies() {
+    // Without the pin a pooled delegate can be reassigned to another clip.
+    void withoutThePinTheDelegateIsReassigned() {
         load({4, 400}, 10, 0);
         seed(10, 0);
         QPointer<QQuickItem> clip = itemNamed(QStringLiteral("clip-c-0-2"));
@@ -1398,7 +2168,8 @@ private slots:
         vs->setScrollLeftPx(20000);
         frame();
         frame();
-        QVERIFY(!clip);
+        QVERIFY(clip);
+        QVERIFY(clip->property("clipId").toString() != "c-0-2");
         QTest::mouseRelease(view.get(), Qt::LeftButton, {}, press + QPoint(40, 0));
     }
 
@@ -1515,6 +2286,152 @@ private slots:
         QCOMPARE(rows->rowCount(), rows->windowEnd() - rows->windowStart());
         QCOMPARE(itemsNamed(QStringLiteral("trackHeader-")).size(), rows->rowCount());
         QVERIFY(rows->rowCount() > 0);
+    }
+
+    void perf2HoverOnlyUpdatesItsClip() {
+        load({4,100});
+        auto* target=itemNamed("clip-c-0-0");
+        auto* untouched=itemNamed("clip-c-1-0");
+        QVERIFY(target && untouched);
+        const int handlersBefore=untouched->property("toolPreviewHandlerRuns").toInt();
+        QSignalSpy updates(untouched,SIGNAL(toolPreviewChanged()));
+        const auto at=target->mapToScene({20,20});
+        for (int i=0;i<120;++i) {
+            controller()->updateToolHover("c-0-0","body",at.x()+i*0.1,at.y(),0);
+        }
+        qInfo()<<"PERF2 observed unrelated hover updates"<<updates.count();
+        QCOMPARE(updates.count(),0);
+        QCOMPARE(untouched->property("toolPreviewHandlerRuns").toInt(),handlersBefore);
+        QVERIFY2(itemsNamed("musicLoopRepeats-").isEmpty(),"Non-loop clips allocated seam canvases");
+        qInfo()<<"PERF2 unrelated clip hover binding updates / 120 moves"<<updates.count();
+        const auto readsBefore=controller()->selectionReads();
+        controller()->setSelection({"c-0-0"});
+        QVERIFY(controller()->selectionReads()-readsBefore<=2);
+        QVERIFY(target->property("selected").toBool());
+        controller()->setSelection({"c-1-0"});
+        QVERIFY(!target->property("selected").toBool());
+        QVERIFY(untouched->property("selected").toBool());
+    }
+
+    void perf2SelectionSubscriptionsAreBounded() {
+        load({4,100});
+        const auto before=controller()->selectionReads();
+        controller()->setSelection({"c-0-0"});
+        QVERIFY(controller()->selectionReads()-before<=2);
+    }
+
+    void perf2SeamCanvasesAreLazy() {
+        load({4,100},10,0);
+        const int seams=itemsNamed("musicLoopRepeats-").size();
+        qInfo()<<"PERF2 observed non-loop seam canvases"<<seams;
+        QCOMPARE(seams,0);
+        auto clip=model->findClip("c-0-0")->raw;
+        clip["durationMs"]=1000000;
+        clip["loopLengthMs"]=1000;
+        QVERIFY(model->patchClips({clip}));
+        frame();
+        auto* canvas=itemNamed("musicLoopRepeats-c-0-0");
+        QVERIFY(canvas);
+        QVERIFY(canvas->width()>0);
+        QVERIFY(canvas->width()<=vs->viewportWidthPx());
+    }
+
+    void perf2ForeignPinDoesNotScanLane() {
+        TimelineModel doc; doc.setTimeline(makeTimeline({2,200}));
+        TimelineViewState state; state.setViewportWidthPx(600); state.zoomTo(10,0); state.flush();
+        LaneClipModel lane; lane.setTrackId("track-1"); lane.setTimeline(&doc); lane.setViewState(&state);
+        const auto before=lane.windowVisits();
+        lane.setPinnedClipId("c-0-199");
+        const auto visits=lane.windowVisits()-before;
+        qInfo()<<"PERF2 observed foreign-pin clip visits"<<visits;
+        QVERIFY(visits<20);
+    }
+
+    void perf2UnrelatedInsertionDoesNotRebuildLane() {
+        TimelineModel doc; doc.setTimeline(makeTimeline({2,200}));
+        LaneClipModel lane; lane.setTrackId("track-1"); lane.setTimeline(&doc);
+        const auto before=lane.rebuildCount();
+        auto clips=doc.clipsJson();
+        auto added=doc.findClip("c-0-0")->raw; added["id"]="added"; clips.append(added);
+        QVERIFY(doc.replaceClips(clips));
+        const auto rebuilds=lane.rebuildCount()-before;
+        qInfo()<<"PERF2 observed unrelated insertion lane rebuilds"<<rebuilds;
+        QCOMPARE(rebuilds,0);
+    }
+
+    void perf2SharedLaneIndexAndForeignPin() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({64,200}));
+        TimelineViewState state;
+        state.setViewportWidthPx(600);
+        state.zoomTo(10,0);
+        state.flush();
+        std::vector<std::unique_ptr<LaneClipModel>> lanes;
+        for (int t=0; t<64; ++t) {
+            auto lane=std::make_unique<LaneClipModel>();
+            lane->setTrackId(QStringLiteral("track-%1").arg(t));
+            lane->setTimeline(&doc);
+            lane->setViewState(&state);
+            lanes.push_back(std::move(lane));
+        }
+        quint64 rebuildVisits=0;
+        for (const auto& lane : lanes) { rebuildVisits+=lane->rebuildClipVisits(); }
+        qInfo()<<"PERF2 observed lane rebuild visits"<<rebuildVisits;
+        QCOMPARE(rebuildVisits,12800);
+        QCOMPARE(doc.trackIndexVisits(),12800);
+        quint64 visits=0;
+        for (auto& lane : lanes) {
+            const auto before=lane->windowVisits();
+            lane->setPinnedClipId("c-0-199");
+            visits+=lane->windowVisits()-before;
+        }
+        QVERIFY2(visits<1500,qPrintable(QString::number(visits)));
+        const auto untouched=lanes[1]->rebuildCount();
+        auto clip=doc.findClip("c-0-0")->raw;
+        clip.insert("name","renamed");
+        const auto indexBefore=doc.trackIndexVisits();
+        QVERIFY(doc.patchClips({clip}));
+        QVERIFY(doc.trackIndexVisits()-indexBefore<=200);
+        QCOMPARE(lanes[1]->rebuildCount(),untouched);
+        auto clips=doc.clipsJson();
+        auto added=doc.findClip("c-0-0")->raw; added["id"]="added";
+        clips.append(added);
+        QVERIFY(doc.replaceClips(clips));
+        QCOMPARE(lanes[1]->rebuildCount(),untouched);
+        qInfo()<<"PERF2 lane index visits"<<doc.trackIndexVisits()<<"pin window visits"<<visits;
+    }
+
+    void perf2ForeignEditReleasesIndexedSnapshot() {
+        TimelineModel doc; doc.setTimeline(makeTimeline({2,200}));
+        LaneClipModel lane; lane.setTrackId("track-1"); lane.setTimeline(&doc);
+        const std::weak_ptr<const nt::Timeline> before=doc.snapshot();
+        auto clip=doc.findClip("c-0-0")->raw; clip["name"]="foreign edit";
+        QVERIFY(doc.patchClips({clip}));
+        QVERIFY(before.expired());
+        const auto* empty=&doc.trackClipIndices("missing-0");
+        for (int i=1;i<10000;++i) { QCOMPARE(&doc.trackClipIndices(QString("missing-%1").arg(i)),empty); }
+        QCOMPARE(lane.clipIds().front(),QString("c-1-0"));
+    }
+
+    void perf2EffectQueriesAreBounded() {
+        TimelineModel doc;
+        doc.setTimeline(makeTimeline({64,200}));
+        const auto before=doc.clipQueryVisits();
+        for (int i=0;i<120;++i) {
+            const auto clip=doc.clipAt("track-32",5000);
+            QVERIFY(!clip.isEmpty());
+        }
+        const auto visits=doc.clipQueryVisits()-before;
+        QVERIFY2(visits<2000,qPrintable(QString::number(visits)));
+        QCOMPARE(doc.trackIndexVisits(),12800);
+        const auto reads=doc.effectClipReads();
+        QCOMPARE(doc.effectClips({"c-0-0","c-63-199"}).size(),2);
+        QCOMPARE(doc.effectClipReads()-reads,2);
+        qInfo()<<"PERF2 effect hit-test visits / 120 queries"<<visits;
+        const auto selected=doc.effectClips({"c-63-199","c-0-0","c-0-0"});
+        QCOMPARE(selected.size(),2);
+        QCOMPARE(selected.front().toMap().value("id").toString(),QString("c-0-0"));
+        QVERIFY(doc.clipAt("track-32",5800).isEmpty());
     }
 
     // F7: a lane model follows a replaced document without being recreated.
@@ -2176,12 +3093,13 @@ private slots:
             lanes.insert(lane->objectName().mid(10), lane->property("clipModel").value<LaneClipModel*>());
         QVERIFY(lanes.size() >= 6);
         QMap<QString, int> signalCount;
+        QObject connections;
         for (auto it = lanes.begin(); it != lanes.end(); ++it) {
             const QString id = it.key();
-            connect(it.value(), &QAbstractItemModel::rowsInserted, this, [&signalCount, id]() { ++signalCount[id]; });
-            connect(it.value(), &QAbstractItemModel::rowsRemoved, this, [&signalCount, id]() { ++signalCount[id]; });
-            connect(it.value(), &QAbstractItemModel::rowsMoved, this, [&signalCount, id]() { ++signalCount[id]; });
-            connect(it.value(), &QAbstractItemModel::dataChanged, this, [&signalCount, id]() { ++signalCount[id]; });
+            connect(it.value(), &QAbstractItemModel::rowsInserted, &connections, [&signalCount, id]() { ++signalCount[id]; });
+            connect(it.value(), &QAbstractItemModel::rowsRemoved, &connections, [&signalCount, id]() { ++signalCount[id]; });
+            connect(it.value(), &QAbstractItemModel::rowsMoved, &connections, [&signalCount, id]() { ++signalCount[id]; });
+            connect(it.value(), &QAbstractItemModel::dataChanged, &connections, [&signalCount, id]() { ++signalCount[id]; });
         }
         QList<QPointer<QQuickItem>> otherClips;
         for (QQuickItem* c : itemsNamed(QStringLiteral("clip-c-")))
@@ -2668,7 +3586,10 @@ private slots:
         // Next and previous marker.
         key(Qt::Key_M, Qt::ShiftModifier, "M");
         QCOMPARE(clock->time(), 6000.0);
+        // Qt Meta is physical Ctrl on macOS, which KEY1 deliberately ignores.
         key(Qt::Key_M, Qt::ShiftModifier | Qt::MetaModifier, "M");
+        QCOMPARE(clock->time(), 6000.0);
+        key(Qt::Key_M, Qt::ShiftModifier | Qt::ControlModifier, "M");
         QCOMPARE(clock->time(), 2500.0);
         // Delete through the ruler, then undo it and the adds.
         auto* rulerItem = region->findChild<QQuickItem*>(QStringLiteral("timeRuler"));
@@ -2743,6 +3664,8 @@ private slots:
         QCOMPARE(vs->rangeInMs(), -1.0);
         QCOMPARE(vs->rangeOutMs(), 2000.0);
         key(Qt::Key_X, Qt::ShiftModifier | Qt::MetaModifier, "X");
+        QCOMPARE(vs->rangeOutMs(), 2000.0);
+        key(Qt::Key_X, Qt::ShiftModifier | Qt::ControlModifier, "X");
         QCOMPARE(vs->rangeOutMs(), -1.0);
         QCOMPARE(model->undoStack()->count(), 0);  // the range is view state
     }
@@ -2787,7 +3710,8 @@ private slots:
         QCOMPARE(combos(cut), (QList<QStringList>{{"C"}}));
         int rows = 0;
         for (const QVariant& gv : groups) rows += gv.toMap().value("rows").toList().size();
-        QCOMPARE(rows, 177);
+        // 177, plus the music Range tool and the seventh workspace (Music).
+        QCOMPARE(rows, 179);
         if (qEnvironmentVariableIsSet("NT_SHOT_DIR")) {
             view->resize(1600, 1000);
             sheetItem->setSize(region->size());
@@ -3089,7 +4013,11 @@ private slots:
     // account servers. The account here has a temporary data folder, a
     // keychain in memory and cloud features turned off, so it reaches no
     // server.
-    void documentBarHostsTheAccountControl() {
+    // Cloud sign-in is opt-in (ACC1). The document bar shows no account
+    // control, a fresh account is signed out, so the timeline works on this
+    // computer, and File holds the account entries, which drive the bar's
+    // hidden account host.
+    void documentBarKeepsCloudSignInInTheFileMenu() {
         load({2, 2});
         QTemporaryDir data;
         nodetool::account::qt::AccountServers servers(
@@ -3099,7 +4027,6 @@ private slots:
                 services.serverOrigin = origin;
                 services.app = "timeline";
                 services.store = std::make_unique<nodetool::account::MemorySecretStore>();
-                services.policy = [] { return nodetool::account::parsePolicyJson("{\"CloudEnabled\": false}"); };
                 return services;
             });
         QQmlComponent harness(view->engine());
@@ -3116,14 +4043,94 @@ private slots:
             collect(rootItem, [&](QQuickItem* it) { if (!found && it->objectName() == name) found = it; });
             return found;
         };
-        QVERIFY(!find("documentAccount")->property("active").toBool());
+        const auto visibleAccountControls = [&] {
+            QStringList names;
+            collect(rootItem, [&](QQuickItem* it) {
+                if (it->objectName().startsWith(QStringLiteral("account-")) && it->isVisible() && it->width() > 0)
+                    names << it->objectName();
+            });
+            return names;
+        };
+        auto* host = find("documentAccount");
+        QVERIFY(host);
+        QVERIFY(!host->property("available").toBool());
+        QVERIFY(visibleAccountControls().isEmpty());
+
         root->setProperty("servers", QVariant::fromValue(&servers));
-        QTRY_VERIFY(find("account-sign-in") && find("account-sign-in")->isVisible());
-        QVERIFY(!find("account-sign-in")->property("enabled").toBool());
-        QTRY_COMPARE(find("account-status")->property("text").toString(),
-                     QStringLiteral("Cloud features are turned off on this computer"));
+        QTRY_VERIFY(host->property("available").toBool());
+        // A fresh state is local: signed out, with no cloud control in the bar.
+        QVERIFY(!host->property("signedIn").toBool());
+        QVERIFY(!host->property("signingIn").toBool());
+        QCOMPARE(host->width(), 0.0);
+        QTRY_VERIFY(find("account-server-button") != nullptr);
+        QVERIFY2(visibleAccountControls().isEmpty(), qPrintable(visibleAccountControls().join(", ")));
+        QVERIFY(!find("shareButton")->isVisible());
+        QVERIFY(!find("documentCloudStatus")->isVisible());
+
+        // File holds the entries, and they reach the host.
+        QStringList actions;
+        for (const auto& entry : nt::app::shellMenuEntries(QStringLiteral("File")))
+            if (entry.group == QStringLiteral("account")) actions << entry.action;
+        QCOMPARE(actions, (QStringList{"accountSignIn", "accountOtherServer", "accountSwitchServer", "shareTimeline"}));
+        const QVariantMap context{{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(controller())}};
+        const auto entry = [](const QString& action) {
+            for (const auto& e : nt::app::shellMenuEntries())
+                if (e.action == action) return e;
+            return nt::app::ShellMenuEntry{};
+        };
+        QCOMPARE(nt::app::shellEntryLabel(entry("accountSignIn"), context), QStringLiteral("Sign In to NodeTool Cloud…"));
+        QVERIFY(entry("accountOtherServer").enabled(context));
+        QVERIFY(!entry("accountSwitchServer").enabled(context));
+        QVERIFY(!entry("shareTimeline").enabled(context));
+        QVERIFY(entry("accountOtherServer").run(context));
+        auto* dialog = root->findChild<QObject*>(QStringLiteral("account-server-dialog"));
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("visible").toBool());
     }
 
+    void acc1Shots() {
+        const QString dir = qEnvironmentVariable("ACC1_SHOTS");
+        if (dir.isEmpty()) QSKIP("ACC1_SHOTS unset");
+        load({2, 2});
+        QTemporaryDir data;
+        nodetool::account::qt::AccountServers servers(
+            data.path().toStdString(), "https://nt.example", [&data](const std::string& origin) {
+                nodetool::account::qt::AccountServices services;
+                services.dataDir = data.path().toStdString();
+                services.serverOrigin = origin;
+                services.app = "timeline";
+                services.store = std::make_unique<nodetool::account::MemorySecretStore>();
+                return services;
+            });
+        const auto grab = [&](const QString& barUrl, const QString& file) {
+            QQmlComponent harness(view->engine());
+            harness.setData(("import QtQuick\nimport NodeTool.Timeline\nimport \"" + barUrl + "\" as B\n"
+                             "Rectangle { width: 1200; height: 40; color: \"black\"; property TimelineModel model; property AccountServers servers: null;"
+                             " B.Bar { width: 1200; timeline: parent.model; accountServers: parent.servers } }").toUtf8(),
+                            QUrl());
+            std::unique_ptr<QObject> root(harness.createWithInitialProperties(
+                {{"model", QVariant::fromValue(model)}, {"servers", QVariant::fromValue(&servers)}}));
+            QVERIFY2(root, qPrintable(harness.errorString()));
+            auto* item = qobject_cast<QQuickItem*>(root.get());
+            item->setParentItem(view->contentItem());
+            item->setZ(1000);
+            QTest::qWait(400);
+            const auto result = item->grabToImage();
+            QVERIFY(result);
+            QSignalSpy ready(result.data(), &QQuickItemGrabResult::ready);
+            QVERIFY(ready.wait(5000));
+            QVERIFY(result->image().save(dir + "/" + file));
+        };
+        grab(QUrl::fromLocalFile(dir + "/../acc1-before").toString(), "documentbar-before.png");
+        grab(QUrl::fromLocalFile(dir + "/../acc1-after").toString(), "documentbar-after.png");
+        // The File menu, as the shell lists it while signed out.
+        QFile listing(dir + "/timeline-file-menu-account-entries.txt");
+        QVERIFY(listing.open(QIODevice::WriteOnly));
+        const QVariantMap context{{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(controller())}};
+        for (const auto& entry : nt::app::shellMenuEntries(QStringLiteral("File")))
+            listing.write((entry.group + "  " + nt::app::shellEntryLabel(entry, context)
+                           + ((entry.enabled && !entry.enabled(context)) ? "  (disabled)" : "") + "\n").toUtf8());
+    }
 
     // A cloud timeline shows its synchronization status in place of the
     // server save status.
@@ -3172,6 +4179,48 @@ private slots:
         QCOMPARE(withRate.value("fps").toInt(), 24);
     }
 
+    void cloudManualSaveRejectsTrackEffectPreview() {
+        CloudSaverRig rig;
+        TimelineModel model;
+        model.setTimeline(makeTimeline({1, 2}));
+        nt::account::CloudTimelineSaver saver(model, rig.session, rig.options());
+        QTRY_VERIFY(!model.readOnly());
+        const auto committed = model.timeline().raw.value("tracks").toArray();
+        auto track = committed[0].toObject();
+        track.insert("effects", QJsonArray{QJsonObject{{"id", "preview"}, {"type", "gain"}}});
+        QVERIFY(model.previewTrackEffects(QJsonArray{track}));
+        const auto result = saver.saveDocument();
+        QVERIFY(!result.ok);
+        QVERIFY(!result.error.isEmpty());
+        QVERIFY(model.previewTrackEffects(committed));
+        QVERIFY(saver.saveDocument().ok);
+    }
+
+    void cloudManualSaveClearsARecoveredWriteError() {
+        CloudSaverRig rig;
+        TimelineModel model;
+        model.setTimeline(makeTimeline({1, 2}));
+        nt::account::CloudTimelineSaver saver(model, rig.session, rig.options());
+        QTRY_VERIFY(!model.readOnly());
+        rig.drafts.rejectWrites = true;
+        QVERIFY(model.applyEdit("setProjectSettings", QJsonObject{{"fps", 24}, {"width", 1920}, {"height", 1080}}));
+        QVERIFY(!saver.saveDocument().ok);
+        QVERIFY(!saver.error().isEmpty());
+        rig.drafts.rejectWrites = false;
+        QVERIFY(saver.saveDocument().ok);
+        QVERIFY(saver.error().isEmpty());
+    }
+
+    void cloudManualSaveRejectsAnEmptyDocument() {
+        CloudSaverRig rig;
+        TimelineModel model;
+        model.setTimeline(makeTimeline({1, 2}));
+        nt::account::CloudTimelineSaver saver(model, rig.session, rig.options());
+        QTRY_VERIFY(!model.readOnly());
+        model.close();
+        QVERIFY(!saver.saveDocument().ok);
+    }
+
     // Review F1: every change of the undo stack reaches the cloud document,
     // through the saver itself: a settings-only change, an undo and a redo.
     // The last one is in the local drafts when the window goes.
@@ -3194,6 +4243,13 @@ private slots:
         model.undoStack()->redo();
         QCOMPARE(fpsOf(document->content()), 24);
 
+        // Manual Save persists the last edit without waiting for the draft tick.
+        QVERIFY(saver->saveDocument().ok);
+        const auto savedRows = rig.drafts.list({}, {}).drafts;
+        QCOMPARE(savedRows.size(), std::size_t(1));
+        QCOMPARE(fpsOf(QString::fromStdString(savedRows[0].draft)), 24);
+        model.setReadOnly(true);
+        QVERIFY(!saver->saveDocument().ok);
         // Closing right after the change keeps it on this computer.
         saver.reset();
         const auto rows = rig.drafts.list({}, {}).drafts;
@@ -3340,7 +4396,7 @@ private slots:
         for (const QVariant& gv : webShortcutGroups(sheet))
             for (const QVariant& rv : gv.toMap().value("rows").toList())
                 available.insert(rv.toMap().value("id").toString(), rv.toMap().value("available").toBool());
-        QCOMPARE(available.size(), 177);
+        QCOMPARE(available.size(), 179);
         for (const char* yes : {"markClip", "cutTool", "markIn", "addMarker", "splitAtPlayhead", "undo", "playPause",
                                 "rollCut", "insertOnDrop", "disableSnapping", "toggleLoop", "playInToOut", "copy", "groupClips",
                                 "matchFrame", "selectEditPoint", "toggleScrubAudio"})
@@ -3404,7 +4460,7 @@ private slots:
             // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             undo.push(new Bump(&value));
             const nt::server::SaveResult r = saver.saveNow();
-            QVERIFY(r.ok && r.keptCopy.isEmpty() && !r.recoveryError.isEmpty());
+            QVERIFY(!r.ok && r.keptCopy.isEmpty() && !r.recoveryError.isEmpty());  // No complete copy exists, so the save fails.
             auto root = banners(&saver);
             frame();
             QVERIFY(visible(root.get(), "strippedBanner"));
@@ -3438,7 +4494,7 @@ private slots:
             undo.push(new Bump(&value));
             QVERIFY(docFn() != firstDoc);
             QVERIFY(QDir(backup).mkpath(QStringLiteral("ui.stripped.json")));
-            QVERIFY(saver.saveNow().ok);
+            QVERIFY(!saver.saveNow().ok);  // The strip copy is blocked, so no complete copy exists.
             frame();
             QVERIFY(visible(root.get(), "strippedBanner"));
             const QString detail = text(root.get(), "strippedBanner", "alertDetail");
@@ -3678,6 +4734,9 @@ private slots:
     // runs in a child process on the platform QRhi through
     // QQuickRenderControl (Metal on macOS): no window is created.
     void filmstripTexturesSurviveASceneGraphInvalidation() {
+        if (qEnvironmentVariableIsSet("NT_TRACKSUI_OFFSCREEN_SUITE")) {
+            QSKIP("Platform QRhi coverage runs separately as tst_tracksui_scenegraph (window label)");
+        }
         if (!qEnvironmentVariableIsSet("NT_TRACKSUI_RHI")) {
             QProcess child;
             QProcessEnvironment env = QProcessEnvironment::systemEnvironment();

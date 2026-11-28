@@ -52,6 +52,9 @@ QJsonObject saveContent(const QJsonObject& raw) {
 bool transient(const QueryResult& r) {
     if (r.error.code == u"WRONG_SERVER") return false;  // never written, never retried
     const int status = r.error.httpStatus;
+    if (status >= 400 && status < 500) {
+        return status == 408 || status == 429;
+    }
     return r.error.code == u"NETWORK" || r.error.code == u"TIMEOUT" || r.error.code == u"TOO_MANY_REQUESTS" ||
            r.error.code == u"INTERNAL_SERVER_ERROR" || status == 0 || status == 429 || status >= 500;
 }
@@ -545,7 +548,15 @@ void AutosaveController::clearLocalCopyIfClean() {
     }
 }
 
-QByteArray AutosaveController::currentHash() const { return contentHash(saveContent(m_document())); }
+QByteArray AutosaveController::currentHash() const {
+    const auto document = m_document();
+    if (m_currentHash.isEmpty() || document != m_hashDocument) {
+        m_hashDocument = document;
+        m_currentHash = contentHash(saveContent(document));
+        emit contentHashed();
+    }
+    return m_currentHash;
+}
 
 bool AutosaveController::dirty() const { return currentHash() != m_ackHash; }
 
@@ -849,6 +860,18 @@ void AutosaveController::removeCopy(const QString& suffix) const {
 
 SaveResult AutosaveController::saveNow() { return save(*m_client); }
 
+SaveDocumentResult AutosaveController::saveDocument() {
+    m_timer.stop();
+    m_retry.stop();
+    const auto result = saveNow();
+    QString error = result.error;
+    if (!result.ok && !result.recoveryError.isEmpty()) {
+        if (!error.isEmpty()) error += QStringLiteral("; ");
+        error += result.recoveryError;
+    }
+    return {.ok = result.ok, .error = error, .conflict = result.conflict};
+}
+
 SaveResult AutosaveController::keepConflictCopy() {
     SaveResult result;
     result.conflict = true;
@@ -929,6 +952,7 @@ SaveResult AutosaveController::save(ServerClient& client) {
             stripCopyWritten = !result.keptCopy.isEmpty();
             if (!stripCopyWritten) result.keptCopy = previousCopy;
             result.recoveryError = why;
+            result.ok = !result.keptCopy.isEmpty();
             m_keptCopy = result.keptCopy;
             m_copyHash = contentHash(current);
             m_recoveryError = why;

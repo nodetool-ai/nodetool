@@ -706,10 +706,37 @@ export function toolPurpose(description: string): string {
 }
 
 /**
+ * Maximum unranked tools listed by name inside a focused turn block before
+ * switching to fixed tool groups backed by `nodetool.searchTools()` (D105).
+ */
+const FOCUSED_NAMED_LIST_LIMIT = 35;
+
+/**
+ * Fixed tool-group directory for large focused editors (D105). Listing groups
+ * instead of every tool name keeps the turn block constant in size as new
+ * tools are added, while telling the model what topics to query with
+ * `nodetool.searchTools()`.
+ */
+const FOCUSED_TOOL_GROUPS: Readonly<Record<string, readonly string[]>> = {
+  ui_timeline_: [
+    "- tracks & mixer: track settings, volume, pan, master bus, insert effects, folders, automation",
+    "- clips & sections: media, shape, group, loop, join, ripple delete, gaps, insert/delete/duplicate/paste time",
+    "- visuals & motion: effects, transitions, masks, mattes, time remap, 3D clips, stagger, clear animations",
+    "- reframe & tracking: retarget format, subject tracking, reframe keyframes, object tracks",
+    "- midi & instruments: midi clips, notes, controllers, tempo, key, instruments, transpose, quantize, velocity",
+    "- chords & harmony: chord track, progressions, chord detection, arp/comp harmony, fit notes to chords",
+    "- step sequencer: pattern regions, rows, steps, pattern text, rotate, transpose, randomize, pattern library, MIDI conversion",
+    "- markers, takes & setup: markers, beat snapping, transcript cuts, takes, generation, guided beats, seek, select"
+  ]
+};
+
+/**
  * A focused document's tools for the turn block, with no signatures: per
  * import specifier the import pattern, then one line per tool in the usage
- * table ({@link rankFocusedTools}) with its purpose, then the other names. The
- * output depends only on the set of tools, never on the order they arrive in.
+ * table ({@link rankFocusedTools}) with its purpose, then either the other
+ * names or (when a surface exceeds {@link FOCUSED_NAMED_LIST_LIMIT}) fixed
+ * tool groups pointing to `nodetool.searchTools()`. The output depends only on
+ * the set of tools, never on the order they arrive in.
  */
 export function renderFocusedToolCatalog(
   tools: readonly ToolSignatureSource[],
@@ -735,9 +762,37 @@ export function renderFocusedToolCatalog(
         )
       ];
       if (named.length > 0) {
-        lines.push(
-          `${described.length > 0 ? "Also" : "Tools"}: ${named.map((t) => t.name).join(", ")}`
-        );
+        const groupedByPrefix = new Map<string, ToolSignatureSource[]>();
+        const remaining: ToolSignatureSource[] = [];
+        for (const t of named) {
+          const match = /^(ui_[a-z0-9]+_)/.exec(t.name);
+          const prefix = match?.[1];
+          if (prefix && FOCUSED_TOOL_GROUPS[prefix]) {
+            const bucket = groupedByPrefix.get(prefix);
+            if (bucket) bucket.push(t);
+            else groupedByPrefix.set(prefix, [t]);
+          } else {
+            remaining.push(t);
+          }
+        }
+        for (const [prefix, bucket] of [...groupedByPrefix.entries()].sort(([a], [b]) =>
+          a.localeCompare(b)
+        )) {
+          if (bucket.length > FOCUSED_NAMED_LIST_LIMIT) {
+            lines.push(
+              `More \`${prefix}*\` tools by group — call \`await nodetool.searchTools("+${prefix} <topic>")\` for the full list:`,
+              ...FOCUSED_TOOL_GROUPS[prefix]!
+            );
+          } else {
+            remaining.push(...bucket);
+          }
+        }
+        if (remaining.length > 0) {
+          remaining.sort((a, b) => a.name.localeCompare(b.name));
+          lines.push(
+            `${described.length > 0 ? "Also" : "Tools"}: ${remaining.map((t) => t.name).join(", ")}`
+          );
+        }
       }
       return lines.join("\n");
     })

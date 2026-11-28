@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -5,6 +6,7 @@ import "CurveMath.js" as MathFx
 Rectangle {
     id: graph
     objectName: "compressor-curve-" + effect.id
+    // JSON data from the document, controller, or shared JavaScript API.
     required property var effect
     property bool disabled: false
     signal preview(var patch)

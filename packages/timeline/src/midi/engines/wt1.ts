@@ -29,6 +29,24 @@ export interface WavetableVoiceEvent {
   velocity: number;
   startFrame: number;
   gateOffFrame: number;
+  expression?: {
+    pitch?: ReadonlyArray<{ frame: number; value: number }>;
+  };
+}
+
+function stepTrackAt(
+  points: ReadonlyArray<{ frame: number; value: number }> | undefined,
+  frame: number
+): number {
+  if (!points || points.length === 0 || frame < points[0]!.frame) return 0;
+  let lo = 0;
+  let hi = points.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (points[mid]!.frame <= frame) lo = mid;
+    else hi = mid - 1;
+  }
+  return points[lo]!.value;
 }
 
 function makeOsc(
@@ -61,7 +79,8 @@ export function renderWavetableVoice(
   out: Float32Array,
   event: WavetableVoiceEvent,
   instrument: WavetableMidiInstrument,
-  sampleRate: number
+  sampleRate: number,
+  pitchBendSemitones?: ReadonlyArray<{ frame: number; value: number }>
 ): boolean {
   const startFrame = Math.max(0, event.startFrame);
   if (startFrame >= out.length) return false;
@@ -82,10 +101,13 @@ export function renderWavetableVoice(
         )
       : null;
 
-  const hzA = pitchHz(oscPitch(instrument.oscA, event.pitch));
-  const hzB = pitchHz(oscPitch(instrument.oscB, event.pitch));
-  const subHz = pitchHz(event.pitch + 12 * instrument.subOctave);
-  const subInc = subHz / sampleRate;
+  const exprPitch = event.expression?.pitch;
+  const exprBase = exprPitch && exprPitch.length > 0 ? exprPitch[0]!.value : 0;
+  const hasBend = Boolean(pitchBendSemitones && pitchBendSemitones.length > 0);
+  const basePitch = event.pitch + exprBase;
+  const baseHzA = pitchHz(oscPitch(instrument.oscA, basePitch));
+  const baseHzB = pitchHz(oscPitch(instrument.oscB, basePitch));
+  const baseSubInc = pitchHz(basePitch + 12 * instrument.subOctave) / sampleRate;
   let subPhase = 0;
 
   // Velocity shapes the level the way the plugin does — squared, with a floor
@@ -102,6 +124,13 @@ export function renderWavetableVoice(
     const level = ampEnv.step(frame < event.gateOffFrame);
     if (ampEnv.stage === "done") return false;
     const mod = modEnv.step(frame < event.gateOffFrame);
+
+    const bendRatio = hasBend
+      ? Math.pow(2, stepTrackAt(pitchBendSemitones, frame) / 12)
+      : 1;
+    const hzA = baseHzA * bendRatio;
+    const hzB = baseHzB * bendRatio;
+    const subInc = baseSubInc * bendRatio;
 
     let sample = 0;
     if (oscA) {

@@ -5,7 +5,7 @@
 namespace nt::automation {
 namespace {
 std::optional<QJsonObject> clipAutomationAnimation(const Track& track, const Clip& clip) {
-    if ((track.type != TrackType::Video && track.type != TrackType::Overlay) ||
+    if (track.raw["automationMode"] == "off" || (track.type != TrackType::Video && track.type != TrackType::Overlay) ||
         clip.mediaType == MediaType::Group || clip.mediaType == MediaType::Audio ||
         clip.mediaType == MediaType::Midi || clip.durationMs <= 0) {
         return {};

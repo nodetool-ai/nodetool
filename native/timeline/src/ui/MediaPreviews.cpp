@@ -16,6 +16,9 @@
 #include <QPointer>
 #include <QSGFlatColorMaterial>
 #include <QSGGeometryNode>
+#include <QImage>
+#include <QSGRendererInterface>
+#include <QSGImageNode>
 #include <QSGOpacityNode>
 #include <QSGSimpleTextureNode>
 #include <QQuickWindow>
@@ -502,10 +505,12 @@ std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int cou
     FormatPtr format;
     CodecPtr codec;
     int stream = -1;
-    if (count <= 0 || !openStream(path, AVMEDIA_TYPE_AUDIO, format, codec, stream, guard, openTimeoutMs, io)) return nullptr;
+    const bool autoCount = count == AUTO_PEAK_COUNT;
+    if ((!autoCount && count <= 0) || !openStream(path, AVMEDIA_TYPE_AUDIO, format, codec, stream, guard, openTimeoutMs, io)) return nullptr;
     const int sampleRate = codec->sample_rate;
     if (sampleRate <= 0) return nullptr;
     const double durationSec = format->duration > 0 ? double(format->duration) / AV_TIME_BASE : -1;
+    if (autoCount) count = durationSec > 0 ? finePeakCount(durationSec * 1000.0) : FULL_ASSET_PEAK_COUNT;
     const long long blockSamples =
         durationSec > 0 ? std::max<long long>(1, static_cast<long long>(std::floor(durationSec * sampleRate /
                                                                                    (double(count) * BLOCKS_PER_PEAK))))
@@ -616,6 +621,7 @@ std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int cou
         }
         result->peaks[static_cast<size_t>(i)] = static_cast<float>(std::round(double(max) * 10000.0) / 10000.0);
     }
+    if (autoCount) result->coarse = reducePeakLevels(result->peaks, result->durationMs);
     return result;
 }
 
@@ -756,6 +762,22 @@ float samplePeakAt(const std::vector<float>& fullPeaks, double sourceDurationMs,
         if (fullPeaks[static_cast<size_t>(j)] > max) max = fullPeaks[static_cast<size_t>(j)];
     }
     return max;
+}
+
+float sampleLoopPeakAt(const std::vector<float>& peaks, double sourceDurationMs, double inPointMs,
+                       double outPointMs, double repeatSourceMs, int peakCount, int index) {
+    if (!(repeatSourceMs > 0) || !std::isfinite(repeatSourceMs)) {
+        return samplePeakAt(peaks, sourceDurationMs, inPointMs, outPointMs, peakCount, index);
+    }
+    if (peakCount <= 0) { return 0; }
+    const double span = std::max(0.0, outPointMs - inPointMs) / peakCount;
+    if (span >= repeatSourceMs) {
+        return samplePeakAt(peaks, sourceDurationMs, inPointMs, inPointMs + repeatSourceMs, 1, 0);
+    }
+    const double phase = std::fmod(span * index, repeatSourceMs);
+    const double first = std::min(span, repeatSourceMs - phase);
+    const float a = samplePeakAt(peaks, sourceDurationMs, inPointMs + phase, inPointMs + phase + first, 1, 0);
+    return span > first ? std::max(a, samplePeakAt(peaks, sourceDurationMs, inPointMs, inPointMs + span - first, 1, 0)) : a;
 }
 
 std::vector<float> samplePeaksWindow(const std::vector<float>& fullPeaks, double sourceDurationMs, double inPointMs,
@@ -916,7 +938,7 @@ void MediaPreviewCache::start(const QString& key, const QString& path, const QSt
         if (!job->cancel) {
             if (QThread::currentThread() == qApp->thread() && self) ++self->m_guiThreadDecodes;
             if (job->kind == u"peaks") {
-                peaks = computeAudioPeaks(job->path, FULL_ASSET_PEAK_COUNT, &job->cancel, job->openTimeoutMs);
+                peaks = computeAudioPeaks(job->path, AUTO_PEAK_COUNT, &job->cancel, job->openTimeoutMs);
             } else {
                 const ThumbnailDiskCache disk(job->diskDirectory);
                 thumbs = disk.load(job->diskKey);
@@ -1278,6 +1300,13 @@ void WaveformItem::setColor(const QColor& c) {
     invalidate();
 }
 
+void WaveformItem::setRepeatSourceMs(double value) {
+    if (m_repeatSourceMs == value) { return; }
+    m_repeatSourceMs = value;
+    emit changed();
+    invalidate();
+}
+
 std::vector<QRectF> WaveformItem::computeBars(Span span) const {
     std::vector<QRectF> bars;
     if (!m_peaks || m_peaks->durationMs <= 0 || span.to <= span.from) return bars;
@@ -1286,8 +1315,9 @@ std::vector<QRectF> WaveformItem::computeBars(Span span) const {
     // The visible window: [in, out] cut to the source; past the source end
     // is empty space, not a stretched waveform.
     const double dur = m_peaks->durationMs;
-    const double visibleIn = std::max(0.0, std::min(dur, m_in));
-    const double visibleOut = std::max(visibleIn, std::min(dur, m_out));
+    const bool looping = m_repeatSourceMs > 0 && std::isfinite(m_repeatSourceMs);
+    const double visibleIn = looping ? m_in : std::max(0.0, std::min(dur, m_in));
+    const double visibleOut = looping ? m_out : std::max(visibleIn, std::min(dur, m_out));
     const double clipSpan = std::max(1.0, m_out - m_in);
     const double visibleWidth = cssWidth * ((visibleOut - visibleIn) / clipSpan);
     if (visibleWidth <= 0) return bars;
@@ -1298,8 +1328,13 @@ std::vector<QRectF> WaveformItem::computeBars(Span span) const {
     const int first = std::max(0, static_cast<int>(std::floor(span.from / visibleWidth * count)) - 1);
     const int last = std::min(count, static_cast<int>(std::ceil(span.to / visibleWidth * count)) + 1);
     bars.reserve(static_cast<size_t>(std::max(0, last - first)));
+    // A long take at a wide zoom draws from a coarse level (AU-7).
+    const double sampledOut = looping ? visibleIn + m_repeatSourceMs : visibleOut;
+    const auto& levelPeaks = m_peaks->level(nt::ui::choosePeakLevel(*m_peaks, visibleIn, sampledOut, count));
+    const bool wholeWindow = looping && (visibleOut - visibleIn) / count >= m_repeatSourceMs;
+    const float windowPeak = wholeWindow ? nt::ui::sampleLoopPeakAt(levelPeaks, dur, visibleIn, visibleOut, m_repeatSourceMs, count, 0) : 0;
     for (int i = first; i < last; ++i) {
-        const float peak = nt::ui::samplePeakAt(m_peaks->peaks, dur, visibleIn, visibleOut, count, i);
+        const float peak = wholeWindow ? windowPeak : nt::ui::sampleLoopPeakAt(levelPeaks, dur, visibleIn, visibleOut, m_repeatSourceMs, count, i);
         const double h = std::max(1.0, peak * (cssHeight - 2));
         bars.emplace_back(double(i) / count * visibleWidth, mid - h / 2, w, h);
     }
@@ -1320,6 +1355,13 @@ QSGNode* WaveformItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     m_drawn = drawSpan();
     m_bars = computeBars(m_drawn);
     m_barCount = static_cast<int>(m_bars.size());
+    // The software scene graph (offscreen tests and shots) draws no custom
+    // geometry, so there the bars are painted into an image of the drawn span.
+    if (window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
+        QSGNode* result = softwareBars(old);
+        QMetaObject::invokeMethod(this, &WaveformItem::painted, Qt::QueuedConnection);
+        return result;
+    }
     if (!node) {
         // native-rules #2: naked new QSGGeometryNode, scene graph owner not documented
         node = new QSGGeometryNode;
@@ -1350,6 +1392,37 @@ QSGNode* WaveformItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     }
     node->markDirty(QSGNode::DirtyGeometry);
     QMetaObject::invokeMethod(this, &WaveformItem::painted, Qt::QueuedConnection);
+    return node;
+}
+
+QSGNode* WaveformItem::softwareBars(QSGNode* old) {
+    // A layout can give the item a negative width, and std::clamp asserts
+    // when its upper bound is below the lower one.
+    const double w = std::max(0.0, width());
+    const double from = std::clamp(m_drawn.from, 0.0, w);
+    const double to = std::clamp(m_drawn.to, from, w);
+    const QSize size(int(std::ceil(to - from)), int(std::ceil(height())));
+    if (size.isEmpty() || m_bars.empty()) {
+        delete old;  // NOLINT(cppcoreguidelines-owning-memory): updatePaintNode hands the item its old scene graph node
+        return nullptr;
+    }
+    const qreal dpr = window()->effectiveDevicePixelRatio();
+    QImage image(size * dpr, QImage::Format_ARGB32_Premultiplied);
+    image.setDevicePixelRatio(dpr);
+    image.fill(Qt::transparent);
+    {
+        QPainter painter(&image);
+        painter.translate(-from, 0);
+        for (const QRectF& r : m_bars) { painter.fillRect(r, m_color); }
+    }
+    auto* node = static_cast<QSGImageNode*>(old);
+    if (!node) {
+        // The scene graph owns the node; the node owns its texture.
+        node = window()->createImageNode();
+        node->setOwnsTexture(true);
+    }
+    node->setTexture(window()->createTextureFromImage(image, QQuickWindow::TextureHasAlphaChannel));
+    node->setRect(QRectF(from, 0, size.width(), size.height()));
     return node;
 }
 

@@ -914,11 +914,13 @@ export class CodeActExecutor {
       { ok: true; result: ToolSearchHit[] } | { ok: false; error: string }
     > => {
       try {
-        const limit = isFiniteNumber(maxResults)
-          ? Math.max(1, Math.min(25, Math.floor(maxResults)))
-          : 5;
-        const byName = new Map(this.tools.map((t) => [t.name, t]));
         const text = String(query ?? "");
+        const limit = isFiniteNumber(maxResults)
+          ? Math.max(1, Math.min(50, Math.floor(maxResults)))
+          : text.trim().startsWith("+")
+            ? 40
+            : 5;
+        const byName = new Map(this.tools.map((t) => [t.name, t]));
         const detail = toolSearchDetail(text);
         const hits = searchTools(searchCatalog, text, limit).map(
           (entry): ToolSearchHit =>

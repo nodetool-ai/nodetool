@@ -91,7 +91,7 @@ ClipList resolveDropAction(const EditDoc& doc, const TargetingState& state, cons
     }
     if (moved.empty()) { return doc.clips; }
     const auto result = resolveDrop(doc.clips, moved, mode,
-                                    {rippleFrozenTrackIds(doc, state, tracksOf(doc.clips, moved)), locked, true});
+                                    {rippleFrozenTrackIds(doc, state, tracksOf(doc.clips, moved)), locked, true, doc.bpm, doc.gridOffsetMs});
     IdSet surviving;
     for (const auto& c : result) { surviving.insert(clipId(c)); }
     for (const auto& c : doc.clips) {
