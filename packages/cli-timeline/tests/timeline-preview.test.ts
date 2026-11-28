@@ -228,3 +228,24 @@ describe("preview command helpers", () => {
     await expect(readFile(join(dir, "frames-"))).rejects.toThrow();
   });
 });
+
+describe("preview server errors", () => {
+  it("keeps an unexpected error's message out of the response and logs it", async () => {
+    const lines: string[] = [];
+    const started = await startPreviewServer({
+      host: "127.0.0.1", port: 0, scale: 0.5,
+      load: async () => { throw new Error("/home/me/secret.json is not valid JSON"); },
+      render: { frames: async () => new Map(), video: async () => "" },
+      assetPath: async () => null,
+      onLog: (line) => lines.push(line)
+    });
+    try {
+      const response = await fetch(`http://127.0.0.1:${started.port}/api/source`);
+      expect(response.status).toBe(500);
+      expect((await response.json()).error).not.toContain("secret");
+      expect(lines.join("\n")).toContain("/home/me/secret.json");
+    } finally {
+      await started.close();
+    }
+  });
+});

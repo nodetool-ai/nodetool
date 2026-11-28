@@ -326,9 +326,15 @@ export function createPreviewHandler(
       }
       await route(req, res, url);
     } catch (error) {
+      // Only an HttpError's own message reaches the client. Anything else can
+      // carry paths or internals, so it goes to the terminal instead.
       const status = error instanceof HttpError ? error.status : 500;
-      const message = error instanceof Error ? error.message : String(error);
-      if (status === 500) log(`Error on ${url.pathname}: ${message}`);
+      const message = error instanceof HttpError
+        ? error.message
+        : "The preview failed. The terminal running nodetool timeline preview shows the error.";
+      if (!(error instanceof HttpError)) {
+        log(`Error on ${url.pathname}: ${error instanceof Error ? error.message : String(error)}`);
+      }
       if (!res.headersSent) sendJson(res, status, { error: message });
       else res.end();
     }
