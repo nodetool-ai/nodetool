@@ -34,6 +34,10 @@ export const contentDates: {
       "date": "2026-11-21",
       "hash": "2bbb613b0f51816d"
     },
+    "/indian-languages": {
+      "date": "2026-11-28",
+      "hash": "a6a7ad3e0e20ab09"
+    },
     "/developers": {
       "date": "2026-11-09",
       "hash": "f6cbe1983f0825ce"

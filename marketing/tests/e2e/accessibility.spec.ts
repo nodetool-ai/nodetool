@@ -11,6 +11,7 @@ const REPRESENTATIVE_ROUTES = [
   "/ai-image-editor",
   "/ai-video-editor",
   "/mcp",
+  "/indian-languages",
   "/alternatives",
   "/models",
   "/recipes/ugc-product-video",

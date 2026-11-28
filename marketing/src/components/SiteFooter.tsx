@@ -52,6 +52,7 @@ const COLUMNS: Col[] = [
       { name: "AI game engines compared", href: "/gamedev/ai-game-engines" },
       { name: "Local-first", href: "/solutions/local-first" },
       { name: "Researchers", href: "/solutions/researchers" },
+      { name: "Indian languages", href: "/indian-languages" },
       { name: "All solutions", href: "/solutions" },
     ],
   },

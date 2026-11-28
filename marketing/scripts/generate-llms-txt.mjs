@@ -31,6 +31,7 @@ import { recipeEntries } from "../src/data/recipes.ts";
 import * as gamedev from "../src/data/gamedevPage.ts";
 import * as video from "../src/data/videoEditorPage.ts";
 import * as image from "../src/data/imageEditorPage.ts";
+import * as indian from "../src/data/indianLanguagesPage.ts";
 import * as mcp from "../src/data/mcpPage.ts";
 import * as agents from "../src/data/agentsPage.ts";
 import * as marketing from "../src/data/marketingPage.ts";
@@ -77,6 +78,7 @@ const KEY_PAGE_BLURBS = {
   "/marketing": "hand a brief to an agent; campaign assets at volume.",
   "/gamedev": "the open-source 2D and 3D game engine agents build in: tools, editor, export, and limits.",
   "/ai-image-editor": "layered image editing where one generated layer is regenerated without touching the rest.",
+  "/indian-languages": "voiceover in 10 Indian languages and transcription in 22 with Sarvam, SRT captions, dubbing, and 9:16 cuts.",
   "/ai-video-editor": "storyboard, shots, voiced script, and an editable multi-track timeline, built by an agent.",
   "/mcp": "the MCP server for Claude Code, Codex, OpenCode, and Cursor: install, tools, transports, and keys.",
   "/download": "installers for macOS, Windows, and Linux.",
@@ -96,6 +98,7 @@ const KEY_PAGE_LABELS = {
   "/marketing": "For marketing teams",
   "/gamedev": "Game development",
   "/ai-image-editor": "AI image editor",
+  "/indian-languages": "Indian languages",
   "/ai-video-editor": "AI video editor",
   "/mcp": "MCP server",
   "/download": "Download",
@@ -229,6 +232,47 @@ ${faqMarkdown(image.IMAGE_FAQ)}
 ## Read more
 
 ${linksMarkdown(image.IMAGE_LINKS)}`;
+}
+
+/** The /indian-languages page as Markdown, from its data module. */
+function indianMarkdown() {
+  return `${indian.INDIAN_LEAD}
+
+## Voice languages
+
+${indian.VOICE_LANGUAGES.join(", ")}.
+
+## Sarvam voices on your own key
+
+${indian.VOICE_FEATURES.map((f) => `- **${f.title}**: ${f.body}`).join("\n")}
+
+## From script to captioned cut
+
+${indian.FLOW_STEPS.map((s, i) => `${i + 1}. **${s.title}**: ${s.body}`).join("\n")}
+
+## Transcribe 22 Indian languages
+
+${indian.TRANSCRIBE_LANGUAGES.join(", ")}.
+
+## Dubs, translations and vertical cuts
+
+${indian.MORE_JOBS.map((j) => `- **${j.title}**: ${j.body} [${j.linkLabel}](${BASE_URL}${j.href})`).join("\n")}
+
+## What it costs
+
+${indian.COST_POINTS.map((p) => `- ${p}`).join("\n")}
+
+## Good to know
+
+${indian.INDIAN_LIMITS.map((l) => `- ${l}`).join("\n")}
+
+## Questions
+
+${faqMarkdown(indian.INDIAN_FAQ)}
+
+## Read more
+
+${linksMarkdown(indian.INDIAN_LINKS)}`;
 }
 
 /** The /ai-video-editor page as Markdown, from its data module. */
@@ -527,6 +571,11 @@ Read the [MCP setup guide](https://docs.nodetool.ai/mcp-server), the [workflow A
     title: "NodeTool AI Image Editor",
     description: image.IMAGE_DESCRIPTION,
     body: imageMarkdown(),
+  },
+  "indian-languages.md": {
+    title: "AI Voiceover and Captions in Indian Languages",
+    description: indian.INDIAN_DESCRIPTION,
+    body: indianMarkdown(),
   },
   "ai-video-editor.md": {
     title: "NodeTool AI Video Editor",

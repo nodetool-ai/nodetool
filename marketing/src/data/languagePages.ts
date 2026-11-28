@@ -35,7 +35,7 @@ type LinkedBlock = { title: string; body: string; linkLabel: string };
  * user's own key, and the English page each one links to.
  */
 export const DIRECT_PROVIDER_HREFS = {
-  sarvam: "https://docs.nodetool.ai/providers#sarvam-ai",
+  sarvam: "/indian-languages",
   deepseek: "/providers/deepseek",
   alibaba: "/providers/alibaba",
   moonshot: "/providers/moonshot-kimi",

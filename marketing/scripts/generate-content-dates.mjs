@@ -39,6 +39,7 @@ const ROUTE_SOURCES = {
   "/ai-video-editor": ["marketing/src/app/ai-video-editor", "marketing/src/data/videoEditorPage.ts"],
   "/ai-image-editor": ["marketing/src/app/ai-image-editor", "marketing/src/data/imageEditorPage.ts"],
   "/mcp": ["marketing/src/app/mcp", "marketing/src/data/mcpPage.ts"],
+  "/indian-languages": ["marketing/src/app/indian-languages", "marketing/src/data/indianLanguagesPage.ts"],
   "/developers": ["marketing/src/app/developers", "marketing/src/components/developers"],
   "/studio": ["marketing/src/app/studio", "marketing/src/data/studioPage.ts"],
   "/storyboards": ["marketing/src/app/storyboards/page.tsx", "marketing/src/data/storyboards.ts"],
