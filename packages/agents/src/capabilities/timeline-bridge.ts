@@ -325,6 +325,11 @@ export interface TimelineBridgeInitialState {
    */
   renderModel3DReference?: TimelineModel3DReferenceRenderer;
   /**
+   * The `updated_at` of a 3D model asset, so `render_model3d_reference` sees
+   * a set saved in place since its reference was rendered.
+   */
+  model3dAssetRevision?: (assetId: string) => Promise<string | null>;
+  /**
    * Resolve a composition for `ui_timeline_insert_composition`, and report the
    * ids this host offers so a bad one can name the alternatives. Without one
    * the op says this surface has no composition library rather than inventing
@@ -573,6 +578,7 @@ export function createTimelineToolBridge(
   const bakeAnimation = initial.bakeAnimation;
   const bakeModel3DClip = initial.bakeModel3DClip;
   const renderModel3DReference = initial.renderModel3DReference;
+  const model3dAssetRevision = initial.model3dAssetRevision;
   const loadComposition = initial.loadComposition;
   const retargetFormat = initial.retargetFormat;
   const generateTransition = initial.generateTransition;
@@ -1197,6 +1203,7 @@ export function createTimelineToolBridge(
     bakeAnimation,
     bakeModel3DClip,
     renderModel3DReference,
+    model3dAssetRevision,
     loadComposition,
     parseSvgPath,
     sequence: { id: sequenceId, name: sequenceName, projectId },

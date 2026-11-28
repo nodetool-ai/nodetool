@@ -5478,7 +5478,7 @@
           "animationSpeed": "Animaation nopeus",
           "lighting": "Valaistus",
           "lightingPreset": "Valaistuksen esiasetus",
-          "lightIntensity": "Valon voimakkuus",
+          "lightIntensity": "Voimakkuus",
           "transparentBackground": "Läpinäkyvä tausta",
           "backgroundColor": "Taustaväri",
           "bake": "Kiinnitä",
@@ -5506,7 +5506,7 @@
           "applyMove": "Lisää liike",
           "freeCameraHelp": "Esikatselussa: pidä Alt pohjassa ja vedä kiertääksesi, lisää Vaihto siirtääksesi sivulle, vieritä ajaaksesi lähemmäs ja lisää Ctrl vierittäessä vaihtaaksesi objektiivia.",
           "editSet": "Muokkaa lavastetta",
-          "editSetHelp": "Avaa tämän leikkeen 3D-malli mallieditorissa",
+          "editSetHelp": "Avaa tämän leikkeen 3D-malli malliediittorissa. Vapaalla kameralla se avautuu kuvan läpi katsottuna.",
           "moves": {
             "pan": "Panorointi",
             "tilt": "Tilttaus",
@@ -5518,7 +5518,9 @@
             "zoom": "Zoomaus",
             "dollyZoom": "Dolly-zoomaus",
             "dutch": "Kallistettu kuva"
-          }
+          },
+          "cameraDrag": "Vedä kameraa esikatselussa",
+          "cameraDragHelp": "Vedä esikatselussa kiertääksesi, lisää Shift sivuttaisajoa varten, vieritä dollya varten ja pidä Ctrl vierittäessä vaihtaaksesi objektiivia."
         },
         "reframe": {
           "title": "Älykäs uudelleenrajaus",
@@ -19073,7 +19075,9 @@
       "addText": "Lisää teksti",
       "addMidiClip": "Lisää MIDI-leike",
       "addGeneratedClipHere": "Lisää luotu leike tähän…",
-      "closeGap": "Sulje väli"
+      "closeGap": "Sulje väli",
+      "addBlockoutSet": "Lisää blockout-lavastus",
+      "addBlockoutSetFailed": "Blockout-lavastusta ei voitu lisätä: {{error}}"
     },
     "daw": {
       "resizeDock": "Muuta DAW-telakan kokoa"
@@ -21006,7 +21010,8 @@
       "hide": "Piilota referenssi",
       "stale": "Referenssi on vanhentunut",
       "playerLabel": "Blockout-referenssi",
-      "failed": "Referenssin renderöinti epäonnistui"
+      "failed": "Referenssin renderöinti epäonnistui",
+      "otherPass": "Tallennettu viite on {{pass}}-passissa. Renderöi viite tässä passissa, jotta voit käyttää sitä."
     },
     "shot": {
       "label": "Otos",
@@ -21031,7 +21036,8 @@
     },
     "render": {
       "withReference": "Blockoutin referenssivideo lähetetään tälle mallille kehotteen kanssa. Se renderöidään ensin, jos se puuttuu tai on vanhentunut.",
-      "promptOnly": "Tämä malli ei ota vastaan referenssivideota. Harmaata renderöintiä ei lähetetä, ja kameran liike lisätään kehotteeseen tekstinä: {{move}}"
+      "promptOnly": "Tämä malli ei ota vastaan referenssivideota. Harmaata renderöintiä ei lähetetä, ja kameran liike lisätään kehotteeseen tekstinä: {{move}}",
+      "tooLong": "Blockout kestää {{blockout}} s, ja tämä malli tekee enintään {{max}} s:n ottoja. Otto seuraa vain kameraliikkeen alkua. Lyhennä 3D-leike sopivaksi."
     }
   }
 }

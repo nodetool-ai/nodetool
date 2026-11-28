@@ -400,3 +400,52 @@ export const nextAvailableName = (base: string, taken: ReadonlySet<string>): str
   }
   return `${stem}${separator}${counter}`;
 };
+
+/** Objects lower than this, in metres, are floors: anything may stand on them. */
+const FLAT_HEIGHT = 0.05;
+/** Gap left between a new object and the one it is moved clear of, in metres. */
+const SPAWN_GAP = 0.25;
+/** Steps tried before giving up and leaving the object where it is. */
+const SPAWN_ATTEMPTS = 32;
+
+/**
+ * Move a new object along +X until its footprint on the ground no longer
+ * overlaps another top-level object of `root`, so a second box or figure added
+ * at the same spot does not land inside the first. Flat objects such as a
+ * ground plane do not count. `object` must not be in `root` yet.
+ */
+export const moveClearOfOthers = (
+  object: THREE.Object3D,
+  root: THREE.Object3D
+): void => {
+  const others: THREE.Box3[] = [];
+  for (const child of root.children) {
+    if (child === object || !child.visible) {
+      continue;
+    }
+    const box = new THREE.Box3().setFromObject(child);
+    if (box.isEmpty() || box.max.y - box.min.y < FLAT_HEIGHT) {
+      continue;
+    }
+    others.push(box);
+  }
+  if (others.length === 0) {
+    return;
+  }
+  object.updateMatrixWorld(true);
+  for (let attempt = 0; attempt < SPAWN_ATTEMPTS; attempt += 1) {
+    const box = new THREE.Box3().setFromObject(object);
+    const blocking = others.find(
+      (other) =>
+        box.min.x < other.max.x &&
+        box.max.x > other.min.x &&
+        box.min.z < other.max.z &&
+        box.max.z > other.min.z
+    );
+    if (!blocking) {
+      return;
+    }
+    object.position.x += blocking.max.x - box.min.x + SPAWN_GAP;
+    object.updateMatrixWorld(true);
+  }
+};

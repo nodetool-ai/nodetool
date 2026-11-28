@@ -5478,7 +5478,7 @@
           "animationSpeed": "Animationshastighet",
           "lighting": "Belysning",
           "lightingPreset": "Belysning förinställd",
-          "lightIntensity": "Ljusintensitet",
+          "lightIntensity": "Intensitet",
           "transparentBackground": "Transparent bakgrund",
           "backgroundColor": "Bakgrundsfärg",
           "bake": "Baka",
@@ -5506,7 +5506,7 @@
           "applyMove": "Lägg till rörelse",
           "freeCameraHelp": "I förhandsvisningen: håll Alt och dra för att kretsa, lägg till Skift för att åka i sidled, rulla för att åka in och lägg till Ctrl när du rullar för att byta objektiv.",
           "editSet": "Redigera scenografi",
-          "editSetHelp": "Öppna klippets 3D-modell i modellredigeraren",
+          "editSetHelp": "Öppna klippets 3D-modell i modellredigeraren. En fri kamera öppnar den sedd genom bilden.",
           "moves": {
             "pan": "Panorering",
             "tilt": "Tiltning",
@@ -5518,7 +5518,9 @@
             "zoom": "Zoom",
             "dollyZoom": "Dollyzoom",
             "dutch": "Lutad bild"
-          }
+          },
+          "cameraDrag": "Dra kameran i förhandsvisningen",
+          "cameraDragHelp": "I förhandsvisningen drar du för att kretsa, lägger till Skift för att åka i sidled, scrollar för dolly och lägger till Ctrl medan du scrollar för att byta objektiv."
         },
         "reframe": {
           "title": "Smart omramning",
@@ -19073,7 +19075,9 @@
       "addText": "Lägg till text",
       "addMidiClip": "Lägg till MIDI-klipp",
       "addGeneratedClipHere": "Lägg till genererat klipp här...",
-      "closeGap": "Tätt mellanrum"
+      "closeGap": "Tätt mellanrum",
+      "addBlockoutSet": "Lägg till blockout-scen",
+      "addBlockoutSetFailed": "Det gick inte att lägga till blockout-scenen: {{error}}"
     },
     "daw": {
       "resizeDock": "Ändra storlek på DAW-docka"
@@ -21006,7 +21010,8 @@
       "hide": "Dölj referens",
       "stale": "Referensen är inaktuell",
       "playerLabel": "Blockout-referens",
-      "failed": "Renderingen av referensen misslyckades"
+      "failed": "Renderingen av referensen misslyckades",
+      "otherPass": "Den sparade referensen är i {{pass}}. Rendera en i det här passet för att använda det."
     },
     "shot": {
       "label": "Shot",
@@ -21031,7 +21036,8 @@
     },
     "render": {
       "withReference": "Blockoutens referensvideo skickas till den här modellen tillsammans med prompten. Den renderas först om den saknas eller är inaktuell.",
-      "promptOnly": "Den här modellen tar inte emot en referensvideo. Den grå renderingen skickas inte, och kamerarörelsen läggs till i prompten som text: {{move}}"
+      "promptOnly": "Den här modellen tar inte emot en referensvideo. Den grå renderingen skickas inte, och kamerarörelsen läggs till i prompten som text: {{move}}",
+      "tooLong": "Blockouten är {{blockout}} s lång, och den här modellen gör tagningar på högst {{max}} s. Tagningen följer bara början av kamerarörelsen. Korta 3D-klippet så att det ryms."
     }
   }
 }

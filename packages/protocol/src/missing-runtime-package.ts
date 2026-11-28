@@ -17,6 +17,8 @@ export type RuntimePackageId =
   | "manimgx"
   | "sd-cpp"
   | "wan2gp"
+  | "blender"
+  | "chrome"
   | "transformers-js"
   | "node-llama-cpp"
   | "whisper-cpp"
@@ -43,6 +45,8 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   manimgx: "ManimGX",
   "sd-cpp": "stable-diffusion.cpp",
   wan2gp: "Wan2GP",
+  blender: "Blender",
+  chrome: "Chrome (headless renders)",
   "transformers-js": "Transformers.js",
   "node-llama-cpp": "llama.cpp (in-process)",
   "whisper-cpp": "whisper.cpp",
@@ -140,6 +144,12 @@ export function missingRuntimePackageDetails(
   } else if (runtimePackage === "wan2gp") {
     managed = runtimeAdd ?? managed;
     bringYourOwn = "Or set WAN2GP_MCP_URL to the MCP endpoint of a Wan2GP server you run (python wgp.py --mcp --mcp-async --mcp-transport streamable-http).";
+  } else if (runtimePackage === "blender") {
+    managed = runtimeAdd ?? managed;
+    bringYourOwn = "Or install Blender 5.2 or newer from https://www.blender.org/download/ and set BLENDER_PATH to its executable.";
+  } else if (runtimePackage === "chrome") {
+    managed = runtimeAdd ?? managed;
+    bringYourOwn = "Or install Google Chrome, or set CHROME_PATH to a Chrome or Chromium executable.";
   } else if (runtimePackage === "manimgx") {
     managed = runtimeAdd ?? managed;
     bringYourOwn = "Or put manimgx on PATH (uv tool install manimgx).";
@@ -248,6 +258,7 @@ export function runtimePackageForBinary(binary: string): RuntimePackageId | null
     case "yt-dlp": return "yt-dlp";
     case "manimgx": return "manimgx";
     case "sd-server": return "sd-cpp";
+    case "blender": return "blender";
     default: return null;
   }
 }

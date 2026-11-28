@@ -15,6 +15,10 @@ export interface RuntimeLocations {
   readonly sdCpp: string | null;
   /** Where the Wan2GP source and its Python environment are installed. */
   readonly wan2gp: string | null;
+  /** Where the Package Manager unpacks Blender. */
+  readonly blender: string | null;
+  /** Where the Package Manager unpacks Chrome for Testing. */
+  readonly chrome: string | null;
   readonly micromambaRoot: string | null;
   readonly condaEnv: string | null;
 }
@@ -65,7 +69,7 @@ export function runtimeLocations(
   if (!isNodetoolHost(hostValue)) { throw new Error(`Unknown NODETOOL_HOST: ${hostValue}`); }
   const host = hostValue;
   if (host === "docker") {
-    return { host, optionalNodeRoot: null, uvTools: null, sdCpp: null, wan2gp: null, micromambaRoot: null, condaEnv: null };
+    return { host, optionalNodeRoot: null, uvTools: null, sdCpp: null, wan2gp: null, blender: null, chrome: null, micromambaRoot: null, condaEnv: null };
   }
   const platform = options.platform ?? safeProcessPlatform();
   const paths = nodePaths(platform);
@@ -102,6 +106,8 @@ export function runtimeLocations(
     uvTools: { tools: paths.join(uvRoot, "tools"), bin: paths.join(uvRoot, "bin"), python: paths.join(uvRoot, "python") },
     sdCpp: paths.join(root, "sd-cpp"),
     wan2gp: paths.join(root, "wan2gp"),
+    blender: paths.join(root, "blender"),
+    chrome: paths.join(root, "chrome"),
     micromambaRoot: paths.join(root, "micromamba"),
     condaEnv: condaOverride ?? options.condaEnv ?? configuredConda ?? defaultConda
   };

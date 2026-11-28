@@ -115,23 +115,59 @@ export function computeModel3DReferenceHash(
   return model3dPictureDigest(payload);
 }
 
+/**
+ * What a take generated from a Blockout records, to tell later whether the
+ * blockout changed under it: the reference hash, plus the set revision when
+ * one is known. The hash cannot see an edit to the set, because the set is
+ * saved in place under the same asset id.
+ */
+export function model3dBlockoutTakeKey(
+  dependencyHash: string,
+  assetRevision?: string
+): string {
+  return assetRevision ? `${dependencyHash}@${assetRevision}` : dependencyHash;
+}
+
 /** Where a clip's reference stands against the live document. */
 export type Model3DReferenceStatus = "missing" | "stale" | "current";
+
+export interface Model3DReferenceStatusOptions {
+  /**
+   * The pass the caller wants. A stored reference in another pass reads as
+   * `stale`, because a render in this pass is needed.
+   */
+  pass?: Model3DReferencePass;
+  /**
+   * The set asset's `updated_at` now. The set is saved in place under the
+   * same id, so an edit to it changes this and nothing the hash covers. When
+   * it is given and differs from the revision the reference was rendered at,
+   * or the reference recorded none, the reference is `stale`. A caller that
+   * cannot read the asset leaves it out and the check is skipped.
+   */
+  assetRevision?: string;
+}
 
 /**
  * `missing` when the clip stores no reference, `stale` when the stored one was
  * rendered from a different set, camera, span, sequence or pass, and `current`
- * otherwise. `pass` overrides the stored pass, for a caller that wants to know
- * whether a reference in another pass has to be rendered.
+ * otherwise.
  */
 export function model3dReferenceStatus(
   clip: TimelineClip,
   sequence: Model3DBakeSequence,
-  pass?: Model3DReferencePass
+  options: Model3DReferenceStatusOptions = {}
 ): Model3DReferenceStatus {
   const reference = clip.model3dStyle?.reference;
   if (!reference) return "missing";
-  if (pass !== undefined && pass !== reference.pass) return "stale";
+  if (options.pass !== undefined && options.pass !== reference.pass) {
+    return "stale";
+  }
+  if (
+    options.assetRevision !== undefined &&
+    options.assetRevision !== reference.assetRevision
+  ) {
+    return "stale";
+  }
   return reference.dependencyHash ===
     computeModel3DReferenceHash(clip, sequence, reference.pass)
     ? "current"
@@ -141,7 +177,8 @@ export function model3dReferenceStatus(
 /** Whether the clip stores a reference that no longer shows the clip. */
 export function isModel3DReferenceStale(
   clip: TimelineClip,
-  sequence: Model3DBakeSequence
+  sequence: Model3DBakeSequence,
+  assetRevision?: string
 ): boolean {
-  return model3dReferenceStatus(clip, sequence) === "stale";
+  return model3dReferenceStatus(clip, sequence, { assetRevision }) === "stale";
 }

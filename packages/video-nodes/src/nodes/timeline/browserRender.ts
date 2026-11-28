@@ -35,7 +35,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 
-import { importOptionalModule } from "@nodetool-ai/config";
+import { importOptionalModule, runtimeLocations } from "@nodetool-ai/config";
+import { installedAppBinary } from "@nodetool-ai/config/app-binary-runtime";
 import { transcodeVideo } from "@nodetool-ai/runtime/media";
 import {
   BUNDLED_FONT_FILES,
@@ -172,14 +173,17 @@ const CHROMIUM_ARGS = [
 /**
  * The browsers to try, in order. `CHROME_PATH` names the host's Chromium
  * (the Docker image sets it). `chrome` is an installed Google Chrome, whose
- * WebCodecs encode H.264; the Playwright build cannot. The bundled Chromium
+ * WebCodecs encode H.264; the Playwright build cannot. The Chrome for Testing
+ * build the Package Manager installs encodes H.264 too. The bundled Chromium
  * is the last resort.
  */
-function launchCandidates(): { label: string; options: { channel?: string; executablePath?: string } }[] {
+async function launchCandidates(): Promise<{ label: string; options: { channel?: string; executablePath?: string } }[]> {
   const candidates: { label: string; options: { channel?: string; executablePath?: string } }[] = [];
   const executablePath = process.env["CHROME_PATH"]?.trim();
   if (executablePath) candidates.push({ label: executablePath, options: { executablePath } });
   candidates.push({ label: "chrome", options: { channel: "chrome" } });
+  const managed = await installedAppBinary("chrome", runtimeLocations().chrome).catch(() => null);
+  if (managed) candidates.push({ label: managed, options: { executablePath: managed } });
   candidates.push({ label: "bundled", options: { channel: "chromium" } });
   return candidates;
 }
@@ -198,7 +202,7 @@ async function launchBrowser(): Promise<{ browser: PlaywrightBrowser; label: str
     );
   }
   const failures: string[] = [];
-  for (const candidate of launchCandidates()) {
+  for (const candidate of await launchCandidates()) {
     try {
       const browser = await playwright.chromium.launch({
         headless: true,

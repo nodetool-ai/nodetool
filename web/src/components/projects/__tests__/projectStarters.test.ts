@@ -102,6 +102,12 @@ describe("starterLabel", () => {
       "Music video treatment"
     );
   });
+
+  it("writes 2D and 3D in capitals", () => {
+    expect(starterLabel("blockout-3d")).toBe("Blockout 3D");
+    expect(starterLabel("nodetool-3d-scene")).toBe("Nodetool 3D scene");
+    expect(starterLabel("pixel-2d-game")).toBe("Pixel 2D game");
+  });
 });
 
 describe("promptWithEntities", () => {

@@ -178,6 +178,8 @@ export interface RenderModel3DReferenceOp {
   target: string;
   /** What each frame draws. `clay` when absent. */
   pass?: Model3DReferencePass;
+  /** Render even when the stored reference reads as current. */
+  force?: boolean;
 }
 
 export type AddGroupOp = { op: "add_group" } & AddGroupParams;

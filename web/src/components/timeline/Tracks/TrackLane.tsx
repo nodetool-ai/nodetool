@@ -32,6 +32,7 @@ import AddIcon from "@mui/icons-material/AddOutlined";
 import CompressOutlinedIcon from "@mui/icons-material/CompressOutlined";
 import { findGap } from "@nodetool-ai/timeline";
 import TitleIcon from "@mui/icons-material/Title";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 
 import {
   clipFitsTrack,
@@ -64,6 +65,8 @@ import {
   Z_INDEX
 } from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
+import { useAddBlockoutSet } from "../../../hooks/timeline/useAddBlockoutSet";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
@@ -904,6 +907,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
     setContextMenuPos(null);
   }, [addClip, contextMenuPos, setSelection, t, track.id]);
 
+  const addBlockoutSet = useAddBlockoutSet();
+  const handleAddBlockoutSet = useCallback(() => {
+    if (!contextMenuPos) return;
+    const startMs = contextMenuPos.startMs;
+    setContextMenuPos(null);
+    void addBlockoutSet(track.id, startMs).catch((error: unknown) => {
+      useNotificationStore.getState().addNotification({
+        type: "error",
+        content: t("i18n-next119.trackLane.addBlockoutSetFailed", {
+          error: error instanceof Error ? error.message : String(error)
+        })
+      });
+    });
+  }, [addBlockoutSet, contextMenuPos, t, track.id]);
+
   const handleAddMidi = useCallback(() => {
     if (!contextMenuPos) return;
     // An empty two-bar container at 120 BPM. The notes come from the agent
@@ -1002,6 +1020,15 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
             label={t("i18n-next119.trackLane.addText")}
             icon={<TitleIcon fontSize="small" />}
             onClick={handleAddText}
+          />
+        )}
+        {/* A blockout set is authored too: an empty 3D set and the free
+            camera that films it, staged before any shot is generated. */}
+        {track.type === "video" && (
+          <MenuItemPrimitive
+            label={t("i18n-next119.trackLane.addBlockoutSet")}
+            icon={<CategoryOutlinedIcon fontSize="small" />}
+            onClick={handleAddBlockoutSet}
           />
         )}
         {track.type === "midi" ? (

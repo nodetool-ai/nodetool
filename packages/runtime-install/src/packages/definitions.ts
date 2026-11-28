@@ -9,6 +9,7 @@ import {
 import { condaNodePath } from "../paths.js";
 import { installRequiredPythonPackages } from "../python.js";
 import { MIN_UV_VERSION } from "../torch.js";
+import { AppBinaryRuntimePackage } from "./AppBinaryRuntimePackage.js";
 import { CondaRuntimePackage } from "./CondaRuntimePackage.js";
 import { NpmRuntimePackage } from "./NpmRuntimePackage.js";
 import { ProvidedRuntimePackage } from "./ProvidedRuntimePackage.js";
@@ -136,6 +137,10 @@ export const RUNTIME_PACKAGES = {
   "sd-cpp": new SdCppRuntimePackage(),
 
   wan2gp: new Wan2GPRuntimePackage(),
+
+  blender: new AppBinaryRuntimePackage("blender"),
+
+  chrome: new AppBinaryRuntimePackage("chrome"),
 
   "transformers-js": new NpmRuntimePackage({
     id: "transformers-js",

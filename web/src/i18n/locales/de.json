@@ -5478,7 +5478,7 @@
           "animationSpeed": "Animationsgeschwindigkeit",
           "lighting": "Beleuchtung",
           "lightingPreset": "Beleuchtungsvorgabe",
-          "lightIntensity": "Lichtintensität",
+          "lightIntensity": "Intensität",
           "transparentBackground": "Transparenter Hintergrund",
           "backgroundColor": "Hintergrundfarbe",
           "bake": "Backen",
@@ -5506,7 +5506,7 @@
           "applyMove": "Bewegung hinzufügen",
           "freeCameraHelp": "In der Vorschau: Alt halten und ziehen zum Umkreisen, mit Umschalt seitlich verschieben, scrollen für die Kamerafahrt, mit Strg beim Scrollen das Objektiv ändern.",
           "editSet": "Set bearbeiten",
-          "editSetHelp": "Das 3D-Modell dieses Clips im Modell-Editor öffnen",
+          "editSetHelp": "Das 3D-Modell dieses Clips im Modell-Editor öffnen. Eine freie Kamera öffnet es mit dem Blick durch die Einstellung.",
           "moves": {
             "pan": "Schwenk",
             "tilt": "Neigen",
@@ -5518,7 +5518,9 @@
             "zoom": "Zoom",
             "dollyZoom": "Dolly-Zoom",
             "dutch": "Dutch Angle"
-          }
+          },
+          "cameraDrag": "Kamera in der Vorschau ziehen",
+          "cameraDragHelp": "Ziehe in der Vorschau, um zu kreisen, mit Umschalt zum Seitwärtsfahren, scrolle für eine Dolly-Fahrt und halte beim Scrollen Strg, um das Objektiv zu ändern."
         },
         "reframe": {
           "title": "Intelligenter Bildausschnitt",
@@ -19073,7 +19075,9 @@
       "addText": "Text hinzufügen",
       "addMidiClip": "MIDI-Clip hinzufügen",
       "addGeneratedClipHere": "Generierten Clip hier hinzufügen…",
-      "closeGap": "Lücke schließen"
+      "closeGap": "Lücke schließen",
+      "addBlockoutSet": "Blockout-Set hinzufügen",
+      "addBlockoutSetFailed": "Das Blockout-Set konnte nicht hinzugefügt werden: {{error}}"
     },
     "daw": {
       "resizeDock": "DAW-Dock skalieren"
@@ -21006,7 +21010,8 @@
       "hide": "Referenz ausblenden",
       "stale": "Referenz veraltet",
       "playerLabel": "Blockout-Referenz",
-      "failed": "Referenz-Rendering fehlgeschlagen"
+      "failed": "Referenz-Rendering fehlgeschlagen",
+      "otherPass": "Die gespeicherte Referenz ist im Durchgang {{pass}}. Rendere eine in diesem Durchgang, um ihn zu nutzen."
     },
     "shot": {
       "label": "Shot",
@@ -21031,7 +21036,8 @@
     },
     "render": {
       "withReference": "Das Referenzvideo des Blockouts wird mit dem Prompt an dieses Modell gesendet. Es wird zuerst gerendert, wenn es fehlt oder veraltet ist.",
-      "promptOnly": "Dieses Modell nimmt kein Referenzvideo an. Das graue Rendering wird nicht gesendet, und die Kamerabewegung wird dem Prompt als Text hinzugefügt: {{move}}"
+      "promptOnly": "Dieses Modell nimmt kein Referenzvideo an. Das graue Rendering wird nicht gesendet, und die Kamerabewegung wird dem Prompt als Text hinzugefügt: {{move}}",
+      "tooLong": "Das Blockout dauert {{blockout}} s, und dieses Modell erzeugt Takes von höchstens {{max}} s. Der Take folgt nur dem Anfang der Kamerafahrt. Kürze den 3D-Clip passend."
     }
   }
 }

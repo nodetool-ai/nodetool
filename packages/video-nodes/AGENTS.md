@@ -90,7 +90,8 @@ this package by `scripts/bundle-timeline-render-page.mjs`. The driver is
 logic: a rule belongs in `@nodetool-ai/timeline` or the web exporter.
 
 - **Browser order.** `CHROME_PATH`, then installed Google Chrome
-  (`channel: "chrome"`), then Playwright's bundled Chromium. Playwright loads
+  (`channel: "chrome"`), then the Chrome for Testing build the Package Manager
+  installs (`runtimeLocations().chrome`), then Playwright's bundled Chromium. Playwright loads
   through `importOptionalModule`, so a host without it falls back.
 - **Codecs.** Chrome encodes and decodes H.264. Chromium without proprietary
   codecs does neither: the driver converts each clip the page has no decoder

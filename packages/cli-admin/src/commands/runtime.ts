@@ -15,7 +15,9 @@
  *
  * The conda packages (`python`, `yt-dlp`, `rust`), the uv tools (`manimgx`)
  * and `runtime python-packs` go through `@nodetool-ai/runtime-install`, the
- * installer the desktop app uses, into the shared conda environment.
+ * installer the desktop app uses, into the shared conda environment. The
+ * downloaded applications (`blender`, `chrome`) go through the same
+ * installer into `runtimeLocations().blender` and `.chrome`.
  */
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -272,7 +274,7 @@ export function registerRuntimeCommands(
     .option("--python <path>", "wan2gp: the Python 3.10+ that runs Wan2GP's installer")
     .option("--uv <path>", "wan2gp: the uv executable Wan2GP's installer uses")
     .option("--profile <name>", "wan2gp: a Wan2GP hardware profile, such as RTX_40, instead of the detected one")
-    .option("--reinstall", "python, yt-dlp, rust, manimgx: install again when already installed")
+    .option("--reinstall", "python, yt-dlp, rust, manimgx, blender, chrome: install again when already installed")
     .action(async (ids: string[], options: { python?: string; uv?: string; profile?: string; reinstall?: boolean }) => {
       const { managed, npm: parsed, sdCpp, wan2gp } = parseIds(ids);
       if (managed.length > 0) {

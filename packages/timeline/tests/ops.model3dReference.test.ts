@@ -122,6 +122,48 @@ describe("render_model3d_reference", () => {
     expect(depth.result.referenceRendered).toBe(true);
   });
 
+  it("renders again after the set is saved in place, and records the revision", async () => {
+    let revision = "2026-11-01T10:00:00Z";
+    let calls = 0;
+    const ctx: TimelineOpContext = {
+      ...context(),
+      model3dAssetRevision: async (assetId) => {
+        expect(assetId).toBe("asset_glb");
+        return revision;
+      },
+      renderModel3DReference: async () => {
+        calls += 1;
+        return { assetId: REFERENCE_ASSET };
+      }
+    };
+    const first = await applyTimelineOp(withClip(), render, ctx);
+    expect(first.state.clips[0].model3dStyle?.reference?.assetRevision).toBe(revision);
+
+    const unchanged = await applyTimelineOp(first.state, render, ctx);
+    expect(unchanged.result.referenceRendered).toBe(false);
+
+    revision = "2026-11-02T09:00:00Z";
+    const edited = await applyTimelineOp(first.state, render, ctx);
+    expect(calls).toBe(2);
+    expect(edited.result.referenceRendered).toBe(true);
+    expect(edited.state.clips[0].model3dStyle?.reference?.assetRevision).toBe(revision);
+  });
+
+  it("renders a current reference again when forced", async () => {
+    let calls = 0;
+    const ctx: TimelineOpContext = {
+      ...context(),
+      renderModel3DReference: async () => {
+        calls += 1;
+        return { assetId: REFERENCE_ASSET };
+      }
+    };
+    const first = await applyTimelineOp(withClip(), render, ctx);
+    const forced = await applyTimelineOp(first.state, { ...render, force: true }, ctx);
+    expect(calls).toBe(2);
+    expect(forced.result.referenceRendered).toBe(true);
+  });
+
   it("leaves a stored bake current", async () => {
     const before = withClip({ background: { transparent: false, color: "#101010" } });
     const bakeHash = computeModel3DBakeHash(before.clips[0], SEQUENCE);

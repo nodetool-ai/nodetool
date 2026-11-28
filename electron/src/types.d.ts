@@ -1173,6 +1173,8 @@ export type RuntimePackageId =
   | "rust"
   | "manimgx"
   | "sd-cpp"
+  | "blender"
+  | "chrome"
   | "wan2gp"
   | "transformers-js"
   | "node-llama-cpp"

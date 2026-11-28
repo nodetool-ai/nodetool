@@ -363,6 +363,11 @@ export const useTimelineAgentBridge = (
           // three.js session the preview uses.
           renderModel3DReference: (request) =>
             renderReferenceAsset(request.clip, request.sequence, request.pass),
+          // Read fresh, not from the cache: the set is saved in place.
+          model3dAssetRevision: async (assetId) => {
+            const asset = await useAssetStore.getState().get(assetId);
+            return asset.updated_at ?? null;
+          },
           ...opContextOverrides
         };
         if (

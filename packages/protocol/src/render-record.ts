@@ -262,8 +262,9 @@ export function currentRenderInputs(
 /**
  * Whether a clip take was generated from a blockout that has changed since.
  *
- * `currentHash` is the dependency hash the shot's blockout clip has now
- * (`computeModel3DReferenceHash` in `@nodetool-ai/timeline`), or undefined
+ * `currentHash` is the take key the shot's blockout clip has now
+ * (`model3dBlockoutTakeKey` in `@nodetool-ai/timeline`: the reference hash
+ * plus the set's revision), or undefined
  * when the shot has no blockout. A take that records no blockout hash was not
  * generated from one and is never out of date against it.
  */

@@ -20,6 +20,7 @@ export { ProvidedRuntimePackage } from "./packages/ProvidedRuntimePackage.js";
 export { UvToolRuntimePackage, runUv } from "./packages/UvToolRuntimePackage.js";
 export { SdCppRuntimePackage } from "./packages/SdCppRuntimePackage.js";
 export { Wan2GPRuntimePackage } from "./packages/Wan2GPRuntimePackage.js";
+export { AppBinaryRuntimePackage } from "./packages/AppBinaryRuntimePackage.js";
 export { RUNTIME_PACKAGES } from "./packages/definitions.js";
 export {
   RUNTIME_PACKAGE_IDS,
