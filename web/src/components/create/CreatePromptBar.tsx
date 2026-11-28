@@ -8,7 +8,7 @@
  * exactly what the chat composer offers for the same mode. Only the takes and
  * the references tray are the bar's own.
  */
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AppsIcon from "@mui/icons-material/Apps";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -39,6 +39,7 @@ import { useModeProviderSetup } from "../chat/composer/useModeProviderSetup";
 import { useDragAndDrop } from "../chat/hooks/useDragAndDrop";
 import { parseAssetUri } from "../node_types/editing/promptComposer/promptTokens";
 import { MentionedEntities } from "../chat/composer/MentionedEntities";
+import { joinPromptEntities, splitPromptEntities } from "./createPromptEntities";
 import type { ModelPickerHandle } from "../chat/composer/ModelChip";
 import type { MediaOption } from "../chat/composer/MediaOptionMenu";
 import type { DroppedFile } from "../chat/types/chat.types";
@@ -271,13 +272,26 @@ const CreatePromptBar = ({ promptRef, sessionId, requestTags, onSent }: CreatePr
     [attach]
   );
 
+  // The box shows the person's words. References carried as `entity://`
+  // tokens stay in the stored prompt and show as chips under the box.
+  const { text: promptText, entityIds: promptEntityIds } = useMemo(
+    () => splitPromptEntities(prompt),
+    [prompt]
+  );
+
   const handlePrompt = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setPrompt(event.target.value);
+      setPrompt(joinPromptEntities(event.target.value, promptEntityIds));
       // A blocker names what was missing, so it clears with the next edit.
       clearMessages();
     },
-    [setPrompt, clearMessages]
+    [setPrompt, clearMessages, promptEntityIds]
+  );
+
+  const setPromptEntities = useCallback(
+    (next: string) =>
+      setPrompt(joinPromptEntities(promptText, splitPromptEntities(next).entityIds)),
+    [setPrompt, promptText]
   );
 
   const handleGenerate = useCallback(async () => {
@@ -411,7 +425,7 @@ const CreatePromptBar = ({ promptRef, sessionId, requestTags, onSent }: CreatePr
         multiline
         minRows={2}
         maxRows={6}
-        value={prompt}
+        value={promptText}
         onChange={handlePrompt}
         onKeyDown={handleKeyDown}
         inputRef={promptRef}
@@ -419,9 +433,9 @@ const CreatePromptBar = ({ promptRef, sessionId, requestTags, onSent }: CreatePr
         error={blocker === "no-prompt"}
         helperText={blocker === "no-prompt" ? t("create_view.blocker.noPrompt") : undefined}
       />
-      {/* An entity carried from Home or typed with "@" sits in the prompt as
-          its `entity://` token. The chips name it and remove it. */}
-      <MentionedEntities value={prompt} setValue={setPrompt} />
+      {/* A reference carried from Home sits in the stored prompt as its
+          `entity://` token. The chips name it and remove it. */}
+      <MentionedEntities value={prompt} setValue={setPromptEntities} />
       <FlexRow gap={SPACING.xs} align="center" wrap sx={{ rowGap: SPACING.xs }}>
         <ModeChips mode={mode} openModelPickerRef={modelPickerRef} hideVariations />
         <OptionChip

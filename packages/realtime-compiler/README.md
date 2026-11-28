@@ -1,7 +1,7 @@
 # Realtime compiler
 
 Pure WP16 preparation against the [canonical plan schema](../../native/realtime/schema/README.md).
-The compiler handles one render sink or one or more audio sinks. Render graphs support
+The compiler handles one render sink, one or more audio sinks, or both in one plan. Render graphs support
 registered shader/control descriptors, property/expression uniforms, render-domain
 state and explicit batch texture boundaries. Audio graphs support built-in DSP
 DAGs with property/control parameters. Results contain plan data, boundary reports,
@@ -104,7 +104,17 @@ browser/QuickJS hosts and ships in the package, with no runtime filesystem impor
 Run `npm run test:native --workspace=packages/realtime-compiler -- <executable>`
 for snapshot-to-native-loader/render and WAV checks with a configured software GPU.
 
-WP16 remains open. Mixed audio/render graphs, cross-domain control sharing, render
+A plan with one render output and audio outputs compiles each region on its own and
+merges the results. Following RT-F47, an analytic control that both regions read is
+placed in both domains, as one instruction per domain with the same graph identity.
+A stateful control runs in the one domain that reads it. When both domains read it,
+directly or through analytic controls, the compiler rejects it with `stateful_domain`,
+because the audio thread must publish it through the signal history of WP22. Audio
+signals cannot feed the render region. A batch output used as both a texture and PCM
+boundary rejects with `identity_collision`. The audio region keeps its plan, parameter
+slots, state keys and sink hashes when only the render region changes.
+
+WP16 remains open. Stateful controls shared across domains, render
 parameter slots, the full descriptor
 expression vocabulary, reverse/floating-point alpha conversion, delayed feedback,
 batch graph rewriting and cross-domain stateful handoffs remain unimplemented.
