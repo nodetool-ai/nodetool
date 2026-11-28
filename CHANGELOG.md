@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.19] - 2026-11-28
+
+NodeTool 0.8.19 adds 3D blockouts to the timeline, new web search backends for agents, and `.env` loading in the CLI.
+
+### Added
+
+- 3D blockouts on the timeline: build a grey set with posed figures and named cameras, film it with a free camera and camera move presets, review clay frames, and render a reference video for video generation (`set_model3d_style`, `apply_model3d_camera_move`, `render_model3d_reference`).
+- Edit, render and generate from 3D blockout clips in the timeline.
+- Codex, Claude Code and Antigravity web search backends for agents.
+- The CLI loads `.env` files at startup, and `nodetool env` shows the resolved environment.
+- The realtime compiler compiles plans that mix audio and render work.
+- The script editor has tighter line rows and voices a line from the keyboard.
+
+### Changed
+
+- Entities are called References on every screen.
+- Home shows fewer ways to start until the first result.
+- Entity, template-run and picture-edit journeys take fewer steps (UX studies 23 and 24).
+- The cloud profile withholds server provider keys from users.
+- Local server reuse, credential creation and OAuth grant lifetime are stricter.
+- Default analytics go to api.nodetool.ai.
+- Codex uses the Codex CLI login and the account's model catalog.
+
+### Fixed
+
+- Library search keeps embedding other owners' assets when one owner's embedding call fails.
+- 2D game sprites load through a CORS fetch, so WebGPU can upload them.
+- `edit_js_script` rejects overlapping matches.
+- The CLI resolves `sharp` in packs, loads it lazily in game nodes, and gives clearer server, provider and pack diagnostics, safer downloads, and edited timeline export.
+- References stay listed after Personal claims loose rows.
+- Release builds compile Linux native code for the x86-64 baseline, keep native timeline fonts out of `Contents/MacOS`, and let macOS signing exit cleanly after a passing assessment.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.18...v0.8.19
+
 ## [0.8.18] - 2026-11-26
 
 NodeTool 0.8.18 adds multimodal image embeddings to library search, moves OpenAI web search to the Responses API, and hardens node and runtime execution.
