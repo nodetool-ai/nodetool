@@ -172,6 +172,7 @@ export const MODULES = {
       loadCanvas: impl("host/canvas.mjs"),
       loadMediaModule: unavailable("native-addon", "loads the runtime's node-av media module"),
       loadMediaRefBytes: impl("host/runtime.mjs"),
+      loadSharpOrThrow: unavailable("native-addon", "loads the libvips addon, which the image nodes replace with the native image adapter"),
       mapPromptAssetsToInputs: realRuntime("prompt-asset-refs"),
       markWan2GPModelAvailable: wan2gp,
       maxConcurrentHostBinaries: hostBinaries,
