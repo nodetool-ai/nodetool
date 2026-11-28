@@ -361,6 +361,44 @@ describe.each(dialects)("library search by meaning on %s", (_name, init) => {
     expect((await searchLibrary({ userId: USER, query: "dog", mode: "semantic" })).hits).toEqual([]);
   });
 
+  it("keeps embedding other owners while one owner's calls fail", async () => {
+    await init();
+    const working = fakeEmbedder([]);
+    setLibraryEmbedder({
+      async embed(texts, space, userId) {
+        if (userId === "owner-without-key") throw new Error("No API key for fake.");
+        return working.embed(texts, space, userId);
+      }
+    });
+    await seed();
+    // The failing owner's item is the newest, so its chunks come first.
+    files.set("later.txt", "A note nobody can embed yet.");
+    await Asset.create({ user_id: "owner-without-key", name: "later.txt", content_type: "text/plain" });
+    await reconcileLibraryIndex();
+    await runIndexerPass();
+
+    const space = embeddingSpace("fake", "concepts-v1");
+    const pass = await runEmbedPass();
+    expect(pass.embedded).toBeGreaterThan(0);
+    expect(pass.failed).toBe(1);
+    expect(await unembeddedChunkCount(USER, space)).toBe(0);
+    expect(await unembeddedChunkCount("owner-without-key", space)).toBeGreaterThan(0);
+    // No claim is left behind on the failed owner's item.
+    const held = await getPortableDb().select().from(searchItems).where(isNotNull(searchItems.lease_owner));
+    expect(held).toEqual([]);
+  });
+
+  it("throws when every owner's calls fail, so the indexer logs the error", async () => {
+    await init();
+    setLibraryEmbedder({
+      async embed() {
+        throw new Error("The provider is down.");
+      }
+    });
+    await seed();
+    await expect(runEmbedPass()).rejects.toThrow(/provider is down/);
+  });
+
   it("never sends the text of an excluded project to the model", async () => {
     await init();
     const calls: string[][] = [];
