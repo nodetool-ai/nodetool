@@ -126,7 +126,8 @@ import { exportRunTraceTable, eraseRunTraceTable } from "./run-trace.js";
 import { bugReports } from "./schema/bug-reports.js";
 import {
   documentCollaborators,
-  documentShares
+  documentShares,
+  shareRoleLimits
 } from "./schema/document-sharing.js";
 import {
   workflowCollaborators,
@@ -503,6 +504,20 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
         eq(documentCollaborators.invited_by, ctx.userId)
       );
       return deleted("nodetool_document_collaborators", "delete", total);
+    }
+  },
+  {
+    table: "nodetool_share_role_limits",
+    async run(ctx) {
+      let total = await deleteRows(
+        shareRoleLimits,
+        eq(shareRoleLimits.user_id, ctx.userId)
+      );
+      total += await deleteRows(
+        shareRoleLimits,
+        eq(shareRoleLimits.set_by, ctx.userId)
+      );
+      return deleted("nodetool_share_role_limits", "delete", total);
     }
   },
 
@@ -969,6 +984,10 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
   nodetool_document_shares: directExport(
     documentShares,
     documentShares.created_by
+  ),
+  nodetool_share_role_limits: directExport(
+    shareRoleLimits,
+    shareRoleLimits.user_id
   ),
   nodetool_workflow_collaborators: directExport(
     workflowCollaborators,

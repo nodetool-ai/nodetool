@@ -234,6 +234,22 @@ export async function effectiveAccess(
   return combineGrants(await grantsOn(kind, document, userId));
 }
 
+/**
+ * Like {@link effectiveAccess}, from ownership and collaborator grants only.
+ * A workflow's `public` setting gives nothing here. Receive and transfer
+ * read and write original files, which public viewing never offers.
+ */
+export async function grantedAccess(
+  userId: string,
+  kind: AccessKind,
+  id: string
+): Promise<EffectiveAccessItem | null> {
+  const document = await loadAccessDocument(kind, id);
+  if (!document) return null;
+  const grants = await grantsOn(kind, document, userId);
+  return combineGrants(grants.filter((grant) => grant.source !== "public"));
+}
+
 /** Whether an access may read the document's saved versions (AC26). */
 export function mayReadHistory(access: EffectiveAccessItem | null): boolean {
   return access !== null && access.options.allow_history;

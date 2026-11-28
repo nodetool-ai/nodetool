@@ -436,11 +436,16 @@ export const adminRouter = router({
         await requireAdmin(ctx.userId);
         const removed =
           input.type === "workflow"
-            ? await WorkflowCollaborator.remove(input.document_id, input.user_id)
+            ? await WorkflowCollaborator.remove(
+                input.document_id,
+                input.user_id,
+                ctx.userId
+              )
             : await DocumentCollaborator.remove(
                 input.type,
                 input.document_id,
-                input.user_id
+                input.user_id,
+                ctx.userId
               );
         if (!removed) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Access not found");

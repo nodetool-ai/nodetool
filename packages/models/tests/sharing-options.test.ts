@@ -9,8 +9,11 @@ import { ModelObserver } from "../src/base-model.js";
 import { initTestDb } from "../src/db.js";
 import {
   DocumentCollaborator,
-  DocumentShare
+  DocumentShare,
+  SHARED_DOCUMENT_TYPES,
+  removeDocumentSharing
 } from "../src/document-sharing.js";
+import { ShareRoleLimit } from "../src/share-role-limit.js";
 import { WorkflowCollaborator } from "../src/workflow-collaborator.js";
 import { WorkflowShare } from "../src/workflow-share.js";
 import { DocumentRefs } from "../src/document-refs.js";
@@ -172,6 +175,130 @@ describe("workflow grants with options", () => {
       createdBy: "owner"
     });
     await expect(WorkflowCollaborator.redeem(pub, "bob")).rejects.toThrow();
+  });
+});
+
+describe("owner's role limit on link redemptions", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  it.each(SHARED_DOCUMENT_TYPES)(
+    "holds the owner's demotion and removal on a %s",
+    async (kind) => {
+      const edit = await DocumentShare.ensure({
+        documentType: kind,
+        documentId: DOC,
+        role: "editor",
+        createdBy: "owner"
+      });
+      await DocumentCollaborator.redeem(edit, "bob");
+      await DocumentCollaborator.setRole(kind, DOC, "bob", "viewer", "owner");
+      // Leaving on one's own keeps the owner's limit.
+      await DocumentCollaborator.remove(kind, DOC, "bob", "bob");
+      expect((await DocumentCollaborator.redeem(edit, "bob"))?.role).toBe(
+        "viewer"
+      );
+
+      await DocumentCollaborator.remove(kind, DOC, "bob", "owner");
+      expect(await DocumentCollaborator.redeem(edit, "bob")).toBeNull();
+      expect(await DocumentCollaborator.listFor(kind, DOC, "bob")).toEqual([]);
+
+      await DocumentCollaborator.invite({
+        documentType: kind,
+        documentId: DOC,
+        userId: "bob",
+        role: "viewer",
+        invitedBy: "owner"
+      });
+      expect((await DocumentCollaborator.redeem(edit, "bob"))?.role).toBe(
+        "editor"
+      );
+    }
+  );
+
+  it("sets no limit when a person leaves on their own", async () => {
+    const edit = await DocumentShare.ensure({
+      documentType: "timeline",
+      documentId: DOC,
+      role: "editor",
+      createdBy: "owner"
+    });
+    await DocumentCollaborator.redeem(edit, "bob");
+    await DocumentCollaborator.remove("timeline", DOC, "bob", "bob");
+    expect(await ShareRoleLimit.find("timeline", DOC, "bob")).toBeNull();
+    expect((await DocumentCollaborator.redeem(edit, "bob"))?.role).toBe(
+      "editor"
+    );
+  });
+
+  it("keeps the limit when only an invitation's options change", async () => {
+    await DocumentCollaborator.invite({
+      documentType: "timeline",
+      documentId: DOC,
+      userId: "bob",
+      role: "editor",
+      invitedBy: "owner"
+    });
+    await DocumentCollaborator.setRole("timeline", DOC, "bob", "viewer", "owner");
+    await DocumentCollaborator.invite({
+      documentType: "timeline",
+      documentId: DOC,
+      userId: "bob",
+      role: "viewer",
+      invitedBy: "owner",
+      options: { allow_download: true },
+      keepRoleLimit: true
+    });
+    expect((await ShareRoleLimit.find("timeline", DOC, "bob"))?.role).toBe(
+      "viewer"
+    );
+  });
+
+  it("deletes the limits with the document's sharing", async () => {
+    await ShareRoleLimit.set({
+      documentType: "script",
+      documentId: DOC,
+      userId: "bob",
+      role: null,
+      setBy: "owner"
+    });
+    await removeDocumentSharing("script", DOC);
+    expect(await ShareRoleLimit.find("script", DOC, "bob")).toBeNull();
+  });
+
+  it("holds the owner's demotion and removal on a workflow", async () => {
+    const edit = await WorkflowShare.ensure({
+      workflowId: WF,
+      role: "editor",
+      createdBy: "owner"
+    });
+    await WorkflowCollaborator.redeem(edit, "bob");
+    await WorkflowCollaborator.setRole(WF, "bob", "viewer", "owner");
+    await WorkflowCollaborator.remove(WF, "bob", "bob");
+    expect((await WorkflowCollaborator.redeem(edit, "bob"))?.role).toBe(
+      "viewer"
+    );
+
+    await WorkflowCollaborator.remove(WF, "bob", "owner");
+    expect(await WorkflowCollaborator.redeem(edit, "bob")).toBeNull();
+
+    await WorkflowCollaborator.setRole(WF, "bob", "editor", "owner");
+    // No grant was left to set a role on, so the limit stays.
+    expect(await WorkflowCollaborator.redeem(edit, "bob")).toBeNull();
+
+    await WorkflowCollaborator.invite({
+      workflowId: WF,
+      userId: "bob",
+      role: "viewer",
+      invitedBy: "owner"
+    });
+    expect((await WorkflowCollaborator.redeem(edit, "bob"))?.role).toBe(
+      "editor"
+    );
+
+    await WorkflowCollaborator.remove(WF, "bob", "owner");
+    await WorkflowCollaborator.removeAllForWorkflow(WF);
+    expect(await ShareRoleLimit.find("workflow", WF, "bob")).toBeNull();
   });
 });
 

@@ -40,7 +40,8 @@ import { workflowVersions } from "./schema/workflow-versions.js";
 import { triggerRegistrations } from "./schema/trigger-registrations.js";
 import {
   documentCollaborators,
-  documentShares
+  documentShares,
+  shareRoleLimits
 } from "./schema/document-sharing.js";
 import { timelineSequenceVersions } from "./schema/timeline-sequence-versions.js";
 import { imageDocumentVersions } from "./schema/image-document-versions.js";
@@ -142,6 +143,14 @@ async function removeProjectDependents(
     await db
       .delete(workflowShares)
       .where(inArray(workflowShares.workflow_id, ids));
+    await db
+      .delete(shareRoleLimits)
+      .where(
+        and(
+          eq(shareRoleLimits.document_type, "workflow"),
+          inArray(shareRoleLimits.document_id, ids)
+        )
+      );
   });
 
   const documents: Array<{
@@ -220,6 +229,14 @@ async function removeProjectDependents(
           and(
             eq(documentShares.document_type, type),
             inArray(documentShares.document_id, ids)
+          )
+        );
+      await db
+        .delete(shareRoleLimits)
+        .where(
+          and(
+            eq(shareRoleLimits.document_type, type),
+            inArray(shareRoleLimits.document_id, ids)
           )
         );
     });

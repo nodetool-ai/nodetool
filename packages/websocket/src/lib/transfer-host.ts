@@ -4,15 +4,16 @@
  * writes after a commit (`@nodetool-ai/project-services/cloud-transfer`).
  */
 import type { TransferHost } from "@nodetool-ai/project-services/cloud-transfer";
-import { effectiveAccess } from "./document-access.js";
+import { grantedAccess } from "./document-access.js";
 import { findUnreadableFile, publishStoredDocument } from "./document-refs.js";
 import { getAssetAdapter } from "./storage.js";
 
 export function transferHost(): TransferHost {
   return {
     storage: getAssetAdapter(),
+    // A public workflow is not a grant to transfer into (review F3).
     async documentRole(userId, kind, id) {
-      return (await effectiveAccess(userId, kind, id))?.role ?? null;
+      return (await grantedAccess(userId, kind, id))?.role ?? null;
     },
     checkAttach(userId, kind, target, content) {
       return findUnreadableFile(kind, target, userId, content);

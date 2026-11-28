@@ -18,6 +18,11 @@ export const cloudTransfers = sqliteTable(
     state: text("state").notNull(),
     /** The attempt that committed the transfer. */
     committed_attempt_id: text("committed_attempt_id"),
+    /**
+     * The files the transfer's manifests declare, as JSON from hash to size.
+     * A stage accepts only these. Null on a row opened before the column.
+     */
+    manifest_files: text("manifest_files"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

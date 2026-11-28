@@ -49,9 +49,15 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { isString } from "../../lib/wire-values.js";
 import {
+  effectiveAccess,
   hasDocumentRole,
+  mayReadHistory,
   type DocumentRole
 } from "../../lib/document-access.js";
+import {
+  ensureVersionSets,
+  saveUnderAttachRule
+} from "../../lib/document-refs.js";
 
 /** A decoded JSON value: what a stored document or graph carries. */
 type JsonValue =
@@ -180,6 +186,23 @@ async function loadOwned(
   return script;
 }
 
+/**
+ * Load a JS script whose versions the caller may read: the owner, an editor,
+ * or a viewer with the history option (AC26). Anyone else gets the NOT_FOUND
+ * a missing script gets.
+ */
+async function loadWithHistory(
+  ctxUserId: string | null,
+  id: string
+): Promise<JsScript> {
+  const script = await loadOwned(ctxUserId, id, "viewer");
+  if (script.user_id === ctxUserId) return script;
+  if (!mayReadHistory(await effectiveAccess(ctxUserId ?? "", "jsscript", script.id))) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "JS script not found");
+  }
+  return script;
+}
+
 export const jsScriptsRouter = router({
   list: protectedProcedure
     .input(listInput)
@@ -287,10 +310,12 @@ export const jsScriptsRouter = router({
 
       // The loaded row's id: `input.id` may be a 12-character prefix, which
       // the conditional write would never match.
-      const updated = await JsScript.updateFieldsIfUnchanged(
-        script.id,
-        expectedUpdatedAt,
-        fields
+      const updated = await saveUnderAttachRule(
+        "jsscript",
+        script,
+        ctx.userId,
+        fields.document,
+        () => JsScript.updateFieldsIfUnchanged(script.id, expectedUpdatedAt, fields)
       );
       if (!updated) {
         throwApiError(
@@ -317,7 +342,7 @@ export const jsScriptsRouter = router({
       .input(listJsScriptVersionsInput)
       .output(z.array(jsScriptVersionListItem))
       .query(async ({ ctx, input }) => {
-        const script = await loadOwned(ctx.userId, input.id, "viewer");
+        const script = await loadWithHistory(ctx.userId, input.id);
         const versions = await JsScriptVersion.listForScript(script.id, {
           limit: input.limit,
           saveType: input.saveType
@@ -329,7 +354,7 @@ export const jsScriptsRouter = router({
       .input(getJsScriptVersionInput)
       .output(jsScriptVersionResponse)
       .query(async ({ ctx, input }) => {
-        const script = await loadOwned(ctx.userId, input.id, "viewer");
+        const script = await loadWithHistory(ctx.userId, input.id);
         const version = await JsScriptVersion.findByVersion(
           script.id,
           input.version
@@ -368,13 +393,6 @@ export const jsScriptsRouter = router({
           throwApiError(ApiErrorCode.NOT_FOUND, "JS script version not found");
         }
 
-        // Snapshot what is about to be overwritten first, so a restore is
-        // itself undoable.
-        await JsScriptVersion.snapshot(script, {
-          saveType: "restore",
-          name: `Before restore to v${input.version}`
-        });
-
         const document = parseVersionDocument(version.document);
         // An old document is restored against today's schema, so what it used
         // to pass is not what it passes now. Errors refuse the restore (the
@@ -391,10 +409,28 @@ export const jsScriptsRouter = router({
           );
         }
 
-        const updated = await JsScript.updateFieldsIfUnchanged(
-          script.id,
-          script.updated_at,
-          { document: JSON.stringify(document) }
+        // The files of saved versions are not new to the script, so the
+        // attach rule reads their sets.
+        await ensureVersionSets("jsscript", script);
+        const updated = await saveUnderAttachRule(
+          "jsscript",
+          script,
+          ctx.userId,
+          document,
+          async () => {
+            // Snapshot what is about to be overwritten first, so a restore
+            // is itself undoable. It runs after the attach rule, so a
+            // refused restore writes nothing.
+            await JsScriptVersion.snapshot(script, {
+              saveType: "restore",
+              name: `Before restore to v${input.version}`
+            });
+            return JsScript.updateFieldsIfUnchanged(
+              script.id,
+              script.updated_at,
+              { document: JSON.stringify(document) }
+            );
+          }
         );
         if (!updated) {
           throwApiError(
