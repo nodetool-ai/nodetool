@@ -36,6 +36,7 @@ import {
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
 import { useTimelineAgentBridge } from "../useTimelineAgentBridge";
 import { useLastModelStore } from "../../../stores/lastModelStore";
+import { DEFAULT_TIMELINE_INSTRUMENT } from "../../../stores/timeline/instrumentPresets";
 /** The waveform of a voice, when the voice is the built-in synth. */
 const waveformOf = (instrument: MidiInstrument | undefined) =>
   instrument?.type === "subtractive" ? instrument.waveform : undefined;
@@ -922,11 +923,11 @@ describe("shared timeline fixtures through the web handler", () => {
     it(fixture.tool, async () => {
       const initial = directState();
       mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
-      const expected = await applyTimelineOp(
-        initial,
-        fixture.op,
-        directContext(initial)
-      );
+      // The web bridge creates MIDI tracks with the web default instrument.
+      const expected = await applyTimelineOp(initial, fixture.op, {
+        ...directContext(initial),
+        defaultMidiInstrument: DEFAULT_TIMELINE_INSTRUMENT
+      });
       expect(expected.error).toBeUndefined();
       const context = directContext(initial);
       renderHook(() => useTimelineAgentBridge(SEQ_ID, context));
