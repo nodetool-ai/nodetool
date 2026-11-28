@@ -529,7 +529,7 @@ shared-device operation, close issues or change PR merge ordering.
 
 | Deferred requirement | Owning work | Evidence needed to finish |
 |---|---|---|
-| Complete graph-to-IR compiler and snapshots | [WP16 #7407](https://github.com/nodetool-ai/nodetool/issues/7407) | Required graph forms, including mixed-domain placement and batch rewrites, compile to loader-qualified snapshots with stable slots and state keys |
+| Complete graph-to-IR compiler and snapshots | [WP16 #7407](https://github.com/nodetool-ai/nodetool/issues/7407) | Required graph forms, including stateful controls shared across domains and batch rewrites, compile to loader-qualified snapshots with stable slots and state keys |
 | Synchronized parameter changes | [WP13 #7404](https://github.com/nodetool-ai/nodetool/issues/7404) | A change reaches audio and picture at the required quantum/frame, including rapid revisions and clock-generation changes |
 | Prepared-media publication and live slot lifecycle | [WP19 #7410](https://github.com/nodetool-ai/nodetool/issues/7410) | Decode/resample and publication validate the prepared rate/layout, frame count and content hash, with immutable slot replacement, retirement and per-run resource transfer |
 | Stall and live-device timing | [WP12 #7403](https://github.com/nodetool-ai/nodetool/issues/7403), [WP15 #7406](https://github.com/nodetool-ai/nodetool/issues/7406) | Stall/load fixtures and measured device budgets pass on the required hardware |
@@ -724,6 +724,34 @@ packed install lowers prepared PCM and shared sink outputs outside the workspace
 Render/audio/control/PCM results agree through an isolated browser bundle without
 Node globals or external imports. Broad local checks remain deferred under the
 targeted-check policy.
+
+## WP16 mixed-domain placement
+
+A plan can now combine one render output with audio outputs. The compiler lowers
+the render region and the audio regions separately and merges them. Following
+RT-F47, an analytic control read by both regions appears once per domain with the
+same graph identity. Registers are scoped per domain, as the loader requires.
+A stateful control runs in the one domain that reads it. One read by both domains,
+directly or through analytic controls, rejects with `stateful_domain` until the
+signal history of WP22 exists. Audio signals cannot feed the render region, and a
+batch output used as both a texture and a PCM boundary rejects.
+
+Unit tests check the stored [mixed snapshot](../../packages/realtime-compiler/tests/fixtures/mixed-plan.json)
+against the schema and compare each region with its single-domain compilation.
+They cover node, edge and output permutations, time and constant controls in both
+domains, stateful placement, the three rejections and render-only edits that
+leave the audio plan, parameter slots, state keys and sink hash unchanged.
+
+The stored snapshot loads through the native loader, and both control domains and
+the audio executor prepare from it, with a core Release build on Linux. Moving the
+audio copy of the shared control to the render domain rejects with `level/register`.
+The core build cannot export pictures. The native fixture checker now exports the
+mixed plans with the GPU build and requires WAV bytes equal to the audio-only plan
+and PNG bytes equal to the render-only plan. That check runs in CI only, because
+this host cannot fetch the GPU dependencies.
+
+WP16 remains open. Shared stateful controls, render parameter slots, batch graph
+rewriting, delayed feedback and the full expression vocabulary remain unimplemented.
 
 ## WP11 audio-io extraction
 
