@@ -24,11 +24,16 @@ import {
 } from "@nodetool-ai/app-runtime";
 import {
   Application,
+  ApplicationDeployment,
   Workflow,
+  listApplicationVersions,
+  publishApplication,
+  releaseApplicationVersion,
   createStableUuid,
   createTimeOrderedUuid,
   releasedApplicationRelease,
-  createJsScriptResolver
+  createJsScriptResolver,
+  type ApplicationVersionResponse
 } from "@nodetool-ai/models";
 import { checkoutPackageAssetsDir } from "@nodetool-ai/cli-common/package-assets";
 
@@ -47,6 +52,30 @@ async function loadApp(id: string): Promise<Application> {
     throw new Error(`Application not found: ${id}`);
   }
   return app;
+}
+
+/** One published version as the commands print it. */
+function versionRow(version: ApplicationVersionResponse) {
+  return {
+    version: version.version,
+    released: version.released,
+    operations: version.document.operations.length,
+    created_at: version.createdAt
+  };
+}
+
+/**
+ * A live public link serves the release to visitors, and the server checks a
+ * release before it replaces the one a link serves. That check needs the
+ * server's runtime, so the local commands leave such an app to the editor.
+ */
+async function refuseLiveLink(applicationId: string): Promise<void> {
+  if (await ApplicationDeployment.findLive(applicationId)) {
+    throw new Error(
+      `Application ${applicationId} has a live public link. Publish it from ` +
+        "the editor, which checks the release before visitors get it."
+    );
+  }
 }
 
 /** Keep a bundle's default filename from escaping the working directory. */
@@ -155,6 +184,87 @@ export function registerAppsCommands(program: Command): void {
           return;
         }
         printTable(rows, ["id", "name", "operations", "updated_at"]);
+      } catch (e) {
+        fail(e);
+      }
+    });
+
+  // Publishing is withheld from agents (`applications.publish` and
+  // `applications.release` in websocket `sandbox-coverage.ts`), so no
+  // capability backs these three commands.
+  apps
+    .command("publish <application_id>")
+    .description(
+      "Publish the app's current draft as a new released version. Each " +
+        "workflow it binds is pinned to a version written now."
+    )
+    .option("--json", "Output as JSON")
+    .action(async (id: string, opts: { json?: boolean }) => {
+      try {
+        await setupLocalDb();
+        const app = await loadApp(id);
+        await refuseLiveLink(app.id);
+        const release = await publishApplication(app);
+        const row = versionRow(release);
+        if (opts.json) {
+          asJson(row);
+          return;
+        }
+        console.log(`Published ${app.name} as version ${release.version}.`);
+      } catch (e) {
+        fail(e);
+      }
+    });
+
+  apps
+    .command("versions <application_id>")
+    .description("List the app's published versions, newest first")
+    .option("--json", "Output as JSON")
+    .action(async (id: string, opts: { json?: boolean }) => {
+      try {
+        await setupLocalDb();
+        const app = await loadApp(id);
+        const rows = (
+          await listApplicationVersions(app.id, undefined, app.user_id)
+        ).map(versionRow);
+        if (opts.json) {
+          asJson(rows);
+          return;
+        }
+        printTable(rows, ["version", "released", "operations", "created_at"]);
+      } catch (e) {
+        fail(e);
+      }
+    });
+
+  apps
+    .command("release <application_id> <version>")
+    .description(
+      "Serve an earlier published version again (rollback), or a newer one"
+    )
+    .option("--json", "Output as JSON")
+    .action(async (id: string, version: string, opts: { json?: boolean }) => {
+      try {
+        const number = Number(version);
+        if (!/^\d+$/.test(version) || !Number.isSafeInteger(number) || number < 1) {
+          throw new Error(`version must be a positive integer, got '${version}'`);
+        }
+        await setupLocalDb();
+        const app = await loadApp(id);
+        await refuseLiveLink(app.id);
+        const released = await releaseApplicationVersion(
+          app.id,
+          number,
+          app.user_id
+        );
+        if (!released) {
+          throw new Error(`Application ${app.id} has no version ${number}`);
+        }
+        if (opts.json) {
+          asJson(versionRow(released));
+          return;
+        }
+        console.log(`${app.name} now serves version ${released.version}.`);
       } catch (e) {
         fail(e);
       }

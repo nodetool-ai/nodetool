@@ -1,8 +1,13 @@
-import { z } from "zod";
 import {
   TriggerRegistration,
   createTimeOrderedUuid
 } from "@nodetool-ai/models";
+import {
+  fireTriggerInput,
+  fireTriggerOutput,
+  listTriggersByWorkflowInput,
+  listTriggersByWorkflowOutput
+} from "@nodetool-ai/protocol/api-schemas/triggers.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -16,41 +21,6 @@ import {
   scheduleCronSettings,
   scheduleIntervalSeconds
 } from "../../triggers/schedule-timing.js";
-
-const fireInput = z.object({
-  registrationId: z.string(),
-  payload: z.unknown().optional(),
-  idempotencyKey: z.string().optional()
-});
-
-const listByWorkflowInput = z.object({ workflowId: z.string() });
-
-const editorRegistrationOutput = z.object({
-  id: z.string(),
-  workflow_id: z.string(),
-  node_id: z.string(),
-  kind: z.string(),
-  enabled: z.boolean(),
-  last_fired_at: z.string().nullable(),
-  last_error: z.string().nullable(),
-  disabled_reason: z.string().nullable(),
-  consecutive_failures: z.number(),
-  run_count: z.number(),
-  expires_at: z.string().nullable(),
-  max_runs: z.number().nullable(),
-  next_fire_at: z.string().nullable(),
-  interval_seconds: z.number().nullable(),
-  cron_expr: z.string().nullable(),
-  cron_tz: z.string().nullable(),
-  webhook_token: z.string().nullable(),
-  webhook_secret: z.string().nullable()
-});
-
-const listByWorkflowOutput = z.object({
-  triggers: z.array(editorRegistrationOutput)
-});
-
-const fireOutput = z.object({ job_id: z.string() });
 
 /**
  * A registration as the editor needs it. Unlike `jobs.triggersRunning`, this
@@ -101,8 +71,8 @@ function toEditorRegistration(reg: TriggerRegistration) {
 export const triggersRouter = router({
   /** Every registration for one workflow the caller owns, enabled or not. */
   listByWorkflow: protectedProcedure
-    .input(listByWorkflowInput)
-    .output(listByWorkflowOutput)
+    .input(listTriggersByWorkflowInput)
+    .output(listTriggersByWorkflowOutput)
     .query(async ({ ctx, input }) => {
       const registrations = await TriggerRegistration.findByWorkflow(
         input.workflowId
@@ -115,8 +85,8 @@ export const triggersRouter = router({
     }),
 
   fire: protectedProcedure
-    .input(fireInput)
-    .output(fireOutput)
+    .input(fireTriggerInput)
+    .output(fireTriggerOutput)
     .mutation(async ({ ctx, input }) => {
       const reg = await TriggerRegistration.get(input.registrationId);
       if (!reg || reg.user_id !== ctx.userId) {

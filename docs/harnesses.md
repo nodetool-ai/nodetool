@@ -2621,7 +2621,14 @@ npm run dev:nodetool -- apps list                          # id, name, operation
 npm run dev:nodetool -- apps export-bundle <application_id> -o my.app.json
 npm run dev:nodetool -- apps export-bundle <id> --released # the released snapshot, not the draft
 npm run dev:nodetool -- apps import-bundle my.app.json --project default
+npm run dev:nodetool -- apps publish <application_id>      # release the draft as a new version
+npm run dev:nodetool -- apps versions <application_id>     # published versions, newest first
+npm run dev:nodetool -- apps release <application_id> 2    # serve version 2 again
 ```
+
+`publish` and `release` refuse an app with a live public link, whose release the
+server checks before visitors get it. See
+[CLI reference](cli.md#nodetool-apps-publish-versions-release).
 
 A bundled workflow carrying a `sourceId` gets a row id derived from it, so two
 bundles that ship the same workflow reuse the row instead of duplicating it —
