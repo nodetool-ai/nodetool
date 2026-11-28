@@ -56,6 +56,7 @@ export {
 export type { CapabilityRunSource } from "./adapters.js";
 export {
   UNGATED,
+  capabilityAlwaysAsks,
   contextSecretAvailability,
   createCapabilityRun,
   capabilityProviderTool,

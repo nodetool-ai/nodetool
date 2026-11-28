@@ -21,6 +21,13 @@ export interface SettingCatalogEntry {
   description: string;
   enum?: string[];
   isSecret?: boolean;
+  /**
+   * The value names something on the server's own disk. `executable` is a
+   * program NodeTool later starts, `path` a file or directory it reads or
+   * writes. Changing either from an agent always asks the user, and on a
+   * shared server an executable comes only from the operator's environment.
+   */
+  hostPath?: "executable" | "path";
 }
 
 const catalog: SettingCatalogEntry[] = [];
@@ -59,6 +66,20 @@ function s(
     description,
     enum: enumValues
   });
+}
+
+/** Mark registered settings as naming something on the server's disk. */
+function markHostPath(
+  kind: NonNullable<SettingCatalogEntry["hostPath"]>,
+  envVars: readonly string[]
+): void {
+  for (const envVar of envVars) {
+    const def = settingDefinition(envVar);
+    if (def === undefined) {
+      throw new Error(`markHostPath: ${envVar} is not in the setting catalog`);
+    }
+    def.hostPath = kind;
+  }
 }
 function sec(envVar: string, group: string, description: string): void {
   registerSettingDefinition({
@@ -882,3 +903,20 @@ sec(
   "Deployment",
   "Bearer auth token for securing NodeTool server endpoints in deployment. If unset, bearer auth is disabled."
 );
+
+markHostPath("executable", [
+  "BLENDER_PATH",
+  "MANIMGX_PATH",
+  "SD_CPP_SERVER_PATH",
+  "CLAUDE_CLI_PATH"
+]);
+markHostPath("path", [
+  "FONT_PATH",
+  "MODEL_FOLDERS",
+  "PROJECTS_DIR",
+  "VECTORSTORE_DB_PATH",
+  "USERS_FILE",
+  "TRANSFORMERS_JS_CACHE_DIR",
+  "NODE_LLAMA_CPP_MODELS_DIR",
+  "WHISPER_CPP_MODELS_DIR"
+]);

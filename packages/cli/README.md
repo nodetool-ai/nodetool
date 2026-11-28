@@ -91,6 +91,9 @@ nodetool models list --provider openai
 nodetool text 'Hello' --model <model-id>
 ```
 
+`assets download` keeps an existing destination file unless you pass `--force`.
+`workflows list --limit` accepts a whole number from 1 to 500.
+
 Secret values are read from stdin and encrypted for the authenticated user.
 Without a token, `secrets list` and `secrets set` use the local store instead. `OPENAI_BASE_URL` selects a public HTTPS OpenAI-compatible endpoint.
 

@@ -14398,6 +14398,8 @@
         "revoice": "Powtórz linię głosową",
         "voice": "Linia głosowa",
         "assignVoiceFirst": "Najpierw przypisz głos do tego głośnika",
+        "writeLineFirst": "Najpierw napisz kwestię",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "Więcej akcji liniowych",
         "pauseOption": {
           "0": "Żadnej przerwy po",
@@ -17921,7 +17923,6 @@
       "takeCount_many": "{{count}} ujęć"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Jeszcze nie wypowiedziane",
       "playTake": "Odtwórz branie"
     }
   },

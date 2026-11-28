@@ -29,7 +29,8 @@ import {
   buildConfiguredProviders,
   defaultModelFor,
   KNOWN_PROVIDERS,
-  resolveDefaultModel
+  resolveDefaultModel,
+  sessionDefaultProvider
 } from "@nodetool-ai/cli-providers";
 import { initDb, migrateSqliteDb } from "@nodetool-ai/models";
 import { initMasterKey, isKeychainBackendMissing } from "@nodetool-ai/security";
@@ -67,7 +68,7 @@ program
   )
   .option(
     "-p, --provider <provider>",
-    `LLM provider (${KNOWN_PROVIDERS.join(", ")})`
+    `LLM provider (${KNOWN_PROVIDERS.join(", ")}). Started from Claude Code, the default is claude_agent_sdk`
   )
   .option("-m, --model <model>", "Model ID")
   .option(
@@ -214,16 +215,19 @@ await installLocalModelInterfaces();
 // Load persisted settings and merge with CLI flags
 const settings = await loadSettings();
 
-const provider = opts.provider ?? settings.provider;
-// A remote server (--url) resolves its own providers, so only a local run
-// asks the provider for an account-specific default (Codex).
+// Started from Claude Code, a local run without --provider uses the session's
+// own login through claude_agent_sdk, ahead of the saved provider. A remote
+// server (--url) resolves its own providers, so it keeps the saved one.
+const chosenProvider = opts.provider ?? (opts.url ? undefined : sessionDefaultProvider());
+const provider = chosenProvider ?? settings.provider;
+// Only a local run asks the provider for an account-specific default (Codex).
 let model = opts.model ?? settings.model;
-if (!opts.model && opts.provider) {
+if (!opts.model && chosenProvider) {
   try {
     model =
       (opts.url
-        ? defaultModelFor(opts.provider)
-        : await resolveDefaultModel(opts.provider)) ?? settings.model;
+        ? defaultModelFor(chosenProvider)
+        : await resolveDefaultModel(chosenProvider)) ?? settings.model;
   } catch (err) {
     process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
     process.exit(1);

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   chmodSync,
   mkdirSync,
@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  codexHome,
   hasNodetoolCli,
   mcpServersSnippet,
   probeMcpLaunch,
@@ -28,9 +29,11 @@ let home: string;
 
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "mcp-client-config-"));
+  vi.stubEnv("CODEX_HOME", "");
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   rmSync(home, { recursive: true, force: true });
 });
 
@@ -131,6 +134,15 @@ describe("Codex", () => {
     writeFileSync(path, `model = "o4"\n\n${readFileSync(path, "utf8")}`);
     expect(removeMcpClientEntry("codex", home)).toBe(true);
     expect(readFileSync(path, "utf8")).toBe('model = "o4"\n');
+  });
+
+  it("writes to CODEX_HOME when it is set, as Codex reads it", () => {
+    const writable = join(home, "writable-codex");
+    vi.stubEnv("CODEX_HOME", writable);
+    expect(codexHome(home)).toBe(writable);
+    expect(writeMcpClientEntry("codex", STDIO, home)).toBe(join(writable, "config.toml"));
+    expect(readMcpClientEntry("codex", home)).toEqual(STDIO);
+    expect(codexHome(home, {})).toBe(join(home, ".codex"));
   });
 });
 

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import ScriptLineRow from "../ScriptLineRow";
@@ -11,6 +11,15 @@ import {
 
 jest.mock("../../timeline/Tracks/useAssetUrl", () => ({
   useAssetUrl: () => undefined
+}));
+
+const mockVoiceLine = jest.fn((_scriptId: string, _lineId: string) =>
+  Promise.resolve()
+);
+jest.mock("../../../stores/script/scriptVoicing", () => ({
+  ...jest.requireActual("../../../stores/script/scriptVoicing"),
+  voiceLine: (scriptId: string, lineId: string) =>
+    mockVoiceLine(scriptId, lineId)
 }));
 
 const SCRIPT_ID = "script-1";
@@ -56,6 +65,7 @@ const renderRow = (line: ScriptLine) => {
 describe("ScriptLineRow take column", () => {
   beforeEach(() => {
     useScriptStore.setState({ scripts: {}, history: {}, saveStatus: {} });
+    mockVoiceLine.mockClear();
   });
 
   it("numbers the current take and shows its length", () => {
@@ -88,11 +98,40 @@ describe("ScriptLineRow take column", () => {
     expect(screen.queryByText(/^Take/)).toBeNull();
   });
 
-  it("shows an empty strip for a line not voiced yet", () => {
+  it("shows no waveform strip for a line not voiced yet", () => {
     renderRow({ id: "l1", speakerId: "mia", text: "Hi.", takes: [] });
 
     expect(screen.getByText("Draft")).toBeInTheDocument();
-    expect(screen.getByText("Not voiced yet")).toBeInTheDocument();
+    expect(screen.queryByTestId("script-take-waveform")).toBeNull();
+    expect(screen.queryByText("Not voiced yet")).toBeNull();
     expect(screen.getByRole("button", { name: "Voice line" })).toBeEnabled();
+  });
+
+  it("disables voicing a line with no text", () => {
+    renderRow({ id: "l1", speakerId: "mia", text: "  ", takes: [] });
+
+    expect(screen.getByRole("button", { name: "Voice line" })).toBeDisabled();
+  });
+
+  it("voices the line on Ctrl+Enter in its text", () => {
+    renderRow({ id: "l1", speakerId: "mia", text: "Hi.", takes: [] });
+
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Line text" }), {
+      key: "Enter",
+      ctrlKey: true
+    });
+
+    expect(mockVoiceLine).toHaveBeenCalledWith(SCRIPT_ID, "l1");
+  });
+
+  it("does not voice an empty line on Ctrl+Enter", () => {
+    renderRow({ id: "l1", speakerId: "mia", text: "", takes: [] });
+
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Line text" }), {
+      key: "Enter",
+      ctrlKey: true
+    });
+
+    expect(mockVoiceLine).not.toHaveBeenCalled();
   });
 });

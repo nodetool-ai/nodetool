@@ -45,6 +45,7 @@ describe("runNativeWebSearch", () => {
     const call = (p.generateLoop as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(call.tools.map((t: { name: string }) => t.name)).toEqual([WEB_SEARCH_TOOL_NAME]);
     expect(call.messages[0]).toEqual({ role: "system", content: "Custom prompt" });
+    expect(call.webSearchOnly).toBe(true);
   });
 
   it("falls back to the streamed text when no assistant message arrives", async () => {

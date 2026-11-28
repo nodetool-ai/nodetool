@@ -28,6 +28,7 @@ import {
   listExampleStoryboards
 } from "../../lib/example-storyboards.js";
 import { seedStylePresets } from "../../lib/style-presets.js";
+import { saveUnderAttachRule } from "../../lib/document-refs.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -154,10 +155,13 @@ export const storyboardsRouter = router({
       if (input.timelineId !== undefined)
         fields.timeline_id = input.timelineId;
 
-      const updated = await Storyboard.updateFieldsIfUnchanged(
-        board.id,
-        expectedUpdatedAt,
-        fields
+      const updated = await saveUnderAttachRule(
+        "storyboard",
+        board,
+        ctx.userId,
+        fields.document,
+        () =>
+          Storyboard.updateFieldsIfUnchanged(board.id, expectedUpdatedAt, fields)
       );
       if (!updated) {
         throwApiError(

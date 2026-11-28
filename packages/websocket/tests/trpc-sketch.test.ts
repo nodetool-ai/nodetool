@@ -4,6 +4,24 @@ import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 import type { ImageDocumentData } from "@nodetool-ai/models";
 
+// Reference sets live in the database this suite replaces with stubs. Their
+// behavior is covered by tests/document-refs.test.ts and
+// tests/document-attach-history.test.ts.
+vi.mock("../src/lib/document-refs.js", () => ({
+  checkAttach: vi.fn().mockResolvedValue([]),
+  findUnreadableFile: vi.fn().mockResolvedValue({ unreadable: null, toAdmit: [] }),
+  fileNotReadableMessage: (file: string) => file,
+  ensureCurrentSet: vi.fn().mockResolvedValue("current:"),
+  currentContent: vi.fn().mockReturnValue(null),
+  publishSave: vi.fn().mockResolvedValue(undefined),
+  ensureVersionSets: vi.fn().mockResolvedValue(undefined),
+  saveUnderAttachRule: vi.fn(
+    (_kind: unknown, _doc: unknown, _writer: unknown, _next: unknown, write: () => Promise<unknown>) =>
+      write()
+  ),
+  readableSharedFiles: vi.fn().mockResolvedValue(new Set())
+}));
+
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   class StubImageDocument {

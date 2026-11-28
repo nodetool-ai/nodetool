@@ -133,6 +133,9 @@ describe("TC117, FC31: the list of routes", () => {
     ["POST", "/trpc/agentAccess.createToken"],
     ["POST", "/trpc/workflows.list,agentAccess.approveOauthRequest?batch=1"],
     ["POST", "/trpc/cloudTransfer.link"],
+    ["POST", "/trpc/integrations.createLinkCode"],
+    ["GET", "/trpc/integrations.list"],
+    ["POST", "/trpc/workflows.list,integrations.confirmLink?batch=1"],
     ["GET", "/api/assets/../oauth/token"],
     ["GET", "/api/assets/%2e%2e/x"],
     ["GET", "/api/assets/a%2fb"],
@@ -357,6 +360,29 @@ describe("transfer calls", () => {
     await settle();
     expect(cloudFetch).not.toHaveBeenCalled();
     expect(await account.transfer("workflows.delete", {})).toEqual({ status: "refused", reason: "INVALID", data: null });
+  });
+
+  test("a local server that stops being trusted gets no token, even for a call already started", async () => {
+    let local: string | null = LOCAL;
+    const { account, helper, cloudFetch } = await signedInAccount({ localOrigin: () => local });
+    void account.transfer("cloudTransfer.send.run", { transfer_id: "t1" });
+    await settle();
+    const id = helper.last("transfer")!.id;
+    local = null;
+    helper.say({
+      type: "http",
+      id: 71,
+      method: "POST",
+      url: `${LOCAL}/trpc/cloudTransfer.send.run`,
+      headers: [],
+      body: '{"access_token":"ntd_x"}',
+      timeoutMs: 1000,
+      requiredOrigin: "",
+      transfer: id,
+    });
+    await settle();
+    expect(cloudFetch).not.toHaveBeenCalled();
+    expect(helper.received).toContainEqual(expect.objectContaining({ type: "httpResponse", id: 71, status: 0 }));
   });
 
   test("no local server: the call is refused before the helper sees it", async () => {

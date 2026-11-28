@@ -1,13 +1,38 @@
 #!/usr/bin/env node
 /** Verify the complete staged cohort before promoting its CLI last. */
 import { resolve } from "node:path";
+import { setTimeout } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { createLimiter, runReleaseCommandAsync, timed } from "./commands.mjs";
+import { RegistryNotReadyError } from "./registry.mjs";
 import { releaseInputs, verifyStaging } from "./verify-staging.mjs";
 
 /** Concurrent `npm dist-tag add` calls before the CLI, which always goes last. */
 const PROMOTION_CONCURRENCY = 8;
+/** Full verification passes over the staged cohort, each with its own readiness deadline. */
+export const VERIFICATION_PASSES = 3;
+/** Pause between passes after the registry did not serve a published version in time. */
+export const VERIFICATION_RETRY_DELAY_MS = 300_000;
+
+/**
+ * Verify the staged cohort, starting a new pass when the registry has not
+ * served a published version yet. Integrity, provenance, authorization and
+ * smoke failures stop at once. The artifacts are already published, so a
+ * later pass reads the same immutable versions and never republishes.
+ */
+export async function verifyWithRecovery(verify, {
+  passes = VERIFICATION_PASSES, retryDelayMs = VERIFICATION_RETRY_DELAY_MS, sleep = setTimeout, log = console.warn
+} = {}) {
+  for (let pass = 1; ; pass++) {
+    try { return await verify(); }
+    catch (error) {
+      if (!(error instanceof RegistryNotReadyError) || pass >= passes) { throw error; }
+      log(`Registry not ready on verification pass ${pass} of ${passes} (${error.message}). Retrying the staged artifacts in ${Math.round(retryDelayMs / 1000)}s.`);
+      await sleep(retryDelayMs);
+    }
+  }
+}
 
 export function releaseTag(version) {
   const parsed = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(version);
@@ -31,12 +56,13 @@ export async function promoteStaging(catalog, artifacts, {
   tag = releaseTag(catalog.coreVersion),
   verify = () => verifyStaging(catalog, artifacts),
   run = runReleaseCommandAsync,
-  dryRun = false
+  dryRun = false,
+  recovery = {}
 } = {}) {
   const expectedTag = releaseTag(catalog.coreVersion);
   if (tag !== expectedTag) { throw new Error(`Release ${catalog.coreVersion} must promote ${expectedTag}, not ${tag}`); }
   const order = promotionOrder(artifacts);
-  await verify();
+  await verifyWithRecovery(verify, recovery);
   if (dryRun) { return order.map(pkg => pkg.name); }
   const promote = pkg => run("npm", ["dist-tag", "add", `${pkg.name}@${pkg.version}`, tag], {});
   const cli = order.at(-1);

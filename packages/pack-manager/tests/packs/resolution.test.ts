@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, realpath, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { bareSpecifierName, resolvePackDependency } from "../../src/packs/resolution.js";
+import { bareSpecifierName, findPackageRoot, resolvePackDependency } from "../../src/packs/resolution.js";
 
 const exec = promisify(execFile);
 const roots: string[] = [];
@@ -80,4 +80,33 @@ it("names only bare package specifiers", () => {
   for (const specifier of ["./local.js", "/abs.js", "file:///x.js", "node:fs", "fs", "#internal", "@scope"]) {
     expect(bareSpecifierName(specifier)).toBeNull();
   }
+});
+
+it("keeps pack-project sharp when sharedNames lists it and NODE_PATH holds a CJS-only copy", async () => {
+  const f = await fixture();
+  const cjsGlobal = join(f.root, "cjs-global");
+  await writePackage(join(cjsGlobal, "sharp"), { name: "sharp", version: "0.34.0", main: "index.js" }, {
+    "index.js": "module.exports = { source: 'cjs-global' };\n"
+  });
+  await writePackage(join(f.projectRoot, "node_modules/sharp"), { name: "sharp", version: "0.35.5", type: "module", exports: "./index.js" }, {
+    "index.js": "export default { source: 'pack-project' };\n"
+  });
+  await writePackage(join(f.projectRoot, "node_modules/@nodetool-ai/imaging-consumer"), { name: "@nodetool-ai/imaging-consumer", version: "1.0.0", type: "module", exports: "./index.js" }, {
+    "index.js": 'import sharp from "sharp";\nexport const loaded = sharp.source;\n'
+  });
+  const resolution = { ...f.resolution, sharedNames: ["sharp"] };
+  const module = new URL("../../src/packs/resolution.ts", import.meta.url).href;
+  const host = join(f.cliRoot, "sharp-host.mjs");
+  await writeFile(host, `const { activatePackResolution, findPackageRoot } = await import(${JSON.stringify(module)});
+activatePackResolution(${JSON.stringify(resolution)});
+const foundInCli = findPackageRoot("sharp", ${JSON.stringify(f.cliRoot)});
+const consumer = await import(${JSON.stringify(pathToFileURL(join(f.projectRoot, "node_modules/@nodetool-ai/imaging-consumer/index.js")).href)});
+process.stdout.write(JSON.stringify({ foundInCli, loaded: consumer.loaded }));
+`);
+  const { stdout } = await exec(process.execPath, ["--import", "tsx", "--conditions=nodetool-dev", host], {
+    cwd: fileURLToPath(new URL("../../../..", import.meta.url)),
+    env: { ...process.env, NODE_PATH: cjsGlobal }
+  });
+  expect(JSON.parse(stdout)).toEqual({ foundInCli: null, loaded: "pack-project" });
+  expect(findPackageRoot("sharp", f.cliRoot)).toBeNull();
 });

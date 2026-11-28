@@ -12,6 +12,7 @@ import { fixture, expressionFixture, alphaFixture } from "./fixtures/RenderGraph
 import { checkAudio } from "./native-audio-check.mjs";
 import { checkAudioControls } from "./native-control-check.mjs";
 import { checkPcmBoundaries } from "./native-pcm-check.mjs";
+import { checkMixedPlans } from "./native-mixed-check.mjs";
 
 assert.equal(process.argv.length, 3, "Pass a GPU-enabled native realtime executable");
 const executable = resolve(process.argv[2]);
@@ -69,5 +70,6 @@ try {
   checkAudio(executable, root);
   checkAudioControls(executable, root);
   checkPcmBoundaries(executable, root);
-  console.log("Compiled render/audio/control/PCM fixtures match native references; invalid bindings, slots and buffer reuse reject before output.");
+  checkMixedPlans(executable, root);
+  console.log("Compiled render/audio/control/PCM/mixed fixtures match native references; invalid bindings, slots and buffer reuse reject before output.");
 } finally { rmSync(root, { recursive: true, force: true }); }

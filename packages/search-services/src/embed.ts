@@ -40,6 +40,11 @@ export const EMBED_BUDGET_LEASE = "library-embedding-budget";
 export interface EmbedPass {
   embedded: number;
   /**
+   * Owners whose provider call failed in this pass. Their chunks wait for
+   * the next pass, and the other owners' chunks go ahead meanwhile.
+   */
+  failed?: number;
+  /**
    * Why the pass stopped early, if it did: the daily spend limit is reached,
    * or another indexer holds the budget lease for its paid call.
    */
@@ -47,13 +52,19 @@ export interface EmbedPass {
 }
 
 /** Chunks of `userId` (or every owner) that lack a vector in `space`, outside excluded projects. */
-function unembeddedCondition(space: EmbeddingSpace, excluded: readonly string[], userId?: string) {
+function unembeddedCondition(
+  space: EmbeddingSpace,
+  excluded: readonly string[],
+  userId?: string,
+  skippedOwners: readonly string[] = []
+) {
   const parts = [
     ne(searchItems.state, "excluded"),
     or(isNull(searchChunks.embedding_space), ne(searchChunks.embedding_space, space.id))
   ];
   if (excluded.length > 0) parts.push(notInArray(searchItems.project_id, [...excluded]));
   if (userId) parts.push(eq(searchItems.user_id, userId));
+  if (skippedOwners.length > 0) parts.push(notInArray(searchItems.user_id, [...skippedOwners]));
   return and(...parts);
 }
 
@@ -116,6 +127,11 @@ async function dropExcludedVectors(excluded: readonly string[]): Promise<void> {
  * Each batch claims its items first. A hosted model is called only while
  * this process holds the budget lease, after checking the day's spend under
  * it, so concurrent indexers cannot together spend past the limit.
+ *
+ * A failed call skips its owner for the rest of the pass, so one owner whose
+ * key is missing or whose passage the model refuses does not stop every
+ * other owner's chunks behind it. The pass throws only when it embedded
+ * nothing and a call failed.
  */
 export async function runEmbedPass(
   options: { limit?: number; batchSize?: number; signal?: AbortSignal; owner?: string } = {}
@@ -131,6 +147,8 @@ export async function runEmbedPass(
   const batchSize = options.batchSize ?? EMBED_BATCH_SIZE;
   const hosted = !IN_PROCESS_EMBEDDING_PROVIDERS.has(space.provider) && space.provider !== "ollama";
   const touched = new Set<string>();
+  const failedOwners = new Set<string>();
+  let lastError: unknown = null;
 
   while (pass.embedded < limit && !options.signal?.aborted) {
     const now = new Date();
@@ -148,7 +166,7 @@ export async function runEmbedPass(
       .innerJoin(searchItems, eq(searchItems.id, searchChunks.item_id))
       .where(
         and(
-          unembeddedCondition(space, excluded),
+          unembeddedCondition(space, excluded, undefined, [...failedOwners]),
           or(isNull(searchItems.lease_expires_at), lt(searchItems.lease_expires_at, now.toISOString()))
         )
       )
@@ -181,18 +199,29 @@ export async function runEmbedPass(
           break;
         }
       }
-      const vectors = await embedder.embed(
-        batch.map((row) => embeddingText(row.title, row.field, row.text)),
-        space,
-        userId
-      );
+      let vectors: number[][];
+      try {
+        vectors = await embedder.embed(
+          batch.map((row) => embeddingText(row.title, row.field, row.text)),
+          space,
+          userId
+        );
+        if (vectors.length !== batch.length) {
+          throw new Error(`The embedding model returned ${vectors.length} vectors for ${batch.length} passages.`);
+        }
+      } catch (error) {
+        failedOwners.add(userId);
+        lastError = error;
+        log.warn("Library embedding failed for one owner; continuing with the others", {
+          space: space.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        continue;
+      }
       if (budgetHeld) {
         // The call's cost is in the ledger now: the next check sees it.
         await releaseSearchLease(EMBED_BUDGET_LEASE, owner);
         budgetHeld = false;
-      }
-      if (vectors.length !== batch.length) {
-        throw new Error(`The embedding model returned ${vectors.length} vectors for ${batch.length} passages.`);
       }
       const collection = await libraryCollection(userId, space);
       await collection.upsert(
@@ -231,6 +260,10 @@ export async function runEmbedPass(
     if ((await unembeddedChunkCount(userId, space)) === 0) {
       await dropLibraryCollections(userId, space);
     }
+  }
+  if (failedOwners.size > 0) {
+    if (pass.embedded === 0) throw lastError instanceof Error ? lastError : new Error(String(lastError));
+    pass.failed = failedOwners.size;
   }
   return pass;
 }

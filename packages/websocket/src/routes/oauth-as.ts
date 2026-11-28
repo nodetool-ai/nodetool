@@ -732,11 +732,18 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
         "resource does not match the grant"
       );
     }
+    // An access token minted near the grant's maximum age ends with the
+    // grant, so it can live less than the usual lifetime.
+    const accessTtlMs = native ? NATIVE_ACCESS_TTL_MS : MCP_OAUTH_ACCESS_TTL_MS;
     const body: Record<string, string | number> = {
       access_token: result.accessToken,
       token_type: "Bearer",
-      expires_in: Math.floor(
-        (native ? NATIVE_ACCESS_TTL_MS : MCP_OAUTH_ACCESS_TTL_MS) / 1000
+      expires_in: Math.max(
+        0,
+        Math.min(
+          Math.floor(accessTtlMs / 1000),
+          Math.ceil((result.expiresAt.getTime() - Date.now()) / 1000)
+        )
       ),
       refresh_token: result.refreshToken,
       scope: native ? "native" : "mcp"

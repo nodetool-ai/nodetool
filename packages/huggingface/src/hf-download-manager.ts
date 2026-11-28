@@ -44,8 +44,11 @@ interface StartDownloadOptions {
   ignorePatterns?: string[] | null;
   cacheDir?: string | null;
   modelType?: string | null;
-  /** Token for this download, in place of the manager's. See resolveWorkerHfToken. */
-  token?: string | null;
+  /**
+   * Token for this download, in place of the manager's. `false` sends no
+   * token at all. See resolveHfHubAccess.
+   */
+  token?: string | false | null;
   /**
    * Hub host for this download, such as a mirror from the user's stored
    * `HF_ENDPOINT` setting. Default: `resolveHfEndpoint()`.
@@ -506,7 +509,9 @@ export class DownloadManager {
           });
         } else {
           await asyncHfDownload(repoId, file.path, {
-            token,
+            // `token` is already resolved. `false` keeps the downloader from
+            // falling back to the implicit token when it is null.
+            token: token ?? false,
             endpoint,
             cacheDir: cacheDir ?? undefined,
             progressCallback: onChunk,

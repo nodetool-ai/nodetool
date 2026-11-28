@@ -2,10 +2,13 @@
  * Helper functions for retrieving secrets at runtime.
  *
  * Resolution order for getSecret():
- * 1. Forced env priority keys -> environment variable
+ * 1. Forced env priority keys -> environment variable. A program path the
+ *    host starts (`hostPath: "executable"` in the setting catalog) is read
+ *    only from the environment on a shared server.
  * 2. Local cache
  * 3. Database (encrypted Secret model) -- if userId provided
- * 4. Environment variable
+ * 4. Environment variable, unless `mayUseServerCredential` withholds it
+ *    (a provider credential on the cloud profile)
  * 5. Default value
  *
  * A value found in steps 1-4 may be a 1Password secret reference
@@ -18,7 +21,11 @@
  * New secrets must be created via the TS endpoints for TS runtime access.
  */
 
-import { createLogger } from "@nodetool-ai/config";
+import {
+  createLogger,
+  isServerEnvOnlySetting,
+  mayUseServerCredential
+} from "@nodetool-ai/config";
 import { Secret } from "./secret.js";
 import { Setting } from "./setting.js";
 import { resolveCodexAccessToken } from "./codex-token.js";
@@ -168,6 +175,15 @@ async function resolveSecret(
     }
   }
 
+  // A program the host starts is the operator's to name on a shared server.
+  if (isServerEnvOnlySetting(key)) {
+    const envVal = process.env[key];
+    if (envVal !== undefined && envVal.length > 0) {
+      return materialize(envVal, userId);
+    }
+    return defaultValue ?? null;
+  }
+
   const cacheKey = `${resolvedUserId}:${key}`;
   if (secretCache.has(cacheKey)) {
     const cached = secretCache.get(cacheKey) ?? null;
@@ -218,7 +234,9 @@ async function resolveSecret(
     }
   }
 
-  const envValue = process.env[key];
+  // On the cloud profile a provider credential is never served from the
+  // server's environment: it would pay for every user who saved none.
+  const envValue = mayUseServerCredential(key) ? process.env[key] : undefined;
   if (envValue !== undefined) {
     secretCache.set(cacheKey, envValue);
     return materialize(envValue, userId);
@@ -252,8 +270,11 @@ export async function hasSecret(
 ): Promise<boolean> {
   const resolvedUserId = userId ?? "default";
 
-  if (process.env[key] !== undefined) {
+  if (process.env[key] !== undefined && mayUseServerCredential(key)) {
     return true;
+  }
+  if (isServerEnvOnlySetting(key)) {
+    return false;
   }
 
   const cacheKey = `${resolvedUserId}:${key}`;
@@ -332,6 +353,9 @@ export async function credentialSource(
     return "user";
   }
   if (FORCE_ENV_PRIORITY.has(key) && process.env[key] !== undefined) {
+    return "server";
+  }
+  if (isServerEnvOnlySetting(key)) {
     return "server";
   }
   const secret = await Secret.find(userId, key);

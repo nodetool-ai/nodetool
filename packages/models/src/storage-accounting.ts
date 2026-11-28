@@ -12,7 +12,7 @@
  * The allowance is one value set by the host. Unset means unlimited, and an
  * owner is then never over it.
  */
-import { and, eq, inArray, isNotNull, max } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, max } from "drizzle-orm";
 import { getPortableDb } from "./db.js";
 import { DocumentRefs } from "./document-refs.js";
 import { assets } from "./schema/assets.js";
@@ -113,6 +113,63 @@ export async function exceedsStorageAllowance(userId: string, addedBytes = 0): P
   if (allowance === null) return false;
   const { usedBytes } = await storageUse(userId);
   return usedBytes + addedBytes > allowance;
+}
+
+/**
+ * Size of each distinct hash the owner's staged rows name, from every open
+ * transfer or, with `transferId`, from that transfer alone.
+ */
+async function stagedSizes(userId: string, transferId?: string): Promise<Map<string, number>> {
+  const rows = await getPortableDb()
+    .select({ hash: projectBlobs.hash, size: max(projectBlobs.size) })
+    .from(projectBlobs)
+    .where(
+      and(
+        eq(projectBlobs.user_id, userId),
+        isNull(projectBlobs.committed_at),
+        transferId === undefined ? undefined : eq(projectBlobs.transfer_id, transferId)
+      )
+    )
+    .groupBy(projectBlobs.hash);
+  return new Map(rows.map((row) => [row.hash, Number(row.size ?? 0)]));
+}
+
+/**
+ * The bytes a commit of the transfer adds to the owner's use: the sizes of
+ * the distinct hashes it staged that the owner holds no committed row for,
+ * less those in `dropped`, whose staged rows the commit deletes.
+ */
+export async function transferAddedBytes(
+  userId: string,
+  transferId: string,
+  dropped: ReadonlySet<string> = new Set()
+): Promise<number> {
+  const [staged, committed] = await Promise.all([stagedSizes(userId, transferId), committedSizes(userId)]);
+  let added = 0;
+  for (const [hash, size] of staged) {
+    if (!committed.has(hash) && !dropped.has(hash)) added += size;
+  }
+  return added;
+}
+
+/**
+ * Whether staging `size` bytes under `hash` would take the owner above the
+ * allowance, counting the committed use and the files staged in every open
+ * transfer, each hash once. Staged rows are not use, but an open transfer
+ * holds their bytes until its commit or the staged lifetime ends, so they
+ * count here. Always false while the allowance is unlimited.
+ */
+export async function stageExceedsStorageAllowance(userId: string, hash: string, size: number): Promise<boolean> {
+  const allowance = allowanceBytes;
+  if (allowance === null) return false;
+  const [committed, staged] = await Promise.all([committedSizes(userId), stagedSizes(userId)]);
+  if (committed.has(hash)) return false;
+  let total = size;
+  for (const used of committed.values()) total += used;
+  for (const [stagedHash, stagedSize] of staged) {
+    if (stagedHash !== hash && !committed.has(stagedHash)) total += stagedSize;
+  }
+  return total > allowance;
 }
 
 /** What keeps a file in storage. */

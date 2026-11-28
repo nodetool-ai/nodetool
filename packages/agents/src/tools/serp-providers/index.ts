@@ -7,6 +7,13 @@
  * so that tool implementations can be provider-agnostic.
  */
 
+import {
+  isCloudProfileEnv,
+  isServerEnvOnlySetting,
+  mayUseServerCredential,
+  registerUserCredentialKey
+} from "@nodetool-ai/config";
+
 export interface SearchResult {
   title: string;
   url: string;
@@ -82,7 +89,35 @@ async function getSecret(
   key: string,
   resolver?: SecretResolver
 ): Promise<string | null> {
-  return (resolver?.getSecret?.(key) ?? null) || process.env[key] || null;
+  return (
+    (resolver?.getSecret?.(key) ?? null) ||
+    (mayUseServerCredential(key) ? process.env[key] : undefined) ||
+    null
+  );
+}
+
+/**
+ * The Claude Code CLI to run. On a shared server it is the operator's
+ * executable, so only the environment names it.
+ */
+async function claudeCliPath(
+  resolver?: SecretResolver
+): Promise<string | null> {
+  if (isServerEnvOnlySetting("CLAUDE_CLI_PATH")) {
+    return process.env["CLAUDE_CLI_PATH"] || null;
+  }
+  return getSecret("CLAUDE_CLI_PATH", resolver);
+}
+
+/**
+ * Whether a search backend that runs a CLI on the host (`antigravity`,
+ * `claude`) is offered. Not on the cloud profile, where the host's CLIs and
+ * their sign-ins belong to the operator.
+ */
+export function hostCliSearchAvailable(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return !isCloudProfileEnv(env);
 }
 
 /**
@@ -112,6 +147,12 @@ export const SERP_PROVIDER_SECRETS: Readonly<
   // `serpProviderConfigured` checks that the CLI can be found.
   claude: []
 };
+
+// Search keys are each user's own. Registering them lets the cloud profile
+// withhold a copy left in the server's environment (mayUseServerCredential).
+for (const names of Object.values(SERP_PROVIDER_SECRETS)) {
+  for (const name of names) registerUserCredentialKey(name);
+}
 
 /**
  * The search types each provider's client can answer through
@@ -157,6 +198,12 @@ export async function serpProviderConfigured(
   type: SerpProviderType,
   resolver?: SecretResolver
 ): Promise<boolean> {
+  if (
+    (type === "antigravity" || type === "claude") &&
+    !hostCliSearchAvailable()
+  ) {
+    return false;
+  }
   if (type === "antigravity") {
     const { antigravitySearchAvailable } = await import(
       "./antigravity-provider.js"
@@ -165,7 +212,7 @@ export async function serpProviderConfigured(
   }
   if (type === "claude") {
     const { claudeSearchAvailable } = await import("./claude-provider.js");
-    return claudeSearchAvailable(await getSecret("CLAUDE_CLI_PATH", resolver));
+    return claudeSearchAvailable(await claudeCliPath(resolver));
   }
   const names = SERP_PROVIDER_SECRETS[type];
   if (type === "apify") {
@@ -185,6 +232,14 @@ export async function createSerpProvider(
   resolver?: SecretResolver
 ): Promise<SerpProvider> {
   const type = providerType.toLowerCase();
+  if (
+    (type === "antigravity" || type === "claude") &&
+    !hostCliSearchAvailable()
+  ) {
+    throw new Error(
+      `The ${type} search backend runs a CLI on the server and is not available on this deployment.`
+    );
+  }
 
   switch (type) {
     case "serpapi": {
@@ -279,7 +334,7 @@ export async function createSerpProvider(
       // No key: the search runs on the `claude` CLI's signed-in subscription,
       // and a missing CLI fails the search with the CLI's own remedy.
       return new (await import("./claude-provider.js")).ClaudeSearchProvider({
-        cliPath: await getSecret("CLAUDE_CLI_PATH", resolver)
+        cliPath: await claudeCliPath(resolver)
       });
 
     default:

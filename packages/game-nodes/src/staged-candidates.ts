@@ -10,8 +10,7 @@
  * extension say.
  */
 
-import sharp from "sharp";
-import type { Workspace } from "@nodetool-ai/runtime";
+import { loadSharpOrThrow, type Workspace } from "@nodetool-ai/runtime";
 import { stagedGameCandidateRecord, stagedGameCandidateRecordPath, type GameAssetBinding, type StagedGameCandidateRecord } from "@nodetool-ai/protocol";
 import { gameFontFormat } from "./font-preparation.js";
 
@@ -81,6 +80,7 @@ export async function derivedStagedBinding2D(bytes: Uint8Array, candidate: Pick<
   const base = { assetId: `staged:${candidate.digest}`, digest: candidate.digest,
     pivot: previous?.pivot ?? { x: 0.5, y: 0.5 }, sampling: previous?.sampling ?? "nearest" as const };
   if (candidate.mediaKind === "image") {
+    const sharp = await loadSharpOrThrow();
     const metadata = await sharp(bytes, { failOn: "error" }).metadata();
     if (!metadata.width || !metadata.height) { throw new Error("Staged image dimensions are unavailable"); }
     return { ...base, mediaKind: "image", width: metadata.width, height: metadata.height };

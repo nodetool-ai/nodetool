@@ -22,6 +22,7 @@ import {
   OLLAMA_DEFAULT_URL,
   OllamaProvider,
   LMSTUDIO_DEFAULT_URL,
+  safeFetch,
   type ProviderId,
   type RecommendedUnifiedModel
 } from "@nodetool-ai/runtime";
@@ -41,7 +42,9 @@ import {
   filterModelsByHfType,
   deleteCachedHfModel,
   isLlamaCppModelCached as isFlatLlamaCppModelCached,
-  resolveStoredHfEndpoint
+  isSharedHfHost,
+  resolveHfHubAccess,
+  type HfHubAccess
 } from "@nodetool-ai/huggingface";
 import type { TjsModelRef } from "@nodetool-ai/transformers-js-nodes";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
@@ -715,12 +718,16 @@ function hubModelToUnified(
  * is https://huggingface.co or the user's `HF_ENDPOINT` mirror) by free-text
  * and/or pipeline tag. Returns downloadable repos sorted by popularity.
  * Network/HTTP failures degrade to an empty list.
+ *
+ * `access` comes from `resolveHfHubAccess`, which sends server credentials
+ * only to the operator endpoint. On a shared server a user's own endpoint is
+ * fetched through `safeFetch`.
  */
-async function searchHuggingFaceHub(
+export async function searchHuggingFaceHub(
   query: string | undefined,
   pipelineTag: string | undefined,
   limit: number,
-  endpoint: string
+  access: HfHubAccess
 ): Promise<UnifiedModel[]> {
   if (!query && !pipelineTag) return [];
   const params = new URLSearchParams();
@@ -731,14 +738,14 @@ async function searchHuggingFaceHub(
   params.set("direction", "-1");
 
   const headers: Record<string, string> = { Accept: "application/json" };
-  const token = process.env.HF_TOKEN || process.env.HUGGING_FACE_HUB_TOKEN;
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (access.token) headers.Authorization = `Bearer ${access.token}`;
 
   try {
-    const res = await fetch(
-      `${endpoint}/api/models?${params.toString()}`,
-      { headers }
-    );
+    const url = `${access.endpoint}/api/models?${params.toString()}`;
+    const res =
+      access.userEndpoint && isSharedHfHost()
+        ? await safeFetch(url, { headers })
+        : await fetch(url, { headers });
     if (!res.ok) {
       log.warn("HF Hub search failed: %d %s", res.status, res.statusText);
       return [];
@@ -1417,14 +1424,15 @@ export const modelsRouter = router({
     .input(hfHubSearchInput)
     .output(modelsListOutput)
     .query(async ({ ctx, input }) => {
-      const endpoint = await resolveStoredHfEndpoint((key) =>
-        getStoredSecret(key, ctx.userId)
+      const access = await resolveHfHubAccess(
+        (key) => getStoredSecret(key, ctx.userId),
+        "search"
       );
       return await searchHuggingFaceHub(
         input.query,
         input.pipeline_tag,
         input.limit ?? 50,
-        endpoint
+        access
       );
     }),
 

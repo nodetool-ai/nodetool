@@ -12,6 +12,7 @@
  */
 
 import { z } from "zod";
+import { settingDefinition } from "@nodetool-ai/config";
 import { zodToJsonSchema } from "@nodetool-ai/runtime";
 import type { CapabilitySpec } from "./types.js";
 import { isNonEmptyString } from "../utils/type-guards.js";
@@ -112,6 +113,12 @@ export const setSettingSpec: CapabilitySpec = {
   inputSchema: zodToJsonSchema(setSettingSchema),
   zodSchema: setSettingSchema,
   category: "write",
+  // A setting that names a program or a path on the host asks every time,
+  // even in auto mode and after "Allow for this chat".
+  alwaysAsk: (args) => {
+    const key = args["key"];
+    return isNonEmptyString(key) && settingDefinition(key)?.hostPath !== undefined;
+  },
   userMessage: (params) => {
     const key = params["key"];
     return isNonEmptyString(key) ? `Changing setting ${key}` : "Changing a setting";

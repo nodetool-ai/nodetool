@@ -1,12 +1,12 @@
 /**
  * The preference order for an account's first language model.
  *
- * An account that saved no language-provider key of its own starts on
- * OpenRouter's free router, `openrouter/free`. On NodeTool Cloud the server's
- * OpenRouter key serves it, so a new account gets a working chat, storyboard
- * and game designer without a key and without spending anything. The ranked
- * list would otherwise put a paid model first, and on a server key that model
- * is billed to the operator.
+ * An account that saved no language-provider key of its own starts on a free
+ * model. On NodeTool Cloud that is `nodetool/free`, the managed provider's
+ * route to OpenRouter's free router on the platform key, so a new account gets
+ * a working chat, storyboard and game designer without a key and without
+ * spending anything. Elsewhere it is `openrouter/free` on the user's own
+ * OpenRouter key. The ranked list would otherwise put a paid model first.
  *
  * An account with a key of its own keeps the recommended order, so the first
  * pick runs on that key.
@@ -23,11 +23,23 @@ import {
 } from "./useRecommendedModelKeys";
 import { useSecrets } from "./useSecrets";
 
+/** NodeTool Cloud's managed free model, routed through OpenRouter. */
+export const MANAGED_FREE_TEXT_MODEL_KEY = recommendedModelKey(
+  PROVIDER_IDS.NODETOOL,
+  "nodetool/free"
+);
+
 /** OpenRouter's router over its free models. */
 export const FREE_TEXT_MODEL_KEY = recommendedModelKey(
   PROVIDER_IDS.OPENROUTER,
   "openrouter/free"
 );
+
+/** Free models in preference order. A server lists only the ones it serves. */
+export const FREE_TEXT_MODEL_KEYS = [
+  MANAGED_FREE_TEXT_MODEL_KEY,
+  FREE_TEXT_MODEL_KEY
+] as const;
 
 /**
  * Whether the user saved a key for any provider in `models`. A key that only
@@ -50,17 +62,17 @@ export const hasOwnLanguageKey = (
   });
 };
 
-/** `recommended`, led by the free router when the user has no key. */
+/** `recommended`, led by the free models when the user has no key. */
 export const defaultLanguageModelKeys = (
   recommended: readonly string[],
   ownKey: boolean
-): string[] =>
-  ownKey
-    ? [...recommended]
-    : [
-        FREE_TEXT_MODEL_KEY,
-        ...recommended.filter((key) => key !== FREE_TEXT_MODEL_KEY)
-      ];
+): string[] => {
+  if (ownKey) {
+    return [...recommended];
+  }
+  const free: readonly string[] = FREE_TEXT_MODEL_KEYS;
+  return [...free, ...recommended.filter((key) => !free.includes(key))];
+};
 
 export const useDefaultLanguageModelKeys = (): string[] => {
   const recommended = useRecommendedModelKeys();

@@ -19,14 +19,20 @@ import {
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
+import type { AuthKind } from "../src/auth-kind.js";
 import { pendingStore } from "../src/oauth/pending-store.js";
 import type { PendingAuthorizeRequest } from "../src/oauth/pending-store.js";
 
 const createCaller = createCallerFactory(appRouter);
 
-function makeCtx(userId: string | null): Context {
+function makeCtx(
+  userId: string | null,
+  authKind: AuthKind | null = "session"
+): Context {
   return {
     userId,
+    // A browser sign-in session by default, the caller the settings UI runs as.
+    authKind,
     registry: {} as never,
     apiOptions: { metadataRoots: [], registry: {} as never } as never,
     pythonBridge: {} as never,
@@ -395,5 +401,61 @@ describe("agentAccess OAuth grants", () => {
       await owner.agentAccess.revokeOauthGrant({ grant_id: grantId })
     ).toEqual({ ok: true });
     expect((await owner.agentAccess.listOauthGrants()).grants).toHaveLength(0);
+  });
+});
+
+describe("agentAccess credential creation needs an interactive sign-in", () => {
+  const nonInteractive: AuthKind[] = [
+    "access_token",
+    "native",
+    "mcp",
+    "app_session",
+    "delegated"
+  ];
+  const interactive: AuthKind[] = ["session", "local", "server_token", "api_user"];
+
+  beforeEach(() => {
+    process.env.NODETOOL_PUBLIC_URL = "https://nodetool.example.com";
+  });
+
+  it.each(nonInteractive)("refuses createToken to a %s caller", async (kind) => {
+    const caller = createCaller(makeCtx("user-a", kind));
+    await expect(caller.agentAccess.createToken({ name: "x" })).rejects.toMatchObject({
+      code: "FORBIDDEN"
+    });
+    expect(await AccessToken.listForUser("user-a")).toHaveLength(0);
+  });
+
+  it.each(nonInteractive)(
+    "refuses to approve or deny an OAuth request for a %s caller",
+    async (kind) => {
+      const caller = createCaller(makeCtx("user-a", kind));
+      const requestId = await parkRequest();
+      await expect(
+        caller.agentAccess.approveOauthRequest({ request_id: requestId })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        caller.agentAccess.denyOauthRequest({ request_id: requestId })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(await McpOauthGrant.listForUser("user-a")).toHaveLength(0);
+    }
+  );
+
+  it("refuses a caller whose credential kind is unknown", async () => {
+    const caller = createCaller(makeCtx("user-a", null));
+    await expect(caller.agentAccess.createToken({ name: "x" })).rejects.toMatchObject({
+      code: "FORBIDDEN"
+    });
+  });
+
+  it.each(interactive)("accepts createToken and approval from a %s caller", async (kind) => {
+    const caller = createCaller(makeCtx("user-a", kind));
+    const minted = await caller.agentAccess.createToken({ name: "x" });
+    expect(minted.token).toMatch(/^ntk_/);
+    const requestId = await parkRequest();
+    const { redirect_url } = await caller.agentAccess.approveOauthRequest({
+      request_id: requestId
+    });
+    expect(new URL(redirect_url).searchParams.get("code")).toBeTruthy();
   });
 });

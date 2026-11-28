@@ -14178,6 +14178,8 @@
         "revoice": "Re-línea de voz",
         "voice": "linea de voz",
         "assignVoiceFirst": "Asigne una voz a este orador primero",
+        "writeLineFirst": "Escribe primero la línea",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "Más acciones de línea",
         "pauseOption": {
           "0": "Sin pausa después",
@@ -17628,7 +17630,6 @@
       "takeCount_many": "{{count}} toma"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Aún no expresado",
       "playTake": "jugar tomar"
     }
   },

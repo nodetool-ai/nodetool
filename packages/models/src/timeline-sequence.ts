@@ -39,7 +39,7 @@ import {
   registerDeletedDocumentKind,
   type DependentTable
 } from "./deleted-document.js";
-import { documentCollaborators, documentShares } from "./schema/document-sharing.js";
+import { documentCollaborators, documentShares, shareRoleLimits } from "./schema/document-sharing.js";
 import { changingAccess } from "./access-epoch.js";
 
 export class TimelineSequenceConflictError extends Error {
@@ -844,6 +844,11 @@ function timelineDependents(id: string): DependentTable[] {
       name: "document_shares",
       table: documentShares,
       where: and(eq(documentShares.document_type, "timeline"), eq(documentShares.document_id, id)) as SQL
+    },
+    {
+      name: "share_role_limits",
+      table: shareRoleLimits,
+      where: and(eq(shareRoleLimits.document_type, "timeline"), eq(shareRoleLimits.document_id, id)) as SQL
     },
     ...documentRefTables("timeline", id)
   ];

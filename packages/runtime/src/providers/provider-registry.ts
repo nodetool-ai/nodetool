@@ -1,4 +1,8 @@
-import { createLogger } from "@nodetool-ai/config";
+import {
+  createLogger,
+  mayUseServerCredential,
+  registerUserCredentialKey
+} from "@nodetool-ai/config";
 import type { BaseProvider } from "./base-provider.js";
 import { creditAccountFor } from "./provider-credits.js";
 
@@ -46,6 +50,13 @@ export function registerProvider(
   optionalKwargs: Record<string, unknown> = {},
   metadata: Partial<ProviderRegistrationMetadata> = {}
 ): void {
+  // A required credential is the user's to supply. Registering it lets the
+  // cloud profile withhold the server's copy (see mayUseServerCredential).
+  for (const [key, value] of Object.entries(kwargs)) {
+    if ((value === "" || value == null) && isCredentialKeyName(key)) {
+      registerUserCredentialKey(key);
+    }
+  }
   _PROVIDER_REGISTRY.set(providerId, {
     cls,
     kwargs,
@@ -89,8 +100,20 @@ const CREDENTIAL_ENV_ALIASES: Record<string, readonly string[]> = {
   HF_TOKEN: ["HUGGINGFACE_API_KEY"]
 };
 
-/** `process.env[key]`, falling back to the names that vendor's SDK uses. */
+/** Whether a kwarg name holds a credential rather than a URL or a region. */
+function isCredentialKeyName(key: string): boolean {
+  return (
+    !key.startsWith("_") &&
+    (key.includes("KEY") || key.includes("TOKEN") || key.includes("SECRET"))
+  );
+}
+
+/**
+ * `process.env[key]`, falling back to the names that vendor's SDK uses.
+ * Undefined when the cloud profile withholds the server's copy of `key`.
+ */
 export function readCredentialEnv(key: string): string | undefined {
+  if (!mayUseServerCredential(key)) return undefined;
   const direct = process.env[key];
   if (direct) return direct;
   for (const alias of CREDENTIAL_ENV_ALIASES[key] ?? []) {
@@ -148,7 +171,7 @@ export async function getProvider(
       kwargs[key] = fromSecret;
       continue;
     }
-    const envVal = process.env[key];
+    const envVal = mayUseServerCredential(key) ? process.env[key] : undefined;
     if (envVal) {
       kwargs[key] = envVal;
       continue;
@@ -180,11 +203,7 @@ export function getProviderSecretKey(providerId: string): string | null {
   const reg = _PROVIDER_REGISTRY.get(providerId);
   if (!reg) return null;
   for (const key of Object.keys(reg.kwargs)) {
-    if (
-      key.includes("KEY") ||
-      key.includes("TOKEN") ||
-      key.includes("SECRET")
-    ) {
+    if (isCredentialKeyName(key)) {
       return key;
     }
   }

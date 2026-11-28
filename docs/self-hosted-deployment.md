@@ -401,6 +401,7 @@ The server checks the balance before a run that uses a managed model starts. It 
 | `NODETOOL_SIGNUP_CREDITS` | The one-time signup grant. The default is 500. `0`, a negative value, or an unparseable value means no signup grant |
 | `NODETOOL_PLATFORM_FAL_KEY` | The platform-owned fal key that funds managed image and video models |
 | `NODETOOL_PLATFORM_ANTHROPIC_KEY` | The platform-owned Anthropic key that funds managed language models |
+| `NODETOOL_PLATFORM_OPENROUTER_KEY` | The platform-owned OpenRouter key that serves `nodetool/free`, the default text model for accounts without a key |
 | `NODETOOL_ENABLE_TEST_TOPUP` | Set to `1` or `true` to allow the test top-up on a development server |
 
 A managed model is offered only when its delegate provider has a platform key and the model is on the allowlist. The test top-up adds credits with no payment behind it, and the server refuses it unless `NODETOOL_ENABLE_TEST_TOPUP` is set, because minted credits unlock spend on platform-owned keys. When it is set, the Plan & credits page shows an **Add 1000 credits (test)** button. Leave it unset on anything reachable by other people. See also [Environment Variables](environment-variables.md).

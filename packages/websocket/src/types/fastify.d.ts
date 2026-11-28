@@ -1,4 +1,5 @@
 import "fastify";
+import type { AuthKind } from "../auth-kind.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -17,6 +18,8 @@ declare module "fastify" {
      * refuse such a request.
      */
     nativeSessionId: string | null;
+    /** Which credential authenticated the request, or null when none did. */
+    authKind: AuthKind | null;
     /** When the native access token of this request expires, or null. */
     nativeTokenExpiresAt: number | null;
   }

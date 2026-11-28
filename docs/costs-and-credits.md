@@ -19,7 +19,7 @@ NodeTool estimates a run's cost before it starts, records each provider call's c
 
 With your own keys, NodeTool does not mark up a provider's price and never charges you. The provider invoices you. Local models (Ollama, vLLM, LM Studio, llama.cpp) need no key and have no catalog price. See [Providers](providers.md).
 
-Hosted credits exist only where the `nodetool` provider is available. That provider runs a curated model catalog on NodeTool's own keys and is cloud-only. Desktop and self-hosted installs do not have it, so the credit features below do not apply to them. Calls on your own keys never reduce a credit balance, even on a hosted server where both kinds coexist.
+Hosted credits exist only where the `nodetool` provider is available. That provider runs a curated model catalog on NodeTool's own keys and is cloud-only. Desktop and self-hosted installs do not have it, so the credit features below do not apply to them. Calls on your own keys never reduce a credit balance, even on a hosted server where both kinds coexist. On the hosted cloud, a provider key in the server's environment is never used for your calls. Without a key of your own, the free text model `nodetool/free` runs on NodeTool's OpenRouter key and costs no credits.
 
 ---
 

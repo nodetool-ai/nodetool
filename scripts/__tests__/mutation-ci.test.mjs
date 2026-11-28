@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,7 +31,7 @@ beforeAll(() => {
   mkdirSync(join(root, "packages/agents/tests"));
   writeFileSync(join(root, "packages/agents/src/math.mjs"), "export const previous = true;\n");
   writeFileSync(join(root, "packages/agents/src/batch.mjs"), "export const previous = true;\n");
-  writeFileSync(join(root, "packages/agents/tests/run.mjs"), "import { positive, double, triple } from '../src/math.mjs';\nimport * as batch from '../src/batch.mjs';\nif (!positive(5) || positive(-5) || double(3) !== 6 || triple(3) !== 9 || !Object.values(batch).every((fn) => fn())) process.exit(1);\n");
+  writeFileSync(join(root, "packages/agents/tests/run.mjs"), "import { existsSync } from 'node:fs';\nimport { positive, double, triple } from '../src/math.mjs';\nimport * as batch from '../src/batch.mjs';\nif (existsSync(new URL('../../../.metrics/fail-baseline', import.meta.url))) process.exit(1);\nif (!positive(5) || positive(-5) || double(3) !== 6 || triple(3) !== 9 || !Object.values(batch).every((fn) => fn())) process.exit(1);\n");
   writeFileSync(join(root, "packages/agents/src/kept logic.mjs"), "export function retained(n) { return n + 10; }\n");
   git("init", "-q");
   git("add", ".");
@@ -98,12 +98,13 @@ describe("mutation CI exact union", { timeout: 60_000 }, () => {
     expect(receipts.flatMap((receipt) => receipt.completed).filter((item) => item.outcome === "survived")).toHaveLength(2);
   });
 
-  it("rejects missing, repeated, cancelled, and baseline-failed shards", () => {
+  it("rejects missing, repeated, cancelled, and failed shards", () => {
     expect(() => aggregate(root, plan, outputs.slice(1))).toThrow(/Missing/);
     expect(() => aggregate(root, plan, [...outputs.slice(0, -1), outputs[0]])).toThrow(/duplicate|indices/);
     for (const mutate of [
       (receipt) => { receipt.complete = false; },
-      (receipt) => { receipt.code = 2; },
+      (receipt) => { receipt.code = 1; },
+      (receipt) => { receipt.version = 2; },
       (receipt) => { receipt.plan.base = "0".repeat(40); },
       (receipt) => { receipt.partition.shard.count += 1; },
       (receipt) => { receipt.partition.shard.index = 0; },
@@ -113,6 +114,59 @@ describe("mutation CI exact union", { timeout: 60_000 }, () => {
     ]) {
       changeReceipt(0, mutate, () => expect(() => aggregate(root, plan, outputs)).toThrow());
     }
+  });
+
+  it("skips a partition whose baseline failed and reports the rest", async () => {
+    const index = plan.partitions.findIndex((partition) => partition.assignedIds.length > 0);
+    const partition = plan.partitions[index];
+    const marker = join(root, ".metrics/fail-baseline");
+    const output = join(root, ".metrics/baseline-failed/partition");
+    writeFileSync(marker, "");
+    try {
+      await executePartition(root, plan, partition.id, output);
+    } finally {
+      rmSync(marker);
+    }
+    const receipt = json(join(output, "receipt.json"));
+    expect(receipt).toMatchObject({ version: 3, code: 2, complete: true, completed: [], assignedIds: partition.assignedIds });
+    expect(readFileSync(join(output, "completed.ndjson"), "utf8")).toBe("");
+    const withSkip = outputs.map((item, offset) => (offset === index ? output : item));
+    const full = aggregate(root, plan, outputs);
+    const result = aggregate(root, plan, withSkip);
+    expect(result.skipped).toEqual([{ partition: partition.id, file: partition.file, ids: partition.assignedIds }]);
+    expect(result.snapshots.length).toBeLessThan(full.snapshots.length);
+    expect(full.skipped).toEqual([]);
+    // A baseline failure that claims completed mutants is not a skip.
+    const path = join(output, "receipt.json");
+    const before = readFileSync(path, "utf8");
+    try {
+      put(path, { ...receipt, completed: [{ id: partition.assignedIds[0], outcome: "killed" }] });
+      writeFileSync(join(output, "completed.ndjson"), `${JSON.stringify({ id: partition.assignedIds[0], outcome: "killed" })}\n`);
+      expect(() => aggregate(root, plan, withSkip)).toThrow(/failed baseline/);
+    } finally {
+      writeFileSync(path, before);
+      writeFileSync(join(output, "completed.ndjson"), "");
+    }
+  });
+
+  it("lists skipped partitions in the public CLI report", async () => {
+    const results = join(root, ".metrics/baseline-failed-cli");
+    const index = plan.partitions.findIndex((partition) => partition.assignedIds.length > 0);
+    const partition = plan.partitions[index];
+    cpSync(resultDirectory, results, { recursive: true });
+    const target = join(results, `mutation-result-partition-${partition.id}`);
+    rmSync(target, { recursive: true });
+    const marker = join(root, ".metrics/fail-baseline");
+    writeFileSync(marker, "");
+    try {
+      await executePartition(root, plan, partition.id, target);
+    } finally {
+      rmSync(marker);
+    }
+    const report = execFileSync(process.execPath, [helper, "aggregate", join(root, ".metrics/plan.json"), results], { cwd: root, encoding: "utf8" });
+    expect(report).toContain("1 partitions were skipped because their baseline tests failed");
+    expect(report).toContain(`- ${partition.file} (partition ${partition.id}, ${partition.assignedIds.length} mutants)`);
+    expect(report).toContain("::warning::Some partitions were skipped");
   });
 
   it("rejects invalid partition and job requests before executing mutations", async () => {
@@ -410,6 +464,11 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
   expect(jobs.plan.steps.find((step) => step.id === "plan").env.BASE).toBe("${{ steps.base.outputs.base }}");
   expect(jobs.plan.steps.find((step) => step.id === "base").run).toBe('node scripts/mutation-ci.mjs base "$PREVIOUS"');
   expect(jobs.plan.permissions).toEqual({ contents: "read", actions: "read", packages: "read" });
+  // A successful dispatched run moves the base too, so a dispatch with a
+  // recent `base` clears a backlog left by failed days.
+  const previous = jobs.plan.steps.find((step) => step.id === "previous").run;
+  expect(previous).toContain("--status success");
+  expect(previous).not.toContain("--event");
   expect(jobs["mutate-changed"].if).toBe("needs.plan.outputs.mutants != '0'");
   expect(jobs["mutation-complete"].if).toBe("always() && needs.plan.outputs.mutants != '0'");
   expect(jobs["mutation-complete"].needs).toEqual(["ci-image", "plan", "mutate-changed"]);
@@ -427,7 +486,7 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
   expect(workflow.concurrency["cancel-in-progress"]).toBe(false);
 });
 
-it("diffs against the previous scheduled head, or the last commit before the window", () => {
+it("diffs against the previous successful head, or the last commit before the window", () => {
   const repo = mkdtempSync(join(tmpdir(), "mutation-base-"));
   const run = (...args) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" }).trim();
   const commit = (message, date) => {

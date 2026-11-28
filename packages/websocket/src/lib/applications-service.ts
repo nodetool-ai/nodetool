@@ -50,6 +50,7 @@ import { ApiErrorCode } from "../error-codes.js";
 import { throwApiError } from "../trpc/error-formatter.js";
 import { isRecord, isString } from "./wire-values.js";
 import { hasDocumentRole, type DocumentRole } from "./document-access.js";
+import { saveUnderAttachRule } from "./document-refs.js";
 
 export const listApplicationsInput = z.object({
   projectId: z.string().optional(),
@@ -451,10 +452,12 @@ export async function updateApplication(
     fields.document = JSON.stringify(input.document);
   }
 
-  const updated = await Application.updateFieldsIfUnchanged(
-    input.id,
-    expectedUpdatedAt,
-    fields
+  const updated = await saveUnderAttachRule(
+    "application",
+    app,
+    userId,
+    fields.document,
+    () => Application.updateFieldsIfUnchanged(input.id, expectedUpdatedAt, fields)
   );
   if (!updated) {
     throwApiError(

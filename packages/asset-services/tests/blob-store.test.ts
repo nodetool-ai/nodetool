@@ -62,13 +62,22 @@ describe("blob store", () => {
 
   it("stores the bytes once and reads them only through the transfer until the commit", async () => {
     expect(await stage("t1")).toBe("stored");
-    expect(await stage("t2", { projectId: "p2" })).toBe("already_present");
+    // The owner has no committed row for the hash yet, so this answers "stored" too.
+    expect(await stage("t2", { projectId: "p2" })).toBe("stored");
 
     expect(await readBlob(storage, { projectId: "p1", hash: HASH })).toBeNull();
     expect(await readBlob(storage, { projectId: "p1", hash: HASH, transferId: "t1" })).toEqual(BYTES);
     await commitProjectBlobs("p1", "t1");
     expect(await readBlob(storage, { projectId: "p1", hash: HASH })).toEqual(BYTES);
     expect(await readBlob(storage, { projectId: "p2", hash: HASH })).toBeNull();
+  });
+
+  it("staging answers the same whether or not another owner holds the bytes", async () => {
+    expect(await stage("t1")).toBe("stored");
+    await commitProjectBlobs("p1", "t1");
+    expect(await stage("t2", { projectId: "q1", userId: "u2" })).toBe("stored");
+    // The owner who committed the hash hears that the store held it.
+    expect(await stage("t3", { projectId: "p3" })).toBe("already_present");
   });
 
   it("skips an upload only for the owner who already committed the hash", async () => {
@@ -181,6 +190,7 @@ describe("blob store", () => {
     expect(create.mock.calls[0]?.[3]).toEqual({ stagingName: `${HASH}.t1.staging` });
     expect(await readBlob(storage, { projectId: "p1", hash: HASH, transferId: "t1" })).toEqual(BYTES);
     // A whole object is kept.
+    await commitProjectBlobs("p1", "t1");
     expect(await stage("t2")).toBe("already_present");
   });
 

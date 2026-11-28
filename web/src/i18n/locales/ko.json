@@ -13958,6 +13958,8 @@
         "revoice": "재보이스 라인",
         "voice": "음성 라인",
         "assignVoiceFirst": "먼저 이 스피커에 음성을 할당하세요.",
+        "writeLineFirst": "먼저 대사를 입력하세요",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "추가 라인 작업",
         "pauseOption": {
           "0": "이후 일시중지 없음",
@@ -17335,7 +17337,6 @@
       "takeCount_other": "{{count}} 소요"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "아직 음성화되지 않음",
       "playTake": "플레이 테이크"
     }
   },

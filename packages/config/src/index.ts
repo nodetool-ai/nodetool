@@ -22,7 +22,10 @@ export { getByteLimitEnv } from "./byte-limits.js";
 export {
   isAuthEnforced,
   isSupabaseAuthConfigured,
-  isOidcAuthConfigured
+  isOidcAuthConfigured,
+  OAUTH_GRANT_MAX_AGE_ENV,
+  DEFAULT_SSO_OAUTH_GRANT_MAX_AGE_DAYS,
+  oauthGrantMaxAgeMs
 } from "./deployment.js";
 
 export {
@@ -33,6 +36,17 @@ export {
   isCreditModelAllowed,
   signupGrantCredits
 } from "./credit-policy.js";
+
+export {
+  registerUserCredentialKey,
+  isUserCredentialKey,
+  userCredentialKeyList,
+  isCloudProfileEnv,
+  mayUseServerCredential,
+  withheldServerCredentials
+} from "./server-credentials.js";
+
+export { isSharedServer, isServerEnvOnlySetting } from "./host-settings.js";
 
 export { isGoogleWorkspaceEnabled } from "./google-workspace.js";
 

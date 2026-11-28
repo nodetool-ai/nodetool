@@ -21,7 +21,7 @@ const CORE_VARIABLES: readonly EnvVariable[] = [
   { name: "DB_PATH", group: "local", secret: false, usedBy: ["secrets", "run", "info"], description: "SQLite database that holds the local secret store. Default nodetool.sqlite3 in the NodeTool data directory." },
   { name: "DATABASE_URL", group: "local", secret: true, usedBy: ["secrets", "run"], description: "Database connection string, used instead of DB_PATH when set." },
   { name: "NODETOOL_TEXT_MODEL", group: "local", secret: false, usedBy: ["text", "nodes --example"], description: "Default model for `nodetool text`." },
-  { name: "OPENAI_BASE_URL", group: "local", secret: false, usedBy: ["text", "run", "serve"], description: "Any OpenAI-compatible endpoint for `nodetool text` and the built-in OpenAI nodes." },
+  { name: "OPENAI_BASE_URL", group: "local", secret: false, usedBy: ["text", "run", "serve"], description: "An OpenAI-compatible endpoint on a public HTTPS host for `nodetool text` and the built-in OpenAI nodes. Loopback, private and .local hosts are refused." },
   { name: "NODETOOL_LOG_LEVEL", group: "local", secret: false, usedBy: ["every command"], description: "Set to debug to log which env files were loaded (names only, never values)." },
   { name: "NODETOOL_API_URL", group: "server", secret: false, usedBy: ["workflows", "jobs", "assets", "secrets (with a token)"], description: "Server URL for server commands. Default http://127.0.0.1:7777." },
   { name: "NODETOOL_API_TOKEN", group: "server", secret: true, usedBy: ["workflows", "jobs", "assets", "secrets (with a token)", "serve"], description: "Bearer token for server commands, and the token `nodetool serve` accepts." },

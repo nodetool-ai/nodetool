@@ -86,6 +86,7 @@ export async function runNativeWebSearch(
     model: args.model,
     tools: [WEB_SEARCH_TOOL],
     maxIterations: 8,
+    webSearchOnly: true,
     signal: args.signal
   })) {
     if (isProviderMessageEvent(item)) {

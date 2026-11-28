@@ -1,8 +1,9 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 
 import { NODETOOL_MODELS, resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 
 import { NodetoolProvider } from "../src/providers/nodetool-provider.js";
+import { OpenRouterProvider } from "../src/providers/openrouter-provider.js";
 
 describe("NodetoolProvider", () => {
   it("lists no models when no platform key is set", async () => {
@@ -36,6 +37,60 @@ describe("NodetoolProvider", () => {
     expect(await provider.getAvailableLanguageModels()).toEqual([]);
     expect(provider.getCapabilities()).toContain("text_to_image");
     expect(provider.getCapabilities()).toContain("image_to_video");
+  });
+
+  describe("the OpenRouter route", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("lists the free language model once the platform OpenRouter key is set", async () => {
+      const provider = new NodetoolProvider({
+        NODETOOL_PLATFORM_OPENROUTER_KEY: "platform-openrouter"
+      });
+      const models = await provider.getAvailableLanguageModels();
+      expect(models.map((m) => m.id)).toEqual(["nodetool/free"]);
+      expect(models[0].provider).toBe("nodetool");
+      expect(resolveNodetoolDelegate("nodetool/free")).toEqual({
+        provider: "openrouter",
+        model: "openrouter/free"
+      });
+    });
+
+    it("runs chat on OpenRouter with the platform key and the delegate model", async () => {
+      const seen: { model: string; key: unknown }[] = [];
+      vi.spyOn(OpenRouterProvider.prototype, "generateMessage").mockImplementation(
+        async function (this: OpenRouterProvider, args) {
+          seen.push({
+            model: args.model,
+            key: (this as unknown as { apiKey?: string }).apiKey
+          });
+          return { role: "assistant", content: "hi" };
+        }
+      );
+      const provider = new NodetoolProvider({
+        NODETOOL_PLATFORM_OPENROUTER_KEY: "platform-openrouter"
+      });
+      const reply = await provider.generateMessage({
+        model: "nodetool/free",
+        messages: [{ role: "user", content: "hello" }]
+      });
+      expect(reply.content).toBe("hi");
+      expect(seen.map((s) => s.model)).toEqual(["openrouter/free"]);
+      expect(seen[0].key).toBe("platform-openrouter");
+    });
+
+    it("refuses the free model when the platform OpenRouter key is missing", async () => {
+      const provider = new NodetoolProvider({
+        NODETOOL_PLATFORM_FAL_KEY: "platform-key"
+      });
+      await expect(
+        provider.generateMessage({
+          model: "nodetool/free",
+          messages: [{ role: "user", content: "hello" }]
+        })
+      ).rejects.toThrow(/NODETOOL_PLATFORM_OPENROUTER_KEY/);
+    });
   });
 
   it("lists the curated voices of a funded TTS model", async () => {

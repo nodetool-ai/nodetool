@@ -13958,6 +13958,8 @@
         "revoice": "音声回線を再設定する",
         "voice": "音声回線",
         "assignVoiceFirst": "最初にこのスピーカーに音声を割り当てます",
+        "writeLineFirst": "先にセリフを書いてください",
+        "voiceShortcut": "{{action}}（{{shortcut}}）",
         "moreActions": "その他のラインアクション",
         "pauseOption": {
           "0": "後は一時停止なし",
@@ -17335,7 +17337,6 @@
       "takeCount_other": "{{count}} はかかります"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "まだ声は出ていない",
       "playTake": "プレイテイク"
     }
   },

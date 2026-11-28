@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import * as fs from "node:fs/promises";
+import * as os from "node:os";
 import * as path from "node:path";
 import {
   ClaudeAgentProvider,
@@ -19,6 +20,7 @@ import type {
   ProviderStreamItem
 } from "../../src/providers/types.js";
 import { generateStructured } from "../../src/providers/structured-output.js";
+import { runNativeWebSearch } from "../../src/providers/native-web-search.js";
 import { providerFailureDetail } from "../../src/providers/provider-error.js";
 import { ProcessingContext } from "../../src/context.js";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
@@ -877,6 +879,34 @@ describe("ClaudeAgentProvider", () => {
     }
   });
 
+  it("keeps the parent session's credential settings in the subprocess env", async () => {
+    const prev = { ...process.env };
+    process.env.CLAUDECODE = "1";
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = "sk-ant-oat-test";
+    process.env.CLAUDE_CODE_USE_BEDROCK = "1";
+    process.env.CLAUDE_CODE_SKIP_BEDROCK_AUTH = "1";
+    process.env.CLAUDE_CODE_USE_VERTEX = "1";
+    process.env.CLAUDE_CODE_USE_FOUNDRY = "1";
+    process.env.CLAUDE_CODE_SESSION_ID = "nested";
+    try {
+      const { fn, calls } = fakeQuery(PING_SCRIPT);
+      const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+      await collect(
+        provider.generateMessages({ messages: [userMsg("hi")], model: "haiku" })
+      );
+      const env = calls[0].options?.env as Record<string, string>;
+      expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBe("sk-ant-oat-test");
+      expect(env.CLAUDE_CODE_USE_BEDROCK).toBe("1");
+      expect(env.CLAUDE_CODE_SKIP_BEDROCK_AUTH).toBe("1");
+      expect(env.CLAUDE_CODE_USE_VERTEX).toBe("1");
+      expect(env.CLAUDE_CODE_USE_FOUNDRY).toBe("1");
+      expect(env.CLAUDECODE).toBeUndefined();
+      expect(env.CLAUDE_CODE_SESSION_ID).toBeUndefined();
+    } finally {
+      process.env = prev;
+    }
+  });
+
   // -------------------------------------------------------------------------
   // generateLoop (agent loop) + tool calling
   // -------------------------------------------------------------------------
@@ -1481,6 +1511,36 @@ describe("ClaudeAgentProvider", () => {
     // web_search is not path-scoped, so WebSearch still replaces it.
     expect(opts.allowedTools).toEqual(["mcp__nodetool_tools__read_file"]);
     expect(opts.cwd).toBeUndefined();
+  });
+
+  it("search turn offers only the search tool in an empty scratch directory", async () => {
+    let entriesDuringTurn: string[] | null = null;
+    const { fn, calls } = fakeQuery(async function* () {
+      const cwd = lastQueryOptions?.cwd;
+      entriesDuringTurn = cwd ? await fs.readdir(cwd) : null;
+      yield sysInit("sess-search");
+      yield assistantTextMsg("Otters are mustelids.");
+      yield successResult();
+    });
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+
+    const result = await runNativeWebSearch(provider, {
+      model: "haiku",
+      query: "otters"
+    });
+
+    expect(result.text).toBe("Otters are mustelids.");
+    const opts = calls[0].options as ClaudeCliOptions;
+    expect(opts.tools).toEqual(["WebSearch"]);
+    expect(opts.disallowedTools).toEqual(
+      expect.arrayContaining(["WebFetch", "Bash", "Read", "Skill", "ToolSearch"])
+    );
+    expect(opts.disallowedTools).not.toContain("WebSearch");
+    expect(opts.mcpServers).toBeUndefined();
+    expect(entriesDuringTurn).toEqual([]);
+    const cwd = opts.cwd as string;
+    expect(path.dirname(cwd)).toBe(path.resolve(os.tmpdir()));
+    await expect(fs.stat(cwd)).rejects.toThrow();
   });
 
   it("normalizes a `tools.<name>` tool-call name to the plain tool name", async () => {

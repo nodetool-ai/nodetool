@@ -45,7 +45,8 @@ const ENV_KEYS = [
   "NODETOOL_ENV",
   "NODETOOL_ENABLE_MCP",
   "SUPABASE_URL",
-  "SUPABASE_KEY"
+  "SUPABASE_KEY",
+  "NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS"
 ] as const;
 let saved: Record<string, string | undefined>;
 
@@ -75,6 +76,7 @@ function makeCtx(userId: string, nativeSessionId: string | null = null): Context
   return {
     userId,
     nativeSessionId,
+    authKind: nativeSessionId ? "native" : "session",
     // A native app always names its protocol version.
     clientProtocol: nativeSessionId ? 1 : null,
     registry: {} as never,
@@ -502,6 +504,47 @@ describe("TC5 (server half): the lost-rotation rule", () => {
     expect(r1.status).toBe(200);
     vi.setSystemTime(Date.now() + 80 * 86_400_000);
     expect((await refresh(app, r1.body.refresh_token)).status).toBe(200);
+  });
+});
+
+describe("a native session's maximum age", () => {
+  const DAY = 86_400_000;
+
+  it("refreshes within the maximum age and ends at it, however often it rotated", async () => {
+    process.env["NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS"] = "30";
+    const app = await buildApp();
+    const start = Date.now();
+    const tokens = await signIn(app);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(start + 20 * DAY);
+    const r1 = await refresh(app, tokens.refresh_token);
+    expect(r1.status).toBe(200);
+    vi.setSystemTime(start + 29 * DAY);
+    const r2 = await refresh(app, r1.body.refresh_token);
+    expect(r2.status).toBe(200);
+    vi.setSystemTime(start + 30 * DAY + 60_000);
+    const late = await refresh(app, r2.body.refresh_token);
+    expect(late.status).toBe(400);
+    expect(late.body.error).toBe("invalid_grant");
+    expect((await McpOauthGrant.get(tokens.session_id))?.revoked_at).not.toBeNull();
+  });
+
+  it("issues no access token that outlives the session", async () => {
+    process.env["NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS"] = "1";
+    const app = await buildApp();
+    const start = Date.now();
+    const tokens = await signIn(app);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // Five minutes before the end: the new access token lasts five minutes,
+    // not the usual fifteen.
+    vi.setSystemTime(start + DAY - 5 * 60_000);
+    const r1 = await refresh(app, tokens.refresh_token);
+    expect(r1.status).toBe(200);
+    expect(r1.body.expires_in).toBeLessThanOrEqual(5 * 60 + 1);
+    vi.setSystemTime(start + DAY + 1000);
+    expect(
+      await authenticateNativeAccessToken(r1.body.access_token, "/api/workflows", Date.now())
+    ).toMatchObject({ ok: false });
   });
 });
 
