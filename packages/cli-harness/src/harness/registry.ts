@@ -334,14 +334,15 @@ const WEB_TIMELINE_BLOCKOUT_SUITES =
   "npm run test --workspace=web -- model3dFreeCamera model3dSet useBlockoutReference blockoutRequest";
 
 /**
- * The trigger scheduler, its cron rules and polling, the triggers router, and
- * the trigger nodes. One constant so the entry's `command` and its `selfcheck`
+ * The trigger scheduler, its cron rules and polling, the triggers router, the
+ * trigger nodes and `nodetool triggers`. One constant so the entry's `command` and its `selfcheck`
  * cannot drift.
  */
 const TRIGGER_SUITES =
   "npm run test --workspace=packages/websocket -- trigger- triggers-router && " +
   "npm run test --workspace=packages/nodes-utils -- cron-schedule && " +
-  "npm run test --workspace=packages/automation-nodes -- schedule-trigger trigger-entry trigger-fixes";
+  "npm run test --workspace=packages/automation-nodes -- schedule-trigger trigger-entry trigger-fixes && " +
+  "npm run test --workspace=packages/cli-workflow -- triggers-command";
 
 const LEAN_SERVER_PACKAGES = [
   "cli", "pack-core", "pack-manager", "sandbox-runtime", "server-feature-packs",
@@ -2933,11 +2934,13 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "triggers",
-    title: "Workflow triggers (scheduler, cron rules, polling, trigger nodes)",
+    title: "Workflow triggers (scheduler, cron rules, polling, trigger nodes, CLI)",
     harnesses: ["triggers"],
     paths: [
       "packages/websocket/src/triggers/",
       "packages/websocket/src/trpc/routers/triggers.ts",
+      "packages/protocol/src/api-schemas/triggers.ts",
+      "packages/cli-workflow/src/commands/triggers.ts",
       "packages/nodes-utils/src/cron-schedule.ts",
       "packages/automation-nodes/src/nodes/triggers.ts"
     ]

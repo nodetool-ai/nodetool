@@ -806,7 +806,7 @@ Emitted 1 record(s):
 
 Move mini apps between installs. Reads and writes the local database directly — no running server.
 
-**Subcommands:** `list`, `export-bundle`, `export-project`, `import-bundle`
+**Subcommands:** `list`, `publish`, `versions`, `release`, `export-bundle`, `export-project`, `import-bundle`
 
 ```bash
 # List applications with their operation count
@@ -815,6 +815,23 @@ nodetool apps list --json
 ```
 
 `list` prints `id`, `name`, `operations`, and `updated_at`.
+
+#### `nodetool apps publish`, `versions`, `release`
+
+Publish an app without the editor. `publish <application_id>` releases the current draft as a new version and pins each
+workflow it binds to a version written now. `versions <application_id>` lists the published versions, newest first.
+`release <application_id> <version>` serves another published version, which is how a rollback works. Each takes
+`--json`.
+
+An app with a live public link is refused. The editor checks a release before it replaces the one visitors get, and
+that check needs the server. Agents cannot publish: the server withholds these procedures from sandboxed code, and no
+capability backs these commands.
+
+```bash
+nodetool apps publish <application_id>
+nodetool apps versions <application_id> --json
+nodetool apps release <application_id> 2
+```
 
 #### `nodetool apps export-bundle <application_id>`
 
@@ -1715,6 +1732,37 @@ nodetool jobs list --workflow-id workflow_abc123
 
 # Get a specific job
 nodetool jobs get <job_id>
+```
+
+### `nodetool triggers`
+
+List, switch on, switch off and fire workflow triggers. A trigger listens inside a running server, so these commands
+call the server, never the local database.
+
+**Subcommands:** `list`, `register`, `unregister`, `fire`
+
+**Options:**
+
+- `--api-url <url>` — the server (default `NODETOOL_API_URL`, else `http://127.0.0.1:7777`).
+- `--workflow-id <id>` — for `list`, every registration of that workflow, on or off, with its schedule and webhook
+  token. Without it, `list` shows the active registrations and the ones the server switched off after failures.
+- `--show-secrets` — for `list`, print webhook secrets instead of `***`.
+- `--payload <json>` — for `fire`, the event payload (default `{}`).
+- `--idempotency-key <key>` — for `fire`, fire at most once for this key. A repeat exits 1.
+- `--json` — output as JSON.
+
+Saving a workflow creates one registration per trigger node, switched off. `register` switches it on and `unregister`
+switches it off. The registration is removed when its trigger node is removed from the workflow. `fire` refuses a
+registration that is off, waits for the run to finish, and prints its job id.
+
+Agents cannot reach these commands: the server withholds the trigger procedures from sandboxed code, because an armed
+trigger keeps running after the conversation that armed it.
+
+```bash
+nodetool triggers list --workflow-id <workflow_id>
+nodetool triggers register <registration_id>
+nodetool triggers fire <registration_id> --payload '{"body":{"hello":"world"}}'
+nodetool triggers unregister <registration_id>
 ```
 
 ### `nodetool runs`

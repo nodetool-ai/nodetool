@@ -37,12 +37,22 @@ const store = {
   workflows: new Map<string, FakeWorkflow>()
 };
 const scriptResolve = vi.fn();
+const versions = vi.hoisted(() => ({
+  publish: vi.fn(),
+  list: vi.fn(),
+  release: vi.fn(),
+  findLive: vi.fn()
+}));
 let idCounter = 0;
 
 vi.mock("@nodetool-ai/models", () => ({
   createJsScriptResolver: () => ({ resolve: scriptResolve }),
   createTimeOrderedUuid: () => `new-id-${++idCounter}`,
   releasedApplicationRelease: vi.fn().mockResolvedValue(null),
+  publishApplication: versions.publish,
+  listApplicationVersions: versions.list,
+  releaseApplicationVersion: versions.release,
+  ApplicationDeployment: { findLive: versions.findLive },
   Application: {
     findById: async (id: string) => store.apps.get(id) ?? null,
     listByUser: async () => [...store.apps.values()],
@@ -280,5 +290,85 @@ describe("nodetool apps bundles", () => {
         updated_at: "2026-01-01T00:00:00.000Z"
       }
     ]);
+  });
+});
+
+describe("nodetool apps publish, versions and release", () => {
+  const snapshot = (version: number, released: boolean) => ({
+    id: `v-${version}`,
+    applicationId: "app-1",
+    version,
+    document: store.apps.get("app-1")!.toDocument(),
+    capabilities: {},
+    released,
+    createdAt: `2026-01-0${version}T00:00:00.000Z`
+  });
+
+  beforeEach(() => {
+    store.apps.clear();
+    store.workflows.clear();
+    seed();
+    versions.publish.mockReset();
+    versions.list.mockReset();
+    versions.release.mockReset();
+    versions.findLive.mockReset().mockResolvedValue(null);
+  });
+
+  it("publishes the draft and prints the new version", async () => {
+    versions.publish.mockResolvedValue(snapshot(3, true));
+    const result = await run(["apps", "publish", "app-1", "--json"]);
+    expect(result.exitCode).toBeNull();
+    expect(versions.publish).toHaveBeenCalledWith(store.apps.get("app-1"));
+    expect(JSON.parse(result.stdout)).toEqual({
+      version: 3,
+      released: true,
+      operations: 2,
+      created_at: "2026-01-03T00:00:00.000Z"
+    });
+  });
+
+  it("refuses to publish over a live public link", async () => {
+    versions.findLive.mockResolvedValue({ id: "dep-1" });
+    const result = await run(["apps", "publish", "app-1"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("has a live public link");
+    expect(versions.publish).not.toHaveBeenCalled();
+  });
+
+  it("lists versions for the app's owner", async () => {
+    versions.list.mockResolvedValue([snapshot(2, true), snapshot(1, false)]);
+    const result = await run(["apps", "versions", "app-1", "--json"]);
+    expect(versions.list).toHaveBeenCalledWith("app-1", undefined, "1");
+    expect(JSON.parse(result.stdout).map((row: { version: number }) => row.version)).toEqual([2, 1]);
+  });
+
+  it("rolls back to an earlier version", async () => {
+    versions.release.mockResolvedValue(snapshot(1, true));
+    const result = await run(["apps", "release", "app-1", "1"]);
+    expect(result.exitCode).toBeNull();
+    expect(versions.release).toHaveBeenCalledWith("app-1", 1, "1");
+    expect(result.stdout).toContain("Copywriter now serves version 1.");
+  });
+
+  it("fails on a version the app does not have", async () => {
+    versions.release.mockResolvedValue(null);
+    const result = await run(["apps", "release", "app-1", "9"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("has no version 9");
+  });
+
+  it("rejects a version that is not a positive integer", async () => {
+    const result = await run(["apps", "release", "app-1", "1.5"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("positive integer");
+    expect(versions.release).not.toHaveBeenCalled();
+  });
+
+  it("does not publish another user's app", async () => {
+    store.apps.get("app-1")!.user_id = "2";
+    const result = await run(["apps", "publish", "app-1"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Application not found: app-1");
+    expect(versions.publish).not.toHaveBeenCalled();
   });
 });

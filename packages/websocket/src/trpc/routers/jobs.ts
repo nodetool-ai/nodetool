@@ -7,7 +7,6 @@
  * replace the old `GET/POST /api/jobs/triggers/*` REST stubs.
  */
 
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Job, RunEvent, TriggerRegistration } from "@nodetool-ai/models";
 import type { Job as JobModel } from "@nodetool-ai/models";
@@ -36,6 +35,12 @@ import {
   type SnapshotOutput,
   type BackgroundJobResponse
 } from "@nodetool-ai/protocol/api-schemas/jobs.js";
+import {
+  runningTriggersOutput,
+  triggerIdInput,
+  triggerRegistrationResponse,
+  type TriggerRegistrationResponse
+} from "@nodetool-ai/protocol/api-schemas/triggers.js";
 
 function toJobResponse(job: JobModel, includeOutputs: boolean): JobResponse {
   return {
@@ -143,22 +148,6 @@ function toBackgroundJobResponse(job: JobModel): BackgroundJobResponse {
   };
 }
 
-export interface TriggerRegistrationResponse {
-  id: string;
-  workflow_id: string;
-  node_id: string;
-  kind: string;
-  enabled: boolean;
-  last_fired_at: string | null;
-  last_error: string | null;
-  /** Non-null only when the dispatcher disarmed it; see `settle.ts`. */
-  disabled_reason: string | null;
-  consecutive_failures: number;
-  run_count: number;
-  expires_at: string | null;
-  max_runs: number | null;
-}
-
 function toTriggerRegistrationResponse(
   registration: TriggerRegistration
 ): TriggerRegistrationResponse {
@@ -177,27 +166,6 @@ function toTriggerRegistrationResponse(
     max_runs: registration.max_runs
   };
 }
-
-const triggerIdInput = z.object({ id: z.string() });
-
-const triggerRegistrationOutput = z.object({
-  id: z.string(),
-  workflow_id: z.string(),
-  node_id: z.string(),
-  kind: z.string(),
-  enabled: z.boolean(),
-  last_fired_at: z.string().nullable(),
-  last_error: z.string().nullable(),
-  disabled_reason: z.string().nullable(),
-  consecutive_failures: z.number(),
-  run_count: z.number(),
-  expires_at: z.string().nullable(),
-  max_runs: z.number().nullable()
-});
-
-const runningTriggersOutput = z.object({
-  triggers: z.array(triggerRegistrationOutput)
-});
 
 async function requireOwnedRegistration(
   id: string,
@@ -307,7 +275,7 @@ export const jobsRouter = router({
   // ── triggerStart (POST /api/jobs/triggers/:id/start) ────────────────────
   triggerStart: protectedProcedure
     .input(triggerIdInput)
-    .output(triggerRegistrationOutput)
+    .output(triggerRegistrationResponse)
     .mutation(async ({ ctx, input }) => {
       const registration = await requireOwnedRegistration(input.id, ctx.userId);
       const wasEnabled = registration.enabled === 1;
@@ -346,7 +314,7 @@ export const jobsRouter = router({
   // ── triggerStop (POST /api/jobs/triggers/:id/stop) ──────────────────────
   triggerStop: protectedProcedure
     .input(triggerIdInput)
-    .output(triggerRegistrationOutput)
+    .output(triggerRegistrationResponse)
     .mutation(async ({ ctx, input }) => {
       const registration = await requireOwnedRegistration(input.id, ctx.userId);
       registration.enabled = 0;

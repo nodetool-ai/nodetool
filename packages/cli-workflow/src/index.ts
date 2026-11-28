@@ -59,6 +59,7 @@ import { registerCostsCommands } from "./commands/costs.js";
 import { registerErrorsCommands } from "./commands/errors.js";
 import { registerGenerationsCommands } from "./commands/generations.js";
 import { registerRunsCommands } from "./commands/runs.js";
+import { registerTriggerCommands } from "./commands/triggers.js";
 import { registerProjectCommands } from "./commands/projects.js";
 
 import {
@@ -1354,6 +1355,7 @@ export async function createProgram(): Promise<CommanderCommand> {
     ensureDb: setupDb,
     localUserId: LOCAL_USER_ID
   });
+  registerTriggerCommands(program);
   return program;
 }
 export async function run(argv: readonly string[]): Promise<void> {
