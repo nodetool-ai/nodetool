@@ -798,6 +798,19 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "timeline-preview",
+    title: "Timeline and storyboard web preview server (headless review)",
+    command: "nodetool timeline preview <id|file.json> [--host <host>] [--port <port>] [--json]",
+    kind: "execution",
+    capabilities: ["json", "no-db"],
+    docs: "docs/harnesses.md § nodetool timeline preview",
+    selfcheck: {
+      // Routes, caching, token and asset allowlist against a fake renderer.
+      command: "npm run test --workspace=packages/cli-timeline -- timeline-preview",
+      cost: "cheap"
+    }
+  },
+  {
     id: "timeline-score",
     title: "Timeline craft scorecard (agent output vs. shipped showcase examples)",
     command:
@@ -2264,6 +2277,7 @@ export const SURFACES: SurfaceEntry[] = [
       "timeline-debug",
       "timeline-render",
       "timeline-preflight",
+      "timeline-preview",
       "timeline-score",
       "timeline-versions",
       "eval"
@@ -2276,6 +2290,8 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-timeline/src/commands/timeline-versions.ts",
       "packages/cli-timeline/src/commands/timeline-render.ts",
       "packages/cli-timeline/src/commands/timeline-preflight.ts",
+      "packages/cli-timeline/src/commands/timeline-preview.ts",
+      "packages/cli-timeline/src/preview/",
       "packages/cli-timeline/src/commands/timeline-score.ts",
       "packages/video-nodes/src/nodes/timeline/compositeRender.ts",
       "packages/agents/src/capabilities/timelines.ts",

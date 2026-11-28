@@ -261,7 +261,7 @@ function slugOf(name: string): string {
  * database opens on the first asset a clip needs, so a pure motion-graphics
  * timeline renders without one.
  */
-async function localAssetResolver(
+export async function localAssetResolver(
   workDir: string
 ): Promise<(assetId: string) => Promise<string | null>> {
   let files:

@@ -753,6 +753,20 @@ The no-root lavapipe setup is in
 npm run dev:nodetool -- timeline preflight --json
 ```
 
+### nodetool timeline preview (Web Preview Server)
+
+Serves a timeline or a storyboard as a web page on a host with no display.
+Timeline frames render on demand through the export compositor and are cached
+per document version. A storyboard shows each shot's still and take from the
+local asset store. The page follows edits to the file or row, so a person can
+watch an agent work. The server code is in `packages/cli-timeline/src/preview/`
+and its tests drive the routes with a fake renderer. Flags are in
+[CLI Reference](cli.md#nodetool-timeline-preview-timeline_or_storyboard).
+
+```bash
+npm run dev:nodetool -- timeline preview sequence.json --port 0
+```
+
 ### nodetool timeline score (Timeline Craft Scorecard)
 
 Deterministic, no-LLM craft scorecard for a timeline document, from the same
