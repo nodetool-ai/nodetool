@@ -20287,6 +20287,21 @@
     "opening": "開いています…",
     "startFailed": "スターターを開けませんでした: {{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "コーディングエージェント",
+    "heading": "{{agents}} を NodeTool で使う",
+    "description": "このコンピューターで見つかりました。一度接続すると、エージェントが自分のターミナルからワークフローの作成、メディアの生成、NodeTool のプロジェクト編集を行えます。",
+    "agentConnected": "{{agent}} 接続済み",
+    "connect": "{{agents}} を接続",
+    "connecting": "接続中…",
+    "connectFailed": "接続できませんでした。エージェントの設定ファイルに書き込めることを確認して、もう一度お試しください。",
+    "connectedHeading": "{{agents}} で NodeTool を使えるようになりました",
+    "nextStep": "{{agents}} を再起動して、こう聞いてください:",
+    "examplePrompt": "NodeTool で私のワークフローを一覧表示して。",
+    "copyPrompt": "プロンプトをコピー",
+    "done": "完了",
+    "dismiss": "非表示"
+  },
   "timelineClipPanels": {
     "noClip": "クリップが選択されていません",
     "severalClips": "複数のクリップが選択されています",

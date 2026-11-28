@@ -2475,7 +2475,7 @@ nodetool generate fal_ai <video-model-id> "waves at dusk" --kind video --duratio
 MCP commands require the explicitly installed `@nodetool-ai/cli-mcp` feature.
 The examples invoke its `nodetool-mcp` binary directly.
 
-Register NodeTool as an MCP server in Claude Code, Codex, and OpenCode, check
+Register NodeTool as an MCP server in Claude Code, Codex, OpenCode, and Antigravity, check
 the result, or run the server. See [NodeTool as an MCP Server](mcp-server.md)
 for the setup guide.
 
@@ -2508,7 +2508,7 @@ nodetool-mcp uninstall
 
 | Option | Applies to | Effect |
 |---|---|---|
-| `--claude`, `--codex`, `--opencode` | `install`, `uninstall` | Select clients. `install` without one selects every client found. |
+| `--claude`, `--codex`, `--opencode`, `--antigravity` | `install`, `uninstall` | Select clients. `install` without one selects every client found. |
 | `--npx` | `install`, `config` | Launch through `npx` even when `nodetool-mcp` is on `PATH`. |
 | `--http`, `--url <url>` | `install`, `config` | Write an HTTP entry. The default URL is `http://127.0.0.1:7777/mcp`. |
 | `--no-verify` | `install` | Write the config without a test start of the server. |

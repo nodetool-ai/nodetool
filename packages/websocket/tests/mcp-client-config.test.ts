@@ -12,6 +12,7 @@ import { join } from "node:path";
 import {
   codexHome,
   hasNodetoolCli,
+  isMcpClientPresent,
   mcpServersSnippet,
   probeMcpLaunch,
   readMcpClientEntry,
@@ -157,6 +158,41 @@ describe("OpenCode", () => {
     expect(readMcpClientEntry("opencode", home)).toEqual(STDIO);
     writeMcpClientEntry("opencode", HTTP, home);
     expect(readMcpClientEntry("opencode", home)).toEqual(HTTP);
+  });
+});
+
+describe("Antigravity", () => {
+  it("writes the shared file the agy CLI, IDE and app read", () => {
+    const path = writeMcpClientEntry("antigravity", STDIO, home);
+    expect(path).toBe(join(home, ".gemini", "config", "mcp_config.json"));
+    expect(readJsonFile(path).mcpServers.nodetool).toEqual({
+      command: "nodetool-mcp",
+      args: ["serve"],
+      timeoutSeconds: 900
+    });
+    expect(readMcpClientEntry("antigravity", home)).toEqual(STDIO);
+  });
+
+  it("names an HTTP endpoint serverUrl and keeps the user's servers", () => {
+    const path = join(home, ".gemini", "config", "mcp_config.json");
+    mkdirSync(join(home, ".gemini", "config"), { recursive: true });
+    writeFileSync(path, JSON.stringify({ mcpServers: { other: { command: "x" } } }));
+    writeMcpClientEntry("antigravity", HTTP, home);
+    const servers = readJsonFile(path).mcpServers;
+    expect(servers.nodetool).toEqual({ serverUrl: HTTP.url, timeoutSeconds: 900 });
+    expect(servers.other).toEqual({ command: "x" });
+    expect(readMcpClientEntry("antigravity", home)).toEqual(HTTP);
+    expect(removeMcpClientEntry("antigravity", home)).toBe(true);
+    expect(readJsonFile(path).mcpServers).toEqual({ other: { command: "x" } });
+    expect(removeMcpClientEntry("antigravity", home)).toBe(false);
+  });
+
+  it("is present for the Antigravity data directory, not for the Gemini CLI's", () => {
+    vi.stubEnv("PATH", "");
+    mkdirSync(join(home, ".gemini", "config"), { recursive: true });
+    expect(isMcpClientPresent("antigravity", home)).toBe(false);
+    mkdirSync(join(home, ".gemini", "antigravity-cli"));
+    expect(isMcpClientPresent("antigravity", home)).toBe(true);
   });
 });
 

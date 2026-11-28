@@ -2,16 +2,18 @@
 layout: page
 title: "NodeTool as an MCP Server"
 permalink: /mcp-server
-description: "Use NodeTool from Claude Code, Codex, OpenCode, Cursor, or any MCP client. One command registers the server. The desktop app is optional."
+description: "Use NodeTool from Claude Code, Codex, OpenCode, Antigravity, Cursor, or any MCP client. One command registers the server. The desktop app is optional."
 ---
 
-Run one command to give Claude Code, Codex, or OpenCode access to NodeTool workflows, assets, and media generation. The desktop app is optional.
+Run one command to give Claude Code, Codex, OpenCode, or Antigravity access to NodeTool workflows, assets, and media generation. The desktop app is optional.
 
 ```bash
 npx -y @nodetool-ai/cli-mcp install
 ```
 
 Restart the harness, then ask it: "Use NodeTool to list my workflows."
+
+In the desktop app, the home screen finds Claude Code, Codex, and Antigravity on the machine and offers **Connect**, which writes the same entries.
 
 > **Runs:** locally over stdio, or against a running NodeTool server over HTTP. **Needs:** Node.js 22 or later. Generation tools need provider keys (see [Provider keys](#provider-keys)).
 {: .callout-note}
@@ -29,11 +31,11 @@ nodetool-mcp install
 
 `install` does these steps:
 
-1. It finds Claude Code, Codex, and OpenCode on the machine.
+1. It finds Claude Code, Codex, OpenCode, and Antigravity on the machine.
 2. It starts the server once and lists its tools. This proves that the server works and fills the `npx` cache, so the harness's first start is fast.
 3. It writes a `nodetool` entry into each client's config.
 
-To install for one client, add `--claude`, `--codex`, or `--opencode`. Add `--no-verify` to write the config without starting the server first. Check the result with `nodetool-mcp status --check`. Remove the entries with `nodetool-mcp uninstall`.
+To install for one client, add `--claude`, `--codex`, `--opencode`, or `--antigravity`. Add `--no-verify` to write the config without starting the server first. Check the result with `nodetool-mcp status --check`. Remove the entries with `nodetool-mcp uninstall`.
 
 To use the same feature through the default CLI, run `nodetool packs add cli-mcp --yes`, then use `nodetool mcp` in place of `nodetool-mcp`. Pack-managed features do not add global binaries.
 
@@ -59,8 +61,9 @@ The command is `nodetool-mcp` when the CLI is on `PATH`, and `npx -y @nodetool-a
 | Claude Code | `~/.claude.json`, key `mcpServers` | User scope, every project |
 | Codex | `~/.codex/config.toml`, block `[mcp_servers.nodetool]` | Every session |
 | OpenCode | `~/.config/opencode/opencode.json`, key `mcp` | Every session |
+| Antigravity | `~/.gemini/config/mcp_config.json`, key `mcpServers` | The `agy` CLI, the IDE, and the app |
 
-Codex gets a 120-second start timeout and a 900-second tool timeout, because a video generation can run for minutes. OpenCode gets the 120-second timeout.
+Codex gets a 120-second start timeout and a 900-second tool timeout, because a video generation can run for minutes. OpenCode gets the 120-second timeout. Antigravity gets the 900-second tool timeout.
 
 The Codex file follows `CODEX_HOME` when it is set, the same directory Codex reads.
 

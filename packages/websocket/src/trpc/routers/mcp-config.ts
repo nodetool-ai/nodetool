@@ -2,9 +2,11 @@
  * MCP Config router — migrated from REST `/api/mcp/*`.
  *
  * Manages NodeTool MCP server installation in AI coding assistants
- * (Claude Code, Codex, OpenCode). The procedures mutate user config files
- * on the local filesystem, so they are disabled in production via
- * `NODETOOL_ENV=production` → SERVICE_UNAVAILABLE.
+ * (Claude Code, Codex, OpenCode, Antigravity). The procedures mutate user
+ * config files on the local filesystem, so they are disabled in production
+ * (`NODETOOL_ENV=production`) and in the cloud profile → SERVICE_UNAVAILABLE.
+ * The home screen's local-agent card reads `present` to offer the connection
+ * only for agents installed on this machine.
  *
  * The router is always registered on `appRouter` so the type surface stays
  * consistent for clients; the production guard is applied inside each
@@ -17,11 +19,13 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { getLocalMcpServerUrl } from "../../mcp-server.js";
+import { isCloudProfile } from "../../lib/cloud-profile.js";
 import {
   MCP_CLIENT_IDS,
   MCP_CLIENT_LABELS,
   describeLaunch,
   hasNodetoolCli,
+  isMcpClientPresent,
   mcpClientConfigPath,
   readMcpClientEntry,
   removeMcpClientEntry,
@@ -41,9 +45,12 @@ import {
   type UninstallResult
 } from "@nodetool-ai/protocol/api-schemas/mcp-config.js";
 
-/** Guard: MCP config is disabled in production. */
+/**
+ * Guard: MCP config is disabled in production and in the cloud profile, where
+ * the server's home directory belongs to no user.
+ */
 function requireNonProduction(): void {
-  if (process.env["NODETOOL_ENV"] === "production") {
+  if (process.env["NODETOOL_ENV"] === "production" || isCloudProfile()) {
     throwApiError(
       ApiErrorCode.SERVICE_UNAVAILABLE,
       "MCP configuration is not available in production"
@@ -67,6 +74,7 @@ function getStatus(target: McpTarget): TargetStatus {
   const base: TargetStatus = {
     target,
     label: MCP_CLIENT_LABELS[target],
+    present: isMcpClientPresent(target, home),
     installed: false,
     url: null,
     command: null,

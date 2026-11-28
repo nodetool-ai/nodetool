@@ -99,6 +99,17 @@ describe("mcpConfig router", () => {
       ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
     });
 
+    it("status throws in the cloud profile, where the home directory is no user's", async () => {
+      process.env.NODETOOL_NODE_PROFILE = "cloud";
+      try {
+        await expect(createCaller(makeCtx()).mcpConfig.status()).rejects.toMatchObject({
+          code: "INTERNAL_SERVER_ERROR"
+        });
+      } finally {
+        delete process.env.NODETOOL_NODE_PROFILE;
+      }
+    });
+
     it("uninstall throws SERVICE_UNAVAILABLE in production", async () => {
       process.env.NODETOOL_ENV = "production";
       const caller = createCaller(makeCtx());
@@ -113,8 +124,9 @@ describe("mcpConfig router", () => {
     it("returns all targets as not-installed when no config files exist", async () => {
       const caller = createCaller(makeCtx());
       const result = await caller.mcpConfig.status();
-      expect(result.targets).toHaveLength(3);
+      expect(result.targets).toHaveLength(4);
       for (const t of result.targets) {
+        expect(t.present).toBe(false);
         expect(t.installed).toBe(false);
         expect(t.url).toBeNull();
       }
@@ -186,6 +198,15 @@ describe("mcpConfig router", () => {
       expect(claude?.command).toBe("nodetool mcp serve");
     });
 
+    it("reports an agent as present from its data directory", async () => {
+      (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
+        (p: string) => p === join(HOME, ".gemini", "antigravity-cli")
+      );
+      const result = await createCaller(makeCtx()).mcpConfig.status();
+      const present = result.targets.filter((t) => t.present).map((t) => t.target);
+      expect(present).toEqual(["antigravity"]);
+    });
+
     it("reads codex installation by regex from config.toml", async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
         (p: string) => p === CODEX_TOML
@@ -249,8 +270,8 @@ url = "http://127.0.0.1:7777/mcp"
       (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
       const caller = createCaller(makeCtx());
       const result = await caller.mcpConfig.install({});
-      expect(result.results).toHaveLength(3);
-      expect(writeFileSync).toHaveBeenCalledTimes(3);
+      expect(result.results).toHaveLength(4);
+      expect(writeFileSync).toHaveBeenCalledTimes(4);
       expect(result.launch).toMatch(/^http/);
     });
 
@@ -411,7 +432,7 @@ url = "x"
       (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
       const caller = createCaller(makeCtx());
       const result = await caller.mcpConfig.uninstall({});
-      expect(result.results).toHaveLength(3);
+      expect(result.results).toHaveLength(4);
     });
 
     it("rejects unauthenticated callers", async () => {

@@ -12,8 +12,8 @@ import {
 } from "../src/api-schemas/mcp-config.js";
 
 describe("mcp-config.mcpTarget", () => {
-  it("accepts the three known targets", () => {
-    for (const t of ["claude", "codex", "opencode"]) {
+  it("accepts the four known targets", () => {
+    for (const t of ["claude", "codex", "opencode", "antigravity"]) {
       expect(mcpTarget.safeParse(t).success).toBe(true);
     }
   });
@@ -29,6 +29,7 @@ describe("mcp-config.targetStatus", () => {
       targetStatus.safeParse({
         target: "claude",
         label: "Claude Code",
+        present: true,
         installed: false,
         url: null,
         command: null,
@@ -42,6 +43,7 @@ describe("mcp-config.targetStatus", () => {
       targetStatus.safeParse({
         target: "claude",
         label: "Claude Code",
+        present: true,
         installed: true,
         url: null,
         command: "nodetool mcp serve",

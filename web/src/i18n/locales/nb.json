@@ -20287,6 +20287,21 @@
     "opening": "Åpner…",
     "startFailed": "Kunne ikke åpne starteren: {{error}}"
   },
+  "localAgents": {
+    "ariaLabel": "Kodeagentene dine",
+    "heading": "Bruk {{agents}} med NodeTool",
+    "description": "Funnet på denne datamaskinen. Koble til én gang, så kan agenten bygge arbeidsflyter, generere medier og redigere prosjektene dine i NodeTool fra sin egen terminal.",
+    "agentConnected": "{{agent}} tilkoblet",
+    "connect": "Koble til {{agents}}",
+    "connecting": "Kobler til…",
+    "connectFailed": "Kunne ikke koble til. Sjekk at agentens konfigurasjonsfil er skrivbar, og prøv igjen.",
+    "connectedHeading": "{{agents}} kan nå bruke NodeTool",
+    "nextStep": "Start {{agents}} på nytt, og spør:",
+    "examplePrompt": "Bruk NodeTool til å liste arbeidsflytene mine.",
+    "copyPrompt": "Kopier prompt",
+    "done": "Ferdig",
+    "dismiss": "Skjul"
+  },
   "timelineClipPanels": {
     "noClip": "Ingen klipp valgt",
     "severalClips": "Flere klipp valgt",
