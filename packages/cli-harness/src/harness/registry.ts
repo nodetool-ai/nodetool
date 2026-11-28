@@ -220,7 +220,8 @@ const ASSET_EDITOR_TOOL_SUITES =
  */
 const LIBRARY_SEARCH_SUITES =
   "npm run test --workspace=packages/search-services && " +
-  "npm run test --workspace=packages/agents -- capabilities-search";
+  "npm run test --workspace=packages/agents -- capabilities-search && " +
+  "npm run test --workspace=packages/websocket -- search-enricher search-indexer trpc-search";
 
 const MOBILE_DOCUMENT_TOOL_SUITES =
   "npm run test --workspace=packages/agents -- mobile-storyboard-tool-loop";
@@ -322,6 +323,25 @@ const WEB_PROJECT_FILES_SUITES =
   "npm run test --workspace=web -- src/components/projects/ src/components/workspaces/ " +
   "src/components/textEditor/ stores/__tests__/DocumentDraftStore stores/__tests__/SidebarDocumentActionsStore " +
   "stores/__tests__/AssetStore.projectFolders serverState/__tests__/useAssetUploadProject";
+const WEB_DOCUMENTS_SUITES =
+  "npm run test --workspace=web -- src/components/documentEditor/ src/hooks/document/ " +
+  "workspace/__tests__/TextDocumentEditor stores/__tests__/DocumentProposalStore " +
+  "serverState/__tests__/useTextDocumentVersions serverState/__tests__/useTextDocumentTransfer";
+const WEB_CLOUD_WINDOW_SUITES =
+  "npm run test --workspace=web -- src/lib/cloud/ useCloudWindow stores/__tests__/CloudSyncStatusStore " +
+  "cloudWindow && npm run test --workspace=electron -- cloudWindow";
+const WEB_TIMELINE_BLOCKOUT_SUITES =
+  "npm run test --workspace=web -- model3dFreeCamera model3dSet useBlockoutReference blockoutRequest";
+
+/**
+ * The trigger scheduler, its cron rules and polling, the triggers router, and
+ * the trigger nodes. One constant so the entry's `command` and its `selfcheck`
+ * cannot drift.
+ */
+const TRIGGER_SUITES =
+  "npm run test --workspace=packages/websocket -- trigger- triggers-router && " +
+  "npm run test --workspace=packages/nodes-utils -- cron-schedule && " +
+  "npm run test --workspace=packages/automation-nodes -- schedule-trigger trigger-entry trigger-fixes";
 
 const LEAN_SERVER_PACKAGES = [
   "cli", "pack-core", "pack-manager", "sandbox-runtime", "server-feature-packs",
@@ -687,6 +707,77 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: [],
     docs: "docs/harnesses.md § Web feature suites",
     selfcheck: { command: WEB_PROJECT_FILES_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-documents-ui",
+    title: "Document editor: Markdown codec, embeds, outline, versions and proposals check",
+    command: WEB_DOCUMENTS_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_DOCUMENTS_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-cloud-window-ui",
+    title: "Desktop cloud window drafts, send pacing and workspace file receive check",
+    command: WEB_CLOUD_WINDOW_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_CLOUD_WINDOW_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-timeline-blockout-ui",
+    title: "Timeline blockout inspector, free camera and reference request check",
+    command: WEB_TIMELINE_BLOCKOUT_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_TIMELINE_BLOCKOUT_SUITES, cost: "cheap" }
+  },
+  {
+    id: "triggers",
+    title: "Workflow triggers: scheduler, cron rules, polling, router and trigger nodes",
+    command: TRIGGER_SUITES,
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: TRIGGER_SUITES, cost: "cheap" }
+  },
+  {
+    id: "mini-app-browser",
+    title: "Mini app run, App Builder save, phone fit and accessibility journeys",
+    command:
+      "npm run test:journeys --workspace=web -- mini-app.spec.ts recipe-builder.spec.ts mobile-example-app.spec.ts accessibility.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "native-game-browser",
+    title: "Native game editor review, docking, 3D editor and scene music journeys",
+    command:
+      "npm run test:journeys --workspace=web -- native-game-editor.spec.ts native-game3d-editor.spec.ts native-game-audio.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "effects-gallery-browser",
+    title: "Effects gallery: apply an effect and find it in the gallery and Generations",
+    command: "npm run test:journeys --workspace=web -- effects-gallery.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "web-shell-browser",
+    title: "First run on a phone, Help dialog, Create view and agent task list journeys",
+    command:
+      "npm run test:journeys --workspace=web -- first-run-phone.spec.ts help-dialog.spec.ts create-view.spec.ts agent-task-list.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
   },
   {
     id: "web-project-files-browser",
@@ -1976,6 +2067,10 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/models/src/schema/search-index.ts",
       "packages/models/src/schema-pg/search-index.ts",
       "packages/websocket/src/search-indexer.ts",
+      "packages/websocket/src/search-embedder.ts",
+      "packages/websocket/src/search-enricher.ts",
+      "packages/websocket/src/search-project-files.ts",
+      "packages/websocket/src/trpc/routers/search.ts",
       "packages/agents/src/capabilities/search.ts",
       "packages/agents/src/capabilities/search.specs.ts",
       "packages/agents/src/capabilities/library-matches.ts",
@@ -2096,7 +2191,7 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "game-creation-flow",
     title: "Native game creation and editing",
-    harnesses: ["game-flow", "game-perf", "capability-suites", "validate"],
+    harnesses: ["game-flow", "game-perf", "capability-suites", "validate", "native-game-browser"],
     paths: [
       "packages/cli-game/src/commands/game.ts",
       "packages/protocol/src/game.ts",
@@ -2238,7 +2333,7 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "mini-apps",
     title: "Mini apps (documents, bindings, operations)",
-    harnesses: ["app-debug", "app-build", "eval"],
+    harnesses: ["app-debug", "app-build", "eval", "mini-app-browser"],
     paths: [
       "packages/app-runtime/",
       "packages/app-export/",
@@ -2774,6 +2869,80 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "web-documents",
+    title: "Web document editor (Markdown, embeds, outline, versions, proposals)",
+    harnesses: ["web-documents-ui"],
+    paths: [
+      "web/src/components/documentEditor/",
+      "web/src/hooks/document/",
+      "web/src/components/workspace/TextDocumentEditor.tsx",
+      "web/src/stores/DocumentProposalStore.ts",
+      "web/src/stores/GoogleDocImportStore.ts",
+      "web/src/serverState/useTextDocumentVersions.ts",
+      "web/src/serverState/useTextDocumentTransfer.ts"
+    ]
+  },
+  {
+    id: "web-cloud-window",
+    title: "Desktop cloud window (local drafts, send pacing, workspace file receive)",
+    harnesses: ["web-cloud-window-ui"],
+    paths: [
+      "web/src/lib/cloud/",
+      "web/src/components/cloud/",
+      "web/src/hooks/useCloudWindowDrafts.ts",
+      "web/src/hooks/useCloudWindowApplicationDrafts.ts",
+      "web/src/hooks/useCloudWindowWorkflowDrafts.ts",
+      "web/src/hooks/jsScript/useCloudWindowJsScriptDrafts.ts",
+      "web/src/hooks/script/useCloudWindowScriptDrafts.ts",
+      "web/src/hooks/sketch/useCloudWindowSketchDrafts.ts",
+      "web/src/hooks/storyboard/useCloudWindowStoryboardDrafts.ts",
+      "web/src/hooks/timeline/useCloudWindowTimelineDrafts.ts",
+      "web/src/stores/CloudSyncStatusStore.ts",
+      "electron/src/cloudWindow.ts"
+    ]
+  },
+  {
+    id: "web-timeline-blockout",
+    title: "Timeline 3D blockout UI (inspector, free camera, reference renders)",
+    harnesses: ["web-timeline-blockout-ui", "timeline-model3d"],
+    paths: [
+      "web/src/components/timeline/Inspector/BlockoutReferenceSection.tsx",
+      "web/src/components/timeline/Inspector/Model3DCameraMoveMenu.tsx",
+      "web/src/components/timeline/Inspector/model3dFreeCamera.ts",
+      "web/src/components/timeline/model3dSet.ts",
+      "web/src/components/timeline/preview/model3dFreeCameraGesture.ts",
+      "web/src/components/timeline/render/renderBlockoutReference.ts",
+      "web/src/components/timeline/shot/ShotBlockoutSection.tsx",
+      "web/src/hooks/timeline/useBlockoutLink.ts",
+      "web/src/hooks/timeline/useBlockoutReference.ts",
+      "web/src/hooks/timeline/useShotBlockout.ts",
+      "web/src/stores/timeline/BlockoutReferenceStore.ts",
+      "web/src/lib/storyboard/blockoutRequest.ts"
+    ]
+  },
+  {
+    id: "web-shell",
+    title: "Web shell journeys (first run on a phone, Help, Create view, agent task list)",
+    harnesses: ["web-shell-browser"],
+    paths: [
+      "web/tests/journeys/first-run-phone.spec.ts",
+      "web/tests/journeys/help-dialog.spec.ts",
+      "web/tests/journeys/create-view.spec.ts",
+      "web/tests/journeys/agent-task-list.spec.ts"
+    ]
+  },
+  {
+    id: "triggers",
+    title: "Workflow triggers (scheduler, cron rules, polling, trigger nodes)",
+    harnesses: ["triggers"],
+    paths: [
+      "packages/websocket/src/triggers/",
+      "packages/websocket/src/trpc/routers/triggers.ts",
+      "packages/nodes-utils/src/cron-schedule.ts",
+      "packages/automation-nodes/src/nodes/triggers.ts"
+    ]
+  },
+  {
     id: "tutorial-rendering",
     title: "Tutorial rendering and inspection",
     harnesses: ["tutorial-rendering"],
@@ -3054,14 +3223,15 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "effects-gallery",
     title: "Effects gallery (effect presets applied to one picture)",
-    harnesses: [],
-    paths: ["web/src/components/effects/", "web/src/stores/EffectsGalleryStore.ts"],
-    gap:
-      "UI-only flow. effectsRun.ts picks the mode and model and builds the generate_media request in the browser; " +
-      "only Jest suites (effectsRun, EffectsGallery, EffectsGalleryStore) cover it, and no harness owns it. An agent " +
-      "reaches the same result with list_presets plus edit_image or animate_image and preset_ids, but not through " +
-      "the gallery's choices. A harness would move effectsRun into a shared package and check its requests against " +
-      "the preset catalog."
+    // The journey drives the gallery against the hermetic server. effectsRun.ts
+    // still builds the generate_media request in the browser, so its choices
+    // have no headless check beyond the Jest suites.
+    harnesses: ["effects-gallery-browser"],
+    paths: [
+      "web/src/components/effects/",
+      "web/src/stores/EffectsGalleryStore.ts",
+      "web/tests/journeys/effects-gallery.spec.ts"
+    ]
   },
   {
     id: "chain-editor",

@@ -254,6 +254,17 @@ describe("path claims", () => {
     expect(stale).toEqual([]);
   });
 
+  it("every web journey spec is run by a harness command", () => {
+    // A journey no harness names runs in CI, but `harness gate` cannot select
+    // it for a diff and `harness audit` cannot report it.
+    const journeyDir = join(repoRoot, "web/tests/journeys");
+    const specs = readdirSync(journeyDir).filter((name) => name.endsWith(".spec.ts"));
+    expect(specs.length).toBeGreaterThan(0);
+    const commands = HARNESSES.map((h) => h.command).join("\n");
+    const unrun = specs.filter((spec) => !new RegExp(`\\b${spec.replace(/\./g, "\\.")}\\b`).test(commands));
+    expect(unrun).toEqual([]);
+  });
+
   it("audit catches a directory no surface or UNCLAIMED_PATHS entry claims", () => {
     const unclaimed = auditPathClaims(
       ["packages/models", "packages/totally-not-a-real-package"],
