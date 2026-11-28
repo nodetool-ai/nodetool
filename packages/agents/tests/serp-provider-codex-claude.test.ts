@@ -6,10 +6,12 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { mayUseServerCredential } from "@nodetool-ai/config";
 import {
   SERP_PROVIDER_SECRETS,
   SERP_PROVIDER_SEARCH_TYPES,
   createSerpProvider,
+  hostCliSearchAvailable,
   serpProviderConfigured
 } from "../src/tools/serp-providers/index.js";
 import {
@@ -146,5 +148,35 @@ describe("linksInAnswer", () => {
 
   it("returns nothing for prose without links", () => {
     expect(linksInAnswer("No sources here.")).toEqual([]);
+  });
+});
+
+describe("search backends on the cloud profile", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("offers no host CLI backend", async () => {
+    vi.stubEnv("NODETOOL_NODE_PROFILE", "cloud");
+    expect(hostCliSearchAvailable()).toBe(false);
+    const resolver = { getSecret: async () => "/usr/bin/claude" };
+    for (const type of ["claude", "antigravity"] as const) {
+      expect(await serpProviderConfigured(type, resolver)).toBe(false);
+      await expect(createSerpProvider(type, resolver)).rejects.toThrow(
+        /not available on this deployment/
+      );
+    }
+  });
+
+  it("keeps the host CLI backends on a full profile", () => {
+    vi.stubEnv("NODETOOL_NODE_PROFILE", "full");
+    expect(hostCliSearchAvailable()).toBe(true);
+  });
+
+  it("withholds the server's search keys", () => {
+    for (const key of ["SERPAPI_API_KEY", "BRAVE_API_KEY", "DATA_FOR_SEO_LOGIN"]) {
+      expect(mayUseServerCredential(key, { NODETOOL_NODE_PROFILE: "cloud" })).toBe(false);
+      expect(mayUseServerCredential(key, { NODETOOL_NODE_PROFILE: "full" })).toBe(true);
+    }
   });
 });

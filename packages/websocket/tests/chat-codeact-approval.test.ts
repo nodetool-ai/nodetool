@@ -411,4 +411,51 @@ describe("codeact permission prompts", () => {
     ).toBe(false);
     await second.runner.disconnect();
   }, 60_000);
+
+  it("does not save Always allow from a prompt for a program path setting", async () => {
+    initTestDb();
+    const code =
+      'import { set_setting } from "@nodetool-ai/sandbox-nodetool/settings";\n' +
+      `const r = await set_setting({ key: "BLENDER_PATH", value: "/opt/blender/blender" });\n` +
+      `return { set: JSON.stringify(r) };`;
+    const ws = new MockWS();
+    const runner = new WebSocketClientSession({
+      resolveExecutor: noop,
+      resolveProvider: codeActProvider(code)
+    });
+    await runner.connect(ws);
+    void runner.receiveMessages();
+    void runner.handleCommand({
+      command: "chat_message",
+      data: {
+        thread_id: "t-host-path",
+        content: "point blender at /opt",
+        provider: "mock",
+        model: "m",
+        permission_mode: "auto"
+      }
+    });
+    const request = await waitFor(() =>
+      sentMsgs(ws).find((m) => m.type === "tool_approval_request")
+    );
+    ws.push({
+      type: "websocket.receive",
+      bytes: pack({
+        type: "tool_approval_response",
+        approval_id: request.approval_id,
+        decision: "allow_always"
+      })
+    } as WebSocketReceiveFrame);
+    await waitFor(() =>
+      sentMsgs(ws).find((m) => m.type === "message" && m.role === "tool")
+    );
+    await runner.disconnect();
+
+    const rows = await Setting.listForUser("1");
+    expect(rows.find((row) => row.key === "BLENDER_PATH")?.value).toBe(
+      "/opt/blender/blender"
+    );
+    const rule = rows.find((row) => row.key === "tool_permissions.always_allow");
+    expect(JSON.parse(rule?.value ?? "[]")).not.toContain("set_setting");
+  }, 60_000);
 });

@@ -19,7 +19,10 @@ import {
   isOnePasswordReference,
   resolveUserSecretValue,
   getSecret,
-  getSecrets
+  getSecrets,
+  hostSettingsRefusalMessage,
+  refusedHostSettingKeys,
+  userSettingCatalog
 } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
 import {
@@ -174,6 +177,10 @@ const secretsRouter = router({
     .output(secretResponse)
     .mutation(async ({ ctx, input }) => {
       await requirePermission(ctx.userId, "manage_own_keys");
+      const refused = refusedHostSettingKeys([input.key]);
+      if (refused.length > 0) {
+        throwApiError(ApiErrorCode.FORBIDDEN, hostSettingsRefusalMessage(refused));
+      }
       const upsertInput: Parameters<typeof Secret.upsert>[0] = {
         userId: ctx.userId,
         key: input.key,
@@ -451,9 +458,7 @@ export const settingsRouter = router({
     // back to the server's environment: those values are the operator's, not
     // the tenant's.
     const cloud = isCloudProfile();
-    const catalog = cloud
-      ? settingCatalog().filter((def) => isCloudSettingGroup(def.group))
-      : settingCatalog();
+    const catalog = userSettingCatalog();
 
     // Non-secret settings: read from DB then env.
     for (const def of catalog) {
@@ -493,21 +498,12 @@ export const settingsRouter = router({
     .input(updateInput)
     .output(updateOutput)
     .mutation(async ({ ctx, input }) => {
-      if (isCloudProfile()) {
-        const keys = [
-          ...Object.keys(input.settings ?? {}),
-          ...Object.keys(input.secrets ?? {})
-        ];
-        const hidden = keys.filter((key) => {
-          const def = settingCatalog().find((d) => d.envVar === key);
-          return def !== undefined && !isCloudSettingGroup(def.group);
-        });
-        if (hidden.length > 0) {
-          throwApiError(
-            ApiErrorCode.FORBIDDEN,
-            `These settings configure the server host and cannot be changed on this deployment: ${hidden.join(", ")}`
-          );
-        }
+      const hidden = refusedHostSettingKeys([
+        ...Object.keys(input.settings ?? {}),
+        ...Object.keys(input.secrets ?? {})
+      ]);
+      if (hidden.length > 0) {
+        throwApiError(ApiErrorCode.FORBIDDEN, hostSettingsRefusalMessage(hidden));
       }
 
       // Non-secret settings → Setting.upsert

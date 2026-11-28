@@ -82,6 +82,25 @@ describe("DownloadManager terminal progress", () => {
     });
   });
 
+  it("sends no token at all when the download passes token false", async () => {
+    const saved = process.env["HF_TOKEN"];
+    process.env["HF_TOKEN"] = "hf_server";
+    try {
+      listFilesMock.mockImplementation(async function* () {
+        yield { type: "file", path: "model.json", size: 1 };
+      });
+      asyncHfDownloadMock.mockResolvedValue("Z:/cache/model.json");
+
+      await new DownloadManager().startDownload("org/model", { token: false });
+
+      expect(listFilesMock.mock.calls[0][0]).not.toHaveProperty("accessToken");
+      expect(asyncHfDownloadMock.mock.calls[0][2]).toMatchObject({ token: false });
+    } finally {
+      if (saved === undefined) delete process.env["HF_TOKEN"];
+      else process.env["HF_TOKEN"] = saved;
+    }
+  });
+
   it("keeps a cacheDir download in the HF cache instead of the llama.cpp cache", async () => {
     listFilesMock.mockImplementation(async function* () {
       yield { type: "file", path: "config.json", size: 1 };

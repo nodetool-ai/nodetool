@@ -1418,6 +1418,13 @@ export abstract class BaseProvider {
        */
       workspaceDir?: string;
       /**
+       * A native web search turn (`runNativeWebSearch`). A provider that
+       * drives its own agent loop over host built-ins (the Claude Agent SDK)
+       * offers only its search built-in and runs in an empty scratch
+       * directory. Ignored here.
+       */
+      webSearchOnly?: boolean;
+      /**
        * User-defined skills to expose to a provider that drives its own agent
        * loop with a native skill mechanism (the Claude Agent SDK). That
        * override materializes them as an isolated local plugin so its `Skill`
@@ -1458,6 +1465,7 @@ export abstract class BaseProvider {
       providedToolsOnly: _omitProvidedToolsOnly,
       turnBudget: budgetArg,
       workspaceDir: _omitWorkspaceDir,
+      webSearchOnly: _omitWebSearchOnly,
       skills: _omitSkills,
       resolveMedia,
       ...turnArgs

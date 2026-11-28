@@ -2151,7 +2151,11 @@ holds without their values, and there is **no `set_secret`**. The definitions
 come from `settingCatalog()` in `@nodetool-ai/config` — the same table the tRPC
 settings router answers `settings.list` from — so the capability knows which
 names hold credentials instead of guessing from the name, and refuses to read or
-write one.
+write one. On the cloud profile it applies the router's boundary: the host
+groups in `CLOUD_HIDDEN_SETTING_GROUPS` are neither listed, read nor written, and
+no value falls back to the server's environment. `set_setting` on a setting the
+catalog marks `hostPath` (a program or a path on the server's disk) asks the user
+every time, even in `auto`.
 
 Setting a secret goes through a bespoke dialog. `request_secret` takes a name, a
 reason and a help URL — never a value. The host sends a `secret_request` frame,

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import * as fs from "node:fs/promises";
+import * as os from "node:os";
 import * as path from "node:path";
 import {
   ClaudeAgentProvider,
@@ -19,6 +20,7 @@ import type {
   ProviderStreamItem
 } from "../../src/providers/types.js";
 import { generateStructured } from "../../src/providers/structured-output.js";
+import { runNativeWebSearch } from "../../src/providers/native-web-search.js";
 import { providerFailureDetail } from "../../src/providers/provider-error.js";
 import { ProcessingContext } from "../../src/context.js";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
@@ -1481,6 +1483,36 @@ describe("ClaudeAgentProvider", () => {
     // web_search is not path-scoped, so WebSearch still replaces it.
     expect(opts.allowedTools).toEqual(["mcp__nodetool_tools__read_file"]);
     expect(opts.cwd).toBeUndefined();
+  });
+
+  it("search turn offers only the search tool in an empty scratch directory", async () => {
+    let entriesDuringTurn: string[] | null = null;
+    const { fn, calls } = fakeQuery(async function* () {
+      const cwd = lastQueryOptions?.cwd;
+      entriesDuringTurn = cwd ? await fs.readdir(cwd) : null;
+      yield sysInit("sess-search");
+      yield assistantTextMsg("Otters are mustelids.");
+      yield successResult();
+    });
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+
+    const result = await runNativeWebSearch(provider, {
+      model: "haiku",
+      query: "otters"
+    });
+
+    expect(result.text).toBe("Otters are mustelids.");
+    const opts = calls[0].options as ClaudeCliOptions;
+    expect(opts.tools).toEqual(["WebSearch"]);
+    expect(opts.disallowedTools).toEqual(
+      expect.arrayContaining(["WebFetch", "Bash", "Read", "Skill", "ToolSearch"])
+    );
+    expect(opts.disallowedTools).not.toContain("WebSearch");
+    expect(opts.mcpServers).toBeUndefined();
+    expect(entriesDuringTurn).toEqual([]);
+    const cwd = opts.cwd as string;
+    expect(path.dirname(cwd)).toBe(path.resolve(os.tmpdir()));
+    await expect(fs.stat(cwd)).rejects.toThrow();
   });
 
   it("normalizes a `tools.<name>` tool-call name to the plain tool name", async () => {

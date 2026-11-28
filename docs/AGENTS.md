@@ -256,7 +256,7 @@ lazy implementation table disagree.
 | `analysis` | `analyze_audio`, `analyze_audio_spectrum`, `detect_audio_events`, `analyze_video`, `detect_video_scenes` |
 | `timelines` | `list_timelines`, `create_timeline`, `get_timeline`, `set_timeline_document`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `delete_timeline_version`, `edit_timeline`, `validate_timeline`, `preview_timeline_frame`, `compare_timeline_frames`, `render_timeline`, `delete_timeline` |
 | `fonts` | `list_fonts` — the families a text clip can name, from `listFontFamilies` (`@nodetool-ai/timeline/fonts/list`), the listing the editor's font picker reads |
-| `hf-downloads` | `download_hf_model`, `get_hf_download` — download a Hugging Face repository into the host cache on the Model Manager's `DownloadManager`. Each download asks with the repository and its size under the rule key `download_hf_model:<repo>`, refuses when less than 5 GB would stay free, and refuses on a production server. Cache deletion stays in the app |
+| `hf-downloads` | `download_hf_model`, `get_hf_download` — download a Hugging Face repository into the host cache on the Model Manager's `DownloadManager`. Each download asks with the repository and its size under the rule key `download_hf_model:<repo>`, refuses when less than 5 GB would stay free, and refuses on a shared server (production, the cloud profile, or enforced auth). Cache deletion stays in the app |
 | `compositions` | `list_compositions`, `get_composition`, `save_composition`, `delete_composition` — group clips with parameters stored as JSON assets; `edit_timeline`'s `insert_composition` op instantiates one |
 | `sketches` | `list_sketches`, `create_sketch`, `get_sketch`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `delete_sketch_version`, `edit_sketch`, `validate_sketch`, `render_sketch`, `delete_sketch` |
 | `model3d` | `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d`, `render_model3d` |
@@ -683,7 +683,8 @@ goes to the CLI unchanged.
   others in `SDK_NATIVE_TOOL_REPLACEMENTS`) are replaced when a workspace is
   given. User skills are written to a throwaway local plugin loaded with
   `--plugin-dir-no-mcp`. `providedToolsOnly` keeps the loop to the supplied
-  tools.
+  tools. `webSearchOnly`, set by `runNativeWebSearch`, keeps only `WebSearch`
+  and runs the turn in an empty temporary directory removed afterwards.
 - A `threadId` resumes the CLI session (`--resume`) and sends only the new user
   turn. The session token is surfaced as a `ProviderSessionUpdate`.
 

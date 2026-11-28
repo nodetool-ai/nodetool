@@ -123,6 +123,9 @@ const BUILTIN_TOOLS = [
 /** The built-ins a tool-using turn keeps even when it offered no counterpart. */
 const WEB_TOOLS = ["WebSearch", "WebFetch"];
 
+/** The only built-in a native web search turn offers. */
+const SEARCH_TOOLS = ["WebSearch"];
+
 /**
  * Env vars a nested Claude subscription session leaks into its children. Left
  * in place these would make the spawned CLI believe it is itself nested.
@@ -178,6 +181,8 @@ interface TurnConfig {
   toolsOffered: boolean;
   /** Restrict availability to the supplied MCP tools, with no CLI built-ins. */
   providedToolsOnly?: boolean;
+  /** A native web search turn: only {@link SEARCH_TOOLS} stay available. */
+  webSearchOnly?: boolean;
   /**
    * The CLI built-ins the turn may use, passed as `tools`. Every other
    * built-in stays out of the prompt, where its schema would be re-read on
@@ -324,6 +329,11 @@ export class ClaudeAgentProvider extends BaseProvider {
        * prompt — this provider owns skill resolution.
        */
       skills?: ProviderSkill[];
+      /**
+       * A native web search turn: the CLI keeps only `WebSearch` and runs in
+       * an empty scratch directory removed when the turn ends.
+       */
+      webSearchOnly?: boolean;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     return yield* tracedProviderLoop(this.provider, args.model, () => this.generateCliLoop(args));
@@ -418,7 +428,11 @@ export class ClaudeAgentProvider extends BaseProvider {
     // native skill loader discovers. Best-effort: a disk failure drops skills
     // for the turn, it does not sink it. Cleaned up in the `finally` below.
     let skillsPlugin: { dir: string; names: string[] } | null = null;
-    if (!args.providedToolsOnly && (args.skills?.length ?? 0) > 0) {
+    if (
+      !args.providedToolsOnly &&
+      !args.webSearchOnly &&
+      (args.skills?.length ?? 0) > 0
+    ) {
       try {
         skillsPlugin = await materializeSkillsPlugin(args.skills ?? []);
       } catch (err) {
@@ -427,6 +441,12 @@ export class ClaudeAgentProvider extends BaseProvider {
         });
       }
     }
+
+    // A search turn reads no files, so it runs in a fresh empty directory
+    // rather than the server's working directory.
+    const searchDir = args.webSearchOnly
+      ? await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-search-"))
+      : null;
 
     const costBefore = turnBudget ? this.getTotalCost() : 0;
     // Set when the budget refuses a further turn: the CLI session is aborted
@@ -445,10 +465,13 @@ export class ClaudeAgentProvider extends BaseProvider {
           mcp,
           toolsOffered: offered.length > 0,
           providedToolsOnly: args.providedToolsOnly,
+          webSearchOnly: args.webSearchOnly,
           builtinTools: args.providedToolsOnly
             ? []
-            : turnBuiltins(replaced, offered.length > 0, skillsPlugin !== null),
-          cwd: args.workspaceDir,
+            : args.webSearchOnly
+              ? [...SEARCH_TOOLS]
+              : turnBuiltins(replaced, offered.length > 0, skillsPlugin !== null),
+          cwd: searchDir ?? args.workspaceDir,
           skillsPlugin
         }
       );
@@ -506,6 +529,9 @@ export class ClaudeAgentProvider extends BaseProvider {
         await fs
           .rm(skillsPlugin.dir, { recursive: true, force: true })
           .catch(() => {});
+      }
+      if (searchDir) {
+        await fs.rm(searchDir, { recursive: true, force: true }).catch(() => {});
       }
     }
     if (budgetStop) {
@@ -711,9 +737,16 @@ export class ClaudeAgentProvider extends BaseProvider {
       // back to it after a mis-named tool call got nothing and stalled the turn.
       // Supplied-only loops also disable Skill and keep all supplied dispatch
       // inside the caller's MCP boundary.
+      // A search turn disables every other built-in as well.
       disallowedTools: plan.config.providedToolsOnly
         ? [...BUILTIN_TOOLS, "Skill", "ToolSearch"]
-        : plan.config.toolsOffered
+        : plan.config.webSearchOnly
+          ? [
+              ...BUILTIN_TOOLS.filter((t) => !SEARCH_TOOLS.includes(t)),
+              "Skill",
+              "ToolSearch"
+            ]
+          : plan.config.toolsOffered
           ? ["ToolSearch"]
           : [...BUILTIN_TOOLS, "ToolSearch"],
       tools: plan.config.builtinTools,

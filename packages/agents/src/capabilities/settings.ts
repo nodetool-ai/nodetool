@@ -28,6 +28,8 @@
  */
 
 import {
+  isCloudProfileEnv,
+  mayUseServerCredential,
   settingCatalog,
   settingDefinition,
   type SettingCatalogEntry
@@ -72,7 +74,8 @@ type ErrorKind =
   | "is_secret"
   | "invalid_value"
   | "no_dialog"
-  | "declined";
+  | "declined"
+  | "host_setting";
 
 function refuse(kind: ErrorKind, message: string): Record<string, unknown> {
   return { ok: false, error: message, error_kind: kind };
@@ -101,9 +104,28 @@ function unknownSetting(key: string): Record<string, unknown> {
 }
 
 /**
+ * A setting the cloud profile keeps for the operator. Neither its value nor
+ * its existence is offered to a user there, so the answer matches the router's.
+ */
+function hostSetting(key: string): Record<string, unknown> {
+  return refuse(
+    "host_setting",
+    `${key} configures the server host and is not available on this deployment. ` +
+      "Call list_settings to see what this user can change."
+  );
+}
+
+/** Whether `def` is a host setting the cloud profile keeps for the operator. */
+async function isRefusedHostSetting(def: SettingCatalogEntry): Promise<boolean> {
+  const { refusedHostSettingKeys } = await import("@nodetool-ai/models");
+  return refusedHostSettingKeys([def.envVar]).length > 0;
+}
+
+/**
  * Resolve one setting the way the server does: this user's saved value, then
- * the process environment, then unset. The `Setting` model is imported lazily
- * so the eager spec table never pulls the database in.
+ * the process environment (never on the cloud profile, where those values are
+ * the operator's), then unset. The `Setting` model is imported lazily so the
+ * eager spec table never pulls the database in.
  */
 async function resolveValue(
   context: ProcessingContext,
@@ -114,7 +136,7 @@ async function resolveValue(
   if (saved && saved.value.length > 0) {
     return { value: saved.value, source: "user" };
   }
-  const fromEnv = process.env[envVar];
+  const fromEnv = isCloudProfileEnv() ? undefined : process.env[envVar];
   if (fromEnv !== undefined && fromEnv.length > 0) {
     return { value: fromEnv, source: "env" };
   }
@@ -140,7 +162,8 @@ const listSettings: CapabilityExport = {
   spec: listSettingsSpec,
   impl: async (run, params) => {
     const group = params["group"];
-    const wanted = settingCatalog().filter(
+    const { userSettingCatalog } = await import("@nodetool-ai/models");
+    const wanted = userSettingCatalog().filter(
       (def) =>
         def.isSecret !== true &&
         (!isNonEmptyString(group) ||
@@ -169,6 +192,7 @@ const getSetting: CapabilityExport = {
           "nodetool.secrets.get, which works only if this run declares the name in its secret scope."
       );
     }
+    if (await isRefusedHostSetting(def)) return hostSetting(key);
     return viewOf(run.context, def);
   }
 };
@@ -193,6 +217,7 @@ const setSetting: CapabilityExport = {
           "the user to enter it themselves."
       );
     }
+    if (await isRefusedHostSetting(def)) return hostSetting(key);
     if (def.enum !== undefined && !def.enum.includes(value)) {
       return refuse(
         "invalid_value",
@@ -210,8 +235,8 @@ const setSetting: CapabilityExport = {
 const listSecrets: CapabilityExport = {
   spec: listSecretsSpec,
   impl: async (run) => {
-    const declared = settingCatalog().filter((def) => def.isSecret === true);
-    const { Secret } = await import("@nodetool-ai/models");
+    const { Secret, userSettingCatalog } = await import("@nodetool-ai/models");
+    const declared = userSettingCatalog().filter((def) => def.isSecret === true);
     const [stored] = await Secret.listForUser(userIdOf(run.context), 1000);
     const storedKeys = new Set(stored.map((row) => row.key));
     const secrets: SecretView[] = declared.map((def) => ({
@@ -219,7 +244,8 @@ const listSecrets: CapabilityExport = {
       group: def.group,
       description: def.description,
       configured:
-        storedKeys.has(def.envVar) || Boolean(process.env[def.envVar])
+        storedKeys.has(def.envVar) ||
+        (Boolean(process.env[def.envVar]) && mayUseServerCredential(def.envVar))
     }));
     // A credential stored under a name NodeTool does not ship — a user's own,
     // or one a previous request_secret created. It is configured by

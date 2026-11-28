@@ -216,6 +216,40 @@ describe("settings router", () => {
       expect(Setting.upsert).toHaveBeenCalledTimes(1);
     });
 
+    it("refuses to store a host setting through secrets.upsert", async () => {
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.settings.secrets.upsert({
+          key: "CLAUDE_CLI_PATH",
+          value: "/usr/local/bin/claude"
+        })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(Secret.upsert).not.toHaveBeenCalled();
+    });
+
+    it("still stores provider keys and custom secrets through secrets.upsert", async () => {
+      (Secret.upsert as ReturnType<typeof vi.fn>).mockImplementation(
+        async ({ key }: { key: string }) => makeSecretStub({ id: key, key })
+      );
+      const caller = createCaller(makeCtx());
+      await caller.settings.secrets.upsert({ key: "OPENAI_API_KEY", value: "sk-1" });
+      await caller.settings.secrets.upsert({ key: "MY_SERVICE_TOKEN", value: "t" });
+      expect(Secret.upsert).toHaveBeenCalledTimes(2);
+    });
+
+    it("stores a host setting through secrets.upsert on a full profile", async () => {
+      process.env["NODETOOL_NODE_PROFILE"] = "full";
+      (Secret.upsert as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeSecretStub({ id: "s1", key: "CLAUDE_CLI_PATH" })
+      );
+      const caller = createCaller(makeCtx());
+      await caller.settings.secrets.upsert({
+        key: "CLAUDE_CLI_PATH",
+        value: "/usr/local/bin/claude"
+      });
+      expect(Secret.upsert).toHaveBeenCalledTimes(1);
+    });
+
     it("keeps everything for a self-hosted full profile", async () => {
       process.env["NODETOOL_NODE_PROFILE"] = "full";
       const caller = createCaller(makeCtx());

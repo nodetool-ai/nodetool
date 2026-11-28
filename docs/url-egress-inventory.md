@@ -215,7 +215,14 @@ providers stay fixed hosts. `DASHSCOPE_BASE_URL`, `BYTEPLUS_ARK_BASE_URL` and
 as a configured embedding or storage endpoint: the setting holder picks the
 host and receives the provider credential there. `HF_ENDPOINT` moves Model
 Manager downloads, Hub search, llama.cpp GGUF downloads and Transformers.js
-model downloads to a mirror, and the HF token goes with them.
+model downloads to a mirror. `resolveHfHubAccess` in
+`packages/huggingface/src/hf-auth.ts` picks the host and token: a user's own
+`HF_TOKEN` goes to the endpoint they set, and the server's HF token goes only
+to the operator's endpoint (`HF_ENDPOINT` in the environment, else
+`https://huggingface.co`). On a shared server (auth enforced or the cloud
+profile), downloads ignore a user's `HF_ENDPOINT` because they write the
+shared Hub cache, and Hub search on a user's endpoint
+(`packages/websocket/src/trpc/routers/models.ts`) goes through `safeFetch`.
 
 FAL webhook verification fetches only
 `https://rest.fal.ai/.well-known/jwks.json`. It sends no credentials, aborts
@@ -313,16 +320,18 @@ hash and size.
   the SDK's default.
 - `packages/agents/src/capabilities/web.ts` — `BROWSER_URL`, the operator's
   screenshot service. Every model-named URL that file *fetches* goes through
-  `safeFetch`; this one is the operator's own.
+  `safeFetch`; this one is the operator's own. The service receives only the
+  last path segment of `output_file`.
 
   With no `BROWSER_URL`, `take_screenshot` renders the page in a local headless
   Chrome instead (`packages/agents/src/capabilities/local-browser.ts`), which is
   egress no `fetch` wrapper can screen — the browser resolves and follows on its
   own. The URL is model-named, so the capability applies the policy before
-  launching: non-http(s) schemes are always refused, and on an auth-enforced
-  deployment (`isAuthEnforced`) the URL must pass `isSafePublicHttpsUrl`. A
-  local install allows loopback and private addresses, because screenshotting
-  the app on `localhost` is the reason to take one there.
+  either browser sees it: non-http(s) schemes are always refused, and on an
+  auth-enforced deployment (`isAuthEnforced`) the URL must pass
+  `isSafePublicHttpsUrl`. A local install allows loopback and private
+  addresses, because screenshotting the app on `localhost` is the reason to
+  take one there.
 - `packages/cli-workflow/src/index.ts` — runs on the operator's machine against their
   own API URL, loopback by default.
 - `packages/websocket/src/mcp-server.ts` — the `nodetool mcp serve` forwarder

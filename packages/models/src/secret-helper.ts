@@ -2,7 +2,9 @@
  * Helper functions for retrieving secrets at runtime.
  *
  * Resolution order for getSecret():
- * 1. Forced env priority keys -> environment variable
+ * 1. Forced env priority keys -> environment variable. A program path the
+ *    host starts (`hostPath: "executable"` in the setting catalog) is read
+ *    only from the environment on a shared server.
  * 2. Local cache
  * 3. Database (encrypted Secret model) -- if userId provided
  * 4. Environment variable, unless `mayUseServerCredential` withholds it
@@ -19,7 +21,11 @@
  * New secrets must be created via the TS endpoints for TS runtime access.
  */
 
-import { createLogger, mayUseServerCredential } from "@nodetool-ai/config";
+import {
+  createLogger,
+  isServerEnvOnlySetting,
+  mayUseServerCredential
+} from "@nodetool-ai/config";
 import { Secret } from "./secret.js";
 import { Setting } from "./setting.js";
 import { resolveCodexAccessToken } from "./codex-token.js";
@@ -169,6 +175,15 @@ async function resolveSecret(
     }
   }
 
+  // A program the host starts is the operator's to name on a shared server.
+  if (isServerEnvOnlySetting(key)) {
+    const envVal = process.env[key];
+    if (envVal !== undefined && envVal.length > 0) {
+      return materialize(envVal, userId);
+    }
+    return defaultValue ?? null;
+  }
+
   const cacheKey = `${resolvedUserId}:${key}`;
   if (secretCache.has(cacheKey)) {
     const cached = secretCache.get(cacheKey) ?? null;
@@ -258,6 +273,9 @@ export async function hasSecret(
   if (process.env[key] !== undefined && mayUseServerCredential(key)) {
     return true;
   }
+  if (isServerEnvOnlySetting(key)) {
+    return false;
+  }
 
   const cacheKey = `${resolvedUserId}:${key}`;
   if (secretCache.has(cacheKey)) {
@@ -335,6 +353,9 @@ export async function credentialSource(
     return "user";
   }
   if (FORCE_ENV_PRIORITY.has(key) && process.env[key] !== undefined) {
+    return "server";
+  }
+  if (isServerEnvOnlySetting(key)) {
     return "server";
   }
   const secret = await Secret.find(userId, key);

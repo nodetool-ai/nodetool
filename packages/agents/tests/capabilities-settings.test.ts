@@ -15,7 +15,8 @@
  * and that a headless run is a named refusal rather than a silent write.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { registerUserCredentialKey } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Secret, Setting, getSecret, initTestDb } from "@nodetool-ai/models";
 import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
@@ -257,5 +258,152 @@ describe("request_secret", () => {
     const result = await call("request_secret", { key: "STRIPE_API_KEY" }, run);
     expect(result.error_kind).toBe("declined");
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("host settings on the cloud profile", () => {
+  beforeEach(() => {
+    delete process.env.NODETOOL_ENV;
+    process.env.NODETOOL_NODE_PROFILE = "cloud";
+  });
+
+  it("lists no host-group settings and no operator environment values", async () => {
+    process.env.FONT_PATH = "/srv/operator/fonts";
+    process.env.AUTOSAVE_INTERVAL_MINUTES = "7";
+    const result = await call("list_settings", {});
+    const settings = result.settings as { key: string; value: unknown }[];
+    const keys = settings.map((s) => s.key);
+    expect(keys).toContain("AUTOSAVE_INTERVAL_MINUTES");
+    for (const hidden of ["FONT_PATH", "CLAUDE_CLI_PATH", "OLLAMA_API_URL"]) {
+      expect(keys).not.toContain(hidden);
+    }
+    expect(
+      settings.find((s) => s.key === "AUTOSAVE_INTERVAL_MINUTES")?.value
+    ).toBeNull();
+    expect(JSON.stringify(result)).not.toContain("/srv/operator/fonts");
+  });
+
+  it("refuses to read a host setting", async () => {
+    process.env.PROJECTS_DIR = "/srv/operator/projects";
+    const result = await call("get_setting", { key: "PROJECTS_DIR" });
+    expect(result).toMatchObject({ ok: false, error_kind: "host_setting" });
+    expect(JSON.stringify(result)).not.toContain("/srv/operator/projects");
+  });
+
+  it("reads an account setting from the user's row only", async () => {
+    process.env.AUTOSAVE_INTERVAL_MINUTES = "7";
+    expect(
+      await call("get_setting", { key: "AUTOSAVE_INTERVAL_MINUTES" })
+    ).toMatchObject({ value: null, source: "unset" });
+    await Setting.upsert({
+      userId: USER,
+      key: "AUTOSAVE_INTERVAL_MINUTES",
+      value: "3"
+    });
+    expect(
+      await call("get_setting", { key: "AUTOSAVE_INTERVAL_MINUTES" })
+    ).toMatchObject({ value: "3", source: "user" });
+  });
+
+  it("refuses to write a host setting", async () => {
+    const result = await call("set_setting", {
+      key: "CLAUDE_CLI_PATH",
+      value: "/usr/local/bin/claude"
+    });
+    expect(result).toMatchObject({ ok: false, error_kind: "host_setting" });
+    expect(await Setting.find(USER, "CLAUDE_CLI_PATH")).toBeNull();
+  });
+
+  it("reports a withheld server credential as not configured", async () => {
+    registerUserCredentialKey("OPENAI_API_KEY");
+    process.env.OPENAI_API_KEY = "sk-operator";
+    const secrets = (await call("list_secrets", {})).secrets as {
+      key: string;
+      configured: boolean;
+    }[];
+    expect(secrets.find((s) => s.key === "OPENAI_API_KEY")?.configured).toBe(
+      false
+    );
+    expect(secrets.map((s) => s.key)).not.toContain("SERVER_AUTH_TOKEN");
+  });
+
+  it("keeps host settings and environment values on a full profile", async () => {
+    process.env.NODETOOL_NODE_PROFILE = "full";
+    process.env.FONT_PATH = "/srv/fonts";
+    expect(await call("get_setting", { key: "FONT_PATH" })).toMatchObject({
+      value: "/srv/fonts",
+      source: "env"
+    });
+    registerUserCredentialKey("OPENAI_API_KEY");
+    process.env.OPENAI_API_KEY = "sk-local";
+    const secrets = (await call("list_secrets", {})).secrets as {
+      key: string;
+      configured: boolean;
+    }[];
+    expect(secrets.find((s) => s.key === "OPENAI_API_KEY")?.configured).toBe(
+      true
+    );
+  });
+});
+
+describe("set_setting on a host path", () => {
+  function gatedRun(mode: "auto" | "default", decision: "allow" | "allow_for_chat" | "deny") {
+    const requestApproval = vi.fn(async () => decision);
+    const run = createCapabilityRun({
+      context: ctx,
+      gate: { mode, sessionAllow: new Set<string>(), requestApproval },
+      capabilities: SETTINGS_CAPABILITIES
+    });
+    return { run, requestApproval };
+  }
+
+  it("asks every time for an executable, even in auto mode", async () => {
+    const { run, requestApproval } = gatedRun("auto", "allow_for_chat");
+    await run.invoke("set_setting", {
+      key: "BLENDER_PATH",
+      value: "/opt/blender/blender"
+    });
+    await run.invoke("set_setting", {
+      key: "BLENDER_PATH",
+      value: "/opt/blender/blender"
+    });
+    expect(requestApproval).toHaveBeenCalledTimes(2);
+    expect(run.gate.sessionAllow.has("set_setting")).toBe(false);
+    expect((await Setting.find(USER, "BLENDER_PATH"))?.value).toBe(
+      "/opt/blender/blender"
+    );
+  });
+
+  it("does not write a host path the user declined", async () => {
+    const { run } = gatedRun("auto", "deny");
+    const result = await run.invoke("set_setting", {
+      key: "PROJECTS_DIR",
+      value: "/tmp/projects"
+    });
+    expect(result).toMatchObject({ error: "permission_denied" });
+    expect(await Setting.find(USER, "PROJECTS_DIR")).toBeNull();
+  });
+
+  it("runs an ordinary setting without asking in auto mode", async () => {
+    const { run, requestApproval } = gatedRun("auto", "allow");
+    await run.invoke("set_setting", {
+      key: "AUTOSAVE_INTERVAL_MINUTES",
+      value: "4"
+    });
+    expect(requestApproval).not.toHaveBeenCalled();
+  });
+
+  it("marks the program and path settings in the catalog", async () => {
+    const { settingDefinition } = await import("@nodetool-ai/config");
+    for (const key of [
+      "BLENDER_PATH",
+      "MANIMGX_PATH",
+      "SD_CPP_SERVER_PATH",
+      "CLAUDE_CLI_PATH"
+    ]) {
+      expect(settingDefinition(key)?.hostPath).toBe("executable");
+    }
+    expect(settingDefinition("PROJECTS_DIR")?.hostPath).toBe("path");
+    expect(settingDefinition("AUTOSAVE_ENABLED")?.hostPath).toBeUndefined();
   });
 });

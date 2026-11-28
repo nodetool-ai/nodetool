@@ -630,6 +630,23 @@ describe("AntigravityProvider.webSearch", () => {
     );
   });
 
+  it("fails when a tool other than search_web also ran", async () => {
+    const { runCli } = fakeRunner(() => ({
+      stdout: [
+        searchStep,
+        line({ event: "step_update", step_type: "tool", tool_name: "read_url" }),
+        searchResult({
+          answer: "Answer",
+          results: [{ title: "A", url: "https://example.com", snippet: "" }]
+        })
+      ]
+    }));
+    const provider = new AntigravityProvider({}, { runCli });
+    await expect(provider.webSearch("q")).rejects.toThrow(
+      /ran tools other than search_web during the search \(read_url\)/
+    );
+  });
+
   it("fails when the result carries no structured output", async () => {
     const { runCli } = fakeRunner(() => ({
       stdout: [searchStep, searchResult(undefined)]

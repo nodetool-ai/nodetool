@@ -124,6 +124,7 @@ export {
   capabilityFromTool,
   capabilityForName,
   capabilitySpec,
+  capabilityAlwaysAsks,
   capabilityCategoryFor,
   capabilityModuleOf,
   listCapabilitySpecs,
