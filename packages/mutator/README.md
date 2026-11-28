@@ -141,8 +141,10 @@ each shard a separate `--metrics-dir` and run concurrent shards in separate
 checkouts. Startup cleanup removes old worker overlays within a checkout.
 
 The daily merged-changes CI workflow (`.github/workflows/mutation-changed.yml`)
-diffs against the head of its last successful scheduled run, or the last `main`
-commit from before the previous 24 hours when there is none. It freezes the
+diffs against the head of its last successful run, scheduled or dispatched, or
+the last `main` commit from before the previous 24 hours when there is none.
+A dispatch with a recent `base` therefore clears a backlog left by failed
+days. It freezes the
 source commit and base before running source-file partitions on separate
 machines. Each partition runs one
 file with the full baseline and canonical test command. The plan splits each
@@ -150,7 +152,9 @@ file by mutation ID hash until its partitions fit the execution capacity,
 including empty buckets that own unchanged form metrics.
 `scripts/mutation-ci.mjs` verifies that actual completed outcomes cover the
 complete selection exactly once before reporting a global score. Missing,
-cancelled, duplicate, or incomplete partitions fail that check. Execution jobs
+cancelled, duplicate, or incomplete partitions fail that check. A partition
+whose baseline tests fail before any mutant runs is skipped instead: its
+mutants leave the score, and the summary lists the file. Execution jobs
 have a 90-minute capacity budget. Baseline and mutant test commands and
 timeouts remain unchanged.
 

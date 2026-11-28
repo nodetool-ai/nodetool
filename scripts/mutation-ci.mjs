@@ -17,6 +17,8 @@ export const TARGETS = ["agents", "auth", "config", "kernel", "mutator", "node-s
   .map((name) => `packages/${name}/src`);
 // GitHub rejects a matrix of more than 256 jobs.
 const MAX_MATRIX_JOBS = 256;
+// The mutator exits 2 when the unmutated tests already fail.
+const BASELINE_FAILED = 2;
 // One `vitest related` run over an agents file peaks near 6.5 GB. Four of
 // them in parallel exhausted a 16 GB runner, which then shut down. Half
 // the workers take twice as long.
@@ -207,13 +209,21 @@ export async function executePartition(root, plan, id, output) {
         console.log(`Partition ${id}/${plan.partitions.length} completed ${completed.length}/${assignedIds.length}`);
       }
     });
-    assert([0, 3].includes(code), `Partition did not complete: mutator exit ${code}`);
     assert.deepEqual(observed, file?.selectedIds ?? [], "Runtime canonical file selection drifted");
+    if (code === BASELINE_FAILED) {
+      // The file's related tests failed before any mutant ran. Skip this
+      // partition so the other partitions of the job and the run still report.
+      assert.deepEqual(completed, [], "A failed baseline cannot complete mutants");
+      console.log(`::warning::Baseline tests failed for ${file.file}; skipped ${assignedIds.length} mutants.`);
+      complete = true;
+      return;
+    }
+    assert([0, 3].includes(code), `Partition did not complete: mutator exit ${code}`);
     assert.deepEqual(unique(completed.map((item) => item.id), "completed"), unique(assignedIds, "assigned"));
     verifyPlan(root, plan);
     complete = true;
   } finally {
-    writeJson(join(output, "receipt.json"), { version: 2, plan, partition, assignedIds, completed, code, complete });
+    writeJson(join(output, "receipt.json"), { version: 3, plan, partition, assignedIds, completed, code, complete });
   }
 }
 
@@ -241,11 +251,12 @@ export function aggregate(root, plan, outputs) {
   const allAssigned = [];
   const allCompleted = [];
   const snapshots = [];
+  const skipped = [];
   for (const output of outputs) {
     const receipt = readJson(join(output, "receipt.json"));
-    assert.equal(receipt.version, 2);
+    assert.equal(receipt.version, 3);
     assert.equal(receipt.complete, true, "Partition is incomplete");
-    assert([0, 3].includes(receipt.code), "Partition baseline or execution failed");
+    assert([0, 3, BASELINE_FAILED].includes(receipt.code), "Partition execution failed");
     assert.deepEqual(receipt.plan, plan, "Partition plan/pins do not match");
     const partition = partitionOf(plan, receipt.partition.id);
     assert.deepEqual(receipt.partition, partition, "Partition descriptor differs from the frozen plan");
@@ -255,12 +266,18 @@ export function aggregate(root, plan, outputs) {
     const journal = readFileSync(join(output, "completed.ndjson"), "utf8")
       .split("\n").filter(Boolean).map((line) => JSON.parse(line));
     assert.deepEqual(journal, receipt.completed, "Partition completion journal differs from its receipt");
+    allAssigned.push(...receipt.assignedIds);
+    if (receipt.code === BASELINE_FAILED) {
+      assert.notEqual(partition.file, null, "An empty partition has no baseline");
+      assert.deepEqual(receipt.completed, [], "A failed baseline cannot complete mutants");
+      skipped.push({ partition: partition.id, file: partition.file, ids: expectedIds });
+      continue;
+    }
     const completedIds = unique(receipt.completed.map((item) => item.id), "completed");
     assert.deepEqual(completedIds, unique(expectedIds, "assigned"), "Missing or unexpected terminal outcomes");
     for (const { outcome } of receipt.completed) {
       assert(["killed", "survived"].includes(outcome), "Invalid terminal outcome");
     }
-    allAssigned.push(...receipt.assignedIds);
     allCompleted.push(...completedIds);
     const partial = loadSnapshots(join(output, "metrics"));
     const outcomes = partial.flatMap((snapshot) => Object.entries(snapshot.outcomes));
@@ -284,8 +301,9 @@ export function aggregate(root, plan, outputs) {
   }
   assert.deepEqual(indices.sort((a, b) => a - b), plan.partitions.map((item) => item.id), "Missing or duplicate partition indices");
   assert.deepEqual(unique(allAssigned, "all assignments"), unique(plan.selectedIds, "canonical selection"));
-  assert.deepEqual(unique(allCompleted, "all completions"), unique(plan.selectedIds, "canonical selection"));
-  return { snapshots, score: scoreTable(snapshots, []), survivors: survivors(snapshots, [], (file) => readFileSync(join(root, file), "utf8")) };
+  const skippedIds = new Set(skipped.flatMap((item) => item.ids));
+  assert.deepEqual(unique(allCompleted, "all completions"), unique(plan.selectedIds.filter((id) => !skippedIds.has(id)), "canonical selection"));
+  return { snapshots, skipped, score: scoreTable(snapshots, []), survivors: survivors(snapshots, [], (file) => readFileSync(join(root, file), "utf8")) };
 }
 
 async function main(args) {
@@ -322,13 +340,17 @@ async function main(args) {
     const result = aggregate(root, plan, names.map((name) => join(rest[1], name)));
     const shown = result.survivors.slice(0, 60);
     const remainder = result.survivors.length > shown.length ? `\n…and ${result.survivors.length - shown.length} more.\n` : "";
-    const text = `${result.score}\n${result.survivors.length} mutants survived.\n\n${shown.map((item) => `- ${item.file}:${item.line} ${item.mutation}`).join("\n")}\n${remainder}`;
+    const skippedText = result.skipped.length === 0 ? "" : `\n${result.skipped.length} partitions were skipped because their baseline tests failed:\n\n${result.skipped.map((item) => `- ${item.file} (partition ${item.partition}, ${item.ids.length} mutants)`).join("\n")}\n`;
+    const text = `${result.score}\n${result.survivors.length} mutants survived.\n\n${shown.map((item) => `- ${item.file}:${item.line} ${item.mutation}`).join("\n")}\n${remainder}${skippedText}`;
     process.stdout.write(text);
     if (process.env.GITHUB_STEP_SUMMARY) {
       writeFileSync(process.env.GITHUB_STEP_SUMMARY, text, { flag: "a" });
     }
     if (result.survivors.length > 0) {
       console.log("::warning::Mutants survived in changed functions. See the job summary.");
+    }
+    if (result.skipped.length > 0) {
+      console.log("::warning::Some partitions were skipped because their baseline tests failed. See the job summary.");
     }
   } else {
     throw new Error("Expected base, plan, run-job, or aggregate");
