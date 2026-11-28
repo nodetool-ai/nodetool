@@ -3552,6 +3552,23 @@ private slots:
         QCOMPARE(withRate.value("fps").toInt(), 24);
     }
 
+    void cloudManualSaveRejectsTrackEffectPreview() {
+        CloudSaverRig rig;
+        TimelineModel model;
+        model.setTimeline(makeTimeline({1, 2}));
+        nt::account::CloudTimelineSaver saver(model, rig.session, rig.options());
+        QTRY_VERIFY(!model.readOnly());
+        const auto committed = model.timeline().raw.value("tracks").toArray();
+        auto track = committed[0].toObject();
+        track.insert("effects", QJsonArray{QJsonObject{{"id", "preview"}, {"type", "gain"}}});
+        QVERIFY(model.previewTrackEffects(QJsonArray{track}));
+        const auto result = saver.saveDocument();
+        QVERIFY(!result.ok);
+        QVERIFY(!result.error.isEmpty());
+        QVERIFY(model.previewTrackEffects(committed));
+        QVERIFY(saver.saveDocument().ok);
+    }
+
     void cloudManualSaveClearsARecoveredWriteError() {
         CloudSaverRig rig;
         TimelineModel model;
@@ -3816,7 +3833,7 @@ private slots:
             // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             undo.push(new Bump(&value));
             const nt::server::SaveResult r = saver.saveNow();
-            QVERIFY(r.ok && r.keptCopy.isEmpty() && !r.recoveryError.isEmpty());
+            QVERIFY(!r.ok && r.keptCopy.isEmpty() && !r.recoveryError.isEmpty());  // No complete copy exists, so the save fails.
             auto root = banners(&saver);
             frame();
             QVERIFY(visible(root.get(), "strippedBanner"));
@@ -3850,7 +3867,7 @@ private slots:
             undo.push(new Bump(&value));
             QVERIFY(docFn() != firstDoc);
             QVERIFY(QDir(backup).mkpath(QStringLiteral("ui.stripped.json")));
-            QVERIFY(saver.saveNow().ok);
+            QVERIFY(!saver.saveNow().ok);  // The strip copy is blocked, so no complete copy exists.
             frame();
             QVERIFY(visible(root.get(), "strippedBanner"));
             const QString detail = text(root.get(), "strippedBanner", "alertDetail");

@@ -1,4 +1,6 @@
 #include "aiassist/AgentBridge.h"
+#include "server/TimelineList/TimelineSession.h"
+#include <QScopeGuard>
 #include "audio/vst/VstHostClient.h"
 #include <QDir>
 #include <QFileInfo>
@@ -132,6 +134,33 @@ private slots:
         view.reset();
     }
     void init() { loadDocument(); }
+
+    void saveResultSurvivesEditsDuringSave_data() {
+        QTest::addColumn<bool>("saveOk");
+        QTest::newRow("failure") << false;
+        QTest::newRow("success") << true;
+    }
+    void saveResultSurvivesEditsDuringSave() {
+        QFETCH(bool, saveOk);
+        QTemporaryDir folder;
+        nt::server::TimelineSession documentSession(model, clock, nt::server::AssetCacheRoot(folder.path()));
+        documentSession.setFlushLocalCallback([&] {
+            model.addMarker(100, "During save one");
+            model.addMarker(200, "During save two");
+            return saveOk;
+        }, [] { return QStringLiteral("Local save failed"); });
+        auto* root = view->rootObject();
+        root->setProperty("documentSession", QVariant::fromValue<QObject*>(&documentSession));
+        const auto detach = qScopeGuard([root] { root->setProperty("documentSession", QVariant::fromValue<QObject*>(nullptr)); });
+        const auto result = run("saveDocument");
+        QCOMPARE(result.value("ok").toBool(), saveOk);
+        if (!saveOk) { QCOMPARE(result.value("error").toString(), QStringLiteral("Local save failed")); }
+        QCOMPARE(model.undoStack()->count(), 2);
+        model.undoStack()->undo();
+        QCOMPARE(model.markersJson().size(), 2);
+        model.undoStack()->undo();
+        QCOMPARE(model.markersJson().size(), 1);
+    }
 
     void compactNoteIdsRoundTrip() {
         const QString full = "abcdef01234567890123456789012345";

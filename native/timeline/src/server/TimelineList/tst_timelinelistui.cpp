@@ -12,6 +12,7 @@
 #include "server/TimelineList/TimelineListController.h"
 #include "server/TimelineList/TimelineDocumentController.h"
 #include "server/TimelineList/TimelineSession.h"
+#include "app/startup/LocalDocumentSaver.h"
 #include "server/projectfolder/ProjectFolderState.h"
 #include <QMutex>
 #include <QMutexLocker>
@@ -743,6 +744,52 @@ Item {
         settingsWindow.resize(360, 800);
         QTRY_COMPARE(paper->width(), 328.0);
     }
+    void localSwitchFlushesAgainBeforeReplacement_data() {
+        QTest::addColumn<bool>("flushOk");
+        QTest::newRow("flush succeeds") << true;
+        QTest::newRow("flush fails") << false;
+    }
+    void localSwitchFlushesAgainBeforeReplacement() {
+        QFETCH(bool, flushOk);
+        nt::server::clearActiveServerTarget();
+        const auto clear = qScopeGuard([] { nt::server::clearActiveServerTarget(); });
+        QTemporaryDir folder;
+        TestHttpServer server;
+        QVERIFY(server.base().port() > 0);
+        server.setJson([](const QByteArray&, const QUrl&) -> QByteArray {
+            return R"({"result":{"data":{"id":"next","name":"Server","width":640,"height":360,"fps":30,"updatedAt":"u1","tracks":[],"clips":[]}}})";
+        });
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"id":"local","name":"Local","width":640,"height":360,"fps":30,"tracks":[],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        nt::server::TimelineSession session(model, clock, nt::server::AssetCacheRoot(folder.path()));
+        const auto localPath = folder.filePath("local.json");
+        nt::app::LocalDocumentSaver saver(model, localPath, 60000);
+        int flushes = 0;
+        session.setFlushLocalCallback([&] { return (++flushes == 1 || flushOk) && saver.flush(); },
+                                      [] { return QStringLiteral("Local flush failed"); });
+        QVERIFY(session.switchToServerTimeline(server.base(), "next", {}, {}, "Server"));
+        // The loader completion is queued to this thread, so this edit lands after the first flush.
+        model.addMarker(100, "Last local edit");
+        QTRY_VERIFY(!session.switching());
+        QCOMPARE(flushes, 2);
+        QCOMPARE(model.timelineId(), flushOk ? QStringLiteral("next") : QStringLiteral("local"));
+        if (!flushOk) {
+            QVERIFY(session.switchError().contains("Local flush failed"));
+            QCOMPARE(model.markersJson().size(), 1);
+        } else {
+            QFile local(localPath);
+            QVERIFY(local.open(QIODevice::ReadOnly));
+            QCOMPARE(QJsonDocument::fromJson(local.readAll()).object().value("markers").toArray().size(), 1);
+        }
+        if (session.autosaveController()) {
+            session.autosaveController()->setExternalSync(false);
+            session.autosaveController()->setAutosave(false);
+        }
+    }
+
     void inPlaceSwitchUpdatesWindowAndProject() {
         QTemporaryDir tempDir;
         QVERIFY(tempDir.isValid());

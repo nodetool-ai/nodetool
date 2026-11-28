@@ -922,6 +922,18 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     } else {
         ran = runAction(*command, *editor, context);
     }
+    if (id == u"saveDocument") {
+        // Save may process events. Edits made there belong to the person and
+        // must neither override the save result nor enter command folding.
+        if (!ran) {
+            const QString error = m_editor ? m_editor->property("manualSaveError").toString() : QString();
+            return failure(error.isEmpty() ? QStringLiteral("Could not save the document.") : error);
+        }
+        return {{"ok", true}, {"command", id}, {"changed", false},
+                {"undo", QJsonObject{{"added", false}, {"canUndo", stack->canUndo()},
+                                     {"canRedo", stack->canRedo()}, {"undoCount", stack->index()}}},
+                {"state", state(*editor)}};
+    }
     const bool changed = m_model.timeline().raw != before;
     if (id == u"join_clips" && changed) {
         QStringList joinedSelection;
@@ -949,10 +961,6 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     }
     if ((!ran || command->mustChange) && !changed && added == 0) {
         setup.restoreAll();
-        if (id == u"saveDocument" && m_editor) {
-            const QString error = m_editor->property("manualSaveError").toString();
-            if (!error.isEmpty()) { return failure(error); }
-        }
         return failure(command->runs == Runs::Edit || command->mustChange ? QStringLiteral("%1 changed nothing. Check clip locks, the ids and the values.").arg(id)
                                                    : QStringLiteral("%1 could not run on the current state. Check the selection, the playhead and clip locks.").arg(id));
     }

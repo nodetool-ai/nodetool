@@ -122,7 +122,10 @@ nt::server::SaveDocumentResult CloudTimelineSaver::saveDocument() {
     if (m_model.readOnly()) {
         return {.ok = false, .error = QStringLiteral("The document is read-only.")};
     }
-    sendEdit();
+    const QString current = QString::fromUtf8(QJsonDocument(cloudDraft(m_model.timeline().raw)).toJson(QJsonDocument::Compact));
+    if (current != m_lastSent) {
+        return {.ok = false, .error = tr("Finish or cancel the current edit before saving.")};
+    }
     const bool ok = m_document->writeLocally();
     if (!ok) {
         fail(tr("Could not write the cloud document's local draft."));

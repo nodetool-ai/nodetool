@@ -5,6 +5,7 @@ nt_qml_sources(src/preview/gizmo/TransformGizmoController.h src/preview/gizmo/Tr
 function(nt_gizmo_tests)
     qt_add_executable(tst_gizmo src/preview/gizmo/tst_gizmo.cpp)
     set_target_properties(tst_gizmo PROPERTIES MACOSX_BUNDLE FALSE)
+    target_sources(tst_gizmo PRIVATE src/app/startup/LocalDocumentSaver.h src/app/startup/LocalDocumentSaver.cpp)
     target_link_libraries(tst_gizmo PRIVATE timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test
         PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})

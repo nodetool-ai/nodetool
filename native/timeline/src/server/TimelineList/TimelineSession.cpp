@@ -258,6 +258,11 @@ void TimelineSession::finishSwitch(const QUrl& server, const QString& timelineId
         fail(QStringLiteral("Could not save the current timeline. %1").arg(m_autosave->lastError()));
         return;
     }
+    if (m_flushLocal && !m_flushLocal()) {
+        fail(QStringLiteral("Could not save the current timeline. %1")
+                 .arg(m_localSaveError ? m_localSaveError() : QString()));
+        return;
+    }
 
     m_clock.pause();
     teardownAutosave();

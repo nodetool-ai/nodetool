@@ -1731,7 +1731,10 @@ private slots:
         QFile blockedBackup(backup);
         QVERIFY(blockedBackup.open(QIODevice::WriteOnly));
         blockedBackup.close();
-        QVERIFY(m_save->saveNow().ok);
+        const auto manual = m_save->saveDocument();
+        QVERIFY(!manual.ok);
+        QVERIFY(!manual.error.isEmpty());
+        QVERIFY(manual.error.contains(backup));
         QVERIFY(!m_save->dirty());
         const int beforeQuit = posts();
         QVERIFY(!m_save->flushBeforeQuit(2000));

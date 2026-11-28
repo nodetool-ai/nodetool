@@ -856,7 +856,12 @@ SaveDocumentResult AutosaveController::saveDocument() {
     m_timer.stop();
     m_retry.stop();
     const auto result = saveNow();
-    return {.ok = result.ok, .error = result.error, .conflict = result.conflict};
+    QString error = result.error;
+    if (!result.ok && !result.recoveryError.isEmpty()) {
+        if (!error.isEmpty()) error += QStringLiteral("; ");
+        error += result.recoveryError;
+    }
+    return {.ok = result.ok, .error = error, .conflict = result.conflict};
 }
 
 SaveResult AutosaveController::keepConflictCopy() {
@@ -939,6 +944,7 @@ SaveResult AutosaveController::save(ServerClient& client) {
             stripCopyWritten = !result.keptCopy.isEmpty();
             if (!stripCopyWritten) result.keptCopy = previousCopy;
             result.recoveryError = why;
+            result.ok = !result.keptCopy.isEmpty();
             m_keptCopy = result.keptCopy;
             m_copyHash = contentHash(current);
             m_recoveryError = why;
