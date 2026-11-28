@@ -9,6 +9,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.18] - 2026-11-26
+
+NodeTool 0.8.18 adds multimodal image embeddings to library search, moves OpenAI web search to the Responses API, and hardens node and runtime execution.
+
+### Added
+
+- Multimodal image embeddings for library search via `NODETOOL_SEARCH_IMAGE_EMBEDDING_MODEL`, supporting local CLIP (`transformers_js:Xenova/clip-vit-base-patch32`), `jina-clip-v2`, `voyage-multimodal-3`, and `embed-v4.0` so images are searchable by visual content without captions.
+
+### Changed
+
+- OpenAI web search in the agent search provider and `openai.text.WebSearch` node now uses the Responses API `web_search` tool on `gpt-6.2-sol`, replacing the retired Chat Completions search preview path.
+
+### Fixed
+
+- CLI secrets are stored in the same database that workflow runs read.
+- Hardened `video-nodes`, `integration-nodes`, `execution-core`, `node-sdk`, and `app-runtime` against FFmpeg filtergraph injection, MIDI path traversal, Telegram URL injection, Kie secret leaks, prototype-lookup mutations, scalar `NaN` coercion, hung supervisor decisions, and Chromium or Comfy abort leaks.
+- Fixed `foldText` handling of dotted capital `I`.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.17...v0.8.18
+
+## [0.8.17] - 2026-11-26
+
+NodeTool 0.8.17 fixes workflow execution races, event ordering, and release dependency verification. This release has no GitHub release page, so this entry is compiled from the commits between v0.8.16 and v0.8.17.
+
+### Fixed
+
+- Serialized `node_update` messages after pending predictions without blocking new generations.
+- Fixed cost ledger race conditions, durable attachment state, trace scoping, and debug session cleanup in workflow execution.
+- Pinned `chart.js` to `4.6.1` so `npm audit signatures` passes in release builds.
+- Included `app-debug-command` in the CLI harness filter for `cli-apps`.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.16...v0.8.17
+
+## [0.8.16] - 2026-11-26
+
+NodeTool 0.8.16 adds a formatted Markdown document editor, cross-project library search, workflow MCP tool calls, a cron Schedule Trigger, and mainland China provider regions.
+
+### Added
+
+- A formatted document editor for Markdown files with a Document Structure outline side panel, a raw Markdown view, and embedded media, storyboard shots, timelines, and voice scripts.
+- Library search across projects in the command palette, Settings, and agent tools (`search` and `search_read`), with keyword and meaning-based search, similar-item lookup, optional image captions and audio/video transcripts, and indexing of project folder files.
+- `Call MCP Tool` node (`lib.mcp.CallMcpTool`) to call external MCP servers from workflows, with server and tool pickers in the editor.
+- A cron Schedule Trigger with timezone and daylight-saving rules.
+- Restored `lib.mail` Gmail nodes over IMAP with a Google app password for local installs.
+- The `google_flow` Chrome-extension media provider, plus declared media profiles (sizes, aspect ratios, resolutions, durations, and max input images) for custom OpenAI-compatible endpoints.
+- Mainland China region settings for MiniMax, Kimi, Kling, and DashScope, plus an `HF_ENDPOINT` Hugging Face mirror and localized first-run defaults.
+- Desktop cloud window support for opening cloud apps, sketches, storyboards, scripts, and JS scripts with local drafts and sync status.
+- Workspace file sync in the Publish and Synchronize review sheets, including collecting linked files, receiving cloud workspace files, and confirming deletions.
+- Project lock files (`.nodetool/open.lock`) so a second native app opens an already-open project read-only.
+- Automatic installation of a pack's non-PyPI engines, plus LTX LoRAs and MLX video models in the model picker.
+- Bot players, seed sweeps, test-mode assertions, and `--param` / `--scene` flags in `game simulate`.
+- Trash, fonts, and approval-gated Hugging Face download capabilities for agents.
+
+### Changed
+
+- The native node editor enables GPU rendering by default, speeds up zooming and font sharpening, and matches the web command menu.
+- The native timeline editor improves scrubbing, decoder seeks, and inspector updates, and scopes the Files panel to the open project with in-place timeline switching.
+- Restored Codex app login for the `codex` provider.
+- Replaced `start.sh` with `npm run start`, `npm run doctor`, and `npm run bootstrap`.
+- Fixed product terms and translations in Japanese, Korean, and Simplified Chinese UI catalogs.
+
+### Fixed
+
+- Hardened security and tenant isolation across project services, runtime fetch and asset ownership checks, WebSocket credit gates and project ownership, short-ID lookups, protocol prototype-lookup guards, timeline compositions, and agent storage and SSRF checks.
+- Stopped repeated macOS Keychain prompts in the native apps.
+- Fixed Flatpak Node runtime extraction and native timeline macOS Gatekeeper packaging issues.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.15...v0.8.16
+
 ## [0.8.15] - 2026-11-20
 
 NodeTool 0.8.15 adds a Files panel for project folders, opens media and workflow files in editable tabs, and introduces desktop installers for Windows, macOS, and Linux.
