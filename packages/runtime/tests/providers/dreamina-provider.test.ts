@@ -907,6 +907,53 @@ describe("DreaminaProvider", () => {
       expect(input.unified_edit_input.meta_list.map((m: { meta_type: string }) => m.meta_type)).toEqual(["video", "text"]);
     });
 
+    it("submits a motion transfer recreate with the source video and subject images", async () => {
+      vi.useFakeTimers();
+      const { seen } = runner(videoRecord);
+      const provider = new DreaminaProvider();
+      const out = await settle(provider.videoToVideo(new Uint8Array([2]), { model: videoModel("dreamina_seedance_45_pro_recast"), mode: "motion_transfer", prompt: "She dances.", referenceImages: [new Uint8Array([1])] }));
+      expect(out).toBeInstanceOf(Uint8Array);
+      const generate = seen.find((c) => c.path.endsWith("aigc_draft/generate"))!;
+      expect(generate.body.extend.m_video_commerce_info.benefit_type).toBe("recreat_high_720p_mars");
+      const component = draftOf(seen);
+      expect(component.generate_type).toBe("scenario_tool_gen_video");
+      const scenario = component.abilities.scenario;
+      expect(scenario.scene).toBe("motion_transfer");
+      expect(scenario.material_list.map((m: { material_type: string }) => m.material_type)).toEqual(["video", "image"]);
+      expect(scenario.material_bindings).toEqual([{ slot_id: "source", role: "source", material_idxs: [0] }, { slot_id: "reference", role: "reference", material_idxs: [1] }]);
+      expect(scenario.text_inputs[0].meta_list[0].text).toBe("She dances.");
+      expect(scenario.params).toEqual({ duration_ms: 2500, resolution: "720p", model_req_key: "dreamina_seedance_45_pro_recast" });
+    });
+
+    it("maps creative remix to the ad_replicate scene and allows no images", async () => {
+      vi.useFakeTimers();
+      const { seen } = runner(videoRecord);
+      const provider = new DreaminaProvider();
+      await settle(provider.videoToVideo(new Uint8Array([2]), { model: videoModel("dreamina_seedance_45_pro_recast"), mode: "creative_remix", prompt: "Same ad, my product." }));
+      const scenario = draftOf(seen).abilities.scenario;
+      expect(scenario.scene).toBe("ad_replicate");
+      expect(scenario.material_bindings).toEqual([{ slot_id: "source", role: "source", material_idxs: [0] }]);
+    });
+
+    it("reports a recreate job that failed its input review without a failed status", async () => {
+      vi.useFakeTimers();
+      runner({ task: { status: 10 }, finish_time: 1, fail_code: "2039", fail_msg: "InputImageRisk", item_list: [] });
+      const provider = new DreaminaProvider();
+      const out = await settle(provider.videoToVideo(new Uint8Array([2]), { model: videoModel("dreamina_seedance_45_pro_recast"), mode: "motion_transfer", referenceImages: [new Uint8Array([1])] }));
+      expect(String(out)).toContain("InputImageRisk (fail_code 2039)");
+    });
+
+    it("rejects recreate requests the model cannot serve", async () => {
+      vi.useFakeTimers();
+      runner(videoRecord);
+      const provider = new DreaminaProvider();
+      const video = new Uint8Array([2]);
+      expect(String(await settle(provider.videoToVideo(video, { model: videoModel("dreamina_seedance_40_mini"), mode: "object_swap" })))).toContain("does not recreate videos");
+      expect(String(await settle(provider.videoToVideo(video, { model: videoModel("dreamina_wan_30_recast"), mode: "creative_remix" })))).toContain("not creative_remix");
+      expect(String(await settle(provider.videoToVideo(video, { model: videoModel("dreamina_seedance_45_pro_recast"), mode: "object_swap" })))).toContain("at least one reference image");
+      expect(String(await settle(provider.videoToVideo(video, { model: videoModel("dreamina_seedance_45_pro_recast"), mode: "motion_transfer", referenceImages: [new Uint8Array([1])], resolution: "4k" })))).toContain("480p, 720p, 1080p");
+    });
+
     it("rejects a video marker that points past the given videos", async () => {
       vi.useFakeTimers();
       runner(videoRecord);

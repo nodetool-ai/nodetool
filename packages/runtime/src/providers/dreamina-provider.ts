@@ -6,10 +6,10 @@ import { fetchExternalMedia } from "../external-media-fetch.js";
 import { recordGenerationReceiptAsync } from "../generation-receipt.js";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createDreaminaMusic, type DreaminaMusic } from "./dreamina-music.js";
-import { DREAMINA_IMAGE_MODELS, DREAMINA_VIDEO_MODELS } from "./dreamina-models.js";
+import { DREAMINA_IMAGE_MODELS, DREAMINA_RECAST_MODES, DREAMINA_VIDEO_MODELS } from "./dreamina-models.js";
 import { createExtensionTab, ExtensionTabStallError } from "./extension-tab.js";
 import { filePendingStore, pendingJobKey, type DreaminaPendingStore } from "./dreamina-pending.js";
-import type { EncodedAudioResult, ImageModel, Message, MusicModel, ImageToImageParams, ImageToVideoParams, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToMusicParams, TextToVideoParams, VideoModel, NamedReferenceImage } from "./types.js";
+import type { EncodedAudioResult, ImageModel, Message, MusicModel, ImageToImageParams, ImageToVideoParams, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToMusicParams, TextToVideoParams, VideoModel, NamedReferenceImage, VideoRecreateMode, VideoToVideoParams } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.dreamina");
 
@@ -129,6 +129,8 @@ interface HistoryRecord {
   task?: { status?: number };
   fail_code?: string;
   fail_msg?: string;
+  fail_starling_message?: string;
+  finish_time?: number;
   item_list?: Array<{
     image?: { large_images?: Array<{ image_url?: string }> };
     video?: { transcoded_video?: { origin?: { video_url?: string } } };
@@ -690,6 +692,48 @@ function videoDraftFor(model: string, prompt: string, seed: number, ratio: strin
   return JSON.stringify({ type: "draft", id: id(), min_version: minVersion, min_features: minFeatures, is_from_tsn: true, version: DA_VERSION, main_component_id: component.id, component_list: [component] });
 }
 
+/** The draft scene of each recreate mode, as the web app names it. */
+const RECREATE_SCENES: Record<VideoRecreateMode, string> = { creative_remix: "ad_replicate", object_swap: "object_swap", motion_transfer: "motion_transfer" };
+const MAX_RECREATE_IMAGES = 30;
+/** From the recast model's live config. */
+const RECREATE_RESOLUTIONS = ["480p", "720p", "1080p"];
+
+/**
+ * Recreate draft, captured from the web app's motion transfer submit: a
+ * `scenario_tool_gen_video` component whose scenario binds the source video
+ * and the reference images to slots. The prompt carries only the user's text.
+ */
+export function recreateDraftFor(mode: VideoRecreateMode, model: string, prompt: string, resolution: string, video: UploadedVideo, images: UploadedImage[]): string {
+  const id = (): string => randomUUID();
+  const scenario = {
+    id: id(),
+    min_version: "3.3.35",
+    min_features: ["AIGC_Scenario"],
+    scene: RECREATE_SCENES[mode],
+    material_list: [
+      { material_type: "video", video_info: { type: "video", source_from: "upload", name: "", vid: video.vid, fps: 0, width: video.width, height: video.height, duration: video.durationMs } },
+      ...images.map((image) => ({ material_type: "image", image_info: { type: "image", source_from: "upload", platform_type: 1, name: "", image_uri: image.uri, width: image.width, height: image.height, format: "", title: mode === "motion_transfer" ? "subject" : "", uri: image.uri } }))
+    ],
+    material_bindings: [
+      { slot_id: "source", role: "source", material_idxs: [0] },
+      ...(images.length > 0 ? [{ slot_id: "reference", role: "reference", material_idxs: images.map((_, i) => i + 1) }] : [])
+    ],
+    text_inputs: prompt ? [{ id: id(), key: "prompt", enabled: true, meta_list: [{ id: id(), meta_type: "text", text: prompt }] }] : [],
+    params: { duration_ms: video.durationMs, resolution, model_req_key: model }
+  };
+  const component = {
+    type: "video_base_component",
+    id: id(),
+    min_version: "1.0.0",
+    aigc_mode: "workbench",
+    gen_type: 110,
+    metadata: { type: "", id: id(), created_platform: 3, created_platform_version: "", created_time_in_ms: String(Date.now()), created_did: "" },
+    generate_type: "scenario_tool_gen_video",
+    abilities: { type: "", id: id(), scenario }
+  };
+  return JSON.stringify({ type: "draft", id: id(), min_version: "3.3.35", min_features: ["AIGC_Scenario"], is_from_tsn: true, version: "3.3.40", main_component_id: component.id, component_list: [component] });
+}
+
 /** Submit a generation and poll until it finishes, then return the finished record. */
 async function submitAndAwait(body: Record<string, unknown>, submitId: string, timeoutMs: number, signal?: AbortSignal): Promise<HistoryRecord> {
   // A lost tab leaves the submit's outcome unknown: Dreamina may already run
@@ -764,8 +808,12 @@ async function awaitJob(submitId: string, timeoutMs: number, signal?: AbortSigna
       lastStatus = status;
     }
     if (status === TASK_DONE) return record!;
-    if (status === TASK_FAILED) {
-      throw new DreaminaJobFailedError(`Dreamina generation failed: ${record?.fail_msg || "unknown reason"} (fail_code ${record?.fail_code ?? "unknown"})`);
+    // A recreate job that fails its input review keeps task status 10 and
+    // reports the failure only through `fail_code` and `finish_time`.
+    const failedEarly = Boolean(record?.finish_time) && Boolean(record?.fail_code) && record?.fail_code !== "0";
+    if (status === TASK_FAILED || failedEarly) {
+      const reason = [record?.fail_msg, record?.fail_starling_message].filter(Boolean).join(": ") || "unknown reason";
+      throw new DreaminaJobFailedError(`Dreamina generation failed: ${reason} (fail_code ${record?.fail_code ?? "unknown"})`);
     }
     if (Date.now() > deadline) {
       log.warn("Dreamina generation timed out", { submitId, lastStatus, record: JSON.stringify(record ?? null).slice(0, 2000) });
@@ -895,7 +943,7 @@ export class DreaminaProvider extends BaseProvider {
   private readonly music: DreaminaMusic = createDreaminaMusic({ callApi, submitAndAwait, download, appId: Number(APP_ID), daVersion: DA_VERSION });
 
   protected override declaredCapabilities(): readonly ProviderCapability[] {
-    return ["text_to_image", "image_to_image", "text_to_video", "image_to_video", "reference_to_video", "text_to_music"];
+    return ["text_to_image", "image_to_image", "text_to_video", "image_to_video", "reference_to_video", "video_to_video", "text_to_music"];
   }
 
   static override requiredSecrets(): string[] { return []; }
@@ -1025,6 +1073,65 @@ export class DreaminaProvider extends BaseProvider {
     if (inputs.images.length > MAX_REFERENCE_IMAGES) throw new Error(`Dreamina takes at most ${MAX_REFERENCE_IMAGES} reference images, not ${inputs.images.length}`);
     if (inputs.videos.length > MAX_REFERENCE_VIDEOS) throw new Error(`Dreamina takes at most ${MAX_REFERENCE_VIDEOS} reference videos, not ${inputs.videos.length}`);
     return this.generateVideo(params, { references: inputs.images, videos: inputs.videos, audios, named: params.references ?? undefined });
+  }
+
+  /**
+   * Video recreate through a recast model. `mode` picks creative remix, object
+   * swap or motion transfer. Object swap and motion transfer need 1 to 30
+   * reference images. The output keeps the source video's length.
+   */
+  override async videoToVideo(video: Uint8Array, params: VideoToVideoParams): Promise<Uint8Array> {
+    const modes = DREAMINA_RECAST_MODES.get(params.model.id);
+    if (!modes) throw new Error(`Dreamina model ${params.model.id} does not recreate videos. Use one of ${[...DREAMINA_RECAST_MODES.keys()].join(", ")}`);
+    const mode = params.mode ?? "creative_remix";
+    if (!modes.includes(mode)) throw new Error(`Dreamina model ${params.model.id} offers ${modes.join(", ")}, not ${mode}`);
+    const images = params.referenceImages ?? [];
+    if (mode !== "creative_remix" && images.length === 0) throw new Error(`Dreamina ${mode} needs at least one reference image`);
+    if (images.length > MAX_RECREATE_IMAGES) throw new Error(`Dreamina takes at most ${MAX_RECREATE_IMAGES} recreate images, not ${images.length}`);
+    const resolution = (params.resolution ?? "720p").toLowerCase();
+    if (!RECREATE_RESOLUTIONS.includes(resolution)) throw new Error(`Dreamina recreate offers ${RECREATE_RESOLUTIONS.join(", ")}, not ${params.resolution}`);
+    const prompt = params.prompt ?? "";
+    await checkTab();
+    const model = params.model.id;
+    const timeoutMs = VIDEO_TIMEOUT_MS;
+    const key = pendingJobKey({ kind: "recreate", model, mode, prompt, resolution, counts: [images.length] }, [video, ...images]);
+    const earlier = pendingJobs().find(key);
+    if (earlier) {
+      log.info("Dreamina picks up the earlier job for this request", { submitId: earlier });
+      try {
+        return await this.collectVideo(model, key, await awaitJob(earlier, timeoutMs, params.signal, null, true), earlier, params.signal);
+      } catch (error) {
+        if (!(error instanceof DreaminaJobMissingError || error instanceof DreaminaJobFailedError)) throw error;
+        pendingJobs().remove(key);
+        log.warn("The earlier Dreamina job cannot be collected, submitting a new one", { submitId: earlier, error: error.message });
+      }
+    }
+    const source = await uploadVideo(video);
+    const uploaded: UploadedImage[] = [];
+    for (const image of images) uploaded.push(await uploadImage(image));
+    // The web app runs no omni-reference audit before a recreate submit, and that
+    // audit rejects faces that recreate accepts. Dreamina reviews the job itself.
+
+    const submitId = randomUUID();
+    // Captured from the web app: recreate jobs pay from the marketing studio benefit.
+    const commerce = { amount: 10, benefit_type: `recreat_high_${resolution}_mars`, resource_id: "marketing_studio", resource_id_type: "str", resource_sub_type: "aigc" };
+    pendingJobs().add(key, submitId);
+    let record: HistoryRecord;
+    try {
+      record = await submitAndAwait({
+        extend: { m_video_commerce_info: commerce, m_video_commerce_info_list: [commerce] },
+        action: 1,
+        submit_id: submitId,
+        metrics_extra: JSON.stringify({ genMode: "recreate", roiContext: { capability: RECREATE_SCENES[mode], businessMode: "workbench" }, originSubmitId: submitId }),
+        draft_content: recreateDraftFor(mode, model, prompt, resolution, source, uploaded),
+        http_common_info: { aid: Number(APP_ID) }
+      }, submitId, timeoutMs, params.signal);
+    } catch (error) {
+      if (!(error instanceof DreaminaSubmitRejectedError || error instanceof DreaminaJobFailedError || error instanceof DreaminaJobMissingError)) throw error;
+      pendingJobs().remove(key);
+      throw error;
+    }
+    return this.collectVideo(model, key, record, submitId, params.signal);
   }
 
   override async getAvailableMusicModels(): Promise<MusicModel[]> {
