@@ -14198,6 +14198,8 @@
         "revoice": "Переозвучить реплику",
         "voice": "Озвучить реплику",
         "assignVoiceFirst": "Сначала назначьте голос этому говорящему",
+        "writeLineFirst": "Сначала напишите реплику",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "Другие действия с репликой",
         "pauseOption": {
           "0": "Без паузы после",
@@ -17719,7 +17721,6 @@
       "takeCount_other": "{{count}} дубля"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Ещё не озвучено",
       "playTake": "Воспроизвести дубль"
     }
   },

@@ -13754,6 +13754,8 @@
         "revoice": "Zeile erneut vertonen",
         "voice": "Zeile vertonen",
         "assignVoiceFirst": "Weise diesem Sprecher zuerst eine Stimme zu",
+        "writeLineFirst": "Schreibe zuerst die Zeile",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "Weitere Zeilenaktionen",
         "pauseOption": {
           "0": "Keine Pause danach",
@@ -17131,7 +17133,6 @@
       "takeCount_other": "{{count}} Takes"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Noch nicht eingesprochen",
       "playTake": "Take abspielen"
     }
   },

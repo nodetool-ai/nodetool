@@ -13754,6 +13754,8 @@
         "revoice": "Re-voice line",
         "voice": "Voice line",
         "assignVoiceFirst": "Assign a voice to this speaker first",
+        "writeLineFirst": "Write the line first",
+        "voiceShortcut": "{{action}} ({{shortcut}})",
         "moreActions": "More line actions",
         "pauseOption": {
           "0": "No pause after",
@@ -17131,7 +17133,6 @@
       "takeCount_other": "{{count}} takes"
     },
     "scriptTakeWaveform": {
-      "notVoicedYet": "Not voiced yet",
       "playTake": "Play take"
     }
   },
