@@ -1169,6 +1169,47 @@ was pointed at (`VK_DRIVER_FILES`, then `VK_ICD_FILENAMES`). It needs the
 nodetool timeline preflight --json
 ```
 
+#### `nodetool timeline preview <timeline_or_storyboard>`
+
+Serves a web page that previews a timeline or a storyboard, for review on a
+machine with no display, such as a cloud host where an agent runs NodeTool.
+The target is a timeline or storyboard JSON file, a `timeline_sequences` row
+id, or a `storyboards` row id. A file whose document has a `shots` array is a
+storyboard. An id is looked up as a timeline sequence first.
+
+For a timeline, the page shows the frame under a scrubber, a strip of evenly
+spaced thumbnails, the tracks with their clips, and the validation findings.
+Frames come from the GPU compositor of `nodetool timeline render`, so they show
+the exported pixels. **Render video** encodes the whole timeline with audio.
+Each frame renders on first request and is cached until the document changes.
+For a storyboard, the page shows each shot's selected still and take, read from
+the local asset store, with its action, duration, status, dialogue and
+narration.
+
+The page reads the file or row again every two seconds and redraws when it
+changes, so an agent can keep editing while someone watches. The server stops
+with Ctrl+C.
+
+**Options:**
+
+- `--host <host>` — listen address (default `127.0.0.1`). Use `0.0.0.0` to accept connections from other machines. A non-loopback address turns on a random access token.
+- `--port <port>` — listen port (default `7790`), or `0` for any free port.
+- `--scale <n>` — frame size as a fraction of the sequence size (default `0.5`).
+- `--token <token>` — require this access token, also on loopback. The printed URL carries it as `?token=`, and the page stores it in a cookie.
+- `--json` — print `{url, port, token, kind, name}` as one JSON line when the server is ready.
+
+```bash
+nodetool timeline preview sequence.json
+nodetool timeline preview <storyboard_id> --port 0 --json
+nodetool timeline preview <timeline_id> --host 0.0.0.0 --scale 0.25
+```
+
+On a remote host, keep the default loopback address and forward the port
+over SSH (`ssh -N -L 7790:127.0.0.1:7790 <host>`), then open
+`http://127.0.0.1:7790/` locally. Frames need a WebGPU adapter, as for
+`nodetool timeline render`. Run `nodetool timeline preflight` first on a new
+machine. A storyboard preview renders nothing and needs no adapter.
+
 #### Headless Linux rendering
 
 Dawn, the WebGPU implementation behind the compositor, reaches the GPU through

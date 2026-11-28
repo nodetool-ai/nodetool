@@ -23,6 +23,7 @@ import { printDebugSummary } from "@nodetool-ai/cli-common/commands/debug-summar
 import { renderTimelineValidation } from "./timeline-validation-output.js";
 import { registerTimelineRenderCommand } from "./timeline-render.js";
 import { registerTimelinePreflightCommand } from "./timeline-preflight.js";
+import { registerTimelinePreviewCommand } from "./timeline-preview.js";
 import { registerTimelineReferenceCommand } from "./timeline-reference.js";
 import { registerTimelineScoreCommand } from "./timeline-score.js";
 import { registerTimelineVersionsCommands } from "./timeline-versions.js";
@@ -159,6 +160,7 @@ export function registerTimelineCommands(program: Command): void {
 
   registerTimelineRenderCommand(timeline, sequenceLoader);
   registerTimelinePreflightCommand(timeline);
+  registerTimelinePreviewCommand(timeline, sequenceLoader);
   registerTimelineReferenceCommand(timeline);
   registerTimelineScoreCommand(timeline, sequenceLoader);
   registerTimelineVersionsCommands(timeline);
