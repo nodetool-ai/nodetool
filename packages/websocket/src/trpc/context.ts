@@ -3,6 +3,7 @@ import type { PythonBridge } from "@nodetool-ai/runtime";
 import type { WorkerConnection, WorkerManager } from "@nodetool-ai/compute";
 import type { HttpApiOptions } from "../http-api.js";
 import * as sync from "@nodetool-ai/protocol/api-schemas/sync.js";
+import type { AuthKind } from "../auth-kind.js";
 
 /**
  * Re-point the live Python bridge at a worker's `{wsUrl, token}` (attach) or
@@ -48,6 +49,12 @@ export interface Context {
    * access token. Procedures that create credentials refuse it.
    */
   nativeSessionId?: string | null;
+  /**
+   * Which credential authenticated the caller. Procedures that create
+   * credentials accept only an interactive sign-in. Null or absent for a
+   * caller the auth hook did not resolve, such as a server-side caller.
+   */
+  authKind?: AuthKind | null;
   registry: NodeRegistry;
   apiOptions: HttpApiOptions;
   pythonBridge: PythonBridge;
@@ -84,6 +91,7 @@ interface ContextRequest {
   userId?: string | null;
   headers?: Record<string, string | string[] | undefined>;
   nativeSessionId?: string | null;
+  authKind?: AuthKind | null;
 }
 
 export function createContextFactory(
@@ -95,6 +103,7 @@ export function createContextFactory(
       req.headers?.[sync.SYNC_PROTOCOL_HEADER]
     ),
     nativeSessionId: req.nativeSessionId ?? null,
+    authKind: req.authKind ?? null,
     registry: deps.registry,
     apiOptions: deps.apiOptions,
     pythonBridge: deps.pythonBridge,

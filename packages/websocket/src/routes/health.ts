@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
+import { createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,7 +23,27 @@ export function getVersion(): string {
   }
 }
 
+/** Request header the desktop app sends with a random nonce. */
+export const SERVER_PROOF_NONCE_HEADER = "x-nodetool-proof-nonce";
+/** Response header carrying the proof for that nonce. */
+export const SERVER_PROOF_HEADER = "x-nodetool-proof";
+
+const PROOF_NONCE = /^[A-Za-z0-9]{16,128}$/;
+
+/**
+ * HMAC-SHA256 of the nonce and the port the request arrived on, keyed with
+ * the secret the desktop app passed as `NODETOOL_SERVER_PROOF_KEY`. The app
+ * reuses a server already listening on its port only when this matches, so
+ * it never hands its windows or tokens to a process it did not start. Must
+ * match `serverProofFor` in electron/src/serverProof.ts.
+ */
+export function serverProofFor(key: string, port: number, nonce: string): string {
+  return createHmac("sha256", key).update(`nodetool-health:${port}:${nonce}`).digest("hex");
+}
+
 const healthRoute: FastifyPluginAsync = async (app) => {
+  const proofKey = process.env["NODETOOL_SERVER_PROOF_KEY"]?.trim() || null;
+
   /**
    * GET /health — detailed health check.
    * Returns 200 when all services are healthy, 503 when degraded or draining.
@@ -34,7 +55,13 @@ const healthRoute: FastifyPluginAsync = async (app) => {
    * this build does not produce. The 503 is what makes Fly's health check fail
    * and stops new clients being routed here.
    */
-  app.get("/health", async (_req, reply) => {
+  app.get("/health", async (req, reply) => {
+    const nonce = req.headers[SERVER_PROOF_NONCE_HEADER];
+    const port = req.socket.localPort;
+    if (proofKey && typeof nonce === "string" && PROOF_NONCE.test(nonce) && port) {
+      reply.header(SERVER_PROOF_HEADER, serverProofFor(proofKey, port, nonce));
+    }
+
     let dbStatus: "ok" | "error" = "ok";
 
     try {

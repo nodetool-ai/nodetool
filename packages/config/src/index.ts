@@ -22,7 +22,10 @@ export { getByteLimitEnv } from "./byte-limits.js";
 export {
   isAuthEnforced,
   isSupabaseAuthConfigured,
-  isOidcAuthConfigured
+  isOidcAuthConfigured,
+  OAUTH_GRANT_MAX_AGE_ENV,
+  DEFAULT_SSO_OAUTH_GRANT_MAX_AGE_DAYS,
+  oauthGrantMaxAgeMs
 } from "./deployment.js";
 
 export {

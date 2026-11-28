@@ -92,10 +92,11 @@ const DROPPED_RESPONSE_HEADERS = new Set(["set-cookie", "set-cookie2"]);
 
 /**
  * tRPC routers the renderer may not call through the account: the ones that
- * create a credential (the server refuses them for an access token too), and
- * the transfer router, which runs on the local server through `transfer`.
+ * create a credential or link an outside account (the server refuses them for
+ * an access token too), and the transfer router, which runs on the local
+ * server through `transfer`.
  */
-const DENIED_PROCEDURE_PREFIXES = ["agentAccess.", "cloudTransfer."];
+const DENIED_PROCEDURE_PREFIXES = ["agentAccess.", "cloudTransfer.", "integrations."];
 
 const PROCEDURE = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z][A-Za-z0-9]*)+$/;
 
@@ -237,7 +238,11 @@ type Pending =
 export interface CloudRequestsDeps {
   /** The canonical origin the helper was started for, or null. */
   serverOrigin: string | null;
-  /** The loopback origin of the local server this app runs, or null. */
+  /**
+   * The loopback origin of the local server this app started, or of one that
+   * proved it was started by this app. Null otherwise, and every transfer is
+   * then refused. Read again before each call that carries a token.
+   */
   localOrigin: () => string | null;
   localClientToken: () => string;
   fetch: CloudFetchLike;

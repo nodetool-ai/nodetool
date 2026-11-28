@@ -167,6 +167,7 @@ SAML is not built in. Providers that only speak SAML can sit behind an OIDC brid
 | `OIDC_GROUPS_CLAIM` | no | Claim holding the groups. Default `groups`. A dotted path reads a nested claim, such as `realm_access.roles` for Keycloak realm roles. Most providers include groups only when asked, through a scope or a client mapper. |
 | `OIDC_ADMIN_GROUPS` | no | Comma-separated groups whose members are NodeTool admins. Read from the same claim as `OIDC_ALLOWED_GROUPS`. |
 | `OIDC_SESSION_TTL_SECONDS` | no | Session lifetime, from 300 to 2592000. Default 43200 (12 hours). |
+| `NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS` | no | Maximum age of a desktop session or MCP OAuth grant, from 1 to 3650 days, or `0` for no maximum. Refreshing never extends it. Default 30 in SSO mode, no maximum otherwise. |
 
 A partial or invalid configuration stops the server at boot with a message naming the missing variable, so a server meant to enforce SSO never comes up open.
 
@@ -197,7 +198,7 @@ Access tokens and the MCP OAuth flow work in SSO mode as they do in Supabase mod
 
 A session is a signed token, not a database row. Signing out in NodeTool drops it from the browser and leaves the identity provider's own session alone, so the next **Sign in** may complete without a prompt.
 
-An admin can disable an account on the Admin page. The server then refuses that user's requests and access tokens with 403 `account_disabled`, closes their open WebSocket connections, and refuses their next sign-in. With several replicas, the others apply the change within 30 seconds. A user removed only from the identity provider keeps access until their session expires, so disable the account as well. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
+An admin can disable an account on the Admin page. The server then refuses that user's requests and access tokens with 403 `account_disabled`, closes their open WebSocket connections, and refuses their next sign-in. With several replicas, the others apply the change within 30 seconds. Removing a user at the identity provider stops their new sign-ins. Their SSO session lasts until `OIDC_SESSION_TTL_SECONDS` runs out, and their desktop sessions and MCP OAuth grants end at `NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS`. Their access tokens keep working until revoked, so disable the account in NodeTool as well. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
 
 ### The Admin page
 
@@ -256,10 +257,11 @@ Desktop sign-in needs a server that enforces authentication (Supabase or SSO mod
 |---|---|
 | Access token | 15 minutes |
 | Refresh token | Replaced on every use. Expires after 90 days without use. |
+| Session | Ends at `NODETOOL_OAUTH_GRANT_MAX_AGE_DAYS`, however often it refreshes. Default 30 days in SSO mode, no maximum otherwise. |
 
 Each computer holds one session, shared by both apps on it. Signing in on one computer never ends the session on another. **Settings → Signed-in devices** lists the sessions with their computer name, app and last use, and **End session** ends one. Its tokens are deleted at once, its open connections close, and other server processes refuse it within 30 seconds. Signing out in the app ends its session the same way.
 
-A desktop session cannot mint access tokens or approve OAuth requests. Those need a sign-in in the web app.
+Access tokens, OAuth approvals and messaging-bridge links can only be created from an interactive sign-in: the web app, or the local user in Local mode. A desktop session, an access token, an MCP OAuth token or a messaging-bridge token cannot create them.
 
 Set `NODETOOL_DISABLE_NATIVE_SIGNIN=1` to turn desktop sign-in off. New sign-ins are refused with `access_denied`, existing desktop tokens stop working, and refreshing one returns `invalid_grant`. Apps can still end their sessions.
 
