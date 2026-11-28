@@ -879,6 +879,34 @@ describe("ClaudeAgentProvider", () => {
     }
   });
 
+  it("keeps the parent session's credential settings in the subprocess env", async () => {
+    const prev = { ...process.env };
+    process.env.CLAUDECODE = "1";
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = "sk-ant-oat-test";
+    process.env.CLAUDE_CODE_USE_BEDROCK = "1";
+    process.env.CLAUDE_CODE_SKIP_BEDROCK_AUTH = "1";
+    process.env.CLAUDE_CODE_USE_VERTEX = "1";
+    process.env.CLAUDE_CODE_USE_FOUNDRY = "1";
+    process.env.CLAUDE_CODE_SESSION_ID = "nested";
+    try {
+      const { fn, calls } = fakeQuery(PING_SCRIPT);
+      const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+      await collect(
+        provider.generateMessages({ messages: [userMsg("hi")], model: "haiku" })
+      );
+      const env = calls[0].options?.env as Record<string, string>;
+      expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBe("sk-ant-oat-test");
+      expect(env.CLAUDE_CODE_USE_BEDROCK).toBe("1");
+      expect(env.CLAUDE_CODE_SKIP_BEDROCK_AUTH).toBe("1");
+      expect(env.CLAUDE_CODE_USE_VERTEX).toBe("1");
+      expect(env.CLAUDE_CODE_USE_FOUNDRY).toBe("1");
+      expect(env.CLAUDECODE).toBeUndefined();
+      expect(env.CLAUDE_CODE_SESSION_ID).toBeUndefined();
+    } finally {
+      process.env = prev;
+    }
+  });
+
   // -------------------------------------------------------------------------
   // generateLoop (agent loop) + tool calling
   // -------------------------------------------------------------------------

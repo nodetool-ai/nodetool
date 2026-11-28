@@ -258,6 +258,34 @@ describe("resolveClaudeCliPath", () => {
     };
   };
 
+  it("prefers the binary of the Claude Code session that started the process", async () => {
+    const env = lookup("linux", ["/opt/claude-code/bin/claude", "/usr/bin/claude"], {
+      PATH: "/usr/bin",
+      CLAUDE_CODE_EXECPATH: "/opt/claude-code/bin/claude"
+    });
+    await expect(resolveClaudeCliPath(undefined, env)).resolves.toBe("/opt/claude-code/bin/claude");
+    // The configured path still wins.
+    await expect(resolveClaudeCliPath("/usr/bin/claude", env)).resolves.toBe("/usr/bin/claude");
+  });
+
+  it("ignores a Claude Code exec path that is not the claude binary", async () => {
+    // An npm install runs Claude Code under node, so the exec path is node.
+    const env = lookup("linux", ["/usr/local/bin/node", "/usr/bin/claude"], {
+      PATH: "/usr/bin",
+      CLAUDE_CODE_EXECPATH: "/usr/local/bin/node"
+    });
+    await expect(resolveClaudeCliPath(undefined, env)).resolves.toBe("/usr/bin/claude");
+    expect(env.probed).not.toContain("/usr/local/bin/node");
+  });
+
+  it("falls through when the Claude Code exec path no longer exists", async () => {
+    const env = lookup("darwin", ["/opt/homebrew/bin/claude"], {
+      PATH: "",
+      CLAUDE_CODE_EXECPATH: "/Applications/Claude.app/claude"
+    });
+    await expect(resolveClaudeCliPath(undefined, env)).resolves.toBe("/opt/homebrew/bin/claude");
+  });
+
   it("uses the configured path when it is executable", async () => {
     const env = lookup("linux", ["/opt/claude/bin/claude"]);
     await expect(resolveClaudeCliPath("/opt/claude/bin/claude", env)).resolves.toBe("/opt/claude/bin/claude");

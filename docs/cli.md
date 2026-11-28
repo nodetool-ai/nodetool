@@ -481,6 +481,9 @@ Fullscreen terminal chat with a scrollable transcript, multiline composer, tool 
 **Options:**
 
 - `-p, --provider <provider>` — LLM provider (e.g., `anthropic`, `openai`, `ollama`).
+  Started from Claude Code (`CLAUDECODE=1`), a local chat without this flag
+  uses `claude_agent_sdk`, which signs in with the session's own login, ahead
+  of the saved provider.
 - `-m, --model <model>` — model ID.
 - `-a, --agent` — **deprecated, no-op.** Every chat session runs the unified agent loop; this flag has no effect.
 - `-u, --url <url>` — WebSocket server URL (default: uses a local provider).
@@ -2575,7 +2578,9 @@ Runs one CodeAct turn over the default toolbelt. `create_plan` and `execute_plan
 
 **Subcommands:** `run`, `diagnose`
 
-`-p/--provider` is required. Without `-m/--model`, `run` uses the provider's
+`-p/--provider` is required, except when Claude Code started the command
+(`CLAUDECODE=1`): then `run` uses `claude_agent_sdk`, which signs in with the
+session's own login. Without `-m/--model`, `run` uses the provider's
 default model (for example `sonnet` for `claude_agent_sdk`) and says so on
 stderr. A provider with no default model fails with the command that lists its
 models, `nodetool models list --provider <id>`.
