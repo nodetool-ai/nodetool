@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { test, expect, waitForAppReady } from "./fixtures";
+import { openProjectFile } from "./pages";
 
 test("Recipe metadata survives a real App Builder UI edit and save", async ({
   page,
-  request
+  request,
+  pageErrors
 }) => {
   const bundle = JSON.parse(
     await readFile(
@@ -44,22 +46,14 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
   });
   await page.goto("/workspace");
   await waitForAppReady(page);
-  await page.getByRole("button", { name: "Documents", exact: true }).click();
-  await page
-    .locator('[role="treeitem"][aria-level="1"]')
-    .filter({ hasText: /^Apps/ })
-    .locator('[role="treeitem"][aria-level="2"]')
-    .filter({ hasText: "Product Price Drop" })
-    .click();
-  // An app tab opens in View mode; the builder is the Edit surface.
-  await page
-    .locator(".mode-toggle")
-    .getByRole("button", { name: "Edit", exact: true })
-    .click();
+  await openProjectFile(page, "Apps", "Product Price Drop.app.json");
+  // The Files panel opens an app in Design mode, on the builder.
   const builder = page.locator(".appbuilder-editor");
-  await expect(
-    builder.getByRole("button", { name: "Save", exact: true })
-  ).toBeVisible();
+  // Save sits in the document toolbar above the builder.
+  const save = page
+    .getByRole("toolbar", { name: / document$/ })
+    .getByRole("button", { name: "Save", exact: true });
+  await expect(save).toBeVisible();
   // The page's fields show in the docked Properties panel while nothing is selected.
   await builder
     .getByRole("textbox", { name: "App title", exact: true })
@@ -69,7 +63,7 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
       response.url().includes("applications.update") &&
       response.request().method() === "POST"
   );
-  await builder.getByRole("button", { name: "Save", exact: true }).click();
+  await save.click();
   expect((await saved).ok()).toBe(true);
   const reloaded = await request.get(
     `/trpc/applications.get?input=${encodeURIComponent(JSON.stringify({ id: application.id }))}`
@@ -82,8 +76,21 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
   expect(
     roundTrip.operations.map((operation: { id: string }) => operation.id)
   ).toEqual(["plan", "finish"]);
+  // The app sends a projects query as the page unloads, and the reload
+  // cancels it. Only what the reload aborted is dropped from the journey's
+  // browser errors: the aborted request and the tRPC log line for each query
+  // in it.
+  const beforeReload = pageErrors.length;
   await page.reload();
   await waitForAppReady(page);
+  const duringReload = pageErrors.splice(beforeReload);
+  pageErrors.push(
+    ...duringReload.filter(
+      (error) =>
+        !error.text.includes("net::ERR_ABORTED") &&
+        !/^%c << query #\d+ %cprojects\./.test(error.text)
+    )
+  );
   await expect(
     page
       .locator(".appbuilder-editor")

@@ -5,7 +5,7 @@
  * its result, and fails above 400 ms. See `doherty.ts` for the method.
  */
 
-import { EditorPage } from "../journeys/pages";
+import { EditorPage, projectFileRow, showProjectFiles } from "../journeys/pages";
 import { measureInteraction } from "./doherty";
 import { test } from "./fixtures";
 
@@ -157,26 +157,29 @@ test.describe("Doherty threshold: editor", () => {
   test("tabs and documents", async ({ page }, testInfo) => {
     const editor = new EditorPage(page);
     await editor.open(EDITOR);
-    const documentsButton = page.getByRole("button", { name: "Documents", exact: true });
-    const tree = page.locator(".documents-tree-leaf").first();
+    const filesButton = page.getByRole("button", { name: "Files", exact: true });
+    const tree = page.getByLabel("Project files", { exact: true });
 
     await measureInteraction(page, testInfo, {
-      name: "toggle the Documents panel",
-      act: () => documentsButton.click(),
+      name: "toggle the Files panel",
+      act: () => filesButton.click(),
       ready: async () => ({
-        selector: ".documents-tree-leaf",
-        state: (await documentsButton.getAttribute("aria-pressed")) === "true" ? "hidden" : "visible"
+        selector: '[aria-label="Project files"]',
+        // Read before the click: an open panel closes, a closed one opens.
+        state: (await filesButton.getAttribute("aria-pressed")) === "true" ? "hidden" : "visible"
       })
     });
 
-    if ((await documentsButton.getAttribute("aria-pressed")) !== "true") {
-      await documentsButton.click();
-      await tree.waitFor();
+    const otherFile = projectFileRow(page, `Workflows/${OTHER_NAME}.workflow.json`);
+    await showProjectFiles(page);
+    if (!(await otherFile.isVisible())) {
+      await projectFileRow(page, "Workflows").click();
     }
+    await otherFile.waitFor();
     const otherTab = page.locator('[role="tab"]', { hasText: OTHER_NAME });
 
     await measureInteraction(page, testInfo, {
-      name: "open a workflow from Documents",
+      name: "open a workflow from Files",
       runs: 3,
       reset: async () => {
         if (await otherTab.count()) {
@@ -184,17 +187,11 @@ test.describe("Doherty threshold: editor", () => {
           await otherTab.getByRole("button", { name: /close/i }).click();
           await otherTab.waitFor({ state: "detached" });
         }
-        if ((await documentsButton.getAttribute("aria-pressed")) !== "true") {
-          await documentsButton.click();
-        }
-        await page.locator('[role="treeitem"][aria-level="2"]').filter({ hasText: OTHER_NAME }).first().waitFor();
+        await showProjectFiles(page);
+        await tree.waitFor();
+        await otherFile.waitFor();
       },
-      act: () =>
-        page
-          .locator('[role="treeitem"][aria-level="2"]')
-          .filter({ hasText: OTHER_NAME })
-          .first()
-          .click(),
+      act: () => otherFile.dblclick(),
       ready: { selector: `.react-flow__node[data-id="${OTHER_NODE}"]` },
       feedback: { selector: '[role="tab"][aria-selected="true"]', text: OTHER_NAME }
     });

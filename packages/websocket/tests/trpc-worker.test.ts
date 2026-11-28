@@ -224,6 +224,15 @@ describe("worker router", () => {
     });
   });
 
+  it("answers the polled reads empty on a server with no worker manager", async () => {
+    const caller = createCaller(makeCtx(undefined, repoint));
+    await expect(caller.worker.gpuAvailability()).resolves.toEqual([]);
+    await expect(caller.worker.instances.list()).resolves.toEqual([]);
+    await expect(caller.worker.profiles.list()).resolves.toEqual([]);
+    const keys = await caller.worker.apiKeyStatus();
+    expect(Object.values(keys).every((ok) => ok === false)).toBe(true);
+  });
+
   it("rejects unauthenticated callers", async () => {
     const ctx = makeCtx(manager, repoint);
     ctx.userId = null;
@@ -303,9 +312,9 @@ describe("worker router", () => {
 
   // ── server-wiring guards ─────────────────────────────────────────
   describe("configuration guards", () => {
-    it("fails INTERNAL_SERVER_ERROR when the worker manager is not wired", async () => {
+    it("fails INTERNAL_SERVER_ERROR on a change when the worker manager is not wired", async () => {
       const caller = createCaller(makeCtx(undefined, repoint));
-      await expect(caller.worker.instances.list()).rejects.toMatchObject({
+      await expect(caller.worker.stopAll()).rejects.toMatchObject({
         code: "INTERNAL_SERVER_ERROR"
       });
     });

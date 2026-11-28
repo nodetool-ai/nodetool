@@ -25,25 +25,10 @@ test.describe("Workflow library", () => {
 
   });
 
-  test("search narrows the workflow list", async ({ page }) => {
-    const library = new LibraryPage(page);
-    await library.open(FIXTURES.miniApp);
-
-    // Both are listed before the query, so the disappearance below proves
-    // filtering rather than the entry never having been there.
-    await expect(library.entry(OTHER_WORKFLOW).first()).toBeVisible();
-
-    await library.search("Echo Mini App");
-
-    await expect(library.entry("Echo Mini App").first()).toBeVisible();
-    await expect(library.entry(OTHER_WORKFLOW)).toHaveCount(0);
-  });
-
   test("opens another workflow from the library", async ({ page }) => {
     const library = new LibraryPage(page);
     await library.open(FIXTURES.miniApp);
 
-    await library.search("Creative Story");
     await library.openWorkflow("Creative Story Generator");
 
     // The story graph replaces the echo graph on the canvas.

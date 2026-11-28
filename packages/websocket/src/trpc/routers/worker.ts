@@ -148,6 +148,17 @@ const gpuAvailabilityOutput = z.object({
   community: stockSchema
 });
 
+/**
+ * The manager for a read that every page polls, or null when this server has
+ * no worker manager (the lean and hermetic hosts). Such a host has no workers,
+ * so its reads answer empty instead of failing every poll with a 500.
+ */
+function readableManager(
+  manager: WorkerManager | undefined
+): WorkerManager | null {
+  return isProductionServer() ? null : (manager ?? null);
+}
+
 /** Pull the wired `WorkerManager` from context or fail loudly. */
 function requireManager(manager: WorkerManager | undefined): WorkerManager {
   if (!manager) {
@@ -186,11 +197,7 @@ function requireProbe(probe: ProbeWorkerHealth | undefined): ProbeWorkerHealth {
 const profilesRouter = router({
   list: protectedProcedure
     .output(z.array(workerProfileOutput))
-    .query(({ ctx }) =>
-      isProductionServer()
-        ? []
-        : requireManager(ctx.workerManager).listProfiles()
-    ),
+    .query(({ ctx }) => readableManager(ctx.workerManager)?.listProfiles() ?? []),
 
   create: localProcedure
     .input(profileCreateInput)
@@ -219,9 +226,7 @@ const profilesRouter = router({
 const instancesRouter = router({
   list: protectedProcedure
     .output(z.array(workerInstanceOutput))
-    .query(({ ctx }) =>
-      isProductionServer() ? [] : requireManager(ctx.workerManager).list()
-    )
+    .query(({ ctx }) => readableManager(ctx.workerManager)?.list() ?? [])
 });
 
 export const workerRouter = router({
@@ -233,10 +238,8 @@ export const workerRouter = router({
   // env-provided key.
   apiKeyStatus: protectedProcedure
     .output(apiKeyStatusOutput)
-    .query(({ ctx }) =>
-      isProductionServer()
-        ? NO_API_KEYS
-        : requireManager(ctx.workerManager).apiKeyStatus()
+    .query(
+      ({ ctx }) => readableManager(ctx.workerManager)?.apiKeyStatus() ?? NO_API_KEYS
     ),
 
   comfyPresets: protectedProcedure
@@ -250,10 +253,8 @@ export const workerRouter = router({
   /** RunPod GPU stock for hosts that can run the worker image. */
   gpuAvailability: protectedProcedure
     .output(z.array(gpuAvailabilityOutput))
-    .query(({ ctx }) =>
-      isProductionServer()
-        ? []
-        : requireManager(ctx.workerManager).gpuAvailability()
+    .query(
+      ({ ctx }) => readableManager(ctx.workerManager)?.gpuAvailability() ?? []
     ),
 
   startComfyPreset: localProcedure
