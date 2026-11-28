@@ -646,8 +646,9 @@ class OpScope {
     if (patch.inPointMs !== undefined && patch.inPointMs < 0) {
       throw new Error("inPointMs cannot be negative.");
     }
+    const isGroup = isGroupClip(clip);
     const prospective =
-      patch.durationMs !== undefined && !isGroupClip(clip)
+      patch.durationMs !== undefined && !isGroup
         ? trimSourceBounded(
             clip,
             patch.durationMs - clip.durationMs,
@@ -669,7 +670,7 @@ class OpScope {
       );
     }
     if (
-      isGroupClip(clip) &&
+      isGroup &&
       (patch.inPointMs !== undefined || patch.outPointMs !== undefined)
     ) {
       throw new Error(
@@ -680,11 +681,11 @@ class OpScope {
     // An in-point alone is a slip: the window keeps its length and moves
     // through the source, so the out-point moves with it — and a linked
     // partner slips by the same timeline amount, or picture and sound part.
-    if (
+    const isSlip =
       patch.inPointMs !== undefined &&
       patch.durationMs === undefined &&
-      patch.outPointMs === undefined
-    ) {
+      patch.outPointMs === undefined;
+    if (isSlip) {
       const slipMs =
         (patch.inPointMs - (clip.inPointMs ?? 0)) / sourceRate(clip);
       const slipped = targets.map((target) => {
@@ -714,11 +715,7 @@ class OpScope {
       }
       return clip;
     }
-    if (
-      targets.length > 1 &&
-      patch.durationMs !== undefined &&
-      !isGroupClip(clip)
-    ) {
+    if (targets.length > 1 && patch.durationMs !== undefined && !isGroup) {
       const delta = patch.durationMs - clip.durationMs;
       const trimmedTargets = targets.map((target) => {
         if (target.durationMs + delta <= 0) {
@@ -753,7 +750,7 @@ class OpScope {
     // A group carries what it holds (D4): shortening one pulls its children
     // inside the window that leaves, rather than leaving them hanging past an
     // edge nothing draws.
-    if (isGroupClip(clip) && patch.durationMs !== undefined) {
+    if (isGroup && patch.durationMs !== undefined) {
       this.clips = trimGroup(
         this.clips,
         clip.id,
@@ -776,11 +773,6 @@ class OpScope {
     // time-remapped clip (D13) and carries the source out-point with the edge.
     let next = clip;
     if (patch.durationMs !== undefined) {
-      if (patch.durationMs <= 0) {
-        throw new Error(
-          `durationMs must be greater than 0 (got ${patch.durationMs}); delete the clip instead of trimming it to nothing`
-        );
-      }
       next = this.replaceClip(
         clip,
         trimSourceBounded(clip, patch.durationMs - clip.durationMs, maxSourceMs)
@@ -792,13 +784,7 @@ class OpScope {
     if (patch.outPointMs !== undefined) {
       next.outPointMs = patch.outPointMs;
     }
-    if (
-      patch.durationMs !== undefined ||
-      patch.inPointMs !== undefined ||
-      patch.outPointMs !== undefined
-    ) {
-      this.touch(next.id);
-    }
+    this.touch(next.id);
     this.mediaTracks = resliceTracksForTrimmedClip(this.mediaTracks, next);
     return next;
   }
@@ -853,29 +839,15 @@ class OpScope {
       }
     }
     if (
-      targets.length > 1 &&
       patch.startMs !== undefined &&
-      !isGroupClip(clip)
+      (targets.length > 1 || isGroupClip(clip))
     ) {
-      const minimum = Math.min(...targets.map((target) => target.startMs));
-      const delta = Math.max(-minimum, patch.startMs - clip.startMs);
-      for (const target of targets) {
-        target.startMs += delta;
-        this.touch(target.id);
-      }
-      if (destination) {
-        clip.trackId = destination.id;
-      }
-      return clip;
-    }
-    // Moving a group moves what it holds by the same delta (D4). Children keep
-    // their own tracks, so their z-order is untouched (I9) — only the group
-    // itself takes a new `trackId`.
-    if (isGroupClip(clip) && patch.startMs !== undefined) {
-      // One delta for the whole unit, clamped by its earliest member, so a
-      // child's J-cut partner keeps its offset at zero.
-      const minimum = Math.min(...targets.map((target) => target.startMs));
-      const delta = Math.max(-minimum, patch.startMs - clip.startMs);
+      // One delta for the whole unit (linked partners, or a group and what it
+      // holds, D4), clamped by its earliest member so a J-cut partner keeps
+      // its offset. Children keep their own tracks (I9): only `clip` takes a
+      // new `trackId`.
+      const earliest = Math.min(...targets.map((target) => target.startMs));
+      const delta = Math.max(-earliest, patch.startMs - clip.startMs);
       for (const target of targets) {
         target.startMs += delta;
       }
@@ -886,9 +858,7 @@ class OpScope {
     if (destination) {
       clip.trackId = destination.id;
     }
-    if (patch.startMs !== undefined || patch.trackId !== undefined) {
-      this.touch(clip.id);
-    }
+    this.touch(clip.id);
     return clip;
   }
 
