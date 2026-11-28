@@ -700,7 +700,11 @@ grants them. Every field defaults to granting nothing.
 
 A path is resolved to its real location before any file operation, and
 refused with `EACCES` when that leaves the granted directories: `..`,
-absolute paths and symlinks to anywhere else, and hard-linked files. Asset
+absolute paths and symlinks to anywhere else, and hard-linked files. A write
+refuses a hard-linked file before it truncates anything. `unlink`, `rmdir`,
+`rm` and `rename` resolve only the parent directory and act on the last
+component itself, so a symlink there is removed or moved, never its target,
+and none of them accepts a granted directory itself. Asset
 keys refuse `..`, absolute keys and any symlink. The tests are in
 `unittests/host.cpp`.
 
