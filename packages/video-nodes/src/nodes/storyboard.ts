@@ -1,5 +1,5 @@
 import { loadPackageAssetJson } from "@nodetool-ai/config";
-import { loadCatalog } from "@nodetool-ai/presets";
+import { loadCatalog, type Catalog } from "@nodetool-ai/presets";
 /**
  * Storyboard nodes — a persisted board as a graph value.
  *
@@ -261,11 +261,47 @@ async function loadBoardEntities(
  * Plan options from a node's model override. Both stills and clips compile a
  * shot's look and camera presets, so both carry the preset catalog.
  */
+function presetCatalog(): Catalog {
+  return loadCatalog(() => loadPackageAssetJson(
+    { pkg: "@nodetool-ai/presets", path: "preset-catalog.json" }, import.meta.url
+  ));
+}
+
+/**
+ * Keeps only the preset ids the catalog knows, of the kind the field holds.
+ * A Director screenplay is model output and the model is never shown the
+ * catalog, so it can name a look or camera preset that does not exist (the
+ * fake provider writes "fake"). Rendering such a board failed every still
+ * with "Unknown preset"; dropping the id renders the shot without it.
+ */
+function knownPresetIds(
+  ids: readonly string[] | undefined,
+  kind: "look" | "camera",
+  catalog: Catalog
+): string[] | undefined {
+  if (ids === undefined) return undefined;
+  const kept = ids.filter((id) => catalog.getPreset(id)?.kind === kind);
+  return kept.length > 0 ? kept : undefined;
+}
+
+function dropUnknownPresets<T extends Shot>(shot: T, catalog: Catalog): T {
+  const next = { ...shot };
+  const look = knownPresetIds(shot.look_preset_ids, "look", catalog);
+  if (look) next.look_preset_ids = look;
+  else delete next.look_preset_ids;
+  if (shot.camera?.preset_ids !== undefined) {
+    const camera = { ...shot.camera };
+    const ids = knownPresetIds(camera.preset_ids, "camera", catalog);
+    if (ids) camera.preset_ids = ids;
+    else delete camera.preset_ids;
+    next.camera = camera;
+  }
+  return next;
+}
+
 function modelOverrides(model: ModelSelectionLike): ShotRenderPlanOptions {
   const options: ShotRenderPlanOptions = {
-    presetCatalog: loadCatalog(() => loadPackageAssetJson(
-      { pkg: "@nodetool-ai/presets", path: "preset-catalog.json" }, import.meta.url
-    ))
+    presetCatalog: presetCatalog()
   };
   if (model.provider && model.provider !== "empty") {
     options.provider = model.provider;
@@ -791,7 +827,11 @@ export class CreateStoryboardNode extends BaseNode {
     }
 
     const cast = await resolveEntities(this.cast, ctx);
-    const shots = screenplay.shots.map((entry, index) => ({ ...entry, index }));
+    const catalog = presetCatalog();
+    const shots = screenplay.shots.map((entry, index) => ({
+      ...dropUnknownPresets(entry, catalog),
+      index
+    }));
     const document: StoryboardDocument = {
       screenplay: { ...screenplay, shots },
       shots,
