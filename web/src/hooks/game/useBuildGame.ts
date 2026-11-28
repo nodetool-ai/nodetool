@@ -10,14 +10,21 @@
  * subject, the chosen style's descriptor and the slot's cast member, the
  * builder the headless `build_game` graph uses.
  *
+ * The game it creates is already the designed game: `createAdventureGame`
+ * lays out rooms and corridors from the design's layout and seeds them with
+ * gems, enemies, hazards and a sealed exit, with health, a win and a loss.
+ * The wall slot is prepared as an edge-shaded tileset so every wall tile
+ * shows its exposed sides.
+ *
  * Slots are generated one at a time so a cancel stops spending at the next
  * slot. A slot that fails keeps the template's placeholder and is reported;
- * the build fails only when no image slot succeeded. Sound slots keep the
- * template's built-in sounds.
+ * the build fails only when no image slot succeeded. The music slot is
+ * generated after the art when a music model answers, and the level plays
+ * silent otherwise. Sound effects keep the template's built-in sounds.
  *
- * The build makes the template's room, not the designed game. Once the art is
- * in it parks a prompt for the game editor's assistant, which opens with the
- * game and builds the level, behaviours, win and lose from the design.
+ * Once the art is in, `bindAdventureArt` points every sprite, animation clip
+ * and wall tile at the generated frames, and the build parks a prompt for the
+ * game editor's assistant to playtest the game and tune it to the design.
  *
  * One build runs per workflow. The registry is module level because the step
  * that starts a build can unmount while it runs (the tab is closed, or the
@@ -25,7 +32,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { bindAdventureArt, createAdventureGame } from "@nodetool-ai/game-runtime";
 import {
   findNativeGameTemplate,
   gameSlotGenerationRequest,
@@ -43,12 +50,23 @@ import { gameFinishPrompt } from "../../components/game/gameAssistantPrompt";
 import { newDocumentId } from "../../lib/newDocumentId";
 import { trpcClient } from "../../trpc/client";
 
-/** The game document each native template starts from. */
+/** The game document each native template starts from, built from the design. */
 const TEMPLATE_DOCUMENTS: Record<
   string,
-  (id: string) => ReturnType<typeof createTopDownRoomGame>
+  (id: string, design: GameDesign) => ReturnType<typeof createAdventureGame>
 > = {
-  topdown: createTopDownRoomGame
+  topdown: (id, design) =>
+    createAdventureGame(id, {
+      title: design.title.trim() || undefined,
+      size: design.layout?.size,
+      difficulty: design.layout?.difficulty
+    })
+};
+
+/** Preparation that replaces a slot's default one in the build. */
+const SLOT_PREPARATION: Record<string, Record<string, unknown>> = {
+  // Sixteen edge-shaded variants, one per combination of exposed sides.
+  wall: { tileset: { tileWidth: 32, tileHeight: 32, edges: 3 } }
 };
 
 /** The slots the build generates: every visual one. Sounds keep the template's. */
@@ -56,6 +74,11 @@ export const gameImageSlots = (
   slots: readonly GameSlotSpec[]
 ): GameSlotSpec[] =>
   slots.filter((slot) => slot.kind !== "sfx" && slot.kind !== "music");
+
+/** The music slots the build generates after the art, when a music model answers. */
+export const gameMusicSlots = (
+  slots: readonly GameSlotSpec[]
+): GameSlotSpec[] => slots.filter((slot) => slot.kind === "music");
 
 export interface BuildGameInput {
   projectId: string;
@@ -82,6 +105,8 @@ export interface BuildGameResult {
   projectId: string;
   /** Image slots that kept the template's placeholder, with why. */
   failures: BuildGameSlotFailure[];
+  /** Music slots left silent because no music model answered, with why. */
+  skipped: BuildGameSlotFailure[];
 }
 
 export interface BuildGameProgress {
@@ -142,7 +167,7 @@ const runBuild = async (
         projectId: input.projectId,
         name: input.name,
         dimension: "2d",
-        document: createDocument(newDocumentId())
+        document: createDocument(newDocumentId(), input.design)
       },
       { signal }
     );
@@ -152,6 +177,7 @@ const runBuild = async (
   await input.setGame({ game_id: gameId, project_name: input.name });
 
   const slots = gameImageSlots(template.manifest.slots);
+  const musicSlots = gameMusicSlots(template.manifest.slots);
   const failures: BuildGameSlotFailure[] = [];
   for (const [index, slot] of slots.entries()) {
     if (signal.aborted) {
@@ -160,7 +186,7 @@ const runBuild = async (
     build.progress = {
       label: slotLabel(slot, input.design),
       done: index,
-      total: slots.length
+      total: slots.length + musicSlots.length
     };
     notify(build);
     const subject =
@@ -173,6 +199,7 @@ const runBuild = async (
       input.design.cast
     );
     const request = gameSlotGenerationRequest(slot);
+    const preparation = SLOT_PREPARATION[slot.id] ?? request.preparation;
     try {
       await trpcClient.games.generateAsset.mutate(
         {
@@ -180,7 +207,7 @@ const runBuild = async (
           slot: slot.id,
           kind: "image",
           prompt,
-          ...(request.preparation && { preparation: request.preparation }),
+          ...(preparation && { preparation }),
           provider: input.imageModel.provider,
           model: input.imageModel.id
         },
@@ -201,12 +228,60 @@ const runBuild = async (
       `No art was generated: ${failures[0]?.reason ?? "every slot failed"}`
     );
   }
+  // Music is a bonus: without a music model the level plays silent, and the
+  // creator is not warned about art that never was.
+  const skipped: BuildGameSlotFailure[] = [];
+  for (const slot of musicSlots) {
+    if (signal.aborted) {
+      throw abortError();
+    }
+    build.progress = {
+      label: slot.id,
+      done: slots.length,
+      total: slots.length + musicSlots.length
+    };
+    notify(build);
+    const subject =
+      input.design.slot_prompts.find((entry) => entry.slot_id === slot.id)
+        ?.prompt ?? "";
+    try {
+      await trpcClient.games.generateAsset.mutate(
+        {
+          id: gameId,
+          slot: slot.id,
+          kind: "music",
+          prompt: gameSlotPrompt(slot, subject, null, []).prompt
+        },
+        { signal }
+      );
+    } catch (cause) {
+      if (signal.aborted) {
+        throw abortError();
+      }
+      skipped.push({
+        slot: slot.id,
+        reason: cause instanceof Error ? cause.message : String(cause)
+      });
+    }
+  }
+  // Point the sprites, clips and wall tiles at the frames the art was cut into.
+  const draft = await trpcClient.games.getDraft.query({ id: gameId }, { signal });
+  if (draft.document.schemaVersion !== 3) {
+    await trpcClient.games.saveDraftDocument.mutate(
+      {
+        id: gameId,
+        baseUpdatedAt: draft.game.draftUpdatedAt,
+        document: bindAdventureArt(draft.document)
+      },
+      { signal }
+    );
+  }
   await input.setGame({ stage: "done" });
   // The room and its art are in; the editor's assistant builds the rest.
   useGameAssistantKickoffStore
     .getState()
     .queue(gameId, gameFinishPrompt(input.design, failures));
-  return { gameId, name: input.name, projectId: input.projectId, failures };
+  return { gameId, name: input.name, projectId: input.projectId, failures, skipped };
 };
 
 /** Start a build for a workflow, or join the one already running. */

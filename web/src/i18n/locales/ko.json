@@ -7160,8 +7160,8 @@
         "slotMusic": "{{id}}: 음악",
         "templates": {
           "topdown": {
-            "title": "탑다운 룸",
-            "description": "위에서 보이는 벽으로 둘러싸인 방 하나를 걷고 수집품을 획득하여 승리하세요."
+            "title": "탑다운 어드벤처",
+            "description": "위에서 내려다본 방들로 이루어진 던전을 탐험하며 적과 함정을 피해 보석을 모두 모은 뒤 출구로 탈출하세요."
           }
         },
         "animationFrames": "{{name}}({{count}} 프레임)"
@@ -7193,7 +7193,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} 이미지",
         "slotSound": "{{id}}: 음향 효과",
         "slotMusic": "{{id}}: 음악",
-        "animationFrames": "{{name}}({{count}} 프레임)"
+        "animationFrames": "{{name}}({{count}} 프레임)",
+        "layoutSection": "레벨",
+        "layoutDescription": "빌드가 이 두 가지 선택에 따라 방, 보석, 적, 함정을 배치합니다.",
+        "sizeField": "크기",
+        "difficultyField": "난이도",
+        "size": {
+          "small": "작게 (방 6개)",
+          "medium": "보통 (방 9개)",
+          "large": "크게 (방 12개)"
+        },
+        "difficulty": {
+          "relaxed": "느긋하게 (체력 5, 느린 적)",
+          "normal": "보통 (체력 4)",
+          "hard": "어렵게 (체력 3, 빠른 적, 함정 증가)"
+        },
+        "musicHint": "음악 모델을 사용할 수 있으면 반복 트랙으로 생성됩니다. 없으면 음악 없이 진행됩니다."
       },
       "look": {
         "title": "룩을 선택하세요",

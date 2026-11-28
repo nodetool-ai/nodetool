@@ -7260,8 +7260,8 @@
         "slotMusic": "{{id}}: música",
         "templates": {
           "topdown": {
-            "title": "Sala de cima para baixo",
-            "description": "Ande por uma sala murada vista de cima e pegue o item colecionável para ganhar."
+            "title": "Aventura vista de cima",
+            "description": "Explore uma masmorra de salas vista de cima, colete todas as gemas desviando de inimigos e perigos e escape pela saída."
           }
         },
         "animationFrames": "{{name}} (quadros {{count}})",
@@ -7294,7 +7294,22 @@
         "slotImage": "{{id}}: imagem {{width}}×{{height}}",
         "slotSound": "{{id}}: efeito sonoro",
         "slotMusic": "{{id}}: música",
-        "animationFrames": "{{name}} (quadros {{count}})"
+        "animationFrames": "{{name}} (quadros {{count}})",
+        "layoutSection": "O nível",
+        "layoutDescription": "A construção distribui as salas, gemas, inimigos e perigos a partir destas duas escolhas.",
+        "sizeField": "Tamanho",
+        "difficultyField": "Dificuldade",
+        "size": {
+          "small": "Pequeno (6 salas)",
+          "medium": "Médio (9 salas)",
+          "large": "Grande (12 salas)"
+        },
+        "difficulty": {
+          "relaxed": "Tranquila (5 de vida, inimigos lentos)",
+          "normal": "Normal (4 de vida)",
+          "hard": "Difícil (3 de vida, inimigos rápidos, mais perigos)"
+        },
+        "musicHint": "Gerada como faixa em loop quando há um modelo de música disponível. Caso contrário, o nível roda sem música."
       },
       "look": {
         "title": "Escolha o visual",

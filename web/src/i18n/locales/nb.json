@@ -7160,8 +7160,8 @@
         "slotMusic": "{{id}}: musikk",
         "templates": {
           "topdown": {
-            "title": "Rom ovenfra og ned",
-            "description": "Gå et rom med vegger sett ovenfra og hent samleobjektet for å vinne."
+            "title": "Eventyr ovenfra",
+            "description": "Utforsk et fangehull av rom sett ovenfra, samle alle edelsteinene mens du unngår fiender og farer, og flykt gjennom utgangen."
           }
         },
         "animationFrames": "{{name}} ({{count}} rammer)"
@@ -7193,7 +7193,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} bilde",
         "slotSound": "{{id}}: lydeffekt",
         "slotMusic": "{{id}}: musikk",
-        "animationFrames": "{{name}} ({{count}} rammer)"
+        "animationFrames": "{{name}} ({{count}} rammer)",
+        "layoutSection": "Nivået",
+        "layoutDescription": "Byggingen plasserer rom, edelsteiner, fiender og farer ut fra disse to valgene.",
+        "sizeField": "Størrelse",
+        "difficultyField": "Vanskelighetsgrad",
+        "size": {
+          "small": "Liten (6 rom)",
+          "medium": "Middels (9 rom)",
+          "large": "Stor (12 rom)"
+        },
+        "difficulty": {
+          "relaxed": "Avslappet (5 helse, trege fiender)",
+          "normal": "Normal (4 helse)",
+          "hard": "Vanskelig (3 helse, raske fiender, flere farer)"
+        },
+        "musicHint": "Lages som et spor i loop når en musikkmodell er tilgjengelig. Ellers spilles nivået uten musikk."
       },
       "look": {
         "title": "Velg utseende",

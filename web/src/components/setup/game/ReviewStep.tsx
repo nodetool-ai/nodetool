@@ -16,7 +16,11 @@ import React, { memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import type { GameSlotSpec } from "@nodetool-ai/protocol";
-import type { GameDesign } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  GAME_LEVEL_DIFFICULTIES,
+  GAME_LEVEL_SIZES,
+  type GameDesign
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 import {
   EditorButton,
@@ -146,8 +150,52 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
       }
     ]);
 
+    const layout = design.layout ?? {};
+    const level: PlanReviewField[] = [
+      {
+        id: "layout-size",
+        label: t("pass3_6.game.review.sizeField"),
+        value: layout.size ?? "medium",
+        options: GAME_LEVEL_SIZES.map((size) => ({
+          value: size,
+          label: t(`pass3_6.game.review.size.${size}`)
+        })),
+        compact: true,
+        readOnly: locked,
+        onChange: (value: string) =>
+          onDesignChange({
+            ...design,
+            layout: {
+              ...layout,
+              size: GAME_LEVEL_SIZES.find((size) => size === value)
+            }
+          })
+      },
+      {
+        id: "layout-difficulty",
+        label: t("pass3_6.game.review.difficultyField"),
+        value: layout.difficulty ?? "normal",
+        options: GAME_LEVEL_DIFFICULTIES.map((difficulty) => ({
+          value: difficulty,
+          label: t(`pass3_6.game.review.difficulty.${difficulty}`)
+        })),
+        compact: true,
+        readOnly: locked,
+        onChange: (value: string) =>
+          onDesignChange({
+            ...design,
+            layout: {
+              ...layout,
+              difficulty: GAME_LEVEL_DIFFICULTIES.find(
+                (difficulty) => difficulty === value
+              )
+            }
+          })
+      }
+    ];
+
     const art: PlanReviewField[] = slots.map((slot) => {
-      const sound = slot.kind === "sfx" || slot.kind === "music";
+      const sound = slot.kind === "sfx";
       const current =
         design.slot_prompts.find((entry) => entry.slot_id === slot.id)
           ?.prompt ?? "";
@@ -159,7 +207,9 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
         readOnly: locked || sound,
         hint: sound
           ? t("pass3_6.game.review.soundHint")
-          : filled.includes(`slot_prompts.${slot.id}`)
+          : slot.kind === "music"
+            ? t("pass3_6.game.review.musicHint")
+            : filled.includes(`slot_prompts.${slot.id}`)
             ? t("pass3_6.game.review.filledHint")
             : undefined,
         onChange: (value: string) => {
@@ -192,6 +242,12 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
           field("win", t("pass3_6.game.review.winField")),
           field("lose", t("pass3_6.game.review.loseField"))
         ]
+      },
+      {
+        id: "layout",
+        header: t("pass3_6.game.review.layoutSection"),
+        subheader: t("pass3_6.game.review.layoutDescription"),
+        rows: level
       },
       {
         id: "cast",

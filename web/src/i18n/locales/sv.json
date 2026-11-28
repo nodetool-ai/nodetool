@@ -7160,8 +7160,8 @@
         "slotMusic": "{{id}}: musik",
         "templates": {
           "topdown": {
-            "title": "Rum uppifrån och ner",
-            "description": "Gå ett rum med väggar sett från ovan och plocka upp samlarobjektet för att vinna."
+            "title": "Äventyr ovanifrån",
+            "description": "Utforska en fängelsehåla av rum sedd ovanifrån, samla alla ädelstenar medan du undviker fiender och faror, och fly genom utgången."
           }
         },
         "animationFrames": "{{name}} ({{count}} ramar)"
@@ -7193,7 +7193,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} bild",
         "slotSound": "{{id}}: ljudeffekt",
         "slotMusic": "{{id}}: musik",
-        "animationFrames": "{{name}} ({{count}} ramar)"
+        "animationFrames": "{{name}} ({{count}} ramar)",
+        "layoutSection": "Nivån",
+        "layoutDescription": "Bygget placerar rum, ädelstenar, fiender och faror utifrån de här två valen.",
+        "sizeField": "Storlek",
+        "difficultyField": "Svårighetsgrad",
+        "size": {
+          "small": "Liten (6 rum)",
+          "medium": "Mellan (9 rum)",
+          "large": "Stor (12 rum)"
+        },
+        "difficulty": {
+          "relaxed": "Avslappnad (5 hälsa, långsamma fiender)",
+          "normal": "Normal (4 hälsa)",
+          "hard": "Svår (3 hälsa, snabba fiender, fler faror)"
+        },
+        "musicHint": "Skapas som ett loopande spår när en musikmodell finns. Annars spelas nivån utan musik."
       },
       "look": {
         "title": "Välj utseende",

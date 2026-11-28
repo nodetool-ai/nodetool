@@ -7160,8 +7160,8 @@
         "slotMusic": "{{id}}: muziek",
         "templates": {
           "topdown": {
-            "title": "Kamer van bovenaf",
-            "description": "Loop door een ommuurde kamer, van bovenaf gezien, en pak het verzamelobject om te winnen."
+            "title": "Avontuur van bovenaf",
+            "description": "Verken een kerker vol kamers van bovenaf, verzamel alle edelstenen terwijl je vijanden en gevaren ontwijkt, en ontsnap via de uitgang."
           }
         },
         "animationFrames": "{{name}} ({{count}} kaders)"
@@ -7193,7 +7193,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} afbeelding",
         "slotSound": "{{id}}: geluidseffect",
         "slotMusic": "{{id}}: muziek",
-        "animationFrames": "{{name}} ({{count}} kaders)"
+        "animationFrames": "{{name}} ({{count}} kaders)",
+        "layoutSection": "Het level",
+        "layoutDescription": "De build deelt kamers, edelstenen, vijanden en gevaren in op basis van deze twee keuzes.",
+        "sizeField": "Grootte",
+        "difficultyField": "Moeilijkheid",
+        "size": {
+          "small": "Klein (6 kamers)",
+          "medium": "Middel (9 kamers)",
+          "large": "Groot (12 kamers)"
+        },
+        "difficulty": {
+          "relaxed": "Ontspannen (5 gezondheid, trage vijanden)",
+          "normal": "Normaal (4 gezondheid)",
+          "hard": "Moeilijk (3 gezondheid, snelle vijanden, meer gevaren)"
+        },
+        "musicHint": "Wordt als loopend nummer gemaakt als er een muziekmodel beschikbaar is. Anders speelt het level zonder muziek."
       },
       "look": {
         "title": "Kies het uiterlijk",

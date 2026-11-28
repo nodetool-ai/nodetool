@@ -7160,8 +7160,8 @@
         "slotMusic": "{{id}}: musiikki",
         "templates": {
           "topdown": {
-            "title": "Ylhäältä kuvattu huone",
-            "description": "Kulje yhdessä muurien ympäröimässä huoneessa ylhäältä nähtynä ja voita poimimalla kerättävä esine."
+            "title": "Ylhäältä kuvattu seikkailu",
+            "description": "Tutki ylhäältä kuvattua huoneiden luolastoa, kerää kaikki jalokivet vihollisia ja vaaroja väistellen ja pakene uloskäynnistä."
           }
         },
         "animationFrames": "{{name}} ({{count}} kuvaa)"
@@ -7193,7 +7193,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} kuva",
         "slotSound": "{{id}}: ääniefekti",
         "slotMusic": "{{id}}: musiikki",
-        "animationFrames": "{{name}} ({{count}} kuvaa)"
+        "animationFrames": "{{name}} ({{count}} kuvaa)",
+        "layoutSection": "Taso",
+        "layoutDescription": "Rakennus asettelee huoneet, jalokivet, viholliset ja vaarat näiden kahden valinnan mukaan.",
+        "sizeField": "Koko",
+        "difficultyField": "Vaikeus",
+        "size": {
+          "small": "Pieni (6 huonetta)",
+          "medium": "Keskikokoinen (9 huonetta)",
+          "large": "Suuri (12 huonetta)"
+        },
+        "difficulty": {
+          "relaxed": "Rento (5 terveyttä, hitaat viholliset)",
+          "normal": "Normaali (4 terveyttä)",
+          "hard": "Vaikea (3 terveyttä, nopeat viholliset, enemmän vaaroja)"
+        },
+        "musicHint": "Luodaan silmukkaraidaksi, kun musiikkimalli on käytettävissä. Muuten taso pelataan ilman musiikkia."
       },
       "look": {
         "title": "Valitse ulkoasu",

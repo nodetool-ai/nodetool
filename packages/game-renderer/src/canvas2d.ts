@@ -2,6 +2,7 @@ import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import type { GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
 import { pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems, type VisibleItem } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
+import { MISSING_ASSET_COLOR, placeholderColor } from "./placeholder-colors.js";
 import { loadGameUiImages, paintGameHud2D } from "./ui/hud2d.js";
 import { CANVAS2D_MAX_PARTICLES, PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
 
@@ -173,7 +174,7 @@ export class Canvas2DGameRenderer implements GameRenderer {
     } else if (image && source) {
       context.drawImage(image, source.x, source.y, source.width, source.height, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
     } else {
-      context.fillStyle = entry.assetId === "player" ? "#2acae9" : entry.assetId === "wall" ? "#5c6978" : entry.assetId === "gem" ? "#ffc432" : "#ff00ff";
+      context.fillStyle = placeholderColor(entry.assetId) ?? MISSING_ASSET_COLOR;
       context.fillRect(-targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
     }
     context.restore();

@@ -77,9 +77,15 @@ describe("describeGameSlot", () => {
   it("says what each slot of the top-down template is", () => {
     expect(slots.map(describeGameSlot)).toEqual([
       "player: 32×32 sprite, idle, walk (4 frames)",
-      "wall: 32×32 tile",
+      "enemy: 32×32 sprite, idle (2 frames), move (2 frames)",
       "gem: 32×32 sprite, idle",
-      "sfx.collect: sound effect"
+      "hazard: 32×32 sprite, idle",
+      "exit: 32×32 sprite, closed, open",
+      "floor: 32×32 tile",
+      "wall: 32×32 tile",
+      "sfx.collect: sound effect",
+      "sfx.hurt: sound effect",
+      "music.level: music"
     ]);
   });
 });

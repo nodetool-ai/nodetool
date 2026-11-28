@@ -270,7 +270,9 @@ export function frameFor(
     backgrounds: (scene.backgrounds ?? []).map((layer) =>
       document.assets[layer.assetId]?.sampling === "linear" ? { ...layer, sampling: "linear" as const } : layer
     ),
-    hud: projectGameplayHud(usesCollectibles(document), score, won, hud)
+    // A game that draws its own HUD tree counts its own score, so the built-in
+    // label never flashes on the first frame before its scripts blank it.
+    hud: projectGameplayHud(usesCollectibles(document) && !document.ui && !scene.ui, score, won, hud)
   };
   if (particles.length > 0) {
     frame.particles = particles;

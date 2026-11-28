@@ -1563,9 +1563,14 @@ headless capabilities use. `design_game` writes a reviewed game design to
 workflow settings, and `build_game` creates or selects a game in the
 workflow's project and stages a generation graph. The web flow
 (`web/src/components/setup/game/`) designs with the same prompt and parser,
-then builds without a graph: it creates the template's game, records its id on
-the workflow, and generates each image slot through `games.generateAsset` with
-the chosen style and image model. Sound slots keep the template's built-in
+then builds without a graph. For the top-down template it generates a level
+with `createAdventureGame` (`packages/game-runtime/src/adventure.ts`): rooms
+and corridors, gems, enemies, hazards, a locked exit, health, and win and lose
+rules, sized by the design's `layout`. It records the game's id on the
+workflow, generates each image slot through `games.generateAsset` with the
+chosen style and image model, and generates the music slot when a music model
+answers. `bindAdventureArt` then points the sprites, animation clips and wall
+tiles at the generated frames. Sound effect slots keep the template's built-in
 effects. The built-in templates and their manifests live in
 `packages/protocol/src/native-game-templates.ts`, and the inspiration chips for
 them in `NATIVE_GAME_INSPIRATION_CHIPS`. The pure design, prompt, and

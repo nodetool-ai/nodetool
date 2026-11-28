@@ -7260,8 +7260,8 @@
         "slotMusic": "{{id}} : musique",
         "templates": {
           "topdown": {
-            "title": "Chambre descendante",
-            "description": "Parcourez une pièce fortifiée vue d'en haut et récupérez l'objet de collection pour gagner."
+            "title": "Aventure vue de dessus",
+            "description": "Explore un donjon de salles vu de dessus, ramasse toutes les gemmes en évitant ennemis et pièges, puis échappe-toi par la sortie."
           }
         },
         "animationFrames": "{{name}} (images {{count}})",
@@ -7294,7 +7294,22 @@
         "slotImage": "{{id}} : {{width}}×{{height}} image",
         "slotSound": "{{id}} : effet sonore",
         "slotMusic": "{{id}} : musique",
-        "animationFrames": "{{name}} (images {{count}})"
+        "animationFrames": "{{name}} (images {{count}})",
+        "layoutSection": "Le niveau",
+        "layoutDescription": "La construction place les salles, gemmes, ennemis et pièges selon ces deux choix.",
+        "sizeField": "Taille",
+        "difficultyField": "Difficulté",
+        "size": {
+          "small": "Petit (6 salles)",
+          "medium": "Moyen (9 salles)",
+          "large": "Grand (12 salles)"
+        },
+        "difficulty": {
+          "relaxed": "Détendue (5 points de vie, ennemis lents)",
+          "normal": "Normale (4 points de vie)",
+          "hard": "Difficile (3 points de vie, ennemis rapides, plus de pièges)"
+        },
+        "musicHint": "Générée en boucle lorsqu'un modèle de musique est disponible. Sinon, le niveau se joue sans musique."
       },
       "look": {
         "title": "Choisissez le look",

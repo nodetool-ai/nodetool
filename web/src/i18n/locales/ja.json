@@ -7160,8 +7160,8 @@
         "slotMusic": "{{id}}: 音楽",
         "templates": {
           "topdown": {
-            "title": "トップダウンルーム",
-            "description": "上から見た壁に囲まれた部屋を 1 つ歩き、収集品を拾って勝ちます。"
+            "title": "見下ろし型アドベンチャー",
+            "description": "見下ろし視点の部屋でできたダンジョンを探索し、敵やトラップを避けながら宝石をすべて集めて出口から脱出しよう。"
           }
         },
         "animationFrames": "{{name}} ({{count}} フレーム)"
@@ -7193,7 +7193,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} 画像",
         "slotSound": "{{id}}: 効果音",
         "slotMusic": "{{id}}: 音楽",
-        "animationFrames": "{{name}} ({{count}} フレーム)"
+        "animationFrames": "{{name}} ({{count}} フレーム)",
+        "layoutSection": "レベル",
+        "layoutDescription": "ビルドはこの2つの選択に基づいて部屋、宝石、敵、トラップを配置します。",
+        "sizeField": "サイズ",
+        "difficultyField": "難易度",
+        "size": {
+          "small": "小（6部屋）",
+          "medium": "中（9部屋）",
+          "large": "大（12部屋）"
+        },
+        "difficulty": {
+          "relaxed": "ゆったり（体力5、敵は遅い）",
+          "normal": "ふつう（体力4）",
+          "hard": "むずかしい（体力3、敵は速い、トラップ多め）"
+        },
+        "musicHint": "音楽モデルが使える場合はループ曲として生成されます。使えない場合は音楽なしで進みます。"
       },
       "look": {
         "title": "見た目を選ぶ",

@@ -164,21 +164,21 @@ describe("shipped game inspiration chips", () => {
     });
   }
 
-  it("does not add a music chain without a music slot", () => {
+  it("adds a music chain for the template's music slot", () => {
     const chip = GAME_INSPIRATION_CHIPS.find((entry) => entry.template === "topdown")!;
     const manifest = getNativeTemplate(chip.template).manifest;
     const placement = gameGraphPlacement(
       manifest,
       chip.design,
-      choicesFor(chip.design.title),
+      choicesFor(chip.design.title, { musicModel: { type: "music_model", provider: "replicate", id: "meta/musicgen" } }),
       lookup
     );
     expect(placement.issues).toEqual([]);
-    expect(placement.nodes.map((node) => node.type)).not.toContain(
+    expect(placement.nodes.map((node) => node.type)).toContain(
       "nodetool.audio.TextToMusic"
     );
     const music = manifest.slots.filter((slot) => slot.kind === "music");
-    expect(music).toEqual([]);
+    expect(music.map((slot) => slot.id)).toEqual(["music.level"]);
     for (const slot of music) {
       expect(fillSlots(placement)).toContain(slot.id);
     }

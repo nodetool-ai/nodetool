@@ -7160,8 +7160,8 @@
         "slotMusic": "{{id}}: music",
         "templates": {
           "topdown": {
-            "title": "Top-down room",
-            "description": "Walk one walled room seen from above and pick up the collectible to win."
+            "title": "Top-down adventure",
+            "description": "Explore a dungeon of rooms seen from above, collect every gem while dodging enemies and hazards, then escape through the exit."
           }
         },
         "animationFrames": "{{name}} ({{count}} frames)"
@@ -7174,7 +7174,7 @@
         "redesigning": "Re-designing",
         "cancelRedesign": "Cancel",
         "filledHint": "The designer left this out, so it is the template's own words. Write your own.",
-        "soundHint": "Sounds keep the template's built-in effect for now.",
+        "soundHint": "Sound effects keep the template's built-in effect for now.",
         "characterNameLabel": "{{slot}} name",
         "characterLookLabel": "How {{name}} looks",
         "gameSection": "The game",
@@ -7193,7 +7193,22 @@
         "slotImage": "{{id}}: {{width}}×{{height}} image",
         "slotSound": "{{id}}: sound effect",
         "slotMusic": "{{id}}: music",
-        "animationFrames": "{{name}} ({{count}} frames)"
+        "animationFrames": "{{name}} ({{count}} frames)",
+        "layoutSection": "The level",
+        "layoutDescription": "The build lays out the rooms, gems, enemies and hazards from these two choices.",
+        "sizeField": "Size",
+        "difficultyField": "Difficulty",
+        "size": {
+          "small": "Small (6 rooms)",
+          "medium": "Medium (9 rooms)",
+          "large": "Large (12 rooms)"
+        },
+        "difficulty": {
+          "relaxed": "Relaxed (5 health, slow enemies)",
+          "normal": "Normal (4 health)",
+          "hard": "Hard (3 health, fast enemies, more hazards)"
+        },
+        "musicHint": "Generated as a looping track when a music model is available. Otherwise the level plays without music."
       },
       "look": {
         "title": "Choose the look",
@@ -7205,7 +7220,7 @@
         "noStyle": "No style",
         "noStyleDescription": "The art follows the design's words alone",
         "buildDrawsHeading": "What the build draws",
-        "assetNote": "Sounds keep the template's built-in effects. You can replace any asset in the game editor.",
+        "assetNote": "The build also writes a music loop. Sound effects keep the template's built-in effects. You can replace any asset in the game editor.",
         "artModelLabel": "Art",
         "slotSprite": "{{id}}: {{width}}×{{height}} sprite, {{animations}}",
         "slotTile": "{{id}}: {{width}}×{{height}} tile",

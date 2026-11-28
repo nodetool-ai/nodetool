@@ -360,7 +360,8 @@ const WorkflowEditorSurface = ({
         gameId: created.game.id,
         name: created.game.name || name,
         projectId,
-        failures: []
+        failures: [],
+        skipped: []
       });
     },
     [finishGameFlow, workflow, workflowProjectId]

@@ -25,7 +25,10 @@
 
 import { isRecord, isString } from "./predicates.js";
 import {
+  GAME_LEVEL_DIFFICULTIES,
+  GAME_LEVEL_SIZES,
   gameDesign,
+  gameDesignLayout,
   type GameDesign,
   type GameSetupStage
 } from "./api-schemas/workflows.js";
@@ -62,7 +65,18 @@ export const GAME_DESIGNER_SYSTEM_PROMPT = [
   "  picked and the game stops reading as one game.",
   "- Keep the premise to two or three sentences and the core loop to what the",
   "  player does every ten seconds.",
-  "- Win and lose are one line each."
+  "- Win and lose are one line each.",
+  "- `layout` sets the level the build generates. `size` is small (six",
+  "  rooms), medium (nine) or large (twelve). `difficulty` is relaxed, normal",
+  "  or hard and sets the player's health, how fast enemies move and how many",
+  "  hazards there are. Pick the pair the brief implies; a cosy or short brief",
+  "  is small and relaxed, a tense or long one is large and hard.",
+  "- For the top-down template, the level is rooms joined by corridors. The",
+  "  player collects every gem, which opens the exit, and leaves through it.",
+  "  Some enemies patrol a room and others chase the player on sight; each",
+  "  touch costs one health, and floor hazards hurt the same way. Write the",
+  "  premise, loop, win and lose so they describe that game in the brief's",
+  "  world, and say in the level text what the rooms look like."
 ].join("\n");
 
 const slotIdsOf = (manifest: GameAssetManifest): string[] =>
@@ -100,7 +114,8 @@ export function buildGameDesignSchema(
       "win",
       "lose",
       "cast",
-      "slot_prompts"
+      "slot_prompts",
+      "layout"
     ],
     properties: {
       title: { type: "string" },
@@ -136,6 +151,15 @@ export function buildGameDesignSchema(
             name: { type: "string" },
             descriptor: { type: "string" }
           }
+        }
+      },
+      layout: {
+        type: "object",
+        additionalProperties: false,
+        required: ["size", "difficulty"],
+        properties: {
+          size: { type: "string", enum: [...GAME_LEVEL_SIZES] },
+          difficulty: { type: "string", enum: [...GAME_LEVEL_DIFFICULTIES] }
         }
       },
       slot_prompts: {
@@ -246,8 +270,10 @@ export function parseGameDesign(
     }
   }
 
+  const layout = gameDesignLayout.safeParse(raw["layout"]);
   const parsed = gameDesign.safeParse({
     ...raw,
+    layout: layout.success ? layout.data : undefined,
     enemies,
     cast: manifest.slots
       .filter((slot) => cast.has(slot.id))
@@ -512,10 +538,12 @@ export const GAME_INSPIRATION_CHIPS: readonly GameInspirationChip[] = [
  *
  * The chips above were written for the retired external-engine templates and
  * stay because the asset graph harness grades them. These cover the native
- * manifest — `player`, `wall`, `gem` and `sfx.collect` — and play the way the
- * template plays: one walled room, one collectible that wins it. The slot ids
- * are written out for the same reason as above; `game-design.test.ts` fails
- * when a chip stops covering the template in `native-game-templates.ts`.
+ * manifest and play the way the generated adventure plays: rooms joined by
+ * corridors, gems to collect, enemies and hazards to avoid, and an exit that
+ * opens once every gem is taken. The slot ids are written out for the same
+ * reason as above; `game-design.test.ts` fails when a chip stops covering the
+ * template in `native-game-templates.ts`. The briefs stay as they were, since
+ * the idea step shows them translated.
  */
 export const NATIVE_GAME_INSPIRATION_CHIPS: readonly GameInspirationChip[] = [
   {
@@ -525,46 +553,85 @@ export const NATIVE_GAME_INSPIRATION_CHIPS: readonly GameInspirationChip[] = [
     design: {
       title: "Last Acorn",
       premise:
-        "Winter is a night away and the clearing has been picked clean, except for one acorn the squirrels missed. A young fox noses through the leaves to find it before the frost does.",
+        "Winter is a night away and the squirrels have buried the last acorns of the year deep in the bramble warren under the clearing. A young fox noses through the tunnels to dig them up before the frost seals the ground.",
       core_loop:
-        "Walk the clearing along the hedge walls, read the leaf litter for the glint of the acorn, and reach it without backing into a corner.",
-      player_verbs: ["walk", "search", "collect"],
-      enemies: [],
+        "Trot from burrow to burrow, sniff out each glinting acorn, and slip past the crows that patrol the open dens; the thorn patches cost a scratch, so the fox weaves around them while a crow is on her tail.",
+      player_verbs: ["trot", "sniff out", "dodge", "escape"],
+      enemies: [
+        {
+          slot_id: "enemy",
+          name: "Hollow crow",
+          behaviour:
+            "Some crows pace a den back and forth; others sit still until the fox comes close and then hop after her, giving up once she is far enough away."
+        }
+      ],
       level:
-        "One square clearing walled in by thick hedges of bramble and holly, the floor deep in orange and brown leaves, the acorn resting a few steps to the right of where the fox starts.",
-      win: "Pick up the acorn.",
-      lose: "There is no way to lose; the clearing is a quiet first room.",
+        "A warren of leafy dens under the clearing, joined by root-lined tunnels. The fox starts in a quiet corner den; the acorns are spread through the far dens, and the way out is a hollow log in the den farthest from home.",
+      win: "Gather every acorn, then climb out through the hollow log.",
+      lose: "Lose all four hearts to crow pecks and thorns.",
       cast: [
         {
           slot_id: "player",
           name: "Bramble",
           descriptor:
-            "A small young fox seen from above, rust-orange back with a cream muzzle, black socks on all four paws and a white-tipped brush tail as long as her body."
+            "A small young fox, rust-orange back with a cream muzzle, black socks on all four paws and a white-tipped brush tail as long as her body."
+        },
+        {
+          slot_id: "enemy",
+          name: "Hollow crow",
+          descriptor:
+            "A glossy black crow with ragged wing tips, a grey hooked beak and small bright yellow eyes, wings half open."
         },
         {
           slot_id: "gem",
-          name: "The last acorn",
+          name: "Acorn",
           descriptor:
             "A single plump acorn, glossy chestnut brown with a rough tan cap and a short stem, a soft highlight on one side."
+        },
+        {
+          slot_id: "hazard",
+          name: "Thorn patch",
+          descriptor:
+            "A low tangle of dark bramble stems covered in sharp pale thorns, a few dry red leaves caught in it."
+        },
+        {
+          slot_id: "exit",
+          name: "Hollow log",
+          descriptor:
+            "The round open end of a fallen hollow log, mossy bark around a dark opening."
         }
       ],
       slot_prompts: [
         {
           slot_id: "player",
           prompt:
-            "Bramble the fox seen from directly above: standing still with her tail curled, then four steps of a trotting walk."
+            "Bramble the fox seen from a top-down three-quarter angle: standing still with her tail curled, then four steps of a trotting walk."
         },
+        {
+          slot_id: "enemy",
+          prompt:
+            "A hollow crow seen from a top-down three-quarter angle: two frames standing and bobbing its head, then two frames hopping forward with wings raised."
+        },
+        { slot_id: "gem", prompt: "One acorn lying on its side, seen from above." },
+        { slot_id: "hazard", prompt: "A thorn patch on the ground, seen from directly above." },
+        {
+          slot_id: "exit",
+          prompt:
+            "A hollow log end seen from above: first blocked by a pile of dead leaves, then open with warm light glowing inside."
+        },
+        { slot_id: "floor", prompt: "Packed earth covered in fallen orange and brown leaves, seen from directly above." },
         {
           slot_id: "wall",
-          prompt:
-            "A dense hedge of bramble and dark holly leaves with a few red berries, seen from directly above."
+          prompt: "A dense hedge of bramble and dark holly leaves with a few red berries, seen from directly above."
         },
+        { slot_id: "sfx.collect", prompt: "A soft crunch of leaves and a bright woody click." },
+        { slot_id: "sfx.hurt", prompt: "A short startled fox yelp." },
         {
-          slot_id: "gem",
-          prompt: "The last acorn lying on its side, seen from directly above."
-        },
-        { slot_id: "sfx.collect", prompt: "A soft crunch of leaves and a bright woody click." }
-      ]
+          slot_id: "music.level",
+          prompt: "A gentle autumn woodland tune on plucked strings and soft woodwinds, curious and light-footed."
+        }
+      ],
+      layout: { size: "small", difficulty: "relaxed" }
     }
   },
   {
@@ -574,46 +641,81 @@ export const NATIVE_GAME_INSPIRATION_CHIPS: readonly GameInspirationChip[] = [
     design: {
       title: "Pearl of the Drowned Hall",
       premise:
-        "A temple sank into the bay a century ago and the pearl on its altar is still there. A diver with one lungful of courage swims in through the broken roof to bring it home.",
+        "A temple sank into the bay a century ago and its pearls still lie scattered through the flooded halls. A diver swims in through the broken roof to recover them and reach the great pearl gate before her air runs out.",
       core_loop:
-        "Swim the flooded hall between the carved stone walls, follow the shimmer of the pearl, and reach it in one steady line.",
-      player_verbs: ["swim", "explore", "collect"],
-      enemies: [],
+        "Glide hall to hall, scoop up every pearl, and keep clear of the eels patrolling the corridors and the jellyfish drifting over the floor; each sting costs air, so the diver picks the quiet path between them.",
+      player_verbs: ["swim", "collect", "evade", "surface"],
+      enemies: [
+        {
+          slot_id: "enemy",
+          name: "Moray eel",
+          behaviour:
+            "Some eels sweep along one hall wall to wall; others lurk until the diver passes and then lunge after her, sliding back to their nook when she gets away."
+        }
+      ],
       level:
-        "One drowned temple hall framed by mossy carved stone walls, the floor sandy with broken tiles, the pearl glowing a short swim to the right of the entry.",
-      win: "Take the pearl from the altar.",
-      lose: "There is no way to lose; the hall is a calm first dive.",
+        "Drowned temple halls joined by narrow flooded passages, sand and broken tiles on the floor. The diver enters through the roof in one corner hall; the pearl gate waits in the deepest hall at the far side.",
+      win: "Gather every pearl, then swim through the open pearl gate.",
+      lose: "Lose all your air to eel bites and jellyfish stings.",
       cast: [
         {
           slot_id: "player",
           name: "Nia",
           descriptor:
-            "A slim diver seen from above in a teal wetsuit with a yellow air tank on her back, long black hair streaming behind her, orange fins."
+            "A slim diver in a teal wetsuit with a yellow air tank on her back, long black hair streaming behind her, orange fins."
+        },
+        {
+          slot_id: "enemy",
+          name: "Moray eel",
+          descriptor:
+            "A long olive-green eel with dark mottled spots, a wide open jaw with small sharp teeth and pale staring eyes."
         },
         {
           slot_id: "gem",
-          name: "The drowned pearl",
-          descriptor:
-            "A large round pearl, milky white with a pink and blue sheen, resting in an open grey clam shell."
+          name: "Pearl",
+          descriptor: "A large round pearl, milky white with a pink and blue sheen, resting in an open grey clam shell."
+        },
+        {
+          slot_id: "hazard",
+          name: "Jellyfish",
+          descriptor: "A translucent violet jellyfish with a glowing bell and trailing stinging tendrils."
+        },
+        {
+          slot_id: "exit",
+          name: "Pearl gate",
+          descriptor: "A round carved stone portal ringed with inlaid mother-of-pearl."
         }
       ],
       slot_prompts: [
         {
           slot_id: "player",
           prompt:
-            "Nia the diver seen from directly above: floating still with her arms out, then four strokes of a kicking swim."
+            "Nia the diver seen from a top-down three-quarter angle: floating still with her arms out, then four strokes of a kicking swim."
         },
+        {
+          slot_id: "enemy",
+          prompt:
+            "A moray eel seen from above: two frames coiled and swaying, then two frames stretched out and lunging."
+        },
+        { slot_id: "gem", prompt: "One pearl in its open clam shell, seen from above." },
+        { slot_id: "hazard", prompt: "A jellyfish drifting just above the sandy floor, seen from directly above." },
+        {
+          slot_id: "exit",
+          prompt: "The pearl gate seen from above: first sealed by a stone disc, then open with pale blue light pouring out."
+        },
+        { slot_id: "floor", prompt: "Pale sand over broken temple floor tiles, small shells, seen from directly above." },
         {
           slot_id: "wall",
-          prompt:
-            "A block of carved temple stone under water, green moss and small barnacles on it, seen from directly above."
+          prompt: "A block of carved temple stone under water, green moss and small barnacles on it, seen from directly above."
         },
+        { slot_id: "sfx.collect", prompt: "A soft underwater chime with a rising bubble." },
+        { slot_id: "sfx.hurt", prompt: "A muffled underwater gasp with a burst of bubbles." },
         {
-          slot_id: "gem",
-          prompt: "The drowned pearl in its open clam shell, seen from directly above."
-        },
-        { slot_id: "sfx.collect", prompt: "A soft underwater chime with a rising bubble." }
-      ]
+          slot_id: "music.level",
+          prompt: "A slow, shimmering underwater theme on soft synth pads and a distant harp, calm with a hint of danger."
+        }
+      ],
+      layout: { size: "medium", difficulty: "normal" }
     }
   },
   {
@@ -623,46 +725,81 @@ export const NATIVE_GAME_INSPIRATION_CHIPS: readonly GameInspirationChip[] = [
     design: {
       title: "Power Cell",
       premise:
-        "The night shift left a spare power cell on the server room floor and the cooling fans are starting to whine. A boxy maintenance robot rolls out of its dock to plug the gap before the racks overheat.",
+        "The night shift left the server farm's spare power cells scattered across the floor and the cooling fans are starting to whine. A boxy maintenance robot rolls out of its dock to plug them in before the racks overheat, and the security drones think it is an intruder.",
       core_loop:
-        "Roll between the server rack walls, line up with the glowing cell, and drive over it to pick it up.",
-      player_verbs: ["roll", "turn", "collect"],
-      enemies: [],
+        "Roll aisle to aisle, grab each glowing cell, and stay out of the security drones' sight lines; the sparking cable faults on the floor short-circuit the robot on contact, so every shortcut is a gamble.",
+      player_verbs: ["roll", "grab", "dodge", "dock"],
+      enemies: [
+        {
+          slot_id: "enemy",
+          name: "Security drone",
+          behaviour:
+            "Some drones sweep one aisle on a fixed track; others hover until the robot enters their range and then chase it down, drifting home once it slips away."
+        }
+      ],
       level:
-        "One server room boxed in by rows of black server racks with blinking lights, a dark floor grid lit magenta and cyan, the power cell glowing just right of the robot's dock.",
-      win: "Pick up the power cell.",
-      lose: "There is no way to lose; the room is a first shift.",
+        "A maze of server rooms boxed in by rows of black racks, joined by narrow cable aisles, lit magenta and cyan. The robot starts at its dock in a corner room; the charging bay that ends the shift is in the room farthest from it.",
+      win: "Collect every power cell, then roll into the open charging bay.",
+      lose: "Take three hits from drones and cable faults.",
       cast: [
         {
           slot_id: "player",
           name: "Unit 7",
           descriptor:
-            "A small square maintenance robot seen from above, scuffed white casing with an orange stripe, two treads at the sides and a single cyan eye light at the front."
+            "A small square maintenance robot, scuffed white casing with an orange stripe, two treads at the sides and a single cyan eye light at the front."
+        },
+        {
+          slot_id: "enemy",
+          name: "Security drone",
+          descriptor:
+            "A round black quadcopter drone with four small rotors, a red scanning eye in the middle and yellow warning stripes on its arms."
         },
         {
           slot_id: "gem",
           name: "Power cell",
-          descriptor:
-            "A short cylindrical power cell with a bright green glowing core between two silver end caps."
+          descriptor: "A short cylindrical power cell with a bright green glowing core between two silver end caps."
+        },
+        {
+          slot_id: "hazard",
+          name: "Cable fault",
+          descriptor: "A torn bundle of floor cables with exposed copper ends throwing blue-white sparks."
+        },
+        {
+          slot_id: "exit",
+          name: "Charging bay",
+          descriptor: "A square floor hatch with a glowing ring of lights around a charging plate."
         }
       ],
       slot_prompts: [
         {
           slot_id: "player",
           prompt:
-            "Unit 7 the robot seen from directly above: idle with its eye light on, then four frames of rolling forward on its treads."
+            "Unit 7 the robot seen from a top-down three-quarter angle: idle with its eye light on, then four frames of rolling forward on its treads."
         },
+        {
+          slot_id: "enemy",
+          prompt:
+            "A security drone seen from above: two frames hovering with rotors spinning, then two frames tilted forward in pursuit with its eye flaring."
+        },
+        { slot_id: "gem", prompt: "One glowing power cell lying on the floor, seen from above." },
+        { slot_id: "hazard", prompt: "A sparking cable fault on the floor, seen from directly above." },
+        {
+          slot_id: "exit",
+          prompt: "The charging bay hatch seen from above: first closed with red lights, then open with green lights and a glowing plate."
+        },
+        { slot_id: "floor", prompt: "Dark raised-floor panels with a faint magenta and cyan grid, seen from directly above." },
         {
           slot_id: "wall",
-          prompt:
-            "The top of a black server rack with rows of blinking green and blue status lights, seen from directly above."
+          prompt: "The top of a black server rack with rows of blinking green and blue status lights, seen from directly above."
         },
+        { slot_id: "sfx.collect", prompt: "A short electric power-up blip." },
+        { slot_id: "sfx.hurt", prompt: "A harsh electric zap and buzz." },
         {
-          slot_id: "gem",
-          prompt: "The glowing power cell lying on the floor, seen from directly above."
-        },
-        { slot_id: "sfx.collect", prompt: "A short electric power-up blip." }
-      ]
+          slot_id: "music.level",
+          prompt: "A driving synthwave loop with a pulsing bass and bright arpeggios, tense and quick."
+        }
+      ],
+      layout: { size: "large", difficulty: "hard" }
     }
   }
 ];
