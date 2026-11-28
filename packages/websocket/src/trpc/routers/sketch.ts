@@ -62,9 +62,18 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { isString } from "../../lib/wire-values.js";
 import {
+  effectiveAccess,
   hasDocumentRole,
+  mayReadHistory,
   type DocumentRole
 } from "../../lib/document-access.js";
+import {
+  checkAttach,
+  currentContent,
+  ensureVersionSets,
+  publishSave,
+  saveUnderAttachRule
+} from "../../lib/document-refs.js";
 
 /** A decoded JSON value: what a stored document or graph carries. */
 type JsonValue =
@@ -206,6 +215,46 @@ async function loadOwned(
   return doc;
 }
 
+/**
+ * Load a sketch whose versions and layer generations the caller may read: the
+ * owner, an editor, or a viewer with the history option (AC26). Anyone else
+ * gets the NOT_FOUND a missing sketch gets.
+ */
+async function loadWithHistory(
+  ctxUserId: string | null,
+  id: string
+): Promise<ImageDocument> {
+  const doc = await loadOwned(ctxUserId, id, "viewer");
+  if (doc.user_id === ctxUserId) return doc;
+  if (!mayReadHistory(await effectiveAccess(ctxUserId ?? "", "sketch", doc.id))) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
+  }
+  return doc;
+}
+
+/**
+ * The content a sketch save stores, as the attach rule reads it: the document
+ * with its thumbnail. Undefined when the save changes neither.
+ */
+function sketchSaveContent(
+  doc: ImageDocument,
+  change: { document?: string; thumbnail_asset_id?: string | null }
+): unknown {
+  if (change.document === undefined && change.thumbnail_asset_id === undefined) {
+    return undefined;
+  }
+  const next = {
+    id: doc.id,
+    user_id: doc.user_id,
+    document: change.document ?? doc.document,
+    thumbnail_asset_id:
+      change.thumbnail_asset_id === undefined
+        ? doc.thumbnail_asset_id
+        : change.thumbnail_asset_id
+  };
+  return currentContent("sketch", next);
+}
+
 function findBinding(
   data: ImageDocumentData,
   layerId: string
@@ -230,18 +279,32 @@ async function mutateOwnedDocumentData<T>(
   mutator: (data: ImageDocumentData) => T | Promise<T>,
   meta?: ModelChangeMeta
 ): Promise<T> {
+  if (!ctxUserId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
   // Editors write layers too. The role is checked against the row as loaded;
   // the mutator then refuses a row whose owner changed underneath.
   const { user_id: ownerId } = await loadOwned(ctxUserId, id, "editor");
 
   try {
+    // The attach rule runs on each attempt's data, before its write.
+    let toAdmit: string[] = [];
     const mutation = await ImageDocument.mutateDocumentData(
       id,
       async (data, doc) => {
         if (doc.user_id !== ownerId) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
         }
-        return mutator(data);
+        const result = await mutator(data);
+        toAdmit = await checkAttach(
+          "sketch",
+          {
+            id: doc.id,
+            user_id: doc.user_id,
+            before: currentContent("sketch", doc)
+          },
+          ctxUserId,
+          sketchSaveContent(doc, { document: JSON.stringify(data) })
+        );
+        return result;
       },
       undefined,
       meta
@@ -249,6 +312,7 @@ async function mutateOwnedDocumentData<T>(
     if (!mutation) {
       throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
     }
+    await publishSave("sketch", mutation.document, toAdmit);
     return mutation.result;
   } catch (error) {
     if (error instanceof ImageDocumentConflictError) {
@@ -425,10 +489,12 @@ export const sketchRouter = router({
       if (input.document !== undefined)
         fields.document = JSON.stringify(input.document);
 
-      const updated = await ImageDocument.updateFieldsIfUnchanged(
-        doc.id,
-        expectedUpdatedAt,
-        fields
+      const updated = await saveUnderAttachRule(
+        "sketch",
+        doc,
+        ctx.userId,
+        sketchSaveContent(doc, fields),
+        () => ImageDocument.updateFieldsIfUnchanged(doc.id, expectedUpdatedAt, fields)
       );
       if (!updated) {
         // Row changed between load and write (or was deleted): report a
@@ -484,7 +550,7 @@ export const sketchRouter = router({
       .input(versionsListInput)
       .output(z.array(layerVersion))
       .query(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id, "viewer");
+        const doc = await loadWithHistory(ctx.userId, input.id);
         const data = doc.toDocumentData();
         const binding = findBinding(data, input.layerId);
         if (!binding) {
@@ -585,7 +651,7 @@ export const sketchRouter = router({
       .input(listSketchVersionsInput)
       .output(z.array(sketchVersionListItem))
       .query(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id, "viewer");
+        const doc = await loadWithHistory(ctx.userId, input.id);
         const versions = await ImageDocumentVersion.listForDocument(doc.id, {
           limit: input.limit,
           saveType: input.saveType
@@ -597,7 +663,7 @@ export const sketchRouter = router({
       .input(getSketchVersionInput)
       .output(sketchVersionResponse)
       .query(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id, "viewer");
+        const doc = await loadWithHistory(ctx.userId, input.id);
         const version = await ImageDocumentVersion.findByVersion(
           doc.id,
           input.version
@@ -636,22 +702,29 @@ export const sketchRouter = router({
           throwApiError(ApiErrorCode.NOT_FOUND, "Sketch version not found");
         }
 
-        // Snapshot what is about to be overwritten first, so a restore is
-        // itself undoable.
-        await ImageDocumentVersion.snapshot(doc, {
-          saveType: "restore",
-          name: `Before restore to v${input.version}`
-        });
-
-        const document = parseVersionDocument(version.document);
-        const updated = await ImageDocument.updateFieldsIfUnchanged(
-          doc.id,
-          doc.updated_at,
-          {
-            document: JSON.stringify(document),
-            width: version.width,
-            height: version.height,
-            background_color: version.background_color
+        const document = JSON.stringify(parseVersionDocument(version.document));
+        // The files of saved versions are not new to the sketch, so the
+        // attach rule reads their sets.
+        await ensureVersionSets("sketch", doc);
+        const updated = await saveUnderAttachRule(
+          "sketch",
+          doc,
+          ctx.userId,
+          sketchSaveContent(doc, { document }),
+          async () => {
+            // Snapshot what is about to be overwritten first, so a restore
+            // is itself undoable. It runs after the attach rule, so a
+            // refused restore writes nothing.
+            await ImageDocumentVersion.snapshot(doc, {
+              saveType: "restore",
+              name: `Before restore to v${input.version}`
+            });
+            return ImageDocument.updateFieldsIfUnchanged(doc.id, doc.updated_at, {
+              document,
+              width: version.width,
+              height: version.height,
+              background_color: version.background_color
+            });
           }
         );
         if (!updated) {

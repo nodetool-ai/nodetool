@@ -10,6 +10,10 @@
  * A person holds at most one invitation (`share_id` null) and one grant per
  * link they redeemed. A link grant reads its options from the link; an
  * invitation carries its own.
+ *
+ * The owner lowering a person's role or removing them leaves a
+ * ShareRoleLimit, so a link the person kept grants no more than the owner
+ * left them. Inviting them again or setting their role to editor lifts it.
  */
 
 import { eq, and, inArray, isNull } from "drizzle-orm";
@@ -22,6 +26,7 @@ import {
   type WorkflowShare
 } from "./workflow-share.js";
 import { changingAccess } from "./access-epoch.js";
+import { ShareRoleLimit, limitLinkRole } from "./share-role-limit.js";
 
 export type CollaboratorRole = "viewer" | "editor";
 
@@ -162,7 +167,8 @@ export class WorkflowCollaborator extends DBModel {
 
   /**
    * Give a person an invitation with exactly `role`, and the options given.
-   * An option left out keeps its value.
+   * An option left out keeps its value. Inviting lifts the person's role
+   * limit unless `keepRoleLimit` is set, as when only options change.
    */
   static async invite(opts: {
     workflowId: string;
@@ -170,8 +176,12 @@ export class WorkflowCollaborator extends DBModel {
     role: CollaboratorRole;
     invitedBy: string;
     options?: Partial<ShareOptions>;
+    keepRoleLimit?: boolean;
   }): Promise<WorkflowCollaborator> {
     return changingAccess([{ kind: "workflow", id: opts.workflowId }], async () => {
+      if (!opts.keepRoleLimit) {
+        await ShareRoleLimit.clear("workflow", opts.workflowId, opts.userId);
+      }
       const grant =
         (await WorkflowCollaborator.findInvitation(
           opts.workflowId,
@@ -191,32 +201,43 @@ export class WorkflowCollaborator extends DBModel {
 
   /**
    * The grant that redeeming `share` gives the user, created once. Its role
-   * is the link's, and its options are read from the link.
+   * is the link's, lowered to the user's role limit, and its options are
+   * read from the link. Null when the limit admits the user through no link.
    */
   static async redeem(
     share: WorkflowShare,
     userId: string
-  ): Promise<WorkflowCollaborator> {
+  ): Promise<WorkflowCollaborator | null> {
     if (share.role === "public") {
       throw new Error("A public link grants nothing");
     }
     const grants = await WorkflowCollaborator.listFor(share.workflow_id, userId);
     const existing = grants.find((g) => g.share_id === share.id);
     if (existing) return existing;
+    const role = limitLinkRole(
+      share.role,
+      await ShareRoleLimit.find("workflow", share.workflow_id, userId)
+    );
+    if (role === null) return null;
     return await WorkflowCollaborator.create({
       workflow_id: share.workflow_id,
       user_id: userId,
-      role: share.role,
+      role,
       invited_by: share.created_by,
       share_id: share.id
     });
   }
 
-  /** Set the role on every grant the user holds. Returns the grants. */
+  /**
+   * Set the role on every grant the user holds. Returns the grants. Only the
+   * owner sets roles: "viewer" also limits what a link the user kept grants
+   * them, and "editor" lifts the limit.
+   */
   static async setRole(
     workflowId: string,
     userId: string,
-    role: CollaboratorRole
+    role: CollaboratorRole,
+    setBy?: string
   ): Promise<WorkflowCollaborator[]> {
     return changingAccess([{ kind: "workflow", id: workflowId }], async () => {
       const grants = await WorkflowCollaborator.listFor(workflowId, userId);
@@ -226,15 +247,45 @@ export class WorkflowCollaborator extends DBModel {
           await grant.save();
         }
       }
+      if (grants.length > 0) {
+        if (role === "editor") {
+          await ShareRoleLimit.clear("workflow", workflowId, userId);
+        } else {
+          await ShareRoleLimit.set({
+            documentType: "workflow",
+            documentId: workflowId,
+            userId,
+            role,
+            setBy: setBy ?? grants[0].invited_by
+          });
+        }
+      }
       return grants;
     });
   }
 
-  /** Remove every grant a user holds. Returns true if a row was deleted. */
-  static async remove(workflowId: string, userId: string): Promise<boolean> {
+  /**
+   * Remove every grant a user holds. Returns true if a row was deleted.
+   * When `removedBy` is someone other than the user (the owner), no link
+   * admits the user again until the owner invites them.
+   */
+  static async remove(
+    workflowId: string,
+    userId: string,
+    removedBy?: string
+  ): Promise<boolean> {
     return changingAccess([{ kind: "workflow", id: workflowId }], async () => {
       const grants = await WorkflowCollaborator.listFor(workflowId, userId);
       for (const grant of grants) await grant.delete();
+      if (grants.length > 0 && removedBy !== undefined && removedBy !== userId) {
+        await ShareRoleLimit.set({
+          documentType: "workflow",
+          documentId: workflowId,
+          userId,
+          role: null,
+          setBy: removedBy
+        });
+      }
       return grants.length > 0;
     });
   }
@@ -246,6 +297,7 @@ export class WorkflowCollaborator extends DBModel {
       await db
         .delete(workflowCollaborators)
         .where(eq(workflowCollaborators.workflow_id, workflowId));
+      await ShareRoleLimit.removeForDocuments("workflow", [workflowId]);
     });
   }
 

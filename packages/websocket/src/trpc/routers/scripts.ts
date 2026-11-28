@@ -33,6 +33,7 @@ import {
   hasDocumentRole,
   type DocumentRole
 } from "../../lib/document-access.js";
+import { saveUnderAttachRule } from "../../lib/document-refs.js";
 
 const listInput = z.object({
   projectId: z.string().optional(),
@@ -163,10 +164,12 @@ export const scriptsRouter = router({
       if (input.storyboardId !== undefined)
         fields.storyboard_id = input.storyboardId;
 
-      const updated = await Script.updateFieldsIfUnchanged(
-        input.id,
-        expectedUpdatedAt,
-        fields
+      const updated = await saveUnderAttachRule(
+        "script",
+        script,
+        ctx.userId,
+        fields.document,
+        () => Script.updateFieldsIfUnchanged(input.id, expectedUpdatedAt, fields)
       );
       if (!updated) {
         throwApiError(

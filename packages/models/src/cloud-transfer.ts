@@ -13,16 +13,28 @@ export type CloudTransferRow = typeof cloudTransfers.$inferSelect;
 export type CloudTransferAttemptRow = typeof cloudTransferAttempts.$inferSelect;
 export type CloudTransferState = "open" | "committed" | "cancelled";
 
+/** The files a transfer declares, by hash: the size each one has. */
+export type DeclaredTransferFiles = Record<string, number>;
+
+/** The files the row declares, or null for a row opened before they were recorded. */
+export function declaredTransferFiles(row: Pick<CloudTransferRow, "manifest_files">): DeclaredTransferFiles | null {
+  if (row.manifest_files === null) return null;
+  return JSON.parse(row.manifest_files) as DeclaredTransferFiles;
+}
+
 /**
  * Creates the transfer, or returns the one the caller already opened under
  * the id. Returns null when the id belongs to another person's transfer or
- * to a transfer into another project.
+ * to a transfer into another project. `declaredFiles` are the files the
+ * manifest stages. Opening an open transfer again adds the files its new
+ * manifest declares, since a later run may include more files.
  */
 export async function openCloudTransfer(input: {
   id: string;
   userId: string;
   projectId: string;
   firstPublication: boolean;
+  declaredFiles: DeclaredTransferFiles;
   now?: Date;
 }): Promise<CloudTransferRow | null> {
   const now = (input.now ?? new Date()).toISOString();
@@ -35,13 +47,23 @@ export async function openCloudTransfer(input: {
       first_publication: input.firstPublication,
       state: "open",
       committed_attempt_id: null,
+      manifest_files: JSON.stringify(input.declaredFiles),
       created_at: now,
       updated_at: now
     })
     .onConflictDoNothing();
   const row = await getCloudTransfer(input.id);
   if (!row || row.user_id !== input.userId || row.project_id !== input.projectId) return null;
-  return row;
+  if (row.state !== "open") return row;
+  const known = declaredTransferFiles(row) ?? {};
+  const added = Object.entries(input.declaredFiles).filter(([hash, size]) => known[hash] !== size);
+  if (added.length === 0) return row;
+  const manifestFiles = JSON.stringify({ ...known, ...Object.fromEntries(added) });
+  await getPortableDb()
+    .update(cloudTransfers)
+    .set({ manifest_files: manifestFiles, updated_at: now })
+    .where(eq(cloudTransfers.id, row.id));
+  return { ...row, manifest_files: manifestFiles, updated_at: now };
 }
 
 export async function getCloudTransfer(id: string): Promise<CloudTransferRow | null> {

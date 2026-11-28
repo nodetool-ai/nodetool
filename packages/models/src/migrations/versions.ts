@@ -306,6 +306,27 @@ const SHARING_GRANT_INDEX_DDL: readonly string[] = [
     WHERE disabled_at IS NULL`
 ];
 
+/**
+ * The role limits an owner's demotion or removal leaves on a person. Applied
+ * by its migration, and by `initTestDb` through {@link POST_BASELINE_TABLE_DDL}.
+ * See schema/document-sharing.ts.
+ */
+const SHARE_ROLE_LIMITS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_share_role_limits (
+    id TEXT PRIMARY KEY NOT NULL,
+    document_type TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    role TEXT,
+    set_by TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_srlimit_document_user
+    ON nodetool_share_role_limits (document_type, document_id, user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_srlimit_user_id
+    ON nodetool_share_role_limits (user_id)`
+];
+
 /** DDL for the reference set tables. See schema/document-refs.ts. */
 const DOCUMENT_REFS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_document_refs (
@@ -635,6 +656,14 @@ const CLOUD_TRANSFERS_DDL: readonly string[] = [
   `CREATE INDEX IF NOT EXISTS idx_cloud_transfer_attempts_user
     ON cloud_transfer_attempts (user_id)`
 ];
+
+/**
+ * The files a transfer's manifests declare, which a stage checks against.
+ * Applied by the `add_cloud_transfer_manifest_files` migration, and by
+ * `initTestDb` through {@link POST_BASELINE_TABLE_DDL}.
+ */
+const CLOUD_TRANSFER_MANIFEST_FILES_DDL =
+  "ALTER TABLE cloud_transfers ADD COLUMN manifest_files TEXT";
 
 /**
  * Files a committed transfer still has to place, and the content it replaced
@@ -1163,6 +1192,7 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...PROJECT_BLOBS_DDL,
   ...ACCESS_EPOCHS_DDL,
   ...CLOUD_TRANSFERS_DDL,
+  CLOUD_TRANSFER_MANIFEST_FILES_DDL,
   ...TRANSFER_FILES_DDL,
   ...TRANSFER_ACTIVITY_DDL,
   ...REVISION_SETS_DDL,
@@ -1181,7 +1211,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ),
   ...SEARCH_IMAGE_EMBEDDING_COLUMNS.map(
     ([name, type]) => `ALTER TABLE nodetool_search_items ADD COLUMN ${name} ${type}`
-  )
+  ),
+  ...SHARE_ROLE_LIMITS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5959,6 +5990,38 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // The columns stay: dropping them would only make every image embed again.
+    }
+  },
+  // ── Share role limits ───────────────────────────────────────────────
+  // An owner's demotion or removal holds when the person redeems a link
+  // they kept.
+  {
+    version: "20261206_000001",
+    name: "add_share_role_limits",
+    createsTables: ["nodetool_share_role_limits"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of SHARE_ROLE_LIMITS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS nodetool_share_role_limits");
+    }
+  },
+  // ── Declared files of a transfer ────────────────────────────────────
+  // A stage accepts only the files the transfer's manifest declares.
+  {
+    version: "20261206_000002",
+    name: "add_cloud_transfer_manifest_files",
+    createsTables: [],
+    modifiesTables: ["cloud_transfers"],
+    async up(db) {
+      if (!(await db.tableExists("cloud_transfers"))) return;
+      if (!(await db.columnExists("cloud_transfers", "manifest_files"))) {
+        await db.execute(CLOUD_TRANSFER_MANIFEST_FILES_DDL);
+      }
+    },
+    async down() {
+      // The column stays: open transfers would lose their declared files.
     }
   }
 ];

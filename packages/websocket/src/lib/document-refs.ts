@@ -151,7 +151,7 @@ const REF_KIND_SOURCES: Record<RefDocumentKind, RefKindSource> = {
 };
 
 /** The stored content of a document, as the set function reads it. */
-function currentContent(kind: RefDocumentKind, document: RefDocument): unknown {
+export function currentContent(kind: RefDocumentKind, document: RefDocument): unknown {
   return REF_KIND_SOURCES[kind].content(document);
 }
 
@@ -248,6 +248,38 @@ export async function publishSave(
   // admissions above.
   await writeCurrentSet(kind, document, content, key, hash);
   await DocumentRefs.removeOtherCurrentSets(kind, document.id, key);
+}
+
+/**
+ * A save under the attach rule, for every kind: refuses a file `writerId` may
+ * not add before `write` runs, and publishes the set of the stored row after
+ * it. `document` is the row as loaded; `next` is the content the save stores,
+ * in the shape the kind's set function reads, or undefined when the save
+ * leaves the content as it is. `write` is the save's compare-and-set and
+ * returns null when it lost, which admits nothing. A restore calls
+ * {@link ensureVersionSets} first, so the files of its version are not new.
+ */
+export async function saveUnderAttachRule<T extends RefDocument>(
+  kind: RefDocumentKind,
+  document: RefDocument,
+  writerId: string,
+  next: unknown,
+  write: () => Promise<T | null>
+): Promise<T | null> {
+  if (next === undefined) return write();
+  const toAdmit = await checkAttach(
+    kind,
+    {
+      id: document.id,
+      user_id: document.user_id,
+      before: currentContent(kind, document)
+    },
+    writerId,
+    next
+  );
+  const stored = await write();
+  if (stored) await publishSave(kind, stored, toAdmit);
+  return stored;
 }
 
 /**
