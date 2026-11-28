@@ -2209,6 +2209,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-text-documents.test.ts",
     ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/surfaces/text-documents.ts",
+        cases: ["revise-launch-plan"],
+      },
+    ],
   },
   {
     name: "edit_document",
@@ -2219,6 +2225,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-text-documents.test.ts",
     ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/surfaces/text-documents.ts",
+        cases: ["revise-launch-plan"],
+      },
+    ],
   },
   {
     name: "list_document_versions",
@@ -2228,6 +2240,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/surfaces/text-documents.ts",
+        cases: ["restore-earlier-price"],
+      },
     ],
   },
   {
@@ -2268,6 +2286,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/surfaces/text-documents.ts",
+        cases: ["restore-earlier-price"],
+      },
     ],
   },
   {

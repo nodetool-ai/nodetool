@@ -258,6 +258,7 @@ Thirteen suites are registered:
 | `audio-tools` | `ui_audio_*` audio sample editor | `surfaces/audio.ts` |
 | `app-tools` | `ui_app_*` App Builder | `surfaces/app.ts` |
 | `memory-tools` | `memory_*` / `asset_*` | `surfaces/memory.ts` |
+| `text-document-tools` | `create_document`, `read_document`, `edit_document`, `list_document_versions`, `restore_document_version` | `surfaces/text-documents.ts` |
 | `creative-pipeline` | the three creative surfaces, composed, plus `ui_brief_*` / `ui_review_*` | `surfaces/creative-pipeline.ts` |
 
 `creative-pipeline` is the long-horizon suite: one commission carried through
@@ -417,6 +418,13 @@ against an in-memory DB (`initTestDb`), so it exercises the actual persistence
 media → remember it with an asset reference → recall it — and one case seeds a
 memory in a *different* thread, which only a cross-thread `memory_search`
 finds.
+
+`text-document-tools` runs the real text-document capabilities the same way,
+against an in-memory DB and a project folder in a temporary directory. A seed
+writes each document, and its version history, through those capabilities in
+turns of its own. One case revises a plan in place and keeps the rest of it.
+The other restores the version from before an unwanted edit, and fails when
+the model retypes the old text instead.
 
 Bridges reuse the pure packages where the real logic already lives —
 `@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,

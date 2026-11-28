@@ -50,6 +50,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
+      - name: Check the provider key
+        # Without the key the suite fails inside its first case with an auth
+        # error, after the install and build. Name the missing secret instead.
+        env:
+          PROVIDER: ${{ inputs.provider || 'anthropic' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          case "$PROVIDER" in
+            anthropic) secret=ANTHROPIC_API_KEY ;;
+            openai) secret=OPENAI_API_KEY ;;
+            gemini) secret=GEMINI_API_KEY ;;
+            *) echo "No key check for provider $PROVIDER."; exit 0 ;;
+          esac
+          if [ -z "${!secret}" ]; then
+            echo "::error title=Missing provider key::The $secret repository secret is not set, so the $PROVIDER builder cannot authenticate. Add it under Settings > Secrets and variables > Actions."
+            echo "## App build eval" >> "$GITHUB_STEP_SUMMARY"
+            echo "Not run: the \`$secret\` repository secret is not set." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

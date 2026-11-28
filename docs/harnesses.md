@@ -1879,8 +1879,8 @@ suites that drive a real provider through the frontend `ui_*` tool contract agai
 headless bridge — no browser — and score the multi-turn tool-calling flow
 structurally: `tool-loop` (graph editor), `workflow-escalation`, `script-tools`,
 `jsscript-tools`, `sketch-tools`, `timeline-tools`, `storyboard-tools`,
-`model3d-tools`, `svg-tools`, `audio-tools`, `app-tools`, `memory-tools`, and
-`creative-pipeline`. Same flags, metrics, and `--min-success` CI gate as `graph-planner`. Details:
+`model3d-tools`, `svg-tools`, `audio-tools`, `app-tools`, `memory-tools`,
+`text-document-tools`, and `creative-pipeline`. Same flags, metrics, and `--min-success` CI gate as `graph-planner`. Details:
 [packages/agents/docs/evals.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/evals.md#tool-loop-eval-suites-frontend-ui_-surfaces).
 
 `workflow-escalation` runs the graph tools over objectives that are missing

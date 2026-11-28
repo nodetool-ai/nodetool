@@ -92,6 +92,7 @@ const EVAL_MODULES = [
   ["evals/surfaces/sketch.js", "SKETCH_TOOL_LOOP_CASES"],
   ["evals/surfaces/storyboard.js", "STORYBOARD_TOOL_LOOP_CASES"],
   ["evals/surfaces/memory.js", "MEMORY_TOOL_LOOP_CASES"],
+  ["evals/surfaces/text-documents.js", "TEXT_DOCUMENTS_TOOL_LOOP_CASES"],
   ["evals/surfaces/timeline.js", "TIMELINE_TOOL_LOOP_CASES"]
 ];
 

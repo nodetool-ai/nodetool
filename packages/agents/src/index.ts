@@ -735,6 +735,11 @@ export {
 } from "./evals/surfaces/memory.js";
 export type { MemoryBridgeFinalState } from "./evals/surfaces/memory.js";
 export {
+  createTextDocumentsToolBridge,
+  TEXT_DOCUMENTS_TOOL_LOOP_CASES
+} from "./evals/surfaces/text-documents.js";
+export type { TextDocumentsFinalState } from "./evals/surfaces/text-documents.js";
+export {
   createCreativePipelineBridge,
   CREATIVE_PIPELINE_TOOL_LOOP_CASES,
   ATLAS_BRIEF,

@@ -837,6 +837,11 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
     (mod) => mod.MEMORY_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
+    "text-document-tools",
+    "Run the text-documents tool-loop eval suite (create, read, edit and restore Markdown documents, real DB and project folder) against a provider/model",
+    (mod) => mod.TEXT_DOCUMENTS_TOOL_LOOP_CASES
+  ),
+  makeToolLoopSuite(
     "creative-pipeline",
     "Run the long-horizon creative eval: one commission carried through brief, ideation, sketch, storyboard, cut and review across the composed ui_sketch_*/ui_storyboard_*/ui_timeline_* surfaces",
     (mod) => mod.CREATIVE_PIPELINE_TOOL_LOOP_CASES
