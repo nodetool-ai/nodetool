@@ -18,6 +18,8 @@ function(nt_audio_tests)
             DEFINES NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures" NT_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}"
             INCLUDES src/playback)
     endforeach()
+    # The allocation counter lives in native/audio-io's test support.
+    target_link_libraries(tst_mixer PRIVATE nodetool_audio_io_test_support)
     target_link_libraries(tst_audioclock PRIVATE nodetool_timeline_player Qt6::Qml)
     target_link_libraries(tst_shuttleaudio PRIVATE nodetool_timeline_player Qt6::Qml)
     set_tests_properties(tst_shuttleaudio PROPERTIES FIXTURES_REQUIRED media)
