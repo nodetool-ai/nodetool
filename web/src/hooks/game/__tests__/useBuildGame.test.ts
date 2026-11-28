@@ -23,6 +23,7 @@ import {
   NATIVE_GAME_INSPIRATION_CHIPS,
   gameSlotSpec
 } from "@nodetool-ai/protocol";
+import { useGameAssistantKickoffStore } from "../../../stores/game/GameAssistantKickoffStore";
 import {
   cancelGameBuild,
   gameImageSlots,
@@ -46,6 +47,7 @@ const input = (overrides: Partial<BuildGameInput> = {}): BuildGameInput => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useGameAssistantKickoffStore.setState({ kickoffs: {} });
   gameCreate.mockResolvedValue({ game: { id: "game-1", name: "Last Acorn" } });
   generateAsset.mockResolvedValue({});
 });
@@ -86,6 +88,22 @@ describe("startGameBuild", () => {
       projectId: "p1",
       failures: []
     });
+  });
+
+  it("hands the rest of the game to the editor's assistant", async () => {
+    generateAsset.mockImplementation(async (args: { slot: string }) => {
+      if (args.slot === "wall") {
+        throw new Error("Provider refused the prompt");
+      }
+      return {};
+    });
+
+    await startGameBuild("w1", input());
+
+    const prompt = useGameAssistantKickoffStore.getState().claim("game-1");
+    expect(prompt).toContain(`Title: ${design.title}`);
+    expect(prompt).toContain(`Win: ${design.win}`);
+    expect(prompt).toContain("wall: Provider refused the prompt");
   });
 
   it("prompts each slot with its subject, the style and its own cast member", async () => {
@@ -145,6 +163,7 @@ describe("startGameBuild", () => {
     );
     expect(setGame).not.toHaveBeenCalledWith({ stage: "done" });
     expect(isGameBuildLive("w1")).toBe(false);
+    expect(useGameAssistantKickoffStore.getState().kickoffs).toEqual({});
   });
 
   it("joins the build already running instead of starting a second", async () => {
