@@ -118,6 +118,19 @@ documents. Follow the guide's installation instructions when a bundled example
 uses packaged assets. For other documents, read the guide's minimal example and
 inspect the creation tool's schema before saving it.
 
+### `nodetool storyboard`
+
+A pointer, not an authoring command. It takes no subcommands and prints help that names the `nodetool tools` calls for storyboards. Those calls need the `cli-chat` [command feature](#install-command-features).
+
+```bash
+nodetool storyboard
+nodetool tools list storyboard
+nodetool tools info create_storyboard
+nodetool tools call create_storyboard --args '{"name":"Intro"}'
+```
+
+Read the `storyboard-core` guide with `nodetool skills read storyboard-core` before you direct shots.
+
 ## Global Options
 
 These options belong to the installed execution and authoring command features.
