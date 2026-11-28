@@ -4,7 +4,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import type { ChatSource, UiContext, UiDocumentRef } from "@nodetool-ai/protocol";
+import {
+  isModelSelected,
+  type ChatSource,
+  type UiContext,
+  type UiDocumentRef
+} from "@nodetool-ai/protocol";
 
 import {
   FlexColumn,
@@ -13,9 +18,10 @@ import {
   SPACING,
   getSpacingPx
 } from "../../ui_primitives";
-import ChatView from "../containers/ChatView";
+import ChatView, { type ChatAutoSend } from "../containers/ChatView";
 import ChatPanelHeader from "../containers/ChatPanelHeader";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import { useChatDraftStore } from "../../../stores/ChatDraftStore";
 import { useChatViewThread } from "../../../hooks/chat/useChatViewThread";
 import useThreadModel from "../../../hooks/chat/useThreadModel";
 import { useInStudio } from "../../../studio/StudioContext";
@@ -66,7 +72,15 @@ interface AssistantChatPanelProps {
   documentEditMode?: "staged" | "direct" | null;
   /** Extra controls rendered at the start of the header action strip. */
   headerActions?: ReactNode;
+  /**
+   * A first turn to send for the user once the panel can. With no model
+   * picked it lands in the composer instead, ready to send.
+   */
+  autoSend?: ChatAutoSend | null;
 }
+
+/** How long an auto-send waits for a model to load before it drafts instead. */
+export const AUTO_SEND_MODEL_WAIT_MS = 3000;
 
 /**
  * Shared chat chrome for every editor assistant. Each location only supplies
@@ -89,7 +103,8 @@ const AssistantChatPanel = ({
   beforeSend,
   focusMessage,
   documentEditMode,
-  headerActions
+  headerActions,
+  autoSend
 }: AssistantChatPanelProps) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -144,6 +159,26 @@ const AssistantChatPanel = ({
       console.error(`Failed to connect ${chatSource} chat:`, err);
     });
   }, [connect, chatSource]);
+
+  // No model to send with: once the wait is over, the prompt lands in the
+  // composer of a new conversation so one click sends it.
+  const modelReady = isModelSelected(model);
+  useEffect(() => {
+    if (!autoSend || modelReady) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      if (!autoSend.claim()) {
+        return;
+      }
+      void createThread()
+        .then((id) => useChatDraftStore.getState().setDraft(id, autoSend.prompt))
+        .catch((err) => {
+          console.error(`Failed to draft ${chatSource} prompt:`, err);
+        });
+    }, AUTO_SEND_MODEL_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [autoSend, chatSource, createThread, modelReady]);
 
   const chatStatus =
     runtime.status === "idle" || runtime.status === "stopping"
@@ -243,6 +278,7 @@ const AssistantChatPanel = ({
           composerPlaceholder={composerPlaceholder}
           chatSource={chatSource}
           uiContext={uiContext}
+          autoSend={autoSend}
         />
       </div>
     </div>

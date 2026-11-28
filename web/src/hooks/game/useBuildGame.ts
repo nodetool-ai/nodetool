@@ -15,6 +15,10 @@
  * the build fails only when no image slot succeeded. Sound slots keep the
  * template's built-in sounds.
  *
+ * The build makes the template's room, not the designed game. Once the art is
+ * in it parks a prompt for the game editor's assistant, which opens with the
+ * game and builds the level, behaviours, win and lose from the design.
+ *
  * One build runs per workflow. The registry is module level because the step
  * that starts a build can unmount while it runs (the tab is closed, or the
  * host swaps), and a second click from a remounted step must not pay twice.
@@ -34,6 +38,8 @@ import type {
   GameSetup
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
+import { useGameAssistantKickoffStore } from "../../stores/game/GameAssistantKickoffStore";
+import { gameFinishPrompt } from "../../components/game/gameAssistantPrompt";
 import { newDocumentId } from "../../lib/newDocumentId";
 import { trpcClient } from "../../trpc/client";
 
@@ -196,6 +202,10 @@ const runBuild = async (
     );
   }
   await input.setGame({ stage: "done" });
+  // The room and its art are in; the editor's assistant builds the rest.
+  useGameAssistantKickoffStore
+    .getState()
+    .queue(gameId, gameFinishPrompt(input.design, failures));
   return { gameId, name: input.name, projectId: input.projectId, failures };
 };
 

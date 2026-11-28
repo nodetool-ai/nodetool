@@ -30,7 +30,7 @@ import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
 import { openGameDiagnosticSession3D } from "./viewport3d/gameSessionAssets3D";
-import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
+import { useGameAssistantDraft, useRevealAssistantForKickoff } from "./panels/agent/useGameAssistantDraft";
 import GameConsolePanel from "./panels/console/GameConsolePanel";
 import AnimationGraphPanel from "./panels/animation/AnimationGraphPanel";
 import { gameValidationConsoleEntries } from "./panels/console/gameConsoleModel";
@@ -64,6 +64,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId, documen
   const [sceneId, setSceneId] = useState(document.entrySceneId);
   const layoutStore = useGamePanelLayoutStore();
   const assistant = useGameAssistantDraft(layoutStore);
+  useRevealAssistantForKickoff(refId, layoutStore);
   const assistantOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("assistant"));
   const inspectorOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("inspector"));
   const treeOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("hierarchy") || !state.layout.hidden.includes("revisions"));
