@@ -164,9 +164,9 @@ describe("tRPC /trpc/mcpConfig.status over Fastify", () => {
     expect(data).toHaveProperty("targets");
     expect(data).toHaveProperty("defaultUrl");
     expect(Array.isArray(data.targets)).toBe(true);
-    expect(data.targets).toHaveLength(3);
+    expect(data.targets).toHaveLength(4);
     for (const t of data.targets) {
-      expect(["claude", "codex", "opencode"]).toContain(t.target);
+      expect(["claude", "codex", "opencode", "antigravity"]).toContain(t.target);
     }
     await app.close();
   });
